@@ -8,7 +8,7 @@
   <!-- Badges (adjust links after you publish) -->
   <p>
     <a href="#"><img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue.svg"></a>
-    <a href="#"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
+    <a href="#"><img alt="License" src="https://img.shields.io/badge/license-Apache2.0-green.svg"></a>
     <a href="#"><img alt="Status" src="https://img.shields.io/badge/status-beta-orange.svg"></a>
   </p>
 
@@ -227,7 +227,7 @@ pytest -q
 
 ## 📄 License
 
-MIT — see `LICENSE`.
+Apache-2.0 — see `LICENSE`.
 
 ---
 
