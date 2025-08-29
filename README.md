@@ -182,6 +182,268 @@ deepmcpagent run \
 
 ---
 
+## Full Architecture & Agent Flow
+
+### 1) High-level Architecture (modules & data flow)
+
+```mermaid
+flowchart LR
+    %% Groupings
+    subgraph User["👤 User / App"]
+      Q["Prompt / Task"]
+      CLI["CLI (Typer)"]
+      PY["Python API"]
+    end
+
+    subgraph Agent["🤖 Agent Runtime"]
+      DIR["build_deep_agent()"]
+      PROMPT["prompt.py\n(DEFAULT_SYSTEM_PROMPT)"]
+      subgraph AGRT["Agent Graph"]
+        DA["DeepAgents loop\n(if installed)"]
+        REACT["LangGraph ReAct\n(fallback)"]
+      end
+      LLM["LangChain Model\n(instance or init_chat_model(provider-id))"]
+      TOOLS["LangChain Tools\n(BaseTool[])"]
+    end
+
+    subgraph MCP["🧰 Tooling Layer (MCP)"]
+      LOADER["MCPToolLoader\n(JSON-Schema ➜ Pydantic ➜ BaseTool)"]
+      TOOLWRAP["_FastMCPTool\n(async _arun → client.call_tool)"]
+    end
+
+    subgraph FMCP["🌐 FastMCP Client"]
+      CFG["servers_to_mcp_config()\n(mcpServers dict)"]
+      MULTI["FastMCPMulti\n(fastmcp.Client)"]
+    end
+
+    subgraph SRV["🛠 MCP Servers (HTTP/SSE)"]
+      S1["Server A\n(e.g., math)"]
+      S2["Server B\n(e.g., search)"]
+      S3["Server C\n(e.g., github)"]
+    end
+
+    %% Edges
+    Q -->|query| CLI
+    Q -->|query| PY
+    CLI --> DIR
+    PY --> DIR
+
+    DIR --> PROMPT
+    DIR --> LLM
+    DIR --> LOADER
+    DIR --> AGRT
+
+    LOADER --> MULTI
+    CFG --> MULTI
+    MULTI -->|list_tools| SRV
+    LOADER --> TOOLS
+    TOOLS --> AGRT
+
+    AGRT <-->|messages| LLM
+    AGRT -->|tool calls| TOOLWRAP
+    TOOLWRAP --> MULTI
+    MULTI -->|call_tool| SRV
+
+    SRV -->|tool result| MULTI --> TOOLWRAP --> AGRT -->|final answer| CLI
+    AGRT -->|final answer| PY
+```
+
+---
+
+### 2) Runtime Sequence (end-to-end tool call)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant CLI as CLI/Python
+    participant Builder as build_deep_agent()
+    participant Loader as MCPToolLoader
+    participant Graph as Agent Graph (DeepAgents or ReAct)
+    participant LLM as LangChain Model
+    participant Tool as _FastMCPTool
+    participant FMCP as FastMCP Client
+    participant S as MCP Server (HTTP/SSE)
+
+    U->>CLI: Enter prompt
+    CLI->>Builder: build_deep_agent(servers, model, instructions?)
+    Builder->>Loader: get_all_tools()
+    Loader->>FMCP: list_tools()
+    FMCP->>S: HTTP(S)/SSE list_tools
+    S-->>FMCP: tools + JSON-Schema
+    FMCP-->>Loader: tool specs
+    Loader-->>Builder: BaseTool[]
+    Builder-->>CLI: (Graph, Loader)
+
+    U->>Graph: ainvoke({messages:[user prompt]})
+    Graph->>LLM: Reason over system + messages + tool descriptions
+    LLM-->>Graph: Tool call (e.g., add(a=3,b=5))
+    Graph->>Tool: _arun(a=3,b=5)
+    Tool->>FMCP: call_tool("add", {a:3,b:5})
+    FMCP->>S: POST /mcp tools.call("add", {...})
+    S-->>FMCP: result { data: 8 }
+    FMCP-->>Tool: result
+    Tool-->>Graph: ToolMessage(content=8)
+
+    Graph->>LLM: Continue with observations
+    LLM-->>Graph: Final response "(3 + 5) * 7 = 56"
+    Graph-->>CLI: messages (incl. final LLM answer)
+```
+
+---
+
+### 3) Agent Control Loop (planning & acting)
+
+```mermaid
+stateDiagram-v2
+    [*] --> AcquireTools
+    AcquireTools: Discover MCP tools via FastMCP\n(JSON-Schema ➜ Pydantic ➜ BaseTool)
+    AcquireTools --> Plan
+
+    Plan: LLM plans next step\n(uses system prompt + tool descriptions)
+    Plan --> CallTool: if tool needed
+    Plan --> Respond: if direct answer sufficient
+
+    CallTool: _FastMCPTool._arun\n→ client.call_tool(name, args)
+    CallTool --> Observe: receive tool result
+    Observe: Parse result payload (data/text/content)
+    Observe --> Decide
+
+    Decide: More tools needed?
+    Decide --> Plan: yes
+    Decide --> Respond: no
+
+    Respond: LLM crafts final message
+    Respond --> [*]
+```
+
+---
+
+### 4) Code Structure (types & relationships)
+
+```mermaid
+classDiagram
+    class StdioServerSpec {
+      +command: str
+      +args: List[str]
+      +env: Dict[str,str]
+      +cwd: Optional[str]
+      +keep_alive: bool
+    }
+
+    class HTTPServerSpec {
+      +url: str
+      +transport: Literal["http","streamable-http","sse"]
+      +headers: Dict[str,str]
+      +auth: Optional[str]
+    }
+
+    class FastMCPMulti {
+      -_client: fastmcp.Client
+      +client(): Client
+    }
+
+    class MCPToolLoader {
+      -_multi: FastMCPMulti
+      +get_all_tools(): List[BaseTool]
+      +list_tool_info(): List[ToolInfo]
+    }
+
+    class _FastMCPTool {
+      +name: str
+      +description: str
+      +args_schema: Type[BaseModel]
+      -_tool_name: str
+      -_client: Any
+      +_arun(**kwargs) async
+    }
+
+    class ToolInfo {
+      +server_guess: str
+      +name: str
+      +description: str
+      +input_schema: Dict[str,Any]
+    }
+
+    class build_deep_agent {
+      +servers: Mapping[str,ServerSpec]
+      +model: ModelLike
+      +instructions?: str
+      +returns: (graph, loader)
+    }
+
+    StdioServerSpec <|-- ServerSpec
+    HTTPServerSpec <|-- ServerSpec
+    FastMCPMulti o--> ServerSpec : uses servers_to_mcp_config()
+    MCPToolLoader o--> FastMCPMulti
+    MCPToolLoader --> _FastMCPTool : creates
+    _FastMCPTool ..> BaseTool
+    build_deep_agent --> MCPToolLoader : discovery
+    build_deep_agent --> _FastMCPTool : tools for agent
+```
+
+---
+
+### 5) Deployment / Integration View (clusters & boundaries)
+
+```mermaid
+flowchart TD
+    subgraph App["Your App / Service"]
+      UI["CLI / API / Notebook"]
+      Code["deepmcpagent (Python pkg)\n- config.py\n- clients.py\n- tools.py\n- agent.py\n- prompt.py"]
+      UI --> Code
+    end
+
+    subgraph Cloud["LLM Provider(s)"]
+      P1["OpenAI / Anthropic / Groq / Ollama..."]
+    end
+
+    subgraph Net["Network"]
+      direction LR
+      FMCP["FastMCP Client\n(HTTP/SSE)"]
+      FMCP ---|mcpServers| Code
+    end
+
+    subgraph Servers["MCP Servers"]
+      direction LR
+      A["Service A (HTTP)\n/path: /mcp"]
+      B["Service B (SSE)\n/path: /mcp"]
+      C["Service C (HTTP)\n/path: /mcp"]
+    end
+
+    Code -->|init_chat_model or model instance| P1
+    Code --> FMCP
+    FMCP --> A
+    FMCP --> B
+    FMCP --> C
+```
+
+---
+
+### 6) Error Handling & Observability (tool errors & retries)
+
+```mermaid
+flowchart TD
+    Start([Tool Call]) --> Try{"client.call_tool(name,args)"}
+    Try -- ok --> Parse["Extract data/text/content/result"]
+    Parse --> Return[Return ToolMessage to Agent]
+    Try -- raises --> Err["Tool/Transport Error"]
+    Err --> Wrap["ToolMessage(status=error, content=trace)"]
+    Wrap --> Agent["Agent observes error\nand may retry / alternate tool"]
+```
+
+---
+
+> These diagrams reflect the current implementation:
+>
+> - **Model is required** (string provider-id or LangChain model instance).
+> - **MCP tools only**, discovered at runtime via **FastMCP** (HTTP/SSE).
+> - Agent loop prefers **DeepAgents** if installed; otherwise **LangGraph ReAct**.
+> - Tools are typed via **JSON-Schema ➜ Pydantic ➜ LangChain BaseTool**.
+> - Fancy console output shows **discovered tools**, **calls**, **results**, and **final answer**.
+
+---
+
 ## 🧪 Development
 
 ```bash
