@@ -23,7 +23,7 @@ DeepMCPAgent targets **Python 3.10+**.
 
 ```bash
 # 1) Clone and enter the repo
-git clone https://github.com/your-org/deepmcpagent.git
+git clone https://github.com/cryxnet/deepmcpagent.git
 cd deepmcpagent
 
 # 2) Create and activate a virtual environment
