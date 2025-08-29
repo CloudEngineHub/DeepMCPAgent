@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Mapping, Optional, Union
+from typing import List, Mapping, Optional, Tuple, Union
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -39,7 +39,7 @@ async def build_deep_agent(
     servers: Mapping[str, ServerSpec],
     model: ModelLike,
     instructions: Optional[str] = None,
-):
+) -> Tuple[Runnable, MCPToolLoader]:
     """Build an MCP-only agent graph.
 
     This function discovers tools from the configured MCP servers, converts them into

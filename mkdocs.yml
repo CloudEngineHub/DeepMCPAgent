@@ -13,15 +13,16 @@ plugins:
           options:
             docstring_style: google
             show_source: true
+
 nav:
-  - Home: docs/index.md
-  - Installation: docs/installation.md
-  - Getting Started: docs/getting-started.md
-  - Server Specs & Auth: docs/server-specs.md
-  - Model Setup: docs/model-setup.md
-  - CLI: docs/cli.md
-  - Examples: docs/examples.md
-  - API: docs/api.md
-  - Troubleshooting: docs/troubleshooting.md
-  - FAQ: docs/faq.md
-  - Changelog: docs/changelog.md
+  - Home: index.md
+  - Installation: installation.md
+  - Getting Started: getting-started.md
+  - Server Specs & Auth: server-specs.md
+  - Model Setup: model-setup.md
+  - CLI: cli.md
+  - Examples: examples.md
+  - API: api.md
+  - Troubleshooting: troubleshooting.md
+  - FAQ: faq.md
+  - Changelog: changelog.md
