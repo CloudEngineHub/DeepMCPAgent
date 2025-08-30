@@ -5,15 +5,25 @@
   <h1>🤖 DeepMCPAgent</h1>
   <p><strong>Model-agnostic LangChain/LangGraph agents powered entirely by <a href="https://modelcontextprotocol.io/">MCP</a> tools over HTTP/SSE.</strong></p>
 
-  <!-- Badges (adjust links after you publish) -->
+  <!-- Badges -->
   <p>
+    <a href="https://github.com/cryxnet/deepmcpagent/actions/workflows/ci.yml">
+      <img alt="CI" src="https://github.com/cryxnet/deepmcpagent/actions/workflows/ci.yml/badge.svg">
+    </a>
+    <a href="https://cryxnet.github.io/deepmcpagent">
+      <img alt="Docs" src="https://img.shields.io/badge/docs-latest-brightgreen.svg">
+    </a>
     <a href="#"><img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue.svg"></a>
-    <a href="#"><img alt="License" src="https://img.shields.io/badge/license-Apache2.0-green.svg"></a>
+    <a href="#"><img alt="License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a>
     <a href="#"><img alt="Status" src="https://img.shields.io/badge/status-beta-orange.svg"></a>
   </p>
 
   <p>
     <em>Discover MCP tools dynamically. Bring your own LangChain model. Build production-ready agents—fast.</em>
+  </p>
+
+  <p>
+    📚 <a href="https://cryxnet.github.io/deepmcpagent/">Documentation</a> • 🛠 <a href="https://github.com/cryxnet/deepmcpagent/issues">Issues</a>
   </p>
 </div>
 
@@ -32,20 +42,37 @@
 
 ---
 
-## 🚀 Quickstart
+## 🚀 Installation
 
-### 1) Install
+Install from [PyPI](https://pypi.org/project/deepmcpagent/):
 
 ```bash
-# create and activate a virtual env
-python3 -m venv .venv
-source .venv/bin/activate
-
-# install (editable) + dev extras (optional) + deep agents (optional, but recommended)
-pip install -e ".[dev,deep]"
+pip install "deepmcpagent[deep]"
 ```
 
-### 2) Start a sample MCP server (HTTP)
+This installs DeepMCPAgent with **DeepAgents support (recommended)** for the best agent loop.
+Other optional extras:
+
+- `dev` → linting, typing, tests
+- `docs` → MkDocs + Material + mkdocstrings
+- `examples` → dependencies used by bundled examples
+
+```bash
+# install with deepagents + dev tooling
+pip install "deepmcpagent[deep,dev]"
+```
+
+⚠️ If you’re using **zsh**, remember to quote extras:
+
+```bash
+pip install "deepmcpagent[deep,dev]"
+```
+
+---
+
+## 🚀 Quickstart
+
+### 1) Start a sample MCP server (HTTP)
 
 ```bash
 python examples/servers/math_server.py
@@ -53,7 +80,7 @@ python examples/servers/math_server.py
 
 This serves an MCP endpoint at: **[http://127.0.0.1:8000/mcp](http://127.0.0.1:8000/mcp)**
 
-### 3) Run the example agent (with fancy console output)
+### 2) Run the example agent (with fancy console output)
 
 ```bash
 python examples/use_agent.py
@@ -105,39 +132,6 @@ asyncio.run(main())
 ```
 
 > Tip: If you pass a **string** like `"openai:gpt-4.1"`, we’ll call LangChain’s `init_chat_model()` for you (and it will read env vars like `OPENAI_API_KEY`). Passing a **model instance** gives you full control.
-
----
-
-## 🧰 Example MCP Server (HTTP)
-
-`examples/servers/math_server.py`:
-
-```python
-from fastmcp import FastMCP
-
-mcp = FastMCP("Math")
-
-@mcp.tool()
-def add(a: int, b: int) -> int:
-    """Add two integers."""
-    return a + b
-
-@mcp.tool()
-def multiply(a: int, b: int) -> int:
-    """Multiply two integers."""
-    return a * b
-
-if __name__ == "__main__":
-    mcp.run(
-        transport="http",
-        host="127.0.0.1",
-        port=8000,
-        path="/mcp",
-    )
-```
-
-> **Important:** The FastMCP HTTP endpoint should be accessible (default `/mcp`).
-> Your client spec must point to the full URL, e.g. `http://127.0.0.1:8000/mcp`.
 
 ---
 
@@ -464,7 +458,6 @@ pytest -q
 
 - **Your keys, your model** — we don’t enforce a provider; pass any LangChain model.
 - Use **HTTP headers** in `HTTPServerSpec` to deliver bearer/OAuth tokens to servers.
-- Report vulns privately: see `SECURITY.md`.
 
 ---
 
@@ -489,7 +482,7 @@ pytest -q
 
 ## 📄 License
 
-Apache-2.0 — see `LICENSE`.
+Apache-2.0 — see [`LICENSE`](/LICENSE).
 
 ---
 

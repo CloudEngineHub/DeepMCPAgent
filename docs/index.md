@@ -25,7 +25,7 @@ title: DeepMCPAgent
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,deep]"
+pip install "deepmcpagent[deep]"
 python examples/servers/math_server.py  # serves http://127.0.0.1:8000/mcp
 python examples/use_agent.py
 ```
