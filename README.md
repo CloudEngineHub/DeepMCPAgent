@@ -7,7 +7,7 @@
 
   <!-- Badges -->
   <p>
-    <a href="https://cryxnet.github.io/DeepMCPAgents">
+    <a href="https://cryxnet.github.io/DeepMCPAgent">
       <img alt="Docs" src="https://img.shields.io/badge/docs-latest-brightgreen.svg">
     </a>
     <a href="#"><img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue.svg"></a>
