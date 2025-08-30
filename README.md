@@ -7,10 +7,7 @@
 
   <!-- Badges -->
   <p>
-    <a href="https://github.com/cryxnet/deepmcpagent/actions/workflows/ci.yml">
-      <img alt="CI" src="https://github.com/cryxnet/deepmcpagent/actions/workflows/ci.yml/badge.svg">
-    </a>
-    <a href="https://cryxnet.github.io/deepmcpagent">
+    <a href="https://cryxnet.github.io/DeepMCPAgents">
       <img alt="Docs" src="https://img.shields.io/badge/docs-latest-brightgreen.svg">
     </a>
     <a href="#"><img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue.svg"></a>
