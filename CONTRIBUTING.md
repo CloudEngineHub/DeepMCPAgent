@@ -136,13 +136,6 @@ mkdocs serve
 
 ---
 
-## 🔐 Security
-
-Please **do not** open public issues for vulnerabilities.
-Email **[security@example.com](mailto:security@example.com)** with details and reproduction steps. We’ll respond within 72 hours.
-
----
-
 ## 🧾 License & DCO
 
 By contributing, you agree that your contributions are licensed under the project’s **MIT License**.
