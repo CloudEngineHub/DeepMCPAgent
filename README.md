@@ -488,6 +488,6 @@ Apache-2.0 — see [`LICENSE`](/LICENSE).
 
 ## 🙏 Acknowledgments
 
-- The **MCP** community for a clean protocol.
-- **LangChain** and **LangGraph** for powerful agent runtimes.
-- **FastMCP** for solid client & server implementations.
+- The [**MCP** community](https://modelcontextprotocol.io/) for a clean protocol.
+- [**LangChain**](https://www.langchain.com/) and [**LangGraph**](https://www.langchain.com/langgraph) for powerful agent runtimes.
+- [**FastMCP**](https://gofastmcp.com/getting-started/welcome) for solid client & server implementations.
