@@ -7,15 +7,18 @@
 
   <!-- Badges -->
   <p>
-    <a href="https://github.com/cryxnet/deepmcpagent/actions/workflows/ci.yml">
-      <img alt="CI" src="https://github.com/cryxnet/deepmcpagent/actions/workflows/ci.yml/badge.svg">
-    </a>
     <a href="https://cryxnet.github.io/deepmcpagent">
       <img alt="Docs" src="https://img.shields.io/badge/docs-latest-brightgreen.svg">
     </a>
     <a href="#"><img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue.svg"></a>
     <a href="#"><img alt="License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a>
     <a href="#"><img alt="Status" src="https://img.shields.io/badge/status-beta-orange.svg"></a>
+
+<p>
+  <a href="https://www.producthunt.com/products/deep-mcp-agents?utm_source=badge-featured&utm_medium=badge&utm_source=badge-deep-mcp-agents" target="_blank">
+    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1011071&theme=light" alt="Deep MCP Agents on Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
+  </a>
+</p> 
   </p>
 
   <p>
