@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Any  # <-- add
 
 from fastmcp import Client as FastMCPClient
 
@@ -21,9 +22,9 @@ class FastMCPMulti:
 
     def __init__(self, servers: Mapping[str, ServerSpec]) -> None:
         mcp_cfg = {"mcpServers": servers_to_mcp_config(servers)}
-        self._client = FastMCPClient(mcp_cfg)
+        self._client: Any = FastMCPClient(mcp_cfg)  # <-- annotate as Any
 
     @property
-    def client(self) -> FastMCPClient:
+    def client(self) -> Any:  # <-- return Any to avoid unparameterized generic
         """Return the underlying FastMCP client instance."""
         return self._client

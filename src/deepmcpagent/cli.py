@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import shlex
-from typing import Annotated
+from typing import Annotated, Literal, cast
 
 import typer
 from rich.console import Console
@@ -88,14 +88,14 @@ def _merge_servers(stdios: list[str], https: list[str]) -> dict[str, ServerSpec]
         cwd = kv.get("cwd")
         keep_alive = kv.get("keep_alive", "true").lower() != "false"
 
-        spec = StdioServerSpec(
+        stdio_spec: ServerSpec = StdioServerSpec(
             command=command,
             args=args_list,
             env=env,
             cwd=cwd,
             keep_alive=keep_alive,
         )
-        servers[name] = spec
+        servers[name] = stdio_spec
 
     for block_str in https:
         tokens = shlex.split(block_str)
@@ -109,23 +109,29 @@ def _merge_servers(stdios: list[str], https: list[str]) -> dict[str, ServerSpec]
         if not url:
             raise typer.BadParameter("Missing required key: url (in --http block)")
 
-        transport = kv.pop("transport", "http")  # "http", "streamable-http", or "sse"
+        transport_str = kv.pop("transport", "http")  # "http", "streamable-http", or "sse"
+        transport = cast(Literal["http", "streamable-http", "sse"], transport_str)
+
         headers = {k.split(".", 1)[1]: v for k, v in list(kv.items()) if k.startswith("header.")}
         auth = kv.get("auth")
 
-        spec = HTTPServerSpec(
+        http_spec: ServerSpec = HTTPServerSpec(
             url=url,
             transport=transport,
             headers=headers,
             auth=auth,
         )
-        servers[name] = spec
+        servers[name] = http_spec
 
     return servers
 
 
 @app.command()
 def list_tools(
+    model_id: Annotated[
+        str,
+        typer.Option("--model-id", help="REQUIRED model provider id (e.g., 'openai:gpt-4.1')."),
+    ],
     stdio: Annotated[
         list[str] | None,
         typer.Option(
@@ -146,19 +152,15 @@ def list_tools(
             ),
         ),
     ] = None,
-    model_id: Annotated[
-        str,
-        typer.Option("--model-id", help="REQUIRED model provider id (e.g., 'openai:gpt-4.1')."),
-    ] = ...,
     instructions: Annotated[
         str,
         typer.Option("--instructions", help="Optional system prompt override."),
     ] = "",
-):
+) -> None:
     """List all MCP tools discovered using the provided server specs."""
     servers = _merge_servers(stdio or [], http or [])
 
-    async def _run():
+    async def _run() -> None:
         graph, loader = await build_deep_agent(
             servers=servers,
             model=model_id,
@@ -180,6 +182,10 @@ def list_tools(
 
 @app.command()
 def run(
+    model_id: Annotated[
+        str,
+        typer.Option(..., help="REQUIRED model provider id (e.g., 'openai:gpt-4.1')."),
+    ],
     stdio: Annotated[
         list[str] | None,
         typer.Option(
@@ -200,19 +206,15 @@ def run(
             ),
         ),
     ] = None,
-    model_id: Annotated[
-        str,
-        typer.Option("--model-id", help="REQUIRED model provider id (e.g., 'openai:gpt-4.1')."),
-    ] = ...,
     instructions: Annotated[
         str,
         typer.Option("--instructions", help="Optional system prompt override."),
     ] = "",
-):
+) -> None:
     """Start an interactive agent that uses only MCP tools."""
     servers = _merge_servers(stdio or [], http or [])
 
-    async def _chat():
+    async def _chat() -> None:
         graph, _ = await build_deep_agent(
             servers=servers,
             model=model_id,
