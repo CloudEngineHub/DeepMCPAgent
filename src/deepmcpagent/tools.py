@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, PrivateAttr, create_model
@@ -22,45 +22,45 @@ class ToolInfo:
     input_schema: dict[str, Any]
 
 
-def _jsonschema_to_pydantic(schema: dict[str, Any], *, model_name: str = "Args") -> type[BaseModel]:
-    """Convert a basic JSON Schema dict to a Pydantic model for tool args.
 
-    Adds basic support for defaults and descriptions and allows per-tool model names.
-    """
+
+def _jsonschema_to_pydantic(schema: dict[str, Any], *, model_name: str = "Args") -> type[BaseModel]:
     props = (schema or {}).get("properties", {}) or {}
     required = set((schema or {}).get("required", []) or [])
 
-    def f(n: str, p: dict[str, Any]) -> tuple[Any, Any]:
+    # Each value is (annotation, default)
+    def f(n: str, p: dict[str, Any]) -> tuple[type[Any], Any]:
         t = p.get("type")
         desc = p.get("description")
         default = p.get("default")
         req = n in required
-        if t == "string":
-            default_val = ... if req else default
-            return (str, Field(default_val, description=desc))
-        if t == "integer":
-            default_val = ... if req else default
-            return (int, Field(default_val, description=desc))
-        if t == "number":
-            default_val = ... if req else default
-            return (float, Field(default_val, description=desc))
-        if t == "boolean":
-            default_val = ... if req else default
-            return (bool, Field(default_val, description=desc))
-        if t == "array":
-            default_val = ... if req else default
-            return (list, Field(default_val, description=desc))
-        if t == "object":
-            default_val = ... if req else default
-            return (dict, Field(default_val, description=desc))
-        default_val = ... if req else default
-        return (Any, Field(default_val, description=desc))
 
-    fields = {n: f(n, spec or {}) for n, spec in props.items()} or {
-        "payload": (dict, Field(None, description="Raw payload"))
-    }
+        def default_val() -> Any:
+            return ... if req else default
+
+        if t == "string":
+            return (str, Field(default_val(), description=desc))
+        if t == "integer":
+            return (int, Field(default_val(), description=desc))
+        if t == "number":
+            return (float, Field(default_val(), description=desc))
+        if t == "boolean":
+            return (bool, Field(default_val(), description=desc))
+        if t == "array":
+            return (list, Field(default_val(), description=desc))
+        if t == "object":
+            return (dict, Field(default_val(), description=desc))
+        return (Any, Field(default_val(), description=desc))
+
+    fields: dict[str, tuple[type[Any], Any]] = {
+        n: f(n, spec or {}) for n, spec in props.items()
+    } or {"payload": (dict, Field(None, description="Raw payload"))}
+
     safe_name = re.sub(r"[^0-9a-zA-Z_]", "_", model_name) or "Args"
-    return create_model(safe_name, **fields)  # type: ignore[arg-type]
+
+    # Hand the kwargs to pydantic as Any to satisfy the stubbed overloads
+    model = create_model(safe_name, **cast(dict[str, Any], fields))
+    return cast(type[BaseModel], model)
 
 
 class _FastMCPTool(BaseTool):
@@ -86,7 +86,7 @@ class _FastMCPTool(BaseTool):
         self._tool_name = tool_name
         self._client = client
 
-    async def _arun(self, **kwargs: Any) -> Any:  # type: ignore[override]
+    async def _arun(self, **kwargs: Any) -> Any:
         """Asynchronously execute the MCP tool via the FastMCP client."""
         # Open a session context for each call to be safe across runners.
         async with self._client:

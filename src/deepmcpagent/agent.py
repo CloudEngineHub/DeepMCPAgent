@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Any, cast
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -16,10 +17,10 @@ from .prompt import DEFAULT_SYSTEM_PROMPT
 from .tools import MCPToolLoader
 
 # Model can be a provider string (handled by LangChain), a chat model instance, or a Runnable.
-ModelLike = str | BaseChatModel | Runnable
+ModelLike = str | BaseChatModel | Runnable[Any, Any]
 
 
-def _normalize_model(model: ModelLike) -> Runnable:
+def _normalize_model(model: ModelLike) -> Runnable[Any, Any]:
     """Normalize the supplied model into a Runnable.
 
     Args:
@@ -30,8 +31,9 @@ def _normalize_model(model: ModelLike) -> Runnable:
     """
     if isinstance(model, str):
         # This supports many providers via lc init strings, not just OpenAI.
-        return init_chat_model(model)
-    return model  # Already BaseChatModel or Runnable
+        return cast(Runnable[Any, Any], init_chat_model(model))
+    # Already BaseChatModel or Runnable
+    return cast(Runnable[Any, Any], model)
 
 
 async def build_deep_agent(
@@ -39,7 +41,7 @@ async def build_deep_agent(
     servers: Mapping[str, ServerSpec],
     model: ModelLike,
     instructions: str | None = None,
-) -> tuple[Runnable, MCPToolLoader]:
+) -> tuple[Runnable[Any, Any], MCPToolLoader]:
     """Build an MCP-only agent graph.
 
     This function discovers tools from the configured MCP servers, converts them into
@@ -63,16 +65,22 @@ async def build_deep_agent(
     multi = FastMCPMulti(servers)
     loader = MCPToolLoader(multi)
     tools: list[BaseTool] = await loader.get_all_tools()
-    chat = _normalize_model(model)
+    chat: Runnable[Any, Any] = _normalize_model(model)
     sys_prompt = instructions or DEFAULT_SYSTEM_PROMPT
 
     try:
         # Optional deep agent loop if the extra is installed.
         from deepagents import create_deep_agent  # type: ignore
 
-        graph = create_deep_agent(tools=tools, instructions=sys_prompt, model=chat)
+        graph = cast(
+            Runnable[Any, Any],
+            create_deep_agent(tools=tools, instructions=sys_prompt, model=chat),
+        )
     except ImportError:
         # Solid fallback with LangGraph's ReAct agent.
-        graph = create_react_agent(model=chat, tools=tools, state_modifier=sys_prompt)
+        graph = cast(
+            Runnable[Any, Any],
+            create_react_agent(model=chat, tools=tools, state_modifier=sys_prompt),
+        )
 
     return graph, loader
