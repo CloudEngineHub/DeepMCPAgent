@@ -138,7 +138,8 @@ mkdocs serve
 
 ## 🧾 License & DCO
 
-By contributing, you agree that your contributions are licensed under the project’s **Apache-2.0 License**.
+By contributing, you agree that your contributions are licensed under the project’s **Apache-2.0 License** (see `LICENSE`).
+
 We follow a **Developer Certificate of Origin (DCO)** model — include a `Signed-off-by` line in your commits or enable GitHub’s sign-off option:
 
 ```

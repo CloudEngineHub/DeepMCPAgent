@@ -2,6 +2,11 @@
 
 Use DeepMCPAgent without writing Python.
 
+## Version
+```bash
+deepmcpagent --version
+```
+
 ## List tools
 ```bash
 deepmcpagent list-tools   --http name=math url=http://127.0.0.1:8000/mcp transport=http   --model-id "openai:gpt-4.1"

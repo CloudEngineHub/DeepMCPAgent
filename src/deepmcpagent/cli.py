@@ -1,14 +1,22 @@
-"""CLI for deepmcpagent: list tools and run an interactive agent session.
+"""
+CLI for deepmcpagent: list tools and run an interactive agent session.
 
 Notes:
     - The CLI path uses provider id strings for models (e.g., "openai:gpt-4.1"),
       which `init_chat_model` handles. In code, you can pass a model instance.
     - Model is REQUIRED (no fallback).
+    - Usage for repeated server specs:
+        --stdio "name=echo command=python args='-m mypkg.server --port 3333' env.API_KEY=xyz keep_alive=false"
+        --stdio "name=tool2 command=/usr/local/bin/tool2"
+        --http  "name=remote url=https://example.com/mcp transport=http header.Authorization='Bearer abc'"
+
+      (Repeat --stdio/--http for multiple servers.)
 """
 
 from __future__ import annotations
 
 import asyncio
+import shlex
 from typing import Dict, List
 
 import typer
@@ -17,12 +25,29 @@ from rich.table import Table
 
 from .agent import build_deep_agent
 from .config import HTTPServerSpec, ServerSpec, StdioServerSpec
+from .version import __version__
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
 
 
+@app.callback(invoke_without_command=True)
+def _version_callback(
+    version: bool = typer.Option(
+        None,
+        "--version",
+        help="Show version and exit",
+        is_eager=True,
+    )
+) -> None:
+    """Global callback to support --version printing."""
+    if version:
+        console.print(__version__)
+        raise typer.Exit()
+
+
 def _parse_kv(opts: List[str]) -> Dict[str, str]:
+    """Parse ['k=v', 'x=y', ...] into a dict. Values may contain spaces."""
     out: Dict[str, str] = {}
     for it in opts:
         if "=" not in it:
@@ -32,32 +57,69 @@ def _parse_kv(opts: List[str]) -> Dict[str, str]:
     return out
 
 
-def _merge_servers(stdios: List[List[str]], https: List[List[str]]) -> Dict[str, ServerSpec]:
+def _merge_servers(stdios: List[str], https: List[str]) -> Dict[str, ServerSpec]:
+    """
+    Convert flat lists of block strings into server specs.
+
+    Each entry in `stdios` / `https` is a single quoted string like:
+      "name=echo command=python args='-m mymod --port 3333' env.API_KEY=xyz cwd=/tmp keep_alive=false"
+      "name=remote url=https://example.com transport=sse header.Authorization='Bearer abc'"
+
+    We first shlex-split the string into key=value tokens, then parse.
+    """
     servers: Dict[str, ServerSpec] = {}
 
     # Keep stdio parsing for completeness (see note in StdioServerSpec docstring).
-    for block in stdios:
-        kv = _parse_kv(block)
-        name = kv.pop("name")
-        args = kv.pop("args", "")
+    for block_str in stdios:
+        tokens = shlex.split(block_str)
+        kv = _parse_kv(tokens)
+
+        name = kv.pop("name", None)
+        if not name:
+            raise typer.BadParameter("Missing required key: name (in --stdio block)")
+
+        command = kv.pop("command", None)
+        if not command:
+            raise typer.BadParameter("Missing required key: command (in --stdio block)")
+
+        # args may contain spaces; split them as real argv respecting quotes
+        args_value = kv.pop("args", "")
+        args_list = shlex.split(args_value) if args_value else []
+
+        env = {k.split(".", 1)[1]: v for k, v in list(kv.items()) if k.startswith("env.")}
+        cwd = kv.get("cwd")
+        keep_alive = (kv.get("keep_alive", "true").lower() != "false")
+
         spec = StdioServerSpec(
-            command=kv.pop("command"),
-            args=[x for x in args.split(" ") if x] if args else [],
-            env={k.split(".", 1)[1]: v for k, v in kv.items() if k.startswith("env.")},
-            cwd=kv.get("cwd"),
-            keep_alive=(kv.get("keep_alive", "true").lower() != "false"),
+            command=command,
+            args=args_list,
+            env=env,
+            cwd=cwd,
+            keep_alive=keep_alive,
         )
         servers[name] = spec
 
-    for block in https:
-        kv = _parse_kv(block)
-        name = kv.pop("name")
-        headers = {k.split(".", 1)[1]: v for k, v in kv.items() if k.startswith("header.")}
+    for block_str in https:
+        tokens = shlex.split(block_str)
+        kv = _parse_kv(tokens)
+
+        name = kv.pop("name", None)
+        if not name:
+            raise typer.BadParameter("Missing required key: name (in --http block)")
+
+        url = kv.pop("url", None)
+        if not url:
+            raise typer.BadParameter("Missing required key: url (in --http block)")
+
+        transport = kv.pop("transport", "http")  # "http", "streamable-http", or "sse"
+        headers = {k.split(".", 1)[1]: v for k, v in list(kv.items()) if k.startswith("header.")}
+        auth = kv.get("auth")
+
         spec = HTTPServerSpec(
-            url=kv.pop("url"),
-            transport=kv.pop("transport", "http"),  # "http", "streamable-http", or "sse"
+            url=url,
+            transport=transport,
             headers=headers,
-            auth=kv.get("auth"),
+            auth=auth,
         )
         servers[name] = spec
 
@@ -66,16 +128,22 @@ def _merge_servers(stdios: List[List[str]], https: List[List[str]]) -> Dict[str,
 
 @app.command()
 def list_tools(
-    stdio: List[List[str]] = typer.Option(None, "--stdio", help="Block: name=... command=... args='...'", multiple=True),
-    http: List[List[str]] = typer.Option(
-        None, "--http", help="Block: name=... url=... [transport=http|streamable-http|sse] [header.X=Y]", multiple=True
-    ),
+    stdio: List[str] | None = typer.Option(
+        None,
+        "--stdio",
+        help="Block string: \"name=... command=... args='...' [env.X=Y] [cwd=...] [keep_alive=true|false]\". Repeatable.",
+    ),  # noqa: B008
+    http: List[str] | None = typer.Option(  # noqa: B008
+        None,
+        "--http",
+        help="Block string: \"name=... url=... [transport=http|streamable-http|sse] [header.X=Y] [auth=...]\". Repeatable.",
+    ),  # noqa: B008
     model_id: str = typer.Option(
         ...,
         "--model-id",
         help="REQUIRED model provider id string (e.g., 'openai:gpt-4.1', 'anthropic:claude-3-opus').",
-    ),
-    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),
+    ),  # noqa: B008
+    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),  # noqa: B008
 ):
     """List all MCP tools discovered using the provided server specs."""
     servers = _merge_servers(stdio or [], http or [])
@@ -102,16 +170,22 @@ def list_tools(
 
 @app.command()
 def run(
-    stdio: List[List[str]] = typer.Option(None, "--stdio", help="Block: name=... command=... args='...'", multiple=True),
-    http: List[List[str]] = typer.Option(
-        None, "--http", help="Block: name=... url=... [transport=http|streamable-http|sse] [header.X=Y]", multiple=True
-    ),
+    stdio: List[str] | None = typer.Option(
+        None,
+        "--stdio",
+        help="Block string: \"name=... command=... args='...' [env.X=Y] [cwd=...] [keep_alive=true|false]\". Repeatable.",
+    ),  # noqa: B008
+    http: List[str] | None = typer.Option(  # noqa: B008
+        None,
+        "--http",
+        help="Block string: \"name=... url=... [transport=http|streamable-http|sse] [header.X=Y] [auth=...]\". Repeatable.",
+    ),  # noqa: B008
     model_id: str = typer.Option(
         ...,
         "--model-id",
         help="REQUIRED model provider id string (e.g., 'openai:gpt-4.1', 'anthropic:claude-3-opus').",
-    ),
-    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),
+    ),  # noqa: B008
+    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),  # noqa: B008
 ):
     """Start an interactive agent that uses only MCP tools."""
     servers = _merge_servers(stdio or [], http or [])

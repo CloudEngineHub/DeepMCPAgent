@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepmcpagent"
-version = "0.1.0"
+version = "0.3.0"
 description = "DeepMCPAgent: LangChain/LangGraph agents powered by MCP tools over FastMCP."
 readme = "README.md"
 requires-python = ">=3.10"
