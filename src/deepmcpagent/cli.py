@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import shlex
-from typing import Dict, List
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -33,12 +33,10 @@ console = Console()
 
 @app.callback(invoke_without_command=True)
 def _version_callback(
-    version: bool = typer.Option(
-        None,
-        "--version",
-        help="Show version and exit",
-        is_eager=True,
-    )
+    version: Annotated[
+        bool | None,
+        typer.Option("--version", help="Show version and exit", is_eager=True),
+    ] = None,
 ) -> None:
     """Global callback to support --version printing."""
     if version:
@@ -46,9 +44,9 @@ def _version_callback(
         raise typer.Exit()
 
 
-def _parse_kv(opts: List[str]) -> Dict[str, str]:
+def _parse_kv(opts: list[str]) -> dict[str, str]:
     """Parse ['k=v', 'x=y', ...] into a dict. Values may contain spaces."""
-    out: Dict[str, str] = {}
+    out: dict[str, str] = {}
     for it in opts:
         if "=" not in it:
             raise typer.BadParameter(f"Expected key=value, got: {it}")
@@ -57,7 +55,7 @@ def _parse_kv(opts: List[str]) -> Dict[str, str]:
     return out
 
 
-def _merge_servers(stdios: List[str], https: List[str]) -> Dict[str, ServerSpec]:
+def _merge_servers(stdios: list[str], https: list[str]) -> dict[str, ServerSpec]:
     """
     Convert flat lists of block strings into server specs.
 
@@ -67,7 +65,7 @@ def _merge_servers(stdios: List[str], https: List[str]) -> Dict[str, ServerSpec]
 
     We first shlex-split the string into key=value tokens, then parse.
     """
-    servers: Dict[str, ServerSpec] = {}
+    servers: dict[str, ServerSpec] = {}
 
     # Keep stdio parsing for completeness (see note in StdioServerSpec docstring).
     for block_str in stdios:
@@ -88,7 +86,7 @@ def _merge_servers(stdios: List[str], https: List[str]) -> Dict[str, ServerSpec]
 
         env = {k.split(".", 1)[1]: v for k, v in list(kv.items()) if k.startswith("env.")}
         cwd = kv.get("cwd")
-        keep_alive = (kv.get("keep_alive", "true").lower() != "false")
+        keep_alive = kv.get("keep_alive", "true").lower() != "false"
 
         spec = StdioServerSpec(
             command=command,
@@ -128,22 +126,34 @@ def _merge_servers(stdios: List[str], https: List[str]) -> Dict[str, ServerSpec]
 
 @app.command()
 def list_tools(
-    stdio: List[str] | None = typer.Option(
-        None,
-        "--stdio",
-        help="Block string: \"name=... command=... args='...' [env.X=Y] [cwd=...] [keep_alive=true|false]\". Repeatable.",
-    ),  # noqa: B008
-    http: List[str] | None = typer.Option(  # noqa: B008
-        None,
-        "--http",
-        help="Block string: \"name=... url=... [transport=http|streamable-http|sse] [header.X=Y] [auth=...]\". Repeatable.",
-    ),  # noqa: B008
-    model_id: str = typer.Option(
-        ...,
-        "--model-id",
-        help="REQUIRED model provider id string (e.g., 'openai:gpt-4.1', 'anthropic:claude-3-opus').",
-    ),  # noqa: B008
-    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),  # noqa: B008
+    stdio: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--stdio",
+            help=(
+                "Block string: \"name=... command=... args='...' "
+                '[env.X=Y] [cwd=...] [keep_alive=true|false]". Repeatable.'
+            ),
+        ),
+    ] = None,
+    http: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--http",
+            help=(
+                'Block string: "name=... url=... [transport=http|streamable-http|sse] '
+                '[header.X=Y] [auth=...]". Repeatable.'
+            ),
+        ),
+    ] = None,
+    model_id: Annotated[
+        str,
+        typer.Option("--model-id", help="REQUIRED model provider id (e.g., 'openai:gpt-4.1')."),
+    ] = ...,
+    instructions: Annotated[
+        str,
+        typer.Option("--instructions", help="Optional system prompt override."),
+    ] = "",
 ):
     """List all MCP tools discovered using the provided server specs."""
     servers = _merge_servers(stdio or [], http or [])
@@ -170,22 +180,34 @@ def list_tools(
 
 @app.command()
 def run(
-    stdio: List[str] | None = typer.Option(
-        None,
-        "--stdio",
-        help="Block string: \"name=... command=... args='...' [env.X=Y] [cwd=...] [keep_alive=true|false]\". Repeatable.",
-    ),  # noqa: B008
-    http: List[str] | None = typer.Option(  # noqa: B008
-        None,
-        "--http",
-        help="Block string: \"name=... url=... [transport=http|streamable-http|sse] [header.X=Y] [auth=...]\". Repeatable.",
-    ),  # noqa: B008
-    model_id: str = typer.Option(
-        ...,
-        "--model-id",
-        help="REQUIRED model provider id string (e.g., 'openai:gpt-4.1', 'anthropic:claude-3-opus').",
-    ),  # noqa: B008
-    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),  # noqa: B008
+    stdio: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--stdio",
+            help=(
+                "Block string: \"name=... command=... args='...' "
+                '[env.X=Y] [cwd=...] [keep_alive=true|false]". Repeatable.'
+            ),
+        ),
+    ] = None,
+    http: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--http",
+            help=(
+                'Block string: "name=... url=... [transport=http|streamable-http|sse] '
+                '[header.X=Y] [auth=...]". Repeatable.'
+            ),
+        ),
+    ] = None,
+    model_id: Annotated[
+        str,
+        typer.Option("--model-id", help="REQUIRED model provider id (e.g., 'openai:gpt-4.1')."),
+    ] = ...,
+    instructions: Annotated[
+        str,
+        typer.Option("--instructions", help="Optional system prompt override."),
+    ] = "",
 ):
     """Start an interactive agent that uses only MCP tools."""
     servers = _merge_servers(stdio or [], http or [])
