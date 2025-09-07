@@ -9,7 +9,6 @@ Notes:
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, List
 
 import typer
 from rich.console import Console
@@ -17,13 +16,29 @@ from rich.table import Table
 
 from .agent import build_deep_agent
 from .config import HTTPServerSpec, ServerSpec, StdioServerSpec
+from .version import __version__
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
 
 
-def _parse_kv(opts: List[str]) -> Dict[str, str]:
-    out: Dict[str, str] = {}
+@app.callback()
+def _version_callback(
+    version: bool = typer.Option(
+        None,
+        "--version",
+        help="Show version and exit",
+        is_eager=True,
+    )
+) -> None:
+    """Global callback to support --version printing."""
+    if version:
+        console.print(__version__)
+        raise typer.Exit()
+
+
+def _parse_kv(opts: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
     for it in opts:
         if "=" not in it:
             raise typer.BadParameter(f"Expected key=value, got: {it}")
@@ -32,8 +47,8 @@ def _parse_kv(opts: List[str]) -> Dict[str, str]:
     return out
 
 
-def _merge_servers(stdios: List[List[str]], https: List[List[str]]) -> Dict[str, ServerSpec]:
-    servers: Dict[str, ServerSpec] = {}
+def _merge_servers(stdios: list[list[str]], https: list[list[str]]) -> dict[str, ServerSpec]:
+    servers: dict[str, ServerSpec] = {}
 
     # Keep stdio parsing for completeness (see note in StdioServerSpec docstring).
     for block in stdios:
@@ -66,16 +81,16 @@ def _merge_servers(stdios: List[List[str]], https: List[List[str]]) -> Dict[str,
 
 @app.command()
 def list_tools(
-    stdio: List[List[str]] = typer.Option(None, "--stdio", help="Block: name=... command=... args='...'", multiple=True),
-    http: List[List[str]] = typer.Option(
+    stdio: list[list[str]] = typer.Option(None, "--stdio", help="Block: name=... command=... args='...'", multiple=True),  # noqa: B008
+    http: list[list[str]] = typer.Option(  # noqa: B008
         None, "--http", help="Block: name=... url=... [transport=http|streamable-http|sse] [header.X=Y]", multiple=True
-    ),
+    ),  # noqa: B008
     model_id: str = typer.Option(
         ...,
         "--model-id",
         help="REQUIRED model provider id string (e.g., 'openai:gpt-4.1', 'anthropic:claude-3-opus').",
-    ),
-    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),
+    ),  # noqa: B008
+    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),  # noqa: B008
 ):
     """List all MCP tools discovered using the provided server specs."""
     servers = _merge_servers(stdio or [], http or [])
@@ -102,16 +117,16 @@ def list_tools(
 
 @app.command()
 def run(
-    stdio: List[List[str]] = typer.Option(None, "--stdio", help="Block: name=... command=... args='...'", multiple=True),
-    http: List[List[str]] = typer.Option(
+    stdio: list[list[str]] = typer.Option(None, "--stdio", help="Block: name=... command=... args='...'", multiple=True),  # noqa: B008
+    http: list[list[str]] = typer.Option(  # noqa: B008
         None, "--http", help="Block: name=... url=... [transport=http|streamable-http|sse] [header.X=Y]", multiple=True
-    ),
+    ),  # noqa: B008
     model_id: str = typer.Option(
         ...,
         "--model-id",
         help="REQUIRED model provider id string (e.g., 'openai:gpt-4.1', 'anthropic:claude-3-opus').",
-    ),
-    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),
+    ),  # noqa: B008
+    instructions: str = typer.Option("", "--instructions", help="Optional system prompt override."),  # noqa: B008
 ):
     """Start an interactive agent that uses only MCP tools."""
     servers = _merge_servers(stdio or [], http or [])
