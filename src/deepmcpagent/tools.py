@@ -15,6 +15,7 @@ from .clients import FastMCPMulti
 @dataclass(frozen=True)
 class ToolInfo:
     """Human-friendly metadata for a discovered MCP tool."""
+
     server_guess: str
     name: str
     description: str

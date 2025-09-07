@@ -8,12 +8,14 @@ Now with fancy console output:
 """
 
 import asyncio
+
 from dotenv import load_dotenv
-from deepmcpagent import HTTPServerSpec, build_deep_agent
 from langchain_openai import ChatOpenAI
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+from deepmcpagent import HTTPServerSpec, build_deep_agent
 
 
 async def main() -> None:
@@ -32,7 +34,7 @@ async def main() -> None:
     graph, loader = await build_deep_agent(
         servers=servers,
         model=model,
-        instructions="You are a helpful agent. Use MCP math tools to solve problems."
+        instructions="You are a helpful agent. Use MCP math tools to solve problems.",
     )
 
     # Show discovered tools
@@ -48,9 +50,7 @@ async def main() -> None:
     query = "What is (3 + 5) * 7 using math tools?"
     console.print(Panel.fit(query, title="User Query", style="bold magenta"))
 
-    result = await graph.ainvoke({
-        "messages": [{"role": "user", "content": query}]
-    })
+    result = await graph.ainvoke({"messages": [{"role": "user", "content": query}]})
 
     # Iterate messages for tool calls and outputs
     console.print("\n[bold yellow]Agent Trace:[/bold yellow]")
@@ -58,7 +58,9 @@ async def main() -> None:
         role = msg.__class__.__name__
         if role == "AIMessage" and msg.tool_calls:
             for call in msg.tool_calls:
-                console.print(f"[cyan]→ Invoking tool:[/cyan] [bold]{call['name']}[/bold] with {call['args']}")
+                console.print(
+                    f"[cyan]→ Invoking tool:[/cyan] [bold]{call['name']}[/bold] with {call['args']}"
+                )
         elif role == "ToolMessage":
             console.print(f"[green]✔ Tool result from {msg.name}:[/green] {msg.content}")
         elif role == "AIMessage" and msg.content:

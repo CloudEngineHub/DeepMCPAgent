@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Mapping, Optional, Tuple, Union
+from collections.abc import Mapping
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -16,7 +16,7 @@ from .prompt import DEFAULT_SYSTEM_PROMPT
 from .tools import MCPToolLoader
 
 # Model can be a provider string (handled by LangChain), a chat model instance, or a Runnable.
-ModelLike = Union[str, BaseChatModel, Runnable]
+ModelLike = str | BaseChatModel | Runnable
 
 
 def _normalize_model(model: ModelLike) -> Runnable:
@@ -38,8 +38,8 @@ async def build_deep_agent(
     *,
     servers: Mapping[str, ServerSpec],
     model: ModelLike,
-    instructions: Optional[str] = None,
-) -> Tuple[Runnable, MCPToolLoader]:
+    instructions: str | None = None,
+) -> tuple[Runnable, MCPToolLoader]:
     """Build an MCP-only agent graph.
 
     This function discovers tools from the configured MCP servers, converts them into
@@ -62,7 +62,7 @@ async def build_deep_agent(
 
     multi = FastMCPMulti(servers)
     loader = MCPToolLoader(multi)
-    tools: List[BaseTool] = await loader.get_all_tools()
+    tools: list[BaseTool] = await loader.get_all_tools()
     chat = _normalize_model(model)
     sys_prompt = instructions or DEFAULT_SYSTEM_PROMPT
 
