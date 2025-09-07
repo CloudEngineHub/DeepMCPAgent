@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple, Type
+from typing import Any
 
-from pydantic import BaseModel, PrivateAttr, create_model
 from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field, PrivateAttr, create_model
 
 from .clients import FastMCPMulti
 
@@ -17,33 +18,48 @@ class ToolInfo:
     server_guess: str
     name: str
     description: str
-    input_schema: Dict[str, Any]
+    input_schema: dict[str, Any]
 
 
-def _jsonschema_to_pydantic(schema: Dict[str, Any]) -> Type[BaseModel]:
-    """Convert a basic JSON Schema dict to a Pydantic model for tool args."""
+def _jsonschema_to_pydantic(schema: dict[str, Any], *, model_name: str = "Args") -> type[BaseModel]:
+    """Convert a basic JSON Schema dict to a Pydantic model for tool args.
+
+    Adds basic support for defaults and descriptions and allows per-tool model names.
+    """
     props = (schema or {}).get("properties", {}) or {}
     required = set((schema or {}).get("required", []) or [])
 
-    def f(n: str, p: Dict[str, Any]) -> Tuple[Any, Any]:
+    def f(n: str, p: dict[str, Any]) -> tuple[Any, Any]:
         t = p.get("type")
+        desc = p.get("description")
+        default = p.get("default")
         req = n in required
         if t == "string":
-            return (str, ...) if req else (str, None)
+            default_val = ... if req else default
+            return (str, Field(default_val, description=desc))
         if t == "integer":
-            return (int, ...) if req else (int, None)
+            default_val = ... if req else default
+            return (int, Field(default_val, description=desc))
         if t == "number":
-            return (float, ...) if req else (float, None)
+            default_val = ... if req else default
+            return (float, Field(default_val, description=desc))
         if t == "boolean":
-            return (bool, ...) if req else (bool, None)
+            default_val = ... if req else default
+            return (bool, Field(default_val, description=desc))
         if t == "array":
-            return (list, ...) if req else (list, None)
+            default_val = ... if req else default
+            return (list, Field(default_val, description=desc))
         if t == "object":
-            return (dict, ...) if req else (dict, None)
-        return (Any, ...) if req else (Any, None)
+            default_val = ... if req else default
+            return (dict, Field(default_val, description=desc))
+        default_val = ... if req else default
+        return (Any, Field(default_val, description=desc))
 
-    fields = {n: f(n, spec or {}) for n, spec in props.items()} or {"payload": (dict, None)}
-    return create_model("Args", **fields)  # type: ignore[arg-type]
+    fields = {n: f(n, spec or {}) for n, spec in props.items()} or {
+        "payload": (dict, Field(None, description="Raw payload"))
+    }
+    safe_name = re.sub(r"[^0-9a-zA-Z_]", "_", model_name) or "Args"
+    return create_model(safe_name, **fields)  # type: ignore[arg-type]
 
 
 class _FastMCPTool(BaseTool):
@@ -51,7 +67,7 @@ class _FastMCPTool(BaseTool):
 
     name: str
     description: str
-    args_schema: Type[BaseModel]
+    args_schema: type[BaseModel]
 
     _tool_name: str = PrivateAttr()
     _client: Any = PrivateAttr()
@@ -61,7 +77,7 @@ class _FastMCPTool(BaseTool):
         *,
         name: str,
         description: str,
-        args_schema: Type[BaseModel],
+        args_schema: type[BaseModel],
         tool_name: str,
         client: Any,
     ) -> None:
@@ -92,17 +108,17 @@ class MCPToolLoader:
     def __init__(self, multi: FastMCPMulti) -> None:
         self._multi = multi
 
-    async def get_all_tools(self) -> List[BaseTool]:
+    async def get_all_tools(self) -> list[BaseTool]:
         """Return all available tools as LangChain `BaseTool` instances."""
         c = self._multi.client
         async with c:
             tools = await c.list_tools()
-            out: List[BaseTool] = []
+            out: list[BaseTool] = []
             for t in tools:
                 name = t.name
                 desc = getattr(t, "description", "") or ""
                 schema = getattr(t, "inputSchema", None) or {}
-                model = _jsonschema_to_pydantic(schema)
+                model = _jsonschema_to_pydantic(schema, model_name=f"Args_{name}")
                 out.append(
                     _FastMCPTool(
                         name=name,
@@ -114,7 +130,7 @@ class MCPToolLoader:
                 )
             return out
 
-    async def list_tool_info(self) -> List[ToolInfo]:
+    async def list_tool_info(self) -> list[ToolInfo]:
         """Return human-readable tool metadata for introspection or debugging."""
         c = self._multi.client
         async with c:
