@@ -22,8 +22,6 @@ class ToolInfo:
     input_schema: dict[str, Any]
 
 
-
-
 def _jsonschema_to_pydantic(schema: dict[str, Any], *, model_name: str = "Args") -> type[BaseModel]:
     props = (schema or {}).get("properties", {}) or {}
     required = set((schema or {}).get("required", []) or [])
