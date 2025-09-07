@@ -14,7 +14,7 @@ from langgraph.prebuilt import create_react_agent
 from .clients import FastMCPMulti
 from .config import ServerSpec
 from .prompt import DEFAULT_SYSTEM_PROMPT
-from .tools import MCPToolLoader
+from .tools import MCPClientError, MCPToolLoader
 
 # Model can be a provider string (handled by LangChain), a chat model instance, or a Runnable.
 ModelLike = str | BaseChatModel | Runnable[Any, Any]
@@ -64,7 +64,13 @@ async def build_deep_agent(
 
     multi = FastMCPMulti(servers)
     loader = MCPToolLoader(multi)
-    tools: list[BaseTool] = await loader.get_all_tools()
+    try:
+        tools: list[BaseTool] = await loader.get_all_tools()
+    except MCPClientError as exc:
+        raise RuntimeError(
+            "Failed to initialize agent because tool discovery failed. "
+            f"Details: {exc}"
+        ) from exc
     chat: Runnable[Any, Any] = _normalize_model(model)
     sys_prompt = instructions or DEFAULT_SYSTEM_PROMPT
 

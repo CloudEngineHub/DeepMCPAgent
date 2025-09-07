@@ -22,6 +22,10 @@ class ToolInfo:
     input_schema: dict[str, Any]
 
 
+class MCPClientError(RuntimeError):
+    """Raised when communicating with the MCP client fails."""
+
+
 def _jsonschema_to_pydantic(schema: dict[str, Any], *, model_name: str = "Args") -> type[BaseModel]:
     props = (schema or {}).get("properties", {}) or {}
     required = set((schema or {}).get("required", []) or [])
@@ -85,10 +89,19 @@ class _FastMCPTool(BaseTool):
         self._client = client
 
     async def _arun(self, **kwargs: Any) -> Any:
-        """Asynchronously execute the MCP tool via the FastMCP client."""
-        # Open a session context for each call to be safe across runners.
-        async with self._client:
-            res = await self._client.call_tool(self._tool_name, kwargs)
+        """Asynchronously execute the MCP tool via the FastMCP client.
+
+        Handles transport errors gracefully and returns a readable payload.
+        """
+        try:
+            # Open a session context for each call to be safe across runners.
+            async with self._client:
+                res = await self._client.call_tool(self._tool_name, kwargs)
+        except Exception as exc:  # broad: surface transport/protocol issues
+            raise MCPClientError(
+                f"Failed to call MCP tool '{self._tool_name}': {exc}"
+            ) from exc
+
         for attr in ("data", "text", "content", "result"):
             if hasattr(res, attr):
                 return getattr(res, attr)
@@ -98,7 +111,8 @@ class _FastMCPTool(BaseTool):
         """Synchronous execution path (rarely used)."""
         import anyio
 
-        return anyio.run(self._arun, **kwargs)
+        # anyio.run(fn) does not accept kwargs; wrap in a lambda
+        return anyio.run(lambda: self._arun(**kwargs))
 
 
 class MCPToolLoader:
@@ -110,8 +124,14 @@ class MCPToolLoader:
     async def get_all_tools(self) -> list[BaseTool]:
         """Return all available tools as LangChain `BaseTool` instances."""
         c = self._multi.client
-        async with c:
-            tools = await c.list_tools()
+        try:
+            async with c:
+                tools = await c.list_tools()
+        except Exception as exc:  # surface a clear, actionable error
+            raise MCPClientError(
+                f"Failed to list tools from MCP servers: {exc}. "
+                "Check server URLs, network connectivity, and authentication headers."
+            ) from exc
             out: list[BaseTool] = []
             for t in tools:
                 name = t.name
@@ -132,8 +152,14 @@ class MCPToolLoader:
     async def list_tool_info(self) -> list[ToolInfo]:
         """Return human-readable tool metadata for introspection or debugging."""
         c = self._multi.client
-        async with c:
-            tools = await c.list_tools()
+        try:
+            async with c:
+                tools = await c.list_tools()
+        except Exception as exc:
+            raise MCPClientError(
+                f"Failed to list tools from MCP servers: {exc}. "
+                "Check server URLs, network connectivity, and authentication headers."
+            ) from exc
             return [
                 ToolInfo(
                     server_guess="",

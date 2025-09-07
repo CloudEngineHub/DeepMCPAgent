@@ -46,25 +46,25 @@ async def main() -> None:
         table.add_row(t.name, t.description or "-")
     console.print(table)
 
-    # Run a query
+    # Run a query with streaming
     query = "What is (3 + 5) * 7 using math tools?"
     console.print(Panel.fit(query, title="User Query", style="bold magenta"))
 
-    result = await graph.ainvoke({"messages": [{"role": "user", "content": query}]})
-
-    # Iterate messages for tool calls and outputs
-    console.print("\n[bold yellow]Agent Trace:[/bold yellow]")
-    for msg in result["messages"]:
-        role = msg.__class__.__name__
-        if role == "AIMessage" and msg.tool_calls:
-            for call in msg.tool_calls:
-                console.print(
-                    f"[cyan]→ Invoking tool:[/cyan] [bold]{call['name']}[/bold] with {call['args']}"
-                )
-        elif role == "ToolMessage":
-            console.print(f"[green]✔ Tool result from {msg.name}:[/green] {msg.content}")
-        elif role == "AIMessage" and msg.content:
-            console.print(Panel(msg.content, title="Final LLM Answer", style="bold green"))
+    console.print("\n[bold yellow]Agent Trace (Streaming):[/bold yellow]")
+    async for chunk in graph.astream({"messages": [{"role": "user", "content": query}]}):
+        for op in chunk.ops:
+            if op["op"] == "add" and "messages" in op["path"]:
+                msg = op["value"]
+                role = msg.__class__.__name__
+                if role == "AIMessage" and msg.tool_calls:
+                    for call in msg.tool_calls:
+                        console.print(
+                            f"[cyan]→ Invoking tool:[/cyan] [bold]{call['name']}[/bold] with {call['args']}"
+                        )
+                elif role == "ToolMessage":
+                    console.print(f"[green]✔ Tool result from {msg.name}:[/green] {msg.content}")
+                elif role == "AIMessage" and msg.content:
+                    console.print(Panel(msg.content, title="Final LLM Answer", style="bold green"))
 
 
 if __name__ == "__main__":

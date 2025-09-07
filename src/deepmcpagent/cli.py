@@ -17,15 +17,18 @@ from __future__ import annotations
 
 import asyncio
 import shlex
+from importlib.metadata import version as get_version
 from typing import Annotated, Literal, cast
 
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
 
 from .agent import build_deep_agent
 from .config import HTTPServerSpec, ServerSpec, StdioServerSpec
-from .version import __version__
+
+load_dotenv()
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
@@ -40,8 +43,9 @@ def _version_callback(
 ) -> None:
     """Global callback to support --version printing."""
     if version:
-        console.print(__version__)
+        console.print(get_version("deepmcpagent"))
         raise typer.Exit()
+
 
 
 def _parse_kv(opts: list[str]) -> dict[str, str]:
@@ -177,7 +181,13 @@ def list_tools(
             table.add_row(i.name, i.description or "-", _json.dumps(i.input_schema))
         console.print(table)
 
-    asyncio.run(_run())
+    try:
+        asyncio.run(_run())
+    except (typer.Exit, KeyboardInterrupt):
+        pass
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(code=1) from e
 
 
 @app.command()
@@ -229,7 +239,17 @@ def run(
                 break
             if user.lower() in {"exit", "quit"}:
                 break
-            result = await graph.ainvoke({"messages": [{"role": "user", "content": user}]})
+            try:
+                result = await graph.ainvoke({"messages": [{"role": "user", "content": user}]})
+            except Exception as exc:
+                console.print(f"[red]Error during run:[/red] {exc}")
+                continue
             console.print(result)
 
-    asyncio.run(_chat())
+    try:
+        asyncio.run(_chat())
+    except (typer.Exit, KeyboardInterrupt):
+        pass
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(code=1) from e
