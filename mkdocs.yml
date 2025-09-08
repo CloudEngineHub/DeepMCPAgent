@@ -5,18 +5,15 @@ theme:
     - navigation.instant
     - navigation.tracking
     - content.code.copy
+
 plugins:
   - search
-  - mkdocs-click
   - mkdocstrings:
       handlers:
         python:
           options:
             docstring_style: google
             show_source: true
-  - click:
-      module: deepmcpagent.cli
-      command: app
 
 nav:
   - Home: index.md
