@@ -31,4 +31,3 @@ def test_jsonschema_to_pydantic_empty_schema() -> None:
     model = _jsonschema_to_pydantic({}, model_name="Args_empty")
     # Fallback field exists
     assert "payload" in model.model_fields
-

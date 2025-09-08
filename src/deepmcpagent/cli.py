@@ -8,7 +8,7 @@ Notes:
     - Usage for repeated server specs:
         --stdio "name=echo command=python args='-m mypkg.server --port 3333' env.API_KEY=xyz keep_alive=false"
         --stdio "name=tool2 command=/usr/local/bin/tool2"
-        --http  "name=remote url=https://example.com/mcp transport=http header.Authorization='Bearer abc'"
+        --http  "name=remote url=http://127.0.0.1:8000/mcp transport=http"
 
       (Repeat --stdio/--http for multiple servers.)
 """
@@ -16,13 +16,15 @@ Notes:
 from __future__ import annotations
 
 import asyncio
+import json
 import shlex
 from importlib.metadata import version as get_version
-from typing import Annotated, Literal, cast
+from typing import Annotated, Any, Literal, cast
 
 import typer
 from dotenv import load_dotenv
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 from .agent import build_deep_agent
@@ -47,7 +49,6 @@ def _version_callback(
         raise typer.Exit()
 
 
-
 def _parse_kv(opts: list[str]) -> dict[str, str]:
     """Parse ['k=v', 'x=y', ...] into a dict. Values may contain spaces."""
     out: dict[str, str] = {}
@@ -65,13 +66,13 @@ def _merge_servers(stdios: list[str], https: list[str]) -> dict[str, ServerSpec]
 
     Each entry in `stdios` / `https` is a single quoted string like:
       "name=echo command=python args='-m mymod --port 3333' env.API_KEY=xyz cwd=/tmp keep_alive=false"
-      "name=remote url=https://example.com transport=sse header.Authorization='Bearer abc'"
+      "name=remote url=http://127.0.0.1:8000/mcp transport=http"
 
     We first shlex-split the string into key=value tokens, then parse.
     """
     servers: dict[str, ServerSpec] = {}
 
-    # Keep stdio parsing for completeness (see note in StdioServerSpec docstring).
+    # stdio (kept for completeness)
     for block_str in stdios:
         tokens = shlex.split(block_str)
         kv = _parse_kv(tokens)
@@ -84,7 +85,6 @@ def _merge_servers(stdios: list[str], https: list[str]) -> dict[str, ServerSpec]
         if not command:
             raise typer.BadParameter("Missing required key: command (in --stdio block)")
 
-        # args may contain spaces; split them as real argv respecting quotes
         args_value = kv.pop("args", "")
         args_list = shlex.split(args_value) if args_value else []
 
@@ -101,6 +101,7 @@ def _merge_servers(stdios: list[str], https: list[str]) -> dict[str, ServerSpec]
         )
         servers[name] = stdio_spec
 
+    # http
     for block_str in https:
         tokens = shlex.split(block_str)
         kv = _parse_kv(tokens)
@@ -130,7 +131,24 @@ def _merge_servers(stdios: list[str], https: list[str]) -> dict[str, ServerSpec]
     return servers
 
 
-@app.command()
+def _extract_final_answer(result: Any) -> str:
+    """Best-effort extraction of the final text from various executors."""
+    try:
+        # LangGraph prebuilt returns {"messages": [ ... ]}
+        if isinstance(result, dict) and "messages" in result and result["messages"]:
+            last = result["messages"][-1]
+            content = getattr(last, "content", None)
+            if isinstance(content, str) and content:
+                return content
+            if isinstance(content, list) and content and isinstance(content[0], dict):
+                return content[0].get("text") or str(content)
+            return str(last)
+        return str(result)
+    except Exception:
+        return str(result)
+
+
+@app.command(name="list-tools")
 def list_tools(
     model_id: Annotated[
         str,
@@ -165,29 +183,26 @@ def list_tools(
     servers = _merge_servers(stdio or [], http or [])
 
     async def _run() -> None:
-        graph, loader = await build_deep_agent(
+        _, loader = await build_deep_agent(
             servers=servers,
             model=model_id,
             instructions=instructions or None,
         )
         infos = await loader.list_tool_info()
-        table = Table(title="MCP Tools")
-        table.add_column("Tool")
-        table.add_column("Description")
-        table.add_column("Input Schema")
-        import json as _json
+        infos = list(infos or [])
 
+        table = Table(title="MCP Tools", show_lines=True)
+        table.add_column("Tool", style="cyan", no_wrap=True)
+        table.add_column("Description", style="green")
+        table.add_column("Input Schema", style="white")
         for i in infos:
-            table.add_row(i.name, i.description or "-", _json.dumps(i.input_schema))
+            schema_str = json.dumps(i.input_schema, ensure_ascii=False)
+            if len(schema_str) > 120:
+                schema_str = schema_str[:117] + "..."
+            table.add_row(i.name, i.description or "-", schema_str)
         console.print(table)
 
-    try:
-        asyncio.run(_run())
-    except (typer.Exit, KeyboardInterrupt):
-        pass
-    except Exception as e:
-        console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(code=1) from e
+    asyncio.run(_run())
 
 
 @app.command()
@@ -220,6 +235,15 @@ def run(
         str,
         typer.Option("--instructions", help="Optional system prompt override."),
     ] = "",
+    # IMPORTANT: don't duplicate defaults in Option() and the parameter!
+    trace: Annotated[
+        bool,
+        typer.Option("--trace/--no-trace", help="Print tool invocations & results."),
+    ] = True,
+    raw: Annotated[
+        bool,
+        typer.Option("--raw/--no-raw", help="Also print raw result object."),
+    ] = False,
 ) -> None:
     """Start an interactive agent that uses only MCP tools."""
     servers = _merge_servers(stdio or [], http or [])
@@ -229,6 +253,7 @@ def run(
             servers=servers,
             model=model_id,
             instructions=instructions or None,
+            trace_tools=trace,  # <- enable deepmcpagent tool tracing
         )
         console.print("[bold]DeepMCPAgent is ready. Type 'exit' to quit.[/bold]")
         while True:
@@ -239,17 +264,19 @@ def run(
                 break
             if user.lower() in {"exit", "quit"}:
                 break
+            if not user:
+                continue
             try:
                 result = await graph.ainvoke({"messages": [{"role": "user", "content": user}]})
             except Exception as exc:
                 console.print(f"[red]Error during run:[/red] {exc}")
                 continue
-            console.print(result)
 
-    try:
-        asyncio.run(_chat())
-    except (typer.Exit, KeyboardInterrupt):
-        pass
-    except Exception as e:
-        console.print(f"[bold red]Error:[/bold red] {e}")
-        raise typer.Exit(code=1) from e
+            final_text = _extract_final_answer(result)
+            console.print(
+                Panel(final_text or "(no content)", title="Final LLM Answer", style="bold green")
+            )
+            if raw:
+                console.print(result)
+
+    asyncio.run(_chat())

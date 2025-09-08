@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -10,6 +12,11 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, PrivateAttr, create_model
 
 from .clients import FastMCPMulti
+
+# Callback types for tracing tool calls
+OnBefore = Callable[[str, dict[str, Any]], None]
+OnAfter = Callable[[str, Any], None]
+OnError = Callable[[str, Exception], None]
 
 
 @dataclass(frozen=True)
@@ -74,6 +81,9 @@ class _FastMCPTool(BaseTool):
 
     _tool_name: str = PrivateAttr()
     _client: Any = PrivateAttr()
+    _on_before: OnBefore | None = PrivateAttr(default=None)
+    _on_after: OnAfter | None = PrivateAttr(default=None)
+    _on_error: OnError | None = PrivateAttr(default=None)
 
     def __init__(
         self,
@@ -83,74 +93,63 @@ class _FastMCPTool(BaseTool):
         args_schema: type[BaseModel],
         tool_name: str,
         client: Any,
+        on_before: OnBefore | None = None,
+        on_after: OnAfter | None = None,
+        on_error: OnError | None = None,
     ) -> None:
         super().__init__(name=name, description=description, args_schema=args_schema)
         self._tool_name = tool_name
         self._client = client
+        self._on_before = on_before
+        self._on_after = on_after
+        self._on_error = on_error
 
     async def _arun(self, **kwargs: Any) -> Any:
-        """Asynchronously execute the MCP tool via the FastMCP client.
+        """Asynchronously execute the MCP tool via the FastMCP client."""
+        if self._on_before:
+            with contextlib.suppress(Exception):
+                self._on_before(self.name, kwargs)
 
-        Handles transport errors gracefully and returns a readable payload.
-        """
         try:
-            # Open a session context for each call to be safe across runners.
             async with self._client:
                 res = await self._client.call_tool(self._tool_name, kwargs)
-        except Exception as exc:  # broad: surface transport/protocol issues
-            raise MCPClientError(
-                f"Failed to call MCP tool '{self._tool_name}': {exc}"
-            ) from exc
+        except Exception as exc:  # surface transport/protocol issues
+            if self._on_error:
+                with contextlib.suppress(Exception):
+                    self._on_error(self.name, exc)
+            raise MCPClientError(f"Failed to call MCP tool '{self._tool_name}': {exc}") from exc
 
-        for attr in ("data", "text", "content", "result"):
-            if hasattr(res, attr):
-                return getattr(res, attr)
+        if self._on_after:
+            with contextlib.suppress(Exception):
+                self._on_after(self.name, res)
+
         return res
 
     def _run(self, **kwargs: Any) -> Any:  # pragma: no cover
         """Synchronous execution path (rarely used)."""
         import anyio
 
-        # anyio.run(fn) does not accept kwargs; wrap in a lambda
         return anyio.run(lambda: self._arun(**kwargs))
 
 
 class MCPToolLoader:
     """Discover MCP tools via FastMCP and convert them to LangChain tools."""
 
-    def __init__(self, multi: FastMCPMulti) -> None:
+    def __init__(
+        self,
+        multi: FastMCPMulti,
+        *,
+        on_before: OnBefore | None = None,
+        on_after: OnAfter | None = None,
+        on_error: OnError | None = None,
+    ) -> None:
         self._multi = multi
+        self._on_before = on_before
+        self._on_after = on_after
+        self._on_error = on_error
 
-    async def get_all_tools(self) -> list[BaseTool]:
-        """Return all available tools as LangChain `BaseTool` instances."""
-        c = self._multi.client
-        try:
-            async with c:
-                tools = await c.list_tools()
-        except Exception as exc:  # surface a clear, actionable error
-            raise MCPClientError(
-                f"Failed to list tools from MCP servers: {exc}. "
-                "Check server URLs, network connectivity, and authentication headers."
-            ) from exc
-            out: list[BaseTool] = []
-            for t in tools:
-                name = t.name
-                desc = getattr(t, "description", "") or ""
-                schema = getattr(t, "inputSchema", None) or {}
-                model = _jsonschema_to_pydantic(schema, model_name=f"Args_{name}")
-                out.append(
-                    _FastMCPTool(
-                        name=name,
-                        description=desc,
-                        args_schema=model,
-                        tool_name=name,
-                        client=c,
-                    )
-                )
-            return out
-
-    async def list_tool_info(self) -> list[ToolInfo]:
-        """Return human-readable tool metadata for introspection or debugging."""
+    async def _list_tools_raw(self) -> tuple[Any, list[Any]]:
+        """Fetch raw tool descriptors from all configured MCP servers."""
         c = self._multi.client
         try:
             async with c:
@@ -160,12 +159,41 @@ class MCPToolLoader:
                 f"Failed to list tools from MCP servers: {exc}. "
                 "Check server URLs, network connectivity, and authentication headers."
             ) from exc
-            return [
-                ToolInfo(
-                    server_guess="",
-                    name=t.name,
-                    description=getattr(t, "description", "") or "",
-                    input_schema=getattr(t, "inputSchema", None) or {},
+        return c, list(tools or [])
+
+    async def get_all_tools(self) -> list[BaseTool]:
+        """Return all available tools as LangChain `BaseTool` instances."""
+        client, tools = await self._list_tools_raw()
+
+        out: list[BaseTool] = []
+        for t in tools:
+            name = t.name
+            desc = getattr(t, "description", "") or ""
+            schema = getattr(t, "inputSchema", None) or {}
+            model = _jsonschema_to_pydantic(schema, model_name=f"Args_{name}")
+            out.append(
+                _FastMCPTool(
+                    name=name,
+                    description=desc,
+                    args_schema=model,
+                    tool_name=name,
+                    client=client,
+                    on_before=self._on_before,
+                    on_after=self._on_after,
+                    on_error=self._on_error,
                 )
-                for t in tools
-            ]
+            )
+        return out
+
+    async def list_tool_info(self) -> list[ToolInfo]:
+        """Return human-readable tool metadata for introspection or debugging."""
+        _, tools = await self._list_tools_raw()
+        return [
+            ToolInfo(
+                server_guess=(getattr(t, "server", None) or getattr(t, "serverName", None) or ""),
+                name=t.name,
+                description=getattr(t, "description", "") or "",
+                input_schema=getattr(t, "inputSchema", None) or {},
+            )
+            for t in tools
+        ]

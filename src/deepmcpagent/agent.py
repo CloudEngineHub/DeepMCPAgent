@@ -21,14 +21,7 @@ ModelLike = str | BaseChatModel | Runnable[Any, Any]
 
 
 def _normalize_model(model: ModelLike) -> Runnable[Any, Any]:
-    """Normalize the supplied model into a Runnable.
-
-    Args:
-        model: Either a model instance, a provider id string, or a Runnable.
-
-    Returns:
-        Runnable compatible with LangGraph agents.
-    """
+    """Normalize the supplied model into a Runnable."""
     if isinstance(model, str):
         # This supports many providers via lc init strings, not just OpenAI.
         return cast(Runnable[Any, Any], init_chat_model(model))
@@ -41,6 +34,7 @@ async def build_deep_agent(
     servers: Mapping[str, ServerSpec],
     model: ModelLike,
     instructions: str | None = None,
+    trace_tools: bool = False,
 ) -> tuple[Runnable[Any, Any], MCPToolLoader]:
     """Build an MCP-only agent graph.
 
@@ -53,6 +47,8 @@ async def build_deep_agent(
         model: REQUIRED. Either a LangChain chat model instance, a provider id string
             accepted by `init_chat_model`, or a Runnable.
         instructions: Optional system prompt. If not provided, uses DEFAULT_SYSTEM_PROMPT.
+        trace_tools: If True, print each tool invocation and result from inside the tool
+            wrapper (works for both DeepAgents and LangGraph prebuilt).
 
     Returns:
         Tuple of `(graph, loader)` where:
@@ -62,15 +58,47 @@ async def build_deep_agent(
     if model is None:  # Defensive check; CLI/code must always pass a model now.
         raise ValueError("A model is required. Provide a model instance or a provider id string.")
 
+    # Simple printing callbacks for tracing (kept dependency-free)
+    def _before(name: str, kwargs: dict[str, Any]) -> None:
+        if trace_tools:
+            print(f"→ Invoking tool: {name} with {kwargs}")
+
+    def _after(name: str, res: Any) -> None:
+        if not trace_tools:
+            return
+        pretty = res
+        for attr in ("data", "text", "content", "result"):
+            if hasattr(res, attr):
+                try:
+                    pretty = getattr(res, attr)
+                    break
+                except Exception:
+                    pass
+        print(f"✔ Tool result from {name}: {pretty}")
+
+    def _error(name: str, exc: Exception) -> None:
+        if trace_tools:
+            print(f"✖ {name} error: {exc}")
+
     multi = FastMCPMulti(servers)
-    loader = MCPToolLoader(multi)
+    loader = MCPToolLoader(
+        multi,
+        on_before=_before if trace_tools else None,
+        on_after=_after if trace_tools else None,
+        on_error=_error if trace_tools else None,
+    )
+
     try:
-        tools: list[BaseTool] = await loader.get_all_tools()
+        discovered = await loader.get_all_tools()
+        tools: list[BaseTool] = list(discovered) if discovered else []
     except MCPClientError as exc:
         raise RuntimeError(
-            "Failed to initialize agent because tool discovery failed. "
-            f"Details: {exc}"
+            f"Failed to initialize agent because tool discovery failed. Details: {exc}"
         ) from exc
+
+    if not tools:
+        print("[deepmcpagent] No tools discovered from MCP servers; agent will run without tools.")
+
     chat: Runnable[Any, Any] = _normalize_model(model)
     sys_prompt = instructions or DEFAULT_SYSTEM_PROMPT
 

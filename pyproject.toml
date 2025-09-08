@@ -21,36 +21,38 @@ classifiers = [
 ]
 
 dependencies = [
-  "fastmcp~=2.4.0",
-  "langchain~=0.3.0",
-  "langgraph~=0.2.39",
-  "pydantic~=2.8.2",
-  "typer~=0.12.3",
-  "rich~=13.7.1",
-  "anyio~=4.4.0",
-  "python-dotenv~=1.0.1",
+  "fastmcp>=2.12.2", 
+  "langchain>=0.3.27",
+  "pydantic>=2.8",
+  "typer>=0.15.2",
+  "rich>=14",
+  "anyio>=4.5",
+  "python-dotenv>=1.1",
+  "langgraph>=0.6,<0.7",
+  "langgraph-prebuilt>=0.6,<0.7",
 ]
-
 [project.optional-dependencies]
-deep = ["deepagents>=0.0.5rc1,<1.0"]
+deep = [
+  "deepagents>=0.0.5,<1.0"
+]
 
 docs = [
-  "mkdocs~=1.6.0",
-  "mkdocs-material~=9.5.0",
-  "mkdocstrings[python]~=0.25.1",
-  "mkdocs-click~=0.8.0",
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.29",
+  "mkdocs-click>=0.8",
 ]
 
+
 examples = [
-  "python-dotenv~=1.0.1",
-  "langchain-openai~=0.1.0",
+  "langchain-openai>=0.3.30",
 ]
 
 dev = [
-  "pytest~=8.2.0",
-  "pytest-asyncio~=0.23.7",
-  "mypy~=1.10.0",
-  "ruff~=0.5.5",
+  "pytest>=8.4",
+  "pytest-asyncio>=1.1",
+  "mypy>=1.17",
+  "ruff>=0.12",
 ]
 
 [project.scripts]

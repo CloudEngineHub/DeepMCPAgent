@@ -40,4 +40,3 @@ def test_servers_to_mcp_config_stdio() -> None:
     assert entry["env"] == {"API_KEY": "abc"}
     assert entry["cwd"] is None
     assert entry["keep_alive"] is False
-
