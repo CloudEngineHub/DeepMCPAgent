@@ -49,8 +49,6 @@
 
 Install from [PyPI](https://pypi.org/project/deepmcpagent/):
 
-IMPORTANT: current version is broken please use 0.1.0
-
 ```bash
 pip install "deepmcpagent[deep]"
 ```
