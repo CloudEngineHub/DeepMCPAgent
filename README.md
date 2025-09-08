@@ -489,6 +489,27 @@ Apache-2.0 — see [`LICENSE`](/LICENSE).
 
 ---
 
+## ⭐ Stars
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="
+      https://api.star-history.com/svg?repos=cryxnet/DeepMCPAgent&type=Date&theme=dark
+    "
+  />
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="
+      https://api.star-history.com/svg?repos=cryxnet/DeepMCPAgent&type=Date
+    "
+  />
+  <img
+    alt="Star History Chart"
+    src="https://api.star-history.com/svg?repos=cryxnet/DeepMCPAgent&type=Date"
+  />
+</picture>
+
 ## 🙏 Acknowledgments
 
 - The [**MCP** community](https://modelcontextprotocol.io/) for a clean protocol.
