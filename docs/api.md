@@ -1,19 +1,22 @@
 # API Reference
 
-::: deepmcpagent.config
+This page documents the public Python API exposed by `deepmcpagent`.
 
----
+## Agent
 
-::: deepmcpagent.clients
+::: deepmcpagent.agent.build_deep_agent
 
----
+## Config
 
-::: deepmcpagent.tools
+::: deepmcpagent.config.HTTPServerSpec
+::: deepmcpagent.config.StdioServerSpec
+::: deepmcpagent.config.servers_to_mcp_config
 
----
+## Clients
 
-::: deepmcpagent.prompt
+::: deepmcpagent.clients.FastMCPMulti
 
----
+## Tools
 
-::: deepmcpagent.agent
+::: deepmcpagent.tools.MCPToolLoader
+::: deepmcpagent.tools.ToolInfo
