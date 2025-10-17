@@ -103,19 +103,41 @@ async def build_deep_agent(
     chat: Runnable[Any, Any] = _normalize_model(model)
     sys_prompt = instructions or DEFAULT_SYSTEM_PROMPT
 
+    # ----------------------------------------------------------------------
+    # Attempt DeepAgents first, then gracefully fall back to LangGraph.
+    # ----------------------------------------------------------------------
     try:
-        # Optional deep agent loop if the extra is installed.
+        # Optional deep agent loop if installed.
         from deepagents import create_deep_agent  # type: ignore
 
         graph = cast(
             Runnable[Any, Any],
             create_deep_agent(tools=tools, instructions=sys_prompt, model=chat),
         )
+
     except ImportError:
-        # Solid fallback with LangGraph's ReAct agent.
-        graph = cast(
-            Runnable[Any, Any],
-            create_react_agent(model=chat, tools=tools, state_modifier=sys_prompt),
-        )
+        # Fallback to LangGraph’s ReAct agent, compatible with all versions.
+        import inspect
+
+        try:
+            sig = inspect.signature(create_react_agent)
+            params = set(sig.parameters.keys())
+
+            # base kwargs always valid
+            kwargs: dict[str, Any] = {"model": chat, "tools": tools}
+
+            # Only pass prompt args if supported by this version
+            if "system_prompt" in params:
+                kwargs["system_prompt"] = sys_prompt
+            elif "state_modifier" in params:
+                kwargs["state_modifier"] = sys_prompt
+            # Newer versions (>=0.6) have no prompt args → skip
+
+            graph = cast(Runnable[Any, Any], create_react_agent(**kwargs))
+
+        except TypeError:
+            # Absolute fallback for latest versions: no prompt args allowed
+            graph = cast(Runnable[Any, Any], create_react_agent(model=chat, tools=tools))
+
 
     return graph, loader
