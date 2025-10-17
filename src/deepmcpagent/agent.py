@@ -68,12 +68,13 @@ async def build_deep_agent(
             return
         pretty = res
         for attr in ("data", "text", "content", "result"):
-            if hasattr(res, attr):
-                try:
-                    pretty = getattr(res, attr)
+            try:
+                val = getattr(res, attr, None)
+                if val not in (None, ""):
+                    pretty = val
                     break
-                except Exception:
-                    pass
+            except Exception:
+                continue
         print(f"✔ Tool result from {name}: {pretty}")
 
     def _error(name: str, exc: Exception) -> None:
