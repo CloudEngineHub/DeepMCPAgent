@@ -139,5 +139,4 @@ async def build_deep_agent(
             # Absolute fallback for latest versions: no prompt args allowed
             graph = cast(Runnable[Any, Any], create_react_agent(model=chat, tools=tools))
 
-
     return graph, loader
