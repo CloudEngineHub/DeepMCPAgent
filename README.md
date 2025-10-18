@@ -138,6 +138,73 @@ asyncio.run(main())
 
 ---
 
+## 🤝 Cross-Agent Communication
+
+DeepMCPAgent v0.5 introduces **Cross-Agent Communication** — agents that can _talk to each other_ without extra servers, message queues, or orchestration layers.
+
+You can now attach one agent as a **peer** inside another, turning it into a callable tool.  
+Each peer appears automatically as `ask_agent_<name>` or can be reached via `broadcast_to_agents` for parallel reasoning across multiple agents.
+
+This means your agents can **delegate**, **collaborate**, and **critique** each other — all through the same MCP tool interface.  
+It’s lightweight, model-agnostic, and fully transparent: every peer call is traced like any other tool invocation.
+
+---
+
+### 💻 Example
+
+```python
+import asyncio
+from deepmcpagent import HTTPServerSpec, build_deep_agent
+from deepmcpagent.cross_agent import CrossAgent
+
+async def main():
+    # 1️⃣ Build a "research" peer agent
+    research_graph, _ = await build_deep_agent(
+        servers={"web": HTTPServerSpec(url="http://127.0.0.1:8000/mcp")},
+        model="openai:gpt-4o-mini",
+        instructions="You are a focused research assistant that finds and summarizes sources.",
+    )
+
+    # 2️⃣ Build the main agent and attach the peer as a tool
+    main_graph, _ = await build_deep_agent(
+        servers={"math": HTTPServerSpec(url="http://127.0.0.1:9000/mcp")},
+        model="openai:gpt-4.1",
+        instructions="You are a lead analyst. Use peers when you need research or summarization.",
+        cross_agents={
+            "researcher": CrossAgent(agent=research_graph, description="A web research peer.")
+        },
+        trace_tools=True,  # see all tool calls + peer responses in console
+    )
+
+    # 3️⃣ Ask a question — the main agent can now call the researcher
+    result = await main_graph.ainvoke({
+        "messages": [{"role": "user", "content": "Find recent research on AI ethics and summarize it."}]
+    })
+
+    print(result)
+
+asyncio.run(main())
+```
+
+🧩 **Result:**
+Your main agent automatically calls `ask_agent_researcher(...)` when it decides delegation makes sense, and the peer agent returns its best final answer — all transparently handled by the MCP layer.
+
+---
+
+### 💡 Use Cases
+
+- Researcher → Writer → Editor pipelines
+- Safety or reviewer peers that audit outputs
+- Retrieval or reasoning specialists
+- Multi-model ensembles combining small and large LLMs
+
+No new infrastructure. No complex orchestration.
+Just **agents helping agents**, powered entirely by MCP over HTTP/SSE.
+
+> 🧠 One framework, many minds — **DeepMCPAgent** turns individual LLMs into a cooperative system.
+
+---
+
 ## 🖥️ CLI (no Python required)
 
 ```bash
@@ -157,25 +224,6 @@ deepmcpagent run \
 > ```
 > --http name=ext url=https://api.example.com/mcp transport=http header.Authorization="Bearer TOKEN"
 > ```
-
----
-
-## 🧩 Architecture (at a glance)
-
-```
-┌────────────────┐        list_tools / call_tool        ┌─────────────────────────┐
-│ LangChain/LLM  │  ──────────────────────────────────▶ │ FastMCP Client (HTTP/SSE)│
-│  (your model)  │                                      └───────────┬──────────────┘
-└──────┬─────────┘  tools (LC BaseTool)                               │
-       │                                                              │
-       ▼                                                              ▼
-  LangGraph Agent                                    One or many MCP servers (remote APIs)
-  (or DeepAgents)                                    e.g., math, github, search, ...
-```
-
-- `HTTPServerSpec(...)` → **FastMCP client** (single client, multiple servers)
-- **Tool discovery** → JSON-Schema → Pydantic → LangChain `BaseTool`
-- **Agent loop** → DeepAgents (if installed) or LangGraph ReAct fallback
 
 ---
 
@@ -381,56 +429,6 @@ classDiagram
 
 ---
 
-### 5) Deployment / Integration View (clusters & boundaries)
-
-```mermaid
-flowchart TD
-    subgraph App["Your App / Service"]
-      UI["CLI / API / Notebook"]
-      Code["deepmcpagent (Python pkg)\n- config.py\n- clients.py\n- tools.py\n- agent.py\n- prompt.py"]
-      UI --> Code
-    end
-
-    subgraph Cloud["LLM Provider(s)"]
-      P1["OpenAI / Anthropic / Groq / Ollama..."]
-    end
-
-    subgraph Net["Network"]
-      direction LR
-      FMCP["FastMCP Client\n(HTTP/SSE)"]
-      FMCP ---|mcpServers| Code
-    end
-
-    subgraph Servers["MCP Servers"]
-      direction LR
-      A["Service A (HTTP)\n/path: /mcp"]
-      B["Service B (SSE)\n/path: /mcp"]
-      C["Service C (HTTP)\n/path: /mcp"]
-    end
-
-    Code -->|init_chat_model or model instance| P1
-    Code --> FMCP
-    FMCP --> A
-    FMCP --> B
-    FMCP --> C
-```
-
----
-
-### 6) Error Handling & Observability (tool errors & retries)
-
-```mermaid
-flowchart TD
-    Start([Tool Call]) --> Try{"client.call_tool(name,args)"}
-    Try -- ok --> Parse["Extract data/text/content/result"]
-    Parse --> Return[Return ToolMessage to Agent]
-    Try -- raises --> Err["Tool/Transport Error"]
-    Err --> Wrap["ToolMessage(status=error, content=trace)"]
-    Wrap --> Agent["Agent observes error\nand may retry / alternate tool"]
-```
-
----
-
 > These diagrams reflect the current implementation:
 >
 > - **Model is required** (string provider-id or LangChain model instance).
@@ -515,3 +513,7 @@ Apache-2.0 — see [`LICENSE`](/LICENSE).
 - The [**MCP** community](https://modelcontextprotocol.io/) for a clean protocol.
 - [**LangChain**](https://www.langchain.com/) and [**LangGraph**](https://www.langchain.com/langgraph) for powerful agent runtimes.
 - [**FastMCP**](https://gofastmcp.com/getting-started/welcome) for solid client & server implementations.
+
+```
+
+```
