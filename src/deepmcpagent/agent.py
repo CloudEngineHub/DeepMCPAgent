@@ -15,6 +15,7 @@ from .clients import FastMCPMulti
 from .config import ServerSpec
 from .prompt import DEFAULT_SYSTEM_PROMPT
 from .tools import MCPClientError, MCPToolLoader
+from .cross_agent import CrossAgent, make_cross_agent_tools  # NEW
 
 # Model can be a provider string (handled by LangChain), a chat model instance, or a Runnable.
 ModelLike = str | BaseChatModel | Runnable[Any, Any]
@@ -35,8 +36,9 @@ async def build_deep_agent(
     model: ModelLike,
     instructions: str | None = None,
     trace_tools: bool = False,
+    cross_agents: Mapping[str, CrossAgent] | None = None,  # NEW
 ) -> tuple[Runnable[Any, Any], MCPToolLoader]:
-    """Build an MCP-only agent graph.
+    """Build an MCP-first agent graph.
 
     This function discovers tools from the configured MCP servers, converts them into
     LangChain tools, and then builds an agent. If the optional `deepagents` package is
@@ -49,6 +51,9 @@ async def build_deep_agent(
         instructions: Optional system prompt. If not provided, uses DEFAULT_SYSTEM_PROMPT.
         trace_tools: If True, print each tool invocation and result from inside the tool
             wrapper (works for both DeepAgents and LangGraph prebuilt).
+        cross_agents: Optional mapping of peer name -> CrossAgent. When provided, each
+            peer is exposed as a tool (e.g., `ask_agent_<name>`) and an optional
+            `broadcast_to_agents` tool is added to consult multiple peers.
 
     Returns:
         Tuple of `(graph, loader)` where:
@@ -96,6 +101,10 @@ async def build_deep_agent(
         raise RuntimeError(
             f"Failed to initialize agent because tool discovery failed. Details: {exc}"
         ) from exc
+
+    # Attach cross-agent tools if provided
+    if cross_agents:
+        tools.extend(make_cross_agent_tools(cross_agents))
 
     if not tools:
         print("[deepmcpagent] No tools discovered from MCP servers; agent will run without tools.")
