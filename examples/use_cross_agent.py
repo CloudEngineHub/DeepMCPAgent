@@ -96,8 +96,8 @@ async def main() -> None:
             "'ask_agent_mathpeer'. If multiple peers exist, you may also use "
             "'broadcast_to_agents' to compare answers."
         ),
-        trace_tools=True,        # See tool invocations from the main agent (including cross-agent tools)
-        cross_agents=peers,      # <-- Attach the peer(s)
+        trace_tools=True,  # See tool invocations from the main agent (including cross-agent tools)
+        cross_agents=peers,  # <-- Attach the peer(s)
     )
 
     # ---------------------------------------------------------------------
@@ -123,7 +123,9 @@ async def main() -> None:
     for name in peers:
         cross_table.add_row(f"ask_agent_{name}", f"Ask the '{name}' peer for help.")
     # Broadcast tool is always added by make_cross_agent_tools in our integration
-    cross_table.add_row("broadcast_to_agents", "Ask multiple peers in parallel and collect answers.")
+    cross_table.add_row(
+        "broadcast_to_agents", "Ask multiple peers in parallel and collect answers."
+    )
     console.print(cross_table)
 
     # ---------------------------------------------------------------------
@@ -134,7 +136,9 @@ async def main() -> None:
         "Compute area and perimeter, then add 17^2 to the sum of (area + perimeter). "
         "Please DELEGATE to the math peer via the 'ask_agent_mathpeer' tool and show brief steps."
     )
-    console.print(Panel.fit(query, title="User Query (expects cross-agent delegation)", style="bold magenta"))
+    console.print(
+        Panel.fit(query, title="User Query (expects cross-agent delegation)", style="bold magenta")
+    )
 
     result = await main_graph.ainvoke({"messages": [{"role": "user", "content": query}]})
     final_text = _extract_final_answer(result)
@@ -151,7 +155,11 @@ async def main() -> None:
     console.print(Panel.fit(query2, title="User Query (broadcast demo)", style="bold magenta"))
     result2 = await main_graph.ainvoke({"messages": [{"role": "user", "content": query2}]})
     final_text2 = _extract_final_answer(result2)
-    console.print(Panel(final_text2 or "(no content)", title="Final LLM Answer (Broadcast)", style="bold green"))
+    console.print(
+        Panel(
+            final_text2 or "(no content)", title="Final LLM Answer (Broadcast)", style="bold green"
+        )
+    )
 
 
 if __name__ == "__main__":
