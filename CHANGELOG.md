@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.5.0 — 2025-10-18
+
+### Added
+
+- Cross-Agent Communication (in-process) with `cross_agent.py`.
+- `CrossAgent`, `make_cross_agent_tools`, `ask_agent_<name>`, and `broadcast_to_agents`.
+- `build_deep_agent(..., cross_agents=...)` to attach peers as tools.
+- Example `examples/use_cross_agent.py`.
+- Cross-Agent documentation section.
+
+### Changed
+
+- Pydantic v2 config via `model_config = ConfigDict(extra="forbid")`.
+
+### Fixed
+
+- Clearer trace output for cross-agent tool calls.
+- Better errors for unknown peers in `broadcast_to_agents`.
+- Implemented sync `_run` on tools to satisfy `BaseTool`.
+
+---
+
+## 0.4.1 — 2025-10-17
+
+### Added
+
+- No new features.
+
+### Changed
+
+- Updated runtime compatibility for environments without `deepagents` installed (graceful fallback to ReAct agent).
+- Minor code cleanup and improved defensive checks in the agent builder.
+
+### Fixed
+
+- Fixed `TypeError` when falling back to `create_react_agent()` with `langgraph>=0.6`.
+- Agent builder now dynamically detects supported parameters and omits deprecated ones for smooth operation across LangGraph versions.
+- Improved `_after()` trace hook to skip `None` values when `trace_tools=True`, correctly displaying tool results.
+
+---
+
 ## 0.4.0
 
 ### Added
