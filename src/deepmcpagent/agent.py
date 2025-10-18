@@ -13,9 +13,9 @@ from langgraph.prebuilt import create_react_agent
 
 from .clients import FastMCPMulti
 from .config import ServerSpec
+from .cross_agent import CrossAgent, make_cross_agent_tools  # NEW
 from .prompt import DEFAULT_SYSTEM_PROMPT
 from .tools import MCPClientError, MCPToolLoader
-from .cross_agent import CrossAgent, make_cross_agent_tools  # NEW
 
 # Model can be a provider string (handled by LangChain), a chat model instance, or a Runnable.
 ModelLike = str | BaseChatModel | Runnable[Any, Any]

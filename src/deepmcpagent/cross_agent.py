@@ -45,17 +45,18 @@ Examples:
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Iterable, Sequence, Callable, cast
+from typing import Any, cast
 
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, PrivateAttr
 
-
 # -----------------------------
 # Public API surface
 # -----------------------------
+
 
 @dataclass(frozen=True)
 class CrossAgent:
@@ -148,7 +149,9 @@ def make_cross_agent_tools(
         out.append(
             _AskAgentTool(
                 name=f"{tool_name_prefix}{name}",
-                description=(f"Ask peer agent '{name}' for help. " + (spec.description or "")).strip(),
+                description=(
+                    f"Ask peer agent '{name}' for help. " + (spec.description or "")
+                ).strip(),
                 target=spec.agent,
                 extract=_best_text,
             )
@@ -174,6 +177,7 @@ def make_cross_agent_tools(
 # -----------------------------
 # Tool implementations
 # -----------------------------
+
 
 class _AskArgs(BaseModel):
     """Arguments for per-peer ask tools (``ask_agent_<name>``).
@@ -282,6 +286,7 @@ class _AskAgentTool(BaseTool):
 
         if timeout_s and timeout_s > 0:
             import anyio
+
             with anyio.move_on_after(timeout_s) as scope:
                 res = await _call()
                 if scope.cancel_called:  # rare
@@ -309,9 +314,8 @@ class _AskAgentTool(BaseTool):
             str: The peer agent’s best-effort final text answer (or timeout text).
         """
         import anyio
-        return anyio.run(
-            lambda: self._arun(message=message, context=context, timeout_s=timeout_s)
-        )
+
+        return anyio.run(lambda: self._arun(message=message, context=context, timeout_s=timeout_s))
 
 
 class _BroadcastArgs(BaseModel):
@@ -414,9 +418,7 @@ class _BroadcastTool(BaseTool):
 
         async def _one(name: str, target: Runnable[Any, Any]) -> None:
             async def _call() -> Any:
-                return await target.ainvoke(
-                    {"messages": [{"role": "user", "content": message}]}
-                )
+                return await target.ainvoke({"messages": [{"role": "user", "content": message}]})
 
             if timeout_s and timeout_s > 0:
                 with anyio.move_on_after(timeout_s) as scope:
@@ -460,6 +462,5 @@ class _BroadcastTool(BaseTool):
             dict[str, str]: Mapping of ``peer_name`` → final text (or timeout/error text).
         """
         import anyio
-        return anyio.run(
-            lambda: self._arun(message=message, peers=peers, timeout_s=timeout_s)
-        )
+
+        return anyio.run(lambda: self._arun(message=message, peers=peers, timeout_s=timeout_s))

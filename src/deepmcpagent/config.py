@@ -1,15 +1,16 @@
-""""Typed server specifications and conversion helpers for FastMCP configuration."""
+""" "Typed server specifications and conversion helpers for FastMCP configuration."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Literal
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class _BaseServer(BaseModel):
     """Base model for server specs."""
+
     # Pydantic v2 style configuration (replaces class Config)
     model_config = ConfigDict(extra="forbid")
 
