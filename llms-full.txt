@@ -1,0 +1,376 @@
+# Promptise Foundry — Complete Reference
+
+> Promptise Foundry is a Python framework for building production-grade AI agents. Five subsystems: Agent core, MCP Server SDK, Reasoning Engine, Agent Runtime, and Prompt Engineering. Install: `pip install promptise`. Python 3.10+.
+
+## Quick Start
+
+```python
+import asyncio
+from promptise import build_agent
+from promptise.config import HTTPServerSpec
+
+async def main():
+    agent = await build_agent(
+        model="openai:gpt-4o-mini",
+        servers={
+            "tools": HTTPServerSpec(url="http://localhost:8080/mcp", transport="sse"),
+        },
+        instructions="You are a helpful assistant.",
+    )
+    result = await agent.ainvoke({
+        "messages": [{"role": "user", "content": "Hello!"}]
+    })
+    for msg in reversed(result["messages"]):
+        if getattr(msg, "type", "") == "ai" and msg.content:
+            print(msg.content)
+            break
+    await agent.shutdown()
+
+asyncio.run(main())
+```
+
+## build_agent() — Complete Signature
+
+```python
+async def build_agent(
+    *,
+    servers: Mapping[str, ServerSpec],          # REQUIRED — MCP server connections
+    model: str | BaseChatModel,                  # REQUIRED — "openai:gpt-4o-mini", "anthropic:claude-sonnet-4-20250514", etc.
+    instructions: str | None = None,             # System prompt
+    memory: MemoryProvider | None = None,        # InMemoryProvider, ChromaProvider, Mem0Provider
+    memory_auto_store: bool = False,             # Auto-store exchanges in memory
+    conversation_store: ConversationStore | None = None,  # SQLiteConversationStore, PostgresConversationStore
+    conversation_max_messages: int = 0,          # Max messages per session (0 = unlimited)
+    guardrails: bool | SecurityConfig | None = None,     # True for defaults, or custom config
+    cache: bool | SemanticCache | None = None,   # True for defaults, or SemanticCache instance
+    optimize_tools: bool | OptimizationConfig | None = None,  # Semantic tool selection
+    observe: bool | ObservabilityConfig | None = None,       # True for defaults, or custom config
+    agent_pattern: str | PromptGraph | None = None,  # "react", "autonomous", "deliberate", "debate", "research", or PromptGraph
+    node_pool: list[BaseNode] | None = None,     # Autonomous mode — agent assembles reasoning at runtime
+    cross_agents: Mapping[str, CrossAgent] | None = None,    # Peer agents for delegation
+    approval: ApprovalPolicy | None = None,      # Human-in-the-loop for sensitive tools
+    events: EventNotifier | None = None,         # Webhook/callback event notifications
+    sandbox: bool | dict | None = None,          # Docker sandbox for code execution
+    extra_tools: list[BaseTool] | None = None,   # Additional tools beyond MCP-discovered
+    flow: ConversationFlow | None = None,        # Prompt phase management
+    adaptive: AdaptiveConfig | None = None,      # Failure classification and strategy learning
+    max_agent_iterations: int = 25,              # Max reasoning steps per invocation
+    max_invocation_time: float = 0,              # Timeout in seconds (0 = unlimited)
+    trace_tools: bool = False,                   # Print tool calls to stdout
+    graph_blocks: list[PromptBlock] | None = None,  # Custom prompt blocks for graph nodes
+) -> PromptiseAgent
+```
+
+## Server Specifications
+
+```python
+from promptise.config import HTTPServerSpec, StdioServerSpec
+
+# HTTP/SSE server (recommended for production)
+servers = {
+    "api": HTTPServerSpec(
+        url="http://localhost:8080/mcp",
+        transport="sse",                    # "sse", "http", "streamable-http"
+        bearer_token="eyJhbGciOi...",       # JWT token forwarded to server
+        api_key="sk-...",                   # Alternative: API key auth
+        headers={"X-Custom": "value"},      # Custom headers
+    ),
+}
+
+# Stdio server (local processes)
+servers = {
+    "local": StdioServerSpec(
+        command="python",
+        args=["-m", "mypackage.server"],
+        env={"API_KEY": "..."},
+        cwd="/path/to/dir",
+    ),
+}
+```
+
+## CallerContext — Multi-User Identity
+
+```python
+from promptise.agent import CallerContext
+
+caller = CallerContext(
+    user_id="alice",
+    bearer_token="eyJhbGciOi...",   # Forwarded to MCP servers
+    roles={"analyst", "admin"},
+    scopes={"read", "write"},
+    metadata={"ip": "192.168.1.1"},
+)
+
+# With ainvoke()
+result = await agent.ainvoke({"messages": [...]}, caller=caller)
+
+# With chat()
+response = await agent.chat(message="...", session_id="session-001", caller=caller)
+```
+
+## Memory Providers
+
+```python
+from promptise.memory import InMemoryProvider, ChromaProvider
+
+# In-memory (testing/prototyping)
+memory = InMemoryProvider(max_entries=200)
+
+# ChromaDB (persistent vector search)
+memory = ChromaProvider(persist_directory="./memory", collection_name="agent_memory")
+
+# Usage
+agent = await build_agent(..., memory=memory, memory_auto_store=True)
+```
+
+## Conversation Stores
+
+```python
+from promptise.conversations import (
+    InMemoryConversationStore,
+    SQLiteConversationStore,
+    PostgresConversationStore,
+    RedisConversationStore,
+)
+
+store = SQLiteConversationStore("./conversations.db")
+agent = await build_agent(..., conversation_store=store, conversation_max_messages=100)
+
+# chat() auto-loads/saves conversation history
+response = await agent.chat(message="Hello", session_id="session-001", caller=caller)
+```
+
+## MCP Server SDK
+
+```python
+from promptise.mcp.server import (
+    MCPServer, MCPRouter,
+    AuthMiddleware, JWTAuth, AsymmetricJWTAuth, APIKeyAuth,
+    HasRole, HasAllRoles, RequireAuth,
+    LoggingMiddleware, RateLimitMiddleware, TimeoutMiddleware,
+    CircuitBreakerMiddleware, AuditMiddleware, ConcurrencyLimiter,
+    MCPQueue, TestClient, HealthCheck,
+)
+
+server = MCPServer("my-api", version="1.0.0")
+
+# Middleware stack
+server.add_middleware(AuthMiddleware(JWTAuth(secret=os.environ["JWT_SECRET"])))
+server.add_middleware(LoggingMiddleware())
+server.add_middleware(RateLimitMiddleware(rate_per_minute=120))
+server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
+server.add_middleware(CircuitBreakerMiddleware(failure_threshold=5))
+server.add_middleware(AuditMiddleware(log_path="./audit.jsonl"))
+
+# Routers for domain grouping
+hr = MCPRouter(prefix="hr")
+
+@hr.tool(roles=["admin"])
+async def update_employee(emp_id: int, department: str) -> str:
+    """Update an employee's department. Admin only."""
+    return f"Updated {emp_id}"
+
+server.include_router(hr)
+
+# Background job queue
+queue = MCPQueue(server, max_workers=4)
+
+@queue.job(timeout=120, max_retries=3)
+async def generate_report(dept: str, progress) -> str:
+    """Long-running report with progress."""
+    await progress.report(50, "Analyzing...")
+    return "done"
+
+# Testing (no network)
+client = TestClient(server, meta={"authorization": "Bearer token"})
+result = await client.call_tool("hr_update_employee", {"emp_id": 1, "department": "Eng"})
+
+# Run
+server.run(transport="sse")  # or "stdio", "http"
+```
+
+## Reasoning Engine — Node Types
+
+### 10 Standard Nodes
+- **PromptNode**: LLM reasoning with blocks, tools, strategy, model override, data flow, guards, pre/post processors
+- **ToolNode**: Explicit tool execution with validation
+- **RouterNode**: LLM-based routing to decide the next path
+- **GuardNode**: Validate state and gate transitions
+- **ParallelNode**: Run multiple nodes concurrently
+- **LoopNode**: Repeat a subgraph until condition met
+- **HumanNode**: Pause for human input/approval
+- **TransformNode**: Pure data transformation (no LLM)
+- **SubgraphNode**: Embed a complete sub-graph
+- **AutonomousNode**: Agent assembles its own path from a node pool
+
+### 10 Reasoning Nodes
+- **ThinkNode**: Decompose a problem into sub-problems
+- **PlanNode**: Create subgoals with quality threshold
+- **ReflectNode**: Evaluate quality and decide to continue or loop
+- **CritiqueNode**: Challenge assumptions, find gaps
+- **SynthesizeNode**: Compose final answer from gathered context
+- **ValidateNode**: Check criteria, route to pass/fail
+- **ObserveNode**: Record tool results and state
+- **JustifyNode**: Explain reasoning and cite evidence
+- **RetryNode**: Retry with modified approach
+- **FanOutNode**: Parallel execution of multiple sub-tasks
+
+### PromptNode — Full Configuration
+
+```python
+from promptise.engine import PromptNode, NodeFlag
+from promptise.prompts.strategies import chain_of_thought
+from promptise.prompts.blocks import Identity, Rules
+
+node = PromptNode(
+    "analyze",
+    instructions="Analyze the data thoroughly.",
+    blocks=[Identity("Senior analyst"), Rules(["Cite sources", "Flag uncertainty"])],
+    strategy=chain_of_thought,
+    tools=my_tools,                    # Or inject_tools=True for MCP tools
+    tool_choice="auto",                # "auto", "required", "none"
+    model_override="openai:gpt-4o",    # Different model for this node
+    temperature=0.0,
+    max_tokens=8192,
+    output_schema=AnalysisResult,      # Pydantic model for structured output
+    guards=[SchemaStrictGuard(...)],
+    input_keys=["search_results"],     # Read from state.context
+    output_key="analysis",             # Write to state.context
+    inherit_context_from="search",     # Inherit previous node's context
+    preprocessor=my_preprocess_fn,     # async (state, config) → state
+    postprocessor=my_postprocess_fn,   # async (output, state, config) → output
+    include_observations=True,
+    include_plan=True,
+    include_reflections=True,
+    flags={NodeFlag.RETRYABLE, NodeFlag.CACHEABLE, NodeFlag.OBSERVABLE},
+    default_next="validate",
+    max_iterations=5,
+)
+```
+
+### Building Graphs
+
+```python
+from promptise.engine import PromptGraph, PromptNode, PromptGraphEngine
+
+# Option 1: Autonomous — agent builds its own path
+agent = await build_agent(
+    model="openai:gpt-4o-mini",
+    servers=servers,
+    node_pool=[ThinkNode("think"), PlanNode("plan"), PromptNode("act", inject_tools=True),
+               ReflectNode("reflect"), SynthesizeNode("synthesize")],
+)
+
+# Option 2: Named pattern
+agent = await build_agent(..., agent_pattern="deliberate")
+# Available: "react", "autonomous", "deliberate", "debate", "research", "pipeline", "peoatr"
+
+# Option 3: Custom static graph
+graph = PromptGraph("my-graph")
+graph.add_node(PlanNode("plan", is_entry=True))
+graph.add_node(PromptNode("execute", inject_tools=True, flags={NodeFlag.RETRYABLE}))
+graph.add_node(ValidateNode("check", on_pass="synthesize", on_fail="execute"))
+graph.add_node(SynthesizeNode("synthesize", is_terminal=True))
+graph.set_entry("plan")
+graph.add_edge("plan", "execute")
+graph.add_edge("execute", "check")
+agent = await build_agent(..., agent_pattern=graph)
+
+# Option 4: Custom node with @node decorator
+from promptise.engine import node
+
+@node("verify")
+async def verify(state):
+    """Custom verification logic."""
+    return {"verified": True}
+```
+
+### 16 Node Flags
+
+ENTRY, TERMINAL, CRITICAL, RETRYABLE, CACHEABLE, SKIP_ON_ERROR, NO_HISTORY, ISOLATED_CONTEXT, LIGHTWEIGHT, VERBOSE, OBSERVABLE, INJECT_TOOLS, PARALLEL_TOOLS, AUTO_SCHEMA, MERGE_CONTEXT, STREAM.
+
+## Agent Runtime
+
+```python
+from promptise.runtime import AgentRuntime, ProcessConfig, TriggerConfig
+from promptise.runtime import BudgetConfig, HealthConfig, MissionConfig
+
+async with AgentRuntime() as runtime:
+    await runtime.add_process("my-agent", ProcessConfig(
+        model="openai:gpt-4o-mini",
+        instructions="Monitor and respond to events.",
+        servers={"tools": {"url": "http://localhost:8080/mcp"}},
+        triggers=[
+            TriggerConfig(type="cron", cron_expression="*/5 * * * *"),
+            TriggerConfig(type="webhook", webhook_path="/alerts"),
+            TriggerConfig(type="event", event_pattern="orders.*"),
+            TriggerConfig(type="file_watch", watch_path="./data", glob_pattern="*.csv"),
+        ],
+        budget=BudgetConfig(max_tool_calls_per_run=50, max_cost_per_day=10.0, on_exceeded="pause"),
+        health=HealthConfig(detect_loops=True, detect_stuck=True, on_anomaly="escalate"),
+        mission=MissionConfig(
+            objective="Keep uptime above 99.9%",
+            success_criteria="No P1 unresolved >15min",
+            evaluate_every_n=10,
+        ),
+    ))
+    await runtime.start_all()
+```
+
+## Prompt Engineering
+
+```python
+from promptise.prompts import prompt
+from promptise.prompts.blocks import Identity, Rules, OutputFormat, ContextSlot, Examples
+from promptise.prompts.strategies import chain_of_thought, self_critique, structured_reasoning
+from promptise.prompts.guards import SchemaStrictGuard, ContentFilterGuard, LengthGuard
+from promptise.prompts.flows import ConversationFlow, phase
+from promptise.prompts.builder import PromptBuilder
+
+# 8 block types with priority-based token budgeting
+# When budget is tight, lowest-priority blocks drop first
+
+# Conversation flows
+class SupportFlow(ConversationFlow):
+    @phase(initial=True)
+    async def gather(self, turn): ...
+    @phase
+    async def diagnose(self, turn): ...
+    @phase
+    async def resolve(self, turn): ...
+
+# Composable strategies
+result = await (my_prompt
+    .with_strategy(chain_of_thought + self_critique)
+    .with_guard(SchemaStrictGuard(OutputModel, max_retries=3))
+)(input_data)
+```
+
+## Event Notifications
+
+```python
+from promptise.events import EventNotifier, WebhookSink, CallbackSink
+
+notifier = EventNotifier(sinks=[
+    WebhookSink(url="https://hooks.slack.com/...", events=["invocation.error"]),
+    CallbackSink(lambda event: print(event.event_type)),
+])
+agent = await build_agent(..., events=notifier)
+```
+
+## Installation
+
+```bash
+pip install promptise                    # Core (agent + MCP client + engine + runtime + prompts)
+pip install promptise[ml]                # + ChromaDB, sentence-transformers, guardrails ML models
+pip install promptise[infra]             # + Redis, Docker
+pip install promptise[observability]     # + OpenTelemetry, Prometheus
+pip install promptise[all]               # Everything
+```
+
+## Optional
+
+- [Changelog](https://docs.promptise.com/resources/changelog/)
+- [Contributing](https://github.com/promptise/foundry/blob/main/CONTRIBUTING.md)
+- [Examples Gallery](https://docs.promptise.com/resources/examples/)
+- [Migration Guide](https://docs.promptise.com/resources/migration/)

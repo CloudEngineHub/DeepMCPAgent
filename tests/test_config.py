@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from deepmcpagent.config import HTTPServerSpec, StdioServerSpec, servers_to_mcp_config
+from promptise.config import HTTPServerSpec, StdioServerSpec, servers_to_mcp_config
 
 
 def test_servers_to_mcp_config_http_only() -> None:

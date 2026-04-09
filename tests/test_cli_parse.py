@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from deepmcpagent.cli import _merge_servers, _parse_kv
+from promptise.cli import _merge_servers, _parse_kv
 
 
 def test_parse_kv_simple() -> None:

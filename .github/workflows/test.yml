@@ -1,0 +1,163 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]  # Run on all branches
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  test:
+    name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run linting (ruff)
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Run type checking (mypy)
+        run: mypy src
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ -v --cov=src/promptise --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  test-superagent:
+    name: SuperAgent Feature Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Test SuperAgent core modules
+        run: |
+          pytest tests/test_env_resolver.py -v
+          pytest tests/test_superagent_schema.py -v
+          pytest tests/test_superagent_loader.py -v
+
+      - name: Test SuperAgent CLI commands
+        run: |
+          # Test init command
+          promptise init -o test-agent.superagent -t basic
+          test -f test-agent.superagent
+
+          # Test validate command (should fail due to missing env vars, but command should work)
+          promptise validate test-agent.superagent --no-check-env || true
+
+          # Clean up
+          rm -f test-agent.superagent
+
+      - name: Validate example files
+        run: |
+          # Validate all example .superagent files (without checking env vars)
+          for file in examples/IaC/*.superagent; do
+            echo "Validating $file..."
+            promptise validate "$file" --no-check-env --no-check-refs || exit 1
+          done
+
+  lint-docs:
+    name: Lint Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[docs]"
+
+      - name: Build docs (strict mode)
+        run: mkdocs build --strict
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+
+      - name: Run Bandit security linter
+        run: bandit -r src/ -ll
+
+      - name: Check for known vulnerabilities (safety)
+        run: |
+          pip freeze | safety check --stdin || true
+
+  all-tests-passed:
+    name: All Tests Passed
+    needs: [test, test-superagent, lint-docs, security]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.test-superagent.result }}" != "success" ]] || \
+             [[ "${{ needs.lint-docs.result }}" != "success" ]] || \
+             [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "One or more test jobs failed!"
+            exit 1
+          fi
+          echo "✅ All tests passed!"

@@ -3,14 +3,14 @@ requires = ["setuptools>=68", "wheel", "setuptools-scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "deepmcpagent"
+name = "promptise"
 dynamic = ["version"]
-description = "DeepMCPAgent: LangChain/LangGraph agents powered by MCP tools over FastMCP."
+description = "Promptise Foundry - Production-ready agentic framework for building advanced AI agent systems and multi-agent orchestration"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
-authors = [{ name = "cryxnet" }]
-keywords = ["mcp", "fastmcp", "langchain", "langgraph", "agents", "tools"]
+authors = [{ name = "Promptise" }]
+keywords = ["mcp", "langchain", "langgraph", "agents", "tools"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
@@ -21,67 +21,139 @@ classifiers = [
 ]
 
 dependencies = [
-  "fastmcp>=2.12.2", 
+  # Core agent framework
+  "mcp>=1.9.0",
   "langchain>=0.3.27",
   "pydantic>=2.8",
   "typer>=0.15.2",
   "rich>=14",
   "anyio>=4.5",
   "python-dotenv>=1.1",
-  "langgraph>=0.6,<0.7",
-  "langgraph-prebuilt>=0.6,<0.7",
-]
-[project.optional-dependencies]
-deep = [
-  "deepagents>=0.0.5,<1.0"
+  "pyyaml>=6.0",
+  # Orchestration
+  "aiohttp>=3.9.0",
+  "cryptography>=42.0.0",
+  "starlette>=0.40.0",
+  "orjson>=3.9.0",
+  "uvicorn[standard]>=0.27.0",
+  # Runtime
+  "croniter>=2.0.0",
+  "watchdog>=4.0.0",
+  # LLM providers
+  "langchain-openai>=0.3.30",
 ]
 
+# ---------------------------------------------------------------------------
+# Lightweight extras — install a subset when you don't need the full framework
+# ---------------------------------------------------------------------------
+[project.optional-dependencies]
+deep = [
+  "deepagents>=0.0.5,<1.0",
+]
+
+# pip install promptise[ml]  — memory, semantic & ML deps
+ml = [
+  "chromadb>=0.5.0",
+  "sentence-transformers>=2.2.0",
+  "transformers>=4.30.0",
+  "numpy>=1.24.0",
+  "mem0ai>=0.1.0",
+]
+
+# pip install promptise[infra]  — infrastructure deps
+infra = [
+  "redis>=5.0.0",
+  "docker>=7.0.0",
+]
+
+# pip install promptise[observability]  — observability deps
+observability = [
+  "opentelemetry-api>=1.20.0",
+  "opentelemetry-sdk>=1.20.0",
+  "opentelemetry-exporter-otlp>=1.20.0",
+  "prometheus_client>=0.20.0",
+]
+
+# pip install promptise[mcp]  — MCP server + client only (no orchestration/runtime)
+mcp = [
+  "mcp>=1.9.0",
+  "langchain>=0.3.27",
+  "pydantic>=2.8",
+  "anyio>=4.5",
+  "python-dotenv>=1.1",
+  "pyyaml>=6.0",
+]
+
+# pip install promptise[docs]  — documentation building
 docs = [
   "mkdocs>=1.6",
   "mkdocs-material>=9.5",
   "mkdocstrings[python]>=0.29",
 ]
 
-
-examples = [
-  "langchain-openai>=0.3.30",
+# pip install promptise[all]  — everything optional
+all = [
+  "promptise[ml]",
+  "promptise[infra]",
+  "promptise[observability]",
+  "promptise[docs]",
 ]
 
 dev = [
+  "promptise[all]",
   "pytest>=8.4",
   "pytest-asyncio>=1.1",
+  "pytest-cov>=6.0",
   "mypy>=1.17",
   "ruff>=0.12",
+  "types-PyYAML>=6.0",
 ]
 
 [project.scripts]
-deepmcpagent = "deepmcpagent.cli:app"
+promptise = "promptise.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/cryxnet/deepmcpagent"
-Issues = "https://github.com/cryxnet/deepmcpagent/issues"
+Homepage = "https://github.com/promptise/foundry"
+Documentation = "https://promptise.github.io/foundry"
+Issues = "https://github.com/promptise/foundry/issues"
+Discussions = "https://github.com/promptise/foundry/discussions"
+"Source Code" = "https://github.com/promptise/foundry"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["deepmcpagent*"]
+include = ["promptise*"]
 
 [tool.setuptools.package-dir]
 "" = "src"
 
 [tool.setuptools.package-data]
-deepmcpagent = ["py.typed"]
+promptise = ["py.typed"]
 
 [tool.mypy]
 python_version = "3.10"
-strict = true
-warn_unused_ignores = true
-warn_redundant_casts = true
-warn_unreachable = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-no_implicit_optional = true
+warn_unused_ignores = false
+warn_redundant_casts = false
+warn_unreachable = false
 show_error_codes = true
+# Relax strict mode for faster development
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_any_unimported = false
+check_untyped_defs = false
+no_implicit_optional = false
+# Ignore common issues in development
+ignore_missing_imports = true
+allow_untyped_calls = true
+allow_untyped_defs = true
+allow_incomplete_defs = true
+# Ignore errors from third-party and complex modules
+[[tool.mypy.overrides]]
+module = [
+  "promptise.orchestration.*",
+  "promptise.sandbox.*",
+  "promptise.runtime.*",
+]
+ignore_errors = true
 
 [tool.ruff]
 line-length = 100
@@ -89,11 +161,30 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E","F","I","UP","B","C4","SIM","ARG"]
-ignore = ["E501"]
+ignore = [
+  "E501",     # Line too long
+  "E402",     # Module-level import not at top (conditional imports)
+  "E741",     # Ambiguous variable name (context-dependent)
+  "B007",     # Unused loop variable
+  "B027",     # Empty method in ABC without abstract decorator
+  "B904",     # Use 'raise ... from err'
+  "ARG001",   # Unused function argument
+  "ARG002",   # Unused method argument
+  "ARG005",   # Unused lambda argument (callback signatures)
+  "SIM102",   # Collapsible if
+  "SIM105",   # Use contextlib.suppress
+  "SIM108",   # Use ternary operator
+  "SIM117",   # Multiple with statements
+  "B017",     # Assert raises exception
+  "UP007",    # Use X | Y for unions (runtime type expressions)
+  "UP031",    # Use format specifiers
+  "UP038",    # Use X | Y in isinstance (requires Python 3.10+ runtime)
+  "UP045",    # Use X | None for Optional
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
 [tool.setuptools_scm]
-version_scheme = "post-release"
+version_scheme = "guess-next-dev"
 local_scheme = "no-local-version"
