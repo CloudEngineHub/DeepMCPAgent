@@ -1,519 +1,292 @@
-<!-- Banner / Title -->
+<!-- Banner -->
 <div align="center">
-  <img src="docs/images/icon.png" width="120" alt="DeepMCPAgent Logo"/>
+  <img src="docs/assets/logo.png" width="120" alt="Promptise Foundry"/>
 
-  <h1>🤖 DeepMCPAgent</h1>
-  <p><strong>Model-agnostic LangChain/LangGraph agents powered entirely by <a href="https://modelcontextprotocol.io/">MCP</a> tools over HTTP/SSE.</strong></p>
+  <h1>Promptise Foundry</h1>
+  <h3>The production framework for agentic AI systems.</h3>
 
-  <!-- Badges -->
   <p>
-    <a href="https://cryxnet.github.io/DeepMCPAgent">
-      <img alt="Docs" src="https://img.shields.io/badge/docs-latest-brightgreen.svg">
-    </a>
+    <a href="https://promptise.github.io/foundry"><img alt="Docs" src="https://img.shields.io/badge/docs-latest-brightgreen.svg"></a>
     <a href="#"><img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue.svg"></a>
     <a href="#"><img alt="License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a>
-    <a href="#"><img alt="Status" src="https://img.shields.io/badge/status-beta-orange.svg"></a>
-
-<p>
-  <a href="https://www.producthunt.com/products/deep-mcp-agents?utm_source=badge-featured&utm_medium=badge&utm_source=badge-deep-mcp-agents" target="_blank">
-    <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1011071&theme=light" alt="Deep MCP Agents on Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
-  </a>
-</p> 
+    <a href="#"><img alt="Tests" src="https://img.shields.io/badge/tests-3400%2B%20passing-success.svg"></a>
+    <a href="#"><img alt="Version" src="https://img.shields.io/badge/version-1.0.0-blue.svg"></a>
   </p>
 
   <p>
-    <em>Discover MCP tools dynamically. Bring your own LangChain model. Build production-ready agents—fast.</em>
-  </p>
-
-  <p>
-    📚 <a href="https://cryxnet.github.io/deepmcpagent/">Documentation</a> • 🛠 <a href="https://github.com/cryxnet/deepmcpagent/issues">Issues</a>
+    <a href="https://promptise.github.io/foundry/">Documentation</a> &bull;
+    <a href="https://promptise.github.io/foundry/getting-started/quickstart/">Quick Start</a> &bull;
+    <a href="https://promptise.github.io/foundry/resources/showcase/">What You Can Build</a> &bull;
+    <a href="https://github.com/promptise/foundry/discussions">Discussions</a>
   </p>
 </div>
 
 <hr/>
 
-## ✨ Why DeepMCPAgent?
+<br/>
 
-- 🔌 **Zero manual tool wiring** — tools are discovered dynamically from MCP servers (HTTP/SSE)
-- 🌐 **External APIs welcome** — connect to remote MCP servers (with headers/auth)
-- 🧠 **Model-agnostic** — pass any LangChain chat model instance (OpenAI, Anthropic, Ollama, Groq, local, …)
-- ⚡ **DeepAgents (optional)** — if installed, you get a deep agent loop; otherwise robust LangGraph ReAct fallback
-- 🛠️ **Typed tool args** — JSON-Schema → Pydantic → LangChain `BaseTool` (typed, validated calls)
-- 🧪 **Quality bar** — mypy (strict), ruff, pytest, GitHub Actions, docs
+Agentic AI will transform every industry. Building it requires more than wrappers and demos. Promptise Foundry gives engineering teams the complete framework for production agentic systems — from intelligent agents and secure tool infrastructure to autonomous agent operations and prompts built like software.
 
-> **MCP first.** Agents shouldn’t hardcode tools — they should **discover** and **call** them. DeepMCPAgent builds that bridge.
+<br/>
 
----
-
-## 🚀 Installation
-
-Install from [PyPI](https://pypi.org/project/deepmcpagent/):
+## Install
 
 ```bash
-pip install "deepmcpagent[deep]"
+pip install promptise
 ```
 
-This installs DeepMCPAgent with **DeepAgents support (recommended)** for the best agent loop.
-Other optional extras:
+<br/>
 
-- `dev` → linting, typing, tests
-- `docs` → MkDocs + Material + mkdocstrings
-- `examples` → dependencies used by bundled examples
-
-```bash
-# install with deepagents + dev tooling
-pip install "deepmcpagent[deep,dev]"
-```
-
-⚠️ If you’re using **zsh**, remember to quote extras:
-
-```bash
-pip install "deepmcpagent[deep,dev]"
-```
-
----
-
-## 🚀 Quickstart
-
-### 1) Start a sample MCP server (HTTP)
-
-```bash
-python examples/servers/math_server.py
-```
-
-This serves an MCP endpoint at: **[http://127.0.0.1:8000/mcp](http://127.0.0.1:8000/mcp)**
-
-### 2) Run the example agent (with fancy console output)
-
-```bash
-python examples/use_agent.py
-```
-
-**What you’ll see:**
-
-![screenshot](/docs/images/screenshot_output.png)
-
----
-
-## 🧑‍💻 Bring-Your-Own Model (BYOM)
-
-DeepMCPAgent lets you pass **any LangChain chat model instance** (or a provider id string if you prefer `init_chat_model`):
+## One function. Production-ready agent.
 
 ```python
 import asyncio
-from deepmcpagent import HTTPServerSpec, build_deep_agent
-
-# choose your model:
-# from langchain_openai import ChatOpenAI
-# model = ChatOpenAI(model="gpt-4.1")
-
-# from langchain_anthropic import ChatAnthropic
-# model = ChatAnthropic(model="claude-3-5-sonnet-latest")
-
-# from langchain_community.chat_models import ChatOllama
-# model = ChatOllama(model="llama3.1")
+from promptise import build_agent, PromptiseSecurityScanner, SemanticCache
+from promptise.config import HTTPServerSpec
+from promptise.memory import ChromaProvider
 
 async def main():
-    servers = {
-        "math": HTTPServerSpec(
-            url="http://127.0.0.1:8000/mcp",
-            transport="http",    # or "sse"
-            # headers={"Authorization": "Bearer <token>"},
-        ),
-    }
-
-    graph, _ = await build_deep_agent(
-        servers=servers,
-        model=model,
-        instructions="Use MCP tools precisely."
-    )
-
-    out = await graph.ainvoke({"messages":[{"role":"user","content":"add 21 and 21 with tools"}]})
-    print(out)
-
-asyncio.run(main())
-```
-
-> Tip: If you pass a **string** like `"openai:gpt-4.1"`, we’ll call LangChain’s `init_chat_model()` for you (and it will read env vars like `OPENAI_API_KEY`). Passing a **model instance** gives you full control.
-
----
-
-## 🤝 Cross-Agent Communication
-
-DeepMCPAgent v0.5 introduces **Cross-Agent Communication** — agents that can _talk to each other_ without extra servers, message queues, or orchestration layers.
-
-You can now attach one agent as a **peer** inside another, turning it into a callable tool.  
-Each peer appears automatically as `ask_agent_<name>` or can be reached via `broadcast_to_agents` for parallel reasoning across multiple agents.
-
-This means your agents can **delegate**, **collaborate**, and **critique** each other — all through the same MCP tool interface.  
-It’s lightweight, model-agnostic, and fully transparent: every peer call is traced like any other tool invocation.
-
----
-
-### 💻 Example
-
-```python
-import asyncio
-from deepmcpagent import HTTPServerSpec, build_deep_agent
-from deepmcpagent.cross_agent import CrossAgent
-
-async def main():
-    # 1️⃣ Build a "research" peer agent
-    research_graph, _ = await build_deep_agent(
-        servers={"web": HTTPServerSpec(url="http://127.0.0.1:8000/mcp")},
-        model="openai:gpt-4o-mini",
-        instructions="You are a focused research assistant that finds and summarizes sources.",
-    )
-
-    # 2️⃣ Build the main agent and attach the peer as a tool
-    main_graph, _ = await build_deep_agent(
-        servers={"math": HTTPServerSpec(url="http://127.0.0.1:9000/mcp")},
-        model="openai:gpt-4.1",
-        instructions="You are a lead analyst. Use peers when you need research or summarization.",
-        cross_agents={
-            "researcher": CrossAgent(agent=research_graph, description="A web research peer.")
+    agent = await build_agent(
+        model="openai:gpt-5-mini",
+        servers={
+            "tools": HTTPServerSpec(url="http://localhost:8000/mcp"),
         },
-        trace_tools=True,  # see all tool calls + peer responses in console
+        instructions="You are a helpful assistant.",
+        memory=ChromaProvider(persist_directory="./memory"),
+        guardrails=PromptiseSecurityScanner.default(),
+        cache=SemanticCache(),
+        observe=True,
     )
 
-    # 3️⃣ Ask a question — the main agent can now call the researcher
-    result = await main_graph.ainvoke({
-        "messages": [{"role": "user", "content": "Find recent research on AI ethics and summarize it."}]
+    result = await agent.ainvoke({
+        "messages": [{"role": "user", "content": "What's the status of our pipeline?"}]
     })
-
-    print(result)
+    print(result["messages"][-1].content)
+    await agent.shutdown()
 
 asyncio.run(main())
 ```
 
-🧩 **Result:**
-Your main agent automatically calls `ask_agent_researcher(...)` when it decides delegation makes sense, and the peer agent returns its best final answer — all transparently handled by the MCP layer.
+The agent discovers tools from MCP servers automatically. Memory recalls relevant context before every invocation. Guardrails block injection attacks and redact PII. Cache serves similar queries instantly. Observability tracks every decision. **One function call. All of it.**
+
+<br/>
 
 ---
 
-### 💡 Use Cases
+<br/>
 
-- Researcher → Writer → Editor pipelines
-- Safety or reviewer peers that audit outputs
-- Retrieval or reasoning specialists
-- Multi-model ensembles combining small and large LLMs
+## Four pillars. One framework.
 
-No new infrastructure. No complex orchestration.
-Just **agents helping agents**, powered entirely by MCP over HTTP/SSE.
+<br/>
 
-> 🧠 One framework, many minds — **DeepMCPAgent** turns individual LLMs into a cooperative system.
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🤖 Agent
+
+Turn any LLM into a production-ready agent with a single function call.
+
+- **Auto tool discovery** from MCP servers
+- **Semantic optimization** — 40-70% fewer tokens
+- **3 memory providers** with auto-injection
+- **RAG foundation** — pluggable loader/chunker/embedder/store pipeline
+- **Multi-user conversations** (Postgres, SQLite, Redis)
+- **Security guardrails** — 6 detection heads, all local
+- **Semantic cache** — 30-50% cost savings
+- **AutoApproval classifier** — 5-layer decision hierarchy for tool calls
+- **Event notifications** to Slack, PagerDuty, webhooks
+- **Streaming** with real-time tool visibility
+- **Model fallback** across providers
+- **Adaptive strategy** — learns from failures
+
+[Agent docs →](https://promptise.github.io/foundry/core/agents/building-agents/)
+
+</td>
+<td width="50%" valign="top">
+
+### 🔧 MCP
+
+Production server and native client for the Model Context Protocol.
+
+- **`@server.tool()`** — auto-schema from type hints
+- **JWT + OAuth** authentication + role/scope authorization
+- **Typed RequestContext** per call — client, claims, session state
+- **12+ middleware types** — rate limit, circuit breaker, audit, cache
+- **HMAC-chained audit logs** — tamper-evident
+- **Job queue** with priority, retries, progress, cancellation
+- **MCPMultiClient** — federate N servers into one tool suite
+- **Live dashboard** — 6-tab terminal UI
+- **OpenAPI import** — existing REST → MCP tools
+- **3 transports** — stdio, HTTP, SSE
+
+[MCP docs →](https://promptise.github.io/foundry/mcp/)
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### ⚡ Agent Runtime
+
+The operating system for autonomous agents.
+
+- **5 trigger types** — cron, webhook, file watch, event, message
+- **Crash recovery** — journal checkpoint + replay
+- **Multi-granularity rewind** — 5 modes (full, conversation, code, summarize, preview)
+- **14 lifecycle hooks** — `once: true`, priority, ShellHook for external scripts
+- **Budget enforcement** — per-run and daily limits
+- **Health monitoring** — stuck, loop, empty, error rate
+- **Mission tracking** — LLM-as-judge evaluation
+- **Secret scoping** — TTL, zero-fill revocation
+- **14 meta-tools** — self-modifying agents with guardrails
+- **37-endpoint REST API** — manage agents without code
+- **Distributed** — multi-node over HTTP
+
+[Runtime docs →](https://promptise.github.io/foundry/runtime/)
+
+</td>
+<td width="50%" valign="top">
+
+### 🧠 Prompt Engineering
+
+Prompts built like software. Not strings.
+
+- **8 block types** with priority-based budgeting
+- **Conversation flows** — prompts that evolve per phase
+- **5 composable strategies** — chain + self-critique
+- **Shell context injection** — opt-in `!`cmd`` in templates
+- **Path-scoped skills** — activate by directory glob
+- **11 context providers** — auto-inject everything
+- **Inspector** — trace every assembly decision
+- **Version control** — SemVer registry + rollback
+- **YAML loader** — `.prompt` files in git
+- **Testing** — `mock_llm()`, `assert_schema()`
+- **Guards** — content filter, length, JSON schema
+
+[Prompts docs →](https://promptise.github.io/foundry/prompting/)
+
+</td>
+</tr>
+</table>
+
+<br/>
 
 ---
 
-## 🖥️ CLI (no Python required)
+<br/>
 
-```bash
-# list tools from one or more HTTP servers
-deepmcpagent list-tools \
-  --http name=math url=http://127.0.0.1:8000/mcp transport=http \
-  --model-id "openai:gpt-4.1"
+## Why Promptise Foundry?
 
-# interactive agent chat (HTTP/SSE servers only)
-deepmcpagent run \
-  --http name=math url=http://127.0.0.1:8000/mcp transport=http \
-  --model-id "openai:gpt-4.1"
+<br/>
+
+| | Promptise | LangChain | CrewAI | AutoGen |
+|---|---|---|---|---|
+| MCP-first tool discovery | ✅ Native | ❌ Manual | ❌ | ❌ |
+| Semantic tool optimization | ✅ 40-70% savings | ❌ | ❌ | ❌ |
+| Security guardrails (ML + regex) | ✅ 6 heads, local | ❌ | ❌ | ❌ |
+| Semantic response cache | ✅ Per-user isolated | ❌ | ❌ | ❌ |
+| Human-in-the-loop approval | ✅ 3 handlers | ❌ | ❌ | ❌ |
+| Autonomous agent runtime | ✅ Full OS | ❌ | ❌ Limited | ❌ |
+| Budget + health governance | ✅ Built-in | ❌ | ❌ | ❌ |
+| Mission-oriented execution | ✅ LLM-as-judge | ❌ | ❌ | ❌ |
+| Live agent conversation | ✅ Inbox + ask | ❌ | ❌ | ❌ |
+| 37-endpoint orchestration API | ✅ + typed client | ❌ | ❌ | ❌ |
+| Native MCP server + client | ✅ Auth, middleware, audit | ❌ | ❌ | �� |
+| RAG foundation | ✅ Pluggable pipeline | ❌ Built-in | �� | ❌ |
+| Auto-approval classifier | ✅ 5-layer hierarchy | ❌ | ❌ | ❌ |
+
+<br/>
+
+---
+
+<br/>
+
+## Model support
+
+Any LLM provider, one string:
+
+```python
+build_agent(model="openai:gpt-5-mini", ...)
+build_agent(model="anthropic:claude-sonnet-4-20250514", ...)
+build_agent(model="ollama:llama3", ...)
+build_agent(model="google:gemini-2.0-flash", ...)
 ```
 
-> The CLI accepts **repeated** `--http` blocks; add `header.X=Y` pairs for auth:
->
-> ```
-> --http name=ext url=https://api.example.com/mcp transport=http header.Authorization="Bearer TOKEN"
-> ```
+Or pass any LangChain `BaseChatModel` directly. Or use `FallbackChain` for automatic provider failover.
+
+<br/>
 
 ---
 
-## Full Architecture & Agent Flow
+<br/>
 
-### 1) High-level Architecture (modules & data flow)
+## Deploy autonomous agents
 
-```mermaid
-flowchart LR
-    %% Groupings
-    subgraph User["👤 User / App"]
-      Q["Prompt / Task"]
-      CLI["CLI (Typer)"]
-      PY["Python API"]
-    end
+```python
+from promptise.runtime import AgentRuntime, ProcessConfig, TriggerConfig, BudgetConfig
 
-    subgraph Agent["🤖 Agent Runtime"]
-      DIR["build_deep_agent()"]
-      PROMPT["prompt.py\n(DEFAULT_SYSTEM_PROMPT)"]
-      subgraph AGRT["Agent Graph"]
-        DA["DeepAgents loop\n(if installed)"]
-        REACT["LangGraph ReAct\n(fallback)"]
-      end
-      LLM["LangChain Model\n(instance or init_chat_model(provider-id))"]
-      TOOLS["LangChain Tools\n(BaseTool[])"]
-    end
-
-    subgraph MCP["🧰 Tooling Layer (MCP)"]
-      LOADER["MCPToolLoader\n(JSON-Schema ➜ Pydantic ➜ BaseTool)"]
-      TOOLWRAP["_FastMCPTool\n(async _arun → client.call_tool)"]
-    end
-
-    subgraph FMCP["🌐 FastMCP Client"]
-      CFG["servers_to_mcp_config()\n(mcpServers dict)"]
-      MULTI["FastMCPMulti\n(fastmcp.Client)"]
-    end
-
-    subgraph SRV["🛠 MCP Servers (HTTP/SSE)"]
-      S1["Server A\n(e.g., math)"]
-      S2["Server B\n(e.g., search)"]
-      S3["Server C\n(e.g., github)"]
-    end
-
-    %% Edges
-    Q -->|query| CLI
-    Q -->|query| PY
-    CLI --> DIR
-    PY --> DIR
-
-    DIR --> PROMPT
-    DIR --> LLM
-    DIR --> LOADER
-    DIR --> AGRT
-
-    LOADER --> MULTI
-    CFG --> MULTI
-    MULTI -->|list_tools| SRV
-    LOADER --> TOOLS
-    TOOLS --> AGRT
-
-    AGRT <-->|messages| LLM
-    AGRT -->|tool calls| TOOLWRAP
-    TOOLWRAP --> MULTI
-    MULTI -->|call_tool| SRV
-
-    SRV -->|tool result| MULTI --> TOOLWRAP --> AGRT -->|final answer| CLI
-    AGRT -->|final answer| PY
+async with AgentRuntime() as runtime:
+    await runtime.add_process("monitor", ProcessConfig(
+        model="openai:gpt-5-mini",
+        instructions="Monitor data pipelines. Escalate anomalies.",
+        triggers=[TriggerConfig(type="cron", cron_expression="*/5 * * * *")],
+        budget=BudgetConfig(max_tool_calls_per_day=500, on_exceeded="pause"),
+    ))
+    await runtime.start_all()
 ```
 
----
+Or define everything in YAML:
 
-### 2) Runtime Sequence (end-to-end tool call)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as User
-    participant CLI as CLI/Python
-    participant Builder as build_deep_agent()
-    participant Loader as MCPToolLoader
-    participant Graph as Agent Graph (DeepAgents or ReAct)
-    participant LLM as LangChain Model
-    participant Tool as _FastMCPTool
-    participant FMCP as FastMCP Client
-    participant S as MCP Server (HTTP/SSE)
-
-    U->>CLI: Enter prompt
-    CLI->>Builder: build_deep_agent(servers, model, instructions?)
-    Builder->>Loader: get_all_tools()
-    Loader->>FMCP: list_tools()
-    FMCP->>S: HTTP(S)/SSE list_tools
-    S-->>FMCP: tools + JSON-Schema
-    FMCP-->>Loader: tool specs
-    Loader-->>Builder: BaseTool[]
-    Builder-->>CLI: (Graph, Loader)
-
-    U->>Graph: ainvoke({messages:[user prompt]})
-    Graph->>LLM: Reason over system + messages + tool descriptions
-    LLM-->>Graph: Tool call (e.g., add(a=3,b=5))
-    Graph->>Tool: _arun(a=3,b=5)
-    Tool->>FMCP: call_tool("add", {a:3,b:5})
-    FMCP->>S: POST /mcp tools.call("add", {...})
-    S-->>FMCP: result { data: 8 }
-    FMCP-->>Tool: result
-    Tool-->>Graph: ToolMessage(content=8)
-
-    Graph->>LLM: Continue with observations
-    LLM-->>Graph: Final response "(3 + 5) * 7 = 56"
-    Graph-->>CLI: messages (incl. final LLM answer)
+```yaml
+model: openai:gpt-5-mini
+instructions: Monitor data pipelines. Escalate anomalies.
+triggers:
+  - type: cron
+    expression: "*/5 * * * *"
+budget:
+  max_tool_calls_per_day: 500
+  on_exceeded: pause
 ```
 
----
-
-### 3) Agent Control Loop (planning & acting)
-
-```mermaid
-stateDiagram-v2
-    [*] --> AcquireTools
-    AcquireTools: Discover MCP tools via FastMCP\n(JSON-Schema ➜ Pydantic ➜ BaseTool)
-    AcquireTools --> Plan
-
-    Plan: LLM plans next step\n(uses system prompt + tool descriptions)
-    Plan --> CallTool: if tool needed
-    Plan --> Respond: if direct answer sufficient
-
-    CallTool: _FastMCPTool._arun\n→ client.call_tool(name, args)
-    CallTool --> Observe: receive tool result
-    Observe: Parse result payload (data/text/content)
-    Observe --> Decide
-
-    Decide: More tools needed?
-    Decide --> Plan: yes
-    Decide --> Respond: no
-
-    Respond: LLM crafts final message
-    Respond --> [*]
-```
+<br/>
 
 ---
 
-### 4) Code Structure (types & relationships)
+<br/>
 
-```mermaid
-classDiagram
-    class StdioServerSpec {
-      +command: str
-      +args: List[str]
-      +env: Dict[str,str]
-      +cwd: Optional[str]
-      +keep_alive: bool
-    }
+## Documentation
 
-    class HTTPServerSpec {
-      +url: str
-      +transport: Literal["http","streamable-http","sse"]
-      +headers: Dict[str,str]
-      +auth: Optional[str]
-    }
+| Section | What it covers |
+|---------|---------------|
+| [Quick Start](https://promptise.github.io/foundry/getting-started/quickstart/) | Build your first agent in 5 minutes |
+| [Key Concepts](https://promptise.github.io/foundry/getting-started/concepts/) | Architecture, design principles, all 4 pillars |
+| [Building Agents](https://promptise.github.io/foundry/guides/building-agents/) | Step-by-step from simple to production |
+| [Building MCP Servers](https://promptise.github.io/foundry/guides/production-mcp-servers/) | Production tool servers with auth and middleware |
+| [Building Runtime Systems](https://promptise.github.io/foundry/guides/agentic-runtime/) | Autonomous agents with governance |
+| [What You Can Build](https://promptise.github.io/foundry/resources/showcase/) | 14 build ideas with working code |
+| [API Reference](https://promptise.github.io/foundry/api/agent/) | Every class, method, and parameter |
 
-    class FastMCPMulti {
-      -_client: fastmcp.Client
-      +client(): Client
-    }
-
-    class MCPToolLoader {
-      -_multi: FastMCPMulti
-      +get_all_tools(): List[BaseTool]
-      +list_tool_info(): List[ToolInfo]
-    }
-
-    class _FastMCPTool {
-      +name: str
-      +description: str
-      +args_schema: Type[BaseModel]
-      -_tool_name: str
-      -_client: Any
-      +_arun(**kwargs) async
-    }
-
-    class ToolInfo {
-      +server_guess: str
-      +name: str
-      +description: str
-      +input_schema: Dict[str,Any]
-    }
-
-    class build_deep_agent {
-      +servers: Mapping[str,ServerSpec]
-      +model: ModelLike
-      +instructions?: str
-      +returns: (graph, loader)
-    }
-
-    StdioServerSpec <|-- ServerSpec
-    HTTPServerSpec <|-- ServerSpec
-    FastMCPMulti o--> ServerSpec : uses servers_to_mcp_config()
-    MCPToolLoader o--> FastMCPMulti
-    MCPToolLoader --> _FastMCPTool : creates
-    _FastMCPTool ..> BaseTool
-    build_deep_agent --> MCPToolLoader : discovery
-    build_deep_agent --> _FastMCPTool : tools for agent
-```
+<br/>
 
 ---
 
-> These diagrams reflect the current implementation:
->
-> - **Model is required** (string provider-id or LangChain model instance).
-> - **MCP tools only**, discovered at runtime via **FastMCP** (HTTP/SSE).
-> - Agent loop prefers **DeepAgents** if installed; otherwise **LangGraph ReAct**.
-> - Tools are typed via **JSON-Schema ➜ Pydantic ➜ LangChain BaseTool**.
-> - Fancy console output shows **discovered tools**, **calls**, **results**, and **final answer**.
+<br/>
 
----
+## Contributing
 
-## 🧪 Development
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and submission guidelines.
 
-```bash
-# install dev tooling
-pip install -e ".[dev]"
+## Security
 
-# lint & type-check
-ruff check .
-mypy
+See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
 
-# run tests
-pytest -q
-```
+## License
 
----
+Apache 2.0 — see [LICENSE](LICENSE) for details.
 
-## 🛡️ Security & Privacy
+<br/>
 
-- **Your keys, your model** — we don’t enforce a provider; pass any LangChain model.
-- Use **HTTP headers** in `HTTPServerSpec` to deliver bearer/OAuth tokens to servers.
-
----
-
-## 🧯 Troubleshooting
-
-- **PEP 668: externally managed environment (macOS + Homebrew)**
-  Use a virtualenv:
-
-  ```bash
-  python3 -m venv .venv
-  source .venv/bin/activate
-  ```
-
-- **404 Not Found when connecting**
-  Ensure your server uses a path (e.g., `/mcp`) and your client URL includes it.
-- **Tool calls failing / attribute errors**
-  Ensure you’re on the latest version; our tool wrapper uses `PrivateAttr` for client state.
-- **High token counts**
-  That’s normal with tool-calling models. Use smaller models for dev.
-
----
-
-## 📄 License
-
-Apache-2.0 — see [`LICENSE`](/LICENSE).
-
----
-
-## ⭐ Stars
-
-<picture>
-  <source
-    media="(prefers-color-scheme: dark)"
-    srcset="
-      https://api.star-history.com/svg?repos=cryxnet/DeepMCPAgent&type=Date&theme=dark
-    "
-  />
-  <source
-    media="(prefers-color-scheme: light)"
-    srcset="
-      https://api.star-history.com/svg?repos=cryxnet/DeepMCPAgent&type=Date
-    "
-  />
-  <img
-    alt="Star History Chart"
-    src="https://api.star-history.com/svg?repos=cryxnet/DeepMCPAgent&type=Date"
-  />
-</picture>
-
-## 🙏 Acknowledgments
-
-- The [**MCP** community](https://modelcontextprotocol.io/) for a clean protocol.
-- [**LangChain**](https://www.langchain.com/) and [**LangGraph**](https://www.langchain.com/langgraph) for powerful agent runtimes.
-- [**FastMCP**](https://gofastmcp.com/getting-started/welcome) for solid client & server implementations.
-
-```
-
-```
+<div align="center">
+  <p><strong>Built by <a href="https://promptise.dev">Promptise</a></strong></p>
+</div>

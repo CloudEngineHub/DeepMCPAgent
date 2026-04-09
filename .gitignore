@@ -24,6 +24,18 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+CLAUDE.md
+LEARNINGS.md
+NOTES.md
+/reports
+/overrides
+NOTES.md
+
+# MkDocs build output
+site/
+
+# Internal design docs (not shipped)
+CONCEPT_*.md
 
 # Virtual environments
 .env
@@ -33,7 +45,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+_AI_PLANNING/
 # PyInstaller
 *.manifest
 *.spec
@@ -42,6 +54,13 @@ venv.bak/
 .coverage
 .coverage.*
 .cache
+
+# ML model cache (HuggingFace, sentence-transformers, guardrails)
+models/
+.models/
+*.bin
+*.safetensors
+*.onnx
 nosetests.xml
 coverage.xml
 *.cover
@@ -71,10 +90,20 @@ Thumbs.db
 
 # MkDocs build
 /site
+.claude 
+run_all_tests.py
 
 # Logs
 *.log
+/marketing
 logs/
 
 # Local configs
 *.env.local
+
+# AI documentation and developer notes
+_AI_DOCS/
+DEVELOPER_GUIDE.md
+
+# Test coverage reports
+htmlcov/

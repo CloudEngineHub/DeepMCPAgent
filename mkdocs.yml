@@ -1,10 +1,52 @@
-site_name: DeepMCPAgent
+site_name: Promptise Foundry
+site_description: Production-ready agentic framework for building AI agent systems and multi-agent orchestration
+site_url: https://promptise.github.io/foundry
+
 theme:
   name: material
+  custom_dir: overrides
+  logo: assets/logo.png
+  favicon: assets/favicon.png
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   features:
     - navigation.instant
+    - navigation.instant.progress
     - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.path
     - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - header.autohide
+
+extra_css:
+  - stylesheets/extra.css
 
 plugins:
   - search
@@ -14,16 +56,231 @@ plugins:
           options:
             docstring_style: google
             show_source: true
+            show_root_heading: true
+            heading_level: 2
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - def_list
+  - footnotes
+  - toc:
+      permalink: true
+      permalink_title: Link to this section
 
 nav:
-  - Home: index.md
-  - Installation: installation.md
-  - Getting Started: getting-started.md
-  - Server Specs & Auth: server-specs.md
-  - Model Setup: model-setup.md
-  - CLI: cli.md
-  - Examples: examples.md
-  - API: api.md
-  - Troubleshooting: troubleshooting.md
-  - FAQ: faq.md
-  - Changelog: changelog.md
+  - Getting Started:
+      - Installation: index.md
+      - Installation Extras: getting-started/installation-extras.md
+      - Quick Start: getting-started/quickstart.md
+      - Model Setup: getting-started/model-setup.md
+      - Best LLMs for Agents: getting-started/best-llms-for-agents.md
+      - Key Concepts: getting-started/concepts.md
+
+  - Guides:
+      - Overview: guides/index.md
+      - Framework:
+          - Building AI Agents: guides/building-agents.md
+          - Building Production MCP Servers: guides/production-mcp-servers.md
+          - Building Agentic Runtime Systems: guides/agentic-runtime.md
+          - Prompt Engineering: guides/prompt-engineering.md
+          - Building Multi-User Systems: guides/multi-user-systems.md
+          - "CallerContext: Agent to MCP Identity": guides/multi-user-identity.md
+          - Multi-Agent Coordination: guides/multi-agent-teams.md
+      - Labs:
+          - "Lab: Customer Support Agent": guides/lab-customer-support.md
+          - "Lab: Data Analysis Agent": guides/lab-data-analysis.md
+          - "Lab: Code Review Agent": guides/lab-code-review.md
+          - "Lab: Pipeline Observer Agent": guides/lab-pipeline-observer.md
+
+  - Agent:
+      - core/index.md
+      - Setup:
+          - Building Agents: core/agents/building-agents.md
+          - Server Configuration: core/agents/server-specs.md
+          - Network Server: core/agents/network-server.md
+          - SuperAgent Files: core/agents/superagent-files.md
+          - Custom Reasoning Patterns: core/agents/reasoning-patterns.md
+          - Cross-Agent Delegation: core/agents/cross-agent.md
+      - Memory & State:
+          - Memory Providers: core/memory.md
+          - RAG Foundation: core/rag.md
+          - Conversations: core/conversations.md
+          - Semantic Cache: core/cache.md
+          - Context Engine: core/context-engine.md
+      - Security & Safety:
+          - Guardrails: core/guardrails.md
+          - Approval (HITL): core/approval.md
+          - AutoApproval Classifier: core/approval-classifier.md
+          - Sandbox: core/sandbox.md
+      - Performance:
+          - Tool Optimization: core/tool-optimization.md
+          - Model Fallback: core/fallback.md
+          - Adaptive Strategy: core/adaptive-strategy.md
+      - Execution:
+          - Streaming: core/streaming.md
+          - Events & Notifications: core/events.md
+          - Observability: core/observability.md
+      - Internals:
+          - Config & Server Specs: core/config.md
+          - Types & ModelLike: core/types.md
+          - Default System Prompt: core/default-prompt.md
+          - Callback Handler: core/callback-handler.md
+          - Tools & Schema Helpers: core/tools.md
+          - Environment Resolver: core/env-resolver.md
+          - Exceptions: core/exceptions.md
+      - CLI Reference: core/cli.md
+
+  - Reasoning Graph:
+      - core/engine.md
+      - Nodes & Edges:
+          - Nodes: core/engine-nodes.md
+          - Edges & Transitions: core/engine-edges.md
+          - Node Flags: core/engine-flags.md
+      - Patterns & Skills:
+          - Prebuilt Patterns: core/engine-prebuilts.md
+          - Skills Library: core/engine-skills.md
+          - Skill Registry: core/skill-registry.md
+          - Building Custom Reasoning: guides/custom-reasoning.md
+      - Runtime:
+          - Tool Injection: core/engine-tools.md
+          - Processors: core/engine-processors.md
+          - Hooks & Observability: core/engine-hooks.md
+          - Serialization & YAML: core/engine-serialization.md
+      - Engine Internals: core/engine-internals.md
+
+  - MCP:
+      - mcp/index.md
+      - Server SDK:
+          - Step-by-Step Guide: guides/production-mcp-servers.md
+          - Server Fundamentals: mcp/server/building-servers.md
+          - Routers & Middleware: mcp/server/routers-middleware.md
+          - Authentication & Security: mcp/server/auth-security.md
+          - Production Features: mcp/server/production-features.md
+          - Caching & Performance: mcp/server/caching-performance.md
+          - Observability & Monitoring: mcp/server/observability.md
+          - Resilience Patterns: mcp/server/resilience-patterns.md
+          - Queue & Background Jobs: mcp/server/queue.md
+          - Advanced Patterns: mcp/server/advanced-patterns.md
+          - Deployment: mcp/server/deployment.md
+          - Testing: mcp/server/testing.md
+      - Client SDK:
+          - Client Guide: mcp/client/index.md
+          - Tool Adapter: mcp/client/tool-adapter.md
+
+  - Agent Runtime:
+      - runtime/index.md
+      - Core:
+          - Agent Processes: runtime/processes.md
+          - Orchestration API: runtime/api.md
+          - Runtime Manager: runtime/runtime-manager.md
+          - Context & State: runtime/context.md
+          - Lifecycle Events: runtime/lifecycle.md
+          - Runtime Hooks: runtime/hooks.md
+          - Conversation Management: runtime/conversation.md
+      - Configuration:
+          - Options: runtime/configuration.md
+          - Agent Manifests: runtime/manifests.md
+          - Meta-Tools: runtime/meta-tools.md
+      - Governance:
+          - Mission Model: runtime/governance/mission.md
+          - Autonomy Budget: runtime/governance/budget.md
+          - Behavioral Health: runtime/governance/health.md
+          - Secret Scoping: runtime/governance/secrets.md
+      - Triggers:
+          - runtime/triggers/index.md
+          - Cron Trigger: runtime/triggers/cron.md
+          - Event & Webhook: runtime/triggers/event-webhook.md
+          - File Watch: runtime/triggers/file-watch.md
+      - Journal:
+          - runtime/journal/index.md
+          - Backends: runtime/journal/backends.md
+          - Replay Engine: runtime/journal/replay.md
+          - Rewind Engine: runtime/journal/rewind.md
+      - Distributed:
+          - Coordinator: runtime/distributed/coordinator.md
+          - Discovery & Transport: runtime/distributed/discovery-transport.md
+      - Dashboard: runtime/dashboard.md
+      - CLI Commands: runtime/cli.md
+
+  - Prompting & Context:
+      - prompting/index.md
+      - Building Prompts:
+          - "Layer 1: PromptBlocks": prompting/blocks.md
+          - "Layer 2: ConversationFlow": prompting/flows.md
+          - Prompt Builder: prompting/builder.md
+          - Loader & Templates: prompting/loader-templates.md
+          - Shell Context Injection: prompting/shell-interpolation.md
+      - Strategies & Chaining:
+          - Strategies: prompting/strategies.md
+          - Prompt Chaining: prompting/chaining.md
+          - Context & Variables: prompting/context.md
+      - Quality & Testing:
+          - Guards & Validation: prompting/guards.md
+          - Inspector & Observability: prompting/inspector.md
+          - Testing Utilities: prompting/testing.md
+      - Suite & Registry: prompting/suite-registry.md
+
+  - API Reference:
+      - Core:
+          - Agent: api/agent.md
+          - Configuration: api/config.md
+          - Memory: api/memory.md
+          - RAG: api/rag.md
+          - Sandbox: api/sandbox.md
+          - Observability: api/observability.md
+      - MCP:
+          - MCP Server: api/mcp-server.md
+          - MCP Client: api/mcp-client.md
+      - Prompts & Runtime:
+          - Prompts: api/prompts.md
+          - Runtime: api/runtime.md
+      - Advanced:
+          - Cross-Agent: api/cross-agent.md
+          - SuperAgent: api/superagent.md
+          - Utilities: api/utilities.md
+
+  - Resources:
+      - Showcase:
+          - What You Can Build: resources/showcase.md
+          - Submit Your Project: resources/submit-project.md
+          - Examples Gallery: resources/examples.md
+      - Project:
+          - Migration Guide: resources/migration.md
+          - Changelog: resources/changelog.md
+          - Contributing: resources/contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/promptise/foundry
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/promptise/
+  generator: false
+
+repo_url: https://github.com/promptise/foundry
+repo_name: promptise/foundry
+
+copyright: Copyright &copy; 2024 - 2026 Promptise

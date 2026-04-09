@@ -1,0 +1,66 @@
+# Promptise Foundry
+
+> Promptise Foundry is a Python framework for building production-grade AI agents. It provides five subsystems: an Agent core with automatic MCP tool discovery, an MCP Server SDK for building authenticated tool servers, a Reasoning Engine for composable agent execution patterns, an Agent Runtime for autonomous long-running processes, and a Prompt Engineering system with typed blocks and strategies. Install with `pip install promptise`. Requires Python 3.10+.
+
+The core entry point is `build_agent()` which creates a production-ready agent in one function call. It connects to MCP servers, discovers tools, attaches memory, enables security guardrails, semantic caching, and observability. The agent supports any LLM via model strings like `"openai:gpt-4o-mini"` or `"anthropic:claude-sonnet-4-20250514"`.
+
+Key concepts:
+- **MCP-first**: All tool integration uses Model Context Protocol. Agents auto-discover tools from servers.
+- **Reasoning Engine**: 20 composable node types (ThinkNode, PlanNode, ReflectNode, etc.) that wire into execution graphs. The agent can assemble its own reasoning path at runtime from a node pool, or you wire a static graph.
+- **CallerContext**: Per-request user identity (user_id, bearer_token, roles) that flows through every layer for multi-tenant isolation.
+- **Async-first**: All public APIs are async. Use `asyncio.run()` at the top level.
+
+## Core
+
+- [Agent (build_agent)](https://docs.promptise.com/core/agents/building-agents/): The main entry point. Creates a PromptiseAgent with tool discovery, memory, guardrails, cache, and observability.
+- [Configuration](https://docs.promptise.com/core/agents/configuration/): HTTPServerSpec, StdioServerSpec, model configuration, server specs.
+- [Memory](https://docs.promptise.com/core/agents/memory/): InMemoryProvider, ChromaProvider, Mem0Provider. Auto-searched before each invocation.
+- [Conversations](https://docs.promptise.com/core/agents/conversations/): SQLiteConversationStore, PostgresConversationStore, RedisConversationStore. Persistent chat sessions.
+- [Guardrails](https://docs.promptise.com/core/agents/guardrails/): PromptiseSecurityScanner with 6 detection heads (prompt injection, PII, credentials, NER, content safety, custom rules). All models run locally.
+- [Semantic Cache](https://docs.promptise.com/core/agents/cache/): In-memory or Redis. Per-user/per-session scope. Serves cached responses for similar queries.
+- [Observability](https://docs.promptise.com/core/observability/): 4 levels (OFF, BASIC, STANDARD, FULL). 8 transporters (HTML, JSON, console, Prometheus, OpenTelemetry, webhook, callback).
+- [CLI](https://docs.promptise.com/core/cli/): `promptise run`, `promptise agent`, `promptise list-tools`, `promptise validate`, `promptise runtime`.
+
+## MCP Server SDK
+
+- [Building Servers](https://docs.promptise.com/mcp/server/building-servers/): MCPServer, @server.tool(), @server.resource(), @server.prompt() decorators.
+- [Authentication](https://docs.promptise.com/mcp/server/auth-security/): JWTAuth (HS256/RS256/ES256), APIKeyAuth, AuthMiddleware. HasRole, HasAllRoles, RequireAuth guards.
+- [Middleware](https://docs.promptise.com/mcp/server/middleware/): LoggingMiddleware, RateLimitMiddleware, TimeoutMiddleware, CircuitBreakerMiddleware, AuditMiddleware, ConcurrencyLimiter.
+- [Job Queue](https://docs.promptise.com/mcp/server/job-queue/): MCPQueue with priority scheduling, retry with backoff, progress reporting, cancellation.
+- [Testing](https://docs.promptise.com/mcp/server/testing/): TestClient runs the full pipeline in-process with no network.
+- [MCP Client](https://docs.promptise.com/mcp/client/): MCPClient, MCPMultiClient for connecting to MCP servers.
+
+## Reasoning Engine
+
+- [Overview](https://docs.promptise.com/core/engine/): PromptGraph, PromptGraphEngine, 20 node types, 7 prebuilt patterns.
+- [Nodes](https://docs.promptise.com/core/engine-nodes/): PromptNode (with blocks, tools, strategy, model override, data flow), ThinkNode, PlanNode, ReflectNode, CritiqueNode, SynthesizeNode, ValidateNode, ObserveNode, RetryNode, FanOutNode, ToolNode, RouterNode, GuardNode, ParallelNode, LoopNode, HumanNode, TransformNode, SubgraphNode, AutonomousNode.
+- [Flags](https://docs.promptise.com/core/engine-flags/): 16 NodeFlags (CRITICAL, RETRYABLE, CACHEABLE, SKIP_ON_ERROR, LIGHTWEIGHT, OBSERVABLE, etc.).
+- [Patterns](https://docs.promptise.com/core/engine-processors/): react, autonomous, deliberate, debate, research, pipeline, peoatr.
+
+## Agent Runtime
+
+- [Overview](https://docs.promptise.com/runtime/): AgentRuntime, AgentProcess, lifecycle management.
+- [Triggers](https://docs.promptise.com/runtime/triggers/): CronTrigger, EventTrigger, MessageTrigger, WebhookTrigger, FileWatchTrigger.
+- [Governance](https://docs.promptise.com/runtime/governance/): BudgetConfig, HealthConfig, MissionConfig. Budget limits, loop detection, mission-driven evaluation.
+- [Journals](https://docs.promptise.com/runtime/journals/): InMemoryJournal, FileJournal. Crash recovery via replay.
+
+## Prompting
+
+- [Blocks](https://docs.promptise.com/prompting/blocks/): Identity, Rules, OutputFormat, ContextSlot, Section, Examples, Conditional, Composite. Priority-based token budgeting.
+- [Strategies](https://docs.promptise.com/prompting/strategies/): ChainOfThought, StructuredReasoning, SelfCritique, PlanAndExecute, Decompose. Compose with +.
+- [Flows](https://docs.promptise.com/prompting/flows/): ConversationFlow with phase transitions. Blocks activate/deactivate per phase.
+- [Builder](https://docs.promptise.com/prompting/builder/): PromptBuilder for fluent runtime construction.
+
+## API Reference
+
+- [Agent API](https://docs.promptise.com/api/agent/): build_agent(), PromptiseAgent, CallerContext.
+- [Server API](https://docs.promptise.com/api/mcp-server/): MCPServer, MCPRouter, guards, middleware.
+- [Engine API](https://docs.promptise.com/api/engine/): PromptGraph, PromptGraphEngine, all node types.
+- [Runtime API](https://docs.promptise.com/api/runtime/): AgentRuntime, ProcessConfig, TriggerConfig.
+
+## Optional
+
+- [Changelog](https://docs.promptise.com/resources/changelog/): Version history and release notes.
+- [Contributing](https://github.com/promptise/foundry/blob/main/CONTRIBUTING.md): How to contribute.
+- [Examples](https://docs.promptise.com/resources/examples/): 12 runnable example scripts.
+- [Installation Extras](https://docs.promptise.com/getting-started/installation-extras/): Optional dependency groups (ml, infra, observability).
