@@ -95,7 +95,7 @@ Send an email to **showcase@promptise.dev** with the subject line:
 
 Include all required fields from the table above in the email body. Attach screenshots or diagrams as image files (PNG, JPG) or link to them.
 
-Alternatively, open a GitHub Discussion in the [Promptise Foundry repository](https://github.com/promptise/foundry) under the **Show and Tell** category with the same information.
+Alternatively, open a GitHub Discussion in the [Promptise Foundry repository](https://github.com/promptise-com/foundry) under the **Show and Tell** category with the same information.
 
 ---
 

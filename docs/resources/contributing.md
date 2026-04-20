@@ -21,7 +21,7 @@ Promptise Foundry is a production-grade agentic framework used by enterprises, c
 
 ```bash
 # Clone the repository
-git clone https://github.com/promptise/foundry.git
+git clone https://github.com/promptise-com/foundry.git
 cd foundry
 
 # Create and activate the virtual environment

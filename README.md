@@ -6,18 +6,23 @@
   <h3>The production framework for agentic AI systems.</h3>
 
   <p>
-    <a href="https://promptise.github.io/foundry"><img alt="Docs" src="https://img.shields.io/badge/docs-latest-brightgreen.svg"></a>
-    <a href="#"><img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-blue.svg"></a>
-    <a href="#"><img alt="License" src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a>
-    <a href="#"><img alt="Tests" src="https://img.shields.io/badge/tests-3400%2B%20passing-success.svg"></a>
-    <a href="#"><img alt="Version" src="https://img.shields.io/badge/version-1.0.0-blue.svg"></a>
+    <a href="https://pypi.org/project/promptise/"><img alt="PyPI" src="https://img.shields.io/pypi/v/promptise?color=%23a855f7&label=pypi"></a>
+    <a href="https://pypi.org/project/promptise/"><img alt="Python" src="https://img.shields.io/pypi/pyversions/promptise?color=%233b82f6"></a>
+    <a href="https://pypi.org/project/promptise/"><img alt="Downloads" src="https://img.shields.io/pypi/dm/promptise?color=%2322c55e&label=downloads"></a>
+    <a href="https://github.com/promptise-com/foundry/actions/workflows/test.yml"><img alt="CI" src="https://github.com/promptise-com/foundry/actions/workflows/test.yml/badge.svg"></a>
+    <a href="https://github.com/promptise-com/foundry/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-%23f59e0b"></a>
+    <a href="https://promptise.github.io/foundry"><img alt="Docs" src="https://img.shields.io/badge/docs-latest-%2306b6d4"></a>
+  </p>
+  <p>
+    <a href="https://github.com/promptise-com/foundry/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/promptise-com/foundry?style=social"></a>
+    <a href="https://github.com/promptise-com/foundry/discussions"><img alt="Discussions" src="https://img.shields.io/github/discussions/promptise-com/foundry?color=%238b5cf6"></a>
   </p>
 
   <p>
     <a href="https://promptise.github.io/foundry/">Documentation</a> &bull;
     <a href="https://promptise.github.io/foundry/getting-started/quickstart/">Quick Start</a> &bull;
     <a href="https://promptise.github.io/foundry/resources/showcase/">What You Can Build</a> &bull;
-    <a href="https://github.com/promptise/foundry/discussions">Discussions</a>
+    <a href="https://github.com/promptise-com/foundry/discussions">Discussions</a>
   </p>
 </div>
 

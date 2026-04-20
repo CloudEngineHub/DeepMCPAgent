@@ -7,7 +7,7 @@ Thank you for your interest in contributing to Promptise Foundry! This document 
 1. **Fork and clone the repository**
 
 ```bash
-git clone https://github.com/promptise/foundry.git
+git clone https://github.com/promptise-com/foundry.git
 cd promptise
 ```
 

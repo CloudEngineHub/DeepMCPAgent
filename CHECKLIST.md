@@ -31,7 +31,7 @@
 ### Package
 - [x] `pip install -e ".[all]"` works
 - [x] All new imports resolve
-- [x] pyproject.toml URLs ready (`github.com/promptise/foundry`)
+- [x] pyproject.toml URLs ready (`github.com/promptise-com/foundry`)
 - [x] Version via setuptools-scm (tag → `1.0.0`)
 
 ---
@@ -44,7 +44,7 @@
 - [ ] `mkdocs build --strict` — 0 warnings
 
 ### 2. Repo Setup
-- [ ] Create/transfer repo to `github.com/promptise/foundry`
+- [ ] Create/transfer repo to `github.com/promptise-com/foundry`
 - [ ] `git push origin main`
 
 ### 3. Tag & Version

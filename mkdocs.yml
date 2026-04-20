@@ -275,12 +275,12 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/promptise/foundry
+      link: https://github.com/promptise-com/foundry
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/promptise/
   generator: false
 
-repo_url: https://github.com/promptise/foundry
-repo_name: promptise/foundry
+repo_url: https://github.com/promptise-com/foundry
+repo_name: promptise-com/foundry
 
 copyright: Copyright &copy; 2024 - 2026 Promptise

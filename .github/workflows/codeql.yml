@@ -1,0 +1,51 @@
+name: CodeQL
+
+# GitHub's free semantic code analysis — finds common CVEs and
+# vulnerability patterns (SQL injection, XSS, unsafe deserialization,
+# hard-coded credentials, etc.) in Python source.
+#
+# Runs on every push to main, every PR, and weekly on the default
+# branch so advisories surface against the latest release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays at 07:23 UTC — off-peak, avoids the top-of-hour stampede.
+    - cron: "23 7 * * 1"
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
