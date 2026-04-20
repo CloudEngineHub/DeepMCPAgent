@@ -361,8 +361,8 @@ config = ProcessConfig(
 !!! tip "filter_expression for pre-filtering"
     All trigger types support an optional `filter_expression` in `TriggerConfig`. This allows cheap pre-filtering before invoking the LLM, saving tokens on irrelevant events.
 
-!!! warning "Optional dependencies"
-    `WebhookTrigger` requires `aiohttp` and `FileWatchTrigger` requires `watchdog` for optimal performance. Install with `pip install promptise[runtime]`. Without `watchdog`, file watching falls back to polling.
+!!! info "Dependencies shipped with base install"
+    `WebhookTrigger` uses `aiohttp` and `FileWatchTrigger` uses `watchdog`. Both ship with the base `pip install promptise`.
 
 !!! warning "Queue overflow"
     Each trigger has an internal queue (default capacity: 100-1000). If events arrive faster than the agent can process them, the oldest events are dropped with a warning.

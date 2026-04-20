@@ -44,69 +44,50 @@ dependencies = [
 ]
 
 # ---------------------------------------------------------------------------
-# Lightweight extras — install a subset when you don't need the full framework
+# Optional extras — two choices:
+#
+#   pip install promptise           # core: agent + MCP + runtime + OpenAI
+#   pip install "promptise[all]"    # everything production-ready
+#   pip install "promptise[dev]"    # contributors only (tests + lint + docs)
 # ---------------------------------------------------------------------------
 [project.optional-dependencies]
-deep = [
-  "deepagents>=0.0.5,<1.0",
-]
 
-# pip install promptise[ml]  — memory, semantic & ML deps
-ml = [
+# pip install promptise[all]
+# Everything you need for production: vector memory, embeddings, ML guardrails,
+# Redis, Docker (for sandbox), OpenTelemetry, Prometheus.
+all = [
+  # Vector memory, embeddings, ML guardrails
   "chromadb>=0.5.0",
   "sentence-transformers>=2.2.0",
   "transformers>=4.30.0",
   "numpy>=1.24.0",
   "mem0ai>=0.1.0",
-]
-
-# pip install promptise[infra]  — infrastructure deps
-infra = [
+  # Infrastructure
   "redis>=5.0.0",
   "docker>=7.0.0",
-]
-
-# pip install promptise[observability]  — observability deps
-observability = [
+  # Observability
   "opentelemetry-api>=1.20.0",
   "opentelemetry-sdk>=1.20.0",
   "opentelemetry-exporter-otlp>=1.20.0",
   "prometheus_client>=0.20.0",
 ]
 
-# pip install promptise[mcp]  — MCP server + client only (no orchestration/runtime)
-mcp = [
-  "mcp>=1.9.0",
-  "langchain>=0.3.27",
-  "pydantic>=2.8",
-  "anyio>=4.5",
-  "python-dotenv>=1.1",
-  "pyyaml>=6.0",
-]
-
-# pip install promptise[docs]  — documentation building
-docs = [
-  "mkdocs>=1.6",
-  "mkdocs-material>=9.5",
-  "mkdocstrings[python]>=0.29",
-]
-
-# pip install promptise[all]  — everything optional
-all = [
-  "promptise[ml]",
-  "promptise[infra]",
-  "promptise[observability]",
-  "promptise[docs]",
-]
-
+# pip install promptise[dev]
+# Contributors only. Everything in [all] plus test runners, lint, docs tooling.
 dev = [
   "promptise[all]",
+  # Tests
   "pytest>=8.4",
   "pytest-asyncio>=1.1",
   "pytest-cov>=6.0",
+  # Lint & types
   "mypy>=1.17",
   "ruff>=0.12",
   "types-PyYAML>=6.0",
+  # Docs
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.29",
 ]
 
 [project.scripts]

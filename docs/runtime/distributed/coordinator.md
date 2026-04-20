@@ -256,8 +256,8 @@ result = await coordinator.inject_event_on_node(
 !!! tip "Set node_timeout to 3x health_check_interval"
     A node that misses three consecutive health checks (45s with 15s intervals) is likely truly down, not just experiencing a transient network issue.
 
-!!! warning "Requires aiohttp"
-    All HTTP-based operations (health checks, remote commands, status queries) require `aiohttp`. Without it, nodes are marked as `"unknown"` status and remote operations raise `RuntimeError`. Install with `pip install promptise[runtime]`.
+!!! info "aiohttp shipped with base install"
+    All HTTP-based operations (health checks, remote commands, status queries) use `aiohttp`, which is included in the base `pip install promptise`.
 
 !!! warning "No authentication"
     The coordinator communicates with nodes over plain HTTP. In production, use a reverse proxy with TLS and authentication, or deploy within a private network.

@@ -37,11 +37,11 @@ pip uninstall deepmcpagent
 ### Step 2: Install the New Package
 
 ```bash
-# With DeepAgents support (recommended)
-pip install "promptise[all]"
+# Core framework (agent + MCP + runtime + OpenAI)
+pip install promptise
 
-# Or with all features
-pip install "promptise[deep,sandbox]"
+# Or everything production-ready
+pip install "promptise[all]"
 ```
 
 ### Step 3: Update Python Imports

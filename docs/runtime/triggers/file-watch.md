@@ -246,8 +246,8 @@ When `stop()` is called:
 
 ## Tips and Gotchas
 
-!!! tip "Install watchdog for production"
-    Polling works but introduces latency equal to the `poll_interval`. Native filesystem notifications via `watchdog` detect changes nearly instantly. Install with `pip install watchdog` or `pip install promptise[runtime]`.
+!!! tip "watchdog is already installed"
+    Polling works but introduces latency equal to the `poll_interval`. Native filesystem notifications via `watchdog` detect changes nearly instantly. `watchdog` ships with the base `pip install promptise`.
 
 !!! tip "Narrow your patterns"
     Use specific glob patterns to avoid processing temporary files, swap files, and other noise. For example, `["*.csv"]` is better than `["*"]` for a data ingestion pipeline.

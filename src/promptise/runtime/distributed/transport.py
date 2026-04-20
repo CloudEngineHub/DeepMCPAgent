@@ -4,7 +4,7 @@ Each runtime node exposes an HTTP API that allows remote management:
 starting/stopping processes, querying status, injecting events, and
 health checks.
 
-Requires ``aiohttp`` (install via ``pip install promptise[runtime]``).
+Uses ``aiohttp`` (ships with the base ``pip install promptise``).
 
 Example::
 

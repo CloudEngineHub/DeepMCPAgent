@@ -34,7 +34,7 @@ logger = logging.getLogger("promptise.cache")
 
 # Lazy numpy: imported on first SemanticCache use, not at module load time.
 # This keeps the base install free of a heavy numpy dependency for users
-# who don't enable semantic caching. Install with `pip install promptise[ml]`
+# who don't enable semantic caching. Install with `pip install "promptise[all]"`
 # or `pip install numpy` if you want to use SemanticCache.
 _np: Any = None
 
@@ -49,7 +49,7 @@ def _get_np() -> Any:
         except ImportError as e:
             raise ImportError(
                 "SemanticCache requires numpy. Install with: "
-                "pip install numpy  (or pip install promptise[ml])"
+                'pip install numpy  (or pip install "promptise[all]")'
             ) from e
     return _np
 

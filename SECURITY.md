@@ -55,7 +55,7 @@ When using Promptise in production:
 
 ### Dependencies
 - Keep dependencies up to date
-- Use `pip install promptise[security]` for security extras
+- Use `pip install "promptise[all]"` to get the full security stack (ML guardrails, encrypted Redis cache)
 - Run `pip audit` regularly
 - Review dependency vulnerabilities
 

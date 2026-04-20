@@ -158,7 +158,7 @@ TriggerConfig(type="cron", cron_expression="*/5 * * * *")
 
 ### WebhookTrigger
 
-Listens on an HTTP endpoint. Requires `pip install promptise[runtime]` for the `aiohttp` dependency.
+Listens on an HTTP endpoint. Uses `aiohttp` (included in the base install).
 
 ```python
 TriggerConfig(type="webhook", webhook_path="/webhook", webhook_port=9090)
@@ -166,7 +166,7 @@ TriggerConfig(type="webhook", webhook_path="/webhook", webhook_port=9090)
 
 ### FileWatchTrigger
 
-Watches a directory for filesystem changes. Requires `pip install promptise[runtime]` for the `watchdog` dependency.
+Watches a directory for filesystem changes. Uses `watchdog` (included in the base install).
 
 ```python
 TriggerConfig(

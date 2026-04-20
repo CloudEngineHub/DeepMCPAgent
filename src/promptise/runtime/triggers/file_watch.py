@@ -3,8 +3,7 @@
 Uses ``watchdog`` for native OS filesystem notifications when available,
 with a polling fallback when ``watchdog`` is not installed.
 
-Requires ``watchdog`` for optimal performance
-(install via ``pip install promptise[runtime]``).
+``watchdog`` is included in the base ``pip install promptise``.
 
 Example::
 

@@ -728,9 +728,9 @@ class OTLPTransporter(BaseTransporter):
     Each agent invocation is a parent span; each LLM call and tool call
     are child spans with proper parent-child relationships.
 
-    Requires the ``[observability]`` extra::
+    Requires the ``[all]`` extra::
 
-        pip install promptise[observability]
+        pip install "promptise[all]"
 
     Compatible with Jaeger, Datadog, Honeycomb, Grafana Tempo, and any
     OTLP-compatible backend.
@@ -773,7 +773,7 @@ class OTLPTransporter(BaseTransporter):
         except ImportError:
             logger.warning(
                 "OpenTelemetry packages not installed.  "
-                "Install with: pip install promptise[observability]"
+                'Install with: pip install "promptise[all]"'
             )
 
     def on_event(self, entry: Any) -> None:

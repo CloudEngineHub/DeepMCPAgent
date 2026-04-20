@@ -69,7 +69,7 @@ class TransporterType(str, Enum):
 
     OTLP = "otlp"
     """OpenTelemetry span export via OTLP gRPC.  Requires the
-    ``[observability]`` extra: ``pip install promptise[observability]``."""
+    ``[all]`` extra: ``pip install "promptise[all]"``."""
 
     WEBHOOK = "webhook"
     """HTTP POST each event (or batch) to a configurable URL."""

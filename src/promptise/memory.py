@@ -220,7 +220,7 @@ class InMemoryProvider:
 class Mem0Provider:
     """Adapter for `mem0 <https://github.com/mem0ai/mem0>`_.
 
-    Requires ``pip install mem0ai`` (or ``pip install promptise[mem0]``).
+    Requires ``pip install mem0ai`` (or ``pip install "promptise[all]"``).
     Wraps Mem0's hybrid retrieval (vector + optional graph search) behind
     the :class:`MemoryProvider` protocol.
 
@@ -256,7 +256,7 @@ class Mem0Provider:
         except ImportError:
             raise ImportError(
                 "Mem0Provider requires the 'mem0ai' package. "
-                "Install it with: pip install promptise[mem0]"
+                'Install it with: pip install "promptise[all]"'
             ) from None
 
         from mem0 import Memory
@@ -393,7 +393,7 @@ class Mem0Provider:
 class ChromaProvider:
     """Adapter for `ChromaDB <https://www.trychroma.com/>`_.
 
-    Requires ``pip install chromadb`` (or ``pip install promptise[chroma]``).
+    Requires ``pip install chromadb`` (or ``pip install "promptise[all]"``).
     Provides local vector similarity search with automatic embedding
     generation.  ChromaDB handles its own input validation internally.
 
@@ -430,7 +430,7 @@ class ChromaProvider:
         except ImportError:
             raise ImportError(
                 "ChromaProvider requires the 'chromadb' package. "
-                "Install it with: pip install promptise[chroma]"
+                'Install it with: pip install "promptise[all]"'
             ) from None
 
         import chromadb
