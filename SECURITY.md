@@ -88,7 +88,7 @@ When we receive a security bug report, we will:
 
 For any security concerns or questions:
 - Email: security@promptise.com
-- GitHub Security Advisories: https://github.com/promptise/foundry/security/advisories
+- GitHub Security Advisories: https://github.com/promptise-com/foundry/security/advisories
 
 ## Attribution
 

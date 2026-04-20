@@ -287,7 +287,7 @@ The engine adds **<0.02ms overhead** per invocation (excluding LLM latency). Key
 - **Cached tool maps** — tool name→instance dict built once per node execution
 - **Zero data truncation** — full tool results flow through (no arbitrary character limits)
 
-See [OPTIMIZATIONS.md](https://github.com/promptise/foundry/blob/main/OPTIMIZATIONS.md) for full technical details and benchmarks.
+See [OPTIMIZATIONS.md](https://github.com/promptise-com/foundry/blob/main/OPTIMIZATIONS.md) for full technical details and benchmarks.
 
 ## Runtime Tool Injection
 
