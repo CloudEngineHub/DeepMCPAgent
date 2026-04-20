@@ -271,8 +271,8 @@ All implement the `BaseTrigger` protocol: `start()`, `stop()`, `wait_for_next()`
 !!! tip "Webhook security"
     The webhook server binds to `0.0.0.0` by default. In production, use a reverse proxy (nginx, Caddy) for TLS termination and authentication. The trigger itself does not perform any request authentication.
 
-!!! warning "aiohttp required for webhooks"
-    `WebhookTrigger` requires `aiohttp`. Install with `pip install promptise[runtime]`. If `aiohttp` is not available, `create_trigger` raises `TriggerError`.
+!!! info "aiohttp shipped with base install"
+    `WebhookTrigger` uses `aiohttp`, which is included in the base `pip install promptise`.
 
 !!! warning "EventBus/Broker must be shared"
     For `EventTrigger` and `MessageTrigger` to work, the same `EventBus` or `MessageBroker` instance must be shared between the event producer and the trigger. Pass them to the `AgentRuntime` constructor.

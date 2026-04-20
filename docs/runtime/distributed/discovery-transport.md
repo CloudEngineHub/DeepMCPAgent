@@ -385,8 +385,8 @@ async def run_coordinator():
 !!! tip "Event injection for cross-node coordination"
     Use the `POST /processes/{name}/event` endpoint to trigger processes on remote nodes. This enables cross-node agent coordination without shared message brokers.
 
-!!! warning "aiohttp required for transport"
-    The `RuntimeTransport` requires `aiohttp`. Install with `pip install promptise[runtime]`.
+!!! info "aiohttp shipped with base install"
+    The `RuntimeTransport` uses `aiohttp`, which is included in the base `pip install promptise`.
 
 !!! warning "No authentication on transport endpoints"
     The HTTP API does not include authentication or authorization. In production, always deploy behind a reverse proxy with TLS, or within a private network with network-level access controls.

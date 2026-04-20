@@ -4,7 +4,7 @@ An aiohttp server listens on a configurable port and path. When a POST
 request arrives, a :class:`TriggerEvent` is produced with the request
 body as payload.
 
-Requires ``aiohttp`` (install via ``pip install promptise[runtime]``).
+Uses ``aiohttp`` (ships with the base ``pip install promptise``).
 
 Example::
 

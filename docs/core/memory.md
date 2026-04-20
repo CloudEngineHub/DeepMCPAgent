@@ -127,7 +127,7 @@ results = await provider.search("deployment issues")
 | Search method | Vector similarity (cosine distance) |
 | Default embedding model | `all-MiniLM-L6-v2` (runs locally, no API key) |
 | Persistence | Optional (`persist_directory` parameter) |
-| Dependencies | `pip install promptise[chroma]` |
+| Dependencies | `pip install "promptise[all]"` |
 | Best for | Production agents needing semantic recall |
 
 Constructor parameters:
@@ -155,7 +155,7 @@ results = await provider.search("theme preferences")
 |---|---|
 | Search method | Hybrid vector + optional graph search |
 | Persistence | Managed by Mem0 |
-| Dependencies | `pip install promptise[mem0]` |
+| Dependencies | `pip install "promptise[all]"` |
 | Best for | Multi-user agents, knowledge graphs, cloud deployments |
 
 Constructor parameters:

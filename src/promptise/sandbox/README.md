@@ -239,7 +239,7 @@ Tests include:
 - `langchain_core` - Tool interfaces
 
 **Optional:**
-- `docker>=7.0.0` - Docker backend (install with `pip install promptise[sandbox]`)
+- `docker>=7.0.0` - Docker backend (install with `pip install "promptise[all]"`)
 
 ## Contributing
 

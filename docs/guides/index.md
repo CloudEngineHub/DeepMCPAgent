@@ -97,7 +97,7 @@ Every guide follows the same progression:
 All guides assume:
 
 - Python 3.10+
-- `pip install promptise` (or `pip install promptise[full]` for all extras)
+- `pip install promptise` (or `pip install "promptise[all]"` for all extras)
 - An `OPENAI_API_KEY` environment variable set (or another LLM provider)
 
 See [Installation](../index.md) and [Model Setup](../getting-started/model-setup.md) if you need help getting started.

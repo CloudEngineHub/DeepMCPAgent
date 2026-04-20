@@ -171,7 +171,7 @@ def _webhook_factory(
         from .webhook import WebhookTrigger
     except ImportError as exc:
         raise TriggerError(
-            "Webhook trigger requires aiohttp. Install with: pip install promptise[runtime]"
+            "Webhook trigger requires aiohttp. Reinstall with: pip install --upgrade promptise"
         ) from exc
     return WebhookTrigger(
         path=config.webhook_path,
@@ -190,7 +190,7 @@ def _file_watch_factory(
         from .file_watch import FileWatchTrigger
     except ImportError as exc:
         raise TriggerError(
-            "File watch trigger requires watchdog. Install with: pip install promptise[runtime]"
+            "File watch trigger requires watchdog. Reinstall with: pip install --upgrade promptise"
         ) from exc
     if not config.watch_path:
         raise TriggerError("File watch trigger requires watch_path")

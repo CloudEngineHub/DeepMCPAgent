@@ -157,6 +157,16 @@ All features configurable via .superagent files:
 
 - memory, observability, optimize_tools, cache, approval, events, adaptive, guardrails, max_invocation_time
 
+### Simplified Install — Two Choices
+
+Old multi-extra matrix (`[ml]`, `[infra]`, `[observability]`, `[mcp]`, `[docs]`, `[deep]`) has been collapsed into two clear extras:
+
+- `pip install promptise` — base install is now complete (agent, MCP server + client, runtime, prompts, CLI, OpenAI, `aiohttp`, `watchdog`, cryptography)
+- `pip install "promptise[all]"` — everything production-ready: ChromaDB, Mem0, sentence-transformers, transformers, numpy, Redis, Docker, OpenTelemetry, Prometheus
+- `pip install "promptise[dev]"` — contributors only: everything in `[all]` plus pytest, mypy, ruff, mkdocs tooling
+
+The `[mcp]` extra is removed — MCP is core. The `[deep]` extra is removed — install `deepagents` separately if you need it.
+
 ### Breaking Changes from DeepMCPAgent
 
 - **Package**: `deepmcpagent` → `promptise`
