@@ -1,12 +1,15 @@
 <!-- Hero -->
 <div align="center">
   <br/>
-  <img src="docs/assets/logo.png" width="112" alt="Promptise Foundry"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-light.png">
+    <img src="docs/assets/logo-dark.png" width="112" alt="Promptise Foundry"/>
+  </picture>
 
   <h1>Promptise Foundry</h1>
 
   <p>
-    <strong>The production framework for agentic AI systems.</strong>
+    <strong>The foundation layer for agentic intelligence.</strong>
   </p>
 
   <p>
@@ -276,47 +279,6 @@ LangGraph's checkpointer gives it genuine replay; AutoGen ships a real Docker co
 Promptise unifies every row above — one dependency, one type-checked API, one runtime.
 </sub>
 </div>
-
-<br/>
-
-## &nbsp;
-
-<br/>
-
-<div align="center">
-  <h2>Benchmarks</h2>
-  <p><sub>Apples-to-apples. Same model, same 40-tool MCP server, same prompts, fresh agent per run.</sub></p>
-</div>
-
-<br/>
-
-<div align="center">
-
-**6 frameworks &nbsp;×&nbsp; 30 tasks &nbsp;×&nbsp; 5 repeats &nbsp;=&nbsp; 900 real agent runs**
-
-Promptise · LangGraph · LangChain · PydanticAI · CrewAI · AutoGen
-&nbsp;—&nbsp; all driven by `openai:gpt-5-mini` at `temperature=0`.
-
-</div>
-
-<br/>
-
-| Tier | Measures | Count |
-|------|----------|------:|
-| **T1** Direct lookup | Can the agent pick the right tool and quote the result? | 6 |
-| **T2** Multi-step | Can it chain 5–7 tools with state carried across calls? | 6 |
-| **T3** Synthesis | Can it reason across 3+ tool outputs? | 6 |
-| **T4** Tool selection | Can it disambiguate across 40 tools in 7 namespaces? | 6 |
-| **T5** Autonomous reasoning | Can it decompose a goal, branch on intermediate results, re-plan on failure, and synthesize evidence-grounded answers? | 6 |
-
-We measure **latency (median, p95)**, **tokens (in/out)**, **cost**, **tool-call count**, **tool precision**, **factual accuracy** (LLM-as-judge, 0–5), and **hallucination rate** — for every framework, on every task, every time. The full trace (answers, tool calls, judge rationales) is committed as raw JSON under `benchmarks/results/`. Nothing is cherry-picked.
-
-```bash
-export OPENAI_API_KEY=sk-...
-./benchmarks/reproduce.sh           # end-to-end: start server, run 900 agents, regenerate RESULTS.md
-```
-
-**→ [`benchmarks/RESULTS.md`](./benchmarks/RESULTS.md)** · **[`benchmarks/README.md`](./benchmarks/README.md)** (fairness protocol + honesty guarantees)
 
 <br/>
 
