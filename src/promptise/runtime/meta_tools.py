@@ -773,7 +773,7 @@ def _build_dynamic_tool(
                     )
 
                 ns["__builtins__"]["__import__"] = _safe_import
-            exec(python_code, ns)  # noqa: S102
+            exec(python_code, ns)  # noqa: S102  # nosec B102 - intentional sandbox meta-tool with restricted builtins/import allowlist
 
             run_fn = ns.get("run")
             if run_fn is None:

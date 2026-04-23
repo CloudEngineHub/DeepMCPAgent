@@ -253,8 +253,8 @@ class DockerBackend(SandboxBackend):
         # Tmpfs mounts for writable directories (when using read-only rootfs)
         if host_config.get("read_only"):
             host_config["tmpfs"] = {
-                "/tmp": "rw,noexec,nosuid,size=1g",
-                "/var/tmp": "rw,noexec,nosuid,size=512m",
+                "/tmp": "rw,noexec,nosuid,size=1g",  # nosec B108 - path inside sandboxed container, not host
+                "/var/tmp": "rw,noexec,nosuid,size=512m",  # nosec B108 - path inside sandboxed container, not host
                 self.config.workdir: "rw,size=5g",
             }
 
@@ -355,7 +355,10 @@ class DockerBackend(SandboxBackend):
 
         # Check if iptables is available
         check_result = await self.execute_command(
-            container_id, "command -v iptables", timeout=5, workdir="/tmp"
+            container_id,
+            "command -v iptables",
+            timeout=5,
+            workdir="/tmp",  # nosec B108 - container path, not host
         )
 
         if check_result.exit_code != 0:
@@ -376,7 +379,7 @@ class DockerBackend(SandboxBackend):
         ]
 
         for cmd in commands:
-            result = await self.execute_command(container_id, cmd, timeout=10, workdir="/tmp")
+            result = await self.execute_command(container_id, cmd, timeout=10, workdir="/tmp")  # nosec B108 - container path, not host
             if result.exit_code != 0:
                 logger.error(
                     f"[sandbox] Failed to apply network restriction: {cmd}\nError: {result.stderr}"
@@ -481,7 +484,10 @@ class DockerBackend(SandboxBackend):
             FileNotFoundError: If file doesn't exist
         """
         result = await self.execute_command(
-            container_id, f"cat {shlex.quote(file_path)}", timeout=10, workdir="/tmp"
+            container_id,
+            f"cat {shlex.quote(file_path)}",
+            timeout=10,
+            workdir="/tmp",  # nosec B108 - container path, not host
         )
 
         if not result.success:

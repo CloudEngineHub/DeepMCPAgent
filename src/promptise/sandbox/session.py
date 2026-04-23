@@ -109,7 +109,7 @@ class SandboxSession:
         if not normalised.startswith("/"):
             normalised = posixpath.join("/workspace", normalised)
         # Block traversal outside allowed roots
-        allowed_roots = ("/workspace", "/tmp", "/home")
+        allowed_roots = ("/workspace", "/tmp", "/home")  # nosec B108 - container path whitelist, not host
         if not any(normalised.startswith(root) for root in allowed_roots):
             raise ValueError(
                 f"Path {path!r} resolves to {normalised!r} which is outside "

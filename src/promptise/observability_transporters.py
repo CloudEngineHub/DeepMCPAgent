@@ -856,6 +856,10 @@ class WebhookTransporter(BaseTransporter):
         max_retries: int = 3,
         timeout: float = 10.0,
     ) -> None:
+        if not url.startswith(("http://", "https://")):
+            raise ValueError(
+                f"WebhookTransporter url must start with http:// or https:// (got {url!r})"
+            )
         self.url = url
         self.headers = {"Content-Type": "application/json", **(headers or {})}
         self.batch_size = batch_size
@@ -917,7 +921,9 @@ class WebhookTransporter(BaseTransporter):
                     headers=self.headers,
                     method="POST",
                 )
-                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                with urllib.request.urlopen(  # noqa: S310  # nosec B310 - url scheme validated as http/https in __init__
+                    req, timeout=self.timeout
+                ) as resp:
                     if resp.status < 300:
                         return
                     logger.warning(
