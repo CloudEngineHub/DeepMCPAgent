@@ -858,7 +858,7 @@ class PromptiseAgent:
                     if etype == "on_tool_start":
                         tool_name = event.get("name", "unknown")
                         run_id = event.get("run_id", "")
-                        args = event.get("data", {}).get("input", {})
+                        args: dict[str, Any] = event.get("data", {}).get("input", {})
                         if isinstance(args, str):
                             args = {"input": args}
                         if include_arguments and self._guardrails is not None:

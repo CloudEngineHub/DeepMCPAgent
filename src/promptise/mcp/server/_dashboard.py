@@ -395,13 +395,13 @@ class Dashboard:
         navigation feeling instant.
         """
         import select
-        import termios
-        import tty
+        import termios  # type: ignore[import-not-found,unused-ignore]  # unix-only
+        import tty  # type: ignore[import-not-found,unused-ignore]  # unix-only
 
         fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
+        old_settings = termios.tcgetattr(fd)  # type: ignore[attr-defined,unused-ignore]
         try:
-            tty.setcbreak(fd)
+            tty.setcbreak(fd)  # type: ignore[attr-defined,unused-ignore]
             while self._running:
                 # Wait for input with short timeout for responsiveness
                 if not select.select([fd], [], [], 0.05)[0]:
@@ -433,7 +433,7 @@ class Dashboard:
             logging.debug("Unix key reader error", exc_info=True)
         finally:
             try:
-                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)  # type: ignore[attr-defined,unused-ignore]
             except Exception:
                 logging.debug("Error restoring terminal settings", exc_info=True)
 
