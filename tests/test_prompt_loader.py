@@ -378,6 +378,8 @@ template: "Hello {name}"
             load_prompt(f)
 
     def test_load_with_register(self, tmp_path: Path):
+        import sys
+
         from promptise.prompts.loader import load_prompt
         from promptise.prompts.registry import PromptRegistry
 
@@ -389,12 +391,19 @@ template: "Do: {task}"
         f = tmp_path / "registered.prompt"
         f.write_text(content)
 
+        # ``promptise.prompts`` re-exports the ``registry`` singleton at the
+        # package level, which shadows the submodule of the same name. Go
+        # through ``sys.modules`` to reach the real submodule.
+        registry_mod = sys.modules["promptise.prompts.registry"]
+        original = registry_mod.registry
         reg = PromptRegistry()
-        # Patch the singleton in the registry module so the local import picks it up
-        with patch("promptise.prompts.registry.registry", reg):
+        registry_mod.registry = reg
+        try:
             p = load_prompt(f, register=True)
             assert p.name == "registered"
             assert reg.get("registered", "1.0.0") is p
+        finally:
+            registry_mod.registry = original
 
     def test_load_unknown_strategy_raises(self, tmp_path: Path):
         from promptise.prompts.loader import PromptFileError, load_prompt
