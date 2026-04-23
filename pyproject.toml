@@ -172,6 +172,14 @@ extend-immutable-calls = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Integration tests require Docker with a real sandbox image
+# (iptables + curl pre-installed and writable rootfs). They never run
+# on Windows/macOS GitHub runners and are flaky even on Linux. Opt-in
+# with `pytest -m integration`.
+markers = [
+  "integration: tests requiring external services (Docker, live APIs)",
+]
+addopts = "-m 'not integration'"
 
 [tool.setuptools_scm]
 version_scheme = "guess-next-dev"
