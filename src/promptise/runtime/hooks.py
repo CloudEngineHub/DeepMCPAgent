@@ -47,7 +47,7 @@ import logging
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -123,7 +123,7 @@ class HookContext:
         event: The event that is firing.
         process_id: Identifier of the :class:`AgentProcess` dispatching
             the hook. May be empty for top-level dispatch.
-        timestamp: UTC timestamp of dispatch.
+        timestamp: timezone.utc timestamp of dispatch.
         data: Free-form event payload. Hook implementations may read
             and (for some events, e.g. USER_PROMPT_SUBMIT) mutate this
             dict to alter the subsequent runtime behavior.
@@ -133,7 +133,7 @@ class HookContext:
 
     event: HookEvent
     process_id: str = ""
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     data: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 

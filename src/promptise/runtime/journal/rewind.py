@@ -49,7 +49,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -296,7 +296,7 @@ class RewindEngine:
                 }
             )
 
-        applied_at = datetime.now(UTC)
+        applied_at = datetime.now(timezone.utc)
         rewind_entry_id: str | None = None
         if record:
             rewind_entry_id = f"rewind-{int(applied_at.timestamp() * 1000)}"

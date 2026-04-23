@@ -44,7 +44,7 @@ class TestRuntimeE2EReal:
         """
         Real LLM agent with real MCP tools → budget → health → journal → secrets → lifecycle.
         """
-        from datetime import UTC, datetime
+        from datetime import datetime, timezone
 
         from promptise import build_agent
         from promptise.config import StdioServerSpec
@@ -119,7 +119,7 @@ class TestRuntimeE2EReal:
             JournalEntry(
                 entry_id="boot",
                 process_id=process_id,
-                timestamp=datetime.now(UTC),
+                timestamp=datetime.now(timezone.utc),
                 entry_type="lifecycle",
                 data={"state": "running", "model": "gpt-4o-mini"},
             )
@@ -172,7 +172,7 @@ class TestRuntimeE2EReal:
             JournalEntry(
                 entry_id="inv1",
                 process_id=process_id,
-                timestamp=datetime.now(UTC),
+                timestamp=datetime.now(timezone.utc),
                 entry_type="invocation",
                 data={
                     "query": "weather+time",
@@ -224,7 +224,7 @@ class TestRuntimeE2EReal:
             JournalEntry(
                 entry_id="inv2",
                 process_id=process_id,
-                timestamp=datetime.now(UTC),
+                timestamp=datetime.now(timezone.utc),
                 entry_type="invocation",
                 data={
                     "query": "news",

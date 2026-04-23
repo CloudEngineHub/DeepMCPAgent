@@ -22,7 +22,7 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
@@ -54,7 +54,7 @@ class Anomaly:
 
     anomaly_type: AnomalyType
     description: str
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     details: dict[str, Any] = field(default_factory=dict)
 
 

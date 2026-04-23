@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 try:
@@ -121,7 +121,7 @@ class SandboxContainerManager:
         filters = {"label": self.label_prefix}
         containers = self.client.containers.list(all=True, filters=filters)
 
-        cutoff = datetime.now(UTC) - timedelta(hours=max_age_hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
         count = 0
 
         for container in containers:

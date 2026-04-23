@@ -5,7 +5,7 @@ All Docker interactions are mocked so these tests run without Docker installed.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -223,7 +223,7 @@ class TestCleanupAll:
 class TestCleanupOld:
     def test_removes_containers_older_than_cutoff(self) -> None:
         manager = _make_manager()
-        old_time = (datetime.now(UTC) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        old_time = (datetime.now(timezone.utc) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
         c = make_mock_container(status="exited", created=old_time)
         manager.client.containers.list.return_value = [c]
 
@@ -234,7 +234,9 @@ class TestCleanupOld:
 
     def test_keeps_recent_containers(self) -> None:
         manager = _make_manager()
-        recent_time = (datetime.now(UTC) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        recent_time = (datetime.now(timezone.utc) - timedelta(hours=1)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
         c = make_mock_container(status="exited", created=recent_time)
         manager.client.containers.list.return_value = [c]
 
@@ -245,7 +247,9 @@ class TestCleanupOld:
 
     def test_stops_running_old_containers_before_removal(self) -> None:
         manager = _make_manager()
-        old_time = (datetime.now(UTC) - timedelta(hours=100)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        old_time = (datetime.now(timezone.utc) - timedelta(hours=100)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
         c = make_mock_container(status="running", created=old_time)
         manager.client.containers.list.return_value = [c]
 
@@ -257,7 +261,7 @@ class TestCleanupOld:
 
     def test_removal_error_is_caught(self) -> None:
         manager = _make_manager()
-        old_time = (datetime.now(UTC) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        old_time = (datetime.now(timezone.utc) - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
         c = make_mock_container(status="exited", created=old_time)
         c.remove.side_effect = Exception("error")
         manager.client.containers.list.return_value = [c]

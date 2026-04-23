@@ -37,7 +37,7 @@ import asyncio
 import contextlib
 import logging
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
@@ -1080,7 +1080,7 @@ class AgentProcess:
         if self._health is not None and self._health.latest_anomaly is not None:
             latest = self._health.latest_anomaly
             # Only act on anomalies from this invocation (within last 5s)
-            if latest.timestamp >= datetime.now(UTC) - timedelta(seconds=5):
+            if latest.timestamp >= datetime.now(timezone.utc) - timedelta(seconds=5):
                 from .escalation import escalate as _escalate
 
                 # Emit health.anomaly event

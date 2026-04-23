@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -88,7 +88,7 @@ class BudgetState:
         self.daily_tool_calls: int = 0
         self.daily_runs: int = 0
         self.daily_cost: float = 0.0
-        self.last_daily_reset: datetime = datetime.now(UTC)
+        self.last_daily_reset: datetime = datetime.now(timezone.utc)
 
     async def record_tool_call(self, tool_name: str) -> BudgetViolation | None:
         """Record a tool call and check per-run + daily limits.
@@ -147,7 +147,7 @@ class BudgetState:
             ``True`` if counters were reset, ``False`` otherwise.
         """
         async with self._lock:
-            now = datetime.now(UTC)
+            now = datetime.now(timezone.utc)
             reset_hour = self._config.daily_reset_hour_utc
             # Check if we've crossed the reset hour since last reset
             if now.date() > self.last_daily_reset.date() or (

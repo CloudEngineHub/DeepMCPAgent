@@ -37,7 +37,7 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
@@ -98,7 +98,7 @@ class MissionEvaluation:
     confidence: float
     reasoning: str
     progress_summary: str
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     invocation_number: int = 0
     source: str = "llm"
 
@@ -348,7 +348,7 @@ class MissionTracker:
                     reasoning=e_data.get("reasoning", ""),
                     progress_summary=e_data.get("progress_summary", ""),
                     timestamp=datetime.fromisoformat(
-                        e_data.get("timestamp", datetime.now(UTC).isoformat())
+                        e_data.get("timestamp", datetime.now(timezone.utc).isoformat())
                     ),
                     invocation_number=e_data.get("invocation_number", 0),
                     source=e_data.get("source", "llm"),
@@ -480,7 +480,7 @@ class MissionTracker:
             entry = JournalEntry(
                 entry_id="",
                 process_id=self._process_id,
-                timestamp=datetime.now(UTC),
+                timestamp=datetime.now(timezone.utc),
                 entry_type="mission_evaluation",
                 data={
                     "achieved": evaluation.achieved,

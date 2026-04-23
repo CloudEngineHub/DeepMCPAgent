@@ -27,7 +27,7 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from cryptography.fernet import Fernet
@@ -234,7 +234,7 @@ class SecretScope:
             entry = JournalEntry(
                 entry_id="",
                 process_id=self._process_id,
-                timestamp=datetime.now(UTC),
+                timestamp=datetime.now(timezone.utc),
                 entry_type="secret_access",
                 data={"action": action, "secret_name": name},
             )

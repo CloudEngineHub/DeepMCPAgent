@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from ..exceptions import TriggerError
@@ -82,7 +82,7 @@ class CronTrigger:
         """
         self._event.clear()
         next_fire = self._compute_next_fire()
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         delay = max(0, (next_fire - now).total_seconds())
 
         if delay > 0:
@@ -108,14 +108,14 @@ class CronTrigger:
 
     def _compute_next_fire(self) -> datetime:
         """Calculate the next fire time from now."""
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
 
         if CRONITER_AVAILABLE:
             try:
                 cron = croniter(self._cron_expression, now)
                 next_dt = cron.get_next(datetime)
                 if next_dt.tzinfo is None:
-                    next_dt = next_dt.replace(tzinfo=UTC)
+                    next_dt = next_dt.replace(tzinfo=timezone.utc)
                 return next_dt
             except (ValueError, KeyError) as exc:
                 raise TriggerError(f"Invalid cron expression: {self._cron_expression!r}") from exc

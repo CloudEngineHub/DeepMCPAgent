@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -85,14 +85,14 @@ class ProcessTransition:
     Attributes:
         from_state: Previous state.
         to_state: New state.
-        timestamp: When the transition occurred (UTC).
+        timestamp: When the transition occurred (timezone.utc).
         reason: Human-readable reason for the transition.
         metadata: Additional context (e.g. error details).
     """
 
     from_state: ProcessState
     to_state: ProcessState
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     reason: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
