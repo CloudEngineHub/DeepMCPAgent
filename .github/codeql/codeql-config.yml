@@ -1,0 +1,8 @@
+name: "Promptise Foundry CodeQL config"
+
+# CodeQL still parses these files to resolve imports, but findings
+# inside them are suppressed from the Security tab.
+paths-ignore:
+  - tests/**
+  - examples/**
+  - docs/**
