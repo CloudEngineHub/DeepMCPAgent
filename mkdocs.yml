@@ -1,10 +1,9 @@
 site_name: Promptise Foundry
 site_description: Production-ready agentic framework for building AI agent systems and multi-agent orchestration
-site_url: https://promptise.github.io/foundry
+site_url: https://docs.promptise.com
 
 theme:
   name: material
-  custom_dir: overrides
   logo: assets/logo.png
   favicon: assets/favicon.png
   font:
