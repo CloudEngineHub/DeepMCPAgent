@@ -215,8 +215,15 @@ class TestInMemoryConversationStore:
 
     @pytest.mark.asyncio
     async def test_list_sessions_ordering(self, store: InMemoryConversationStore) -> None:
+        import asyncio
+
         await store.save_messages("s1", [Message(role="user", content="first")])
+        # Windows ``time.time()`` resolution is ~15.6ms; without a small pause
+        # all three saves collapse to the same timestamp and the ordering is
+        # undefined.
+        await asyncio.sleep(0.02)
         await store.save_messages("s2", [Message(role="user", content="second")])
+        await asyncio.sleep(0.02)
         await store.save_messages("s3", [Message(role="user", content="third")])
 
         sessions = await store.list_sessions()

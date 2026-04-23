@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 from promptise.runtime.hooks import (
@@ -183,6 +185,10 @@ class TestHookManager:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="ShellHook tests use POSIX shell scripts (bash) unavailable on Windows",
+)
 class TestShellHook:
     @pytest.mark.asyncio
     async def test_run_returns_empty_when_script_silent(self, tmp_path):

@@ -72,6 +72,9 @@ class TestJSONFileTransporter:
             t.on_event(_make_entry(entry_id="e1"))
             t.on_event(_make_entry(entry_id="e2"))
             t.flush()
+            # Close the transporter so Windows releases its handle on the
+            # ndjson file before ``TemporaryDirectory`` tries to delete it.
+            t.close()
 
             # Find the NDJSON file
             files = os.listdir(tmpdir)
@@ -109,6 +112,9 @@ class TestStructuredLogTransporter:
             t = StructuredLogTransporter(log_file=path, session_name="test")
             t.on_event(_make_entry())
             t.flush()
+            # Close before re-opening so Windows releases the exclusive write
+            # handle before ``open(path)`` and ``os.unlink(path)``.
+            t.close()
             with open(path) as f:
                 content = f.read()
             assert "test-001" in content

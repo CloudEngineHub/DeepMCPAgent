@@ -268,8 +268,9 @@ class TestRegistryDiscovery:
         async def run():
             await rd.register("n1", "http://host1")
             old_ts = rd._nodes["n1"].discovered_at
-            # Simulate time passing
-            await asyncio.sleep(0.01)
+            # Simulate time passing — 50ms is well above Windows ~15.6ms
+            # ``time.time()`` resolution.
+            await asyncio.sleep(0.05)
             await rd.heartbeat("n1")
             new_ts = rd._nodes["n1"].discovered_at
             return old_ts, new_ts
