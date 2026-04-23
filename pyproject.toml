@@ -82,7 +82,7 @@ dev = [
   "pytest-cov>=6.0",
   # Lint & types
   "mypy>=1.17",
-  "ruff>=0.12",
+  "ruff>=0.15,<0.16",
   "types-PyYAML>=6.0",
   # Docs
   "mkdocs>=1.6",
@@ -159,7 +159,6 @@ ignore = [
   "B017",     # Assert raises exception
   "UP007",    # Use X | Y for unions (runtime type expressions)
   "UP031",    # Use format specifiers
-  "UP038",    # Use X | Y in isinstance (requires Python 3.10+ runtime)
   "UP045",    # Use X | None for Optional
 ]
 
