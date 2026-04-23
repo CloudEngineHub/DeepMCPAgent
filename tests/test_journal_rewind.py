@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -29,7 +29,7 @@ def _entry(
     return JournalEntry(
         entry_id=entry_id,
         process_id=process_id,
-        timestamp=datetime.now(UTC) - timedelta(seconds=seconds_ago),
+        timestamp=datetime.now(timezone.utc) - timedelta(seconds=seconds_ago),
         entry_type=entry_type,
         data=data,
     )

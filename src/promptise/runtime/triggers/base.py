@@ -14,7 +14,7 @@ The :class:`TriggerEvent` carries metadata about what caused the firing
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, Protocol, runtime_checkable
 from uuid import uuid4
 
@@ -27,7 +27,7 @@ class TriggerEvent:
         trigger_id: Which trigger produced this event.
         trigger_type: Type of the trigger (``cron``, ``webhook``, etc.).
         event_id: Unique event identifier.
-        timestamp: When the event was produced (UTC).
+        timestamp: When the event was produced (timezone.utc).
         payload: Trigger-specific data (cron time, webhook body,
             file path, event data, message content).
         metadata: Additional context.
@@ -36,7 +36,7 @@ class TriggerEvent:
     trigger_id: str
     trigger_type: str = ""
     event_id: str = field(default_factory=lambda: str(uuid4()))
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     payload: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 

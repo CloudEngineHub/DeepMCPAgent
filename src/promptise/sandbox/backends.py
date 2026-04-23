@@ -162,7 +162,7 @@ class DockerBackend(SandboxBackend):
         Returns:
             Docker container configuration dict
         """
-        from datetime import UTC, datetime
+        from datetime import datetime, timezone
 
         # Base configuration
         config: dict[str, Any] = {
@@ -175,7 +175,7 @@ class DockerBackend(SandboxBackend):
             "command": "/bin/bash",
             "labels": {
                 "promptise.sandbox": "true",
-                "promptise.sandbox.created": datetime.now(UTC).isoformat(),
+                "promptise.sandbox.created": datetime.now(timezone.utc).isoformat(),
                 "promptise.sandbox.backend": self.config.backend,
             },
         }

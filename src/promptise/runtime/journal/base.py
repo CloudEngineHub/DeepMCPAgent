@@ -12,7 +12,7 @@ observability.  Three detail levels are supported:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Protocol, runtime_checkable
 from uuid import uuid4
@@ -33,7 +33,7 @@ class JournalEntry:
     Attributes:
         entry_id: Unique entry ID.
         process_id: Owning process.
-        timestamp: When the entry was recorded (UTC).
+        timestamp: When the entry was recorded (timezone.utc).
         entry_type: Type of entry (``state_transition``,
             ``trigger_event``, ``invocation_start``,
             ``invocation_result``, ``checkpoint``, ``error``).
@@ -42,7 +42,7 @@ class JournalEntry:
 
     entry_id: str = field(default_factory=lambda: str(uuid4()))
     process_id: str = ""
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     entry_type: str = ""
     data: dict[str, Any] = field(default_factory=dict)
 

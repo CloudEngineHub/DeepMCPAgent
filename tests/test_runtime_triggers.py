@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -112,7 +112,7 @@ class TestCronTrigger:
 
     def test_simple_next_fire_interval(self) -> None:
         trigger = CronTrigger("*/10 * * * *")
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         next_fire = trigger._simple_next_fire(now)
         # Should be ~10 minutes from now
         diff = (next_fire - now).total_seconds()
@@ -120,7 +120,7 @@ class TestCronTrigger:
 
     def test_simple_next_fire_every_minute(self) -> None:
         trigger = CronTrigger("* * * * *")
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         next_fire = trigger._simple_next_fire(now)
         diff = (next_fire - now).total_seconds()
         assert 50 <= diff <= 70
@@ -128,7 +128,7 @@ class TestCronTrigger:
     def test_invalid_cron_raises(self) -> None:
         trigger = CronTrigger("bad")
         with pytest.raises(TriggerError, match="Invalid cron"):
-            trigger._simple_next_fire(datetime.now(UTC))
+            trigger._simple_next_fire(datetime.now(timezone.utc))
 
 
 # =========================================================================
