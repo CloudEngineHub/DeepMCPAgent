@@ -111,7 +111,7 @@ class TestTokenEvent:
         assert e.cumulative_text == "Hello"
 
     def test_accumulation(self):
-        e1 = TokenEvent(text="He", cumulative_text="He")
+        TokenEvent(text="He", cumulative_text="He")
         e2 = TokenEvent(text="llo", cumulative_text="Hello")
         assert e2.cumulative_text == "Hello"
 

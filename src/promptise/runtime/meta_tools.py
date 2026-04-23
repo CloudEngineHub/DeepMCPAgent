@@ -746,15 +746,31 @@ def _build_dynamic_tool(
                 ns = _make_sandbox_globals()
                 # Allow importing from a safe whitelist
                 _safe_modules = {
-                    "json", "math", "re", "datetime", "collections",
-                    "itertools", "functools", "string", "hashlib",
-                    "base64", "urllib.parse", "uuid", "copy",
+                    "json",
+                    "math",
+                    "re",
+                    "datetime",
+                    "collections",
+                    "itertools",
+                    "functools",
+                    "string",
+                    "hashlib",
+                    "base64",
+                    "urllib.parse",
+                    "uuid",
+                    "copy",
                 }
 
                 def _safe_import(name, *args, **kwargs):
                     if name.split(".")[0] in _safe_modules:
-                        return __builtins__["__import__"](name, *args, **kwargs) if isinstance(__builtins__, dict) else __import__(name, *args, **kwargs)
-                    raise ImportError(f"Import of '{name}' is not allowed. Safe modules: {sorted(_safe_modules)}")
+                        return (
+                            __builtins__["__import__"](name, *args, **kwargs)
+                            if isinstance(__builtins__, dict)
+                            else __import__(name, *args, **kwargs)
+                        )
+                    raise ImportError(
+                        f"Import of '{name}' is not allowed. Safe modules: {sorted(_safe_modules)}"
+                    )
 
                 ns["__builtins__"]["__import__"] = _safe_import
             exec(python_code, ns)  # noqa: S102

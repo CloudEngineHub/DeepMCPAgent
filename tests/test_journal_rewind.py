@@ -1,4 +1,5 @@
 """Tests for the multi-granularity RewindEngine."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -11,7 +12,6 @@ from promptise.runtime.journal import (
     RewindEngine,
     RewindMode,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -163,7 +163,7 @@ class TestApplyCodeOnly:
         )
 
         # Conversation should include e1, e2, e4, e5, e8
-        roles = [m["role"] for m in result.conversation]
+        [m["role"] for m in result.conversation]
         contents = [m["content"] for m in result.conversation]
         assert "LATER" in contents
         assert "hi" in contents

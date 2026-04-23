@@ -300,10 +300,10 @@ class WebhookSink:
                 else:
                     logger.warning(
                         "WebhookSink: failed to deliver %s after %d attempts: %s",
-                            event.event_type,
-                            self._max_retries + 1,
-                            exc,
-                        )
+                        event.event_type,
+                        self._max_retries + 1,
+                        exc,
+                    )
 
     async def close(self) -> None:
         """Release the persistent HTTP connection pool."""
@@ -522,7 +522,9 @@ class EventNotifier:
             # Track dropped events for observability
             self._dropped_count = getattr(self, "_dropped_count", 0) + 1
             if self._dropped_count % 100 == 1:
-                logger.warning("EventNotifier: queue full, %d event(s) dropped", self._dropped_count)
+                logger.warning(
+                    "EventNotifier: queue full, %d event(s) dropped", self._dropped_count
+                )
         except Exception:
             pass  # Never block or raise in sync context
 
@@ -592,7 +594,7 @@ def emit_event(
 
     user_id: str | None = None
     try:
-        from .types import get_current_caller
+        from .agent import get_current_caller
 
         caller = get_current_caller()
         if caller is not None:

@@ -297,8 +297,9 @@ class Mem0Provider:
         #   v1.0+: list of dicts directly
         #   v1.1+: {"results": [...]}} wrapper
         results: list[MemoryResult] = []
+        entries: list[Any]
         if isinstance(raw, dict):
-            entries = raw.get("results", raw.get("memories", []))
+            entries = raw.get("results", raw.get("memories", [])) or []
         elif isinstance(raw, list):
             entries = raw
         else:
@@ -321,7 +322,9 @@ class Mem0Provider:
                 score = 0.5
                 mid = str(uuid4())[:12]
                 meta = {}
-            results.append(MemoryResult(content=content, score=score, memory_id=mid, metadata=meta))
+            results.append(
+                MemoryResult(content=str(content), score=score, memory_id=mid, metadata=meta)
+            )
 
         return results
 

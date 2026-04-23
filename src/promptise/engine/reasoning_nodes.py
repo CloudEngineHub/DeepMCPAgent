@@ -127,7 +127,12 @@ class ReflectNode(PromptNode):
         """Execute reflection and auto-store in state."""
         result = await super().execute(state, config)
         if result.error:
-            logger.debug("%s %r skipped state mutation due to error: %s", type(self).__name__, self.name, result.error)
+            logger.debug(
+                "%s %r skipped state mutation due to error: %s",
+                type(self).__name__,
+                self.name,
+                result.error,
+            )
             return result
 
         # Auto-store reflection in state
@@ -191,7 +196,12 @@ class ObserveNode(PromptNode):
         """Execute observation and enrich state with extracted data."""
         result = await super().execute(state, config)
         if result.error:
-            logger.debug("%s %r skipped state mutation due to error: %s", type(self).__name__, self.name, result.error)
+            logger.debug(
+                "%s %r skipped state mutation due to error: %s",
+                type(self).__name__,
+                self.name,
+                result.error,
+            )
             return result
 
         # Merge extracted entities/facts into state.context
@@ -249,7 +259,12 @@ class JustifyNode(PromptNode):
         """Execute justification and store in state."""
         result = await super().execute(state, config)
         if result.error:
-            logger.debug("%s %r skipped state mutation due to error: %s", type(self).__name__, self.name, result.error)
+            logger.debug(
+                "%s %r skipped state mutation due to error: %s",
+                type(self).__name__,
+                self.name,
+                result.error,
+            )
             return result
 
         if result.output and isinstance(result.output, dict):
@@ -314,7 +329,12 @@ class CritiqueNode(PromptNode):
         """Execute critique and route based on severity."""
         result = await super().execute(state, config)
         if result.error:
-            logger.debug("%s %r skipped state mutation due to error: %s", type(self).__name__, self.name, result.error)
+            logger.debug(
+                "%s %r skipped state mutation due to error: %s",
+                type(self).__name__,
+                self.name,
+                result.error,
+            )
             return result
 
         if result.output and isinstance(result.output, dict):
@@ -385,7 +405,12 @@ class PlanNode(PromptNode):
         """Execute planning and update state.plan."""
         result = await super().execute(state, config)
         if result.error:
-            logger.debug("%s %r skipped state mutation due to error: %s", type(self).__name__, self.name, result.error)
+            logger.debug(
+                "%s %r skipped state mutation due to error: %s",
+                type(self).__name__,
+                self.name,
+                result.error,
+            )
             return result
 
         if result.output and isinstance(result.output, dict):
@@ -510,7 +535,12 @@ class ValidateNode(PromptNode):
         """Execute validation and route based on pass/fail."""
         result = await super().execute(state, config)
         if result.error:
-            logger.debug("%s %r skipped state mutation due to error: %s", type(self).__name__, self.name, result.error)
+            logger.debug(
+                "%s %r skipped state mutation due to error: %s",
+                type(self).__name__,
+                self.name,
+                result.error,
+            )
             return result
 
         if result.output and isinstance(result.output, dict):
@@ -630,7 +660,9 @@ class FanOutNode(BaseNode):
 
         outputs: dict[str, Any] = {}
         for (node, _), child_result in zip(self.branches, child_results, strict=False):
-            if isinstance(child_result, Exception):
+            # asyncio.gather(return_exceptions=True) may return BaseException
+            # (CancelledError included); narrow on BaseException, not Exception.
+            if isinstance(child_result, BaseException):
                 outputs[node.name] = {"error": str(child_result)}
             else:
                 outputs[node.name] = child_result.output

@@ -2,13 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any
-
-import pytest
-
 from promptise.mcp.server import MCPServer
-
 
 # ---------------------------------------------------------------------------
 # Construction

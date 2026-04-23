@@ -502,16 +502,13 @@ class TestRuntimeTransport:
         from promptise.runtime.distributed.transport import RuntimeTransport
 
         runtime = AgentRuntime()
-        async with RuntimeTransport(runtime, host="127.0.0.1", port=19907) as transport:
+        async with RuntimeTransport(runtime, host="127.0.0.1", port=19907):
             async with ClientSession() as session:
                 async with session.get("http://127.0.0.1:19907/health") as resp:
                     assert resp.status == 200
 
     def test_repr(self):
-        try:
-            import aiohttp
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
 
         from promptise.runtime.distributed.transport import RuntimeTransport
 
@@ -534,10 +531,7 @@ class TestTransportCoordinatorIntegration:
     @pytest.mark.asyncio
     async def test_coordinator_health_check_via_transport(self):
         """Coordinator should check health via transport HTTP API."""
-        try:
-            from aiohttp import ClientSession
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
 
         from promptise.runtime.distributed.transport import RuntimeTransport
 
@@ -566,10 +560,7 @@ class TestTransportCoordinatorIntegration:
     @pytest.mark.asyncio
     async def test_coordinator_remote_status(self):
         """Coordinator should fetch remote node status."""
-        try:
-            from aiohttp import ClientSession
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
 
         from promptise.runtime.distributed.transport import RuntimeTransport
 

@@ -598,6 +598,7 @@ class SuperAgentConfig:
             tools = approval_data.pop("tools")
             webhook_url = approval_data.pop("webhook_url", None)
 
+            handler: WebhookApprovalHandler | QueueApprovalHandler
             if handler_type == "webhook":
                 if not webhook_url:
                     raise ValueError("approval.webhook_url required when handler is 'webhook'")
@@ -617,7 +618,7 @@ class SuperAgentConfig:
             from .events import EventNotifier, LogSink, WebhookSink
 
             sinks_config = self.events.get("sinks", [])
-            sinks = []
+            sinks: list[Any] = []
             for sc in sinks_config:
                 sink_type = sc.get("type", "log")
                 if sink_type == "webhook" and sc.get("url"):

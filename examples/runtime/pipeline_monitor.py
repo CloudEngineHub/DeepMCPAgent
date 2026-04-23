@@ -120,7 +120,9 @@ async def check_pipeline_health(stage: str = "") -> str:
 async def create_incident(title: str, severity: str, description: str = "") -> str:
     """Create an incident ticket for escalation. Used for CRITICAL events."""
     incident_id = f"INC-{len(incident_log) + 1:04d}"
-    incident_log.append({"id": incident_id, "title": title, "severity": severity, "description": description})
+    incident_log.append(
+        {"id": incident_id, "title": title, "severity": severity, "description": description}
+    )
     return f"Incident {incident_id} created: [{severity}] {title}"
 
 
@@ -141,6 +143,7 @@ async def get_recent_events(limit: int = 5) -> str:
 # Main
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def main():
     from promptise import build_agent
     from promptise.config import StdioServerSpec
@@ -157,12 +160,13 @@ async def main():
 
     # Save the tools server to a temp file for stdio
     import tempfile
-    server_code = '''
+
+    server_code = """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from examples.runtime.pipeline_monitor import tools_server
 tools_server.run(transport="stdio")
-'''
+"""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
         f.write(server_code)
         tmp_server = f.name
@@ -197,15 +201,21 @@ tools_server.run(transport="stdio")
             color = SEVERITY_COLORS.get(event["severity"], DIM)
 
             # Print the event
-            print(f"  {DIM}{event['timestamp']}{RESET} {color}{BOLD}{event['severity']:>10}{RESET} {CYAN}{event['stage']:>15}{RESET} {DIM}{event['message'][:60]}{RESET}")
+            print(
+                f"  {DIM}{event['timestamp']}{RESET} {color}{BOLD}{event['severity']:>10}{RESET} {CYAN}{event['stage']:>15}{RESET} {DIM}{event['message'][:60]}{RESET}"
+            )
 
             # Agent processes the event
-            result = await agent.ainvoke({
-                "messages": [{
-                    "role": "user",
-                    "content": f"Pipeline event:\nSeverity: {event['severity']}\nStage: {event['stage']}\nMessage: {event['message']}\nTimestamp: {event['timestamp']}",
-                }]
-            })
+            result = await agent.ainvoke(
+                {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": f"Pipeline event:\nSeverity: {event['severity']}\nStage: {event['stage']}\nMessage: {event['message']}\nTimestamp: {event['timestamp']}",
+                        }
+                    ]
+                }
+            )
 
             # Print agent response
             for msg in reversed(result["messages"]):

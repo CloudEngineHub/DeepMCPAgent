@@ -609,7 +609,7 @@ class TestAgentContextSerialization:
     def test_roundtrip_preserves_writable_keys(self) -> None:
         ctx = AgentContext(writable_keys=["a", "b"])
         data = ctx.to_dict()
-        restored = AgentContext.from_dict(data)
+        AgentContext.from_dict(data)
         # writable_keys should be restored
         assert data["writable_keys"] == ["a", "b"]
 

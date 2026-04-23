@@ -1,4 +1,5 @@
 """Tests for opt-in shell command interpolation in TemplateEngine."""
+
 from __future__ import annotations
 
 import pytest
@@ -80,8 +81,6 @@ class TestShellInterpolationOrderOfOperations:
     def test_only_bang_backtick_is_intercepted(self):
         # A bare backtick (e.g. inline markdown code) should NOT be touched.
         engine = TemplateEngine(shell_executor=lambda cmd: "EXEC")
-        out = engine.render(
-            "Use the `git status` command, not !`git status`.", {}
-        )
+        out = engine.render("Use the `git status` command, not !`git status`.", {})
         # Backtick code stays, bang-backtick is replaced
         assert out == "Use the `git status` command, not EXEC."

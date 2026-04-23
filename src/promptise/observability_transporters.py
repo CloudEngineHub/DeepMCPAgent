@@ -772,8 +772,7 @@ class OTLPTransporter(BaseTransporter):
 
         except ImportError:
             logger.warning(
-                "OpenTelemetry packages not installed.  "
-                'Install with: pip install "promptise[all]"'
+                'OpenTelemetry packages not installed.  Install with: pip install "promptise[all]"'
             )
 
     def on_event(self, entry: Any) -> None:

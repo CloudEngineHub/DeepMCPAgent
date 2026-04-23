@@ -55,7 +55,7 @@ import asyncio
 import json
 import logging
 import shlex
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from .hooks import HookBlocked, HookContext
@@ -132,9 +132,7 @@ class ShellHook:
             ctx.data.update(result.data)
 
         if result.log:
-            logger.debug(
-                "shell hook for %s logged: %s", ctx.event.value, result.log
-            )
+            logger.debug("shell hook for %s logged: %s", ctx.event.value, result.log)
 
         if result.block:
             raise HookBlocked(result.reason or "blocked by shell hook")
@@ -192,8 +190,7 @@ class ShellHook:
         if proc.returncode != 0:
             stderr_text = stderr_bytes.decode(self.encoding, errors="replace")
             raise RuntimeError(
-                f"shell hook '{self.command}' exited {proc.returncode}: "
-                f"{stderr_text.strip()[:500]}"
+                f"shell hook '{self.command}' exited {proc.returncode}: {stderr_text.strip()[:500]}"
             )
 
         stdout_text = stdout_bytes.decode(self.encoding, errors="replace").strip()
@@ -204,8 +201,7 @@ class ShellHook:
             payload_out = json.loads(stdout_text)
         except json.JSONDecodeError as exc:
             raise ValueError(
-                f"shell hook '{self.command}' produced invalid JSON: "
-                f"{stdout_text[:200]}"
+                f"shell hook '{self.command}' produced invalid JSON: {stdout_text[:200]}"
             ) from exc
 
         if not isinstance(payload_out, dict):

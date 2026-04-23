@@ -62,10 +62,11 @@ from __future__ import annotations
 import importlib.util
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -259,9 +260,7 @@ class SkillRegistry:
             raise ValueError(f"{path.name}: 'paths' must be a list of strings")
 
         # Import the file as an isolated module
-        spec = importlib.util.spec_from_file_location(
-            f"_promptise_skill_{path.stem}", path
-        )
+        spec = importlib.util.spec_from_file_location(f"_promptise_skill_{path.stem}", path)
         if spec is None or spec.loader is None:
             raise ImportError(f"could not import skill file {path}")
         module = importlib.util.module_from_spec(spec)
@@ -279,9 +278,7 @@ class SkillRegistry:
             paths=[str(p) for p in paths],
             factory=factory,
             metadata={
-                k: v
-                for k, v in frontmatter.items()
-                if k not in {"name", "description", "paths"}
+                k: v for k, v in frontmatter.items() if k not in {"name", "description", "paths"}
             },
         )
 

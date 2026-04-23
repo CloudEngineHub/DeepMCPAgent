@@ -1,9 +1,6 @@
 """Tests for runtime lifecycle hooks (HookManager + ShellHook)."""
-from __future__ import annotations
 
-import json
-import os
-import sys
+from __future__ import annotations
 
 import pytest
 
@@ -15,7 +12,6 @@ from promptise.runtime.hooks import (
     HookManager,
 )
 from promptise.runtime.shell_hook import ShellHook, ShellHookResult
-
 
 # ---------------------------------------------------------------------------
 # HookManager core
@@ -34,9 +30,7 @@ class TestHookManager:
         hook_id = hooks.register(HookEvent.SESSION_START, cb)
         assert hook_id.startswith("hook-")
 
-        result = await hooks.dispatch(
-            HookEvent.SESSION_START, data={"msg": "hi"}
-        )
+        result = await hooks.dispatch(HookEvent.SESSION_START, data={"msg": "hi"})
         assert result.fired == 1
         assert result.blocked is False
         assert fired == ["hi"]
@@ -207,8 +201,7 @@ class TestShellHook:
     async def test_run_parses_json_response(self, tmp_path):
         script = tmp_path / "echo.sh"
         script.write_text(
-            '#!/usr/bin/env bash\n'
-            'echo \'{"block": false, "data": {"injected": true}}\'\n'
+            '#!/usr/bin/env bash\necho \'{"block": false, "data": {"injected": true}}\'\n'
         )
         script.chmod(0o755)
 
@@ -221,26 +214,18 @@ class TestShellHook:
     @pytest.mark.asyncio
     async def test_callback_mutates_context_data(self, tmp_path):
         script = tmp_path / "rewrite.sh"
-        script.write_text(
-            '#!/usr/bin/env bash\n'
-            'echo \'{"data": {"prompt": "REWRITTEN"}}\'\n'
-        )
+        script.write_text('#!/usr/bin/env bash\necho \'{"data": {"prompt": "REWRITTEN"}}\'\n')
         script.chmod(0o755)
 
         hook = ShellHook(command=str(script))
-        ctx = HookContext(
-            event=HookEvent.USER_PROMPT_SUBMIT, data={"prompt": "original"}
-        )
+        ctx = HookContext(event=HookEvent.USER_PROMPT_SUBMIT, data={"prompt": "original"})
         await hook.callback(ctx)
         assert ctx.data == {"prompt": "REWRITTEN"}
 
     @pytest.mark.asyncio
     async def test_callback_block_raises(self, tmp_path):
         script = tmp_path / "block.sh"
-        script.write_text(
-            '#!/usr/bin/env bash\n'
-            'echo \'{"block": true, "reason": "bad prompt"}\'\n'
-        )
+        script.write_text('#!/usr/bin/env bash\necho \'{"block": true, "reason": "bad prompt"}\'\n')
         script.chmod(0o755)
 
         hook = ShellHook(command=str(script))
@@ -262,9 +247,7 @@ class TestShellHook:
     @pytest.mark.asyncio
     async def test_run_nonzero_exit_raises(self, tmp_path):
         script = tmp_path / "fail.sh"
-        script.write_text(
-            "#!/usr/bin/env bash\necho 'oops' >&2\nexit 1\n"
-        )
+        script.write_text("#!/usr/bin/env bash\necho 'oops' >&2\nexit 1\n")
         script.chmod(0o755)
 
         hook = ShellHook(command=str(script))
@@ -277,9 +260,7 @@ class TestShellHook:
         script = tmp_path / "audit.sh"
         # Read stdin (the JSON event), write a fixed response.
         script.write_text(
-            '#!/usr/bin/env bash\n'
-            'cat > /dev/null\n'
-            'echo \'{"data": {"prompt": "hooked"}}\'\n'
+            '#!/usr/bin/env bash\ncat > /dev/null\necho \'{"data": {"prompt": "hooked"}}\'\n'
         )
         script.chmod(0o755)
 

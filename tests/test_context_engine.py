@@ -239,7 +239,7 @@ class TestTrimming:
         engine.set_content("memory", "A" * 500)  # ~143 tokens, priority 3
         engine.set_content("strategies", "B" * 500)  # ~143 tokens, priority 2
 
-        messages = engine.assemble()
+        engine.assemble()
         report = engine.get_report()
 
         # Identity should survive (required), strategies should be trimmed first (priority 2)

@@ -100,6 +100,13 @@ class MCPRouter:
             from ._guards import HasRole
 
             all_guards.append(HasRole(*roles))
+            # Roles cannot be enforced without authentication — the
+            # HasRole guard reads ``ctx.state["roles"]`` which is only
+            # populated by ``AuthMiddleware`` when ``tool_def.auth`` is
+            # truthy.  Silently upgrading here prevents the footgun
+            # where ``roles=[...]`` looks like it enforces RBAC but
+            # actually always denies with "client has [(none)]".
+            auth = True
 
         # Build annotations if any hint is provided
         from ._types import ToolAnnotations

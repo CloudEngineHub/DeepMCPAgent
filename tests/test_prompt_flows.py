@@ -124,7 +124,7 @@ class TestConversationFlowNextTurn:
 
         flow = MyFlow()
         await flow.start()
-        result = await flow.next_turn("hello")
+        await flow.next_turn("hello")
         assert flow._turn == 1
         assert len(flow._history) == 1
         assert flow._history[0]["content"] == "hello"

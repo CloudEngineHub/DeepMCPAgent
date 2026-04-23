@@ -434,13 +434,13 @@ class TestDashboardNavigation:
 
 class TestDashboardRendering:
     def _make_state(self, **kwargs):
-        defaults = dict(
-            server_name="test-server",
-            version="1.0.0",
-            transport="http",
-            host="127.0.0.1",
-            port=8080,
-        )
+        defaults = {
+            "server_name": "test-server",
+            "version": "1.0.0",
+            "transport": "http",
+            "host": "127.0.0.1",
+            "port": 8080,
+        }
         defaults.update(kwargs)
         return DashboardState(**defaults)
 

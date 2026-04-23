@@ -299,7 +299,7 @@ class CompositeStrategy:
                 flat.extend(s._strategies)
             else:
                 flat.append(s)
-        self._strategies = flat
+        self._strategies: list[Any] = flat
 
     def wrap(self, prompt_text: str, ctx: PromptContext) -> str:
         text = prompt_text

@@ -2298,6 +2298,11 @@ class PromptiseSecurityScanner:
         detect_credentials: (flat API) Enable credential detection.
     """
 
+    # Class-level annotations for attributes set in both init branches.
+    # ``None`` means "all groups enabled"; a ``set`` restricts to named groups.
+    _pii_groups: set[str] | None
+    _cred_groups: set[str] | None
+
     @classmethod
     def default(cls) -> PromptiseSecurityScanner:
         """Create a scanner with all detection heads enabled (defaults).
@@ -2428,7 +2433,7 @@ class PromptiseSecurityScanner:
             if isinstance(detect_pii, set):
                 self.detect_pii = True
                 if PIICategory.ALL in detect_pii:
-                    self._pii_groups: set[str] | None = None
+                    self._pii_groups = None
                 else:
                     self._pii_groups = {c.value for c in detect_pii}
             elif detect_pii:
@@ -2443,7 +2448,7 @@ class PromptiseSecurityScanner:
             if isinstance(detect_credentials, set):
                 self.detect_credentials = True
                 if CredentialCategory.ALL in detect_credentials:
-                    self._cred_groups: set[str] | None = None
+                    self._cred_groups = None
                 else:
                     self._cred_groups = {c.value for c in detect_credentials}
             elif detect_credentials:

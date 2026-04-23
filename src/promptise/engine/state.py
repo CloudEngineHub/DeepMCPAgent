@@ -335,7 +335,9 @@ class GraphState:
         if not subgoal:
             return
         if subgoal not in self.plan:
-            logger.debug("complete_subgoal(%r) called but subgoal not in plan %s", subgoal, self.plan)
+            logger.debug(
+                "complete_subgoal(%r) called but subgoal not in plan %s", subgoal, self.plan
+            )
         if subgoal not in self.completed:
             self.completed.append(subgoal)
 
@@ -361,14 +363,11 @@ class GraphState:
         if self.max_messages <= 0 or len(self.messages) <= self.max_messages:
             return
         system_msgs = [
-            m for m in self.messages
-            if getattr(m, "type", None) == "system"
-            or type(m).__name__ == "SystemMessage"
+            m
+            for m in self.messages
+            if getattr(m, "type", None) == "system" or type(m).__name__ == "SystemMessage"
         ]
-        non_system = [
-            m for m in self.messages
-            if m not in system_msgs
-        ]
+        non_system = [m for m in self.messages if m not in system_msgs]
         keep = self.max_messages - len(system_msgs)
         if keep < 1:
             keep = 1

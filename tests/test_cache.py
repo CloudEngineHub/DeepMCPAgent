@@ -123,7 +123,7 @@ class TestInMemoryBackend:
         count = await backend.purge_user("alice")
         assert count == 2
         # Alice gone, Bob still there
-        stats = await backend.stats()
+        await backend.stats()
         assert backend._total_entries == 1
 
     @pytest.mark.asyncio

@@ -37,7 +37,8 @@ from __future__ import annotations
 import re
 import string
 import subprocess
-from typing import Any, Callable, Protocol, runtime_checkable
+from collections.abc import Callable
+from typing import Any, Protocol, runtime_checkable
 
 __all__ = [
     "ShellExecutor",
@@ -112,9 +113,7 @@ class SubprocessShellExecutor:
         if self.allowlist is not None:
             head = cmd.split(None, 1)[0]
             if head not in self.allowlist:
-                raise ShellExecutionError(
-                    f"command {head!r} not in shell executor allowlist"
-                )
+                raise ShellExecutionError(f"command {head!r} not in shell executor allowlist")
 
         merged_env = None
         if self.env is not None:
@@ -124,7 +123,12 @@ class SubprocessShellExecutor:
             merged_env.update(self.env)
 
         try:
-            result = subprocess.run(  # noqa: S602 — opt-in feature, controlled by caller
+            # Shell execution is an OPT-IN feature (requires explicitly wiring a
+            # SubprocessShellExecutor into the TemplateEngine). Callers control
+            # the commands via template authorship + optional allowlist. This is
+            # intentionally a *feature*, not a vulnerability — suppress bandit's
+            # generic warning for this reviewed site.
+            result = subprocess.run(  # noqa: S602  # nosec B602
                 cmd,
                 shell=self.shell,
                 capture_output=True,

@@ -595,7 +595,7 @@ class TestCriticalFlag:
         graph.add_edge("step1", "step2")
 
         engine = PromptGraphEngine(graph=graph, model=_make_mock_model())
-        result = await engine.ainvoke({"messages": []})
+        await engine.ainvoke({"messages": []})
 
         assert call_count == 1  # step2 never ran
         assert engine.last_report is not None

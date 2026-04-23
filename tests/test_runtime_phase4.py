@@ -488,11 +488,8 @@ class TestWebhookTrigger:
     @pytest.mark.asyncio
     async def test_webhook_receives_post(self):
         """POST to the webhook should produce a TriggerEvent."""
-        try:
-            import aiohttp
-            from aiohttp import ClientSession
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
+        from aiohttp import ClientSession
 
         from promptise.runtime.triggers.webhook import WebhookTrigger
 
@@ -521,11 +518,8 @@ class TestWebhookTrigger:
     @pytest.mark.asyncio
     async def test_webhook_health_check(self):
         """Health endpoint should return status."""
-        try:
-            import aiohttp
-            from aiohttp import ClientSession
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
+        from aiohttp import ClientSession
 
         from promptise.runtime.triggers.webhook import WebhookTrigger
 
@@ -544,11 +538,8 @@ class TestWebhookTrigger:
     @pytest.mark.asyncio
     async def test_webhook_text_body(self):
         """Non-JSON POST should still work with text payload."""
-        try:
-            import aiohttp
-            from aiohttp import ClientSession
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
+        from aiohttp import ClientSession
 
         from promptise.runtime.triggers.webhook import WebhookTrigger
 
@@ -573,10 +564,7 @@ class TestWebhookTrigger:
     @pytest.mark.asyncio
     async def test_webhook_stop_unblocks(self):
         """Stopping the trigger should unblock waiters."""
-        try:
-            import aiohttp
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
 
         from promptise.runtime.triggers.webhook import WebhookTrigger
 
@@ -593,10 +581,7 @@ class TestWebhookTrigger:
             await asyncio.wait_for(trigger.wait_for_next(), timeout=5.0)
 
     def test_repr(self):
-        try:
-            import aiohttp
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
 
         from promptise.runtime.triggers.webhook import WebhookTrigger
 
@@ -792,10 +777,7 @@ class TestCreateTriggerFactory:
 
     def test_create_webhook_trigger(self):
         """Factory should create WebhookTrigger when aiohttp available."""
-        try:
-            import aiohttp
-        except ImportError:
-            pytest.skip("aiohttp not installed")
+        pytest.importorskip("aiohttp")
 
         from promptise.runtime.triggers import create_trigger
         from promptise.runtime.triggers.webhook import WebhookTrigger

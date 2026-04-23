@@ -76,21 +76,25 @@ class RewindMode(str, Enum):
 
 # Entry-type buckets the rewind engine recognizes. Anything not listed
 # here is treated as "other" and rewound by BOTH only.
-_CONVERSATION_TYPES = frozenset({
-    "user_prompt",
-    "assistant_message",
-    "conversation_turn",
-})
+_CONVERSATION_TYPES = frozenset(
+    {
+        "user_prompt",
+        "assistant_message",
+        "conversation_turn",
+    }
+)
 
-_CODE_TYPES = frozenset({
-    "tool_call",
-    "tool_result",
-    "file_write",
-    "file_change",
-    "code_execution",
-    "context_update",
-    "state_transition",
-})
+_CODE_TYPES = frozenset(
+    {
+        "tool_call",
+        "tool_result",
+        "file_write",
+        "file_change",
+        "code_execution",
+        "context_update",
+        "state_transition",
+    }
+)
 
 
 @dataclass
@@ -341,15 +345,11 @@ class RewindEngine:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _find_target_index(
-        entries: list[JournalEntry], target_entry_id: str
-    ) -> int:
+    def _find_target_index(entries: list[JournalEntry], target_entry_id: str) -> int:
         for i, e in enumerate(entries):
             if e.entry_id == target_entry_id:
                 return i
-        raise ValueError(
-            f"target entry id {target_entry_id!r} not found in journal"
-        )
+        raise ValueError(f"target entry id {target_entry_id!r} not found in journal")
 
     @staticmethod
     def _select_kept_entries(
@@ -366,17 +366,13 @@ class RewindEngine:
         if mode == RewindMode.CONVERSATION_ONLY:
             # Drop conversation entries after target; keep code entries.
             kept = list(before)
-            kept.extend(
-                e for e in after if e.entry_type not in _CONVERSATION_TYPES
-            )
+            kept.extend(e for e in after if e.entry_type not in _CONVERSATION_TYPES)
             return kept
 
         if mode == RewindMode.CODE_ONLY:
             # Drop code/state entries after target; keep conversation.
             kept = list(before)
-            kept.extend(
-                e for e in after if e.entry_type not in _CODE_TYPES
-            )
+            kept.extend(e for e in after if e.entry_type not in _CODE_TYPES)
             return kept
 
         # SUMMARIZE rebuilds from full history; CANCEL never reaches here.

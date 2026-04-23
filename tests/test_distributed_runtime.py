@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
-from typing import Any
 
 import pytest
 
@@ -16,7 +14,6 @@ from promptise.runtime.distributed import (
     RuntimeCoordinator,
     StaticDiscovery,
 )
-
 
 # ---------------------------------------------------------------------------
 # NodeInfo
@@ -153,9 +150,7 @@ class TestDiscoveredNode:
         assert node.url == "http://host"
 
     def test_to_dict(self):
-        node = DiscoveredNode(
-            node_id="d1", url="http://host", metadata={"role": "worker"}
-        )
+        node = DiscoveredNode(node_id="d1", url="http://host", metadata={"role": "worker"})
         d = node.to_dict()
         assert d["node_id"] == "d1"
         assert d["metadata"] == {"role": "worker"}
@@ -308,10 +303,7 @@ class TestRegistryDiscovery:
         rd = RegistryDiscovery()
 
         async def register_many():
-            tasks = [
-                rd.register(f"n{i}", f"http://host{i}")
-                for i in range(50)
-            ]
+            tasks = [rd.register(f"n{i}", f"http://host{i}") for i in range(50)]
             await asyncio.gather(*tasks)
             return await rd.discover()
 

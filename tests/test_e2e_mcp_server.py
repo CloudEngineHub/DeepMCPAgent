@@ -816,7 +816,7 @@ class TestDashboard:
 
         # Failed call — the DashboardMiddleware records it as an error,
         # but TestClient catches the exception and serialises it
-        r2 = await client.call_tool("fail", {})
+        await client.call_tool("fail", {})
         # The DashboardMiddleware sees the exception propagate through it,
         # so total_errors should increment
         assert state.total_requests == 2

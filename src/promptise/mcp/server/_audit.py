@@ -115,7 +115,12 @@ class AuditMiddleware:
             )
 
     def _write_log_line(self, line: str) -> None:
-        """Write a single line to the audit log file (runs in executor)."""
+        """Write a single line to the audit log file (runs in executor).
+
+        Caller guarantees ``self._log_path`` is set before scheduling this task
+        (see the ``if self._log_path:`` guard at the call site).
+        """
+        assert self._log_path is not None
         with open(self._log_path, "a") as f:
             f.write(line)
 

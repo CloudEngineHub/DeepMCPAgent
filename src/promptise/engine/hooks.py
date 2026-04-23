@@ -16,7 +16,7 @@ import time
 from typing import Protocol, runtime_checkable
 
 from .base import BaseNode
-from .state import GraphState, NodeResult
+from .state import GraphMutation, GraphState, NodeResult
 
 logger = logging.getLogger("promptise.engine.hooks")
 
@@ -49,7 +49,7 @@ class Hook(Protocol):
         """Called when a node raises.  Return a next-node name to redirect, or None to re-raise."""
         ...
 
-    async def on_graph_mutation(self, mutation: GraphMutation, state: GraphState) -> bool:  # noqa: F821
+    async def on_graph_mutation(self, mutation: GraphMutation, state: GraphState) -> bool:
         """Called before a graph mutation is applied.  Return False to block it."""
         ...
 

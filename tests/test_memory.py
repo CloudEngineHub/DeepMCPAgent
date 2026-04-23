@@ -150,7 +150,7 @@ class TestInMemoryProvider:
     @pytest.mark.asyncio
     async def test_add_with_metadata(self) -> None:
         p = InMemoryProvider()
-        mid = await p.add("fact", metadata={"source": "test"})
+        await p.add("fact", metadata={"source": "test"})
         results = await p.search("fact")
         assert results[0].metadata == {"source": "test"}
 

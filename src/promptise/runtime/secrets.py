@@ -180,6 +180,7 @@ class SecretScope:
         self._fernet = Fernet(Fernet.generate_key())
         # Force garbage collection to clear copies sooner
         import gc
+
         gc.collect()
         self._log_sync("revoke_all", "*")
         logger.info("Revoked all secrets for process %s", self._process_id)

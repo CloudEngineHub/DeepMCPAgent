@@ -101,7 +101,9 @@ class TestPromptiseAgentInvoke:
 
     def test_invoke_delegates_to_ainvoke(self) -> None:
         inner = _make_mock_inner()
-        inner.ainvoke = AsyncMock(return_value={"messages": [{"role": "assistant", "content": "ok"}]})
+        inner.ainvoke = AsyncMock(
+            return_value={"messages": [{"role": "assistant", "content": "ok"}]}
+        )
         agent = _make_agent(inner=inner)
 
         result = agent.invoke({"messages": []})

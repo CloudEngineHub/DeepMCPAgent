@@ -73,25 +73,97 @@ def _make_complex_tools():
 
     _db = {
         "customers": [
-            {"id": 1, "name": "Acme Corp", "revenue": 2400000, "plan": "enterprise", "region": "NA"},
-            {"id": 2, "name": "Globex Inc", "revenue": 1800000, "plan": "enterprise", "region": "EU"},
+            {
+                "id": 1,
+                "name": "Acme Corp",
+                "revenue": 2400000,
+                "plan": "enterprise",
+                "region": "NA",
+            },
+            {
+                "id": 2,
+                "name": "Globex Inc",
+                "revenue": 1800000,
+                "plan": "enterprise",
+                "region": "EU",
+            },
             {"id": 3, "name": "Initech", "revenue": 960000, "plan": "pro", "region": "NA"},
-            {"id": 4, "name": "Umbrella Corp", "revenue": 3200000, "plan": "enterprise", "region": "APAC"},
-            {"id": 5, "name": "Stark Industries", "revenue": 5600000, "plan": "enterprise", "region": "NA"},
-            {"id": 6, "name": "Wayne Enterprises", "revenue": 4100000, "plan": "enterprise", "region": "EU"},
+            {
+                "id": 4,
+                "name": "Umbrella Corp",
+                "revenue": 3200000,
+                "plan": "enterprise",
+                "region": "APAC",
+            },
+            {
+                "id": 5,
+                "name": "Stark Industries",
+                "revenue": 5600000,
+                "plan": "enterprise",
+                "region": "NA",
+            },
+            {
+                "id": 6,
+                "name": "Wayne Enterprises",
+                "revenue": 4100000,
+                "plan": "enterprise",
+                "region": "EU",
+            },
             {"id": 7, "name": "Cyberdyne", "revenue": 720000, "plan": "pro", "region": "NA"},
-            {"id": 8, "name": "Soylent Corp", "revenue": 480000, "plan": "starter", "region": "APAC"},
+            {
+                "id": 8,
+                "name": "Soylent Corp",
+                "revenue": 480000,
+                "plan": "starter",
+                "region": "APAC",
+            },
         ],
         "tickets": [
-            {"id": 101, "customer_id": 1, "status": "open", "priority": "high", "subject": "API downtime"},
-            {"id": 102, "customer_id": 3, "status": "open", "priority": "medium", "subject": "Billing error"},
-            {"id": 103, "customer_id": 5, "status": "resolved", "priority": "high", "subject": "Data export bug"},
-            {"id": 104, "customer_id": 2, "status": "open", "priority": "low", "subject": "Feature request"},
-            {"id": 105, "customer_id": 4, "status": "open", "priority": "critical", "subject": "Security vuln"},
+            {
+                "id": 101,
+                "customer_id": 1,
+                "status": "open",
+                "priority": "high",
+                "subject": "API downtime",
+            },
+            {
+                "id": 102,
+                "customer_id": 3,
+                "status": "open",
+                "priority": "medium",
+                "subject": "Billing error",
+            },
+            {
+                "id": 103,
+                "customer_id": 5,
+                "status": "resolved",
+                "priority": "high",
+                "subject": "Data export bug",
+            },
+            {
+                "id": 104,
+                "customer_id": 2,
+                "status": "open",
+                "priority": "low",
+                "subject": "Feature request",
+            },
+            {
+                "id": 105,
+                "customer_id": 4,
+                "status": "open",
+                "priority": "critical",
+                "subject": "Security vuln",
+            },
         ],
         "metrics": {
-            "mrr": 1850000, "arr": 22200000, "churn_rate": 0.032, "nps": 72,
-            "avg_deal_size": 186000, "sales_cycle_days": 45, "cac": 12000, "ltv": 540000,
+            "mrr": 1850000,
+            "arr": 22200000,
+            "churn_rate": 0.032,
+            "nps": 72,
+            "avg_deal_size": 186000,
+            "sales_cycle_days": 45,
+            "cac": 12000,
+            "ltv": 540000,
         },
     }
 
@@ -100,7 +172,9 @@ def _make_complex_tools():
         """Query customers. Optional filter by field (plan, region) and value."""
         results = _db["customers"]
         if filter_field and filter_value:
-            results = [c for c in results if str(c.get(filter_field, "")).lower() == filter_value.lower()]
+            results = [
+                c for c in results if str(c.get(filter_field, "")).lower() == filter_value.lower()
+            ]
         lines = [f"  {c['name']}: ${c['revenue']:,} ({c['plan']}, {c['region']})" for c in results]
         return f"Found {len(results)} customers:\n" + "\n".join(lines)
 
@@ -109,7 +183,9 @@ def _make_complex_tools():
         """Get revenue details for a specific customer."""
         for c in _db["customers"]:
             if customer_name.lower() in c["name"].lower():
-                return f"{c['name']}: ${c['revenue']:,}/year, plan={c['plan']}, region={c['region']}"
+                return (
+                    f"{c['name']}: ${c['revenue']:,}/year, plan={c['plan']}, region={c['region']}"
+                )
         return f"Customer '{customer_name}' not found."
 
     @tool
@@ -134,7 +210,7 @@ def _make_complex_tools():
         return (
             f"MRR: ${m['mrr']:,} | ARR: ${m['arr']:,} | Churn: {m['churn_rate']:.1%}\n"
             f"NPS: {m['nps']} | Avg Deal: ${m['avg_deal_size']:,} | Sales Cycle: {m['sales_cycle_days']}d\n"
-            f"CAC: ${m['cac']:,} | LTV: ${m['ltv']:,} | LTV/CAC: {m['ltv']/m['cac']:.1f}x"
+            f"CAC: ${m['cac']:,} | LTV: ${m['ltv']:,} | LTV/CAC: {m['ltv'] / m['cac']:.1f}x"
         )
 
     @tool
@@ -153,7 +229,14 @@ def _make_complex_tools():
         """Save an executive summary report. Returns confirmation."""
         return f"Summary '{title}' saved ({len(content.split())} words)."
 
-    return [query_customers, get_customer_revenue, query_tickets, get_business_metrics, calculate_metric, write_summary]
+    return [
+        query_customers,
+        get_customer_revenue,
+        query_tickets,
+        get_business_metrics,
+        calculate_metric,
+        write_summary,
+    ]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -174,7 +257,9 @@ class BenchmarkResult:
     error: str | None = None
 
 
-def _extract_metrics(result: dict, framework: str, question: str, duration_ms: float) -> BenchmarkResult:
+def _extract_metrics(
+    result: dict, framework: str, question: str, duration_ms: float
+) -> BenchmarkResult:
     """Extract standardized metrics from an agent result dict."""
     br = BenchmarkResult(framework=framework, question=question, latency_ms=duration_ms)
 
@@ -255,7 +340,9 @@ def _print_comparison(results: list[BenchmarkResult], question: str) -> None:
     print(f"\n  {DIM}{'─' * 72}{RESET}")
     print(f"  {CYAN}Q:{RESET} {WHITE}{question[:68]}{RESET}")
     print(f"  {DIM}{'─' * 72}{RESET}")
-    print(f"  {'':32}{BOLD}{GREEN}{'Promptise':>14}{RESET}  {'':3}  {BOLD}{CYAN}{'LangGraph':>14}{RESET}")
+    print(
+        f"  {'':32}{BOLD}{GREEN}{'Promptise':>14}{RESET}  {'':3}  {BOLD}{CYAN}{'LangGraph':>14}{RESET}"
+    )
     print(f"  {DIM}{'─' * 72}{RESET}")
 
     # Tool calls bar
@@ -461,9 +548,7 @@ class TestBenchmark:
             f"{_bar(lg_total_time, max_time, 12, CYAN)} {lg_total_time:>5,.0f}  {lg_b}"
         )
         print(
-            f"  {DIM}Avg time (ms){RESET}   "
-            f"{'':12} {pf_avg:>5,.0f}  {'':8}"
-            f"{'':12} {lg_avg:>5,.0f}"
+            f"  {DIM}Avg time (ms){RESET}   {'':12} {pf_avg:>5,.0f}  {'':8}{'':12} {lg_avg:>5,.0f}"
         )
 
         print(f"  {DIM}{'─' * 62}{RESET}")
@@ -654,7 +739,9 @@ class TestComplexBenchmark:
         print(f"\n\n  {BOLD}{WHITE}{'═' * 62}{RESET}")
         print(f"  {BOLD}{WHITE}  COMPLEX AGGREGATE — {len(questions)} QUESTIONS (6 tools){RESET}")
         print(f"  {BOLD}{WHITE}{'═' * 62}{RESET}")
-        print(f"  {'':32}{BOLD}{GREEN}{'Promptise':>14}{RESET}  {'':3}  {BOLD}{CYAN}{'LangGraph':>14}{RESET}")
+        print(
+            f"  {'':32}{BOLD}{GREEN}{'Promptise':>14}{RESET}  {'':3}  {BOLD}{CYAN}{'LangGraph':>14}{RESET}"
+        )
         print(f"  {DIM}{'─' * 62}{RESET}")
 
         pf_b, lg_b = _winner_badge(pf_total_time, lg_total_time)

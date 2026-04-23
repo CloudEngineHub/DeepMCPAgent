@@ -34,7 +34,6 @@ MAGENTA = "\033[35m"
 # ═══════════════════════════════════════════════════════════════════════════════
 
 import json as _json
-import tempfile as _tempfile
 
 from promptise.mcp.server import MCPServer
 
@@ -100,6 +99,7 @@ async def save_report(title: str, content: str) -> str:
 # Pipeline
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def main():
     from promptise import build_agent
     from promptise.config import StdioServerSpec
@@ -112,12 +112,13 @@ async def main():
 """)
 
     import tempfile
-    server_code = '''
+
+    server_code = """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from examples.runtime.multi_agent_pipeline import server
 server.run(transport="stdio")
-'''
+"""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
         f.write(server_code)
         tmp_server = f.name
@@ -141,9 +142,9 @@ server.run(transport="stdio")
         )
 
         start = time.monotonic()
-        result = await researcher.ainvoke({
-            "messages": [{"role": "user", "content": f"Research this topic: {topic}"}]
-        })
+        result = await researcher.ainvoke(
+            {"messages": [{"role": "user", "content": f"Research this topic: {topic}"}]}
+        )
         research_time = (time.monotonic() - start) * 1000
 
         for msg in reversed(result["messages"]):
@@ -169,9 +170,16 @@ server.run(transport="stdio")
         )
 
         start = time.monotonic()
-        result = await analyst.ainvoke({
-            "messages": [{"role": "user", "content": "Analyze the research findings and identify key insights."}]
-        })
+        result = await analyst.ainvoke(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "Analyze the research findings and identify key insights.",
+                    }
+                ]
+            }
+        )
         analysis_time = (time.monotonic() - start) * 1000
 
         for msg in reversed(result["messages"]):
@@ -198,9 +206,16 @@ server.run(transport="stdio")
         )
 
         start = time.monotonic()
-        result = await writer.ainvoke({
-            "messages": [{"role": "user", "content": "Write a professional report combining the research and analysis."}]
-        })
+        result = await writer.ainvoke(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "Write a professional report combining the research and analysis.",
+                    }
+                ]
+            }
+        )
         write_time = (time.monotonic() - start) * 1000
 
         for msg in reversed(result["messages"]):

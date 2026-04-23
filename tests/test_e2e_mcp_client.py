@@ -358,11 +358,11 @@ class TestMCPToolAdapter:
 
 
 # =====================================================================
-# TestMCPToolAdapter — 3 tests
+# TestMCPToolAdapterWithMultiClient — 3 tests
 # =====================================================================
 
 
-class TestMCPToolAdapter:
+class TestMCPToolAdapterWithMultiClient:
     """Tests for the MCPToolAdapter that wraps MCPMultiClient."""
 
     def test_tool_info_fields(self):

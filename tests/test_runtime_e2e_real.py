@@ -16,14 +16,13 @@ Full loop:
 Requires: OPENAI_API_KEY in .env
 """
 
-import asyncio
 import json
 import os
 import sys
+from pathlib import Path
 
 import pytest
 
-from pathlib import Path
 env_path = Path(__file__).parent.parent / ".env"
 if env_path.exists():
     for line in env_path.read_text().splitlines():
@@ -40,22 +39,27 @@ SERVER_SCRIPT = str(Path(__file__).parent / "_e2e_mcp_server.py")
 
 
 class TestRuntimeE2EReal:
-
     @pytest.mark.asyncio
     async def test_full_agent_lifecycle(self, tmp_path):
         """
         Real LLM agent with real MCP tools → budget → health → journal → secrets → lifecycle.
         """
+        from datetime import UTC, datetime
+
         from promptise import build_agent
         from promptise.config import StdioServerSpec
         from promptise.runtime.budget import BudgetState
-        from promptise.runtime.config import BudgetConfig, HealthConfig, MissionConfig, SecretScopeConfig
+        from promptise.runtime.config import (
+            BudgetConfig,
+            HealthConfig,
+            MissionConfig,
+            SecretScopeConfig,
+        )
         from promptise.runtime.health import HealthMonitor
         from promptise.runtime.journal import FileJournal, JournalEntry
         from promptise.runtime.lifecycle import ProcessLifecycle
         from promptise.runtime.mission import MissionTracker
         from promptise.runtime.secrets import SecretScope
-        from datetime import datetime, UTC
 
         journal_path = str(tmp_path / "journal")
         process_id = "e2e-test-agent"
@@ -65,9 +69,19 @@ class TestRuntimeE2EReal:
         # ═══════════════════════════════════════════════════
 
         lifecycle = ProcessLifecycle()
-        budget = BudgetState(BudgetConfig(enabled=True, max_tool_calls_per_run=8, on_exceeded="pause"))
-        health = HealthMonitor(HealthConfig(enabled=True, stuck_threshold=3, empty_threshold=3, empty_max_chars=10), process_id=process_id)
-        mission = MissionTracker(MissionConfig(enabled=True, objective="Answer user questions accurately using tools", eval_every=2), process_id=process_id)
+        budget = BudgetState(
+            BudgetConfig(enabled=True, max_tool_calls_per_run=8, on_exceeded="pause")
+        )
+        health = HealthMonitor(
+            HealthConfig(enabled=True, stuck_threshold=3, empty_threshold=3, empty_max_chars=10),
+            process_id=process_id,
+        )
+        mission = MissionTracker(
+            MissionConfig(
+                enabled=True, objective="Answer user questions accurately using tools", eval_every=2
+            ),
+            process_id=process_id,
+        )
         journal = FileJournal(base_path=journal_path)
 
         # Secrets
@@ -101,11 +115,15 @@ class TestRuntimeE2EReal:
         )
 
         await lifecycle.transition("running", reason="agent built")
-        await journal.append(JournalEntry(
-            entry_id="boot", process_id=process_id,
-            timestamp=datetime.now(UTC), entry_type="lifecycle",
-            data={"state": "running", "model": "gpt-4o-mini"},
-        ))
+        await journal.append(
+            JournalEntry(
+                entry_id="boot",
+                process_id=process_id,
+                timestamp=datetime.now(UTC),
+                entry_type="lifecycle",
+                data={"state": "running", "model": "gpt-4o-mini"},
+            )
+        )
 
         print("\n" + "=" * 60)
         print("  E2E RUNTIME TEST — REAL LLM AGENT")
@@ -118,9 +136,16 @@ class TestRuntimeE2EReal:
         print("\n── Invocation 1: Weather + Time ──")
         await budget.reset_run()
 
-        result1 = await agent.ainvoke({
-            "messages": [{"role": "user", "content": "What's the weather in Berlin and current time in UTC?"}]
-        })
+        result1 = await agent.ainvoke(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "What's the weather in Berlin and current time in UTC?",
+                    }
+                ]
+            }
+        )
 
         # Count tool calls from messages
         tool_calls_1 = [m for m in result1["messages"] if getattr(m, "type", "") == "tool"]
@@ -143,18 +168,26 @@ class TestRuntimeE2EReal:
         await health.record_response(response_1)
 
         # Journal
-        await journal.append(JournalEntry(
-            entry_id="inv1", process_id=process_id,
-            timestamp=datetime.now(UTC), entry_type="invocation",
-            data={"query": "weather+time", "tool_calls": len(tool_calls_1), "response_len": len(response_1)},
-        ))
+        await journal.append(
+            JournalEntry(
+                entry_id="inv1",
+                process_id=process_id,
+                timestamp=datetime.now(UTC),
+                entry_type="invocation",
+                data={
+                    "query": "weather+time",
+                    "tool_calls": len(tool_calls_1),
+                    "response_len": len(response_1),
+                },
+            )
+        )
 
         print(f"  Tools called: {len(tool_calls_1)}")
         print(f"  Response: {response_1[:120]}...")
         print(f"  Budget: {budget.run_tool_calls}/8")
         assert len(tool_calls_1) >= 1, f"Agent didn't call any tools! Got: {response_1[:200]}"
         assert len(response_1) > 20, "Response too short"
-        print(f"  ✓ Invocation 1 PASSED")
+        print("  ✓ Invocation 1 PASSED")
 
         # ═══════════════════════════════════════════════════
         # INVOCATION 2: News search
@@ -162,9 +195,13 @@ class TestRuntimeE2EReal:
 
         print("\n── Invocation 2: News Search ──")
 
-        result2 = await agent.ainvoke({
-            "messages": [{"role": "user", "content": "Search for the latest news about AI agents."}]
-        })
+        result2 = await agent.ainvoke(
+            {
+                "messages": [
+                    {"role": "user", "content": "Search for the latest news about AI agents."}
+                ]
+            }
+        )
 
         tool_calls_2 = [m for m in result2["messages"] if getattr(m, "type", "") == "tool"]
         response_2 = ""
@@ -183,17 +220,25 @@ class TestRuntimeE2EReal:
             await health.record_tool_call(getattr(tc, "name", ""), {})
         await health.record_response(response_2)
 
-        await journal.append(JournalEntry(
-            entry_id="inv2", process_id=process_id,
-            timestamp=datetime.now(UTC), entry_type="invocation",
-            data={"query": "news", "tool_calls": len(tool_calls_2), "response_len": len(response_2)},
-        ))
+        await journal.append(
+            JournalEntry(
+                entry_id="inv2",
+                process_id=process_id,
+                timestamp=datetime.now(UTC),
+                entry_type="invocation",
+                data={
+                    "query": "news",
+                    "tool_calls": len(tool_calls_2),
+                    "response_len": len(response_2),
+                },
+            )
+        )
 
         print(f"  Tools called: {len(tool_calls_2)}")
         print(f"  Response: {response_2[:120]}...")
         print(f"  Budget: {budget.run_tool_calls}/8")
         assert len(response_2) > 20
-        print(f"  ✓ Invocation 2 PASSED")
+        print("  ✓ Invocation 2 PASSED")
 
         # ═══════════════════════════════════════════════════
         # MISSION: Should evaluate after 2 invocations
@@ -208,7 +253,7 @@ class TestRuntimeE2EReal:
         print(f"  After invocation 2: should_evaluate={should_2}")
         assert not should_1, "Should NOT eval after 1 (eval_every=2)"
         assert should_2, "Should eval after 2 (eval_every=2)"
-        print(f"  ✓ Mission scheduling WORKS")
+        print("  ✓ Mission scheduling WORKS")
 
         # ═══════════════════════════════════════════════════
         # CHECKPOINT: Save state (simulating crash point)
@@ -231,7 +276,7 @@ class TestRuntimeE2EReal:
         assert restored["total_invocations"] == 2
         assert restored["budget_run_tool_calls"] == budget.run_tool_calls
         print(f"  Restored checkpoint: {json.dumps(restored)}")
-        print(f"  ✓ Checkpoint round-trip WORKS — state survives crash")
+        print("  ✓ Checkpoint round-trip WORKS — state survives crash")
 
         # ═══════════════════════════════════════════════════
         # JOURNAL: Verify all entries persisted to disk
@@ -265,7 +310,7 @@ class TestRuntimeE2EReal:
 
         await secrets.revoke_all()
         assert secrets.get("token") is None
-        print(f"  After revoke: gone ✓")
+        print("  After revoke: gone ✓")
         del os.environ["_E2E_TEST_TOKEN"]
 
         # ═══════════════════════════════════════════════════
@@ -278,9 +323,9 @@ class TestRuntimeE2EReal:
             await lifecycle.transition("stopped", reason="clean shutdown")
 
         for t in lifecycle.history:
-            fr = getattr(t, 'from_state', t.get('from_state', '?') if isinstance(t, dict) else '?')
-            to = getattr(t, 'to_state', t.get('to_state', '?') if isinstance(t, dict) else '?')
-            reason = getattr(t, 'reason', t.get('reason', '') if isinstance(t, dict) else '')
+            fr = getattr(t, "from_state", t.get("from_state", "?") if isinstance(t, dict) else "?")
+            to = getattr(t, "to_state", t.get("to_state", "?") if isinstance(t, dict) else "?")
+            reason = getattr(t, "reason", t.get("reason", "") if isinstance(t, dict) else "")
             print(f"    {fr} → {to} ({reason})")
         print(f"  ✓ {len(lifecycle.history)} state transitions")
 
@@ -293,15 +338,15 @@ class TestRuntimeE2EReal:
         # ═══════════════════════════════════════════════════
         total_tools = len(tool_calls_1) + len(tool_calls_2)
         print(f"\n{'═' * 60}")
-        print(f"  ✅ E2E TEST PASSED — ALL RUNTIME FEATURES VERIFIED")
-        print(f"")
-        print(f"  Real LLM:      gpt-4o-mini (2 invocations)")
+        print("  ✅ E2E TEST PASSED — ALL RUNTIME FEATURES VERIFIED")
+        print("")
+        print("  Real LLM:      gpt-4o-mini (2 invocations)")
         print(f"  Real tools:    {total_tools} tool calls executed")
         print(f"  Budget:        {budget.run_tool_calls}/8 tracked and enforced")
-        print(f"  Health:        stuck/empty detection active")
+        print("  Health:        stuck/empty detection active")
         print(f"  Journal:       {len(all_entries)} entries written to disk")
-        print(f"  Checkpoint:    saved + restored (crash recovery)")
-        print(f"  Mission:       eval scheduled correctly")
-        print(f"  Secrets:       Fernet encrypted, sanitized, revoked")
+        print("  Checkpoint:    saved + restored (crash recovery)")
+        print("  Mission:       eval scheduled correctly")
+        print("  Secrets:       Fernet encrypted, sanitized, revoked")
         print(f"  Lifecycle:     {len(lifecycle.history)} transitions recorded")
         print(f"{'═' * 60}")

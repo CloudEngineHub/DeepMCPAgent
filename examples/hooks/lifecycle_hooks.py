@@ -60,7 +60,7 @@ async def main() -> None:
         """Runs BEFORE the audit hook (priority 100 > default 0)."""
         original = ctx.get("prompt", "")
         ctx.set("prompt", f"[injected context] {original}")
-        print(f"  [inject] Prepended context to prompt")
+        print("  [inject] Prepended context to prompt")
 
     # -----------------------------------------------------------------------
     # 4. Blocking — reject dangerous prompts
@@ -80,9 +80,9 @@ async def main() -> None:
     tmp = Path(tempfile.mkdtemp())
     script = tmp / "log_event.sh"
     script.write_text(
-        '#!/usr/bin/env bash\n'
-        '# Read JSON event from stdin and log it\n'
-        'event=$(cat)\n'
+        "#!/usr/bin/env bash\n"
+        "# Read JSON event from stdin and log it\n"
+        "event=$(cat)\n"
         f'echo "$event" >> {tmp}/events.log\n'
         'echo \'{{"log": "event logged"}}\'\n'
     )

@@ -1,4 +1,5 @@
 """Tests for AutoApprovalClassifier — explicit decision hierarchy."""
+
 from __future__ import annotations
 
 import pytest
@@ -9,7 +10,6 @@ from promptise.approval_classifier import (
     ApprovalRule,
     AutoApprovalClassifier,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fakes
@@ -148,9 +148,7 @@ class TestDecisionHierarchy:
     @pytest.mark.asyncio
     async def test_layer3_disabled_falls_through(self):
         fb = _RecordingFallback(approved=True)
-        clf = AutoApprovalClassifier(
-            read_only_auto_allow=False, fallback=fb
-        )
+        clf = AutoApprovalClassifier(read_only_auto_allow=False, fallback=fb)
         await clf.request_approval(_make_request("get_users"))
         # Read-only disabled → goes to fallback
         assert len(fb.requests) == 1
@@ -212,9 +210,7 @@ class TestDecisionHierarchy:
     @pytest.mark.asyncio
     async def test_layer5_fallback_when_no_rules_match(self):
         fb = _RecordingFallback(approved=False, reason="human said no")
-        clf = AutoApprovalClassifier(
-            read_only_auto_allow=False, fallback=fb
-        )
+        clf = AutoApprovalClassifier(read_only_auto_allow=False, fallback=fb)
         decision = await clf.request_approval(_make_request("modify_data"))
         assert decision.approved is False
         assert decision.reason == "human said no"

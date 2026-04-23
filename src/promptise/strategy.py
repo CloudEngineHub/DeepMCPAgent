@@ -414,7 +414,8 @@ class AdaptiveStrategyManager:
 
             model = init_chat_model(model_id)
             response = await model.ainvoke(prompt)
-            response_text = response.content if hasattr(response, "content") else str(response)
+            _rc = response.content if hasattr(response, "content") else str(response)
+            response_text: str = _rc if isinstance(_rc, str) else str(_rc or "")
         except Exception as exc:
             logger.warning("Adaptive: synthesis LLM call failed: %s", exc)
             return 0
@@ -460,7 +461,9 @@ class AdaptiveStrategyManager:
                 try:
                     await self._memory.delete(log.memory_id)
                 except Exception as exc:
-                    logger.debug("Adaptive: failed to delete failure log %s: %s", log.memory_id, exc)
+                    logger.debug(
+                        "Adaptive: failed to delete failure log %s: %s", log.memory_id, exc
+                    )
 
         self._strategy_failure_count = 0
         logger.info(
@@ -572,7 +575,8 @@ class AdaptiveStrategyManager:
 
         model = init_chat_model(model_id)
         response = await model.ainvoke(prompt)
-        text = response.content if hasattr(response, "content") else str(response)
+        _rc = response.content if hasattr(response, "content") else str(response)
+        text: str = _rc if isinstance(_rc, str) else str(_rc or "")
         # Check for "valid" but NOT "invalid" — the LLM replies "valid" or "invalid"
         first_word = text.strip().lower().split()[0] if text.strip() else ""
         return first_word == "valid"

@@ -68,7 +68,11 @@ def build_react_graph(
             tools=list(tools) if tools else [],
             tool_choice="auto",
             max_iterations=max_node_iterations,
-            default_next="reason",
+            # When the LLM calls a tool, rule 1 in _resolve_transition
+            # re-enters this node automatically.  When it produces a
+            # tool-free final answer, we must terminate — otherwise the
+            # graph loops back to `reason` forever until max_iterations.
+            default_next="__end__",
         )
     )
 

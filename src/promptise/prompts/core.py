@@ -161,7 +161,7 @@ def _parse_output(raw: str, return_type: type | None) -> Any:
         return raw
 
 
-def _build_schema_instructions(return_type: type) -> str:
+def _build_schema_instructions(return_type: type | None) -> str:
     """Generate JSON schema instructions for structured output."""
     if return_type is None or return_type in (str, int, float, bool):
         return ""
@@ -232,6 +232,14 @@ class Prompt:
 
     All ``with_*()`` methods return copies (immutable composition).
     """
+
+    # Optional metadata attached by the YAML loader (see prompts/loader.py).
+    # Declared here so static analysis recognises them as class attributes.
+    _description: str | None = None
+    _author: str | None = None
+    _tags: list[str] = []
+    _version: str | None = None
+    _argument_schemas: dict[str, Any] = {}
 
     def __init__(
         self,
@@ -665,7 +673,10 @@ class Prompt:
             else:
                 raw_msg = await llm.ainvoke(messages)
 
-            raw_output: str = raw_msg.content if hasattr(raw_msg, "content") else str(raw_msg)
+            _raw_content = raw_msg.content if hasattr(raw_msg, "content") else str(raw_msg)
+            raw_output: str = (
+                _raw_content if isinstance(_raw_content, str) else str(_raw_content or "")
+            )
 
             # 11. Strategy parsing
             if self._strategy is not None:

@@ -405,7 +405,7 @@ class TestMemoryIntegration:
         from promptise.memory import InMemoryProvider, MemoryResult
 
         provider = InMemoryProvider()
-        mid = await provider.add(
+        await provider.add(
             "Python is great for AI.",
             metadata={"topic": "programming"},
         )
@@ -712,7 +712,7 @@ class TestConcurrentOperations:
 
         async def add_and_search(i: int) -> bool:
             content = f"Memory item number {i}"
-            mid = await provider.add(content, metadata={"index": i})
+            await provider.add(content, metadata={"index": i})
             results = await provider.search(f"item number {i}")
             return len(results) >= 1
 

@@ -115,7 +115,9 @@ async def main():
 
     while True:
         try:
-            user_input = input(f"  {ROLE_COLORS.get(current_role, '')}{current_role}{RESET} > ").strip()
+            user_input = input(
+                f"  {ROLE_COLORS.get(current_role, '')}{current_role}{RESET} > "
+            ).strip()
         except (EOFError, KeyboardInterrupt):
             break
 
@@ -141,9 +143,16 @@ async def main():
 
             elif cmd[0] == "/tools":
                 # Ask the agent to list tools
-                result = await agent.ainvoke({
-                    "messages": [{"role": "user", "content": "List all tools you have access to. Just list the tool names grouped by domain."}]
-                })
+                result = await agent.ainvoke(
+                    {
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": "List all tools you have access to. Just list the tool names grouped by domain.",
+                            }
+                        ]
+                    }
+                )
                 for msg in reversed(result["messages"]):
                     if getattr(msg, "type", "") == "ai" and msg.content:
                         print(f"\n{DIM}{msg.content}{RESET}\n")
@@ -162,9 +171,7 @@ async def main():
 
         # ── Agent query ──
         print(f"  {DIM}Thinking...{RESET}")
-        result = await agent.ainvoke({
-            "messages": [{"role": "user", "content": user_input}]
-        })
+        result = await agent.ainvoke({"messages": [{"role": "user", "content": user_input}]})
 
         # Extract tool calls for log
         for msg in result.get("messages", []):

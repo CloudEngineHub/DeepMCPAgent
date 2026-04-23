@@ -86,7 +86,9 @@ class TestReflectNode:
     async def test_stores_reflection(self):
         n = ReflectNode("reflect")
         state = _state_with_message()
-        model = _make_model(structured={"mistake": "wrong tool", "correction": "use search", "confidence": 4})
+        model = _make_model(
+            structured={"mistake": "wrong tool", "correction": "use search", "confidence": 4}
+        )
         config = {"_engine_model": model}
 
         result = await n.execute(state, config)
@@ -100,7 +102,9 @@ class TestReflectNode:
         """String confidence like 'high' should not crash — falls back to 0.5."""
         n = ReflectNode("reflect")
         state = _state_with_message()
-        model = _make_model(structured={"mistake": "bad", "correction": "fix", "confidence": "high"})
+        model = _make_model(
+            structured={"mistake": "bad", "correction": "fix", "confidence": "high"}
+        )
         config = {"_engine_model": model}
 
         result = await n.execute(state, config)
@@ -287,11 +291,13 @@ class TestJustifyNode:
     async def test_stores_justification(self):
         n = JustifyNode("justify")
         state = _state_with_message()
-        model = _make_model(structured={
-            "reasoning_chain": ["step1", "step2"],
-            "conclusion": "therefore yes",
-            "confidence": 4,
-        })
+        model = _make_model(
+            structured={
+                "reasoning_chain": ["step1", "step2"],
+                "conclusion": "therefore yes",
+                "confidence": 4,
+            }
+        )
         config = {"_engine_model": model}
 
         result = await n.execute(state, config)
@@ -363,10 +369,13 @@ class TestFanOutNode:
         async def branch_b(state: GraphState) -> NodeResult:
             return NodeResult(node_name="branch_b", output="result_b")
 
-        n = FanOutNode("fanout", branches=[
-            (branch_a, {"focus": "topic_a"}),
-            (branch_b, {"focus": "topic_b"}),
-        ])
+        n = FanOutNode(
+            "fanout",
+            branches=[
+                (branch_a, {"focus": "topic_a"}),
+                (branch_b, {"focus": "topic_b"}),
+            ],
+        )
         state = _state_with_message()
 
         result = await n.execute(state, {})
@@ -387,10 +396,13 @@ class TestFanOutNode:
         async def bad(state: GraphState) -> NodeResult:
             raise RuntimeError("branch exploded")
 
-        n = FanOutNode("fanout", branches=[
-            (good, {}),
-            (bad, {}),
-        ])
+        n = FanOutNode(
+            "fanout",
+            branches=[
+                (good, {}),
+                (bad, {}),
+            ],
+        )
         state = _state_with_message()
 
         result = await n.execute(state, {})
