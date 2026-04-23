@@ -11,5 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-      - run: pip install mkdocs mkdocs-material
+        with:
+          python-version: "3.12"
+      - run: pip install mkdocs mkdocs-material "mkdocstrings[python]>=0.29"
       - run: mkdocs gh-deploy --force
