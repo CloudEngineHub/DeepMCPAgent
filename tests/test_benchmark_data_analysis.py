@@ -22,10 +22,13 @@ from dataclasses import dataclass, field
 
 import pytest
 
-pytestmark = pytest.mark.skipif(
-    not os.getenv("OPENAI_API_KEY"),
-    reason="OPENAI_API_KEY not set — skipping benchmark",
-)
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not os.getenv("OPENAI_API_KEY"),
+        reason="OPENAI_API_KEY not set — skipping benchmark",
+    ),
+]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

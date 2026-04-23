@@ -23,10 +23,13 @@ import time
 
 import pytest
 
-pytestmark = pytest.mark.skipif(
-    not os.getenv("OPENAI_API_KEY"),
-    reason="OPENAI_API_KEY not set — skipping benchmark",
-)
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not os.getenv("OPENAI_API_KEY"),
+        reason="OPENAI_API_KEY not set — skipping benchmark",
+    ),
+]
 
 # Reuse database, tools, ground truth, and display helpers from the SQL benchmark
 from test_benchmark_data_analysis import (

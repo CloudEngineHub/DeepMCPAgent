@@ -22,10 +22,13 @@ import pytest
 # Skip entire module if no API key
 # ---------------------------------------------------------------------------
 
-pytestmark = pytest.mark.skipif(
-    not os.getenv("OPENAI_API_KEY"),
-    reason="OPENAI_API_KEY not set — skipping real LLM e2e tests",
-)
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not os.getenv("OPENAI_API_KEY"),
+        reason="OPENAI_API_KEY not set — skipping real LLM e2e tests",
+    ),
+]
 
 SERVER_SCRIPT = os.path.join(os.path.dirname(__file__), "_e2e_reasoning_server.py")
 
