@@ -4,7 +4,7 @@
 
 Canonical URLs:
 - Source: <https://github.com/promptise-com/foundry>
-- Docs: <https://promptise.github.io/foundry>
+- Docs: <https://docs.promptise.com>
 - PyPI: <https://pypi.org/project/promptise/>
 
 ---
@@ -1249,8 +1249,8 @@ Default model: `openai:gpt-5-mini`. Only requirement: the relevant API-key env v
 
 ## Optional
 
-- [Changelog](https://promptise.github.io/foundry/resources/changelog/)
+- [Changelog](https://docs.promptise.com/resources/changelog/)
 - [Contributing](https://github.com/promptise-com/foundry/blob/main/CONTRIBUTING.md)
-- [Examples Gallery](https://promptise.github.io/foundry/resources/examples/)
-- [Migration Guide](https://promptise.github.io/foundry/resources/migration/)
+- [Examples Gallery](https://docs.promptise.com/resources/examples/)
+- [Migration Guide](https://docs.promptise.com/resources/migration/)
 - [Security Policy](https://github.com/promptise-com/foundry/blob/main/SECURITY.md)

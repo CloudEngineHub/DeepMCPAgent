@@ -95,7 +95,7 @@ promptise = "promptise.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/promptise-com/foundry"
-Documentation = "https://promptise.github.io/foundry"
+Documentation = "https://docs.promptise.com"
 Issues = "https://github.com/promptise-com/foundry/issues"
 Discussions = "https://github.com/promptise-com/foundry/discussions"
 "Source Code" = "https://github.com/promptise-com/foundry"

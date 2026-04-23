@@ -25,7 +25,7 @@
     <a href="https://pypi.org/project/promptise/"><img alt="Downloads" src="https://img.shields.io/pypi/dm/promptise?color=%2322c55e&label=downloads"></a>
     <a href="https://github.com/promptise-com/foundry/actions/workflows/test.yml"><img alt="CI" src="https://github.com/promptise-com/foundry/actions/workflows/test.yml/badge.svg"></a>
     <a href="https://github.com/promptise-com/foundry/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-%23f59e0b"></a>
-    <a href="https://promptise.github.io/foundry"><img alt="Docs" src="https://img.shields.io/badge/docs-latest-%2306b6d4"></a>
+    <a href="https://docs.promptise.com"><img alt="Docs" src="https://img.shields.io/badge/docs-latest-%2306b6d4"></a>
   </p>
 
   <p>
@@ -41,11 +41,11 @@
   <p>
     <a href="https://www.promptise.com"><strong>Website</strong></a>
     &nbsp;·&nbsp;
-    <a href="https://promptise.github.io/foundry/"><strong>Documentation</strong></a>
+    <a href="https://docs.promptise.com/"><strong>Documentation</strong></a>
     &nbsp;·&nbsp;
-    <a href="https://promptise.github.io/foundry/getting-started/quickstart/"><strong>Quick Start</strong></a>
+    <a href="https://docs.promptise.com/getting-started/quickstart/"><strong>Quick Start</strong></a>
     &nbsp;·&nbsp;
-    <a href="https://promptise.github.io/foundry/resources/showcase/"><strong>Showcase</strong></a>
+    <a href="https://docs.promptise.com/resources/showcase/"><strong>Showcase</strong></a>
     &nbsp;·&nbsp;
     <a href="https://github.com/promptise-com/foundry/discussions"><strong>Discussions</strong></a>
   </p>
@@ -148,7 +148,7 @@ Turn any LLM into a production-ready agent with one function call.
 
 `build_agent()` · auto MCP tool discovery · semantic tool optimization (40–70% fewer tokens) · 3 memory providers with auto-injection · 4 conversation stores · 6-head security scanner · semantic cache with per-user isolation · sandboxed code execution · auto-approval classifier · pluggable RAG · streaming · model fallback · adaptive strategy.
 
-[Agent docs →](https://promptise.github.io/foundry/core/agents/building-agents/)
+[Agent docs →](https://docs.promptise.com/core/agents/building-agents/)
 
 </td>
 </tr>
@@ -169,7 +169,7 @@ Compose reasoning the way you compose code. Not a black box.
 
 `PromptGraph` with **20 node types** — 10 standard (`PromptNode`, `ToolNode`, `RouterNode`, `GuardNode`, `ParallelNode`, `LoopNode`, `HumanNode`, `TransformNode`, `SubgraphNode`, `AutonomousNode`) and 10 reasoning (`ThinkNode`, `PlanNode`, `ReflectNode`, `CritiqueNode`, `SynthesizeNode`, `ValidateNode`, `ObserveNode`, `JustifyNode`, `RetryNode`, `FanOutNode`). **7 prebuilt patterns** (`react`, `peoatr`, `research`, `autonomous`, `deliberate`, `debate`, `pipeline`). **18 node flags** for typed capabilities. Agent-assembled paths from a node pool. Lifecycle hooks. Skill registry. JSON serialization.
 
-[Reasoning docs →](https://promptise.github.io/foundry/core/engine/)
+[Reasoning docs →](https://docs.promptise.com/core/engine/)
 
 </td>
 </tr>
@@ -190,7 +190,7 @@ Production server and native client for the Model Context Protocol.
 
 `@server.tool()` with auto-schema from type hints · JWT + OAuth2 + API key auth · role/scope guards · **12+ middleware** (rate limit, circuit breaker, audit, cache, OTel) · HMAC-chained audit logs · priority job queue with retries and progress · versioning + transforms · OpenAPI import · `MCPMultiClient` federation · live 6-tab dashboard · `TestClient` for in-process testing · **3 transports** (stdio, HTTP, SSE).
 
-[MCP docs →](https://promptise.github.io/foundry/mcp/)
+[MCP docs →](https://docs.promptise.com/mcp/)
 
 </td>
 </tr>
@@ -211,7 +211,7 @@ The operating system for autonomous agents.
 
 **5 trigger types** (cron, webhook, file watch, event, message) · crash recovery via journal replay · **5 rewind modes** · 14 lifecycle hooks · budget enforcement with tool costs · health monitoring (stuck, loop, empty, error rate) · mission tracking with LLM-as-judge · secret scoping with TTL and zero-fill revocation · **14 meta-tools** for self-modifying agents · **37-endpoint REST API** with typed client · live agent inbox · distributed multi-node coordination.
 
-[Runtime docs →](https://promptise.github.io/foundry/runtime/)
+[Runtime docs →](https://docs.promptise.com/runtime/)
 
 </td>
 </tr>
@@ -232,7 +232,7 @@ Prompts built like software. Not strings.
 
 **8 block types** with priority-based token budgeting · conversation flows that evolve per phase · **5 composable strategies** (`chain_of_thought + self_critique`) · 4 perspectives · **14 context providers** auto-injected every turn · SSTI-safe template engine with opt-in shell · 5 guards · SemVer registry with rollback · inspector that traces every assembly decision · test helpers (`mock_llm()`, `assert_schema()`) · `chain`, `parallel`, `branch`, `retry`, `fallback`.
 
-[Prompts docs →](https://promptise.github.io/foundry/prompting/)
+[Prompts docs →](https://docs.promptise.com/prompting/)
 
 </td>
 </tr>
@@ -354,15 +354,15 @@ async with AgentRuntime() as runtime:
 
 | Section | What it covers |
 |---------|---------------|
-| [**Quick Start**](https://promptise.github.io/foundry/getting-started/quickstart/) | Your first agent in 5 minutes |
-| [**Key Concepts**](https://promptise.github.io/foundry/getting-started/concepts/) | Architecture, design principles, the five pillars |
-| [**Building Agents**](https://promptise.github.io/foundry/guides/building-agents/) | Step-by-step, simple to production |
-| [**Reasoning Engine**](https://promptise.github.io/foundry/core/engine/) | Graphs, nodes, flags, patterns |
-| [**MCP Servers**](https://promptise.github.io/foundry/guides/production-mcp-servers/) | Production tool servers with auth and middleware |
-| [**Agent Runtime**](https://promptise.github.io/foundry/guides/agentic-runtime/) | Autonomous agents with governance |
-| [**Prompt Engineering**](https://promptise.github.io/foundry/prompting/) | Blocks, strategies, flows, guards |
-| [**Showcase**](https://promptise.github.io/foundry/resources/showcase/) | Working patterns, end-to-end |
-| [**API Reference**](https://promptise.github.io/foundry/api/agent/) | Every class, method, parameter |
+| [**Quick Start**](https://docs.promptise.com/getting-started/quickstart/) | Your first agent in 5 minutes |
+| [**Key Concepts**](https://docs.promptise.com/getting-started/concepts/) | Architecture, design principles, the five pillars |
+| [**Building Agents**](https://docs.promptise.com/guides/building-agents/) | Step-by-step, simple to production |
+| [**Reasoning Engine**](https://docs.promptise.com/core/engine/) | Graphs, nodes, flags, patterns |
+| [**MCP Servers**](https://docs.promptise.com/guides/production-mcp-servers/) | Production tool servers with auth and middleware |
+| [**Agent Runtime**](https://docs.promptise.com/guides/agentic-runtime/) | Autonomous agents with governance |
+| [**Prompt Engineering**](https://docs.promptise.com/prompting/) | Blocks, strategies, flows, guards |
+| [**Showcase**](https://docs.promptise.com/resources/showcase/) | Working patterns, end-to-end |
+| [**API Reference**](https://docs.promptise.com/api/agent/) | Every class, method, parameter |
 
 </div>
 
@@ -460,7 +460,12 @@ async with AgentRuntime() as runtime:
   <br/>
   <br/>
 
-  <sub>Built by <a href="https://promptise.dev"><strong>Promptise</strong></a></sub>
+  <sub>Built by <a href="https://www.promptise.com"><strong>Promptise</strong></a></sub>
+
+  <br/>
+  <br/>
+
+  <sub><sup>Formerly known as <a href="https://github.com/cryxnet/DeepMCPAgent">DeepMCPAgent</a> — a public preview of one sliver of this framework (MCP-native agent tooling). Promptise Foundry is the full system it was a teaser for: reasoning engine, agent runtime, prompt engineering, sandboxed execution, governance, and observability.</sup></sub>
 
   <br/>
 </div>
