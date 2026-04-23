@@ -39,6 +39,8 @@ dependencies = [
   # Runtime
   "croniter>=2.0.0",
   "watchdog>=4.0.0",
+  # Conversation persistence (SQLiteConversationStore — core feature)
+  "aiosqlite>=0.19.0",
   # LLM providers
   "langchain-openai>=0.3.30",
 ]
