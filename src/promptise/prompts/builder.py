@@ -216,7 +216,7 @@ class PromptBuilder:
         fn_code += f"    {full_template!r}\n"
 
         namespace: dict[str, Any] = {}
-        exec(fn_code, namespace)  # noqa: S102
+        exec(fn_code, namespace)  # noqa: S102  # nosec B102 - builds wrapper for library-controlled template
         fn = namespace[self._name]
         fn.__doc__ = full_template
 

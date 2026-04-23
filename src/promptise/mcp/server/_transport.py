@@ -229,7 +229,7 @@ async def run_http(
     init_options: Any,
     lifecycle: LifecycleManager,
     *,
-    host: str = "0.0.0.0",
+    host: str = "0.0.0.0",  # nosec B104 - public bind is explicit opt-in for server transports
     port: int = 8080,
     shutdown_timeout: float | None = None,
     dashboard: bool = False,
@@ -366,7 +366,7 @@ async def run_sse(
     init_options: Any,
     lifecycle: LifecycleManager,
     *,
-    host: str = "0.0.0.0",
+    host: str = "0.0.0.0",  # nosec B104 - public bind is explicit opt-in for server transports
     port: int = 8080,
     shutdown_timeout: float | None = None,
     dashboard: bool = False,

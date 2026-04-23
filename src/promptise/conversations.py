@@ -582,7 +582,7 @@ class PostgresConversationStore:
         p = self._prefix
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
-                f"SELECT session_id, user_id, title, metadata, message_count, "
+                f"SELECT session_id, user_id, title, metadata, message_count, "  # nosec B608 - table prefix validated in __init__; user data parameterized
                 f"created_at, updated_at FROM {p}sessions WHERE session_id = $1",
                 session_id,
             )
@@ -603,7 +603,7 @@ class PostgresConversationStore:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                f"SELECT role, content, metadata, created_at "
+                f"SELECT role, content, metadata, created_at "  # nosec B608 - table prefix validated in __init__; user data parameterized
                 f"FROM {self._prefix}messages "
                 f"WHERE session_id = $1 ORDER BY created_at, id",
                 session_id,
@@ -630,7 +630,7 @@ class PostgresConversationStore:
             async with conn.transaction():
                 # Upsert session
                 await conn.execute(
-                    f"INSERT INTO {p}sessions (session_id, message_count, updated_at) "
+                    f"INSERT INTO {p}sessions (session_id, message_count, updated_at) "  # nosec B608 - table prefix validated in __init__; user data parameterized
                     f"VALUES ($1, $2, now()) "
                     f"ON CONFLICT (session_id) DO UPDATE SET "
                     f"  message_count = $2, updated_at = now()",
@@ -640,7 +640,7 @@ class PostgresConversationStore:
 
                 # Replace messages: delete existing and bulk insert
                 await conn.execute(
-                    f"DELETE FROM {p}messages WHERE session_id = $1",
+                    f"DELETE FROM {p}messages WHERE session_id = $1",  # nosec B608 - table prefix validated in __init__; user data parameterized
                     session_id,
                 )
 
@@ -648,7 +648,7 @@ class PostgresConversationStore:
                     import json
 
                     await conn.executemany(
-                        f"INSERT INTO {p}messages "
+                        f"INSERT INTO {p}messages "  # nosec B608 - table prefix validated in __init__; user data parameterized
                         f"(session_id, role, content, metadata, created_at) "
                         f"VALUES ($1, $2, $3, $4::jsonb, $5)",
                         [
@@ -668,7 +668,7 @@ class PostgresConversationStore:
         pool = await self._ensure_pool()
         async with pool.acquire() as conn:
             result = await conn.execute(
-                f"DELETE FROM {self._prefix}sessions WHERE session_id = $1",
+                f"DELETE FROM {self._prefix}sessions WHERE session_id = $1",  # nosec B608 - table prefix validated in __init__; user data parameterized
                 session_id,
             )
             return result == "DELETE 1"
@@ -687,14 +687,14 @@ class PostgresConversationStore:
         args: tuple[Any, ...]
         if user_id is not None:
             query = (
-                f"SELECT session_id, user_id, title, metadata, message_count, "
+                f"SELECT session_id, user_id, title, metadata, message_count, "  # nosec B608 - table prefix validated in __init__; user data parameterized
                 f"created_at, updated_at FROM {p}sessions "
                 f"WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3"
             )
             args = (user_id, limit, offset)
         else:
             query = (
-                f"SELECT session_id, user_id, title, metadata, message_count, "
+                f"SELECT session_id, user_id, title, metadata, message_count, "  # nosec B608 - table prefix validated in __init__; user data parameterized
                 f"created_at, updated_at FROM {p}sessions "
                 f"ORDER BY updated_at DESC LIMIT $1 OFFSET $2"
             )
@@ -747,7 +747,7 @@ class PostgresConversationStore:
         if not args:
             return False
 
-        query = f"UPDATE {self._prefix}sessions SET {', '.join(sets)} WHERE session_id = $1"
+        query = f"UPDATE {self._prefix}sessions SET {', '.join(sets)} WHERE session_id = $1"  # nosec B608 - table prefix validated in __init__; SET clause built from allowlist; user data parameterized
         async with pool.acquire() as conn:
             result = await conn.execute(query, session_id, *args)
             return result == "UPDATE 1"
@@ -858,7 +858,7 @@ class SQLiteConversationStore:
         db = await self._ensure_db()
         p = self._prefix
         cursor = await db.execute(
-            f"SELECT session_id, user_id, title, metadata, message_count, "
+            f"SELECT session_id, user_id, title, metadata, message_count, "  # nosec B608 - table prefix validated in __init__; user data parameterized
             f"created_at, updated_at FROM {p}sessions WHERE session_id = ?",
             (session_id,),
         )
@@ -881,7 +881,7 @@ class SQLiteConversationStore:
 
         db = await self._ensure_db()
         cursor = await db.execute(
-            f"SELECT role, content, metadata, created_at "
+            f"SELECT role, content, metadata, created_at "  # nosec B608 - table prefix validated in __init__; user data parameterized
             f"FROM {self._prefix}messages "
             f"WHERE session_id = ? ORDER BY created_at, id",
             (session_id,),
@@ -910,7 +910,7 @@ class SQLiteConversationStore:
 
         # Upsert session
         await db.execute(
-            f"INSERT INTO {p}sessions (session_id, message_count, created_at, updated_at) "
+            f"INSERT INTO {p}sessions (session_id, message_count, created_at, updated_at) "  # nosec B608 - table prefix validated in __init__; user data parameterized
             f"VALUES (?, ?, ?, ?) "
             f"ON CONFLICT(session_id) DO UPDATE SET "
             f"  message_count = ?, updated_at = ?",
@@ -919,13 +919,13 @@ class SQLiteConversationStore:
 
         # Replace messages
         await db.execute(
-            f"DELETE FROM {p}messages WHERE session_id = ?",
+            f"DELETE FROM {p}messages WHERE session_id = ?",  # nosec B608 - table prefix validated in __init__; user data parameterized
             (session_id,),
         )
 
         if messages:
             await db.executemany(
-                f"INSERT INTO {p}messages "
+                f"INSERT INTO {p}messages "  # nosec B608 - table prefix validated in __init__; user data parameterized
                 f"(session_id, role, content, metadata, created_at) "
                 f"VALUES (?, ?, ?, ?, ?)",
                 [
@@ -948,7 +948,7 @@ class SQLiteConversationStore:
         p = self._prefix
         # Messages cascade via FK
         cursor = await db.execute(
-            f"DELETE FROM {p}sessions WHERE session_id = ?",
+            f"DELETE FROM {p}sessions WHERE session_id = ?",  # nosec B608 - table prefix validated in __init__; user data parameterized
             (session_id,),
         )
         await db.commit()
@@ -969,14 +969,14 @@ class SQLiteConversationStore:
 
         if user_id is not None:
             cursor = await db.execute(
-                f"SELECT session_id, user_id, title, metadata, message_count, "
+                f"SELECT session_id, user_id, title, metadata, message_count, "  # nosec B608 - table prefix validated in __init__; user data parameterized
                 f"created_at, updated_at FROM {p}sessions "
                 f"WHERE user_id = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?",
                 (user_id, limit, offset),
             )
         else:
             cursor = await db.execute(
-                f"SELECT session_id, user_id, title, metadata, message_count, "
+                f"SELECT session_id, user_id, title, metadata, message_count, "  # nosec B608 - table prefix validated in __init__; user data parameterized
                 f"created_at, updated_at FROM {p}sessions "
                 f"ORDER BY updated_at DESC LIMIT ? OFFSET ?",
                 (limit, offset),
@@ -1026,7 +1026,7 @@ class SQLiteConversationStore:
 
         args.append(session_id)
         cursor = await db.execute(
-            f"UPDATE {self._prefix}sessions SET {', '.join(sets)} WHERE session_id = ?",
+            f"UPDATE {self._prefix}sessions SET {', '.join(sets)} WHERE session_id = ?",  # nosec B608 - table prefix validated in __init__; SET clause built from allowlist; user data parameterized
             args,
         )
         await db.commit()

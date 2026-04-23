@@ -527,7 +527,7 @@ class MCPServer:
         self,
         transport: str = "stdio",
         *,
-        host: str = "0.0.0.0",
+        host: str = "0.0.0.0",  # nosec B104 - public bind is explicit opt-in for server transports
         port: int = 8080,
         dashboard: bool = False,
         cors: Any = None,
@@ -555,7 +555,7 @@ class MCPServer:
         self,
         transport: str = "stdio",
         *,
-        host: str = "0.0.0.0",
+        host: str = "0.0.0.0",  # nosec B104 - public bind is explicit opt-in for server transports
         port: int = 8080,
         dashboard: bool = False,
         cors: Any = None,
