@@ -94,14 +94,11 @@ subsystems automatically — a RAG call counts as a tool call.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import logging
-import re
 from collections.abc import AsyncIterator, Iterable
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
-from uuid import uuid4
+from typing import Any
 
 logger = logging.getLogger("promptise.rag")
 
@@ -226,9 +223,7 @@ class DocumentLoader:
             :meth:`iter_load` instead and leave this method returning
             ``list(await self.iter_load())``.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} must implement load() or iter_load()"
-        )
+        raise NotImplementedError(f"{type(self).__name__} must implement load() or iter_load()")
 
     async def iter_load(self) -> AsyncIterator[Document]:
         """Stream documents one at a time for memory-efficient indexing.
@@ -266,9 +261,7 @@ class Chunker:
             ``document_id`` must equal ``document.id``, and the
             metadata should inherit from ``document.metadata``.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} must implement chunk()"
-        )
+        raise NotImplementedError(f"{type(self).__name__} must implement chunk()")
 
 
 class Embedder:
@@ -312,9 +305,7 @@ class Embedder:
             A list of embedding vectors, one per input text. All vectors
             must have the same length (:attr:`dimension`).
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} must implement embed()"
-        )
+        raise NotImplementedError(f"{type(self).__name__} must implement embed()")
 
     async def embed_one(self, text: str) -> list[float]:
         """Embed a single text. Default implementation calls :meth:`embed`."""
@@ -329,9 +320,7 @@ class Embedder:
         some vector stores to initialize collections with the right
         vector size.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} must implement dimension property"
-        )
+        raise NotImplementedError(f"{type(self).__name__} must implement dimension property")
 
 
 class VectorStore:
@@ -396,9 +385,7 @@ class VectorStore:
             chunks: Chunks to store. Every chunk is expected to have
                 a non-``None`` ``embedding`` field.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} must implement add()"
-        )
+        raise NotImplementedError(f"{type(self).__name__} must implement add()")
 
     async def search(
         self,
@@ -419,9 +406,7 @@ class VectorStore:
         Returns:
             List of :class:`RetrievalResult` ordered by descending score.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} must implement search()"
-        )
+        raise NotImplementedError(f"{type(self).__name__} must implement search()")
 
     async def delete(self, chunk_ids: list[str]) -> None:
         """Remove chunks by id.
@@ -431,9 +416,7 @@ class VectorStore:
                 should be idempotent — deleting a non-existent id is
                 not an error.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} must implement delete()"
-        )
+        raise NotImplementedError(f"{type(self).__name__} must implement delete()")
 
     async def delete_by_document(self, document_id: str) -> int:
         """Remove all chunks belonging to a document.
@@ -449,15 +432,11 @@ class VectorStore:
         Returns:
             Number of chunks deleted.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__} does not implement delete_by_document()"
-        )
+        raise NotImplementedError(f"{type(self).__name__} does not implement delete_by_document()")
 
     async def count(self) -> int:
         """Return the number of stored chunks. Optional to implement."""
-        raise NotImplementedError(
-            f"{type(self).__name__} does not implement count()"
-        )
+        raise NotImplementedError(f"{type(self).__name__} does not implement count()")
 
     async def close(self) -> None:
         """Release resources. Default is a no-op."""
@@ -524,17 +503,21 @@ class RecursiveTextChunker(Chunker):
             char_pos = max(0, char_end - self._overlap)
 
             meta = dict(document.metadata)
-            meta.update({
-                "chunk_index": idx,
-                "char_start": char_start,
-                "char_end": char_end,
-            })
-            chunks.append(Chunk(
-                id=f"{document.id}:chunk-{idx}",
-                document_id=document.id,
-                text=chunk_text,
-                metadata=meta,
-            ))
+            meta.update(
+                {
+                    "chunk_index": idx,
+                    "char_start": char_start,
+                    "char_end": char_end,
+                }
+            )
+            chunks.append(
+                Chunk(
+                    id=f"{document.id}:chunk-{idx}",
+                    document_id=document.id,
+                    text=chunk_text,
+                    metadata=meta,
+                )
+            )
         return chunks
 
     def _split_text(self, text: str) -> list[str]:
@@ -551,7 +534,7 @@ class RecursiveTextChunker(Chunker):
             # No more separators to try — hard split on chunk_size
             step = self._chunk_size - self._overlap
             for i in range(0, len(text), step):
-                piece = text[i:i + self._chunk_size].strip()
+                piece = text[i : i + self._chunk_size].strip()
                 if piece:
                     yield piece
             return
@@ -602,7 +585,7 @@ class RecursiveTextChunker(Chunker):
         tail = text[-n:]
         # Start at the next word boundary so we don't cut a word in half
         space = tail.find(" ")
-        return tail[space + 1:] if space > -1 else tail
+        return tail[space + 1 :] if space > -1 else tail
 
 
 class InMemoryVectorStore(VectorStore):
@@ -681,7 +664,7 @@ class InMemoryVectorStore(VectorStore):
         """Compute cosine similarity without numpy (-1 to 1)."""
         if len(a) != len(b):
             return 0.0
-        dot = sum(x * y for x, y in zip(a, b))
+        dot = sum(x * y for x, y in zip(a, b, strict=False))
         mag_a = sum(x * x for x in a) ** 0.5
         mag_b = sum(x * x for x in b) ** 0.5
         if mag_a == 0 or mag_b == 0:
@@ -784,6 +767,7 @@ class RAGPipeline:
                 configured.
         """
         import time
+
         start = time.monotonic()
         report = IndexReport()
 
@@ -811,7 +795,7 @@ class RAGPipeline:
 
         # Embed in batches
         for i in range(0, len(all_chunks), self._batch_size):
-            batch = all_chunks[i:i + self._batch_size]
+            batch = all_chunks[i : i + self._batch_size]
             try:
                 vectors = await self._embedder.embed([c.text for c in batch])
             except Exception as exc:
@@ -823,11 +807,12 @@ class RAGPipeline:
             if len(vectors) != len(batch):
                 logger.error(
                     "Embedder returned %d vectors for batch of %d — skipping batch",
-                    len(vectors), len(batch),
+                    len(vectors),
+                    len(batch),
                 )
                 continue
 
-            for chunk, vec in zip(batch, vectors):
+            for chunk, vec in zip(batch, vectors, strict=False):
                 chunk.embedding = vec
 
             try:
@@ -841,7 +826,9 @@ class RAGPipeline:
         report.duration_seconds = time.monotonic() - start
         logger.info(
             "RAGPipeline.index: %d docs → %d chunks → %d stored (%.1fs)",
-            report.documents_loaded, report.chunks_created, report.chunks_stored,
+            report.documents_loaded,
+            report.chunks_created,
+            report.chunks_stored,
             report.duration_seconds,
         )
         return report
@@ -882,7 +869,8 @@ class RAGPipeline:
                 "VectorStore %s does not implement delete_by_document. "
                 "Nothing was deleted for document %s — implement the method "
                 "on your VectorStore or delete chunks by id.",
-                type(self._store).__name__, document_id,
+                type(self._store).__name__,
+                document_id,
             )
             return 0
 
@@ -967,17 +955,22 @@ def rag_to_tool(
 
         if format == "json":
             import json
-            return json.dumps([
-                {
-                    "score": round(r.score, 3),
-                    "text": r.text,
-                    "metadata": {
-                        k: v for k, v in r.metadata.items()
-                        if isinstance(v, (str, int, float, bool))
-                    },
-                }
-                for r in results
-            ], indent=2)
+
+            return json.dumps(
+                [
+                    {
+                        "score": round(r.score, 3),
+                        "text": r.text,
+                        "metadata": {
+                            k: v
+                            for k, v in r.metadata.items()
+                            if isinstance(v, (str, int, float, bool))
+                        },
+                    }
+                    for r in results
+                ],
+                indent=2,
+            )
 
         if format == "text":
             lines = []

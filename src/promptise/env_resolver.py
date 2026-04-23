@@ -121,7 +121,7 @@ def resolve_env_in_dict(
         elif isinstance(value, dict):
             result[key] = resolve_env_in_dict(value, context_prefix=ctx)
         elif isinstance(value, list):
-            resolved_list = []
+            resolved_list: list[Any] = []
             for i, item in enumerate(value):
                 item_ctx = f"{ctx}[{i}]"
                 if isinstance(item, str):

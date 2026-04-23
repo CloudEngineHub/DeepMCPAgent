@@ -59,7 +59,7 @@ import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from fnmatch import fnmatch
-from typing import Any, Literal
+from typing import Literal
 
 from .approval import ApprovalDecision, ApprovalHandler, ApprovalRequest
 
@@ -131,9 +131,7 @@ class ApprovalRule:
                 if not await self.predicate(request):
                     return False
             except Exception:  # noqa: BLE001
-                logger.exception(
-                    "approval rule predicate raised; treating as no-match"
-                )
+                logger.exception("approval rule predicate raised; treating as no-match")
                 return False
         return True
 
@@ -258,9 +256,7 @@ class AutoApprovalClassifier:
 
     # -- Protocol method --
 
-    async def request_approval(
-        self, request: ApprovalRequest
-    ) -> ApprovalDecision:
+    async def request_approval(self, request: ApprovalRequest) -> ApprovalDecision:
         """Run the decision hierarchy and return a definitive decision.
 
         Implements the :class:`ApprovalHandler` protocol so this
@@ -274,14 +270,10 @@ class AutoApprovalClassifier:
                 self.stats.errors += 1
                 self.stats.last_updated = time.time()
             self._last_trace = ClassifierDecisionTrace(layer="error")
-            logger.exception(
-                "AutoApprovalClassifier raised; falling back to handler"
-            )
+            logger.exception("AutoApprovalClassifier raised; falling back to handler")
             return await self._fallback.request_approval(request)
 
-    async def _classify(
-        self, request: ApprovalRequest
-    ) -> ApprovalDecision:
+    async def _classify(self, request: ApprovalRequest) -> ApprovalDecision:
         # 1. Allow rules
         for rule in self._allow_rules:
             if await rule.matches(request):
@@ -332,9 +324,7 @@ class AutoApprovalClassifier:
                 self.stats.read_only_allows += 1
                 self.stats.last_updated = time.time()
             self._last_trace = ClassifierDecisionTrace(layer="read_only")
-            logger.debug(
-                "approval read-only auto-allow: %s", request.tool_name
-            )
+            logger.debug("approval read-only auto-allow: %s", request.tool_name)
             return ApprovalDecision(
                 approved=True,
                 reviewer_id=self._reviewer_id,
@@ -348,9 +338,7 @@ class AutoApprovalClassifier:
                 async with self._lock:
                     self.stats.llm_allows += 1
                     self.stats.last_updated = time.time()
-                self._last_trace = ClassifierDecisionTrace(
-                    layer="llm_allow", rule_reason=reason
-                )
+                self._last_trace = ClassifierDecisionTrace(layer="llm_allow", rule_reason=reason)
                 return ApprovalDecision(
                     approved=True,
                     reviewer_id=self._reviewer_id,
@@ -360,9 +348,7 @@ class AutoApprovalClassifier:
                 async with self._lock:
                     self.stats.llm_denies += 1
                     self.stats.last_updated = time.time()
-                self._last_trace = ClassifierDecisionTrace(
-                    layer="llm_deny", rule_reason=reason
-                )
+                self._last_trace = ClassifierDecisionTrace(layer="llm_deny", rule_reason=reason)
                 return ApprovalDecision(
                     approved=False,
                     reviewer_id=self._reviewer_id,

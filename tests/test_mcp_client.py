@@ -942,7 +942,7 @@ class TestAuthGateASGI:
     def _make_gate(self, verify_fn, *, skip_paths=None, api_key_verify_fn=None):
         from promptise.mcp.server._transport import _AuthGateASGI
 
-        inner_app = MagicMock()
+        MagicMock()
 
         async def mock_app(scope, receive, send):
             scope["_passed"] = True

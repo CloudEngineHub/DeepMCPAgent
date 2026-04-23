@@ -156,7 +156,7 @@ def _schema_to_annotation(
         if all(isinstance(v, str) for v in vals):
             from typing import Literal
 
-            return Literal[tuple(vals)]  # type: ignore[valid-type]
+            return Literal[tuple(vals)]  # type: ignore[valid-type,return-value]
 
     return _primitive_type(t)
 

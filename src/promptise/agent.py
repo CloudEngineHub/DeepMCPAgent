@@ -13,7 +13,7 @@ from typing import Any, cast
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.runnables import Runnable
+from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_core.tools import BaseTool
 
 from promptise.engine import PromptGraph, PromptGraphEngine
@@ -220,6 +220,11 @@ class PromptiseAgent:
         # Context Engine (opt-in unified assembly)
         self._context_engine: Any | None = None
 
+        # Optional state attached post-construction by build_agent().
+        self._raw_instructions: str = ""
+        self._sandbox_session: Any | None = None
+        self._sandbox_manager: Any | None = None
+
     # -----------------------------------------------------------------
     # Core invocation methods
     # -----------------------------------------------------------------
@@ -390,6 +395,7 @@ class PromptiseAgent:
 
         # ── Context Engine assembly (when active, replaces ad-hoc injection) ──
         if _engine_active:
+            assert self._context_engine is not None  # narrowed by _engine_active
             engine = self._context_engine
             engine.clear_all()
 
@@ -532,7 +538,9 @@ class PromptiseAgent:
             config["callbacks"] = callbacks
 
         # Step 3: Delegate to inner graph
-        output = await _active_graph.ainvoke(input, config=config, **kwargs)
+        output = await _active_graph.ainvoke(
+            input, config=cast("RunnableConfig | None", config), **kwargs
+        )
 
         # Step 3.5: Guardrails — scan output BEFORE returning
         if self._guardrails is not None:
@@ -717,7 +725,9 @@ class PromptiseAgent:
             config["callbacks"] = callbacks
 
         # Step 3: Delegate to inner graph
-        async for chunk in self._inner.astream(input, config=config, **kwargs):
+        async for chunk in self._inner.astream(
+            input, config=cast("RunnableConfig | None", config), **kwargs
+        ):
             yield chunk
 
     async def astream_with_tools(
@@ -841,7 +851,7 @@ class PromptiseAgent:
             # Step 3: Stream via LangGraph astream_events
             try:
                 async for event in self._inner.astream_events(
-                    input, config=config, version="v2", **kwargs
+                    input, config=cast("RunnableConfig | None", config), version="v2", **kwargs
                 ):
                     etype = event.get("event", "")
 
@@ -1124,9 +1134,13 @@ class PromptiseAgent:
     # -----------------------------------------------------------------
 
     async def _search_memory(self, query: str) -> list[Any]:
-        """Search memory with timeout and graceful degradation."""
+        """Search memory with timeout and graceful degradation.
+
+        Callers must guard with ``self.provider is not None`` before invoking.
+        """
         if not query.strip():
             return []
+        assert self.provider is not None  # guarded by caller
         try:
             results = await asyncio.wait_for(
                 self.provider.search(query, limit=self._memory_max),
@@ -1143,9 +1157,13 @@ class PromptiseAgent:
             return []
 
     async def _maybe_store(self, user_text: str, output: Any) -> None:
-        """Optionally store the exchange in memory after invocation."""
+        """Optionally store the exchange in memory after invocation.
+
+        Callers must guard with ``self.provider is not None`` before invoking.
+        """
         if not self._memory_auto_store:
             return
+        assert self.provider is not None  # guarded by caller
         from .memory import _extract_user_text
 
         output_text = _extract_user_text(output)
@@ -1549,10 +1567,14 @@ class PromptiseAgent:
             return input
 
     async def _inject_flow_context(self, input: Any, user_text: str) -> Any:
-        """Run the conversation flow and inject its prompt as a SystemMessage."""
+        """Run the conversation flow and inject its prompt as a SystemMessage.
+
+        Callers must guard with ``self._flow is not None`` before invoking.
+        """
         try:
             from .prompts.flows import ConversationFlow
 
+            assert self._flow is not None  # guarded by caller
             flow: ConversationFlow = self._flow
             if flow._current_phase is None:
                 # First turn — start the flow
@@ -1966,9 +1988,7 @@ async def build_agent(
 
         # Priority 1: node_pool — build autonomous graph from pool
         if node_pool:
-            graph = PromptGraph.from_pool(
-                node_pool, system_prompt=sys_prompt, name="autonomous"
-            )
+            graph = PromptGraph.from_pool(node_pool, system_prompt=sys_prompt, name="autonomous")
         # Priority 2: PromptGraph instance passed directly
         elif isinstance(_pattern, PromptGraph):
             graph = _pattern
@@ -1980,11 +2000,21 @@ async def build_agent(
         # Priority 3: String pattern name
         elif isinstance(_pattern, str):
             builders = {
-                "react": lambda: PromptGraph.react(tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks),
-                "peoatr": lambda: PromptGraph.peoatr(tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks),
-                "research": lambda: PromptGraph.research(search_tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks),
-                "autonomous": lambda: PromptGraph.autonomous(tools=graph_tools, system_prompt=sys_prompt),
-                "deliberate": lambda: PromptGraph.deliberate(tools=graph_tools, system_prompt=sys_prompt),
+                "react": lambda: PromptGraph.react(
+                    tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
+                ),
+                "peoatr": lambda: PromptGraph.peoatr(
+                    tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
+                ),
+                "research": lambda: PromptGraph.research(
+                    search_tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
+                ),
+                "autonomous": lambda: PromptGraph.autonomous(
+                    tools=graph_tools, system_prompt=sys_prompt
+                ),
+                "deliberate": lambda: PromptGraph.deliberate(
+                    tools=graph_tools, system_prompt=sys_prompt
+                ),
                 "debate": lambda: PromptGraph.debate(system_prompt=sys_prompt),
             }
             builder = builders.get(_pattern)
@@ -2002,15 +2032,15 @@ async def build_agent(
             graph = _pattern
         # Default: ReAct
         else:
-            graph = PromptGraph.react(
-                tools=graph_tools, system_prompt=sys_prompt
-                )
+            graph = PromptGraph.react(tools=graph_tools, system_prompt=sys_prompt)
+
+        from langchain_core.language_models import BaseChatModel
 
         return cast(
             Runnable[Any, Any],
             PromptGraphEngine(
                 graph=graph,
-                model=chat,
+                model=cast(BaseChatModel, chat),
                 max_iterations=max_agent_iterations,
             ),
         )

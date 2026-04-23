@@ -410,9 +410,7 @@ class TestEngineEdgeCases:
         graph.add_node(step)
         graph.set_entry("step")
 
-        engine = PromptGraphEngine(
-            graph=graph, model=_make_model(), hooks=[ForceEndHook()]
-        )
+        engine = PromptGraphEngine(graph=graph, model=_make_model(), hooks=[ForceEndHook()])
         await engine.ainvoke({"messages": []})
 
         # Hook forced end after first node — only 1 node visited

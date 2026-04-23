@@ -363,7 +363,9 @@ class TestCustomTriggerRegistry:
             unregister_trigger_type("_e2e_custom")
 
     def test_unregister_trigger_type_cleanup(self) -> None:
-        factory = lambda c, **kw: CronTrigger("* * * * *")
+        def factory(c, **kw):
+            return CronTrigger("* * * * *")
+
         register_trigger_type("_e2e_cleanup", factory)
         assert "_e2e_cleanup" in registered_trigger_types()
         unregister_trigger_type("_e2e_cleanup")

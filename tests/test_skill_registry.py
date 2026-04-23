@@ -1,7 +1,6 @@
 """Tests for the path-scoped skill registry."""
-from __future__ import annotations
 
-from pathlib import Path
+from __future__ import annotations
 
 import pytest
 
@@ -10,7 +9,6 @@ from promptise.engine.skill_registry import (
     SkillRegistry,
     parse_frontmatter,
 )
-
 
 # ---------------------------------------------------------------------------
 # Skill (data class)
@@ -161,9 +159,7 @@ class TestLoadDirectory:
     def test_skips_non_skill_files(self, tmp_path):
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
-        (skills_dir / "helper.py").write_text(
-            '"""just a helper module"""\ndef noop(): pass\n'
-        )
+        (skills_dir / "helper.py").write_text('"""just a helper module"""\ndef noop(): pass\n')
 
         reg = SkillRegistry()
         loaded = reg.load_directory(skills_dir)

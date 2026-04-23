@@ -305,8 +305,7 @@ class InMemoryConversationStore:
         """
         async with self._lock:
             expired = [
-                sid for sid, info in self._sessions.items()
-                if self._is_session_expired(info)
+                sid for sid, info in self._sessions.items() if self._is_session_expired(info)
             ]
             for sid in expired:
                 del self._sessions[sid]
@@ -396,8 +395,7 @@ class InMemoryConversationStore:
         async with self._lock:
             # Lazy cleanup of expired sessions
             expired = [
-                sid for sid, info in self._sessions.items()
-                if self._is_session_expired(info)
+                sid for sid, info in self._sessions.items() if self._is_session_expired(info)
             ]
             for sid in expired:
                 del self._sessions[sid]
@@ -686,6 +684,7 @@ class PostgresConversationStore:
         pool = await self._ensure_pool()
         p = self._prefix
 
+        args: tuple[Any, ...]
         if user_id is not None:
             query = (
                 f"SELECT session_id, user_id, title, metadata, message_count, "

@@ -48,8 +48,8 @@ async def main():
             "enabled": True,
             "cpu_limit": 1,
             "memory_limit": "256M",
-            "network": "none",     # No internet access
-            "timeout": 30,         # Max 30s per execution
+            "network": "none",  # No internet access
+            "timeout": 30,  # Max 30s per execution
         },
         instructions=(
             "You are a Python developer. When given a coding task:\n"
@@ -106,9 +106,9 @@ async def main():
         print(f"  {CYAN}[{challenge['difficulty']}]{RESET} {BOLD}{challenge['name']}{RESET}")
         print(f"{BOLD}{'═' * 60}{RESET}\n")
 
-        result = await agent.ainvoke({
-            "messages": [{"role": "user", "content": challenge["prompt"]}]
-        })
+        result = await agent.ainvoke(
+            {"messages": [{"role": "user", "content": challenge["prompt"]}]}
+        )
 
         # Extract tool calls to show the iteration
         tool_calls = []

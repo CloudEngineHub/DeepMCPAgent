@@ -80,6 +80,16 @@ class PromptGraph:
         name: Human-readable graph name (for visualization and logs).
     """
 
+    # Prebuilt factory helpers — bound at import time by ``engine/prebuilts.py``.
+    # Declared here (as ``Any``) so static analysis recognises them as attributes.
+    react: Any
+    peoatr: Any
+    research: Any
+    autonomous: Any
+    deliberate: Any
+    debate: Any
+    pipeline: Any
+
     def __init__(
         self,
         name: str = "graph",
@@ -180,12 +190,19 @@ class PromptGraph:
         # Warn about duplicate edges with different conditions — may cause undefined routing
         if condition is not None:
             for existing in self._edges:
-                if existing.from_node == from_node and existing.to_node == to_node and existing.condition is not None and existing.priority == priority:
+                if (
+                    existing.from_node == from_node
+                    and existing.to_node == to_node
+                    and existing.condition is not None
+                    and existing.priority == priority
+                ):
                     import logging as _log
 
                     _log.getLogger("promptise.engine").warning(
                         "Duplicate conditional edge %s → %s (same priority %d) — ensure conditions are mutually exclusive",
-                        from_node, to_node, priority,
+                        from_node,
+                        to_node,
+                        priority,
                     )
                     break
 

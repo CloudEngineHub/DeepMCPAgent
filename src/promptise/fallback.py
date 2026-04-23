@@ -167,7 +167,10 @@ class FallbackChain(BaseChatModel):
         on_fallback: Any = None,
         **kwargs: Any,
     ) -> None:
-        super().__init__(
+        # BaseChatModel uses Pydantic; these are declared as class-level fields
+        # above which Pydantic routes through to __init__, but mypy cannot see
+        # them on BaseChatModel's typed signature.
+        super().__init__(  # type: ignore[call-arg]
             models=list(models or []),
             timeout_per_model=timeout_per_model,
             global_timeout=global_timeout,

@@ -50,63 +50,91 @@ async def main():
     # ── Define blocks for each phase ──
 
     # Greeting phase blocks
-    greeting_identity = Identity("friendly_greeter",
+    greeting_identity = Identity(
+        "friendly_greeter",
         "You are a warm, welcoming product advisor for a SaaS company. "
         "Your goal is to make the customer feel heard and understood.",
-        priority=10)
+        priority=10,
+    )
 
-    greeting_rules = Rules("greeting_rules", [
-        "Greet the customer warmly",
-        "Ask what brings them here today",
-        "Don't pitch products yet — just listen",
-    ], priority=9)
+    greeting_rules = Rules(
+        "greeting_rules",
+        [
+            "Greet the customer warmly",
+            "Ask what brings them here today",
+            "Don't pitch products yet — just listen",
+        ],
+        priority=9,
+    )
 
     # Discovery phase blocks
-    discovery_identity = Identity("needs_analyst",
+    discovery_identity = Identity(
+        "needs_analyst",
         "You are a perceptive needs analyst. Ask probing questions to "
         "understand the customer's challenges, team size, and budget.",
-        priority=10)
+        priority=10,
+    )
 
-    discovery_rules = Rules("discovery_rules", [
-        "Ask about their current workflow",
-        "Understand team size and budget",
-        "Identify pain points — don't suggest solutions yet",
-        "Take notes on what matters most to them",
-    ], priority=9)
+    discovery_rules = Rules(
+        "discovery_rules",
+        [
+            "Ask about their current workflow",
+            "Understand team size and budget",
+            "Identify pain points — don't suggest solutions yet",
+            "Take notes on what matters most to them",
+        ],
+        priority=9,
+    )
 
-    discovery_format = OutputFormat("discovery_format",
+    discovery_format = OutputFormat(
+        "discovery_format",
         "Structure your response as: question, then brief empathy statement.",
-        priority=8)
+        priority=8,
+    )
 
     # Recommendation phase blocks
-    rec_identity = Identity("solution_expert",
+    rec_identity = Identity(
+        "solution_expert",
         "You are a product expert who matches solutions to needs. "
         "Reference specific features that solve the customer's stated pain points.",
-        priority=10)
+        priority=10,
+    )
 
-    rec_rules = Rules("recommendation_rules", [
-        "Reference specific pain points the customer mentioned",
-        "Recommend the tier that matches their needs — don't upsell",
-        "Include pricing and a comparison to alternatives",
-        "Be honest about limitations",
-    ], priority=9)
+    rec_rules = Rules(
+        "recommendation_rules",
+        [
+            "Reference specific pain points the customer mentioned",
+            "Recommend the tier that matches their needs — don't upsell",
+            "Include pricing and a comparison to alternatives",
+            "Be honest about limitations",
+        ],
+        priority=9,
+    )
 
-    rec_format = OutputFormat("rec_format",
+    rec_format = OutputFormat(
+        "rec_format",
         "Format: 1) Recommended plan, 2) Why it fits, 3) Key features, 4) Pricing, 5) Next steps.",
-        priority=8)
+        priority=8,
+    )
 
     # Closing phase blocks
-    closing_identity = Identity("closer",
+    closing_identity = Identity(
+        "closer",
         "You are a helpful closer. Summarize what was discussed, confirm the "
         "recommendation, and provide clear next steps.",
-        priority=10)
+        priority=10,
+    )
 
-    closing_rules = Rules("closing_rules", [
-        "Summarize the conversation highlights",
-        "Confirm the recommended plan",
-        "Provide a clear call to action (signup link, demo booking)",
-        "Thank the customer for their time",
-    ], priority=9)
+    closing_rules = Rules(
+        "closing_rules",
+        [
+            "Summarize the conversation highlights",
+            "Confirm the recommended plan",
+            "Provide a clear call to action (signup link, demo booking)",
+            "Thank the customer for their time",
+        ],
+        priority=9,
+    )
 
     # ── Simulate conversation phases ──
 
@@ -161,9 +189,9 @@ async def main():
             instructions=system_prompt,
         )
 
-        result = await agent.ainvoke({
-            "messages": [{"role": "user", "content": phase["user_message"]}]
-        })
+        result = await agent.ainvoke(
+            {"messages": [{"role": "user", "content": phase["user_message"]}]}
+        )
 
         for msg in reversed(result["messages"]):
             if getattr(msg, "type", "") == "ai" and msg.content:

@@ -88,7 +88,14 @@ class TestReActE2E:
     async def test_single_tool_call(self, agent):
         """Agent should call search_knowledge_base for a factual question."""
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": "What was Q4 2025 revenue? Use search_knowledge_base."}]}
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "What was Q4 2025 revenue? Use search_knowledge_base.",
+                    }
+                ]
+            }
         )
         tools = _extract_tool_calls(result)
 
@@ -99,7 +106,11 @@ class TestReActE2E:
     async def test_calculation_tool(self, agent):
         """Agent should use the calculate tool for math."""
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": "Use the calculate tool to compute 42 * 17."}]}
+            {
+                "messages": [
+                    {"role": "user", "content": "Use the calculate tool to compute 42 * 17."}
+                ]
+            }
         )
         tools = _extract_tool_calls(result)
 
@@ -109,7 +120,14 @@ class TestReActE2E:
     async def test_produces_final_answer(self, agent):
         """Agent should produce a non-empty final answer after tool use."""
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": "What is today's date? Use the get_current_date tool."}]}
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "What is today's date? Use the get_current_date tool.",
+                    }
+                ]
+            }
         )
         tools = _extract_tool_calls(result)
         answer = _get_final_answer(result)
@@ -264,12 +282,15 @@ class TestReasoningNodesE2E:
         from promptise.engine import NodeFlag, PromptGraph, PromptNode
         from promptise.engine.reasoning_nodes import PlanNode, SynthesizeNode, ThinkNode
 
-        graph = PromptGraph("deliberate-agent", nodes=[
-            PlanNode("plan", is_entry=True),
-            PromptNode("act", inject_tools=True, flags={NodeFlag.RETRYABLE}),
-            ThinkNode("think"),
-            SynthesizeNode("answer", is_terminal=True),
-        ])
+        graph = PromptGraph(
+            "deliberate-agent",
+            nodes=[
+                PlanNode("plan", is_entry=True),
+                PromptNode("act", inject_tools=True, flags={NodeFlag.RETRYABLE}),
+                ThinkNode("think"),
+                SynthesizeNode("answer", is_terminal=True),
+            ],
+        )
 
         agent = await build_agent(
             model="openai:gpt-4o-mini",
@@ -313,6 +334,7 @@ class TestAgentObservabilityE2E:
     async def agent(self):
         from promptise import build_agent
         from promptise.config import StdioServerSpec
+
         agent = await build_agent(
             model="openai:gpt-4o-mini",
             servers={
@@ -328,7 +350,11 @@ class TestAgentObservabilityE2E:
     async def test_invocation_completes(self, agent):
         """Agent with observability enabled should complete an invocation."""
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content": "Use get_current_date to tell me today's date."}]}
+            {
+                "messages": [
+                    {"role": "user", "content": "Use get_current_date to tell me today's date."}
+                ]
+            }
         )
         tools = _extract_tool_calls(result)
         assert "get_current_date" in tools

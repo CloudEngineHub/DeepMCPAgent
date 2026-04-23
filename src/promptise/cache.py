@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    import numpy as np  # type: ignore[import-not-found]
+    pass  # type: ignore[import-not-found]
 
 logger = logging.getLogger("promptise.cache")
 
@@ -45,6 +45,7 @@ def _get_np() -> Any:
     if _np is None:
         try:
             import numpy as np_module
+
             _np = np_module
         except ImportError as e:
             raise ImportError(
@@ -52,6 +53,7 @@ def _get_np() -> Any:
                 'pip install numpy  (or pip install "promptise[all]")'
             ) from e
     return _np
+
 
 __all__ = [
     "SemanticCache",
@@ -281,9 +283,9 @@ class OpenAIEmbeddingProvider:
         # Resolve API key from env if needed
         api_key = self._api_key
         if api_key and "${" in api_key:
-            from .env_resolver import resolve_env_vars
+            from .env_resolver import resolve_env_var
 
-            api_key = resolve_env_vars(api_key)
+            api_key = resolve_env_var(api_key)
         if not api_key:
             raise ValueError(
                 "OpenAIEmbeddingProvider: api_key is empty. "
@@ -639,6 +641,7 @@ class RedisCacheBackend:
 
         # Deserialize LangGraph output
         raw_output = entry_data["output"]
+        output: Any
         if isinstance(raw_output, dict) and raw_output.get("_fallback"):
             output = {"messages": []}  # Minimal output on fallback
         else:
@@ -713,7 +716,10 @@ class RedisCacheBackend:
             serialized_output = dumpd(entry.output)
         except Exception as exc:
             # Fallback: store response_text only (lose tool call details)
-            logger.warning("Cache: output serialization failed (%s), storing text-only fallback", type(exc).__name__)
+            logger.warning(
+                "Cache: output serialization failed (%s), storing text-only fallback",
+                type(exc).__name__,
+            )
             serialized_output = {"_fallback": True, "response_text": entry.response_text}
 
         entry_data = {
@@ -884,6 +890,7 @@ class SemanticCache:
             )
 
         # Resolve embedding provider
+        self._embedding: EmbeddingProvider
         if embedding is None:
             self._embedding = LocalEmbeddingProvider()
         elif isinstance(embedding, str):
@@ -892,6 +899,7 @@ class SemanticCache:
             self._embedding = embedding
 
         # Resolve backend
+        self._backend: InMemoryCacheBackend | RedisCacheBackend
         if backend == "memory":
             self._backend = InMemoryCacheBackend(
                 max_entries_per_scope=max_entries_per_user,

@@ -163,6 +163,14 @@ ignore = [
   "UP045",    # Use X | None for Optional
 ]
 
+# Depends() is a dependency-injection marker (like FastAPI's Depends) — not a
+# runtime side-effectful call. Safe and idiomatic to use in argument defaults.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+  "promptise.mcp.server.Depends",
+  "promptise.mcp.server._di.Depends",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 

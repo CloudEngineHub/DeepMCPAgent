@@ -29,8 +29,6 @@ from promptise import (
     build_agent,
     rag_to_tool,
 )
-from promptise.config import HTTPServerSpec
-
 
 # ---------------------------------------------------------------------------
 # 1. Implement a DocumentLoader — load your documents from anywhere
@@ -132,9 +130,11 @@ async def main() -> None:
         instructions="You are a customer support agent. Use the search_faq tool to answer questions.",
     )
 
-    result = await agent.ainvoke({
-        "messages": [{"role": "user", "content": "Can I return a laptop after 20 days?"}],
-    })
+    result = await agent.ainvoke(
+        {
+            "messages": [{"role": "user", "content": "Can I return a laptop after 20 days?"}],
+        }
+    )
     print("\nAgent response:")
     print(result["messages"][-1].content)
 

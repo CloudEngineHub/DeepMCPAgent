@@ -71,58 +71,60 @@ def _build_analyst_graph(tools):
 
     graph = PromptGraph("data-analyst", mode="static")
 
-    graph.add_node(PromptNode(
-        "analyst",
-        instructions=(
-            "You are an expert SQL data analyst. Answer questions by querying the database.\n\n"
-            "DATABASE SCHEMA:\n"
-            "┌─ employees ─────────────────────────────────────────────────┐\n"
-            "│ id | name | department | salary | hire_date | manager_id    │\n"
-            "│ region (NA-West, NA-East, EU, APAC)                        │\n"
-            "│ 20 employees across Engineering, Sales, Marketing, Ops,    │\n"
-            "│ Finance, HR                                                │\n"
-            "└────────────────────────────────────────────────────────────┘\n"
-            "┌─ deals ────────────────────────────────────────────────────┐\n"
-            "│ id | customer | amount | stage | owner_id | quarter | prod │\n"
-            "│ stages: closed_won, closed_lost, negotiation, proposal,   │\n"
-            "│ discovery. owner_id → employees.id (sales reps)           │\n"
-            "│ 18 deals from Q1-2025 to Q2-2026                          │\n"
-            "└────────────────────────────────────────────────────────────┘\n"
-            "┌─ expenses ─────────────────────────────────────────────────┐\n"
-            "│ id | department | category | amount | quarter | description│\n"
-            "│ 22 expense entries across all departments and quarters     │\n"
-            "└────────────────────────────────────────────────────────────┘\n"
-            "┌─ support_tickets ──────────────────────────────────────────┐\n"
-            "│ id | customer | priority | status | category | created    │\n"
-            "│ resolved | assigned_to                                     │\n"
-            "│ priorities: critical, high, medium, low                    │\n"
-            "│ statuses: open, resolved. 14 tickets.                     │\n"
-            "└────────────────────────────────────────────────────────────┘\n"
-            "┌─ okrs ─────────────────────────────────────────────────────┐\n"
-            "│ id | department | objective | key_result | target | actual │\n"
-            "│ quarter. 13 OKR entries.                                   │\n"
-            "└────────────────────────────────────────────────────────────┘\n\n"
-            "QUERY STRATEGY (follow this order):\n"
-            "1. Use sql_aggregate for totals/averages/counts — fastest path\n"
-            "2. Use sql_query_* with filters for specific rows or lists\n"
-            "3. For cross-table lookups (e.g., employee name for owner_id):\n"
-            "   first query the source table, then query the target table\n"
-            "4. Use calculate for derived math (margins, ratios, etc.)\n"
-            "5. Execute ALL needed queries before answering — don't stop early\n\n"
-            "RULES:\n"
-            "- NEVER guess numbers — always query the database\n"
-            "- When filtering deals by stage, use exact values: closed_won, closed_lost\n"
-            "- When filtering by quarter, use format: Q1-2025, Q2-2025, etc.\n"
-            "- For department filters, use exact names: Engineering, Sales, etc.\n"
-            "- Lead your final answer with the key number/fact\n"
-            "- Be precise — exact dollar amounts, no rounding unless asked"
-        ),
-        tools=tools,
-        is_entry=True,
-        include_observations=False,
-        include_plan=False,
-        include_reflections=False,
-    ))
+    graph.add_node(
+        PromptNode(
+            "analyst",
+            instructions=(
+                "You are an expert SQL data analyst. Answer questions by querying the database.\n\n"
+                "DATABASE SCHEMA:\n"
+                "┌─ employees ─────────────────────────────────────────────────┐\n"
+                "│ id | name | department | salary | hire_date | manager_id    │\n"
+                "│ region (NA-West, NA-East, EU, APAC)                        │\n"
+                "│ 20 employees across Engineering, Sales, Marketing, Ops,    │\n"
+                "│ Finance, HR                                                │\n"
+                "└────────────────────────────────────────────────────────────┘\n"
+                "┌─ deals ────────────────────────────────────────────────────┐\n"
+                "│ id | customer | amount | stage | owner_id | quarter | prod │\n"
+                "│ stages: closed_won, closed_lost, negotiation, proposal,   │\n"
+                "│ discovery. owner_id → employees.id (sales reps)           │\n"
+                "│ 18 deals from Q1-2025 to Q2-2026                          │\n"
+                "└────────────────────────────────────────────────────────────┘\n"
+                "┌─ expenses ─────────────────────────────────────────────────┐\n"
+                "│ id | department | category | amount | quarter | description│\n"
+                "│ 22 expense entries across all departments and quarters     │\n"
+                "└────────────────────────────────────────────────────────────┘\n"
+                "┌─ support_tickets ──────────────────────────────────────────┐\n"
+                "│ id | customer | priority | status | category | created    │\n"
+                "│ resolved | assigned_to                                     │\n"
+                "│ priorities: critical, high, medium, low                    │\n"
+                "│ statuses: open, resolved. 14 tickets.                     │\n"
+                "└────────────────────────────────────────────────────────────┘\n"
+                "┌─ okrs ─────────────────────────────────────────────────────┐\n"
+                "│ id | department | objective | key_result | target | actual │\n"
+                "│ quarter. 13 OKR entries.                                   │\n"
+                "└────────────────────────────────────────────────────────────┘\n\n"
+                "QUERY STRATEGY (follow this order):\n"
+                "1. Use sql_aggregate for totals/averages/counts — fastest path\n"
+                "2. Use sql_query_* with filters for specific rows or lists\n"
+                "3. For cross-table lookups (e.g., employee name for owner_id):\n"
+                "   first query the source table, then query the target table\n"
+                "4. Use calculate for derived math (margins, ratios, etc.)\n"
+                "5. Execute ALL needed queries before answering — don't stop early\n\n"
+                "RULES:\n"
+                "- NEVER guess numbers — always query the database\n"
+                "- When filtering deals by stage, use exact values: closed_won, closed_lost\n"
+                "- When filtering by quarter, use format: Q1-2025, Q2-2025, etc.\n"
+                "- For department filters, use exact names: Engineering, Sales, etc.\n"
+                "- Lead your final answer with the key number/fact\n"
+                "- Be precise — exact dollar amounts, no rounding unless asked"
+            ),
+            tools=tools,
+            is_entry=True,
+            include_observations=False,
+            include_plan=False,
+            include_reflections=False,
+        )
+    )
     graph.set_entry("analyst")
 
     return graph
@@ -160,7 +162,9 @@ def _print_comparison(
     print(f"\n  {DIM}{'─' * 78}{RESET}")
     print(f"  {CYAN}Q:{RESET} {WHITE}{question[:74]}{RESET}")
     print(f"  {DIM}{'─' * 78}{RESET}")
-    print(f"  {'':32} {BOLD}{MAGENTA}{'Specialized':>16}{RESET}    {BOLD}{CYAN}{'ReAct (LG)':>16}{RESET}")
+    print(
+        f"  {'':32} {BOLD}{MAGENTA}{'Specialized':>16}{RESET}    {BOLD}{CYAN}{'ReAct (LG)':>16}{RESET}"
+    )
     print(f"  {DIM}{'─' * 78}{RESET}")
 
     max_tc = max(len(pf.tool_calls), len(lg.tool_calls), 1)
@@ -437,7 +441,9 @@ class TestSpecializedVsReAct:
         print(f"\n\n  {BOLD}{WHITE}{'═' * 70}{RESET}")
         print(f"  {BOLD}{WHITE}  HARD BENCHMARK — {len(questions)} COMPLEX QUESTIONS{RESET}")
         print(f"  {BOLD}{WHITE}{'═' * 70}{RESET}")
-        print(f"  {'':32} {BOLD}{MAGENTA}{'Specialized':>16}{RESET}    {BOLD}{CYAN}{'ReAct (LG)':>16}{RESET}")
+        print(
+            f"  {'':32} {BOLD}{MAGENTA}{'Specialized':>16}{RESET}    {BOLD}{CYAN}{'ReAct (LG)':>16}{RESET}"
+        )
         print(f"  {DIM}{'─' * 70}{RESET}")
 
         sp_w = MAGENTA + "◀" + RESET if sp_total_ms <= lg_total_ms else ""
@@ -472,9 +478,13 @@ class TestSpecializedVsReAct:
 
         print(f"\n  {BOLD}Verdict:{RESET}", end=" ")
         if sp_total_answer_len > lg_total_answer_len * 1.1:
-            print(f"{MAGENTA}Specialized graph produced {sp_total_answer_len - lg_total_answer_len:,} more chars of analysis{RESET}")
+            print(
+                f"{MAGENTA}Specialized graph produced {sp_total_answer_len - lg_total_answer_len:,} more chars of analysis{RESET}"
+            )
         elif lg_total_answer_len > sp_total_answer_len * 1.1:
-            print(f"{CYAN}ReAct produced {lg_total_answer_len - sp_total_answer_len:,} more chars of analysis{RESET}")
+            print(
+                f"{CYAN}ReAct produced {lg_total_answer_len - sp_total_answer_len:,} more chars of analysis{RESET}"
+            )
         else:
             print(f"{YELLOW}Similar detail level{RESET}")
 

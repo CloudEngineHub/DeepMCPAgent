@@ -32,12 +32,28 @@ def _color(code: int, text: str) -> str:
     return f"\033[{code}m{text}\033[0m"
 
 
-RED = lambda t: _color(31, t)
-GREEN = lambda t: _color(32, t)
-YELLOW = lambda t: _color(33, t)
-CYAN = lambda t: _color(36, t)
-BOLD = lambda t: _color(1, t)
-DIM = lambda t: _color(2, t)
+def RED(t):
+    return _color(31, t)
+
+
+def GREEN(t):
+    return _color(32, t)
+
+
+def YELLOW(t):
+    return _color(33, t)
+
+
+def CYAN(t):
+    return _color(36, t)
+
+
+def BOLD(t):
+    return _color(1, t)
+
+
+def DIM(t):
+    return _color(2, t)
 
 
 async def main() -> None:

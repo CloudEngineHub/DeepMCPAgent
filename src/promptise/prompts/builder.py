@@ -202,7 +202,9 @@ class PromptBuilder:
         # Validate ALL variable names — prevents code injection via exec()
         for v in var_names:
             if not _re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", v):
-                raise ValueError(f"Template variable name must be a valid Python identifier, got: {v!r}")
+                raise ValueError(
+                    f"Template variable name must be a valid Python identifier, got: {v!r}"
+                )
 
         # Build synthetic function
         if var_names:

@@ -550,7 +550,7 @@ class _ApprovalToolWrapper(BaseTool):
         # Get caller context
         caller_user_id: str | None = None
         try:
-            from .types import get_current_caller
+            from .agent import get_current_caller
 
             caller = get_current_caller()
             if caller is not None:

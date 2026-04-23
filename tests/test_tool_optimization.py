@@ -217,7 +217,7 @@ class TestSchemaMinification:
         )
         # At depth 1, the nested model should be flattened to dict
         address_annotation = minified.model_fields["address"].annotation
-        assert address_annotation is dict or address_annotation == dict
+        assert address_annotation is dict
 
     def test_valid_model_instance(self):
         """Minified model should be instantiable."""

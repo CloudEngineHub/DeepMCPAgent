@@ -245,8 +245,10 @@ def node(
             is_entry=is_entry,
             is_terminal=is_terminal,
         )
-        # Preserve function metadata
-        functools.update_wrapper(fn_node, func)
+        # Preserve function metadata. `fn_node` is a Node instance, not a
+        # callable, but update_wrapper only copies __doc__/__name__/__module__
+        # attributes which Node supports. Safe despite the Callable signature.
+        functools.update_wrapper(fn_node, func)  # type: ignore[arg-type]
         return fn_node
 
     return decorator

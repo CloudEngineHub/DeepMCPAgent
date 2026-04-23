@@ -71,7 +71,9 @@ class TokenBucketLimiter:
             # Evict stale buckets periodically or when the map grows too large.
             # Remove entries not accessed in the last 5 minutes.
             _last_cleanup = getattr(self, "_last_cleanup", 0.0)
-            if len(self._buckets) > self._MAX_BUCKETS or (now - _last_cleanup > 60.0 and len(self._buckets) > 100):
+            if len(self._buckets) > self._MAX_BUCKETS or (
+                now - _last_cleanup > 60.0 and len(self._buckets) > 100
+            ):
                 stale_cutoff = now - 300.0
                 stale_keys = [k for k, (_, lt) in self._buckets.items() if lt < stale_cutoff]
                 for k in stale_keys:

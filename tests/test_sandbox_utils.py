@@ -6,9 +6,13 @@ All Docker interactions are mocked so these tests run without Docker installed.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+if TYPE_CHECKING:
+    from promptise.sandbox.utils import SandboxContainerManager
 
 # ---------------------------------------------------------------------------
 # Helper factories

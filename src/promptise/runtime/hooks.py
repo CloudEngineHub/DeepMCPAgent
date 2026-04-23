@@ -209,9 +209,7 @@ class HookManager:
     """
 
     def __init__(self) -> None:
-        self._hooks: dict[HookEvent, list[_Registration]] = {
-            event: [] for event in HookEvent
-        }
+        self._hooks: dict[HookEvent, list[_Registration]] = {event: [] for event in HookEvent}
         self._lock = asyncio.Lock()
 
     # -- Registration --
@@ -391,17 +389,13 @@ class HookManager:
             except HookBlocked as exc:
                 result.blocked = True
                 result.reason = exc.reason
-                logger.info(
-                    "hook %s blocked event %s: %s", reg.hook_id, event.value, exc.reason
-                )
+                logger.info("hook %s blocked event %s: %s", reg.hook_id, event.value, exc.reason)
                 # mark the one-shot for removal even when blocking
                 if reg.once:
                     await self.remove(reg.hook_id)
                 return result
             except Exception as exc:  # noqa: BLE001 — hooks are untrusted
-                logger.exception(
-                    "hook %s raised on event %s", reg.hook_id, event.value
-                )
+                logger.exception("hook %s raised on event %s", reg.hook_id, event.value)
                 result.errors.append((reg.hook_id, exc))
             finally:
                 if reg.once:

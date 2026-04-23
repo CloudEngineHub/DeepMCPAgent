@@ -10,7 +10,6 @@ Run standalone:
 from __future__ import annotations
 
 from promptise.mcp.server import (
-    AuthMiddleware,
     JWTAuth,
     LoggingMiddleware,
     MCPRouter,
@@ -64,11 +63,16 @@ async def get_customer(customer_id: str) -> str:
 async def customer_health_summary() -> str:
     """Get customer health overview."""
     from collections import Counter
+
     health = Counter(c["health"] for c in CUSTOMER_DB.values())
     total_mrr = sum(c["mrr"] for c in CUSTOMER_DB.values())
-    at_risk_mrr = sum(c["mrr"] for c in CUSTOMER_DB.values() if c["health"] in ("at_risk", "churning"))
-    return (f"Health Summary: {dict(health)} | Total MRR: ${total_mrr:,}/mo | "
-            f"At-risk MRR: ${at_risk_mrr:,}/mo ({at_risk_mrr/total_mrr*100:.0f}%)")
+    at_risk_mrr = sum(
+        c["mrr"] for c in CUSTOMER_DB.values() if c["health"] in ("at_risk", "churning")
+    )
+    return (
+        f"Health Summary: {dict(health)} | Total MRR: ${total_mrr:,}/mo | "
+        f"At-risk MRR: ${at_risk_mrr:,}/mo ({at_risk_mrr / total_mrr * 100:.0f}%)"
+    )
 
 
 @customers.tool(roles=["admin"])
@@ -109,6 +113,7 @@ async def revenue_metrics() -> str:
 async def plan_distribution() -> str:
     """Get customer distribution by plan."""
     from collections import Counter
+
     plans = Counter(c["plan"] for c in CUSTOMER_DB.values())
     plan_mrr = {}
     for c in CUSTOMER_DB.values():
@@ -150,7 +155,9 @@ async def forecast(months: int = 3) -> str:
     for m in range(1, months + 1):
         mrr = int(mrr * (1 + growth_rate))
         projections.append(f"  Month {m}: ${mrr:,}/mo")
-    return f"Forecast (5% monthly growth):\n  Current: ${current_mrr:,}/mo\n" + "\n".join(projections)
+    return f"Forecast (5% monthly growth):\n  Current: ${current_mrr:,}/mo\n" + "\n".join(
+        projections
+    )
 
 
 server.include_router(analytics)

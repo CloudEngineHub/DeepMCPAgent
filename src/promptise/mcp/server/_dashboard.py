@@ -444,11 +444,12 @@ class Dashboard:
         except ImportError:
             return
 
+        # msvcrt is Windows-only; stubs not available on POSIX → ignore attr checks here.
         while self._running:
-            if msvcrt.kbhit():
-                ch = msvcrt.getch()
+            if msvcrt.kbhit():  # type: ignore[attr-defined]
+                ch = msvcrt.getch()  # type: ignore[attr-defined]
                 if ch in (b"\xe0", b"\x00"):
-                    ch2 = msvcrt.getch()
+                    ch2 = msvcrt.getch()  # type: ignore[attr-defined]
                     if ch2 == b"M":  # Right arrow
                         self._next_tab()
                     elif ch2 == b"K":  # Left arrow

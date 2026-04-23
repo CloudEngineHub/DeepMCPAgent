@@ -97,7 +97,6 @@ from .hooks import (
     HookEvent,
     HookManager,
 )
-from .shell_hook import ShellHook, ShellHookResult
 
 # -- Message Inbox --
 from .inbox import InboxMessage, InboxResponse, MessageInbox, MessageType
@@ -141,6 +140,7 @@ from .process import AgentProcess
 # -- Runtime --
 from .runtime import AgentRuntime
 from .secrets import SecretScope
+from .shell_hook import ShellHook, ShellHookResult
 
 # -- Triggers --
 from .triggers import (

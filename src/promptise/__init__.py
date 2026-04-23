@@ -113,6 +113,21 @@ from .prompts import (
     PromptSuite,
     prompt,
 )
+from .rag import (
+    Chunk,
+    Chunker,
+    Document,
+    DocumentLoader,
+    Embedder,
+    IndexReport,
+    InMemoryVectorStore,
+    RAGPipeline,
+    RecursiveTextChunker,
+    RetrievalResult,
+    VectorStore,
+    content_hash,
+    rag_to_tool,
+)
 
 # Runtime
 from .runtime import (
@@ -155,21 +170,6 @@ from .superagent_schema import (
     ServerConfig,
     StdioServerConfig,
     SuperAgentSchema,
-)
-from .rag import (
-    Chunk,
-    Chunker,
-    Document,
-    DocumentLoader,
-    Embedder,
-    IndexReport,
-    InMemoryVectorStore,
-    RAGPipeline,
-    RecursiveTextChunker,
-    RetrievalResult,
-    VectorStore,
-    content_hash,
-    rag_to_tool,
 )
 from .tool_optimization import (
     OptimizationLevel,

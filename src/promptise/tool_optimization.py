@@ -374,7 +374,12 @@ def apply_static_optimizations(
             )
 
         # Minify schema
-        if config.minify_schema and tool.args_schema is not None:
+        if (
+            config.minify_schema
+            and tool.args_schema is not None
+            and isinstance(tool.args_schema, type)
+            and issubclass(tool.args_schema, BaseModel)
+        ):
             tool.args_schema = _minify_pydantic_model(
                 tool.args_schema,
                 strip_nested=config.strip_nested_descriptions,

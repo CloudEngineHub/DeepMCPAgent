@@ -332,7 +332,9 @@ class HealthMonitor:
             raw = json.dumps(args, sort_keys=True, default=str)
         except (TypeError, ValueError):
             raw = str(args)
-        return hashlib.md5(raw.encode()).hexdigest()[:12]
+        # MD5 used as a non-cryptographic fingerprint for anomaly detection
+        # (detecting identical repeated tool calls). Not security-sensitive.
+        return hashlib.md5(raw.encode(), usedforsecurity=False).hexdigest()[:12]
 
     def _is_cooled_down(self, anomaly_type: AnomalyType) -> bool:
         """Check if enough time has passed since the last anomaly of this type."""

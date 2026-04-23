@@ -68,16 +68,20 @@ async def main():
             os.unlink(f)
 
     # ── Custom reasoning graph ──
-    graph = PromptGraph("production-analyst", nodes=[
-        PlanNode("plan", is_entry=True),
-        PromptNode("execute",
-            instructions="Execute the plan using available tools. Query all necessary data.",
-            inject_tools=True,
-            flags={NodeFlag.RETRYABLE},
-        ),
-        ReflectNode("reflect"),
-        SynthesizeNode("report", is_terminal=True),
-    ])
+    graph = PromptGraph(
+        "production-analyst",
+        nodes=[
+            PlanNode("plan", is_entry=True),
+            PromptNode(
+                "execute",
+                instructions="Execute the plan using available tools. Query all necessary data.",
+                inject_tools=True,
+                flags={NodeFlag.RETRYABLE},
+            ),
+            ReflectNode("reflect"),
+            SynthesizeNode("report", is_terminal=True),
+        ],
+    )
 
     # ── Build production agent ──
     print(f"{DIM}Building production agent...{RESET}")
@@ -126,7 +130,9 @@ async def main():
     duration = (time.monotonic() - start) * 1000
 
     print(f"\n  {GREEN}{result[:300]}{RESET}")
-    print(f"\n  {DIM}Latency: {duration:.0f}ms | Memory entries: {len(await memory.search('customer', limit=10))}{RESET}")
+    print(
+        f"\n  {DIM}Latency: {duration:.0f}ms | Memory entries: {len(await memory.search('customer', limit=10))}{RESET}"
+    )
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Scenario 2: Bob asks the same question (isolated)
@@ -145,7 +151,9 @@ async def main():
     duration_bob = (time.monotonic() - start) * 1000
 
     print(f"\n  {GREEN}{result_bob[:300]}{RESET}")
-    print(f"\n  {DIM}Latency: {duration_bob:.0f}ms (Bob gets fresh answer — sessions are isolated){RESET}")
+    print(
+        f"\n  {DIM}Latency: {duration_bob:.0f}ms (Bob gets fresh answer — sessions are isolated){RESET}"
+    )
 
     # ═══════════════════════════════════════════════════════════════════════════
     # Scenario 3: Alice's follow-up (agent remembers context)
@@ -216,12 +224,16 @@ async def main():
     print(f"{BOLD}Production Demo Complete{RESET}")
     print(f"{'═' * 60}")
     print(f"  {CYAN}Reasoning Engine:{RESET}  Plan → Execute → Reflect → Synthesize")
-    print(f"  {CYAN}Memory:{RESET}            {len(await memory.search('', limit=100))} entries stored")
+    print(
+        f"  {CYAN}Memory:{RESET}            {len(await memory.search('', limit=100))} entries stored"
+    )
     print(f"  {CYAN}Conversations:{RESET}     3 sessions (alice, bob, attacker)")
     print(f"  {CYAN}Guardrails:{RESET}        Injection attempt blocked")
     print(f"  {CYAN}Multi-user:{RESET}        Alice and Bob isolated")
     if stats:
-        print(f"  {CYAN}Observability:{RESET}     {stats.get('total_invocations', 'N/A')} invocations tracked")
+        print(
+            f"  {CYAN}Observability:{RESET}     {stats.get('total_invocations', 'N/A')} invocations tracked"
+        )
     print(f"{'═' * 60}")
 
     print(f"\n{DIM}Active subsystems: Reasoning Engine, Memory, Conversations,")

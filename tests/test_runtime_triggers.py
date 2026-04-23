@@ -353,7 +353,9 @@ class TestTriggerRegistry:
         assert "_test_custom" not in registered_trigger_types()
 
     def test_register_duplicate_raises(self) -> None:
-        factory = lambda c, **kw: CronTrigger("* * * * *")
+        def factory(c, **kw):
+            return CronTrigger("* * * * *")
+
         register_trigger_type("_test_dup", factory)
         try:
             with pytest.raises(ValueError, match="already registered"):
@@ -362,8 +364,12 @@ class TestTriggerRegistry:
             unregister_trigger_type("_test_dup")
 
     def test_register_with_overwrite(self) -> None:
-        factory1 = lambda c, **kw: CronTrigger("* * * * *")
-        factory2 = lambda c, **kw: CronTrigger("*/5 * * * *")
+        def factory1(c, **kw):
+            return CronTrigger("* * * * *")
+
+        def factory2(c, **kw):
+            return CronTrigger("*/5 * * * *")
+
         register_trigger_type("_test_ow", factory1)
         try:
             # Should not raise with overwrite=True

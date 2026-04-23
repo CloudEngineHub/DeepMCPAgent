@@ -403,7 +403,9 @@ def agent(
                 desc = ""
                 if loader.schema.cross_agents and name in loader.schema.cross_agents:
                     desc = loader.schema.cross_agents[name].description
-                result[name] = CrossAgent(agent=cross_graph, description=desc)
+                # PromptiseAgent is duck-typed as a Runnable (has ainvoke/astream);
+                # CrossAgent's type annotation is Runnable[Any, Any] for LangChain compat.
+                result[name] = CrossAgent(agent=cast("Any", cross_graph), description=desc)
             return result
 
         cross_agent_map = asyncio.run(_build_cross_agents())

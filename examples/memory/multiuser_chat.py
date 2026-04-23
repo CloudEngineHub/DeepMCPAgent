@@ -72,6 +72,7 @@ async def get_account_info(user_id: str) -> str:
 # Main
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def main():
     from promptise import build_agent
     from promptise.agent import CallerContext
@@ -99,12 +100,13 @@ Switch back to Alice — the agent remembers your previous conversation.{RESET}
 
     # Save server to temp file
     import tempfile
-    server_code = '''
+
+    server_code = """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from examples.memory.multiuser_chat import server
 server.run(transport="stdio")
-'''
+"""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
         f.write(server_code)
         tmp_server = f.name
@@ -174,7 +176,9 @@ server.run(transport="stdio")
                         if not messages:
                             print(f"  {DIM}No conversation history for {current_user}.{RESET}")
                         else:
-                            print(f"\n  {BOLD}History for {current_user} ({len(messages)} messages):{RESET}")
+                            print(
+                                f"\n  {BOLD}History for {current_user} ({len(messages)} messages):{RESET}"
+                            )
                             for msg in messages[-6:]:
                                 role = getattr(msg, "role", "?")
                                 content = getattr(msg, "content", str(msg))[:80]
@@ -189,7 +193,9 @@ server.run(transport="stdio")
                     if not results:
                         print(f"  {DIM}No memories stored for {current_user}.{RESET}")
                     else:
-                        print(f"\n  {BOLD}Memory for {current_user} ({len(results)} entries):{RESET}")
+                        print(
+                            f"\n  {BOLD}Memory for {current_user} ({len(results)} entries):{RESET}"
+                        )
                         for r in results:
                             print(f"    {DIM}• {r.text[:80]}{RESET}")
                         print()

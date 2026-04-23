@@ -47,9 +47,27 @@ ACCOUNTS = {
 }
 
 TRANSACTION_HISTORY = [
-    {"date": "2025-04-01", "from": "ACC-001", "to": "ACC-002", "amount": 5000, "status": "completed"},
-    {"date": "2025-03-28", "from": "ACC-003", "to": "ACC-001", "amount": 15000, "status": "completed"},
-    {"date": "2025-03-25", "from": "ACC-002", "to": "EXT-999", "amount": 3200, "status": "completed"},
+    {
+        "date": "2025-04-01",
+        "from": "ACC-001",
+        "to": "ACC-002",
+        "amount": 5000,
+        "status": "completed",
+    },
+    {
+        "date": "2025-03-28",
+        "from": "ACC-003",
+        "to": "ACC-001",
+        "amount": 15000,
+        "status": "completed",
+    },
+    {
+        "date": "2025-03-25",
+        "from": "ACC-002",
+        "to": "EXT-999",
+        "amount": 3200,
+        "status": "completed",
+    },
 ]
 
 
@@ -72,36 +90,53 @@ async def transfer_funds(from_account: str, to_account: str, amount: float, memo
     if not to_acc:
         return f"Destination account {to_account} not found."
     if from_acc["balance"] < amount:
-        return f"Insufficient funds. Balance: ${from_acc['balance']:,.2f}, Requested: ${amount:,.2f}"
+        return (
+            f"Insufficient funds. Balance: ${from_acc['balance']:,.2f}, Requested: ${amount:,.2f}"
+        )
     from_acc["balance"] -= amount
     to_acc["balance"] += amount
-    TRANSACTION_HISTORY.append({
-        "date": "2025-04-02", "from": from_account, "to": to_account,
-        "amount": amount, "status": "completed",
-    })
+    TRANSACTION_HISTORY.append(
+        {
+            "date": "2025-04-02",
+            "from": from_account,
+            "to": to_account,
+            "amount": amount,
+            "status": "completed",
+        }
+    )
     return f"Transfer complete: ${amount:,.2f} from {from_account} to {to_account}. Memo: {memo or 'N/A'}"
 
 
 @server.tool()
 async def get_statement(account_id: str) -> str:
     """Get recent transaction history for an account."""
-    txns = [t for t in TRANSACTION_HISTORY if t["from"] == account_id.upper() or t["to"] == account_id.upper()]
+    txns = [
+        t
+        for t in TRANSACTION_HISTORY
+        if t["from"] == account_id.upper() or t["to"] == account_id.upper()
+    ]
     if not txns:
         return f"No transactions found for {account_id}."
-    lines = [f"  {t['date']} | {'→' if t['from'] == account_id.upper() else '←'} ${t['amount']:,} | {t['status']}" for t in txns]
+    lines = [
+        f"  {t['date']} | {'→' if t['from'] == account_id.upper() else '←'} ${t['amount']:,} | {t['status']}"
+        for t in txns
+    ]
     return f"Statement for {account_id}:\n" + "\n".join(lines)
 
 
 @server.tool()
 async def list_accounts() -> str:
     """List all accessible accounts."""
-    lines = [f"  {aid}: {a['name']} | ${a['balance']:,.2f} | {a['type']}" for aid, a in ACCOUNTS.items()]
+    lines = [
+        f"  {aid}: {a['name']} | ${a['balance']:,.2f} | {a['type']}" for aid, a in ACCOUNTS.items()
+    ]
     return "Accounts:\n" + "\n".join(lines)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Main — 5 scripted scenarios
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 async def main():
     from promptise import build_agent
@@ -118,12 +153,13 @@ async def main():
 
     # Save server to temp file
     import tempfile
-    server_code = '''
+
+    server_code = """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from examples.security.financial_agent import server
 server.run(transport="stdio")
-'''
+"""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
         f.write(server_code)
         tmp_server = f.name
@@ -180,13 +216,15 @@ server.run(transport="stdio")
             print(f"\n{BOLD}{'─' * 60}{RESET}")
             print(f"  {scenario['icon']} {BOLD}Scenario {i}: {scenario['name']}{RESET}")
             print(f"  {DIM}{scenario['expect']}{RESET}")
-            print(f"  {CYAN}User: {scenario['message'][:60]}{'...' if len(scenario['message']) > 60 else ''}{RESET}")
+            print(
+                f"  {CYAN}User: {scenario['message'][:60]}{'...' if len(scenario['message']) > 60 else ''}{RESET}"
+            )
             print(f"{BOLD}{'─' * 60}{RESET}")
 
             try:
-                result = await agent.ainvoke({
-                    "messages": [{"role": "user", "content": scenario["message"]}]
-                })
+                result = await agent.ainvoke(
+                    {"messages": [{"role": "user", "content": scenario["message"]}]}
+                )
 
                 # Print response
                 for msg in reversed(result["messages"]):

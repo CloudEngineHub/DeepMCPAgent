@@ -24,7 +24,7 @@ Example::
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 logger = logging.getLogger("promptise.server")
 
@@ -78,9 +78,12 @@ class Sampler:
 
             mcp_messages = []
             for msg in messages:
+                _role = msg.get("role", "user")
+                # MCP protocol only permits "user" or "assistant" roles.
+                role: Literal["user", "assistant"] = "assistant" if _role == "assistant" else "user"
                 mcp_messages.append(
                     SamplingMessage(
-                        role=msg.get("role", "user"),
+                        role=role,
                         content=TextContent(type="text", text=msg.get("content", "")),
                     )
                 )

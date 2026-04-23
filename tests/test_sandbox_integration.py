@@ -200,12 +200,10 @@ async def test_network_mode_full(docker_available):
 
     async with await manager.create_session() as session:
         # Install curl first
-        result = await session.execute(
-            "apt-get update -qq && apt-get install -y -qq curl", timeout=60
-        )
+        await session.execute("apt-get update -qq && apt-get install -y -qq curl", timeout=60)
 
         # Network access should work
-        result = await session.execute("curl -I https://google.com", timeout=10)
+        await session.execute("curl -I https://google.com", timeout=10)
         # May fail due to DNS or network, but should not be "network unreachable"
         # This test is best-effort since container networking can be complex
 
@@ -235,7 +233,7 @@ async def test_resource_limits_applied(docker_available):
 
         # Try to exceed memory (should be killed by OOM or fail)
         # This is a soft test since OOM behavior varies
-        result = await session.execute(
+        await session.execute(
             "python -c 'x = [0] * (1024**3)'",  # Try to allocate 1GB
             timeout=10,
         )
@@ -255,7 +253,7 @@ async def test_concurrent_sessions(docker_available):
     sessions = await asyncio.gather(*[manager.create_session() for _ in range(3)])
 
     assert len(sessions) == 3
-    assert len(set(s.container_id for s in sessions)) == 3  # All unique
+    assert len({s.container_id for s in sessions}) == 3  # All unique
 
     # Execute in parallel
     results = await asyncio.gather(*[session.execute("echo 'Session 1'") for session in sessions])

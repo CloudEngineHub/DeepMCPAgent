@@ -307,7 +307,9 @@ class OrchestrationAPI:
             detail = str(exc)
             if hasattr(exc, "errors"):
                 try:
-                    field_errors = [f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors()]
+                    field_errors = [
+                        f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors()
+                    ]
                     detail = "; ".join(field_errors)
                 except Exception:
                     pass

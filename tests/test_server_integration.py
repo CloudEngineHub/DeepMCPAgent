@@ -41,7 +41,7 @@ class TestMiddlewareIntegration:
             """Greet someone."""
             return f"Hello, {name}!"
 
-        ll = server._build_lowlevel_server()
+        server._build_lowlevel_server()
         # Call tool through the lowlevel server's registered handler
         handler = server._tool_registry.get("greet").handler
 
@@ -78,7 +78,7 @@ class TestMiddlewareIntegration:
             return a + b
 
         # Build and call through the lowlevel server pipeline
-        ll = server._build_lowlevel_server()
+        server._build_lowlevel_server()
         # Access the call_tool handler indirectly through the lowlevel handlers
         # We use the internal _call_tool_handler approach
         # Since we can't easily call ll.call_tool directly, we verify the

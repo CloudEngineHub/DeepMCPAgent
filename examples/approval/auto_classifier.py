@@ -23,7 +23,6 @@ from promptise.approval_classifier import (
     AutoApprovalClassifier,
 )
 
-
 # ---------------------------------------------------------------------------
 # A simple fallback handler (simulates a human saying "yes")
 # ---------------------------------------------------------------------------

@@ -136,7 +136,7 @@ class TestSampler:
                 ),
             },
         ):
-            result = await sampler.create_message(
+            await sampler.create_message(
                 [{"role": "user", "content": "Summarize this."}],
                 max_tokens=100,
             )

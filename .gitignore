@@ -107,3 +107,11 @@ DEVELOPER_GUIDE.md
 
 # Test coverage reports
 htmlcov/
+
+# Benchmarks — not ready to ship yet (shipping ~4 days after main release)
+benchmarks/
+!benchmarks/__init__.py
+
+# Internal release runbook (not shipped)
+RELEASE.md
+

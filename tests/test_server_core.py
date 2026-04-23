@@ -437,7 +437,7 @@ class TestToolInvocation:
             """Add two numbers."""
             return a + b
 
-        ll = server._build_lowlevel_server()
+        server._build_lowlevel_server()
         # Access the registered call_tool handler via the tool cache
         # We test through the actual MCP types
         result = await server._tool_registry.get("add").handler(a=2, b=3)

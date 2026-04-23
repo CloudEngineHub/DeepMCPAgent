@@ -17,9 +17,20 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .nodes import GuardNode, PromptNode, RouterNode, TransformNode
+
+if TYPE_CHECKING:
+    from .reasoning_nodes import (
+        CritiqueNode,
+        JustifyNode,
+        ObserveNode,
+        ReflectNode,
+        SynthesizeNode,
+        ThinkNode,
+        ValidateNode,
+    )
 
 
 def web_researcher(

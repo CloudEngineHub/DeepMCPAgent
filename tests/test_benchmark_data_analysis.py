@@ -34,121 +34,191 @@ pytestmark = pytest.mark.skipif(
 
 _EMPLOYEES = [
     {"id": i, "name": n, "department": d, "salary": s, "hire_date": h, "manager_id": m, "region": r}
-    for i, (n, d, s, h, m, r) in enumerate([
-        ("Alice Chen", "Engineering", 185000, "2021-03-15", None, "NA-West"),
-        ("Bob Martinez", "Engineering", 165000, "2022-01-10", 0, "NA-West"),
-        ("Carol Williams", "Engineering", 155000, "2022-06-01", 0, "NA-East"),
-        ("David Kim", "Engineering", 145000, "2023-02-20", 0, "APAC"),
-        ("Eva Schmidt", "Engineering", 170000, "2021-08-01", 0, "EU"),
-        ("Frank Johnson", "Sales", 120000, "2020-11-15", None, "NA-West"),
-        ("Grace Lee", "Sales", 135000, "2021-05-20", 5, "NA-East"),
-        ("Henry Brown", "Sales", "95000", "2023-01-10", 5, "EU"),
-        ("Iris Patel", "Sales", 110000, "2022-09-01", 5, "APAC"),
-        ("Jack Wilson", "Marketing", 105000, "2022-03-15", None, "NA-West"),
-        ("Karen Davis", "Marketing", 95000, "2023-04-01", 9, "NA-East"),
-        ("Leo Garcia", "Operations", 90000, "2021-12-01", None, "NA-West"),
-        ("Mia Thompson", "Operations", 85000, "2022-07-15", 11, "EU"),
-        ("Noah Anderson", "Operations", 80000, "2023-06-01", 11, "APAC"),
-        ("Olivia Taylor", "Finance", 140000, "2020-09-01", None, "NA-West"),
-        ("Peter Jackson", "Finance", 125000, "2022-11-01", 14, "NA-East"),
-        ("Quinn Roberts", "HR", 100000, "2021-10-15", None, "NA-West"),
-        ("Rachel Moore", "HR", 92000, "2023-03-01", 16, "EU"),
-        ("Sam White", "Engineering", 160000, "2021-11-20", 0, "NA-West"),
-        ("Tina Harris", "Engineering", 150000, "2022-04-10", 0, "NA-East"),
-    ], start=0)
+    for i, (n, d, s, h, m, r) in enumerate(
+        [
+            ("Alice Chen", "Engineering", 185000, "2021-03-15", None, "NA-West"),
+            ("Bob Martinez", "Engineering", 165000, "2022-01-10", 0, "NA-West"),
+            ("Carol Williams", "Engineering", 155000, "2022-06-01", 0, "NA-East"),
+            ("David Kim", "Engineering", 145000, "2023-02-20", 0, "APAC"),
+            ("Eva Schmidt", "Engineering", 170000, "2021-08-01", 0, "EU"),
+            ("Frank Johnson", "Sales", 120000, "2020-11-15", None, "NA-West"),
+            ("Grace Lee", "Sales", 135000, "2021-05-20", 5, "NA-East"),
+            ("Henry Brown", "Sales", "95000", "2023-01-10", 5, "EU"),
+            ("Iris Patel", "Sales", 110000, "2022-09-01", 5, "APAC"),
+            ("Jack Wilson", "Marketing", 105000, "2022-03-15", None, "NA-West"),
+            ("Karen Davis", "Marketing", 95000, "2023-04-01", 9, "NA-East"),
+            ("Leo Garcia", "Operations", 90000, "2021-12-01", None, "NA-West"),
+            ("Mia Thompson", "Operations", 85000, "2022-07-15", 11, "EU"),
+            ("Noah Anderson", "Operations", 80000, "2023-06-01", 11, "APAC"),
+            ("Olivia Taylor", "Finance", 140000, "2020-09-01", None, "NA-West"),
+            ("Peter Jackson", "Finance", 125000, "2022-11-01", 14, "NA-East"),
+            ("Quinn Roberts", "HR", 100000, "2021-10-15", None, "NA-West"),
+            ("Rachel Moore", "HR", 92000, "2023-03-01", 16, "EU"),
+            ("Sam White", "Engineering", 160000, "2021-11-20", 0, "NA-West"),
+            ("Tina Harris", "Engineering", 150000, "2022-04-10", 0, "NA-East"),
+        ],
+        start=0,
+    )
 ]
 
 _DEALS = [
     {"id": i, "customer": c, "amount": a, "stage": st, "owner_id": o, "quarter": q, "product": p}
-    for i, (c, a, st, o, q, p) in enumerate([
-        ("Acme Corp", 450000, "closed_won", 5, "Q1-2025", "Enterprise"),
-        ("Globex Inc", 280000, "closed_won", 6, "Q1-2025", "Pro"),
-        ("Initech", 120000, "closed_lost", 7, "Q1-2025", "Starter"),
-        ("Umbrella Corp", 890000, "closed_won", 5, "Q2-2025", "Enterprise"),
-        ("Stark Industries", 1200000, "closed_won", 6, "Q2-2025", "Enterprise"),
-        ("Wayne Enterprises", 670000, "negotiation", 8, "Q3-2025", "Enterprise"),
-        ("Cyberdyne", 95000, "closed_won", 7, "Q3-2025", "Starter"),
-        ("Soylent Corp", 340000, "closed_lost", 5, "Q3-2025", "Pro"),
-        ("Oscorp", 510000, "closed_won", 6, "Q4-2025", "Enterprise"),
-        ("LexCorp", 780000, "proposal", 8, "Q4-2025", "Enterprise"),
-        ("Massive Dynamic", 420000, "closed_won", 5, "Q4-2025", "Pro"),
-        ("Hooli", 190000, "closed_won", 7, "Q4-2025", "Pro"),
-        ("Pied Piper", 75000, "closed_lost", 8, "Q4-2025", "Starter"),
-        ("Dunder Mifflin", 310000, "closed_won", 6, "Q1-2026", "Pro"),
-        ("Wernham Hogg", 150000, "negotiation", 7, "Q1-2026", "Starter"),
-        ("Sterling Cooper", 560000, "closed_won", 5, "Q1-2026", "Enterprise"),
-        ("Prestige Worldwide", 88000, "discovery", 8, "Q1-2026", "Starter"),
-        ("Vandelay Industries", 445000, "proposal", 6, "Q2-2026", "Pro"),
-    ], start=100)
+    for i, (c, a, st, o, q, p) in enumerate(
+        [
+            ("Acme Corp", 450000, "closed_won", 5, "Q1-2025", "Enterprise"),
+            ("Globex Inc", 280000, "closed_won", 6, "Q1-2025", "Pro"),
+            ("Initech", 120000, "closed_lost", 7, "Q1-2025", "Starter"),
+            ("Umbrella Corp", 890000, "closed_won", 5, "Q2-2025", "Enterprise"),
+            ("Stark Industries", 1200000, "closed_won", 6, "Q2-2025", "Enterprise"),
+            ("Wayne Enterprises", 670000, "negotiation", 8, "Q3-2025", "Enterprise"),
+            ("Cyberdyne", 95000, "closed_won", 7, "Q3-2025", "Starter"),
+            ("Soylent Corp", 340000, "closed_lost", 5, "Q3-2025", "Pro"),
+            ("Oscorp", 510000, "closed_won", 6, "Q4-2025", "Enterprise"),
+            ("LexCorp", 780000, "proposal", 8, "Q4-2025", "Enterprise"),
+            ("Massive Dynamic", 420000, "closed_won", 5, "Q4-2025", "Pro"),
+            ("Hooli", 190000, "closed_won", 7, "Q4-2025", "Pro"),
+            ("Pied Piper", 75000, "closed_lost", 8, "Q4-2025", "Starter"),
+            ("Dunder Mifflin", 310000, "closed_won", 6, "Q1-2026", "Pro"),
+            ("Wernham Hogg", 150000, "negotiation", 7, "Q1-2026", "Starter"),
+            ("Sterling Cooper", 560000, "closed_won", 5, "Q1-2026", "Enterprise"),
+            ("Prestige Worldwide", 88000, "discovery", 8, "Q1-2026", "Starter"),
+            ("Vandelay Industries", 445000, "proposal", 6, "Q2-2026", "Pro"),
+        ],
+        start=100,
+    )
 ]
 
 _EXPENSES = [
     {"id": i, "department": d, "category": c, "amount": a, "quarter": q, "description": desc}
-    for i, (d, c, a, q, desc) in enumerate([
-        ("Engineering", "Cloud Infrastructure", 185000, "Q1-2025", "AWS + GCP compute"),
-        ("Engineering", "Tooling & Licenses", 42000, "Q1-2025", "GitHub, Datadog, PagerDuty"),
-        ("Engineering", "Cloud Infrastructure", 198000, "Q2-2025", "AWS scaling for launch"),
-        ("Engineering", "Tooling & Licenses", 45000, "Q2-2025", "Added Sentry, Linear"),
-        ("Sales", "Travel", 67000, "Q1-2025", "Conference travel + client visits"),
-        ("Sales", "Marketing Events", 120000, "Q2-2025", "AWS re:Invent booth"),
-        ("Marketing", "Advertising", 95000, "Q1-2025", "Google Ads + LinkedIn"),
-        ("Marketing", "Advertising", 110000, "Q2-2025", "Product launch campaign"),
-        ("Marketing", "Content", 35000, "Q3-2025", "Blog, video production"),
-        ("Operations", "Office", 48000, "Q1-2025", "SF office lease"),
-        ("Operations", "Office", 48000, "Q2-2025", "SF office lease"),
-        ("Operations", "Office", 52000, "Q3-2025", "SF + London office"),
-        ("Operations", "Equipment", 28000, "Q3-2025", "Laptop refresh cycle"),
-        ("HR", "Recruiting", 85000, "Q1-2025", "Agency fees + job boards"),
-        ("HR", "Recruiting", 62000, "Q2-2025", "Reduced agency spend"),
-        ("HR", "Training", 25000, "Q3-2025", "Engineering bootcamp"),
-        ("Finance", "Audit", 75000, "Q2-2025", "Annual audit + SOC2"),
-        ("Engineering", "Cloud Infrastructure", 210000, "Q3-2025", "Peak usage"),
-        ("Engineering", "Cloud Infrastructure", 195000, "Q4-2025", "Optimization savings"),
-        ("Sales", "Travel", 78000, "Q3-2025", "EMEA expansion trips"),
-        ("Sales", "Commissions", 156000, "Q4-2025", "Q4 closed deals"),
-        ("Marketing", "Advertising", 130000, "Q4-2025", "Year-end push"),
-    ], start=200)
+    for i, (d, c, a, q, desc) in enumerate(
+        [
+            ("Engineering", "Cloud Infrastructure", 185000, "Q1-2025", "AWS + GCP compute"),
+            ("Engineering", "Tooling & Licenses", 42000, "Q1-2025", "GitHub, Datadog, PagerDuty"),
+            ("Engineering", "Cloud Infrastructure", 198000, "Q2-2025", "AWS scaling for launch"),
+            ("Engineering", "Tooling & Licenses", 45000, "Q2-2025", "Added Sentry, Linear"),
+            ("Sales", "Travel", 67000, "Q1-2025", "Conference travel + client visits"),
+            ("Sales", "Marketing Events", 120000, "Q2-2025", "AWS re:Invent booth"),
+            ("Marketing", "Advertising", 95000, "Q1-2025", "Google Ads + LinkedIn"),
+            ("Marketing", "Advertising", 110000, "Q2-2025", "Product launch campaign"),
+            ("Marketing", "Content", 35000, "Q3-2025", "Blog, video production"),
+            ("Operations", "Office", 48000, "Q1-2025", "SF office lease"),
+            ("Operations", "Office", 48000, "Q2-2025", "SF office lease"),
+            ("Operations", "Office", 52000, "Q3-2025", "SF + London office"),
+            ("Operations", "Equipment", 28000, "Q3-2025", "Laptop refresh cycle"),
+            ("HR", "Recruiting", 85000, "Q1-2025", "Agency fees + job boards"),
+            ("HR", "Recruiting", 62000, "Q2-2025", "Reduced agency spend"),
+            ("HR", "Training", 25000, "Q3-2025", "Engineering bootcamp"),
+            ("Finance", "Audit", 75000, "Q2-2025", "Annual audit + SOC2"),
+            ("Engineering", "Cloud Infrastructure", 210000, "Q3-2025", "Peak usage"),
+            ("Engineering", "Cloud Infrastructure", 195000, "Q4-2025", "Optimization savings"),
+            ("Sales", "Travel", 78000, "Q3-2025", "EMEA expansion trips"),
+            ("Sales", "Commissions", 156000, "Q4-2025", "Q4 closed deals"),
+            ("Marketing", "Advertising", 130000, "Q4-2025", "Year-end push"),
+        ],
+        start=200,
+    )
 ]
 
 _SUPPORT_TICKETS = [
-    {"id": i, "customer": c, "priority": p, "status": s, "category": cat,
-     "created": cr, "resolved": res, "assigned_to": a}
-    for i, (c, p, s, cat, cr, res, a) in enumerate([
-        ("Acme Corp", "critical", "resolved", "bug", "2025-09-01", "2025-09-02", "Bob Martinez"),
-        ("Globex Inc", "high", "resolved", "bug", "2025-09-05", "2025-09-07", "Carol Williams"),
-        ("Umbrella Corp", "critical", "open", "security", "2025-10-01", None, "Alice Chen"),
-        ("Stark Industries", "medium", "resolved", "feature", "2025-10-15", "2025-10-20", "David Kim"),
-        ("Acme Corp", "high", "open", "performance", "2025-11-01", None, "Eva Schmidt"),
-        ("Wayne Enterprises", "low", "resolved", "question", "2025-11-10", "2025-11-10", "Sam White"),
-        ("Cyberdyne", "medium", "open", "bug", "2025-12-01", None, "Bob Martinez"),
-        ("Oscorp", "high", "resolved", "bug", "2025-12-15", "2025-12-17", "Tina Harris"),
-        ("Hooli", "critical", "open", "outage", "2026-01-05", None, "Alice Chen"),
-        ("Pied Piper", "low", "resolved", "question", "2026-01-10", "2026-01-10", "Carol Williams"),
-        ("LexCorp", "high", "open", "performance", "2026-02-01", None, "David Kim"),
-        ("Massive Dynamic", "medium", "resolved", "feature", "2026-02-15", "2026-02-20", "Sam White"),
-        ("Dunder Mifflin", "critical", "open", "security", "2026-03-01", None, "Alice Chen"),
-        ("Sterling Cooper", "high", "open", "bug", "2026-03-15", None, "Eva Schmidt"),
-    ], start=300)
+    {
+        "id": i,
+        "customer": c,
+        "priority": p,
+        "status": s,
+        "category": cat,
+        "created": cr,
+        "resolved": res,
+        "assigned_to": a,
+    }
+    for i, (c, p, s, cat, cr, res, a) in enumerate(
+        [
+            (
+                "Acme Corp",
+                "critical",
+                "resolved",
+                "bug",
+                "2025-09-01",
+                "2025-09-02",
+                "Bob Martinez",
+            ),
+            ("Globex Inc", "high", "resolved", "bug", "2025-09-05", "2025-09-07", "Carol Williams"),
+            ("Umbrella Corp", "critical", "open", "security", "2025-10-01", None, "Alice Chen"),
+            (
+                "Stark Industries",
+                "medium",
+                "resolved",
+                "feature",
+                "2025-10-15",
+                "2025-10-20",
+                "David Kim",
+            ),
+            ("Acme Corp", "high", "open", "performance", "2025-11-01", None, "Eva Schmidt"),
+            (
+                "Wayne Enterprises",
+                "low",
+                "resolved",
+                "question",
+                "2025-11-10",
+                "2025-11-10",
+                "Sam White",
+            ),
+            ("Cyberdyne", "medium", "open", "bug", "2025-12-01", None, "Bob Martinez"),
+            ("Oscorp", "high", "resolved", "bug", "2025-12-15", "2025-12-17", "Tina Harris"),
+            ("Hooli", "critical", "open", "outage", "2026-01-05", None, "Alice Chen"),
+            (
+                "Pied Piper",
+                "low",
+                "resolved",
+                "question",
+                "2026-01-10",
+                "2026-01-10",
+                "Carol Williams",
+            ),
+            ("LexCorp", "high", "open", "performance", "2026-02-01", None, "David Kim"),
+            (
+                "Massive Dynamic",
+                "medium",
+                "resolved",
+                "feature",
+                "2026-02-15",
+                "2026-02-20",
+                "Sam White",
+            ),
+            ("Dunder Mifflin", "critical", "open", "security", "2026-03-01", None, "Alice Chen"),
+            ("Sterling Cooper", "high", "open", "bug", "2026-03-15", None, "Eva Schmidt"),
+        ],
+        start=300,
+    )
 ]
 
 _OKRS = [
-    {"id": i, "department": d, "objective": obj, "key_result": kr,
-     "target": t, "actual": a, "quarter": q}
-    for i, (d, obj, kr, t, a, q) in enumerate([
-        ("Engineering", "Ship Foundry v2.0", "Features delivered", 12, 14, "Q1-2025"),
-        ("Engineering", "Ship Foundry v2.0", "P0 bugs resolved", 100, 97, "Q1-2025"),
-        ("Engineering", "Reduce latency", "p99 latency (ms)", 200, 180, "Q2-2025"),
-        ("Sales", "Hit revenue target", "New ARR ($K)", 3000, 2820, "Q1-2025"),
-        ("Sales", "Hit revenue target", "New ARR ($K)", 4000, 4560, "Q2-2025"),
-        ("Sales", "Expand EMEA", "EU deals closed", 5, 3, "Q3-2025"),
-        ("Marketing", "Brand awareness", "Website visitors (K)", 50, 62, "Q1-2025"),
-        ("Marketing", "Lead generation", "MQLs generated", 500, 480, "Q2-2025"),
-        ("HR", "Talent acquisition", "Hires made", 8, 7, "Q1-2025"),
-        ("HR", "Retention", "Voluntary turnover %", 5, 3.2, "Q2-2025"),
-        ("Operations", "Cost optimization", "OpEx reduction %", 10, 8, "Q3-2025"),
-        ("Sales", "Hit revenue target", "New ARR ($K)", 5000, 4870, "Q4-2025"),
-        ("Engineering", "Platform reliability", "Uptime %", 99.9, 99.95, "Q4-2025"),
-    ], start=400)
+    {
+        "id": i,
+        "department": d,
+        "objective": obj,
+        "key_result": kr,
+        "target": t,
+        "actual": a,
+        "quarter": q,
+    }
+    for i, (d, obj, kr, t, a, q) in enumerate(
+        [
+            ("Engineering", "Ship Foundry v2.0", "Features delivered", 12, 14, "Q1-2025"),
+            ("Engineering", "Ship Foundry v2.0", "P0 bugs resolved", 100, 97, "Q1-2025"),
+            ("Engineering", "Reduce latency", "p99 latency (ms)", 200, 180, "Q2-2025"),
+            ("Sales", "Hit revenue target", "New ARR ($K)", 3000, 2820, "Q1-2025"),
+            ("Sales", "Hit revenue target", "New ARR ($K)", 4000, 4560, "Q2-2025"),
+            ("Sales", "Expand EMEA", "EU deals closed", 5, 3, "Q3-2025"),
+            ("Marketing", "Brand awareness", "Website visitors (K)", 50, 62, "Q1-2025"),
+            ("Marketing", "Lead generation", "MQLs generated", 500, 480, "Q2-2025"),
+            ("HR", "Talent acquisition", "Hires made", 8, 7, "Q1-2025"),
+            ("HR", "Retention", "Voluntary turnover %", 5, 3.2, "Q2-2025"),
+            ("Operations", "Cost optimization", "OpEx reduction %", 10, 8, "Q3-2025"),
+            ("Sales", "Hit revenue target", "New ARR ($K)", 5000, 4870, "Q4-2025"),
+            ("Engineering", "Platform reliability", "Uptime %", 99.9, 99.95, "Q4-2025"),
+        ],
+        start=400,
+    )
 ]
 
 
@@ -168,9 +238,14 @@ def _make_sql_tools():
         results = rows
         for condition in where.split(" AND "):
             condition = condition.strip()
-            for op, fn in [(">=", lambda a, b: a >= b), ("<=", lambda a, b: a <= b),
-                           ("!=", lambda a, b: a != b), (">", lambda a, b: a > b),
-                           ("<", lambda a, b: a < b), ("=", lambda a, b: a == b)]:
+            for op, fn in [
+                (">=", lambda a, b: a >= b),
+                ("<=", lambda a, b: a <= b),
+                ("!=", lambda a, b: a != b),
+                (">", lambda a, b: a > b),
+                ("<", lambda a, b: a < b),
+                ("=", lambda a, b: a == b),
+            ]:
                 if op in condition:
                     field, value = condition.split(op, 1)
                     field, value = field.strip(), value.strip().strip("'\"")
@@ -205,7 +280,9 @@ def _make_sql_tools():
         return "\n".join(lines)
 
     @tool
-    def sql_query_employees(columns: str = "*", where: str = "", order_by: str = "", limit: int = 0) -> str:
+    def sql_query_employees(
+        columns: str = "*", where: str = "", order_by: str = "", limit: int = 0
+    ) -> str:
         """Query the employees table. Columns: id, name, department, salary, hire_date, manager_id, region.
         Use 'where' for filtering (e.g. 'department=Engineering'), 'order_by' for sorting (e.g. 'salary'),
         'limit' for row count. Returns formatted table."""
@@ -220,7 +297,9 @@ def _make_sql_tools():
         return _format_table(rows, cols)
 
     @tool
-    def sql_query_deals(columns: str = "*", where: str = "", order_by: str = "", limit: int = 0) -> str:
+    def sql_query_deals(
+        columns: str = "*", where: str = "", order_by: str = "", limit: int = 0
+    ) -> str:
         """Query the deals table. Columns: id, customer, amount, stage, owner_id, quarter, product.
         Stages: closed_won, closed_lost, negotiation, proposal, discovery.
         Use 'where' for filtering, 'order_by' for sorting, 'limit' for row count."""
@@ -235,7 +314,9 @@ def _make_sql_tools():
         return _format_table(rows, cols)
 
     @tool
-    def sql_query_expenses(columns: str = "*", where: str = "", order_by: str = "", limit: int = 0) -> str:
+    def sql_query_expenses(
+        columns: str = "*", where: str = "", order_by: str = "", limit: int = 0
+    ) -> str:
         """Query the expenses table. Columns: id, department, category, amount, quarter, description.
         Categories: Cloud Infrastructure, Tooling & Licenses, Travel, Marketing Events,
         Advertising, Content, Office, Equipment, Recruiting, Training, Audit, Commissions.
@@ -251,7 +332,9 @@ def _make_sql_tools():
         return _format_table(rows, cols)
 
     @tool
-    def sql_query_tickets(columns: str = "*", where: str = "", order_by: str = "", limit: int = 0) -> str:
+    def sql_query_tickets(
+        columns: str = "*", where: str = "", order_by: str = "", limit: int = 0
+    ) -> str:
         """Query the support_tickets table. Columns: id, customer, priority, status, category,
         created, resolved, assigned_to.
         Priorities: critical, high, medium, low. Statuses: open, resolved.
@@ -267,7 +350,9 @@ def _make_sql_tools():
         return _format_table(rows, cols)
 
     @tool
-    def sql_query_okrs(columns: str = "*", where: str = "", order_by: str = "", limit: int = 0) -> str:
+    def sql_query_okrs(
+        columns: str = "*", where: str = "", order_by: str = "", limit: int = 0
+    ) -> str:
         """Query the okrs table. Columns: id, department, objective, key_result, target, actual, quarter.
         Use 'where' for filtering, 'order_by' for sorting, 'limit' for row count."""
         rows = _filter_rows(_OKRS, where)
@@ -281,15 +366,20 @@ def _make_sql_tools():
         return _format_table(rows, cols)
 
     @tool
-    def sql_aggregate(table: str, operation: str, column: str, where: str = "", group_by: str = "") -> str:
+    def sql_aggregate(
+        table: str, operation: str, column: str, where: str = "", group_by: str = ""
+    ) -> str:
         """Run an aggregate query: SUM, AVG, COUNT, MIN, MAX on a column.
         Tables: employees, deals, expenses, tickets, okrs.
         Optional 'where' for filtering, 'group_by' for grouping.
         Examples: sql_aggregate('deals', 'SUM', 'amount', where='stage=closed_won')
                   sql_aggregate('employees', 'AVG', 'salary', group_by='department')"""
         tables = {
-            "employees": _EMPLOYEES, "deals": _DEALS, "expenses": _EXPENSES,
-            "tickets": _SUPPORT_TICKETS, "okrs": _OKRS,
+            "employees": _EMPLOYEES,
+            "deals": _DEALS,
+            "expenses": _EXPENSES,
+            "tickets": _SUPPORT_TICKETS,
+            "okrs": _OKRS,
         }
         rows = tables.get(table.lower(), [])
         if not rows:
@@ -326,7 +416,11 @@ def _make_sql_tools():
             if op == "SUM":
                 return f"{op}({column}) = {sum(vals)}"
             elif op == "AVG":
-                return f"{op}({column}) = {sum(vals) / len(vals):.2f}" if vals else f"{op}({column}) = 0"
+                return (
+                    f"{op}({column}) = {sum(vals) / len(vals):.2f}"
+                    if vals
+                    else f"{op}({column}) = 0"
+                )
             elif op == "COUNT":
                 return f"{op}({column}) = {len(rows)}"
             elif op == "MIN":
@@ -346,8 +440,15 @@ def _make_sql_tools():
         except Exception as e:
             return f"Error: {e}"
 
-    return [sql_query_employees, sql_query_deals, sql_query_expenses,
-            sql_query_tickets, sql_query_okrs, sql_aggregate, calculate]
+    return [
+        sql_query_employees,
+        sql_query_deals,
+        sql_query_expenses,
+        sql_query_tickets,
+        sql_query_okrs,
+        sql_aggregate,
+        calculate,
+    ]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -357,7 +458,9 @@ def _make_sql_tools():
 GROUND_TRUTH = {
     "eng_salary": {
         "answer": "The average Engineering salary is $154,375",
-        "must_contain": ["154"],  # avg of 185k+165k+155k+145k+170k+160k+150k = 1,130k/7 ≈ ~161k wait let me recalc
+        "must_contain": [
+            "154"
+        ],  # avg of 185k+165k+155k+145k+170k+160k+150k = 1,130k/7 ≈ ~161k wait let me recalc
         # 185+165+155+145+170+160+150 = 1130, /7 = 161,428.57... but one salary is string "95000"
         # Actually Henry Brown has salary "95000" (string) in Sales, not Engineering
         # Eng: Alice 185, Bob 165, Carol 155, David 145, Eva 170, Sam 160, Tina 150 = 1130/7 = 161,428.57
@@ -451,7 +554,9 @@ def _bar(val: float, max_val: float, width: int = 16, color: str = GREEN) -> str
     return f"{color}{'█' * filled}{DIM}{'░' * (width - filled)}{RESET}"
 
 
-def _print_result(pf: SQLBenchmarkResult, lg: SQLBenchmarkResult, question: str, truth: dict | None = None) -> None:
+def _print_result(
+    pf: SQLBenchmarkResult, lg: SQLBenchmarkResult, question: str, truth: dict | None = None
+) -> None:
     print(f"\n  {DIM}{'─' * 76}{RESET}")
     print(f"  {CYAN}Q:{RESET} {WHITE}{question[:72]}{RESET}")
     print(f"  {DIM}{'─' * 76}{RESET}")
@@ -464,10 +569,14 @@ def _print_result(pf: SQLBenchmarkResult, lg: SQLBenchmarkResult, question: str,
     tc_win = "◀" if len(pf.tool_calls) <= len(lg.tool_calls) else " "
     lat_win = "◀" if pf.latency_ms <= lg.latency_ms else " "
 
-    print(f"  {DIM}Tool calls{RESET}       {_bar(len(pf.tool_calls), max_tc, 12, GREEN)} {len(pf.tool_calls):>4} {GREEN}{tc_win}{RESET}  "
-          f"{_bar(len(lg.tool_calls), max_tc, 12, CYAN)} {len(lg.tool_calls):>4}")
-    print(f"  {DIM}Latency (ms){RESET}     {_bar(pf.latency_ms, max_lat, 12, GREEN)} {pf.latency_ms:>4,.0f} {GREEN}{lat_win}{RESET}  "
-          f"{_bar(lg.latency_ms, max_lat, 12, CYAN)} {lg.latency_ms:>4,.0f}")
+    print(
+        f"  {DIM}Tool calls{RESET}       {_bar(len(pf.tool_calls), max_tc, 12, GREEN)} {len(pf.tool_calls):>4} {GREEN}{tc_win}{RESET}  "
+        f"{_bar(len(lg.tool_calls), max_tc, 12, CYAN)} {len(lg.tool_calls):>4}"
+    )
+    print(
+        f"  {DIM}Latency (ms){RESET}     {_bar(pf.latency_ms, max_lat, 12, GREEN)} {pf.latency_ms:>4,.0f} {GREEN}{lat_win}{RESET}  "
+        f"{_bar(lg.latency_ms, max_lat, 12, CYAN)} {lg.latency_ms:>4,.0f}"
+    )
 
     # Accuracy
     if truth:
@@ -477,7 +586,9 @@ def _print_result(pf: SQLBenchmarkResult, lg: SQLBenchmarkResult, question: str,
         lg_pct = f"{lg.accuracy_score:.0%}"
         pf_color = GREEN if pf.accuracy_score >= lg.accuracy_score else RED
         lg_color = GREEN if lg.accuracy_score >= pf.accuracy_score else RED
-        print(f"  {DIM}Accuracy{RESET}         {'':12} {pf_color}{BOLD}{pf_pct:>5}{RESET}     {'':12} {lg_color}{BOLD}{lg_pct:>5}{RESET}")
+        print(
+            f"  {DIM}Accuracy{RESET}         {'':12} {pf_color}{BOLD}{pf_pct:>5}{RESET}     {'':12} {lg_color}{BOLD}{lg_pct:>5}{RESET}"
+        )
 
     # Tool chain
     print(f"\n  {BOLD}Tools:{RESET}")
@@ -518,6 +629,7 @@ class TestSQLBenchmark:
     @pytest.fixture
     def model(self):
         from langchain_openai import ChatOpenAI
+
         return ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
     @pytest.fixture
@@ -526,6 +638,7 @@ class TestSQLBenchmark:
 
     async def _run_lg(self, model, tools, q: str) -> SQLBenchmarkResult:
         from langgraph.prebuilt import create_react_agent
+
         agent = create_react_agent(model, tools, prompt=SYSTEM_PROMPT)
         start = time.monotonic()
         result = await agent.ainvoke({"messages": [{"role": "user", "content": q}]})
@@ -534,6 +647,7 @@ class TestSQLBenchmark:
     async def _run_pf(self, model, tools, q: str) -> SQLBenchmarkResult:
         from promptise.engine import PromptGraph, PromptNode
         from promptise.engine.execution import PromptGraphEngine
+
         graph = PromptGraph("sql-analyst", mode="static")
         graph.add_node(PromptNode("reason", instructions=SYSTEM_PROMPT, tools=tools, is_entry=True))
         graph.set_entry("reason")
@@ -644,8 +758,12 @@ class TestSQLBenchmark:
         pf = await self._run_pf(model, tools, q)
         _print_result(pf, lg, q)
         # Should make multiple queries (at least 5 for 5 dashboard metrics)
-        assert len(pf.tool_calls) >= 4, f"Expected 4+ tool calls, got {len(pf.tool_calls)}: {pf.tool_calls}"
-        assert len(lg.tool_calls) >= 4, f"Expected 4+ tool calls, got {len(lg.tool_calls)}: {lg.tool_calls}"
+        assert len(pf.tool_calls) >= 4, (
+            f"Expected 4+ tool calls, got {len(pf.tool_calls)}: {pf.tool_calls}"
+        )
+        assert len(lg.tool_calls) >= 4, (
+            f"Expected 4+ tool calls, got {len(lg.tool_calls)}: {lg.tool_calls}"
+        )
 
     # ── Aggregate summary ──
 
@@ -686,29 +804,41 @@ class TestSQLBenchmark:
         print(f"\n\n  {BOLD}{WHITE}{'═' * 66}{RESET}")
         print(f"  {BOLD}{WHITE}  SQL ANALYSIS BENCHMARK — {len(questions)} QUESTIONS{RESET}")
         print(f"  {BOLD}{WHITE}{'═' * 66}{RESET}")
-        print(f"  {'':36}{BOLD}{GREEN}{'Promptise':>14}{RESET}    {BOLD}{CYAN}{'LangGraph':>14}{RESET}")
+        print(
+            f"  {'':36}{BOLD}{GREEN}{'Promptise':>14}{RESET}    {BOLD}{CYAN}{'LangGraph':>14}{RESET}"
+        )
         print(f"  {DIM}{'─' * 66}{RESET}")
 
         pf_acc_color = GREEN if pf_avg_acc >= lg_avg_acc else RED
         lg_acc_color = GREEN if lg_avg_acc >= pf_avg_acc else RED
-        print(f"  {BOLD}Avg Accuracy{RESET}     {'':12} {pf_acc_color}{BOLD}{pf_avg_acc:>5.0%}{RESET}     {'':12} {lg_acc_color}{BOLD}{lg_avg_acc:>5.0%}{RESET}")
+        print(
+            f"  {BOLD}Avg Accuracy{RESET}     {'':12} {pf_acc_color}{BOLD}{pf_avg_acc:>5.0%}{RESET}     {'':12} {lg_acc_color}{BOLD}{lg_avg_acc:>5.0%}{RESET}"
+        )
 
         max_ms = max(pf_total_ms, lg_total_ms, 1)
         lat_win = GREEN + "◀" + RESET if pf_total_ms <= lg_total_ms else ""
-        print(f"  {DIM}Total time (ms){RESET}  {_bar(pf_total_ms, max_ms, 12, GREEN)} {pf_total_ms:>5,.0f} {lat_win}  "
-              f"{_bar(lg_total_ms, max_ms, 12, CYAN)} {lg_total_ms:>5,.0f}")
+        print(
+            f"  {DIM}Total time (ms){RESET}  {_bar(pf_total_ms, max_ms, 12, GREEN)} {pf_total_ms:>5,.0f} {lat_win}  "
+            f"{_bar(lg_total_ms, max_ms, 12, CYAN)} {lg_total_ms:>5,.0f}"
+        )
 
         max_tc = max(pf_total_tools, lg_total_tools, 1)
         tc_win = GREEN + "◀" + RESET if pf_total_tools <= lg_total_tools else ""
-        print(f"  {DIM}Total tool calls{RESET} {_bar(pf_total_tools, max_tc, 12, GREEN)} {pf_total_tools:>5} {tc_win}  "
-              f"{_bar(lg_total_tools, max_tc, 12, CYAN)} {lg_total_tools:>5}")
+        print(
+            f"  {DIM}Total tool calls{RESET} {_bar(pf_total_tools, max_tc, 12, GREEN)} {pf_total_tools:>5} {tc_win}  "
+            f"{_bar(lg_total_tools, max_tc, 12, CYAN)} {lg_total_tools:>5}"
+        )
 
         print(f"  {DIM}{'─' * 66}{RESET}")
         speed = ((lg_total_ms - pf_total_ms) / max(lg_total_ms, 1)) * 100
         if speed > 0:
-            print(f"  {GREEN}{BOLD}  ⚡ Promptise: {speed:.0f}% faster, {pf_avg_acc:.0%} accurate{RESET}")
+            print(
+                f"  {GREEN}{BOLD}  ⚡ Promptise: {speed:.0f}% faster, {pf_avg_acc:.0%} accurate{RESET}"
+            )
         else:
-            print(f"  {CYAN}{BOLD}  ⚡ LangGraph: {-speed:.0f}% faster, {lg_avg_acc:.0%} accurate{RESET}")
+            print(
+                f"  {CYAN}{BOLD}  ⚡ LangGraph: {-speed:.0f}% faster, {lg_avg_acc:.0%} accurate{RESET}"
+            )
         print(f"  {BOLD}{WHITE}{'═' * 66}{RESET}\n")
 
         assert pf_total_ms > 0

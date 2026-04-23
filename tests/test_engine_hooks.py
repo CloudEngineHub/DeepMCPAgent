@@ -48,9 +48,7 @@ class TestLoggingHook:
         graph.set_entry("step")
 
         with caplog.at_level(logging.INFO, logger="promptise.engine"):
-            engine = PromptGraphEngine(
-                graph=graph, model=_make_mock_model(), hooks=[LoggingHook()]
-            )
+            engine = PromptGraphEngine(graph=graph, model=_make_mock_model(), hooks=[LoggingHook()])
             await engine.ainvoke({"messages": []})
 
         # LoggingHook should have logged pre_node and post_node
@@ -253,9 +251,7 @@ class TestBudgetHook:
             nonlocal visit_count
             visit_count += 1
             if visit_count < 10:
-                return NodeResult(
-                    node_name="expensive", total_tokens=200, next_node="expensive"
-                )
+                return NodeResult(node_name="expensive", total_tokens=200, next_node="expensive")
             return NodeResult(node_name="expensive", output="done", total_tokens=200)
 
         graph = PromptGraph("test", mode="static")
@@ -311,9 +307,7 @@ class TestHookErrorHandling:
         graph.add_node(step)
         graph.set_entry("step")
 
-        engine = PromptGraphEngine(
-            graph=graph, model=_make_mock_model(), hooks=[BadPreHook()]
-        )
+        engine = PromptGraphEngine(graph=graph, model=_make_mock_model(), hooks=[BadPreHook()])
         # Should not crash despite hook failure
         await engine.ainvoke({"messages": []})
         assert "step" in engine.last_report.nodes_visited
@@ -333,9 +327,7 @@ class TestHookErrorHandling:
         graph.add_node(step)
         graph.set_entry("step")
 
-        engine = PromptGraphEngine(
-            graph=graph, model=_make_mock_model(), hooks=[BadPostHook()]
-        )
+        engine = PromptGraphEngine(graph=graph, model=_make_mock_model(), hooks=[BadPostHook()])
         await engine.ainvoke({"messages": []})
         assert "step" in engine.last_report.nodes_visited
 
@@ -376,9 +368,7 @@ class TestHookInteractions:
         graph.add_node(step)
         graph.set_entry("step")
 
-        engine = PromptGraphEngine(
-            graph=graph, model=_make_mock_model(), hooks=[Hook1(), Hook2()]
-        )
+        engine = PromptGraphEngine(graph=graph, model=_make_mock_model(), hooks=[Hook1(), Hook2()])
         await engine.ainvoke({"messages": []})
 
         assert "h1_pre" in calls

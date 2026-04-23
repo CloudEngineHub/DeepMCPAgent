@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
 
 import pytest
 
 from promptise.engine.base import BaseNode, NodeProtocol, _FunctionalNode, node
 from promptise.engine.state import GraphState, NodeFlag, NodeResult
-
 
 # ---------------------------------------------------------------------------
 # BaseNode construction
@@ -152,9 +150,7 @@ class TestNodeDecorator:
 
         state = GraphState()
         state.context["x"] = 41
-        result = asyncio.run(
-            state_only.execute(state, {})
-        )
+        result = asyncio.run(state_only.execute(state, {}))
         assert result.output == 42
         assert result.node_name == "state_only"
 
@@ -163,9 +159,7 @@ class TestNodeDecorator:
         async def with_config(state: GraphState, config: dict):
             return config.get("multiplier", 1) * 10
 
-        result = asyncio.run(
-            with_config.execute(GraphState(), {"multiplier": 3})
-        )
+        result = asyncio.run(with_config.execute(GraphState(), {"multiplier": 3}))
         assert result.output == 30
 
     def test_call_no_args(self):
@@ -173,9 +167,7 @@ class TestNodeDecorator:
         async def no_args():
             return "side-effect"
 
-        result = asyncio.run(
-            no_args.execute(GraphState(), {})
-        )
+        result = asyncio.run(no_args.execute(GraphState(), {}))
         assert result.output == "side-effect"
 
     def test_returns_node_result_directly(self):
@@ -183,9 +175,7 @@ class TestNodeDecorator:
         async def direct(state):
             return NodeResult(node_name="", output="value", raw_output="raw")
 
-        result = asyncio.run(
-            direct.execute(GraphState(), {})
-        )
+        result = asyncio.run(direct.execute(GraphState(), {}))
         assert result.node_name == "direct"  # Filled in by _FunctionalNode
         assert result.output == "value"
 
@@ -247,7 +237,7 @@ class TestNodeProtocol:
 
         # Python's runtime_checkable Protocol checks structural subtyping
         # which only checks method existence, not signatures strictly
-        p = Partial()
+        Partial()
         # Even without stream(), the Protocol check may pass for attributes
         # What matters is that BaseNode and _FunctionalNode always satisfy it
         assert isinstance(BaseNode("test"), NodeProtocol)

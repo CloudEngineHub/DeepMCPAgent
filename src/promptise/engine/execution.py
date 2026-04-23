@@ -179,7 +179,9 @@ class PromptGraphEngine:
 
             # ── CRITICAL flag — abort on error ──
             if node.has_flag(NodeFlag.CRITICAL) and result.error:
-                logger.error("CRITICAL node %r failed — aborting graph: %s", node.name, result.error)
+                logger.error(
+                    "CRITICAL node %r failed — aborting graph: %s", node.name, result.error
+                )
                 state.node_history.append(result)
                 state.record_node_timing(node.name, result.duration_ms)
                 break
@@ -381,7 +383,11 @@ class PromptGraphEngine:
                         }
 
                     # If streaming didn't produce a real result, execute normally
-                    if not last_result.raw_output and not last_result.error and not streaming_failed:
+                    if (
+                        not last_result.raw_output
+                        and not last_result.error
+                        and not streaming_failed
+                    ):
                         try:
                             last_result = await node.execute(state, config)
                         except Exception as exc:
@@ -633,7 +639,11 @@ class PromptGraphEngine:
         if node.has_flag(NodeFlag.NO_HISTORY):
             config["_saved_messages"] = list(state.messages)
             # Keep only the first message if it's a system message
-            if state.messages and hasattr(state.messages[0], "type") and state.messages[0].type == "system":
+            if (
+                state.messages
+                and hasattr(state.messages[0], "type")
+                and state.messages[0].type == "system"
+            ):
                 state.messages = [state.messages[0]]
             else:
                 state.messages = []
@@ -765,9 +775,7 @@ class PromptGraphEngine:
                         result.raw_output = summarized
                         logger.debug("Summarized output for node %r", node.name)
                     except Exception as exc:
-                        logger.warning(
-                            "Failed to summarize output for node %r: %s", node.name, exc
-                        )
+                        logger.warning("Failed to summarize output for node %r: %s", node.name, exc)
 
         # VALIDATE_OUTPUT — validate against output_schema
         if node.has_flag(NodeFlag.VALIDATE_OUTPUT):
@@ -873,9 +881,7 @@ class PromptGraphEngine:
                 if isinstance(output, dict):
                     schema.model_validate(output)
                 elif not isinstance(output, schema):
-                    errors.append(
-                        f"Expected {schema.__name__}, got {type(output).__name__}"
-                    )
+                    errors.append(f"Expected {schema.__name__}, got {type(output).__name__}")
             except Exception as exc:
                 errors.append(f"Schema validation failed: {exc}")
         # Pydantic v1 style

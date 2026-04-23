@@ -116,8 +116,8 @@ async def check_health(service_name: str) -> str:
     return f"[it_check_health] service={service_name}"
 
 
-@it.tool()
-async def create_ticket(title: str, priority: str, assignee: str | None = None) -> str:
+@it.tool(name="create_ticket")
+async def it_create_ticket(title: str, priority: str, assignee: str | None = None) -> str:
     """Create an IT support ticket."""
     return f"[it_create_ticket] title={title} priority={priority}"
 
@@ -207,8 +207,8 @@ server.include_router(inventory)
 support = MCPRouter(prefix="support")
 
 
-@support.tool()
-async def create_ticket(customer_email: str, subject: str, description: str) -> str:
+@support.tool(name="create_ticket")
+async def support_create_ticket(customer_email: str, subject: str, description: str) -> str:
     """Create a customer support ticket."""
     return f"[support_create_ticket] email={customer_email} subject={subject}"
 

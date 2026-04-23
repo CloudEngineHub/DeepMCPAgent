@@ -23,11 +23,12 @@ import json
 import logging
 import time
 from collections.abc import AsyncIterator, Callable
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 
 from .base import BaseNode
@@ -260,7 +261,9 @@ class PromptNode(BaseNode):
                             if parts:
                                 params = f"({', '.join(parts)})"
                         except Exception as _schema_exc:
-                            logger.debug("Schema extraction failed for tool %s: %s", t.name, _schema_exc)
+                            logger.debug(
+                                "Schema extraction failed for tool %s: %s", t.name, _schema_exc
+                            )
                             params = "(...)"  # Show generic hint
                     schema_lines.append(f"  - {t.name}{params}: {desc[:120]}")
                 system_parts.append("\n".join(schema_lines))
@@ -357,7 +360,10 @@ class PromptNode(BaseNode):
                 system_parts = [wrapped]
                 result.strategy_applied = type(self.strategy).__name__
             else:
-                logger.warning("Strategy %r returned None — using unwrapped prompt", type(self.strategy).__name__)
+                logger.warning(
+                    "Strategy %r returned None — using unwrapped prompt",
+                    type(self.strategy).__name__,
+                )
 
         # Apply perspective
         if self.perspective and hasattr(self.perspective, "framing"):
@@ -419,7 +425,15 @@ class PromptNode(BaseNode):
                     pass
 
             # Cache for tool-loop re-entries — store insert index, not object ref
-            insert_idx = 1 if (messages and isinstance(messages[0], SystemMessage) and messages[0] is not node_sys_msg) else 0
+            insert_idx = (
+                1
+                if (
+                    messages
+                    and isinstance(messages[0], SystemMessage)
+                    and messages[0] is not node_sys_msg
+                )
+                else 0
+            )
             config[_cache_key] = {
                 "sys_msg": node_sys_msg,
                 "insert_idx": insert_idx,
@@ -441,7 +455,9 @@ class PromptNode(BaseNode):
 
         # ── 4. Process response ──
         if isinstance(response, AIMessage):
-            result.raw_output = response.content or ""
+            # AIMessage.content is str | list[...] in LangChain's typing; coerce to str.
+            _content = response.content
+            result.raw_output = _content if isinstance(_content, str) else str(_content or "")
             result.messages_added.append(response)
             state.messages.append(response)
 
@@ -507,9 +523,9 @@ class PromptNode(BaseNode):
                         *[_exec_one_tool(tc) for tc in tool_calls],
                         return_exceptions=True,
                     )
-                    tool_results_ordered = []
+                    tool_results_ordered: list[tuple[dict[str, Any], Any]] = []
                     for i, res_or_exc in enumerate(gathered):
-                        if isinstance(res_or_exc, Exception):
+                        if isinstance(res_or_exc, BaseException):
                             tc = tool_calls[i]
                             tc_rec = {
                                 "name": tc.get("name", ""),
@@ -619,10 +635,11 @@ class PromptNode(BaseNode):
         """Stream LLM tokens and tool events."""
         yield NodeEvent(event="on_node_start", node_name=self.name)
 
-        model: BaseChatModel = config.get("_engine_model")
-        if model is None:
+        _model_opt = config.get("_engine_model")
+        if _model_opt is None:
             yield NodeEvent(event="on_node_end", node_name=self.name, data={"error": "No model"})
             return
+        model: BaseChatModel = _model_opt
 
         # Build messages (same as execute but simplified for streaming)
         system_parts = [self.instructions] if self.instructions else []
@@ -657,9 +674,14 @@ class PromptNode(BaseNode):
         tool_call_chunks: list[dict] = []
         run_id = str(uuid4())
 
-        async for chunk in model_to_use.astream(messages, config=config):
+        async for chunk in model_to_use.astream(
+            messages, config=cast("RunnableConfig | None", config)
+        ):
             if hasattr(chunk, "content") and chunk.content:
-                full_content += chunk.content
+                _chunk_content = chunk.content
+                full_content += (
+                    _chunk_content if isinstance(_chunk_content, str) else str(_chunk_content)
+                )
                 yield NodeEvent(
                     event="on_chat_model_stream",
                     node_name=self.name,
@@ -714,7 +736,9 @@ class PromptNode(BaseNode):
 
                 try:
                     if tool_name in tool_map:
-                        result = await tool_map[tool_name].ainvoke(tool_args, config=config)
+                        result = await tool_map[tool_name].ainvoke(
+                            tool_args, config=cast("RunnableConfig | None", config)
+                        )
                         content = str(result) if result is not None else ""
                     else:
                         content = f"Error: Unknown tool '{tool_name}'"
@@ -822,6 +846,7 @@ class ToolNode(BaseNode):
         tool_map = {t.name: t for t in self.tools}
 
         # Determine what to call
+        calls: list[tuple[str, dict[str, Any], str]]
         if self.tool_selector:
             tool_name, tool_args = self.tool_selector(state)
             calls = [(tool_name, tool_args, str(uuid4()))]
@@ -831,7 +856,9 @@ class ToolNode(BaseNode):
             for msg in reversed(state.messages):
                 if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
                     for tc in msg.tool_calls:
-                        calls.append((tc["name"], tc.get("args", {}), tc.get("id", str(uuid4()))))
+                        calls.append(
+                            (tc["name"], tc.get("args", {}) or {}, tc.get("id") or str(uuid4()))
+                        )
                     break
 
         for tool_name, tool_args, tool_id in calls:
@@ -854,7 +881,9 @@ class ToolNode(BaseNode):
                 tc_record["success"] = False
             else:
                 try:
-                    tool_result = await tool_map[tool_name].ainvoke(tool_args, config=config)
+                    tool_result = await tool_map[tool_name].ainvoke(
+                        tool_args, config=cast("RunnableConfig | None", config)
+                    )
                     content = str(tool_result)[: self.max_result_chars] if tool_result else ""
                     tc_record["result"] = content
                     tc_record["success"] = True
@@ -941,11 +970,13 @@ class RouterNode(BaseNode):
         messages.append(SystemMessage(content="\n\n".join(context_parts)))
 
         try:
-            response = await model.ainvoke(messages, config=config)
+            response = await model.ainvoke(messages, config=cast("RunnableConfig | None", config))
             result.llm_duration_ms = (time.monotonic() - start) * 1000
 
+            _resp_content = getattr(response, "content", None)
+            _resp_str = _resp_content if isinstance(_resp_content, str) else str(response)
             raw = (
-                response.content.strip().lower()
+                _resp_str.strip().lower()
                 if hasattr(response, "content")
                 else str(response).strip().lower()
             )
@@ -1111,7 +1142,7 @@ class ParallelNode(BaseNode):
         outputs: dict[str, Any] = {}
         errors: list[str] = []
         for child, child_result in zip(self.child_nodes, child_results, strict=False):
-            if isinstance(child_result, Exception):
+            if isinstance(child_result, BaseException):
                 errors.append(f"{child.name}: {child_result}")
                 continue
 
@@ -1372,6 +1403,10 @@ class SubgraphNode(BaseNode):
         from .execution import PromptGraphEngine
 
         model = config.get("_engine_model")
+        if model is None:
+            result.error = "No _engine_model in config"
+            result.duration_ms = (time.monotonic() - start) * 1000
+            return result
         engine = PromptGraphEngine(
             graph=self.subgraph,
             model=model,
@@ -1393,9 +1428,8 @@ class SubgraphNode(BaseNode):
                     result.messages_added.append(msg)
 
             result.output = sub_output
-            result.total_tokens = (
-                engine._last_report.total_tokens if hasattr(engine, "_last_report") else 0
-            )
+            _last_report = getattr(engine, "_last_report", None)
+            result.total_tokens = _last_report.total_tokens if _last_report is not None else 0
 
         except Exception as exc:
             result.error = f"Subgraph error: {type(exc).__name__}: {exc}"
@@ -1540,9 +1574,12 @@ class AutonomousNode(BaseNode):
             state.messages.append(SystemMessage(content=routing_prompt))
 
             try:
-                response = await model.ainvoke(state.messages, config=config)
+                response = await model.ainvoke(
+                    state.messages, config=cast("RunnableConfig | None", config)
+                )
                 state.messages.append(response)
-                raw = response.content if hasattr(response, "content") else str(response)
+                _raw_content = response.content if hasattr(response, "content") else str(response)
+                raw = _raw_content if isinstance(_raw_content, str) else str(_raw_content or "")
 
                 # Extract JSON from response (handles nested braces)
                 choice = self._extract_json(raw)

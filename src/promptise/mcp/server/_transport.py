@@ -489,7 +489,7 @@ async def run_transport(
     **kwargs: Any,
 ) -> None:
     """Dispatch to the appropriate transport runner."""
-    runners = {
+    runners: dict[TransportType, Callable[..., Any]] = {
         TransportType.STDIO: run_stdio,
         TransportType.HTTP: run_http,
         TransportType.SSE: run_sse,

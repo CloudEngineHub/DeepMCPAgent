@@ -103,6 +103,7 @@ async def fact_check(claim: str) -> str:
 # Research Graph
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 async def main():
     from promptise import build_agent
     from promptise.config import StdioServerSpec
@@ -122,53 +123,56 @@ async def main():
 """)
 
     # Build the reasoning graph
-    graph = PromptGraph("deep-researcher", nodes=[
-        # Step 1: Plan the research approach
-        PlanNode("plan",
-            is_entry=True,
-            max_subgoals=3,
-            quality_threshold=3,
-        ),
-
-        # Step 2: Execute search across all sources
-        PromptNode("search",
-            instructions=(
-                "Execute a thorough multi-source search. For each aspect of the research plan:\n"
-                "1. Search the web for current information (search_web)\n"
-                "2. Search academic papers for depth (search_academic)\n"
-                "3. Search news for recent developments (search_news)\n"
-                "Execute ALL three search tools. Don't stop after one source."
+    graph = PromptGraph(
+        "deep-researcher",
+        nodes=[
+            # Step 1: Plan the research approach
+            PlanNode(
+                "plan",
+                is_entry=True,
+                max_subgoals=3,
+                quality_threshold=3,
             ),
-            inject_tools=True,
-            flags={NodeFlag.RETRYABLE},
-        ),
-
-        # Step 3: Validate key claims
-        ValidateNode("verify",
-            criteria=[
-                "Key factual claims are verifiable",
-                "Sources are consistent (no contradictions)",
-                "Recent data is from 2024-2026",
-            ],
-            on_pass="reflect",
-            on_fail="search",
-        ),
-
-        # Step 4: Reflect on quality
-        ReflectNode("reflect"),
-
-        # Step 5: Synthesize final report
-        SynthesizeNode("report", is_terminal=True),
-    ])
+            # Step 2: Execute search across all sources
+            PromptNode(
+                "search",
+                instructions=(
+                    "Execute a thorough multi-source search. For each aspect of the research plan:\n"
+                    "1. Search the web for current information (search_web)\n"
+                    "2. Search academic papers for depth (search_academic)\n"
+                    "3. Search news for recent developments (search_news)\n"
+                    "Execute ALL three search tools. Don't stop after one source."
+                ),
+                inject_tools=True,
+                flags={NodeFlag.RETRYABLE},
+            ),
+            # Step 3: Validate key claims
+            ValidateNode(
+                "verify",
+                criteria=[
+                    "Key factual claims are verifiable",
+                    "Sources are consistent (no contradictions)",
+                    "Recent data is from 2024-2026",
+                ],
+                on_pass="reflect",
+                on_fail="search",
+            ),
+            # Step 4: Reflect on quality
+            ReflectNode("reflect"),
+            # Step 5: Synthesize final report
+            SynthesizeNode("report", is_terminal=True),
+        ],
+    )
 
     # Save server to temp file
     import tempfile
-    server_code = '''
+
+    server_code = """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from examples.reasoning.research_agent import server
 server.run(transport="stdio")
-'''
+"""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
         f.write(server_code)
         tmp_server = f.name
@@ -191,8 +195,14 @@ server.run(transport="stdio")
         # Research questions — increasing complexity
         questions = [
             ("Simple", "What is quantum computing and what are its main applications?"),
-            ("Medium", "How has climate change progressed and what are the key tipping points according to recent IPCC data?"),
-            ("Complex", "Compare the current state of AI agent frameworks — what approaches exist, what are their trade-offs, and where is the field heading?"),
+            (
+                "Medium",
+                "How has climate change progressed and what are the key tipping points according to recent IPCC data?",
+            ),
+            (
+                "Complex",
+                "Compare the current state of AI agent frameworks — what approaches exist, what are their trade-offs, and where is the field heading?",
+            ),
         ]
 
         for difficulty, question in questions:
@@ -200,9 +210,7 @@ server.run(transport="stdio")
             print(f"  {CYAN}[{difficulty}]{RESET} {BOLD}{question}{RESET}")
             print(f"{BOLD}{'═' * 60}{RESET}\n")
 
-            result = await agent.ainvoke({
-                "messages": [{"role": "user", "content": question}]
-            })
+            result = await agent.ainvoke({"messages": [{"role": "user", "content": question}]})
 
             # Count tool calls
             tool_calls = []

@@ -79,11 +79,15 @@ class HasRole(Guard):
     async def check(self, ctx: RequestContext) -> bool:
         # Prefer auth-verified ctx.client.roles if populated, fall back to
         # ctx.state["roles"] for backward compat with custom middleware
-        client_roles = ctx.client.roles if ctx.client and ctx.client.roles else ctx.state.get("roles", set())
+        client_roles = (
+            ctx.client.roles if ctx.client and ctx.client.roles else ctx.state.get("roles", set())
+        )
         return bool(self._required & client_roles)
 
     def describe_denial(self, ctx: RequestContext) -> str:
-        client_roles = ctx.client.roles if ctx.client and ctx.client.roles else ctx.state.get("roles", set())
+        client_roles = (
+            ctx.client.roles if ctx.client and ctx.client.roles else ctx.state.get("roles", set())
+        )
         required = ", ".join(sorted(self._required))
         actual = ", ".join(sorted(client_roles)) if client_roles else "(none)"
         return f"Requires any of roles [{required}], but client has [{actual}]"
@@ -100,11 +104,15 @@ class HasAllRoles(Guard):
         self._required = set(roles)
 
     async def check(self, ctx: RequestContext) -> bool:
-        client_roles = ctx.client.roles if ctx.client and ctx.client.roles else ctx.state.get("roles", set())
+        client_roles = (
+            ctx.client.roles if ctx.client and ctx.client.roles else ctx.state.get("roles", set())
+        )
         return self._required.issubset(client_roles)
 
     def describe_denial(self, ctx: RequestContext) -> str:
-        client_roles = ctx.client.roles if ctx.client and ctx.client.roles else ctx.state.get("roles", set())
+        client_roles = (
+            ctx.client.roles if ctx.client and ctx.client.roles else ctx.state.get("roles", set())
+        )
         missing = self._required - client_roles
         actual = ", ".join(sorted(client_roles)) if client_roles else "(none)"
         missing_str = ", ".join(sorted(missing))

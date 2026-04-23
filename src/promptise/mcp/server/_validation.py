@@ -337,7 +337,9 @@ def validate_arguments(
 
         # Generate specific suggestion based on error types
         if "missing" in error_types:
-            suggestion = "Required fields are missing. Check that all required parameters are provided."
+            suggestion = (
+                "Required fields are missing. Check that all required parameters are provided."
+            )
         elif error_types & {"string_type", "int_type", "float_type", "bool_type", "type_error"}:
             suggestion = "Parameter type mismatch. Check that values match the expected types in the tool schema."
         elif "value_error" in error_types or "assertion_error" in error_types:

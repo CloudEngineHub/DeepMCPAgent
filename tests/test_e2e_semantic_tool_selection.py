@@ -245,9 +245,7 @@ class TestSemanticToolSelection:
         # The semantic agent rebuilds with top-K tools per query
         # The unoptimized agent has all 40 tools bound
         # We can check by looking at the tool count on the inner graph
-        all_tool_count = (
-            len(agent_no_optimization._all_tools) if agent_no_optimization._all_tools else 0
-        )
+        (len(agent_no_optimization._all_tools) if agent_no_optimization._all_tools else 0)
         semantic_index_count = len(agent._tool_index.all_tool_names) if agent._tool_index else 0
 
         # The semantic index should know about all 40 tools

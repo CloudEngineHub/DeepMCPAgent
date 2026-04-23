@@ -22,7 +22,12 @@ import json
 import logging
 import secrets
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from pydantic import AnyUrl
+
+    from ._types import PromptDef
 
 from mcp.server.lowlevel import Server as LowLevelServer
 from mcp.types import (
@@ -175,6 +180,13 @@ class MCPServer:
             from ._guards import HasRole
 
             all_guards.append(HasRole(*roles))
+            # Roles cannot be enforced without authentication — the
+            # HasRole guard reads ``ctx.state["roles"]`` which is only
+            # populated by ``AuthMiddleware`` when ``tool_def.auth`` is
+            # truthy.  Silently upgrading here prevents the footgun
+            # where ``roles=[...]`` looks like it enforces RBAC but
+            # actually always denies with "client has [(none)]".
+            auth = True
 
         # Build annotations if any hint is provided
         from ._types import ToolAnnotations
@@ -912,7 +924,7 @@ class MCPServer:
             for rdef in res_reg.list_all():
                 resources.append(
                     Resource(
-                        uri=rdef.uri,
+                        uri=cast("AnyUrl", rdef.uri),
                         name=rdef.name,
                         description=rdef.description,
                         mimeType=rdef.mime_type,
@@ -1098,7 +1110,7 @@ def _excluded_params_for(func: Callable[..., Any]) -> set[str]:
     return _excluded_params(func)
 
 
-def _prompt_to_mcp_def(p: Any, *, version: str | None = None) -> PromptDef:  # noqa: F821
+def _prompt_to_mcp_def(p: Any, *, version: str | None = None) -> PromptDef:
     """Convert a Promptise :class:`Prompt` to an MCP :class:`PromptDef`.
 
     Builds a rich description from prompt metadata (template, model,

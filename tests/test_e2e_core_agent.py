@@ -104,7 +104,6 @@ class TestBuildDeepAgent:
         """Custom instructions should be forwarded to the react agent builder."""
         custom_instructions = "You are a math tutor."
         mock_graph = _make_mock_inner()
-        captured_kwargs: dict[str, Any] = {}
 
         # Capture args passed to PromptGraphEngine (which receives the graph)
         captured_engine_args: list[Any] = []

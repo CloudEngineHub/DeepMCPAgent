@@ -166,7 +166,10 @@ _default_cache = InMemoryCache()
 def _make_cache_key(func_name: str, kwargs: dict[str, Any]) -> str:
     """Build a deterministic cache key from function name + arguments."""
     serialised = json.dumps(kwargs, sort_keys=True, default=str)
-    key_hash = hashlib.md5(serialised.encode()).hexdigest()[:16]
+    # MD5 is used purely as a non-cryptographic digest to produce short,
+    # deterministic cache keys. Not used for security — collision resistance
+    # is unnecessary here, just fast fingerprinting.
+    key_hash = hashlib.md5(serialised.encode(), usedforsecurity=False).hexdigest()[:16]
     return f"cache:{func_name}:{key_hash}"
 
 
@@ -249,7 +252,9 @@ class CacheMiddleware:
         call_next: Callable[..., Any],
     ) -> Any:
         cache_key = f"mw:{ctx.tool_name}:{json.dumps(ctx.state.get('arguments', {}), sort_keys=True, default=str)}"
-        key_hash = hashlib.md5(cache_key.encode()).hexdigest()[:16]
+        # MD5 is used as a non-cryptographic fingerprint (short, fast, deterministic)
+        # for the middleware cache key. Not a security boundary.
+        key_hash = hashlib.md5(cache_key.encode(), usedforsecurity=False).hexdigest()[:16]
         final_key = f"mw:{ctx.tool_name}:{key_hash}"
 
         cached_value = await self.cache.get(final_key)

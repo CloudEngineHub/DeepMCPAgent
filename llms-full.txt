@@ -1,6 +1,13 @@
 # Promptise Foundry — Complete Reference
 
-> Promptise Foundry is a Python framework for building production-grade AI agents. Five subsystems: Agent core, MCP Server SDK, Reasoning Engine, Agent Runtime, and Prompt Engineering. Install: `pip install promptise`. Python 3.10+.
+> Promptise Foundry is a Python framework for building production-grade agentic AI systems. **Five pillars**: **Agent** (single-function production agents with memory, guardrails, cache, observability), **Reasoning Engine** (`PromptGraph` with 20 composable node types, 18 flags, 7 prebuilt patterns, agent-assembled paths from a node pool), **MCP Server SDK** (FastAPI-style production servers with auth, middleware, queues), **Agent Runtime** (the operating system for autonomous agents — triggers, journals, governance, secrets, meta-tools), and **Prompt Engineering** (typed blocks, strategies, flows, context providers). Install: `pip install promptise`. Python 3.10+.
+
+Canonical URLs:
+- Source: <https://github.com/promptise-com/foundry>
+- Docs: <https://promptise.github.io/foundry>
+- PyPI: <https://pypi.org/project/promptise/>
+
+---
 
 ## Quick Start
 
@@ -11,7 +18,7 @@ from promptise.config import HTTPServerSpec
 
 async def main():
     agent = await build_agent(
-        model="openai:gpt-4o-mini",
+        model="openai:gpt-5-mini",
         servers={
             "tools": HTTPServerSpec(url="http://localhost:8080/mcp", transport="sse"),
         },
@@ -29,64 +36,64 @@ async def main():
 asyncio.run(main())
 ```
 
-## build_agent() — Complete Signature
+---
+
+## `build_agent()` — Complete Signature
 
 ```python
 async def build_agent(
     *,
-    servers: Mapping[str, ServerSpec],          # REQUIRED — MCP server connections
-    model: str | BaseChatModel,                  # REQUIRED — "openai:gpt-4o-mini", "anthropic:claude-sonnet-4-20250514", etc.
-    instructions: str | None = None,             # System prompt
-    memory: MemoryProvider | None = None,        # InMemoryProvider, ChromaProvider, Mem0Provider
-    memory_auto_store: bool = False,             # Auto-store exchanges in memory
-    conversation_store: ConversationStore | None = None,  # SQLiteConversationStore, PostgresConversationStore
-    conversation_max_messages: int = 0,          # Max messages per session (0 = unlimited)
-    guardrails: bool | SecurityConfig | None = None,     # True for defaults, or custom config
-    cache: bool | SemanticCache | None = None,   # True for defaults, or SemanticCache instance
-    optimize_tools: bool | OptimizationConfig | None = None,  # Semantic tool selection
-    observe: bool | ObservabilityConfig | None = None,       # True for defaults, or custom config
-    agent_pattern: str | PromptGraph | None = None,  # "react", "autonomous", "deliberate", "debate", "research", or PromptGraph
-    node_pool: list[BaseNode] | None = None,     # Autonomous mode — agent assembles reasoning at runtime
-    cross_agents: Mapping[str, CrossAgent] | None = None,    # Peer agents for delegation
-    approval: ApprovalPolicy | None = None,      # Human-in-the-loop for sensitive tools
-    events: EventNotifier | None = None,         # Webhook/callback event notifications
-    sandbox: bool | dict | None = None,          # Docker sandbox for code execution
-    extra_tools: list[BaseTool] | None = None,   # Additional tools beyond MCP-discovered
-    flow: ConversationFlow | None = None,        # Prompt phase management
-    adaptive: AdaptiveConfig | None = None,      # Failure classification and strategy learning
-    max_agent_iterations: int = 25,              # Max reasoning steps per invocation
-    max_invocation_time: float = 0,              # Timeout in seconds (0 = unlimited)
-    trace_tools: bool = False,                   # Print tool calls to stdout
-    graph_blocks: list[PromptBlock] | None = None,  # Custom prompt blocks for graph nodes
+    # Required
+    servers: Mapping[str, ServerSpec],              # MCP server connections (HTTP/SSE/stdio)
+    model: ModelLike,                                # "openai:gpt-5-mini", "anthropic:claude-sonnet-4-20250514", a BaseChatModel, or a Runnable
+
+    # System prompt / flow
+    instructions: str | None = None,                 # System prompt. Defaults to DEFAULT_SYSTEM_PROMPT.
+    flow: ConversationFlow | None = None,            # Phase-based prompt evolution across turns
+    graph_blocks: list[PromptBlock] | None = None,   # Custom prompt blocks propagated to graph nodes
+
+    # Memory & conversations
+    memory: MemoryProvider | None = None,            # InMemoryProvider, ChromaProvider, Mem0Provider
+    memory_auto_store: bool = False,                 # Auto-store exchanges after each invocation
+    conversation_store: ConversationStore | None = None,   # InMemory, SQLite, Postgres, Redis
+    conversation_max_messages: int = 0,              # Per-session cap (0 = unlimited)
+
+    # Safety & efficiency
+    guardrails: bool | SecurityConfig | None = None, # True = defaults (6 detection heads)
+    cache: bool | SemanticCache | None = None,       # True = default SemanticCache
+    optimize_tools: bool | OptimizationConfig | None = None,   # NONE / MINIMAL / STANDARD / SEMANTIC
+    sandbox: bool | dict | None = None,              # Docker-based code execution
+
+    # Observability
+    observe: bool | ObservabilityConfig | None = None,  # True = STANDARD + HTML
+    observer: ObservabilityCollector | None = None,  # Reuse an existing collector
+    observer_agent_id: str | None = None,            # Identity for multi-agent recording
+
+    # Tools & peers
+    extra_tools: list[BaseTool] | None = None,       # Additional LangChain BaseTool instances
+    cross_agents: Mapping[str, CrossAgent] | None = None,  # Peer agents (exposed as ask_agent_<name>)
+    approval: ApprovalPolicy | None = None,          # Human-in-the-loop for sensitive tools
+    events: EventNotifier | None = None,             # Webhook / callback notifications
+
+    # Reasoning graph
+    agent_pattern: str | PromptGraph | None = None,  # "react" | "peoatr" | "research" | "autonomous" | "deliberate" | "debate" | "pipeline" | PromptGraph instance
+    pattern: str | PromptGraph | None = None,        # Deprecated alias for agent_pattern
+    node_pool: list[BaseNode] | None = None,         # Autonomous mode — agent assembles its own path
+    context_engine: ContextEngine | None = None,     # Pluggable context assembly
+
+    # Adaptive behavior
+    adaptive: AdaptiveConfig | None = None,          # Failure classification + strategy learning
+
+    # Limits
+    max_agent_iterations: int = 25,
+    max_invocation_time: float = 0,                  # 0 = unlimited
+    trace_tools: bool = False,                       # Print every tool invocation to stdout
 ) -> PromptiseAgent
 ```
 
-## Server Specifications
+`PromptiseAgent` exposes `ainvoke()`, `astream()`, `chat()`, `get_stats()`, `generate_report(path)`, `shutdown()`.
 
-```python
-from promptise.config import HTTPServerSpec, StdioServerSpec
-
-# HTTP/SSE server (recommended for production)
-servers = {
-    "api": HTTPServerSpec(
-        url="http://localhost:8080/mcp",
-        transport="sse",                    # "sse", "http", "streamable-http"
-        bearer_token="eyJhbGciOi...",       # JWT token forwarded to server
-        api_key="sk-...",                   # Alternative: API key auth
-        headers={"X-Custom": "value"},      # Custom headers
-    ),
-}
-
-# Stdio server (local processes)
-servers = {
-    "local": StdioServerSpec(
-        command="python",
-        args=["-m", "mypackage.server"],
-        env={"API_KEY": "..."},
-        cwd="/path/to/dir",
-    ),
-}
-```
+---
 
 ## CallerContext — Multi-User Identity
 
@@ -101,29 +108,60 @@ caller = CallerContext(
     metadata={"ip": "192.168.1.1"},
 )
 
-# With ainvoke()
 result = await agent.ainvoke({"messages": [...]}, caller=caller)
-
-# With chat()
 response = await agent.chat(message="...", session_id="session-001", caller=caller)
 ```
 
-## Memory Providers
+Propagated via asyncio contextvars to cache, guardrails, conversations, observability, MCP tool calls.
+
+---
+
+## Server Specifications
 
 ```python
-from promptise.memory import InMemoryProvider, ChromaProvider
+from promptise.config import HTTPServerSpec, StdioServerSpec
 
-# In-memory (testing/prototyping)
+servers = {
+    "api": HTTPServerSpec(
+        url="http://localhost:8080/mcp",
+        transport="sse",                    # "sse" | "http" | "streamable-http"
+        bearer_token="eyJhbGciOi...",
+        api_key="sk-...",
+        headers={"X-Custom": "value"},
+    ),
+    "local": StdioServerSpec(
+        command="python",
+        args=["-m", "mypackage.server"],
+        env={"API_KEY": "..."},
+        cwd="/path/to/dir",
+    ),
+}
+```
+
+---
+
+## Memory — 3 Providers
+
+```python
+from promptise.memory import InMemoryProvider, ChromaProvider, Mem0Provider
+
+# Testing / prototyping
 memory = InMemoryProvider(max_entries=200)
 
-# ChromaDB (persistent vector search)
+# Persistent local vector search
 memory = ChromaProvider(persist_directory="./memory", collection_name="agent_memory")
 
-# Usage
+# Enterprise with graph search
+memory = Mem0Provider(user_id="alice")
+
 agent = await build_agent(..., memory=memory, memory_auto_store=True)
 ```
 
-## Conversation Stores
+Memory is auto-searched and injected as a `SystemMessage` before every invocation. Prompt-injection mitigation is built in.
+
+---
+
+## Conversation Stores — 4 Backends
 
 ```python
 from promptise.conversations import (
@@ -136,84 +174,327 @@ from promptise.conversations import (
 store = SQLiteConversationStore("./conversations.db")
 agent = await build_agent(..., conversation_store=store, conversation_max_messages=100)
 
-# chat() auto-loads/saves conversation history
+# chat() auto-loads/saves history; session_id ownership is enforced
 response = await agent.chat(message="Hello", session_id="session-001", caller=caller)
 ```
 
-## MCP Server SDK
+---
+
+## Semantic Cache
 
 ```python
-from promptise.mcp.server import (
-    MCPServer, MCPRouter,
-    AuthMiddleware, JWTAuth, AsymmetricJWTAuth, APIKeyAuth,
-    HasRole, HasAllRoles, RequireAuth,
-    LoggingMiddleware, RateLimitMiddleware, TimeoutMiddleware,
-    CircuitBreakerMiddleware, AuditMiddleware, ConcurrencyLimiter,
-    MCPQueue, TestClient, HealthCheck,
+from promptise.cache import SemanticCache, InMemoryCacheBackend, RedisCacheBackend
+
+cache = SemanticCache(
+    backend=RedisCacheBackend(url="redis://localhost:6379", encrypt_at_rest=True),
+    scope="per_user",    # "per_user" | "per_session" | "shared"
+    ttl=3600,
 )
+agent = await build_agent(..., cache=cache)
 
-server = MCPServer("my-api", version="1.0.0")
-
-# Middleware stack
-server.add_middleware(AuthMiddleware(JWTAuth(secret=os.environ["JWT_SECRET"])))
-server.add_middleware(LoggingMiddleware())
-server.add_middleware(RateLimitMiddleware(rate_per_minute=120))
-server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
-server.add_middleware(CircuitBreakerMiddleware(failure_threshold=5))
-server.add_middleware(AuditMiddleware(log_path="./audit.jsonl"))
-
-# Routers for domain grouping
-hr = MCPRouter(prefix="hr")
-
-@hr.tool(roles=["admin"])
-async def update_employee(emp_id: int, department: str) -> str:
-    """Update an employee's department. Admin only."""
-    return f"Updated {emp_id}"
-
-server.include_router(hr)
-
-# Background job queue
-queue = MCPQueue(server, max_workers=4)
-
-@queue.job(timeout=120, max_retries=3)
-async def generate_report(dept: str, progress) -> str:
-    """Long-running report with progress."""
-    await progress.report(50, "Analyzing...")
-    return "done"
-
-# Testing (no network)
-client = TestClient(server, meta={"authorization": "Bearer token"})
-result = await client.call_tool("hr_update_employee", {"emp_id": 1, "department": "Eng"})
-
-# Run
-server.run(transport="sse")  # or "stdio", "http"
+# GDPR
+await cache.purge_user("alice")
 ```
 
-## Reasoning Engine — Node Types
+Output guardrails re-scan cached responses before returning them.
+
+---
+
+## Guardrails — 6 Detection Heads
+
+```python
+from promptise.guardrails import PromptiseSecurityScanner
+
+scanner = PromptiseSecurityScanner.default()
+# Heads: prompt-injection (DeBERTa), PII (69 regex), credentials (96 patterns),
+#        NER (GLiNER), content safety (Llama Guard / Azure AI), custom rules
+agent = await build_agent(..., guardrails=scanner)
+```
+
+Input-blocking + output-redaction modes. All models run locally.
+
+---
+
+## Tool Optimization — 4 Levels
+
+```python
+from promptise import OptimizationConfig, OptimizationLevel
+
+opt = OptimizationConfig(
+    level=OptimizationLevel.SEMANTIC,   # NONE | MINIMAL | STANDARD | SEMANTIC
+    embedding_model="BAAI/bge-small-en-v1.5",   # Local path supported for air-gapped
+    top_k=8,
+)
+agent = await build_agent(..., optimize_tools=opt)
+```
+
+`SEMANTIC` mode uses local embeddings to select only relevant tools per query — 40-70% fewer tokens.
+
+---
+
+## Observability — 8 Transporters
+
+```python
+from promptise.observability_config import ObservabilityConfig, ObservabilityLevel
+from promptise.observability_transporters import (
+    HTMLReportTransporter, JSONFileTransporter, StructuredLogTransporter,
+    ConsoleTransporter, PrometheusTransporter, OpenTelemetryTransporter,
+    WebhookTransporter, CallbackTransporter,
+)
+
+cfg = ObservabilityConfig(
+    level=ObservabilityLevel.FULL,   # OFF | BASIC | STANDARD | FULL
+    transporters=[
+        HTMLReportTransporter(output_path="./report.html"),
+        PrometheusTransporter(port=9090),
+    ],
+    max_entries=10_000,
+)
+agent = await build_agent(..., observe=cfg)
+```
+
+Records every LLM turn, tool call, token count, latency, retry, cache hit/miss. Ring buffer, thread-safe.
+
+---
+
+## Sandboxed Execution
+
+```python
+agent = await build_agent(
+    ...,
+    sandbox={
+        "image": "python:3.12-slim",
+        "network": "none",             # "none" | "restricted" | "full"
+        "cpu": 2.0,
+        "memory_mb": 512,
+        "timeout_s": 30,
+        "runtime": "gvisor",           # optional kernel isolation
+    },
+)
+```
+
+Docker-based with seccomp syscall filtering, capability dropping, read-only rootfs, resource limits. Auto-injects 5 tools: execute, read_file, write_file, list_files, install_package. Path-traversal and shell-injection prevention.
+
+---
+
+## Cross-Agent Delegation
+
+```python
+from promptise.cross_agent import CrossAgent
+
+peers = {
+    "analyst": CrossAgent(url="http://analyst:8080", bearer_token=os.environ["PEER_TOKEN"]),
+    "reviewer": CrossAgent(url="http://reviewer:8080", bearer_token=os.environ["PEER_TOKEN"]),
+}
+agent = await build_agent(..., cross_agents=peers)
+
+# Auto-generated tools: ask_agent_analyst, ask_agent_reviewer
+# Plus:
+answer = await agent.ask_peer("analyst", "What is the trend?")
+answers = await agent.broadcast(["analyst", "reviewer"], "Review this draft", timeout=10)
+```
+
+Graceful degradation when peers fail.
+
+---
+
+## Human-in-the-Loop Approval
+
+```python
+from promptise.approval import ApprovalPolicy, CLIApprovalHandler, WebhookApprovalHandler, AutoApprovalHandler
+from promptise.approval_classifier import ApprovalClassifier
+
+# AutoApprovalHandler has a 5-layer decision hierarchy:
+# 1. Explicit deny lists  2. Explicit allow lists  3. Read-only annotation
+# 4. ML classifier  5. Default policy
+policy = ApprovalPolicy(
+    handler=AutoApprovalHandler(classifier=ApprovalClassifier.default()),
+    require_for={"tool:delete_*", "tool:send_email"},
+)
+agent = await build_agent(..., approval=policy)
+```
+
+---
+
+## Event Notifications
+
+```python
+from promptise.events import EventNotifier, WebhookSink, CallbackSink, SlackSink, PagerDutySink
+
+notifier = EventNotifier(sinks=[
+    SlackSink(webhook_url=os.environ["SLACK_WEBHOOK"]),
+    PagerDutySink(integration_key=os.environ["PD_KEY"], events=["invocation.error"]),
+    WebhookSink(url="https://hooks.example.com/events"),
+    CallbackSink(lambda event: print(event.event_type)),
+])
+agent = await build_agent(..., events=notifier)
+```
+
+---
+
+## Streaming
+
+```python
+from promptise.streaming import StreamEvent
+
+async for event in agent.astream({"messages": [...]}):
+    if event.event_type == "tool_call":
+        print(f"Calling {event.tool_name}({event.arguments})")
+    elif event.event_type == "tool_result":
+        print(f"← {event.result}")
+    elif event.event_type == "token":
+        print(event.text, end="", flush=True)
+```
+
+Real-time tool-call visibility plus token-level streaming.
+
+---
+
+## Model Fallback
+
+```python
+from promptise.fallback import FallbackChain
+
+model = FallbackChain([
+    "openai:gpt-5-mini",
+    "anthropic:claude-sonnet-4-20250514",
+    "ollama:llama3",
+])
+agent = await build_agent(..., model=model)
+```
+
+Automatic provider failover on rate limits / errors.
+
+---
+
+## RAG Foundation
+
+```python
+from promptise.rag import RAGPipeline, DirectoryLoader, RecursiveChunker, OpenAIEmbedder, ChromaStore
+
+pipeline = RAGPipeline(
+    loader=DirectoryLoader("./docs"),
+    chunker=RecursiveChunker(chunk_size=1000, overlap=200),
+    embedder=OpenAIEmbedder(model="text-embedding-3-small"),
+    store=ChromaStore(persist_directory="./rag_index"),
+)
+await pipeline.index()
+results = await pipeline.query("How do I enable caching?", top_k=5)
+```
+
+Pluggable loader / chunker / embedder / store. Swap any component.
+
+---
+
+## Adaptive Strategy
+
+```python
+from promptise.strategy import AdaptiveConfig
+
+agent = await build_agent(
+    ...,
+    adaptive=AdaptiveConfig(
+        learn_from_failures=True,
+        persistence_path="./learned_strategies.json",
+    ),
+)
+```
+
+Classifies failure modes and adjusts strategy over time (retry parameters, prompt rewrites, tool re-selection).
+
+---
+
+## SuperAgent Files — `.superagent`
+
+```yaml
+# agent.superagent
+model: openai:gpt-5-mini
+instructions: You are a data analyst.
+servers:
+  tools:
+    url: http://localhost:8080/mcp
+    bearer_token: ${TOOL_TOKEN}
+memory:
+  type: chroma
+  persist_directory: ./memory
+sandbox:
+  image: python:3.12-slim
+  network: none
+observe: true
+cache: true
+guardrails: true
+cross_agents:
+  reviewer: http://reviewer:8080
+```
+
+```bash
+promptise agent agent.superagent
+```
+
+Environment variables via `${VAR}` or `${VAR:-default}`. Cycle detection for cross-agent refs.
+
+---
+
+## CLI
+
+```bash
+promptise agent myapp.superagent   # Run an agent manifest
+promptise validate myapp.superagent
+promptise list-tools http://localhost:8080/mcp
+promptise run                       # Interactive REPL
+promptise serve myapp:server --transport http --port 8080 --dashboard --reload
+promptise runtime myapp.agent       # Start runtime with an .agent manifest
+```
+
+---
+
+## Reasoning Engine (Pillar 2) — Node Types
 
 ### 10 Standard Nodes
-- **PromptNode**: LLM reasoning with blocks, tools, strategy, model override, data flow, guards, pre/post processors
-- **ToolNode**: Explicit tool execution with validation
-- **RouterNode**: LLM-based routing to decide the next path
-- **GuardNode**: Validate state and gate transitions
-- **ParallelNode**: Run multiple nodes concurrently
-- **LoopNode**: Repeat a subgraph until condition met
-- **HumanNode**: Pause for human input/approval
-- **TransformNode**: Pure data transformation (no LLM)
-- **SubgraphNode**: Embed a complete sub-graph
-- **AutonomousNode**: Agent assembles its own path from a node pool
+- **PromptNode** — LLM reasoning with blocks, tools, strategy, model override, data flow, guards, pre/post processors
+- **ToolNode** — explicit tool execution with validation
+- **RouterNode** — LLM-based routing to decide the next path
+- **GuardNode** — validate state and gate transitions
+- **ParallelNode** — run multiple nodes concurrently
+- **LoopNode** — repeat a subgraph until condition met
+- **HumanNode** — pause for human input / approval
+- **TransformNode** — pure data transformation (no LLM)
+- **SubgraphNode** — embed a complete sub-graph
+- **AutonomousNode** — agent assembles its own path from a node pool
 
 ### 10 Reasoning Nodes
-- **ThinkNode**: Decompose a problem into sub-problems
-- **PlanNode**: Create subgoals with quality threshold
-- **ReflectNode**: Evaluate quality and decide to continue or loop
-- **CritiqueNode**: Challenge assumptions, find gaps
-- **SynthesizeNode**: Compose final answer from gathered context
-- **ValidateNode**: Check criteria, route to pass/fail
-- **ObserveNode**: Record tool results and state
-- **JustifyNode**: Explain reasoning and cite evidence
-- **RetryNode**: Retry with modified approach
-- **FanOutNode**: Parallel execution of multiple sub-tasks
+- **ThinkNode** — decompose a problem into sub-problems
+- **PlanNode** — create subgoals with quality threshold
+- **ReflectNode** — evaluate quality and decide to continue or loop
+- **CritiqueNode** — challenge assumptions, find gaps
+- **SynthesizeNode** — compose final answer from gathered context
+- **ValidateNode** — check criteria, route to pass/fail
+- **ObserveNode** — record tool results and state
+- **JustifyNode** — explain reasoning and cite evidence
+- **RetryNode** — retry with modified approach
+- **FanOutNode** — parallel execution of multiple sub-tasks
+
+### 18 Node Flags (`promptise.engine.state.NodeFlag`)
+
+`ENTRY`, `TERMINAL`, `INJECT_TOOLS`, `READONLY`, `REQUIRES_HUMAN`, `CACHEABLE`, `RETRYABLE`, `CRITICAL`, `OBSERVABLE`, `STATEFUL`, `PARALLEL_SAFE`, `SKIP_ON_ERROR`, `VERBOSE`, `LIGHTWEIGHT`, `NO_HISTORY`, `ISOLATED_CONTEXT`, `SUMMARIZE_OUTPUT`, `VALIDATE_OUTPUT`.
+
+### 7 Prebuilt Graphs
+
+```python
+from promptise.engine.prebuilts import (
+    build_react_graph,      # think → act → observe
+    build_peoatr_graph,     # plan → execute → observe → act → think → reflect
+    build_research_graph,   # question → search → synthesize → critique
+    build_autonomous_graph, # node pool + AutonomousNode chooses path
+    build_deliberate_graph, # plan → critique → act → reflect
+    build_debate_graph,     # proponent ↔ opponent → judge
+    build_pipeline_graph,   # linear chain of user-supplied nodes
+)
+
+agent = await build_agent(..., agent_pattern="deliberate")
+# or
+agent = await build_agent(..., agent_pattern=build_pipeline_graph(n1, n2, n3))
+```
 
 ### PromptNode — Full Configuration
 
@@ -227,16 +508,16 @@ node = PromptNode(
     instructions="Analyze the data thoroughly.",
     blocks=[Identity("Senior analyst"), Rules(["Cite sources", "Flag uncertainty"])],
     strategy=chain_of_thought,
-    tools=my_tools,                    # Or inject_tools=True for MCP tools
-    tool_choice="auto",                # "auto", "required", "none"
-    model_override="openai:gpt-4o",    # Different model for this node
+    tools=my_tools,                    # Or inject_tools=True to receive MCP tools
+    tool_choice="auto",                # "auto" | "required" | "none"
+    model_override="openai:gpt-4o",
     temperature=0.0,
     max_tokens=8192,
-    output_schema=AnalysisResult,      # Pydantic model for structured output
+    output_schema=AnalysisResult,      # Pydantic model
     guards=[SchemaStrictGuard(...)],
     input_keys=["search_results"],     # Read from state.context
     output_key="analysis",             # Write to state.context
-    inherit_context_from="search",     # Inherit previous node's context
+    inherit_context_from="search",
     preprocessor=my_preprocess_fn,     # async (state, config) → state
     postprocessor=my_postprocess_fn,   # async (output, state, config) → output
     include_observations=True,
@@ -248,129 +529,728 @@ node = PromptNode(
 )
 ```
 
-### Building Graphs
+### Custom Nodes
 
 ```python
-from promptise.engine import PromptGraph, PromptNode, PromptGraphEngine
-
-# Option 1: Autonomous — agent builds its own path
-agent = await build_agent(
-    model="openai:gpt-4o-mini",
-    servers=servers,
-    node_pool=[ThinkNode("think"), PlanNode("plan"), PromptNode("act", inject_tools=True),
-               ReflectNode("reflect"), SynthesizeNode("synthesize")],
-)
-
-# Option 2: Named pattern
-agent = await build_agent(..., agent_pattern="deliberate")
-# Available: "react", "autonomous", "deliberate", "debate", "research", "pipeline", "peoatr"
-
-# Option 3: Custom static graph
-graph = PromptGraph("my-graph")
-graph.add_node(PlanNode("plan", is_entry=True))
-graph.add_node(PromptNode("execute", inject_tools=True, flags={NodeFlag.RETRYABLE}))
-graph.add_node(ValidateNode("check", on_pass="synthesize", on_fail="execute"))
-graph.add_node(SynthesizeNode("synthesize", is_terminal=True))
-graph.set_entry("plan")
-graph.add_edge("plan", "execute")
-graph.add_edge("execute", "check")
-agent = await build_agent(..., agent_pattern=graph)
-
-# Option 4: Custom node with @node decorator
 from promptise.engine import node
 
 @node("verify")
 async def verify(state):
-    """Custom verification logic."""
     return {"verified": True}
 ```
 
-### 16 Node Flags
+### Skill Registry
 
-ENTRY, TERMINAL, CRITICAL, RETRYABLE, CACHEABLE, SKIP_ON_ERROR, NO_HISTORY, ISOLATED_CONTEXT, LIGHTWEIGHT, VERBOSE, OBSERVABLE, INJECT_TOOLS, PARALLEL_TOOLS, AUTO_SCHEMA, MERGE_CONTEXT, STREAM.
+```python
+from promptise.engine.skill_registry import SkillRegistry
+
+registry = SkillRegistry()
+registry.register(name="code_review", path_glob="src/**/*.py", node=review_node)
+# Skills activate based on directory context
+```
+
+### Hooks & Execution
+
+Every graph traversal fires lifecycle hooks: `on_node_start`, `on_node_end`, `on_graph_start`, `on_graph_end`, `on_error`. The `ExecutionEngine` enforces timeouts, retries, and parallelism. Graphs serialize to / from JSON via `promptise.engine.serialization`.
+
+---
+
+## MCP Server SDK
+
+### Getting Started
+
+```python
+from promptise.mcp.server import (
+    MCPServer, MCPRouter,
+    AuthMiddleware, JWTAuth, AsymmetricJWTAuth, APIKeyAuth,
+    HasRole, HasAllRoles, RequireAuth, RequireClientId,
+    LoggingMiddleware, RateLimitMiddleware, TimeoutMiddleware,
+    CircuitBreakerMiddleware, AuditMiddleware, ConcurrencyLimiter,
+    PerToolConcurrencyLimiter, StructuredLoggingMiddleware,
+    MCPQueue, TestClient, HealthCheck,
+    CacheMiddleware, InMemoryCache, RedisCache, cached,
+    PrometheusMiddleware, OTelMiddleware,
+    WebhookMiddleware,
+    Depends, Elicitor, Sampler, StreamingResult, ProgressReporter,
+    OpenAPIProvider,
+    NamespaceTransform, VisibilityTransform, TagFilterTransform,
+    VersionedToolRegistry,
+    ExceptionHandlerRegistry,
+    TokenEndpointConfig,
+    SessionState, SessionManager,
+)
+
+server = MCPServer("my-api", version="1.0.0")
+
+# Middleware pipeline (pre-compiled for zero overhead)
+server.add_middleware(AuthMiddleware(JWTAuth(secret=os.environ["JWT_SECRET"])))
+server.add_middleware(LoggingMiddleware())
+server.add_middleware(RateLimitMiddleware(rate_per_minute=120))
+server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
+server.add_middleware(CircuitBreakerMiddleware(failure_threshold=5))
+server.add_middleware(AuditMiddleware(log_path="./audit.jsonl"))    # HMAC-chained JSONL
+server.add_middleware(CacheMiddleware(backend=RedisCache(...)))
+server.add_middleware(PrometheusMiddleware())                        # /metrics endpoint
+server.add_middleware(OTelMiddleware(service_name="my-api"))
+```
+
+### Tools, Resources, Prompts
+
+```python
+@server.tool()
+async def search(query: str, limit: int = 10) -> list[dict]:
+    """Search the index.  Schema auto-generated from type hints."""
+    return await db.search(query, limit)
+
+@server.resource("logs://{session_id}")
+async def session_logs(session_id: str) -> str:
+    return await logs.read(session_id)
+
+@server.prompt()
+async def summarize(text: str) -> str:
+    return f"Summarize concisely: {text}"
+```
+
+### Routers, Guards, DI
+
+```python
+hr = MCPRouter(prefix="hr")
+
+@hr.tool(guards=[HasRole("admin")])
+async def update_employee(
+    emp_id: int,
+    department: str,
+    db: Database = Depends(get_db),            # FastAPI-style DI
+    audit: AuditLogger = Depends(get_audit),
+) -> str:
+    audit.log("update", emp_id)
+    return await db.update(emp_id, department)
+
+server.include_router(hr)
+```
+
+### Session State
+
+```python
+@server.tool()
+async def remember(key: str, value: str, session: SessionState = Depends(SessionState)) -> str:
+    session[key] = value
+    return "stored"
+```
+
+### Elicitation & Sampling
+
+```python
+@server.tool()
+async def smart_rename(
+    path: str,
+    elicit: Elicitor = Depends(Elicitor),
+    sample: Sampler = Depends(Sampler),
+) -> str:
+    suggestion = await sample.create_message(
+        messages=[{"role": "user", "content": f"Suggest a rename for {path}"}],
+        max_tokens=100,
+    )
+    confirmed = await elicit.ask("Use this name?", default=suggestion, schema={"type": "string"})
+    return confirmed or "skipped"
+```
+
+### Streaming & Progress
+
+```python
+@server.tool()
+async def long_job(progress: ProgressReporter = Depends(ProgressReporter)) -> StreamingResult:
+    async def chunks():
+        for i, row in enumerate(await db.all()):
+            await progress.report(percent=i / 1000 * 100, message=f"row {i}")
+            yield row
+    return StreamingResult(chunks())
+```
+
+### Job Queue
+
+```python
+queue = MCPQueue(server, max_workers=4)
+
+@queue.job(timeout=120, max_retries=3, priority=5)
+async def generate_report(dept: str, progress) -> str:
+    await progress.report(50, "Analyzing...")
+    return "done"
+
+# Auto-registered tools: queue_submit, queue_status, queue_result, queue_cancel, queue_list
+```
+
+### Versioning & Transforms
+
+```python
+registry = VersionedToolRegistry()
+registry.register(search, version="1.0")
+registry.register(search_v2, version="2.0")
+# Clients see `search` (latest) and `search@1.0`, `search@2.0`
+
+server.transforms = [
+    NamespaceTransform(prefix="v2"),
+    VisibilityTransform(hide={"internal_*"}),
+    TagFilterTransform(required_tags={"public"}),
+]
+```
+
+### Exception Handlers
+
+```python
+handlers = ExceptionHandlerRegistry()
+
+@handlers.handler(RateLimited)
+async def on_rate_limited(exc: RateLimited) -> dict:
+    return {"code": 429, "message": str(exc), "retry_after": exc.retry_after}
+
+server.exception_handlers = handlers
+```
+
+### Webhooks
+
+```python
+server.add_middleware(WebhookMiddleware(
+    url="https://hooks.example.com/tool-events",
+    events=["tool.success", "tool.error"],
+    secret=os.environ["HOOK_SECRET"],
+))
+```
+
+### OpenAPI Import
+
+```python
+server.include_openapi(OpenAPIProvider(spec_url="https://api.example.com/openapi.json"))
+# Every OpenAPI operation becomes an MCP tool automatically
+```
+
+### Composition
+
+```python
+core = MCPServer("core")
+plugins = MCPServer("plugins")
+core.mount(plugins, prefix="ext")
+```
+
+### Testing
+
+```python
+client = TestClient(server, meta={"authorization": "Bearer token"})
+result = await client.call_tool("hr_update_employee", {"emp_id": 1, "department": "Eng"})
+```
+
+### Run
+
+```python
+server.run(transport="sse", port=8080)
+# Or: promptise serve myapp:server --transport http --dashboard
+```
+
+### Transports & Auth
+
+- stdio, streamable HTTP, SSE — configurable CORS
+- `JWTAuth` (HS256), `AsymmetricJWTAuth` (RS256 / ES256), `APIKeyAuth`
+- LRU token caching
+- `TokenEndpointConfig` — built-in OAuth2 client_credentials (dev/test)
+- `HealthCheck` with Kubernetes-native liveness / readiness / startup probes
+
+### Dashboard
+
+`promptise serve ... --dashboard` launches a live 6-tab terminal UI: overview, tool stats, agents, request log, performance, raw logs.
+
+---
+
+## MCP Client
+
+```python
+from promptise.mcp.client import MCPClient, MCPMultiClient, MCPToolAdapter
+
+# Single server
+async with MCPClient(url="http://localhost:8080/mcp", bearer_token="...") as client:
+    tools = await client.list_tools()
+    result = await client.call_tool("search", {"query": "hello"})
+
+# Federate N servers into one tool suite with auto-routing
+async with MCPMultiClient({
+    "hr": HTTPServerSpec(url="http://hr:8080/mcp"),
+    "finance": HTTPServerSpec(url="http://finance:8080/mcp"),
+}) as multi:
+    tools = await multi.list_tools()
+
+# Convert MCP → LangChain BaseTool (recursive schema handling)
+langchain_tools = [MCPToolAdapter(client, tool) for tool in tools]
+```
+
+Native implementation. No third-party MCP client deps. HTTP, SSE, stdio. Bearer token + API key.
+
+---
 
 ## Agent Runtime
 
+### Basic Runtime
+
 ```python
 from promptise.runtime import AgentRuntime, ProcessConfig, TriggerConfig
-from promptise.runtime import BudgetConfig, HealthConfig, MissionConfig
+from promptise.runtime import BudgetConfig, HealthConfig, MissionConfig, SecretsConfig
 
 async with AgentRuntime() as runtime:
     await runtime.add_process("my-agent", ProcessConfig(
-        model="openai:gpt-4o-mini",
+        model="openai:gpt-5-mini",
         instructions="Monitor and respond to events.",
         servers={"tools": {"url": "http://localhost:8080/mcp"}},
         triggers=[
             TriggerConfig(type="cron", cron_expression="*/5 * * * *"),
-            TriggerConfig(type="webhook", webhook_path="/alerts"),
+            TriggerConfig(type="webhook", webhook_path="/alerts", hmac_secret="..."),
             TriggerConfig(type="event", event_pattern="orders.*"),
+            TriggerConfig(type="message", topic="support.tickets.*"),
             TriggerConfig(type="file_watch", watch_path="./data", glob_pattern="*.csv"),
         ],
-        budget=BudgetConfig(max_tool_calls_per_run=50, max_cost_per_day=10.0, on_exceeded="pause"),
-        health=HealthConfig(detect_loops=True, detect_stuck=True, on_anomaly="escalate"),
+        budget=BudgetConfig(
+            max_tool_calls_per_run=50,
+            max_cost_per_day=10.0,
+            max_irreversible_actions_per_run=1,
+            on_exceeded="pause",           # "pause" | "stop" | "escalate"
+        ),
+        health=HealthConfig(
+            detect_loops=True,
+            detect_stuck=True,
+            detect_empty_responses=True,
+            detect_error_rate=True,
+            on_anomaly="escalate",
+        ),
         mission=MissionConfig(
             objective="Keep uptime above 99.9%",
-            success_criteria="No P1 unresolved >15min",
+            success_criteria="No P1 unresolved > 15min",
             evaluate_every_n=10,
+            confidence_threshold=0.8,
+        ),
+        secrets=SecretsConfig(
+            values={"DB_PASSWORD": "${DB_PASSWORD}"},
+            ttl_seconds=3600,
         ),
     ))
     await runtime.start_all()
 ```
 
+### 5 Triggers
+
+Cron, Event (EventBus subscription), Message (topic pub/sub with wildcards), Webhook (HMAC-verified HTTP POST), FileWatch (glob-filtered directory monitoring). Register custom trigger types via `register_trigger_type()`.
+
+### Journals — Crash Recovery
+
+```python
+from promptise.runtime.journal import FileJournal, InMemoryJournal, ReplayEngine, RewindEngine
+
+process = ProcessConfig(..., journal=FileJournal("./journal.jsonl"))
+
+# 5 rewind modes
+engine = RewindEngine(process)
+await engine.rewind(mode="full")            # Full state rollback
+await engine.rewind(mode="conversation")    # Only conversation buffer
+await engine.rewind(mode="code")            # Only code-generated artifacts
+await engine.rewind(mode="summarize")       # Compress into summary
+await engine.rewind(mode="preview")         # Dry run — show what would revert
+```
+
+### Open Mode — 14 Meta-Tools
+
+```python
+process = ProcessConfig(
+    ...,
+    open_mode=True,
+    open_mode_constraints={
+        "max_instruction_length": 8000,
+        "max_custom_tools": 16,
+        "mcp_url_whitelist": ["https://trusted.example.com/*"],
+        "require_sandbox_for_code": True,
+    },
+)
+```
+
+Agent receives: `modify_instructions`, `create_tool`, `connect_mcp_server`, `add_trigger`, `remove_trigger`, `spawn_process`, `list_processes`, `store_memory`, `search_memory`, `forget_memory`, `list_capabilities`, `get_secret`, `check_budget`, `check_mission`. Hot-reload without losing conversation state; rollback to original config.
+
+### Hooks
+
+```python
+from promptise.runtime.hooks import on_start, on_stop, on_invocation, ShellHook
+
+@on_start(once=True, priority=10)
+async def warm_up(ctx): ...
+
+@on_invocation
+async def log_turn(ctx): ...
+
+process = ProcessConfig(..., hooks=[ShellHook(command="./scripts/notify.sh")])
+```
+
+14 lifecycle hooks with `once: true`, priority ordering, and `ShellHook` for external scripts.
+
+### Inbox — Live Agent Conversation
+
+```python
+from promptise.runtime.inbox import Inbox
+
+# Send a message to a running process and receive a reply
+reply = await runtime.ask("my-agent", "What's the current queue depth?", timeout=30)
+
+# Programmatic inbox control
+inbox = runtime.inbox("my-agent")
+await inbox.put({"role": "user", "content": "pause after this task"})
+```
+
+### REST API — 37 Endpoints
+
+```python
+from promptise.runtime.api import APIServer
+from promptise.runtime.api_client import APIClient
+
+APIServer(runtime).run(host="0.0.0.0", port=9000)
+
+# Typed client
+async with APIClient("http://localhost:9000", token="...") as api:
+    status = await api.runtime_status()
+    await api.deploy_process("analyst", ProcessConfig(...))
+    await api.send_message("analyst", "Hello")
+    reply = await api.ask("analyst", "How are the pipelines?")
+    inbox = await api.get_inbox("analyst")
+```
+
+Endpoints cover: runtime lifecycle, process CRUD (deploy/remove/start/stop/restart), updates to instructions/budget/health/mission, messaging & ask, inbox read/clear, health, events, logs, distributed coordination. 37 handlers total.
+
+### Distributed
+
+```python
+from promptise.runtime.distributed import RuntimeCoordinator, StaticDiscovery, RegistryDiscovery
+
+coord = RuntimeCoordinator(
+    node_id="node-a",
+    discovery=StaticDiscovery(peers=["http://node-b:9000", "http://node-c:9000"]),
+)
+await coord.start()
+```
+
+Multi-node coordination over HTTP. No etcd/Consul dependency.
+
+### Manifests — `.agent` YAML
+
+```yaml
+# monitor.agent
+model: openai:gpt-5-mini
+instructions: Monitor data pipelines. Escalate anomalies.
+servers:
+  tools:
+    url: http://localhost:8080/mcp
+triggers:
+  - type: cron
+    expression: "*/5 * * * *"
+budget:
+  max_tool_calls_per_day: 500
+  on_exceeded: pause
+health:
+  detect_loops: true
+  on_anomaly: escalate
+mission:
+  objective: Keep uptime above 99.9%
+  success_criteria: No P1 unresolved >15min
+secrets:
+  DB_PASSWORD: ${DB_PASSWORD}
+open_mode: false
+```
+
+```bash
+promptise runtime monitor.agent
+```
+
+### Dashboard
+
+Live terminal dashboard: process state, invocation counts, trigger status, context inspection, memory usage, journal history.
+
+---
+
 ## Prompt Engineering
+
+### 8 Block Types with Priority-Based Budgeting
+
+```python
+from promptise.prompts.blocks import (
+    Identity, Rules, OutputFormat, ContextSlot, Section,
+    Examples, Conditional, Composite,
+)
+```
+
+| Block | Priority | Purpose |
+|-------|----------|---------|
+| `Identity` | 10 | Who the agent is |
+| `Rules` | 9 | Hard constraints |
+| `OutputFormat` | 8 | Required structure |
+| `ContextSlot` | configurable | Dynamic runtime injection |
+| `Section` | configurable | Custom-labelled block |
+| `Examples` | 4 | Few-shot demonstrations |
+| `Conditional` | inherit | Predicate-gated block |
+| `Composite` | inherit | Grouped sub-blocks |
+
+Lowest-priority blocks drop first when the token budget is tight.
+
+### `@prompt` Decorator
 
 ```python
 from promptise.prompts import prompt
-from promptise.prompts.blocks import Identity, Rules, OutputFormat, ContextSlot, Examples
-from promptise.prompts.strategies import chain_of_thought, self_critique, structured_reasoning
-from promptise.prompts.guards import SchemaStrictGuard, ContentFilterGuard, LengthGuard
+from promptise.prompts.strategies import chain_of_thought, self_critique
+from promptise.prompts.guards import SchemaStrictGuard
+
+@prompt(
+    template="Analyze {topic} and return a structured report.",
+    blocks=[Identity("Senior analyst"), Rules(["Cite sources"])],
+    strategy=chain_of_thought + self_critique,
+    guards=[SchemaStrictGuard(ReportModel, max_retries=3)],
+    output_schema=ReportModel,
+)
+async def analyze(topic: str) -> ReportModel:
+    ...
+
+report = await analyze(topic="AI chips")
+```
+
+Standalone or attached to an agent. Pipeline: template render → block assembly → context injection → strategy wrap → constraint enforcement → guard check → LLM call → output parse.
+
+### 5 Composable Strategies
+
+```python
+from promptise.prompts.strategies import (
+    chain_of_thought,
+    structured_reasoning,
+    self_critique,
+    plan_and_execute,
+    decompose,
+)
+
+combined = chain_of_thought + self_critique      # Compose with +
+```
+
+### 4 Built-in Perspectives
+
+```python
+from promptise.prompts.strategies import Analyst, Critic, Advisor, Creative, CustomPerspective
+```
+
+Orthogonal to strategies. `CustomPerspective(name="compliance_officer", framing="...")` for domain-specific framing.
+
+### Guards
+
+```python
+from promptise.prompts.guards import (
+    ContentFilterGuard,    # Blocked / required words
+    LengthGuard,           # min / max chars
+    SchemaStrictGuard,     # JSON Schema with retry
+    InputValidatorGuard,   # Custom callable on inputs
+    OutputValidatorGuard,  # Custom callable on output
+)
+```
+
+### 11 Context Providers
+
+`ToolContextProvider`, `MemoryContextProvider`, `TaskContextProvider`, `BlackboardContextProvider`, `UserContextProvider`, `EnvironmentContextProvider`, `ConversationContextProvider`, `TeamContextProvider`, `ErrorContextProvider`, `OutputContextProvider`, `StaticContextProvider`, `CallableContextProvider`, `ConditionalContextProvider`, `WorldContextProvider`. All async-aware; injected automatically before every LLM call.
+
+### Conversation Flows
+
+```python
 from promptise.prompts.flows import ConversationFlow, phase
-from promptise.prompts.builder import PromptBuilder
 
-# 8 block types with priority-based token budgeting
-# When budget is tight, lowest-priority blocks drop first
-
-# Conversation flows
 class SupportFlow(ConversationFlow):
-    @phase(initial=True)
+    @phase(initial=True, on_enter=[greet_hook])
     async def gather(self, turn): ...
     @phase
     async def diagnose(self, turn): ...
-    @phase
+    @phase(on_exit=[log_resolution])
     async def resolve(self, turn): ...
 
-# Composable strategies
-result = await (my_prompt
-    .with_strategy(chain_of_thought + self_critique)
-    .with_guard(SchemaStrictGuard(OutputModel, max_retries=3))
-)(input_data)
+agent = await build_agent(..., flow=SupportFlow())
 ```
 
-## Event Notifications
+Phases activate / deactivate blocks. Depth-limited recursive transitions.
+
+### PromptBuilder — Fluent Runtime
 
 ```python
-from promptise.events import EventNotifier, WebhookSink, CallbackSink
+from promptise.prompts.builder import PromptBuilder
 
-notifier = EventNotifier(sinks=[
-    WebhookSink(url="https://hooks.slack.com/...", events=["invocation.error"]),
-    CallbackSink(lambda event: print(event.event_type)),
-])
-agent = await build_agent(..., events=notifier)
+prompt_fn = (PromptBuilder("Analyze {topic}")
+    .identity("Senior analyst")
+    .rules(["Cite sources", "Flag uncertainty"])
+    .strategy(chain_of_thought)
+    .build())
 ```
+
+### Chaining
+
+```python
+from promptise.prompts.chain import chain, parallel, branch, retry, fallback
+
+pipeline = chain(extract, classify, summarize)
+both = parallel(p1, p2)
+routed = branch(lambda x: "legal" if x.sensitive else "default", legal_flow, default_flow)
+resilient = retry(p, max_attempts=3, backoff=2.0)
+hardy = fallback(primary, secondary, tertiary)
+```
+
+### YAML Loader — `.prompt` Files
+
+```yaml
+# analyze.prompt
+template: "Analyze {topic} and produce a report."
+identity: "Senior analyst"
+rules:
+  - "Cite sources"
+strategy: chain_of_thought + self_critique
+output_schema: myapp.models.ReportModel
+```
+
+```python
+from promptise.prompts.loader import load_prompt
+analyze = load_prompt("analyze.prompt")
+```
+
+Load from file, URL, or directory.
+
+### Registry — SemVer Versioning
+
+```python
+from promptise.prompts.registry import PromptRegistry, version
+
+@version("1.2.0")
+@prompt(...)
+async def classify(text: str) -> Category: ...
+
+registry = PromptRegistry()
+registry.register(classify)
+registry.rollback("classify", to="1.1.0")
+```
+
+### Inspector — Assembly Trace
+
+```python
+from promptise.prompts.inspector import PromptInspector
+
+trace = PromptInspector.trace(classify, {"text": "..."})
+print(trace.blocks_included, trace.tokens_per_block, trace.guard_results)
+```
+
+### Template Engine (Shell Opt-In)
+
+```python
+from promptise.prompts.template import TemplateEngine, SubprocessShellExecutor, render_template
+
+# Default — shell syntax is literal
+render_template("Today: {date}", {"date": "2026-04-22"})
+
+# Opt-in — !`cmd` is executed
+engine = TemplateEngine(shell_executor=SubprocessShellExecutor(timeout=2.0, allowlist={"date", "git"}))
+engine.render("Today is !`date +%Y-%m-%d`. Branch: !`git rev-parse --abbrev-ref HEAD`.", {})
+```
+
+Jinja-style `{% if %}`, `{% for %}`, `{% include %}`. SSTI-hardened via `_SafeFormatter` (blocks attribute access). Literal `{{` / `}}` escape. Shell execution is **disabled by default**.
+
+### Testing
+
+```python
+from promptise.prompts.testing import mock_llm, mock_context, assert_schema, assert_contains, assert_latency, assert_guard_passed
+
+async def test_classify():
+    with mock_llm(response='{"category": "support"}'):
+        result = await classify(text="...")
+    assert_schema(result, Category)
+```
+
+### Suites
+
+```python
+from promptise.prompts.suite import PromptSuite
+
+support = PromptSuite(
+    defaults=dict(strategy=chain_of_thought, guards=[LengthGuard(max_chars=4000)]),
+    prompts=[triage, diagnose, resolve],
+)
+```
+
+---
+
+## Source Tree
+
+| Module | Purpose |
+|--------|---------|
+| `promptise/agent.py` | `build_agent()`, `PromptiseAgent`, `CallerContext` |
+| `promptise/config.py` | `HTTPServerSpec`, `StdioServerSpec`, optimization / observability configs |
+| `promptise/types.py` | Core protocols and TypedDicts |
+| `promptise/memory.py` | `InMemoryProvider`, `ChromaProvider`, `Mem0Provider` |
+| `promptise/conversations.py` | 4 conversation stores |
+| `promptise/cache.py` | `SemanticCache`, embedding backend, Redis backend |
+| `promptise/guardrails.py` | 6-head security scanner |
+| `promptise/tool_optimization.py` | Semantic tool selection (4 levels) |
+| `promptise/tools.py` | Tool discovery + MCP → LangChain adapters |
+| `promptise/observability.py` | Collector + ring buffer |
+| `promptise/observability_config.py` | Observability level enum + config |
+| `promptise/observability_transporters.py` | 8 transporters |
+| `promptise/callback_handler.py` | LangChain callback integration |
+| `promptise/cross_agent.py` | `CrossAgent`, `ask_peer`, `broadcast` |
+| `promptise/approval.py` | `ApprovalPolicy` + CLI / webhook / auto handlers |
+| `promptise/approval_classifier.py` | ML approval classifier (5-layer hierarchy) |
+| `promptise/events.py` | `EventNotifier` + Slack / PagerDuty / Webhook / Callback sinks |
+| `promptise/streaming.py` | `StreamEvent`, `astream()` helpers |
+| `promptise/fallback.py` | `FallbackChain` for provider failover |
+| `promptise/rag.py` | Loader / chunker / embedder / store pipeline |
+| `promptise/sandbox/` | Docker + seccomp + gVisor runtime, 5 injected tools |
+| `promptise/strategy.py` | `AdaptiveConfig` + failure classifier |
+| `promptise/context_engine.py` | Pluggable context assembly |
+| `promptise/superagent.py` + `superagent_schema.py` | `.superagent` YAML loader + validator |
+| `promptise/env_resolver.py` | `${VAR}` / `${VAR:-default}` expansion |
+| `promptise/exceptions.py` | Typed exception hierarchy |
+| `promptise/cli.py` | `promptise` entry points |
+| `promptise/prompt.py` | Built-in `DEFAULT_SYSTEM_PROMPT` |
+| `promptise/engine/` | Graph engine — 13 files |
+| `promptise/prompts/` | Prompt engineering — 16 files |
+| `promptise/mcp/server/` | Server SDK — 52 files |
+| `promptise/mcp/client/` | Client SDK — 4 files |
+| `promptise/runtime/` | Agent Runtime — 23 files + `triggers/`, `journal/`, `distributed/` |
+
+---
 
 ## Installation
 
 ```bash
-pip install promptise                    # Core (agent + MCP client + engine + runtime + prompts)
-pip install promptise[ml]                # + ChromaDB, sentence-transformers, guardrails ML models
-pip install promptise[infra]             # + Redis, Docker
-pip install promptise[observability]     # + OpenTelemetry, Prometheus
-pip install promptise[all]               # Everything
+pip install promptise              # Core — agent + MCP + engine + runtime + prompts + OpenAI
+pip install "promptise[all]"       # + ChromaDB, sentence-transformers, guardrail ML models, Redis, Docker, OpenTelemetry, Prometheus, Mem0
+pip install "promptise[dev]"       # Contributors only (tests + lint + docs)
 ```
+
+Python 3.10+. No third-party MCP client dependency (native implementation).
+
+---
+
+## Examples
+
+15 runnable scripts across 12 categories, all using real LLM calls via `build_agent()` — no mocks:
+
+- `examples/adaptive/` — `learning_agent.py`
+- `examples/approval/` — `auto_classifier.py`
+- `examples/hooks/` — `lifecycle_hooks.py`
+- `examples/mcp/` — `enterprise_server.py`, `enterprise_cli.py`
+- `examples/memory/` — `multiuser_chat.py`
+- `examples/production/` — `server.py`, `demo.py`
+- `examples/prompts/` — `conversation_flow.py`
+- `examples/rag/` — `basic_rag.py`
+- `examples/reasoning/` — `research_agent.py`
+- `examples/runtime/` — `multi_agent_pipeline.py`, `pipeline_monitor.py`
+- `examples/sandbox/` — `code_executor.py`
+- `examples/security/` — `financial_agent.py`
+
+Default model: `openai:gpt-5-mini`. Only requirement: the relevant API-key env var.
+
+---
 
 ## Optional
 
-- [Changelog](https://docs.promptise.com/resources/changelog/)
-- [Contributing](https://github.com/promptise/foundry/blob/main/CONTRIBUTING.md)
-- [Examples Gallery](https://docs.promptise.com/resources/examples/)
-- [Migration Guide](https://docs.promptise.com/resources/migration/)
+- [Changelog](https://promptise.github.io/foundry/resources/changelog/)
+- [Contributing](https://github.com/promptise-com/foundry/blob/main/CONTRIBUTING.md)
+- [Examples Gallery](https://promptise.github.io/foundry/resources/examples/)
+- [Migration Guide](https://promptise.github.io/foundry/resources/migration/)
+- [Security Policy](https://github.com/promptise-com/foundry/blob/main/SECURITY.md)

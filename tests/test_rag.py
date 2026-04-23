@@ -1,7 +1,6 @@
 """Unit tests for the RAG base foundation (promptise.rag)."""
-from __future__ import annotations
 
-import asyncio
+from __future__ import annotations
 
 import pytest
 
@@ -19,7 +18,6 @@ from promptise.rag import (
     content_hash,
     rag_to_tool,
 )
-
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -228,17 +226,17 @@ class TestInMemoryVectorStore:
     async def test_dimension_validation(self):
         store = InMemoryVectorStore(dimension=3)
         with pytest.raises(ValueError, match="dimension"):
-            await store.add([
-                Chunk(id="c1", document_id="d1", text="hi", embedding=[0.1, 0.2])
-            ])
+            await store.add([Chunk(id="c1", document_id="d1", text="hi", embedding=[0.1, 0.2])])
 
     @pytest.mark.asyncio
     async def test_delete(self):
         store = InMemoryVectorStore()
-        await store.add([
-            Chunk(id="c1", document_id="d1", text="a", embedding=[1.0, 0.0]),
-            Chunk(id="c2", document_id="d1", text="b", embedding=[0.0, 1.0]),
-        ])
+        await store.add(
+            [
+                Chunk(id="c1", document_id="d1", text="a", embedding=[1.0, 0.0]),
+                Chunk(id="c2", document_id="d1", text="b", embedding=[0.0, 1.0]),
+            ]
+        )
         await store.delete(["c1"])
         assert await store.count() == 1
         results = await store.search([1.0, 0.0])
@@ -247,11 +245,13 @@ class TestInMemoryVectorStore:
     @pytest.mark.asyncio
     async def test_delete_by_document(self):
         store = InMemoryVectorStore()
-        await store.add([
-            Chunk(id="c1", document_id="d1", text="a", embedding=[1.0, 0.0]),
-            Chunk(id="c2", document_id="d1", text="b", embedding=[0.5, 0.5]),
-            Chunk(id="c3", document_id="d2", text="c", embedding=[0.0, 1.0]),
-        ])
+        await store.add(
+            [
+                Chunk(id="c1", document_id="d1", text="a", embedding=[1.0, 0.0]),
+                Chunk(id="c2", document_id="d1", text="b", embedding=[0.5, 0.5]),
+                Chunk(id="c3", document_id="d2", text="c", embedding=[0.0, 1.0]),
+            ]
+        )
         removed = await store.delete_by_document("d1")
         assert removed == 2
         assert await store.count() == 1
@@ -259,18 +259,24 @@ class TestInMemoryVectorStore:
     @pytest.mark.asyncio
     async def test_metadata_filter(self):
         store = InMemoryVectorStore()
-        await store.add([
-            Chunk(
-                id="c1", document_id="d1", text="a",
-                embedding=[1.0, 0.0],
-                metadata={"category": "tech"},
-            ),
-            Chunk(
-                id="c2", document_id="d1", text="b",
-                embedding=[1.0, 0.0],
-                metadata={"category": "food"},
-            ),
-        ])
+        await store.add(
+            [
+                Chunk(
+                    id="c1",
+                    document_id="d1",
+                    text="a",
+                    embedding=[1.0, 0.0],
+                    metadata={"category": "tech"},
+                ),
+                Chunk(
+                    id="c2",
+                    document_id="d1",
+                    text="b",
+                    embedding=[1.0, 0.0],
+                    metadata={"category": "food"},
+                ),
+            ]
+        )
         results = await store.search([1.0, 0.0], filter={"category": "tech"})
         assert len(results) == 1
         assert results[0].chunk.metadata["category"] == "tech"
@@ -362,10 +368,12 @@ class TestRAGPipeline:
     @pytest.mark.asyncio
     async def test_delete_document(self):
         pipeline = RAGPipeline(
-            loader=_FakeLoader([
-                Document(id="d1", text="document one content"),
-                Document(id="d2", text="document two content"),
-            ]),
+            loader=_FakeLoader(
+                [
+                    Document(id="d1", text="document one content"),
+                    Document(id="d2", text="document two content"),
+                ]
+            ),
             embedder=_FakeEmbedder(),
             store=InMemoryVectorStore(),
         )
@@ -395,9 +403,11 @@ class TestRagToTool:
     @pytest.mark.asyncio
     async def test_creates_langchain_tool(self):
         pipeline = RAGPipeline(
-            loader=_FakeLoader([
-                Document(id="d1", text="The capital of France is Paris."),
-            ]),
+            loader=_FakeLoader(
+                [
+                    Document(id="d1", text="The capital of France is Paris."),
+                ]
+            ),
             embedder=_FakeEmbedder(),
             store=InMemoryVectorStore(),
         )
@@ -439,6 +449,7 @@ class TestRagToTool:
         tool = rag_to_tool(pipeline, format="json")
         result = await tool.ainvoke({"query": "hello"})
         import json
+
         # Should be valid JSON
         parsed = json.loads(result)
         assert isinstance(parsed, list)

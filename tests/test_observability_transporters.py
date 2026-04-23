@@ -201,7 +201,7 @@ class TestOTLPTransporter:
         from promptise.observability_transporters import OTLPTransporter
 
         try:
-            t = OTLPTransporter(endpoint="http://localhost:4317")
+            OTLPTransporter(endpoint="http://localhost:4317")
             # Should construct without error
         except ImportError:
             pytest.skip("opentelemetry not available")
