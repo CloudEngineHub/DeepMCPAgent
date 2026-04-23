@@ -329,9 +329,9 @@ python -m pdb -m promptise.cli agent test.superagent
 
 ## 🙋 Getting Help
 
-- **Questions:** Open a [GitHub Discussion](https://github.com/cryxnet/Foundry/discussions)
-- **Bug reports:** Open a [GitHub Issue](https://github.com/cryxnet/Foundry/issues)
-- **Feature requests:** Open a [GitHub Issue](https://github.com/cryxnet/Foundry/issues)
+- **Questions:** Open a [GitHub Discussion](https://github.com/promptise-com/foundry/discussions)
+- **Bug reports:** Open a [GitHub Issue](https://github.com/promptise-com/foundry/issues)
+- **Feature requests:** Open a [GitHub Issue](https://github.com/promptise-com/foundry/issues)
 - **Security issues:** See [SECURITY.md](SECURITY.md)
 
 ## 📄 License
