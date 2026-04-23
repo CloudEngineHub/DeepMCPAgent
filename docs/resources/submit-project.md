@@ -87,7 +87,7 @@ To keep the quality bar high, we decline submissions that:
 
 ## How to submit
 
-Send an email to **showcase@promptise.dev** with the subject line:
+Send an email to **showcase@promptise.com** with the subject line:
 
 ```
 [Project Submission] Your Project Name
@@ -123,4 +123,4 @@ If you want your project removed from the showcase, email us and we will remove 
 
 If you are unsure whether your project qualifies, submit it anyway. The worst that happens is we say no. The best that happens is we feature it and thousands of developers see your work.
 
-For questions about the submission process, email **showcase@promptise.dev**.
+For questions about the submission process, email **showcase@promptise.com**.
