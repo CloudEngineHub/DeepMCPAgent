@@ -300,8 +300,10 @@ class PromptGraph:
         return self.add_edge(
             from_node,
             to_node,
-            condition=lambda r: isinstance(r.output, dict)
-            and float(r.output.get("confidence", 0)) >= min_confidence,
+            condition=lambda r: (
+                isinstance(r.output, dict)
+                and float(r.output.get("confidence", 0)) >= min_confidence
+            ),
             label=f"confidence>={min_confidence}",
         )
 
