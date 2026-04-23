@@ -22,7 +22,7 @@ All functionality is preserved and expanded. The migration is primarily a rename
 | **Python import** | `from deepmcpagent import ...` | `from promptise import ...` |
 | **CLI command** | `deepmcpagent` | `promptise` |
 | **GitHub repository** | `github.com/cryxnet/DeepMCPAgent` | `github.com/promptise-com/foundry` |
-| **Documentation** | Various URLs | `promptise.github.io/foundry` |
+| **Documentation** | Various URLs | `docs.promptise.com` |
 
 ---
 

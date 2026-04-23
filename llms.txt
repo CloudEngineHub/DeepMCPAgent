@@ -13,100 +13,100 @@ Key concepts:
 
 ## Core Agent
 
-- [Building Agents](https://promptise.github.io/foundry/core/agents/building-agents/): `build_agent()`, `PromptiseAgent`, `ainvoke()`, `astream()`, `chat()`, `shutdown()`.
-- [Configuration](https://promptise.github.io/foundry/core/agents/configuration/): `HTTPServerSpec`, `StdioServerSpec`, model strings, `FallbackChain`.
-- [Memory](https://promptise.github.io/foundry/core/agents/memory/): `InMemoryProvider`, `ChromaProvider`, `Mem0Provider` — auto-searched before each invocation.
-- [Conversations](https://promptise.github.io/foundry/core/agents/conversations/): `InMemoryConversationStore`, `SQLiteConversationStore`, `PostgresConversationStore`, `RedisConversationStore` — session ownership enforced.
-- [Guardrails](https://promptise.github.io/foundry/core/agents/guardrails/): `PromptiseSecurityScanner` with 6 detection heads (prompt injection, PII, credentials, NER, content safety, custom). All models run locally.
-- [Semantic Cache](https://promptise.github.io/foundry/core/agents/cache/): In-memory or Redis backend; per-user / per-session / shared scope; GDPR `purge_user()`; optional encryption at rest.
-- [Tool Optimization](https://promptise.github.io/foundry/core/agents/tool-optimization/): 4 levels (NONE, MINIMAL, STANDARD, SEMANTIC). Semantic mode selects relevant tools per query — 40-70% fewer tokens.
-- [Sandbox](https://promptise.github.io/foundry/core/agents/sandbox/): Docker + seccomp + capability dropping + gVisor. 5 auto-injected tools (execute, read_file, write_file, list_files, install_package).
-- [Cross-Agent Delegation](https://promptise.github.io/foundry/core/agents/cross-agent/): `CrossAgent`, `ask_peer()`, `broadcast()` over HTTP + JWT.
-- [Approval](https://promptise.github.io/foundry/core/agents/approval/): `ApprovalPolicy` + CLI / webhook / auto handlers. Auto classifier with 5-layer decision hierarchy.
-- [Events](https://promptise.github.io/foundry/core/agents/events/): `EventNotifier` with Slack, PagerDuty, webhook, callback sinks.
-- [Streaming](https://promptise.github.io/foundry/core/agents/streaming/): `astream()` with token + tool-call + tool-result events.
-- [RAG Foundation](https://promptise.github.io/foundry/core/agents/rag/): Pluggable loader / chunker / embedder / store pipeline.
-- [Adaptive Strategy](https://promptise.github.io/foundry/core/agents/adaptive/): Failure classification and strategy learning over time.
-- [Observability](https://promptise.github.io/foundry/core/observability/): 4 levels (OFF, BASIC, STANDARD, FULL). 8 transporters (HTML, JSON, structured log, console, Prometheus, OpenTelemetry, webhook, callback).
-- [SuperAgent Files](https://promptise.github.io/foundry/core/superagent/): `.superagent` YAML with `${VAR}` resolution and cross-agent cycle detection.
-- [CLI](https://promptise.github.io/foundry/core/cli/): `promptise agent`, `promptise validate`, `promptise list-tools`, `promptise run`, `promptise serve`, `promptise runtime`.
+- [Building Agents](https://docs.promptise.com/core/agents/building-agents/): `build_agent()`, `PromptiseAgent`, `ainvoke()`, `astream()`, `chat()`, `shutdown()`.
+- [Configuration](https://docs.promptise.com/core/agents/configuration/): `HTTPServerSpec`, `StdioServerSpec`, model strings, `FallbackChain`.
+- [Memory](https://docs.promptise.com/core/agents/memory/): `InMemoryProvider`, `ChromaProvider`, `Mem0Provider` — auto-searched before each invocation.
+- [Conversations](https://docs.promptise.com/core/agents/conversations/): `InMemoryConversationStore`, `SQLiteConversationStore`, `PostgresConversationStore`, `RedisConversationStore` — session ownership enforced.
+- [Guardrails](https://docs.promptise.com/core/agents/guardrails/): `PromptiseSecurityScanner` with 6 detection heads (prompt injection, PII, credentials, NER, content safety, custom). All models run locally.
+- [Semantic Cache](https://docs.promptise.com/core/agents/cache/): In-memory or Redis backend; per-user / per-session / shared scope; GDPR `purge_user()`; optional encryption at rest.
+- [Tool Optimization](https://docs.promptise.com/core/agents/tool-optimization/): 4 levels (NONE, MINIMAL, STANDARD, SEMANTIC). Semantic mode selects relevant tools per query — 40-70% fewer tokens.
+- [Sandbox](https://docs.promptise.com/core/agents/sandbox/): Docker + seccomp + capability dropping + gVisor. 5 auto-injected tools (execute, read_file, write_file, list_files, install_package).
+- [Cross-Agent Delegation](https://docs.promptise.com/core/agents/cross-agent/): `CrossAgent`, `ask_peer()`, `broadcast()` over HTTP + JWT.
+- [Approval](https://docs.promptise.com/core/agents/approval/): `ApprovalPolicy` + CLI / webhook / auto handlers. Auto classifier with 5-layer decision hierarchy.
+- [Events](https://docs.promptise.com/core/agents/events/): `EventNotifier` with Slack, PagerDuty, webhook, callback sinks.
+- [Streaming](https://docs.promptise.com/core/agents/streaming/): `astream()` with token + tool-call + tool-result events.
+- [RAG Foundation](https://docs.promptise.com/core/agents/rag/): Pluggable loader / chunker / embedder / store pipeline.
+- [Adaptive Strategy](https://docs.promptise.com/core/agents/adaptive/): Failure classification and strategy learning over time.
+- [Observability](https://docs.promptise.com/core/observability/): 4 levels (OFF, BASIC, STANDARD, FULL). 8 transporters (HTML, JSON, structured log, console, Prometheus, OpenTelemetry, webhook, callback).
+- [SuperAgent Files](https://docs.promptise.com/core/superagent/): `.superagent` YAML with `${VAR}` resolution and cross-agent cycle detection.
+- [CLI](https://docs.promptise.com/core/cli/): `promptise agent`, `promptise validate`, `promptise list-tools`, `promptise run`, `promptise serve`, `promptise runtime`.
 
 ## MCP Server SDK
 
-- [Building Servers](https://promptise.github.io/foundry/mcp/server/building-servers/): `MCPServer`, `MCPRouter`, `@server.tool()`, `@server.resource()`, `@server.prompt()` — schema auto-generated from type hints.
-- [Authentication](https://promptise.github.io/foundry/mcp/server/auth-security/): `JWTAuth` (HS256), `AsymmetricJWTAuth` (RS256 / ES256), `APIKeyAuth`. LRU token cache. Built-in OAuth2 `TokenEndpointConfig` for dev/test.
-- [Guards](https://promptise.github.io/foundry/mcp/server/guards/): `HasRole`, `HasAllRoles`, `RequireAuth`, `RequireClientId`, custom `Guard` protocol.
-- [Middleware](https://promptise.github.io/foundry/mcp/server/middleware/): Logging, Timeout, RateLimit (token bucket), CircuitBreaker, Concurrency, PerToolConcurrency, StructuredLogging, Audit (HMAC-chained JSONL), Cache, Prometheus, OTel, Webhook.
-- [Caching](https://promptise.github.io/foundry/mcp/server/caching/): `InMemoryCache` (LRU + TTL), `RedisCache`, `@cached` decorator.
-- [Job Queue](https://promptise.github.io/foundry/mcp/server/job-queue/): `MCPQueue` with priority, retry + exponential backoff, progress, cancellation. Auto-registered tools: `queue_submit`, `queue_status`, `queue_result`, `queue_cancel`, `queue_list`.
-- [Dependency Injection](https://promptise.github.io/foundry/mcp/server/di/): FastAPI-style `Depends()` with generator cleanup.
-- [Session State](https://promptise.github.io/foundry/mcp/server/session-state/): Per-client key-value storage across tool calls.
-- [Elicitation & Sampling](https://promptise.github.io/foundry/mcp/server/elicitation-sampling/): `Elicitor` (structured mid-call input), `Sampler` (request LLM completions from the client).
-- [Streaming & Progress](https://promptise.github.io/foundry/mcp/server/streaming/): `StreamingResult`, `ProgressReporter`.
-- [Versioning & Transforms](https://promptise.github.io/foundry/mcp/server/versioning/): `VersionedToolRegistry`, `NamespaceTransform`, `VisibilityTransform`, `TagFilterTransform`.
-- [Composition](https://promptise.github.io/foundry/mcp/server/composition/): `server.mount()` for namespace-isolated sub-servers.
-- [OpenAPI Import](https://promptise.github.io/foundry/mcp/server/openapi/): `OpenAPIProvider` converts an OpenAPI spec into MCP tools.
-- [Exception Handlers](https://promptise.github.io/foundry/mcp/server/exception-handlers/): `ExceptionHandlerRegistry` with MRO matching.
-- [Health & Metrics](https://promptise.github.io/foundry/mcp/server/health-metrics/): Kubernetes-native liveness/readiness/startup probes. `MetricsCollector`, `PrometheusMiddleware`, `OTelMiddleware`.
-- [Testing](https://promptise.github.io/foundry/mcp/server/testing/): `TestClient` runs the full pipeline (validation → DI → guards → middleware → handler) in-process with no network.
-- [Transports](https://promptise.github.io/foundry/mcp/server/transports/): stdio, streamable HTTP, SSE. Configurable CORS. Auth gate at transport level.
-- [Dashboard](https://promptise.github.io/foundry/mcp/server/dashboard/): `promptise serve --dashboard` — 6-tab terminal UI.
-- [MCP Client](https://promptise.github.io/foundry/mcp/client/): `MCPClient` (single server), `MCPMultiClient` (federate N servers), `MCPToolAdapter` (MCP → LangChain `BaseTool`). Native implementation.
+- [Building Servers](https://docs.promptise.com/mcp/server/building-servers/): `MCPServer`, `MCPRouter`, `@server.tool()`, `@server.resource()`, `@server.prompt()` — schema auto-generated from type hints.
+- [Authentication](https://docs.promptise.com/mcp/server/auth-security/): `JWTAuth` (HS256), `AsymmetricJWTAuth` (RS256 / ES256), `APIKeyAuth`. LRU token cache. Built-in OAuth2 `TokenEndpointConfig` for dev/test.
+- [Guards](https://docs.promptise.com/mcp/server/guards/): `HasRole`, `HasAllRoles`, `RequireAuth`, `RequireClientId`, custom `Guard` protocol.
+- [Middleware](https://docs.promptise.com/mcp/server/middleware/): Logging, Timeout, RateLimit (token bucket), CircuitBreaker, Concurrency, PerToolConcurrency, StructuredLogging, Audit (HMAC-chained JSONL), Cache, Prometheus, OTel, Webhook.
+- [Caching](https://docs.promptise.com/mcp/server/caching/): `InMemoryCache` (LRU + TTL), `RedisCache`, `@cached` decorator.
+- [Job Queue](https://docs.promptise.com/mcp/server/job-queue/): `MCPQueue` with priority, retry + exponential backoff, progress, cancellation. Auto-registered tools: `queue_submit`, `queue_status`, `queue_result`, `queue_cancel`, `queue_list`.
+- [Dependency Injection](https://docs.promptise.com/mcp/server/di/): FastAPI-style `Depends()` with generator cleanup.
+- [Session State](https://docs.promptise.com/mcp/server/session-state/): Per-client key-value storage across tool calls.
+- [Elicitation & Sampling](https://docs.promptise.com/mcp/server/elicitation-sampling/): `Elicitor` (structured mid-call input), `Sampler` (request LLM completions from the client).
+- [Streaming & Progress](https://docs.promptise.com/mcp/server/streaming/): `StreamingResult`, `ProgressReporter`.
+- [Versioning & Transforms](https://docs.promptise.com/mcp/server/versioning/): `VersionedToolRegistry`, `NamespaceTransform`, `VisibilityTransform`, `TagFilterTransform`.
+- [Composition](https://docs.promptise.com/mcp/server/composition/): `server.mount()` for namespace-isolated sub-servers.
+- [OpenAPI Import](https://docs.promptise.com/mcp/server/openapi/): `OpenAPIProvider` converts an OpenAPI spec into MCP tools.
+- [Exception Handlers](https://docs.promptise.com/mcp/server/exception-handlers/): `ExceptionHandlerRegistry` with MRO matching.
+- [Health & Metrics](https://docs.promptise.com/mcp/server/health-metrics/): Kubernetes-native liveness/readiness/startup probes. `MetricsCollector`, `PrometheusMiddleware`, `OTelMiddleware`.
+- [Testing](https://docs.promptise.com/mcp/server/testing/): `TestClient` runs the full pipeline (validation → DI → guards → middleware → handler) in-process with no network.
+- [Transports](https://docs.promptise.com/mcp/server/transports/): stdio, streamable HTTP, SSE. Configurable CORS. Auth gate at transport level.
+- [Dashboard](https://docs.promptise.com/mcp/server/dashboard/): `promptise serve --dashboard` — 6-tab terminal UI.
+- [MCP Client](https://docs.promptise.com/mcp/client/): `MCPClient` (single server), `MCPMultiClient` (federate N servers), `MCPToolAdapter` (MCP → LangChain `BaseTool`). Native implementation.
 
 ## Reasoning Engine (Pillar 2)
 
-- [Overview](https://promptise.github.io/foundry/core/engine/): `PromptGraph`, `PromptGraphEngine`, 20 node types, 7 prebuilt patterns, `@node` decorator, `ExecutionEngine`, JSON serialization.
-- [Nodes](https://promptise.github.io/foundry/core/engine-nodes/): `PromptNode` (blocks, tools, strategy, model override, data flow, guards, pre/post processors), `ToolNode`, `RouterNode`, `GuardNode`, `ParallelNode`, `LoopNode`, `HumanNode`, `TransformNode`, `SubgraphNode`, `AutonomousNode`, `ThinkNode`, `PlanNode`, `ReflectNode`, `CritiqueNode`, `SynthesizeNode`, `ValidateNode`, `ObserveNode`, `JustifyNode`, `RetryNode`, `FanOutNode`.
-- [Flags](https://promptise.github.io/foundry/core/engine-flags/): 18 `NodeFlag` values — `ENTRY`, `TERMINAL`, `INJECT_TOOLS`, `READONLY`, `REQUIRES_HUMAN`, `CACHEABLE`, `RETRYABLE`, `CRITICAL`, `OBSERVABLE`, `STATEFUL`, `PARALLEL_SAFE`, `SKIP_ON_ERROR`, `VERBOSE`, `LIGHTWEIGHT`, `NO_HISTORY`, `ISOLATED_CONTEXT`, `SUMMARIZE_OUTPUT`, `VALIDATE_OUTPUT`.
-- [Patterns](https://promptise.github.io/foundry/core/engine-processors/): `build_react_graph`, `build_peoatr_graph`, `build_research_graph`, `build_autonomous_graph`, `build_deliberate_graph`, `build_debate_graph`, `build_pipeline_graph`.
-- [Hooks](https://promptise.github.io/foundry/core/engine-hooks/): `on_node_start`, `on_node_end`, `on_graph_start`, `on_graph_end`, `on_error`.
-- [Skills](https://promptise.github.io/foundry/core/engine-skills/): `SkillRegistry` — path-glob-scoped skill activation.
+- [Overview](https://docs.promptise.com/core/engine/): `PromptGraph`, `PromptGraphEngine`, 20 node types, 7 prebuilt patterns, `@node` decorator, `ExecutionEngine`, JSON serialization.
+- [Nodes](https://docs.promptise.com/core/engine-nodes/): `PromptNode` (blocks, tools, strategy, model override, data flow, guards, pre/post processors), `ToolNode`, `RouterNode`, `GuardNode`, `ParallelNode`, `LoopNode`, `HumanNode`, `TransformNode`, `SubgraphNode`, `AutonomousNode`, `ThinkNode`, `PlanNode`, `ReflectNode`, `CritiqueNode`, `SynthesizeNode`, `ValidateNode`, `ObserveNode`, `JustifyNode`, `RetryNode`, `FanOutNode`.
+- [Flags](https://docs.promptise.com/core/engine-flags/): 18 `NodeFlag` values — `ENTRY`, `TERMINAL`, `INJECT_TOOLS`, `READONLY`, `REQUIRES_HUMAN`, `CACHEABLE`, `RETRYABLE`, `CRITICAL`, `OBSERVABLE`, `STATEFUL`, `PARALLEL_SAFE`, `SKIP_ON_ERROR`, `VERBOSE`, `LIGHTWEIGHT`, `NO_HISTORY`, `ISOLATED_CONTEXT`, `SUMMARIZE_OUTPUT`, `VALIDATE_OUTPUT`.
+- [Patterns](https://docs.promptise.com/core/engine-processors/): `build_react_graph`, `build_peoatr_graph`, `build_research_graph`, `build_autonomous_graph`, `build_deliberate_graph`, `build_debate_graph`, `build_pipeline_graph`.
+- [Hooks](https://docs.promptise.com/core/engine-hooks/): `on_node_start`, `on_node_end`, `on_graph_start`, `on_graph_end`, `on_error`.
+- [Skills](https://docs.promptise.com/core/engine-skills/): `SkillRegistry` — path-glob-scoped skill activation.
 
 ## Agent Runtime
 
-- [Overview](https://promptise.github.io/foundry/runtime/): `AgentRuntime`, `AgentProcess`, `ProcessConfig`, lifecycle states (CREATED → STARTING → RUNNING → SUSPENDED → STOPPING → STOPPED/FAILED).
-- [Triggers](https://promptise.github.io/foundry/runtime/triggers/): `CronTrigger`, `EventTrigger`, `MessageTrigger`, `WebhookTrigger` (HMAC verified), `FileWatchTrigger` (glob-filtered).
-- [Governance](https://promptise.github.io/foundry/runtime/governance/): `BudgetConfig` (per-run + daily limits, tool costs), `HealthConfig` (stuck / loop / empty / error-rate detection), `MissionConfig` (LLM-as-judge + programmatic success_check), `SecretsConfig` (TTL, rotation, zero-fill revocation).
-- [Journals](https://promptise.github.io/foundry/runtime/journals/): `InMemoryJournal`, `FileJournal`, `ReplayEngine`, `RewindEngine` with 5 modes (full, conversation, code, summarize, preview).
-- [Hooks](https://promptise.github.io/foundry/runtime/hooks/): 14 lifecycle hook points, `once: true`, priority ordering, `ShellHook` for external scripts.
-- [Open Mode](https://promptise.github.io/foundry/runtime/open-mode/): 14 meta-tools for self-modifying agents (`modify_instructions`, `create_tool`, `connect_mcp_server`, `add_trigger`, `remove_trigger`, `spawn_process`, `list_processes`, `store_memory`, `search_memory`, `forget_memory`, `list_capabilities`, `get_secret`, `check_budget`, `check_mission`). Constraint system: max instruction length, max custom tools, MCP URL whitelist, mandatory sandbox.
-- [Inbox](https://promptise.github.io/foundry/runtime/inbox/): Live agent conversation — `runtime.ask()`, `runtime.inbox()` for bi-directional messaging with running processes.
-- [REST API](https://promptise.github.io/foundry/runtime/api/): 37-endpoint HTTP API for lifecycle, messaging, inbox, governance updates, health, logs, distributed coordination. Typed `APIClient` included.
-- [Distributed](https://promptise.github.io/foundry/runtime/distributed/): `RuntimeCoordinator` with `StaticDiscovery` / `RegistryDiscovery`. Multi-node over HTTP. No etcd/Consul dependency.
-- [Manifests](https://promptise.github.io/foundry/runtime/manifests/): `.agent` YAML with model, instructions, servers, triggers, world state, memory, journal, open mode, budget, health, mission, secrets.
-- [Dashboard](https://promptise.github.io/foundry/runtime/dashboard/): Live terminal UI for process state, invocations, triggers, memory, journal.
+- [Overview](https://docs.promptise.com/runtime/): `AgentRuntime`, `AgentProcess`, `ProcessConfig`, lifecycle states (CREATED → STARTING → RUNNING → SUSPENDED → STOPPING → STOPPED/FAILED).
+- [Triggers](https://docs.promptise.com/runtime/triggers/): `CronTrigger`, `EventTrigger`, `MessageTrigger`, `WebhookTrigger` (HMAC verified), `FileWatchTrigger` (glob-filtered).
+- [Governance](https://docs.promptise.com/runtime/governance/): `BudgetConfig` (per-run + daily limits, tool costs), `HealthConfig` (stuck / loop / empty / error-rate detection), `MissionConfig` (LLM-as-judge + programmatic success_check), `SecretsConfig` (TTL, rotation, zero-fill revocation).
+- [Journals](https://docs.promptise.com/runtime/journals/): `InMemoryJournal`, `FileJournal`, `ReplayEngine`, `RewindEngine` with 5 modes (full, conversation, code, summarize, preview).
+- [Hooks](https://docs.promptise.com/runtime/hooks/): 14 lifecycle hook points, `once: true`, priority ordering, `ShellHook` for external scripts.
+- [Open Mode](https://docs.promptise.com/runtime/open-mode/): 14 meta-tools for self-modifying agents (`modify_instructions`, `create_tool`, `connect_mcp_server`, `add_trigger`, `remove_trigger`, `spawn_process`, `list_processes`, `store_memory`, `search_memory`, `forget_memory`, `list_capabilities`, `get_secret`, `check_budget`, `check_mission`). Constraint system: max instruction length, max custom tools, MCP URL whitelist, mandatory sandbox.
+- [Inbox](https://docs.promptise.com/runtime/inbox/): Live agent conversation — `runtime.ask()`, `runtime.inbox()` for bi-directional messaging with running processes.
+- [REST API](https://docs.promptise.com/runtime/api/): 37-endpoint HTTP API for lifecycle, messaging, inbox, governance updates, health, logs, distributed coordination. Typed `APIClient` included.
+- [Distributed](https://docs.promptise.com/runtime/distributed/): `RuntimeCoordinator` with `StaticDiscovery` / `RegistryDiscovery`. Multi-node over HTTP. No etcd/Consul dependency.
+- [Manifests](https://docs.promptise.com/runtime/manifests/): `.agent` YAML with model, instructions, servers, triggers, world state, memory, journal, open mode, budget, health, mission, secrets.
+- [Dashboard](https://docs.promptise.com/runtime/dashboard/): Live terminal UI for process state, invocations, triggers, memory, journal.
 
 ## Prompt Engineering
 
-- [Blocks](https://promptise.github.io/foundry/prompting/blocks/): 8 block types — `Identity`, `Rules`, `OutputFormat`, `ContextSlot`, `Section`, `Examples`, `Conditional`, `Composite`. Priority-based token budgeting drops lowest-priority first.
-- [Strategies](https://promptise.github.io/foundry/prompting/strategies/): `chain_of_thought`, `structured_reasoning`, `self_critique`, `plan_and_execute`, `decompose`. Composable via `+`. Perspectives: `Analyst`, `Critic`, `Advisor`, `Creative`, `CustomPerspective`.
-- [Flows](https://promptise.github.io/foundry/prompting/flows/): `ConversationFlow` with `@phase` decorator, `on_enter`/`on_exit` hooks, depth-limited recursive transitions.
-- [Context Providers](https://promptise.github.io/foundry/prompting/context/): 14 providers — Tool, Memory, Task, Blackboard, User, Environment, Conversation, Team, Error, Output, Static, Callable, Conditional, World.
-- [Builder](https://promptise.github.io/foundry/prompting/builder/): `PromptBuilder` fluent API.
-- [Chaining](https://promptise.github.io/foundry/prompting/chaining/): `chain`, `parallel`, `branch`, `retry`, `fallback`.
-- [Guards](https://promptise.github.io/foundry/prompting/guards/): `ContentFilterGuard`, `LengthGuard`, `SchemaStrictGuard` (retry on schema fail), `InputValidatorGuard`, `OutputValidatorGuard`.
-- [Template Engine](https://promptise.github.io/foundry/prompting/template/): SSTI-safe formatter, `{% if %}`/`{% for %}`/`{% include %}`, opt-in `!`cmd`` shell interpolation via `SubprocessShellExecutor` (disabled by default).
-- [YAML Loader](https://promptise.github.io/foundry/prompting/loader/): `.prompt` files from file, URL, or directory.
-- [Registry](https://promptise.github.io/foundry/prompting/registry/): SemVer versioning with `@version`, rollback, duplicate detection.
-- [Inspector](https://promptise.github.io/foundry/prompting/inspector/): `PromptInspector` traces assembly step-by-step — blocks included/excluded, tokens per block, render time, guard results.
-- [Testing](https://promptise.github.io/foundry/prompting/testing/): `mock_llm`, `mock_context`, `assert_schema`, `assert_contains`, `assert_latency`, `assert_guard_passed`.
-- [Suites](https://promptise.github.io/foundry/prompting/suite/): `PromptSuite` groups related prompts with shared defaults.
+- [Blocks](https://docs.promptise.com/prompting/blocks/): 8 block types — `Identity`, `Rules`, `OutputFormat`, `ContextSlot`, `Section`, `Examples`, `Conditional`, `Composite`. Priority-based token budgeting drops lowest-priority first.
+- [Strategies](https://docs.promptise.com/prompting/strategies/): `chain_of_thought`, `structured_reasoning`, `self_critique`, `plan_and_execute`, `decompose`. Composable via `+`. Perspectives: `Analyst`, `Critic`, `Advisor`, `Creative`, `CustomPerspective`.
+- [Flows](https://docs.promptise.com/prompting/flows/): `ConversationFlow` with `@phase` decorator, `on_enter`/`on_exit` hooks, depth-limited recursive transitions.
+- [Context Providers](https://docs.promptise.com/prompting/context/): 14 providers — Tool, Memory, Task, Blackboard, User, Environment, Conversation, Team, Error, Output, Static, Callable, Conditional, World.
+- [Builder](https://docs.promptise.com/prompting/builder/): `PromptBuilder` fluent API.
+- [Chaining](https://docs.promptise.com/prompting/chaining/): `chain`, `parallel`, `branch`, `retry`, `fallback`.
+- [Guards](https://docs.promptise.com/prompting/guards/): `ContentFilterGuard`, `LengthGuard`, `SchemaStrictGuard` (retry on schema fail), `InputValidatorGuard`, `OutputValidatorGuard`.
+- [Template Engine](https://docs.promptise.com/prompting/template/): SSTI-safe formatter, `{% if %}`/`{% for %}`/`{% include %}`, opt-in `!`cmd`` shell interpolation via `SubprocessShellExecutor` (disabled by default).
+- [YAML Loader](https://docs.promptise.com/prompting/loader/): `.prompt` files from file, URL, or directory.
+- [Registry](https://docs.promptise.com/prompting/registry/): SemVer versioning with `@version`, rollback, duplicate detection.
+- [Inspector](https://docs.promptise.com/prompting/inspector/): `PromptInspector` traces assembly step-by-step — blocks included/excluded, tokens per block, render time, guard results.
+- [Testing](https://docs.promptise.com/prompting/testing/): `mock_llm`, `mock_context`, `assert_schema`, `assert_contains`, `assert_latency`, `assert_guard_passed`.
+- [Suites](https://docs.promptise.com/prompting/suite/): `PromptSuite` groups related prompts with shared defaults.
 
 ## API Reference
 
-- [Agent API](https://promptise.github.io/foundry/api/agent/): `build_agent()`, `PromptiseAgent`, `CallerContext`.
-- [Server API](https://promptise.github.io/foundry/api/mcp-server/): `MCPServer`, `MCPRouter`, guards, middleware, DI, queue.
-- [Client API](https://promptise.github.io/foundry/api/mcp-client/): `MCPClient`, `MCPMultiClient`, `MCPToolAdapter`.
-- [Engine API](https://promptise.github.io/foundry/api/engine/): `PromptGraph`, `PromptGraphEngine`, all node types, `NodeFlag`.
-- [Runtime API](https://promptise.github.io/foundry/api/runtime/): `AgentRuntime`, `ProcessConfig`, `TriggerConfig`, `BudgetConfig`, `HealthConfig`, `MissionConfig`, `SecretsConfig`, `APIServer`, `APIClient`.
-- [Prompts API](https://promptise.github.io/foundry/api/prompts/): `@prompt`, `PromptBuilder`, blocks, strategies, flows, guards.
+- [Agent API](https://docs.promptise.com/api/agent/): `build_agent()`, `PromptiseAgent`, `CallerContext`.
+- [Server API](https://docs.promptise.com/api/mcp-server/): `MCPServer`, `MCPRouter`, guards, middleware, DI, queue.
+- [Client API](https://docs.promptise.com/api/mcp-client/): `MCPClient`, `MCPMultiClient`, `MCPToolAdapter`.
+- [Engine API](https://docs.promptise.com/api/engine/): `PromptGraph`, `PromptGraphEngine`, all node types, `NodeFlag`.
+- [Runtime API](https://docs.promptise.com/api/runtime/): `AgentRuntime`, `ProcessConfig`, `TriggerConfig`, `BudgetConfig`, `HealthConfig`, `MissionConfig`, `SecretsConfig`, `APIServer`, `APIClient`.
+- [Prompts API](https://docs.promptise.com/api/prompts/): `@prompt`, `PromptBuilder`, blocks, strategies, flows, guards.
 
 ## Optional
 
-- [Installation Extras](https://promptise.github.io/foundry/getting-started/installation-extras/): `pip install promptise` (core), `pip install "promptise[all]"` (vector memory, ML guardrails, Redis, Docker, OpenTelemetry, Prometheus, Mem0), `pip install "promptise[dev]"` (contributors).
-- [Examples Gallery](https://promptise.github.io/foundry/resources/examples/): 15 runnable scripts across 12 categories — adaptive, approval, hooks, mcp, memory, production, prompts, rag, reasoning, runtime, sandbox, security. All use real LLM calls via `build_agent()` (default model `openai:gpt-5-mini`).
-- [Changelog](https://promptise.github.io/foundry/resources/changelog/): Version history.
-- [Migration Guide](https://promptise.github.io/foundry/resources/migration/): Upgrading between versions.
+- [Installation Extras](https://docs.promptise.com/getting-started/installation-extras/): `pip install promptise` (core), `pip install "promptise[all]"` (vector memory, ML guardrails, Redis, Docker, OpenTelemetry, Prometheus, Mem0), `pip install "promptise[dev]"` (contributors).
+- [Examples Gallery](https://docs.promptise.com/resources/examples/): 15 runnable scripts across 12 categories — adaptive, approval, hooks, mcp, memory, production, prompts, rag, reasoning, runtime, sandbox, security. All use real LLM calls via `build_agent()` (default model `openai:gpt-5-mini`).
+- [Changelog](https://docs.promptise.com/resources/changelog/): Version history.
+- [Migration Guide](https://docs.promptise.com/resources/migration/): Upgrading between versions.
 - [Contributing](https://github.com/promptise-com/foundry/blob/main/CONTRIBUTING.md): Dev setup, testing, submission guidelines.
 - [Security Policy](https://github.com/promptise-com/foundry/blob/main/SECURITY.md): Vulnerability reporting.
 - [Source](https://github.com/promptise-com/foundry): Repository.
