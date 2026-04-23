@@ -466,15 +466,20 @@ class TestFileWatchTrigger:
             fw_module.HAS_WATCHDOG = original_has_watchdog
 
     def test_repr(self):
+        from pathlib import Path
+
         from promptise.runtime.triggers.file_watch import FileWatchTrigger
 
+        # Use a platform-native absolute path so the repr comparison works on
+        # Windows (where ``/data/inbox`` is rewritten to ``\\data\\inbox``).
+        path = str(Path("/data/inbox").resolve())
         trigger = FileWatchTrigger(
-            watch_path="/data/inbox",
+            watch_path=path,
             patterns=["*.csv"],
         )
         r = repr(trigger)
         assert "FileWatchTrigger" in r
-        assert "/data/inbox" in r
+        assert path in r or path.replace("\\", "\\\\") in r
 
 
 # ======================================================================

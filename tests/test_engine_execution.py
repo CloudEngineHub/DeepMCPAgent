@@ -391,7 +391,9 @@ class TestEngineEdgeCases:
         assert report.total_iterations == 2
         assert report.total_tokens == 300
         assert report.nodes_visited == ["a", "b"]
-        assert report.total_duration_ms > 0
+        # Windows ``time.perf_counter()`` can report 0.0 for sub-ms durations;
+        # accept any non-negative value.
+        assert report.total_duration_ms >= 0
 
     @pytest.mark.asyncio
     async def test_hook_forced_end_respected(self):

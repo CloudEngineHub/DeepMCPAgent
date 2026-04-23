@@ -29,10 +29,12 @@ class TestInMemoryCache:
 
     async def test_expiry(self):
         cache = InMemoryCache()
-        await cache.set("k", "v", ttl=0.001)
+        # TTL and sleep must both exceed Windows ``time.time()`` ~15.6ms
+        # resolution so ``now > expires_at`` evaluates correctly.
+        await cache.set("k", "v", ttl=0.05)
         import asyncio
 
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.15)
         assert await cache.get("k") is None
 
     async def test_delete(self):

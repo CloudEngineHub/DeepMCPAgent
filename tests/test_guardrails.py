@@ -498,7 +498,9 @@ class TestScanReport:
     @pytest.mark.asyncio
     async def test_report_metadata(self):
         r = await _scan("Card: 4532015112830366")
-        assert r.duration_ms > 0
+        # Windows ``time.perf_counter()`` can report 0.0 for sub-ms durations;
+        # accept any non-negative value.
+        assert r.duration_ms >= 0
         assert r.text_length == len("Card: 4532015112830366")
         assert "pii" in r.scanners_run
 
