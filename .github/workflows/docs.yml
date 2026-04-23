@@ -17,5 +17,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install mkdocs mkdocs-material "mkdocstrings[python]>=0.29"
+      - run: pip install -e . mkdocs mkdocs-material "mkdocstrings[python]>=0.29"
       - run: mkdocs gh-deploy --force
