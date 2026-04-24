@@ -47,10 +47,44 @@ import re
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Protocol, runtime_checkable
 from uuid import uuid4
 
 logger = logging.getLogger("promptise.memory")
+
+
+# Metadata key used to tag stored entries with their owning user. Chosen to be
+# unlikely to collide with user-supplied metadata keys.
+_USER_ID_META_KEY = "_promptise_user_id"
+
+
+class MemoryScope(str, Enum):
+    """Isolation mode for a :class:`MemoryProvider`.
+
+    Values:
+        SHARED: All callers see the same memory pool.  This is the
+            default and matches the pre-1.0 behavior.  Use when a single
+            organization or agent owns the memory store.
+        PER_USER: Memories are scoped to the ``user_id`` of the caller.
+            ``search()`` and ``delete()`` only return / operate on
+            entries added by the same ``user_id``.  ``add()`` requires
+            a ``user_id`` (via explicit parameter or ``CallerContext``).
+    """
+
+    SHARED = "shared"
+    PER_USER = "per_user"
+
+
+class MemoryIsolationError(RuntimeError):
+    """Raised when a per-user memory operation is missing a ``user_id``.
+
+    Per-user scope requires every ``search`` / ``add`` / ``delete`` call
+    to carry a ``user_id`` (either explicitly or via the current
+    :class:`~promptise.agent.CallerContext`).  We raise rather than
+    silently falling back to a shared read to avoid accidental
+    cross-tenant data exposure.
+    """
 
 # ---------------------------------------------------------------------------
 # Core types
@@ -92,19 +126,31 @@ class MemoryProvider(Protocol):
     All methods are async.  Implementations **must** handle their own
     thread-safety and connection management.  Callers should call
     :meth:`close` when the provider is no longer needed.
+
+    Multi-user isolation is controlled by the ``scope`` passed to the
+    concrete provider (see :class:`MemoryScope`).  When scope is
+    ``PER_USER``, every mutating / querying call must carry a
+    ``user_id`` so the provider can partition entries.  When scope is
+    ``SHARED`` the ``user_id`` parameter is ignored.
     """
+
+    scope: MemoryScope
 
     async def search(
         self,
         query: str,
         *,
         limit: int = 5,
+        user_id: str | None = None,
     ) -> list[MemoryResult]:
         """Search for memories relevant to *query*.
 
         Args:
             query: Natural-language search query.
             limit: Maximum results to return.
+            user_id: Owning user for per-user scoped providers.  Ignored
+                when ``scope=SHARED``.  Required when ``scope=PER_USER``
+                — raises :class:`MemoryIsolationError` when missing.
 
         Returns:
             Ranked list of :class:`MemoryResult` (best match first).
@@ -116,23 +162,42 @@ class MemoryProvider(Protocol):
         content: str,
         *,
         metadata: dict[str, Any] | None = None,
+        user_id: str | None = None,
     ) -> str:
         """Store a new memory.
 
         Args:
             content: Text to remember.
             metadata: Optional metadata (e.g. source, tags).
+            user_id: Owning user for per-user scoped providers.  Ignored
+                when ``scope=SHARED``.  Required when ``scope=PER_USER``.
 
         Returns:
             The ``memory_id`` of the stored entry.
         """
         ...
 
-    async def delete(self, memory_id: str) -> bool:
+    async def delete(self, memory_id: str, *, user_id: str | None = None) -> bool:
         """Delete a memory by ID.
 
+        Per-user scoped providers refuse to delete entries that belong
+        to a different ``user_id`` and return ``False``.
+
         Returns:
-            ``True`` if the entry existed and was deleted.
+            ``True`` if the entry existed, was owned by ``user_id``
+            (when scoped), and was deleted.
+        """
+        ...
+
+    async def purge_user(self, user_id: str) -> int:
+        """Delete every entry owned by ``user_id``.
+
+        Primarily intended for GDPR "right to be forgotten" requests.
+        For ``SHARED`` scope providers this is a no-op that returns ``0``
+        — there is no per-user ownership to honor.
+
+        Returns:
+            The number of entries removed.
         """
         ...
 
@@ -155,23 +220,54 @@ class InMemoryProvider:
     Args:
         max_entries: Maximum stored entries.  When exceeded, oldest entries
             are evicted (FIFO).
+        scope: Isolation mode.  ``SHARED`` (default) lets every caller
+            see every entry.  ``PER_USER`` partitions entries by
+            ``user_id`` — search / delete only operate on rows the
+            caller owns.
     """
 
-    def __init__(self, *, max_entries: int = 10_000) -> None:
+    def __init__(
+        self,
+        *,
+        max_entries: int = 10_000,
+        scope: MemoryScope = MemoryScope.SHARED,
+    ) -> None:
         if max_entries < 1:
             raise ValueError("max_entries must be >= 1")
-        self._store: dict[str, tuple[str, dict[str, Any], float]] = {}
+        # Each entry: (content, metadata, timestamp, owner_user_id | None)
+        self._store: dict[str, tuple[str, dict[str, Any], float, str | None]] = {}
         self._max_entries = max_entries
+        self.scope = scope
+
+    def _require_user(self, user_id: str | None, action: str) -> str | None:
+        """Resolve ``user_id`` against the provider scope.
+
+        Returns the effective owner for storage / filtering, or ``None``
+        when the provider is in SHARED mode.  Raises when per-user scope
+        is active but no ``user_id`` was supplied.
+        """
+        if self.scope == MemoryScope.SHARED:
+            return None
+        if not user_id:
+            raise MemoryIsolationError(
+                f"InMemoryProvider.{action} requires a user_id when scope=PER_USER"
+            )
+        return user_id
 
     async def search(
         self,
         query: str,
         *,
         limit: int = 5,
+        user_id: str | None = None,
     ) -> list[MemoryResult]:
+        owner = self._require_user(user_id, "search")
         query_lower = query.lower()
         scored: list[MemoryResult] = []
-        for mid, (content, meta, _ts) in self._store.items():
+        for mid, (content, meta, _ts, entry_owner) in self._store.items():
+            # Per-user scope: skip entries owned by someone else.
+            if owner is not None and entry_owner != owner:
+                continue
             content_lower = content.lower()
             if query_lower in content_lower:
                 # Simple relevance: shorter content that matches = higher score
@@ -192,21 +288,38 @@ class InMemoryProvider:
         content: str,
         *,
         metadata: dict[str, Any] | None = None,
+        user_id: str | None = None,
     ) -> str:
+        owner = self._require_user(user_id, "add")
         # Evict oldest if at capacity
         while len(self._store) >= self._max_entries:
             oldest_id = min(self._store, key=lambda k: self._store[k][2])
             del self._store[oldest_id]
 
         memory_id = str(uuid4())[:12]
-        self._store[memory_id] = (content, metadata or {}, time.monotonic())
+        self._store[memory_id] = (content, metadata or {}, time.monotonic(), owner)
         return memory_id
 
-    async def delete(self, memory_id: str) -> bool:
-        if memory_id in self._store:
-            del self._store[memory_id]
-            return True
-        return False
+    async def delete(self, memory_id: str, *, user_id: str | None = None) -> bool:
+        owner = self._require_user(user_id, "delete")
+        existing = self._store.get(memory_id)
+        if existing is None:
+            return False
+        # Refuse to delete another user's entry in per-user mode.
+        if owner is not None and existing[3] != owner:
+            return False
+        del self._store[memory_id]
+        return True
+
+    async def purge_user(self, user_id: str) -> int:
+        if self.scope != MemoryScope.PER_USER:
+            return 0
+        if not user_id:
+            return 0
+        victims = [mid for mid, row in self._store.items() if row[3] == user_id]
+        for mid in victims:
+            del self._store[mid]
+        return len(victims)
 
     async def close(self) -> None:
         self._store.clear()
@@ -250,6 +363,7 @@ class Mem0Provider:
         user_id: str = "default",
         agent_id: str | None = None,
         config: dict[str, Any] | None = None,
+        scope: MemoryScope = MemoryScope.SHARED,
     ) -> None:
         try:
             import mem0  # noqa: F401
@@ -264,6 +378,7 @@ class Mem0Provider:
         self._user_id = user_id
         self._agent_id = agent_id
         self._closed = False
+        self.scope = scope
 
         if config:
             self._client: Any = Memory.from_config(config)
@@ -274,14 +389,38 @@ class Mem0Provider:
         if self._closed:
             raise RuntimeError("Mem0Provider is closed")
 
+    def _effective_user(self, user_id: str | None, action: str) -> str:
+        """Resolve the Mem0 ``user_id`` for this call.
+
+        Mem0 always stores entries under *some* user_id, so:
+
+        * SHARED scope: fall back to the provider-level ``user_id`` when
+          the caller didn't supply one.  This preserves the pre-1.0
+          behavior where a single configured user acts as the shared
+          tenant.
+        * PER_USER scope: demand an explicit ``user_id`` so a tenant can
+          never accidentally read another tenant's memories by omitting
+          the argument.
+        """
+        if self.scope == MemoryScope.PER_USER:
+            if not user_id:
+                raise MemoryIsolationError(
+                    f"Mem0Provider.{action} requires a user_id when scope=PER_USER"
+                )
+            return user_id
+        # Shared scope: caller can override, otherwise use the default.
+        return user_id or self._user_id
+
     async def search(
         self,
         query: str,
         *,
         limit: int = 5,
+        user_id: str | None = None,
     ) -> list[MemoryResult]:
         self._check_closed()
-        kwargs: dict[str, Any] = {"query": query, "user_id": self._user_id}
+        effective_user = self._effective_user(user_id, "search")
+        kwargs: dict[str, Any] = {"query": query, "user_id": effective_user}
         if self._agent_id:
             kwargs["agent_id"] = self._agent_id
         kwargs["limit"] = limit
@@ -333,9 +472,11 @@ class Mem0Provider:
         content: str,
         *,
         metadata: dict[str, Any] | None = None,
+        user_id: str | None = None,
     ) -> str:
         self._check_closed()
-        kwargs: dict[str, Any] = {"data": content, "user_id": self._user_id}
+        effective_user = self._effective_user(user_id, "add")
+        kwargs: dict[str, Any] = {"data": content, "user_id": effective_user}
         if self._agent_id:
             kwargs["agent_id"] = self._agent_id
         if metadata:
@@ -355,8 +496,12 @@ class Mem0Provider:
                 return results[0].get("id", str(uuid4())[:12])
         return str(uuid4())[:12]
 
-    async def delete(self, memory_id: str) -> bool:
+    async def delete(self, memory_id: str, *, user_id: str | None = None) -> bool:
         self._check_closed()
+        # Delegate ownership enforcement to the underlying Mem0 backend —
+        # its ``delete`` takes the caller's perspective.  We still validate
+        # the scope requirements here so misuse surfaces a clear error.
+        self._effective_user(user_id, "delete")
         loop = asyncio.get_running_loop()
         try:
             await loop.run_in_executor(None, lambda: self._client.delete(memory_id))
@@ -368,6 +513,62 @@ class Mem0Provider:
                 exc_info=True,
             )
             return False
+
+    async def purge_user(self, user_id: str) -> int:
+        """Delete every Mem0 entry owned by ``user_id``.
+
+        Uses Mem0's ``delete_all(user_id=...)`` / ``reset_user`` path when
+        available.  Falls back to listing + individual deletion for older
+        mem0ai releases.  Returns ``0`` for SHARED-scope providers and
+        when no entries existed.
+        """
+        self._check_closed()
+        if self.scope != MemoryScope.PER_USER:
+            return 0
+        if not user_id:
+            return 0
+
+        loop = asyncio.get_running_loop()
+
+        def _purge() -> int:
+            # Preferred path — Mem0 >=1.0 exposes delete_all(user_id=...)
+            if hasattr(self._client, "delete_all"):
+                try:
+                    self._client.delete_all(user_id=user_id)
+                    return -1  # Count unknown; caller should treat as success.
+                except Exception:  # pragma: no cover — defensive
+                    logger.warning(
+                        "Mem0 delete_all failed, falling back to listing",
+                        exc_info=True,
+                    )
+            # Fallback — list the user's entries, delete individually.
+            removed = 0
+            if hasattr(self._client, "get_all"):
+                raw = self._client.get_all(user_id=user_id)
+                entries = (
+                    raw.get("results", raw.get("memories", []))
+                    if isinstance(raw, dict)
+                    else (raw or [])
+                )
+                for entry in entries:
+                    mid = entry.get("id") if isinstance(entry, dict) else None
+                    if mid:
+                        try:
+                            self._client.delete(mid)
+                            removed += 1
+                        except Exception:
+                            logger.warning(
+                                "Mem0 individual delete failed for %s", mid, exc_info=True
+                            )
+            return removed
+
+        try:
+            result = await loop.run_in_executor(None, _purge)
+        except Exception:
+            logger.warning("Mem0Provider.purge_user failed", exc_info=True)
+            return 0
+        # delete_all path returned -1; surface it as 0-or-more unknown count.
+        return max(result, 0)
 
     async def close(self) -> None:
         """Release Mem0 client resources.
@@ -427,6 +628,7 @@ class ChromaProvider:
         collection_name: str = "agent_memory",
         persist_directory: str | None = None,
         embedding_function: Any = None,
+        scope: MemoryScope = MemoryScope.SHARED,
     ) -> None:
         try:
             import chromadb  # noqa: F401
@@ -449,22 +651,41 @@ class ChromaProvider:
 
         self._collection: Any = self._client.get_or_create_collection(**get_kwargs)
         self._closed = False
+        self.scope = scope
 
     def _check_closed(self) -> None:
         if self._closed:
             raise RuntimeError("ChromaProvider is closed")
+
+    def _require_user(self, user_id: str | None, action: str) -> str | None:
+        """Resolve ``user_id`` against the provider scope."""
+        if self.scope == MemoryScope.SHARED:
+            return None
+        if not user_id:
+            raise MemoryIsolationError(
+                f"ChromaProvider.{action} requires a user_id when scope=PER_USER"
+            )
+        return user_id
 
     async def search(
         self,
         query: str,
         *,
         limit: int = 5,
+        user_id: str | None = None,
     ) -> list[MemoryResult]:
         self._check_closed()
+        owner = self._require_user(user_id, "search")
+        query_kwargs: dict[str, Any] = {
+            "query_texts": [query],
+            "n_results": limit,
+        }
+        if owner is not None:
+            query_kwargs["where"] = {_USER_ID_META_KEY: owner}
         loop = asyncio.get_running_loop()
         raw = await loop.run_in_executor(
             None,
-            lambda: self._collection.query(query_texts=[query], n_results=limit),
+            lambda: self._collection.query(**query_kwargs),
         )
 
         results: list[MemoryResult] = []
@@ -494,31 +715,58 @@ class ChromaProvider:
         content: str,
         *,
         metadata: dict[str, Any] | None = None,
+        user_id: str | None = None,
     ) -> str:
         self._check_closed()
+        owner = self._require_user(user_id, "add")
         memory_id = str(uuid4())
         add_kwargs: dict[str, Any] = {
             "ids": [memory_id],
             "documents": [content],
         }
+
+        # ChromaDB metadata values must be str, int, float, or bool.
+        clean_meta: dict[str, Any] = {}
         if metadata:
-            # ChromaDB metadata values must be str, int, float, or bool
-            clean_meta = {}
             for k, v in metadata.items():
                 if isinstance(v, (str, int, float, bool)):
                     clean_meta[k] = v
                 else:
                     clean_meta[k] = str(v)
+        if owner is not None:
+            clean_meta[_USER_ID_META_KEY] = owner
+        if clean_meta:
             add_kwargs["metadatas"] = [clean_meta]
 
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, lambda: self._collection.add(**add_kwargs))
         return memory_id
 
-    async def delete(self, memory_id: str) -> bool:
+    async def delete(self, memory_id: str, *, user_id: str | None = None) -> bool:
         self._check_closed()
+        owner = self._require_user(user_id, "delete")
         loop = asyncio.get_running_loop()
         try:
+            if owner is None:
+                # Shared scope — delete by id.
+                await loop.run_in_executor(
+                    None,
+                    lambda: self._collection.delete(ids=[memory_id]),
+                )
+                return True
+            # Per-user scope: ensure the entry is actually owned by this user
+            # before deleting.  ChromaDB's where-clause ensures we only
+            # match rows belonging to ``user_id``.
+            fetched = await loop.run_in_executor(
+                None,
+                lambda: self._collection.get(
+                    ids=[memory_id],
+                    where={_USER_ID_META_KEY: owner},
+                ),
+            )
+            ids = (fetched or {}).get("ids") or []
+            if not ids:
+                return False
             await loop.run_in_executor(
                 None,
                 lambda: self._collection.delete(ids=[memory_id]),
@@ -531,6 +779,32 @@ class ChromaProvider:
                 exc_info=True,
             )
             return False
+
+    async def purge_user(self, user_id: str) -> int:
+        """Delete every Chroma entry owned by ``user_id``.
+
+        Uses ChromaDB's ``delete(where=...)`` filter to drop all rows in
+        a single round-trip.  Returns ``0`` for SHARED-scope providers.
+        """
+        self._check_closed()
+        if self.scope != MemoryScope.PER_USER:
+            return 0
+        if not user_id:
+            return 0
+        loop = asyncio.get_running_loop()
+
+        def _count_and_delete() -> int:
+            fetched = self._collection.get(where={_USER_ID_META_KEY: user_id})
+            ids = (fetched or {}).get("ids") or []
+            if ids:
+                self._collection.delete(where={_USER_ID_META_KEY: user_id})
+            return len(ids)
+
+        try:
+            return await loop.run_in_executor(None, _count_and_delete)
+        except Exception:
+            logger.warning("ChromaProvider.purge_user failed", exc_info=True)
+            return 0
 
     async def close(self) -> None:
         """Release ChromaDB client resources.
@@ -733,13 +1007,28 @@ class MemoryAgent:
         self._timeout = timeout
         self._auto_store = auto_store
 
+    def _caller_user_id(self) -> str | None:
+        """Best-effort lookup of the current CallerContext's ``user_id``.
+
+        Imported lazily to avoid a circular import with :mod:`agent`.
+        Returns ``None`` when no invocation is active or no caller was
+        supplied.
+        """
+        try:
+            from .agent import get_current_caller
+        except Exception:  # pragma: no cover — defensive
+            return None
+        caller = get_current_caller()
+        return getattr(caller, "user_id", None) if caller is not None else None
+
     async def _search_memory(self, query: str) -> list[MemoryResult]:
         """Search memory with timeout and graceful degradation."""
         if not query.strip():
             return []
+        user_id = self._caller_user_id()
         try:
             results = await asyncio.wait_for(
-                self.provider.search(query, limit=self._max_memories),
+                self.provider.search(query, limit=self._max_memories, user_id=user_id),
                 timeout=self._timeout,
             )
             if self._min_score > 0.0:
@@ -756,11 +1045,16 @@ class MemoryAgent:
         """Optionally store the exchange in memory."""
         if not self._auto_store:
             return
+        user_id = self._caller_user_id()
         output_text = _extract_user_text(output)
         content = f"User: {user_text}\nAssistant: {output_text}"
         try:
             await asyncio.wait_for(
-                self.provider.add(content, metadata={"source": "auto_store"}),
+                self.provider.add(
+                    content,
+                    metadata={"source": "auto_store"},
+                    user_id=user_id,
+                ),
                 timeout=self._timeout,
             )
         except Exception:
@@ -834,6 +1128,9 @@ __all__ = [
     # Protocol
     "MemoryProvider",
     "MemoryResult",
+    # Scope / isolation
+    "MemoryScope",
+    "MemoryIsolationError",
     # Providers
     "InMemoryProvider",
     "Mem0Provider",

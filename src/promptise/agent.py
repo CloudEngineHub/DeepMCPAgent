@@ -1141,9 +1141,11 @@ class PromptiseAgent:
         if not query.strip():
             return []
         assert self.provider is not None  # guarded by caller
+        caller = get_current_caller()
+        user_id = caller.user_id if caller is not None else None
         try:
             results = await asyncio.wait_for(
-                self.provider.search(query, limit=self._memory_max),
+                self.provider.search(query, limit=self._memory_max, user_id=user_id),
                 timeout=self._memory_timeout,
             )
             if self._memory_min_score > 0.0:
@@ -1166,11 +1168,17 @@ class PromptiseAgent:
         assert self.provider is not None  # guarded by caller
         from .memory import _extract_user_text
 
+        caller = get_current_caller()
+        user_id = caller.user_id if caller is not None else None
         output_text = _extract_user_text(output)
         content = f"User: {user_text}\nAssistant: {output_text}"
         try:
             await asyncio.wait_for(
-                self.provider.add(content, metadata={"source": "auto_store"}),
+                self.provider.add(
+                    content,
+                    metadata={"source": "auto_store"},
+                    user_id=user_id,
+                ),
                 timeout=self._memory_timeout,
             )
         except Exception:

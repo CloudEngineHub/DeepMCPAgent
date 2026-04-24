@@ -46,11 +46,19 @@ class FakeMemoryProvider:
         self.stored: list[str] = []
         self.search_calls: list[str] = []
 
-    async def search(self, query: str, *, limit: int = 5) -> list[FakeMemoryResult]:
+    async def search(
+        self, query: str, *, limit: int = 5, user_id: str | None = None
+    ) -> list[FakeMemoryResult]:
         self.search_calls.append(query)
         return self._results[:limit]
 
-    async def add(self, content: str, *, metadata: dict[str, Any] | None = None) -> None:
+    async def add(
+        self,
+        content: str,
+        *,
+        metadata: dict[str, Any] | None = None,
+        user_id: str | None = None,
+    ) -> None:
         self.stored.append(content)
 
 

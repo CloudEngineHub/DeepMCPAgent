@@ -261,6 +261,40 @@ This configuration:
 
 ---
 
+## Multi-User Attribution
+
+Every `TimelineEntry` carries the authenticated caller's `user_id` and `session_id`. The `ObservabilityCollector` reads these automatically from the `CallerContext` contextvar at record time — there is nothing to wire manually.
+
+```python
+from promptise.agent import CallerContext, _caller_ctx_var
+from promptise.observability import ObservabilityCollector, TimelineEventType
+
+collector = ObservabilityCollector()
+token = _caller_ctx_var.set(CallerContext(user_id="alice", metadata={"session_id": "sess-1"}))
+try:
+    entry = collector.record(TimelineEventType.TOOL_CALL, details="search(q=...)")
+finally:
+    _caller_ctx_var.reset(token)
+
+assert entry.user_id == "alice"
+assert entry.session_id == "sess-1"
+```
+
+### Per-tenant queries
+
+| Method | Returns | Description |
+|---|---|---|
+| `collector.query(user_ids=[...], session_ids=[...])` | `list[TimelineEntry]` | Filter the ring buffer by user, session, event type, or time window |
+| `collector.for_user(user_id)` | `list[TimelineEntry]` | Shorthand for a single tenant's events |
+| `collector.get_users()` | `list[str]` | Unique sorted `user_id`s present in the buffer |
+| `collector.purge_user(user_id)` | `int` | GDPR "right to erasure" — drops every entry owned by that user |
+
+Entries without a caller (system events like `HEALTH_CHECK`) keep `user_id=None` and `session_id=None`; `purge_user` never touches them.
+
+`TimelineEntry.to_dict()` includes both fields, so `STRUCTURED_LOG` / `JSON` / `WEBHOOK` / `OTLP` transporters all emit per-tenant attribution automatically — no custom transporter code required.
+
+---
+
 ## What's Next?
 
 - [CLI Reference](cli.md) -- `--observe` flag and CLI commands
