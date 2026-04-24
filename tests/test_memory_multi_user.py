@@ -24,7 +24,6 @@ from promptise.memory import (
     MemoryScope,
 )
 
-
 # ---------------------------------------------------------------------------
 # SHARED scope (default) — legacy behavior must not regress
 # ---------------------------------------------------------------------------
@@ -220,9 +219,7 @@ class TestMemoryAgentCallerPropagation:
         msgs = call_input["messages"]
         injected = [m for m in msgs if getattr(m, "type", None) == "system"]
         # No injection for alice (no match); bob's "rock" entry is hidden.
-        assert not any(
-            "bob loves rock" in (getattr(m, "content", "") or "") for m in injected
-        )
+        assert not any("bob loves rock" in (getattr(m, "content", "") or "") for m in injected)
 
     @pytest.mark.asyncio
     async def test_memory_agent_raises_without_caller_on_per_user(self) -> None:

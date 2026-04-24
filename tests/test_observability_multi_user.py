@@ -24,7 +24,6 @@ from promptise.observability import (
     TimelineEventType,
 )
 
-
 # ---------------------------------------------------------------------------
 # Auto-propagation from CallerContext
 # ---------------------------------------------------------------------------
@@ -151,17 +150,13 @@ class TestQueryFilteringByUser:
 
     def test_query_session_ids_filters(self) -> None:
         c = ObservabilityCollector()
-        token_a = _caller_ctx_var.set(
-            CallerContext(user_id="alice", metadata={"session_id": "s1"})
-        )
+        token_a = _caller_ctx_var.set(CallerContext(user_id="alice", metadata={"session_id": "s1"}))
         try:
             c.record(TimelineEventType.TOOL_CALL, details="a-s1")
         finally:
             _caller_ctx_var.reset(token_a)
 
-        token_b = _caller_ctx_var.set(
-            CallerContext(user_id="alice", metadata={"session_id": "s2"})
-        )
+        token_b = _caller_ctx_var.set(CallerContext(user_id="alice", metadata={"session_id": "s2"}))
         try:
             c.record(TimelineEventType.TOOL_CALL, details="a-s2")
         finally:

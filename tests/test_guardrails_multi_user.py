@@ -54,9 +54,7 @@ class TestScanReportCallerAttribution:
     @pytest.mark.asyncio
     async def test_report_caller_roles_captured(self) -> None:
         scanner = _make_scanner()
-        token = _caller_ctx_var.set(
-            CallerContext(user_id="alice", roles={"analyst", "admin"})
-        )
+        token = _caller_ctx_var.set(CallerContext(user_id="alice", roles={"analyst", "admin"}))
         try:
             report = await scanner.scan_text("hello")
         finally:
