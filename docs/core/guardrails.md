@@ -458,11 +458,38 @@ report.scanners_run    # ["injection", "pii", "credential"]
 report.text_length     # 28
 report.redacted_text   # "My card is [CREDIT_CARD_VISA]"
 
+# Caller attribution (snapshotted at scan time)
+report.user_id         # "alice" — from CallerContext.user_id
+report.session_id      # "sess-1" — from CallerContext.metadata["session_id"]
+report.caller_roles    # ("admin", "analyst") — sorted tuple
+
 # Filtered views
 report.blocked         # findings with action=BLOCK
 report.redacted        # findings with action=REDACT
 report.warnings        # findings with action=WARN
 ```
+
+### Multi-user attribution
+
+`scan_text` / `scan_input` / `scan_output` snapshot the current `CallerContext` at invocation time. The `ScanReport` holds those values directly, so audit logs can attribute findings to the right tenant even after the contextvar has been reset:
+
+```python
+from promptise.agent import CallerContext, _caller_ctx_var
+
+token = _caller_ctx_var.set(
+    CallerContext(user_id="alice", roles={"analyst"}, metadata={"session_id": "sess-1"})
+)
+try:
+    report = await scanner.scan_text(user_input)
+finally:
+    _caller_ctx_var.reset(token)
+
+# Context is gone but the report still carries the snapshot.
+assert report.user_id == "alice"
+assert report.caller_roles == ("analyst",)
+```
+
+When no caller is set (e.g., system scans), `user_id`, `session_id`, and `caller_roles` default to `None`, `None`, and `()`.
 
 ### SecurityFinding
 

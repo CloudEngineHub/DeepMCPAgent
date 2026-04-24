@@ -314,6 +314,14 @@ class ScanReport:
         scanners_run: Which detection heads ran.
         text_length: Length of scanned text.
         redacted_text: Text with PII/credentials replaced (output scans).
+        user_id: Owning user (from :class:`~promptise.agent.CallerContext`)
+            for audit attribution.  ``None`` when the scan ran outside of
+            an invocation context.
+        session_id: Conversation session attached to this scan, when
+            available (from ``caller.metadata['session_id']``).
+        caller_roles: The caller's roles at scan time, captured so that
+            downstream audit log entries can rationalize the decision
+            even after the caller context has moved on.
     """
 
     passed: bool
@@ -322,6 +330,9 @@ class ScanReport:
     scanners_run: list[str]
     text_length: int
     redacted_text: str | None = None
+    user_id: str | None = None
+    session_id: str | None = None
+    caller_roles: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def blocked(self) -> list[SecurityFinding]:
@@ -2609,6 +2620,26 @@ class PromptiseSecurityScanner:
         passed = not any(f.action == Action.BLOCK for f in findings)
         duration = (time.monotonic() - start_time) * 1000
 
+        # Attach caller identity so audit logs can attribute findings to a
+        # specific tenant even after the contextvar is reset.  Done here —
+        # not in the constructor — so standalone users of ``ScanReport``
+        # aren't forced through the CallerContext import.
+        caller_user_id: str | None = None
+        caller_session_id: str | None = None
+        caller_roles: tuple[str, ...] = ()
+        try:
+            from .agent import get_current_caller
+        except Exception:  # pragma: no cover — defensive
+            get_current_caller = None  # type: ignore[assignment]
+        if get_current_caller is not None:
+            caller = get_current_caller()
+            if caller is not None:
+                caller_user_id = getattr(caller, "user_id", None)
+                meta = getattr(caller, "metadata", None) or {}
+                caller_session_id = meta.get("session_id")
+                roles = getattr(caller, "roles", None) or ()
+                caller_roles = tuple(sorted(str(r) for r in roles))
+
         return ScanReport(
             passed=passed,
             findings=findings,
@@ -2616,6 +2647,9 @@ class PromptiseSecurityScanner:
             scanners_run=scanners_run,
             text_length=len(text),
             redacted_text=redacted_text,
+            user_id=caller_user_id,
+            session_id=caller_session_id,
+            caller_roles=caller_roles,
         )
 
     # ── Detection heads ───────────────────────────────────────────────

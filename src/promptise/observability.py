@@ -292,6 +292,12 @@ class TimelineEntry:
         details: Human-readable description of the event.
         duration: Duration in seconds (for span events).
         parent_id: Parent entry ID for hierarchical tracing.
+        user_id: Owning user for this event (from
+            :class:`~promptise.agent.CallerContext`).  ``None`` means
+            the event was produced outside of a per-caller invocation.
+        session_id: Conversation session associated with the event,
+            when available.  Populated from ``caller.metadata['session_id']``
+            or an explicit ``session_id`` kwarg to :meth:`record`.
         metadata: Arbitrary structured data for the event.
     """
 
@@ -304,6 +310,8 @@ class TimelineEntry:
     details: str | None = None
     duration: float | None = None
     parent_id: str | None = None
+    user_id: str | None = None
+    session_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -323,6 +331,8 @@ class TimelineEntry:
             "details": self.details,
             "duration": self.duration,
             "parent_id": self.parent_id,
+            "user_id": self.user_id,
+            "session_id": self.session_id,
             "metadata": self.metadata,
         }
 
@@ -384,6 +394,8 @@ class ObservabilityCollector:
         details: str | None = None,
         duration: float | None = None,
         parent_id: str | None = None,
+        user_id: str | None = None,
+        session_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> TimelineEntry:
         """Record a single timeline event.
@@ -395,6 +407,11 @@ class ObservabilityCollector:
             details: Human-readable event description.
             duration: Duration in seconds (for span events).
             parent_id: Parent entry for hierarchical tracing.
+            user_id: Explicit owning user for this event.  When omitted,
+                the collector reads :func:`promptise.agent.get_current_caller`
+                and attaches ``caller.user_id`` automatically.
+            session_id: Conversation session associated with this event.
+                Falls back to ``caller.metadata['session_id']``.
             metadata: Arbitrary structured data.
 
         Returns:
@@ -403,6 +420,26 @@ class ObservabilityCollector:
         raw_metadata = metadata or {}
         if self._sanitizer is not None:
             raw_metadata = self._sanitizer(raw_metadata)
+
+        # Auto-propagate identity from CallerContext when not explicitly
+        # supplied.  Imported lazily to avoid a circular dependency with
+        # ``promptise.agent``.
+        effective_user_id = user_id
+        effective_session_id = session_id
+        if effective_user_id is None or effective_session_id is None:
+            try:
+                from .agent import get_current_caller
+            except Exception:  # pragma: no cover — defensive
+                get_current_caller = None  # type: ignore[assignment]
+            if get_current_caller is not None:
+                caller = get_current_caller()
+                if caller is not None:
+                    if effective_user_id is None:
+                        effective_user_id = getattr(caller, "user_id", None)
+                    if effective_session_id is None:
+                        caller_meta = getattr(caller, "metadata", None) or {}
+                        effective_session_id = caller_meta.get("session_id")
+
         entry = TimelineEntry(
             entry_id=str(uuid.uuid4()),
             timestamp=time.time(),
@@ -413,6 +450,8 @@ class ObservabilityCollector:
             details=details,
             duration=duration,
             parent_id=parent_id,
+            user_id=effective_user_id,
+            session_id=effective_session_id,
             metadata=raw_metadata,
         )
         with self._lock:
@@ -535,6 +574,8 @@ class ObservabilityCollector:
         *,
         event_types: list[TimelineEventType | str] | None = None,
         agent_ids: list[str] | None = None,
+        user_ids: list[str] | None = None,
+        session_ids: list[str] | None = None,
         limit: int | None = None,
         offset: int | None = None,
         metadata_key: str | None = None,
@@ -545,6 +586,10 @@ class ObservabilityCollector:
         Args:
             event_types: Restrict to these event types (enum or string values).
             agent_ids: Restrict to these agent IDs.
+            user_ids: Restrict to events owned by these users (matches
+                :attr:`TimelineEntry.user_id`).
+            session_ids: Restrict to events tied to these session IDs
+                (matches :attr:`TimelineEntry.session_id`).
             limit: Maximum number of results to return.
             offset: Number of results to skip from the start.
             metadata_key: Restrict to entries whose metadata contains this key.
@@ -571,6 +616,14 @@ class ObservabilityCollector:
             agent_set = set(agent_ids)
             entries = [e for e in entries if e.agent_id in agent_set]
 
+        if user_ids is not None:
+            user_set = set(user_ids)
+            entries = [e for e in entries if e.user_id in user_set]
+
+        if session_ids is not None:
+            session_set = set(session_ids)
+            entries = [e for e in entries if e.session_id in session_set]
+
         if metadata_key is not None:
             if metadata_value is not None:
                 entries = [e for e in entries if e.metadata.get(metadata_key) == metadata_value]
@@ -583,6 +636,47 @@ class ObservabilityCollector:
             entries = entries[:limit]
 
         return entries
+
+    def for_user(self, user_id: str) -> list[TimelineEntry]:
+        """Return all entries owned by ``user_id`` (sorted by timestamp).
+
+        Convenience wrapper over :meth:`query` for the common
+        multi-tenant case: "show me everything user X did in this
+        session."  Returns an empty list when the user has no events.
+        """
+        if not user_id:
+            return []
+        return self.query(user_ids=[user_id])
+
+    def get_users(self) -> list[str]:
+        """Return sorted unique ``user_id`` values seen in the timeline.
+
+        Events without a user_id (e.g. system events recorded outside of
+        an invocation) are excluded.
+        """
+        with self._lock:
+            entries = list(self._entries)
+        return sorted({e.user_id for e in entries if e.user_id is not None})
+
+    def purge_user(self, user_id: str) -> int:
+        """Delete every timeline entry owned by ``user_id`` from the buffer.
+
+        Does not propagate to already-flushed transporters (e.g. a
+        writable JSON file on disk) — those are external sinks and must
+        be purged by their owners.  Returns the number of in-memory
+        entries removed.
+
+        Intended for GDPR "right to be forgotten" workflows.
+        """
+        if not user_id:
+            return 0
+        with self._lock:
+            kept = [e for e in self._entries if e.user_id != user_id]
+            removed = len(self._entries) - len(kept)
+            if removed:
+                self._entries.clear()
+                self._entries.extend(kept)
+        return removed
 
     # ------------------------------------------------------------------
     # Stats

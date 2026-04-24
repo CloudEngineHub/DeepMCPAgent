@@ -12,6 +12,7 @@ from promptise.memory import (
     MemoryAgent,
     MemoryProvider,
     MemoryResult,
+    MemoryScope,
 )
 
 # ---------------------------------------------------------------------------
@@ -50,14 +51,19 @@ class TestMemoryProviderProtocol:
         """Any object with the right methods satisfies the protocol."""
 
         class CustomProvider:
-            async def search(self, query, *, limit=5):
+            scope = MemoryScope.SHARED
+
+            async def search(self, query, *, limit=5, user_id=None):
                 return []
 
-            async def add(self, content, *, metadata=None):
+            async def add(self, content, *, metadata=None, user_id=None):
                 return "id"
 
-            async def delete(self, memory_id):
+            async def delete(self, memory_id, *, user_id=None):
                 return True
+
+            async def purge_user(self, user_id):
+                return 0
 
             async def close(self):
                 pass
@@ -694,6 +700,7 @@ class TestChromaProviderMocked:
         provider._client = mock_client
         provider._collection = mock_collection
         provider._closed = False
+        provider.scope = MemoryScope.SHARED
         return provider
 
     @pytest.mark.asyncio
@@ -778,6 +785,7 @@ class TestMem0ProviderMocked:
         provider._user_id = "test-user"
         provider._agent_id = None
         provider._closed = False
+        provider.scope = MemoryScope.SHARED
         return provider
 
     @pytest.mark.asyncio

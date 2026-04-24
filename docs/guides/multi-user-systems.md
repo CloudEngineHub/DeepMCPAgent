@@ -612,7 +612,14 @@ Guardrails work on every invocation path: `ainvoke()`, `astream()`, and `chat()`
 
 ## Step 11: Add Memory with Auto-Injection
 
-Give the agent persistent memory that's automatically searched and injected before every invocation:
+Give the agent persistent memory that's automatically searched and injected before every invocation. Every provider — `InMemoryProvider`, `ChromaProvider`, and `Mem0Provider` — supports two isolation modes via the `scope` parameter:
+
+| Scope | Isolation | Use case |
+|---|---|---|
+| `MemoryScope.SHARED` (default) | All users share one pool | Knowledge-base agents, public FAQ, shared org memory |
+| `MemoryScope.PER_USER` | Each user has isolated memory | Personal assistants, multi-tenant SaaS |
+
+### Shared memory (default)
 
 ```python
 from promptise.memory import ChromaProvider
@@ -629,7 +636,25 @@ agent = await build_agent(
 )
 ```
 
-Memory is agent-level (shared across all users of this agent). For per-user memory, use the `Mem0Provider` with `user_id` scoping, or build a custom provider that filters by user.
+All users of this agent read and write the same pool — useful when the memory represents shared knowledge.
+
+### Per-user memory
+
+```python
+from promptise.memory import ChromaProvider, MemoryScope
+
+memory = ChromaProvider(
+    collection_name="support_memory",
+    persist_directory=".promptise/memory",
+    scope=MemoryScope.PER_USER,
+)
+
+agent = await build_agent(..., memory=memory, memory_auto_store=True)
+```
+
+The agent automatically reads `caller.user_id` from `CallerContext` and scopes every `search`/`add`/`delete` to that tenant. Users cannot read or delete each other's entries. If a per-user operation runs without a `user_id`, it raises `MemoryIsolationError`; the `MemoryAgent` wrapper catches this during auto-search so background tasks degrade gracefully (skip memory injection) rather than crash.
+
+GDPR compliance is built in: `await memory.purge_user("user-42")` removes every entry owned by that user across all three providers.
 
 ---
 

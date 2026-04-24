@@ -1,13 +1,13 @@
 cff-version: 1.2.0
 message: "If you use Promptise Foundry in academic work or production systems, please cite it."
-title: "Promptise Foundry: A production framework for agentic AI systems"
+title: "Promptise Foundry: The foundation layer for agentic intelligence"
 abstract: >-
-  Promptise Foundry is an open-source Python framework for building
-  production-ready AI agent systems. It provides a composable reasoning
-  engine, a native Model Context Protocol server and client, an
-  autonomous agent runtime with crash recovery and governance, and a
-  typed prompt engineering layer. All five modules share a common type
-  system, observability pipeline, and security defaults.
+  Promptise Foundry is one framework to go from prototype to production.
+  Agents that discover tools, remember context, and guard themselves.
+  MCP servers with auth, governance, and audit trails. A Reasoning
+  Engine to build how your agent thinks — like bricks. Deploy
+  autonomous agents that work around the clock — with lifecycle
+  management, crash recovery, and mission-driven execution.
 type: software
 license: Apache-2.0
 repository-code: "https://github.com/promptise-com/foundry"
@@ -30,7 +30,7 @@ version: 1.0.0
 date-released: 2026-04-20
 preferred-citation:
   type: software
-  title: "Promptise Foundry: A production framework for agentic AI systems"
+  title: "Promptise Foundry: The foundation layer for agentic intelligence"
   authors:
     - name: "Promptise"
   year: 2026
