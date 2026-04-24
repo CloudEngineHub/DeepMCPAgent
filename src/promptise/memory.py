@@ -86,6 +86,7 @@ class MemoryIsolationError(RuntimeError):
     cross-tenant data exposure.
     """
 
+
 # ---------------------------------------------------------------------------
 # Core types
 # ---------------------------------------------------------------------------
@@ -545,11 +546,11 @@ class Mem0Provider:
             removed = 0
             if hasattr(self._client, "get_all"):
                 raw = self._client.get_all(user_id=user_id)
-                entries = (
-                    raw.get("results", raw.get("memories", []))
-                    if isinstance(raw, dict)
-                    else (raw or [])
-                )
+                entries: list[Any]
+                if isinstance(raw, dict):
+                    entries = raw.get("results") or raw.get("memories") or []
+                else:
+                    entries = raw or []
                 for entry in entries:
                     mid = entry.get("id") if isinstance(entry, dict) else None
                     if mid:
