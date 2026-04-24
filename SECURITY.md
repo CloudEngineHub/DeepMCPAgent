@@ -13,11 +13,9 @@ We actively support the following versions of Promptise with security updates:
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, please report security vulnerabilities by emailing:
+Instead, please report security vulnerabilities privately via **[GitHub Security Advisories](https://github.com/promptise-com/foundry/security/advisories/new)**.
 
-**security@promptise.com**
-
-You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
+You should receive a response within 48 hours. If for some reason you do not, please follow up on the same advisory to ensure we received your original report.
 
 Please include the following information (as much as you can provide) to help us better understand the nature and scope of the possible issue:
 
@@ -87,7 +85,6 @@ When we receive a security bug report, we will:
 ## Contact
 
 For any security concerns or questions:
-- Email: security@promptise.com
 - GitHub Security Advisories: https://github.com/promptise-com/foundry/security/advisories
 
 ## Attribution

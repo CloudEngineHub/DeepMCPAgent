@@ -87,15 +87,13 @@ To keep the quality bar high, we decline submissions that:
 
 ## How to submit
 
-Send an email to **showcase@promptise.com** with the subject line:
+Open a GitHub Discussion in the [Promptise Foundry repository](https://github.com/promptise-com/foundry/discussions) under the **Show and Tell** category with the title:
 
 ```
 [Project Submission] Your Project Name
 ```
 
-Include all required fields from the table above in the email body. Attach screenshots or diagrams as image files (PNG, JPG) or link to them.
-
-Alternatively, open a GitHub Discussion in the [Promptise Foundry repository](https://github.com/promptise-com/foundry) under the **Show and Tell** category with the same information.
+Include all required fields from the table above in the discussion body. Attach screenshots or diagrams by uploading images directly to the discussion or linking to them.
 
 ---
 
@@ -113,9 +111,9 @@ Projects that are accepted receive:
 
 ## Updating or removing your project
 
-If your project changes significantly (new features, new URL, new name), email us with the updated information and we will refresh your listing.
+If your project changes significantly (new features, new URL, new name), comment on your original submission discussion with the updated information and we will refresh your listing.
 
-If you want your project removed from the showcase, email us and we will remove it within 48 hours. No questions asked.
+If you want your project removed from the showcase, comment on the discussion (or open a new one in **Show and Tell**) and we will remove it within 48 hours. No questions asked.
 
 ---
 
@@ -123,4 +121,4 @@ If you want your project removed from the showcase, email us and we will remove 
 
 If you are unsure whether your project qualifies, submit it anyway. The worst that happens is we say no. The best that happens is we feature it and thousands of developers see your work.
 
-For questions about the submission process, email **showcase@promptise.com**.
+For questions about the submission process, open a thread in [GitHub Discussions](https://github.com/promptise-com/foundry/discussions) under the **Q&A** category.
