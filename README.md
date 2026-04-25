@@ -13,17 +13,19 @@
   </p>
 
   <p>
-    <em>Every other framework gives you an LLM wrapper.</em><br/>
-    <em>Promptise Foundry gives you the stack behind it.</em>
+    <em>Ship full-stack agentic systems the way they're meant to be built —</em><br/>
+    <em>production-ready, secure by default, with the developer experience modern Python deserves.</em>
   </p>
 
   <br/>
 
   <p>
+    <a href="https://github.com/promptise-com/foundry/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/promptise-com/foundry?style=flat&color=%23eab308&label=%E2%98%85%20stars"></a>
     <a href="https://pypi.org/project/promptise/"><img alt="PyPI" src="https://img.shields.io/pypi/v/promptise?color=%23a855f7&label=pypi&logo=pypi&logoColor=white"></a>
     <a href="https://pypi.org/project/promptise/"><img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-%233b82f6?logo=python&logoColor=white"></a>
     <a href="https://pypi.org/project/promptise/"><img alt="Downloads" src="https://img.shields.io/pypi/dm/promptise?color=%2322c55e&label=downloads"></a>
     <a href="https://github.com/promptise-com/foundry/actions/workflows/test.yml"><img alt="CI" src="https://github.com/promptise-com/foundry/actions/workflows/test.yml/badge.svg"></a>
+    <a href="https://github.com/promptise-com/foundry/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/promptise-com/foundry?color=%2306b6d4&label=last%20commit"></a>
     <a href="https://github.com/promptise-com/foundry/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-%23f59e0b"></a>
     <a href="https://docs.promptise.com"><img alt="Docs" src="https://img.shields.io/badge/docs-latest-%2306b6d4"></a>
   </p>
@@ -57,13 +59,14 @@
 
 <br/>
 
-<div align="center">
+### One Python framework. The full agentic stack.
 
-<h3>Agents that survive production need more than a prompt and a tool list.</h3>
+<sub>From your first agent to a fleet running in production — without gluing libraries together.</sub>
 
-</div>
-
-They need MCP-native tool discovery. A reasoning engine you can shape. Memory you can trust. Guardrails that actually fire. Governance that enforces budgets. A runtime that recovers from crashes. Promptise Foundry ships all of it as one coherent framework — built for engineering teams who are done assembling AI infrastructure from ten half-finished libraries.
+- **Agents** that discover tools and remember context.
+- **MCP servers** with access control, governance, and audit trails — multi-user, scalable, secure by default.
+- **Reasoning engine** you can shape, like bricks.
+- **Autonomous runtime** that recovers from crashes and stays within budget.
 
 <br/>
 
@@ -144,8 +147,6 @@ Guardrails block injection and redact PII. Semantic cache serves similar queries
 
 Turn any LLM into a production-ready agent with one function call.
 
-*Replaces:* LangChain + a guardrails library + an output validator + a vector-store wrapper + a retry helper.
-
 `build_agent()` · auto MCP tool discovery · semantic tool optimization (40–70% fewer tokens) · 3 memory providers with auto-injection · 4 conversation stores · 6-head security scanner · semantic cache with per-user isolation · sandboxed code execution · auto-approval classifier · pluggable RAG · streaming · model fallback · adaptive strategy.
 
 [Agent docs →](https://docs.promptise.com/core/agents/building-agents/)
@@ -165,8 +166,6 @@ Turn any LLM into a production-ready agent with one function call.
 
 Compose reasoning the way you compose code. Not a black box.
 
-*Replaces:* hand-rolled LangGraph wiring, bespoke planner/executor loops, ReAct-from-scratch.
-
 `PromptGraph` with **20 node types** — 10 standard (`PromptNode`, `ToolNode`, `RouterNode`, `GuardNode`, `ParallelNode`, `LoopNode`, `HumanNode`, `TransformNode`, `SubgraphNode`, `AutonomousNode`) and 10 reasoning (`ThinkNode`, `PlanNode`, `ReflectNode`, `CritiqueNode`, `SynthesizeNode`, `ValidateNode`, `ObserveNode`, `JustifyNode`, `RetryNode`, `FanOutNode`). **7 prebuilt patterns** (`react`, `peoatr`, `research`, `autonomous`, `deliberate`, `debate`, `pipeline`). **18 node flags** for typed capabilities. Agent-assembled paths from a node pool. Lifecycle hooks. Skill registry. JSON serialization.
 
 [Reasoning docs →](https://docs.promptise.com/core/engine/)
@@ -184,11 +183,9 @@ Compose reasoning the way you compose code. Not a black box.
 
 ### MCP Server SDK
 
-Production server and native client for the Model Context Protocol.
+Production server and native client for the Model Context Protocol — multi-user, scalable, secure by default.
 
-*Replaces:* rolling your own tool server. What FastAPI is to REST, this is to MCP.
-
-`@server.tool()` with auto-schema from type hints · JWT + OAuth2 + API key auth · role/scope guards · **12+ middleware** (rate limit, circuit breaker, audit, cache, OTel) · HMAC-chained audit logs · priority job queue with retries and progress · versioning + transforms · OpenAPI import · `MCPMultiClient` federation · live 6-tab dashboard · `TestClient` for in-process testing · **3 transports** (stdio, HTTP, SSE).
+`@server.tool()` with auto-schema from type hints · JWT + OAuth2 + API-key access control · role/scope guards · **12+ middleware** (rate limit, circuit breaker, audit, cache, OTel) · HMAC-chained audit logs · priority job queue with retries and progress · versioning + transforms · OpenAPI import · `MCPMultiClient` federation · live 6-tab dashboard · `TestClient` for in-process testing · **3 transports** (stdio, HTTP, SSE).
 
 [MCP docs →](https://docs.promptise.com/mcp/)
 
@@ -206,8 +203,6 @@ Production server and native client for the Model Context Protocol.
 ### Agent Runtime
 
 The operating system for autonomous agents.
-
-*Replaces:* Celery + cron + a state store + your own crash recovery + a governance layer.
 
 **5 trigger types** (cron, webhook, file watch, event, message) · crash recovery via journal replay · **5 rewind modes** · 14 lifecycle hooks · budget enforcement with tool costs · health monitoring (stuck, loop, empty, error rate) · mission tracking with LLM-as-judge · secret scoping with TTL and zero-fill revocation · **14 meta-tools** for self-modifying agents · **37-endpoint REST API** with typed client · live agent inbox · distributed multi-node coordination.
 
@@ -228,8 +223,6 @@ The operating system for autonomous agents.
 
 Prompts built like software. Not strings.
 
-*Replaces:* f-strings + `instructor` + ad-hoc few-shot files + prompt sprawl across a codebase.
-
 **8 block types** with priority-based token budgeting · conversation flows that evolve per phase · **5 composable strategies** (`chain_of_thought + self_critique`) · 4 perspectives · **14 context providers** auto-injected every turn · SSTI-safe template engine with opt-in shell · 5 guards · SemVer registry with rollback · inspector that traces every assembly decision · test helpers (`mock_llm()`, `assert_schema()`) · `chain`, `parallel`, `branch`, `retry`, `fallback`.
 
 [Prompts docs →](https://docs.promptise.com/prompting/)
@@ -244,127 +237,84 @@ Prompts built like software. Not strings.
 
 <br/>
 
-<div align="center">
-  <h2>Why Promptise Foundry?</h2>
-  <p><sub>Honest comparison. ✅ native &nbsp;·&nbsp; ⚠️ partial or via adapter &nbsp;·&nbsp; ❌ not supported</sub></p>
-</div>
+## Documentation
 
-<br/>
+<table>
+<tr>
+<td colspan="2" width="66%" valign="top">
 
-<div align="center">
+### <a href="https://docs.promptise.com/getting-started/quickstart/">Quick Start →</a>
 
-| | **Promptise** | LangChain | LangGraph | CrewAI | AutoGen | PydanticAI |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **MCP-first tool discovery** | ✅ Native | ⚠️ via adapter | ⚠️ via adapter | ⚠️ via adapter | ⚠️ via adapter | ⚠️ via adapter |
-| **Native MCP server SDK** (auth · middleware · queue · audit) | ✅ Full | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Composable reasoning graph** | ✅ 20 nodes · 7 patterns · agent-assembled | ❌ | ✅ Graph-native | ⚠️ Crew/Flow | ⚠️ GroupChat | ❌ |
-| **Semantic tool optimization** (ML selects relevant tools per query) | ✅ 40–70% savings | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Local ML security guardrails** (prompt-injection · PII · creds · NER · content) | ✅ 6 heads | ❌ external | ❌ external | ❌ | ❌ | ❌ |
-| **Semantic response cache** | ✅ Per-user isolated | ⚠️ Basic (shared) | ⚠️ via LangChain | ❌ | ❌ | ❌ |
-| **Human-in-the-loop** | ✅ 3 handlers + ML classifier | ⚠️ Basic | ✅ interrupt_before/after | ⚠️ `human_input=True` | ✅ UserProxyAgent | ❌ |
-| **Sandboxed code execution** | ✅ Docker · seccomp · gVisor | ⚠️ PythonREPL | ❌ | ❌ | ✅ Docker executor | ❌ |
-| **Crash recovery / replay** | ✅ 5 rewind modes | ❌ | ✅ Checkpointer | ❌ | ❌ | ❌ |
-| **Autonomous runtime** (triggers · lifecycle · messaging) | ✅ Full OS | ❌ | ⚠️ Persistence only | ❌ | ❌ | ❌ |
-| **Budget / health / mission governance** | ✅ Built-in | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Live agent conversation** (inbox · ask) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Orchestration REST API** | ✅ 37 endpoints + typed client | ❌ | ❌ | ❌ | ❌ | ❌ |
+<sub>Your first agent in 5 minutes. <code>pip install</code>, point at an MCP server, ship.</sub>
 
-</div>
+</td>
+<td valign="top">
 
-<br/>
+### <a href="https://docs.promptise.com/getting-started/concepts/">Key Concepts →</a>
 
-<div align="center">
-<sub>
-LangGraph's checkpointer gives it genuine replay; AutoGen ships a real Docker code executor; LangChain has a basic semantic cache.<br/>
-Promptise unifies every row above — one dependency, one type-checked API, one runtime.
-</sub>
-</div>
+<sub>Architecture, design principles, the five pillars.</sub>
 
-<br/>
+</td>
+</tr>
 
-## &nbsp;
+<tr>
+<td valign="top">
 
-<br/>
+### <a href="https://docs.promptise.com/guides/building-agents/">Building Agents →</a>
 
-<div align="center">
-  <h2>Model-agnostic</h2>
-  <p><sub>Any LLM, one string. Or any LangChain <code>BaseChatModel</code>. Or a <code>FallbackChain</code> across providers.</sub></p>
-</div>
+<sub>Step-by-step, simple to production.</sub>
 
-<br/>
+</td>
+<td valign="top">
 
-```python
-build_agent(model="openai:gpt-5-mini", ...)
-build_agent(model="anthropic:claude-sonnet-4-20250514", ...)
-build_agent(model="ollama:llama3", ...)
-build_agent(model="google:gemini-2.0-flash", ...)
-```
+### <a href="https://docs.promptise.com/core/engine/">Reasoning Engine →</a>
 
-<br/>
+<sub>Graphs, nodes, flags, patterns.</sub>
 
-## &nbsp;
+</td>
+<td valign="top">
 
-<br/>
+### <a href="https://docs.promptise.com/guides/production-mcp-servers/">MCP Servers →</a>
 
-<div align="center">
-  <h2>Deploy autonomous agents</h2>
-  <p><sub>Triggers, budgets, health checks, missions, secrets — all in Python.</sub></p>
-</div>
+<sub>Production tool servers with access control, middleware, and audit trails.</sub>
 
-<br/>
+</td>
+</tr>
 
-```python
-from promptise.runtime import (
-    AgentRuntime, ProcessConfig, TriggerConfig,
-    BudgetConfig, HealthConfig, MissionConfig,
-)
+<tr>
+<td valign="top">
 
-async with AgentRuntime() as runtime:
-    await runtime.add_process("monitor", ProcessConfig(
-        model="openai:gpt-5-mini",
-        instructions="Monitor data pipelines. Escalate anomalies.",
-        triggers=[
-            TriggerConfig(type="cron", cron_expression="*/5 * * * *"),
-            TriggerConfig(type="webhook", webhook_path="/alerts"),
-        ],
-        budget=BudgetConfig(max_tool_calls_per_day=500, on_exceeded="pause"),
-        health=HealthConfig(detect_loops=True, detect_stuck=True, on_anomaly="escalate"),
-        mission=MissionConfig(
-            objective="Keep uptime above 99.9%",
-            success_criteria="No P1 unresolved for more than 15 minutes",
-            evaluate_every_n=10,
-        ),
-    ))
-    await runtime.start_all()
-```
+### <a href="https://docs.promptise.com/guides/agentic-runtime/">Agent Runtime →</a>
 
-<br/>
+<sub>Autonomous agents with governance, triggers, and crash recovery.</sub>
 
-## &nbsp;
+</td>
+<td colspan="2" valign="top">
 
-<br/>
+### <a href="https://docs.promptise.com/prompting/">Prompt Engineering →</a>
 
-<div align="center">
-  <h2>Documentation</h2>
-</div>
+<sub>Composable blocks, strategies, flows, and guards. Prompts built like software, not strings.</sub>
 
-<br/>
+</td>
+</tr>
 
-<div align="center">
+<tr>
+<td colspan="2" valign="top">
 
-| Section | What it covers |
-|---------|---------------|
-| [**Quick Start**](https://docs.promptise.com/getting-started/quickstart/) | Your first agent in 5 minutes |
-| [**Key Concepts**](https://docs.promptise.com/getting-started/concepts/) | Architecture, design principles, the five pillars |
-| [**Building Agents**](https://docs.promptise.com/guides/building-agents/) | Step-by-step, simple to production |
-| [**Reasoning Engine**](https://docs.promptise.com/core/engine/) | Graphs, nodes, flags, patterns |
-| [**MCP Servers**](https://docs.promptise.com/guides/production-mcp-servers/) | Production tool servers with auth and middleware |
-| [**Agent Runtime**](https://docs.promptise.com/guides/agentic-runtime/) | Autonomous agents with governance |
-| [**Prompt Engineering**](https://docs.promptise.com/prompting/) | Blocks, strategies, flows, guards |
-| [**Showcase**](https://docs.promptise.com/resources/showcase/) | Working patterns, end-to-end |
-| [**API Reference**](https://docs.promptise.com/api/agent/) | Every class, method, parameter |
+### <a href="https://docs.promptise.com/resources/showcase/">Showcase →</a>
 
-</div>
+<sub>End-to-end working patterns and reference implementations.</sub>
+
+</td>
+<td valign="top">
+
+### <a href="https://docs.promptise.com/api/agent/">API Reference →</a>
+
+<sub>Every class, method, parameter.</sub>
+
+</td>
+</tr>
+</table>
 
 <br/>
 
@@ -445,6 +395,37 @@ async with AgentRuntime() as runtime:
 
 <sub>stdio · streamable HTTP · SSE · HMAC-chained audit logs</sub>
 
+</div>
+
+<br/>
+
+## &nbsp;
+
+<br/>
+
+<div align="center">
+  <h2>Star history</h2>
+  <p><sub>Promptise Foundry is open-source and growing fast. If it saves you time, drop a ⭐ — it genuinely helps.</sub></p>
+</div>
+
+<br/>
+
+<div align="center">
+  <a href="https://star-history.com/#promptise-com/foundry&Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=promptise-com/foundry&type=Date&theme=dark">
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=promptise-com/foundry&type=Date">
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=promptise-com/foundry&type=Date" width="640">
+    </picture>
+  </a>
+</div>
+
+<br/>
+
+<div align="center">
+  <sub>
+    Want to ship with us? See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> · join <a href="https://github.com/promptise-com/foundry/discussions">Discussions</a> · file an <a href="https://github.com/promptise-com/foundry/issues/new/choose">issue</a>.
+  </sub>
 </div>
 
 <br/>
