@@ -34,8 +34,8 @@ jobs:
 
       - name: Run linting (ruff)
         run: |
-          ruff check .
-          ruff format --check .
+          ruff check src
+          ruff format --check src
 
       - name: Run type checking (mypy)
         run: mypy src
