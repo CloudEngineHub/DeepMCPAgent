@@ -15,10 +15,14 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      DISABLE_MKDOCS_2_WARNING: "true"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for git-revision-date plugin
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e . mkdocs mkdocs-material "mkdocstrings[python]>=0.29"
+      - run: pip install -e ".[dev]"
       - run: mkdocs gh-deploy --force

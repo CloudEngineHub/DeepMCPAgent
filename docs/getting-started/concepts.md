@@ -1,3 +1,9 @@
+---
+title: Key Concepts — How Promptise Foundry works
+description: Learn the core concepts of Promptise Foundry — agents, MCP servers, autonomous runtime, prompt engineering, memory, governance, and security. Understand the production agentic stack in one place.
+keywords: Promptise concepts, agentic AI architecture, MCP architecture, AI agent design, agent runtime, prompt engineering concepts
+---
+
 # What is Promptise Foundry?
 
 Promptise Foundry is the production framework for building agentic AI systems. It covers the entire stack — from creating intelligent agents to deploying autonomous operations — in one framework.
