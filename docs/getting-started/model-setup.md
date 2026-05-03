@@ -1,3 +1,9 @@
+---
+title: Model Setup — Use any LLM with Promptise Foundry (OpenAI, Anthropic, Ollama)
+description: Set up any LLM in Promptise Foundry with a single string — OpenAI GPT, Anthropic Claude, Ollama (local), Mistral, Google Gemini, or any LangChain BaseChatModel. Model-agnostic by design. Switch providers by changing one line.
+keywords: Promptise model setup, OpenAI agent, Anthropic agent, Ollama agent, Claude AI agent, local LLM agent, model agnostic AI agent
+---
+
 # Model Setup
 
 Promptise supports any LLM provider that LangChain integrates with. Models are specified as a string in the format `"provider:model-name"`.

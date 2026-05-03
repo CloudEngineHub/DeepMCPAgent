@@ -1,3 +1,9 @@
+---
+title: Build a Production AI Agent in Python — 9-step guide with Promptise Foundry
+description: Build a production-ready Python AI agent in 9 incremental steps with Promptise Foundry. Covers MCP tool discovery, memory, semantic cache, guardrails, sandboxed code execution, observability, and cross-agent delegation. Each step adds one capability.
+keywords: build AI agent Python, AI agent tutorial, production AI agent, MCP agent guide, Python agent example, agentic AI tutorial
+---
+
 # Building AI Agents
 
 Build a production-ready AI agent in 9 incremental steps. Each step adds one capability -- from a bare agent that calls tools, to a fully observable agent with memory, sandboxed code execution, and cross-agent delegation.

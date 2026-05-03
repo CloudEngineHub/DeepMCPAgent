@@ -1,3 +1,9 @@
+---
+title: Build an Autonomous Agent Runtime — Python tutorial with Promptise Foundry
+description: Build an autonomous agent system in Python with Promptise Foundry's Agent Runtime. Covers process lifecycle, cron and event triggers, journaled state, crash recovery, governance (budget, health, mission, secrets), and multi-node distribution.
+keywords: autonomous agent tutorial, agent runtime guide, build autonomous AI agent, cron AI agent, AI agent crash recovery, agent governance Python
+---
+
 # Building Agentic Runtime Systems
 
 ## What You'll Build
