@@ -1,3 +1,9 @@
+---
+title: Build a Multi-User AI Agent System — Multi-tenant Python tutorial
+description: Build multi-tenant AI agent systems in Python with Promptise Foundry. JWT authentication, capability-based access control, per-user audit trails, isolated semantic cache and conversation persistence, and CallerContext propagation across the entire stack.
+keywords: multi-user AI agent, multi-tenant AI agent, AI agent authentication, JWT AI agent, AI agent access control, secure AI agent Python
+---
+
 # Building Agentic Multi-User Systems
 
 ## What You'll Build

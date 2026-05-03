@@ -1,3 +1,9 @@
+---
+title: MCP — Production Model Context Protocol server and client SDK in Python
+description: Build production MCP servers and connect to existing ones with Promptise Foundry's protocol-compliant Python SDK. Authentication (JWT, API key), capability-based authorization, middleware, caching, rate limiting, circuit breakers, audit logging, observability, and a native MCP client — all included.
+keywords: MCP server Python, Model Context Protocol server, MCP SDK, MCP client, MCP framework, build MCP server, Python MCP
+---
+
 # MCP Overview
 
 Build MCP servers that AI agents can connect to for tool access, and connect agents to existing servers with the client SDK. Promptise Foundry's MCP implementation is fully protocol-compliant and adds production features like authentication, middleware, guards, caching, rate limiting, and observability on top.

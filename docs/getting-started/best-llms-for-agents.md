@@ -1,3 +1,9 @@
+---
+title: Best LLMs for AI Agents — Model picks for agentic Python use cases
+description: A practical, opinionated guide to choosing the right LLM for your AI agent in 2026. Covers OpenAI GPT-5, Claude Sonnet, Llama, Mistral, and open-source options — with real-world ratings and which model fits tool use, reasoning, and long-context jobs.
+keywords: best LLM for AI agents, best model for agents, GPT-5 vs Claude, agent LLM comparison, open source LLM agents, tool calling LLM, Claude Sonnet agent
+---
+
 # Best LLMs for Agentic Use Cases
 
 A practical, opinionated guide to choosing the right model for your Promptise agent. Covers proprietary and open-source options, real-world ratings, and which model fits which job.

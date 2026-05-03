@@ -1,3 +1,9 @@
+---
+title: Promptise Agent — Production AI agents in Python with build_agent()
+description: The Agent is the foundation of Promptise Foundry. build_agent() returns a production-ready Python AI agent with opt-in memory, guardrails, semantic cache, reasoning, approval workflows, streaming, and MCP tool discovery. Every feature is one parameter away.
+keywords: Python AI agent, build_agent, production agent, MCP agent, agentic AI Python, Promptise agent
+---
+
 # Agent
 
 The Agent is the foundation of Promptise Foundry. `build_agent()` returns a production-ready agent with opt-in capabilities — memory, guardrails, semantic cache, reasoning patterns, approval workflows, streaming, and more. Every feature is one parameter away.

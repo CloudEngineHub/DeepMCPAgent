@@ -73,6 +73,7 @@ plugins:
             heading_level: 2
 
 markdown_extensions:
+  - meta
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -108,9 +109,12 @@ nav:
       - Installation: index.md
       - Installation Extras: getting-started/installation-extras.md
       - Quick Start: getting-started/quickstart.md
+      - Why Promptise Foundry: getting-started/why-promptise.md
+      - What is MCP?: getting-started/what-is-mcp.md
       - Model Setup: getting-started/model-setup.md
       - Best LLMs for Agents: getting-started/best-llms-for-agents.md
       - Key Concepts: getting-started/concepts.md
+      - Glossary: getting-started/glossary.md
 
   - Guides:
       - Overview: guides/index.md
