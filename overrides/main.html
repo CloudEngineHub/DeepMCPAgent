@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{# ---------------------------------------------------------------- #}
+{# Extra <head> SEO: canonical, Open Graph, Twitter, JSON-LD         #}
+{# ---------------------------------------------------------------- #}
+{% block extrahead %}
+  {% set has_page = page is defined and page is not none %}
+  {% if has_page %}
+    {% set page_title = page.meta.title or page.title or config.site_name %}
+    {% set page_description = page.meta.description or config.site_description %}
+    {% set page_url = page.canonical_url or config.site_url %}
+    {% set page_src = page.file.src_path or "" %}
+  {% else %}
+    {% set page_title = config.site_name %}
+    {% set page_description = config.site_description %}
+    {% set page_url = config.site_url %}
+    {% set page_src = "" %}
+  {% endif %}
+  {% set og_image = config.site_url ~ "/assets/social-preview.png" %}
+
+  {# Canonical #}
+  <link rel="canonical" href="{{ page_url }}">
+
+  {# Robots — let everything index unless page front-matter says otherwise #}
+  {% if has_page and page.meta.noindex %}
+    <meta name="robots" content="noindex, nofollow">
+  {% else %}
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  {% endif %}
+
+  {# Author & publisher #}
+  <meta name="author" content="Manser Ventures">
+  <meta name="publisher" content="Manser Ventures">
+
+  {# Keywords (only if explicitly set on a page) #}
+  {% if has_page and page.meta.keywords %}
+    <meta name="keywords" content="{{ page.meta.keywords }}">
+  {% endif %}
+
+  {# Open Graph #}
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Promptise Foundry">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_description }}">
+  <meta property="og:url" content="{{ page_url }}">
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta property="og:locale" content="en_US">
+
+  {# Twitter / X #}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ page_description }}">
+  <meta name="twitter:image" content="{{ og_image }}">
+
+  {# JSON-LD: Organization #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Manser Ventures",
+    "url": "https://www.manserventures.com/",
+    "logo": "{{ config.site_url }}/assets/logo.png",
+    "sameAs": [
+      "https://github.com/promptise-com",
+      "https://promptise.com"
+    ]
+  }
+  </script>
+
+  {# JSON-LD: WebSite + SearchAction — gives Google a sitelinks search box #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Promptise Foundry Documentation",
+    "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
+    "url": "{{ config.site_url }}/",
+    "description": {{ config.site_description | tojson }},
+    "publisher": {
+      "@type": "Organization",
+      "name": "Manser Ventures",
+      "url": "https://www.manserventures.com/"
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "{{ config.site_url }}/?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  {# JSON-LD: SoftwareSourceCode (the framework itself) #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "Promptise Foundry",
+    "description": "Production Python framework for building AI agents, MCP servers, autonomous runtimes, and prompt engineering systems. Secure by default, MCP-native, model-agnostic.",
+    "codeRepository": "https://github.com/promptise-com/foundry",
+    "programmingLanguage": "Python",
+    "runtimePlatform": "Python 3.10+",
+    "license": "https://www.apache.org/licenses/LICENSE-2.0",
+    "url": "https://promptise.com",
+    "author": {
+      "@type": "Organization",
+      "name": "Manser Ventures",
+      "url": "https://www.manserventures.com/"
+    },
+    "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
+  }
+  </script>
+
+  {# JSON-LD: per-page schema — pick the doc-flavored type that fits #}
+  {% if has_page %}
+    {% if page.meta.schema %}
+      {% set page_schema = page.meta.schema %}
+    {% elif page_src.startswith("api/") %}
+      {% set page_schema = "APIReference" %}
+    {% elif page_src.startswith("getting-started/") or page_src == "index.md" %}
+      {% set page_schema = "HowTo" %}
+    {% else %}
+      {% set page_schema = "TechArticle" %}
+    {% endif %}
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "{{ page_schema }}",
+      "headline": {{ page_title | tojson }},
+      "name": {{ page_title | tojson }},
+      "description": {{ page_description | tojson }},
+      "url": "{{ page_url }}",
+      "image": "{{ og_image }}",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Promptise Foundry Documentation",
+        "url": "{{ config.site_url }}/"
+      },
+      "about": {
+        "@type": "SoftwareSourceCode",
+        "name": "Promptise Foundry",
+        "codeRepository": "https://github.com/promptise-com/foundry",
+        "programmingLanguage": "Python"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Manser Ventures",
+        "url": "https://www.manserventures.com/"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Manser Ventures",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "{{ config.site_url }}/assets/logo.png"
+        }
+      },
+      {% if page.meta.git_revision_date_localized_iso %}
+      "dateModified": {{ page.meta.git_revision_date_localized_iso | tojson }},
+      {% endif %}
+      {% if page.meta.git_creation_date_localized_iso %}
+      "datePublished": {{ page.meta.git_creation_date_localized_iso | tojson }},
+      {% endif %}
+      "inLanguage": "en"
+    }
+    </script>
+  {% endif %}
+
+  {# JSON-LD: FAQPage (only on pages with `faq:` front-matter) #}
+  {% if has_page and page.meta.faq %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {% for item in page.meta.faq %}
+      {
+        "@type": "Question",
+        "name": {{ item.q | tojson }},
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": {{ item.a | tojson }}
+        }
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }
+  </script>
+  {% endif %}
+
+  {# JSON-LD: BreadcrumbList — built from MkDocs nav ancestors #}
+  {% if has_page and page.ancestors %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "{{ config.site_url }}/"
+      }
+      {% for ancestor in page.ancestors | reverse %}
+      ,{
+        "@type": "ListItem",
+        "position": {{ loop.index + 1 }},
+        "name": {{ ancestor.title | tojson }}
+      }
+      {% endfor %}
+      ,{
+        "@type": "ListItem",
+        "position": {{ page.ancestors | length + 2 }},
+        "name": {{ page_title | tojson }},
+        "item": "{{ page_url }}"
+      }
+    ]
+  }
+  </script>
+  {% endif %}
+{% endblock %}

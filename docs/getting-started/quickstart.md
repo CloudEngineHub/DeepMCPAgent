@@ -1,3 +1,9 @@
+---
+title: Quick Start — Build your first AI agent with Promptise Foundry in 5 minutes
+description: Step-by-step guide to building your first production-ready AI agent in Python with Promptise Foundry. Includes installation, model setup, MCP tool discovery, and your first agent.run() call.
+keywords: AI agent tutorial, Python agent quickstart, build AI agent, Promptise Foundry tutorial, getting started, MCP agent example
+---
+
 # Quick Start
 
 Build your first agent in 5 minutes. No external servers needed — everything runs locally.

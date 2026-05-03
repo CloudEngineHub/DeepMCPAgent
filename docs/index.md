@@ -1,3 +1,10 @@
+---
+title: Promptise Foundry — Production Python framework for AI agents and MCP servers
+description: Promptise Foundry is the production-grade Python framework for building AI agents, MCP servers, autonomous runtimes, and prompt engineering systems. Secure by default, MCP-native, model-agnostic. The modern alternative to LangChain, LangGraph, and CrewAI.
+keywords: Python AI agent framework, MCP server framework, agentic AI, autonomous agents, LangChain alternative, LangGraph alternative, CrewAI alternative, Model Context Protocol, prompt engineering, multi-agent systems
+schema: SoftwareApplication
+---
+
 # Promptise Foundry
 
 The production framework for agentic AI systems. Build agents that discover tools, reason with custom patterns, remember context, enforce security, and run autonomously.
