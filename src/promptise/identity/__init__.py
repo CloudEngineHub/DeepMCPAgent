@@ -44,6 +44,7 @@ from ._core.errors import (
 from ._core.file_provider import FileTokenProvider
 from ._core.provider import IdentityProvider
 from ._internal.logging import _configure_default_handler
+from .providers.oidc import OidcCallableProvider, OidcFileProvider
 
 _configure_default_handler()
 
@@ -56,6 +57,8 @@ __all__ = [
     "IdentityError",
     "IdentityProvider",
     "MintedToken",
+    "OidcCallableProvider",
+    "OidcFileProvider",
     "PlatformDetectionError",
     "ProviderConfigError",
     "TokenAcquisitionError",
