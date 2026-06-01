@@ -80,11 +80,25 @@ all = [
 # without it.
 identity-aws = ["boto3>=1.34"]
 
+# pip install promptise[identity-spiffe]
+# SPIFFE / SPIRE federation via the Workload API. Only needed for the
+# SpiffeSdkProvider; the spiffe-helper file mode and every other provider
+# work without it.
+identity-spiffe = ["pyspiffe>=1.0"]
+
+# pip install promptise[identity-all]
+# Every optional cloud SDK used by the identity providers. Convenience
+# aggregate for images that must support all federation backends.
+identity-all = [
+  "promptise[identity-aws]",
+  "promptise[identity-spiffe]",
+]
+
 # pip install promptise[dev]
 # Contributors only. Everything in [all] plus test runners, lint, docs tooling.
 dev = [
   "promptise[all]",
-  "promptise[identity-aws]",
+  "promptise[identity-all]",
   # Tests
   "pytest>=8.4",
   "pytest-asyncio>=1.1",
