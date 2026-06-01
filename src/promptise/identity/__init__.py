@@ -18,11 +18,12 @@ plus its five ``from_*`` factories. Lower-level classes —
 are exported for advanced use, subclassing, and integration with
 other parts of the framework.
 
-This is the partial ``__init__`` shipped in Phase 1 of the build
-plan: it exposes only the core abstractions plus the two concrete
-provider bases. The provider factories (``from_entra``, ``from_aws``,
-``from_gcp``, ``from_spiffe``, ``from_oidc``) and the
-:class:`AgentIdentity` public class land in later phases.
+The public surface is intentionally small: build an
+:class:`AgentIdentity` with one of its ``from_*`` factories (or
+:meth:`AgentIdentity.auto`), then call :meth:`~AgentIdentity.get_token`
+or hand it to ``build_agent(identity=...)``. The lower-level provider
+classes and exception types are exported for advanced use, custom
+subclassing, and integration with the rest of the framework.
 """
 
 from __future__ import annotations
@@ -44,6 +45,7 @@ from ._core.errors import (
 from ._core.file_provider import FileTokenProvider
 from ._core.provider import IdentityProvider
 from ._internal.logging import _configure_default_handler
+from .agent_identity import AgentIdentity
 from .providers.aws import AwsEksProjectedProvider, AwsStsProvider
 from .providers.entra import (
     EntraManagedIdentityProvider,
@@ -58,6 +60,7 @@ _configure_default_handler()
 __all__ = [
     "ADVISORY_REFRESH_BUFFER_SECONDS",
     "MANDATORY_REFRESH_BUFFER_SECONDS",
+    "AgentIdentity",
     "AwsEksProjectedProvider",
     "AwsStsProvider",
     "CallableTokenProvider",
