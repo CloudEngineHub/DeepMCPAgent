@@ -49,6 +49,7 @@ from .providers.entra import (
     EntraManagedIdentityProvider,
     EntraProjectedTokenProvider,
 )
+from .providers.gcp import GcpMetadataProvider
 from .providers.oidc import OidcCallableProvider, OidcFileProvider
 
 _configure_default_handler()
@@ -63,6 +64,7 @@ __all__ = [
     "EntraManagedIdentityProvider",
     "EntraProjectedTokenProvider",
     "FileTokenProvider",
+    "GcpMetadataProvider",
     "IdentityError",
     "IdentityProvider",
     "MintedToken",
