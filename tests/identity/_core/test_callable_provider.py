@@ -51,6 +51,23 @@ def test_callable_exception_is_wrapped_with_cause() -> None:
     assert isinstance(exc_info.value.__cause__, _Boom)
 
 
+def test_callable_raising_token_acquisition_error_is_not_double_wrapped() -> None:
+    """A callable that already raises a precise TokenAcquisitionError
+    (e.g. a metadata-service provider) should have it propagate
+    unchanged, not wrapped in a second generic one."""
+    sentinel = TokenAcquisitionError("[entra-imds] precise diagnostic message")
+
+    def fn() -> str:
+        raise sentinel
+
+    provider = _make_provider(fn)
+    with pytest.raises(TokenAcquisitionError) as exc_info:
+        provider._acquire_upstream_jwt()
+    # The exact same exception object propagates — no re-wrapping.
+    assert exc_info.value is sentinel
+    assert "upstream JWT callable raised" not in str(exc_info.value)
+
+
 def test_callable_returning_non_string_raises() -> None:
     def bad() -> Any:
         return 12345
