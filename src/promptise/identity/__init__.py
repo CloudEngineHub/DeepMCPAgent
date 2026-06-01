@@ -44,6 +44,7 @@ from ._core.errors import (
 from ._core.file_provider import FileTokenProvider
 from ._core.provider import IdentityProvider
 from ._internal.logging import _configure_default_handler
+from .providers.aws import AwsEksProjectedProvider, AwsStsProvider
 from .providers.entra import (
     EntraManagedIdentityProvider,
     EntraProjectedTokenProvider,
@@ -55,6 +56,8 @@ _configure_default_handler()
 __all__ = [
     "ADVISORY_REFRESH_BUFFER_SECONDS",
     "MANDATORY_REFRESH_BUFFER_SECONDS",
+    "AwsEksProjectedProvider",
+    "AwsStsProvider",
     "CallableTokenProvider",
     "CredentialPrecedenceError",
     "EntraManagedIdentityProvider",

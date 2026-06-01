@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from .errors import TokenAcquisitionError
+from .errors import IdentityError, TokenAcquisitionError
 from .provider import IdentityProvider
 
 
@@ -67,12 +67,12 @@ class CallableTokenProvider(IdentityProvider):
     def _acquire_upstream_jwt(self) -> str:
         try:
             token = self._token_fn()
-        except TokenAcquisitionError:
-            # The callable already produced a precise, typed error
-            # (for example a metadata-service provider with its own
-            # diagnostic message). Let it propagate unchanged rather
-            # than wrapping it in a second, more generic
-            # TokenAcquisitionError.
+        except IdentityError:
+            # The callable already produced a precise, typed identity
+            # error — a TokenAcquisitionError from a metadata-service
+            # provider, or a ProviderConfigError from a missing optional
+            # dependency. Let it propagate unchanged rather than
+            # wrapping it in a second, more generic error.
             raise
         except Exception as exc:
             raise TokenAcquisitionError(
