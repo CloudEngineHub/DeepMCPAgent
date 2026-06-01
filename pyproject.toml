@@ -74,10 +74,17 @@ all = [
   "prometheus_client>=0.20.0",
 ]
 
+# pip install promptise[identity-aws]
+# AWS IAM federation via STS GetWebIdentityToken. Only needed for the
+# AwsStsProvider; the EKS-projected mode and every other provider work
+# without it.
+identity-aws = ["boto3>=1.34"]
+
 # pip install promptise[dev]
 # Contributors only. Everything in [all] plus test runners, lint, docs tooling.
 dev = [
   "promptise[all]",
+  "promptise[identity-aws]",
   # Tests
   "pytest>=8.4",
   "pytest-asyncio>=1.1",
