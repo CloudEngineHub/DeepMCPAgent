@@ -67,6 +67,13 @@ class CallableTokenProvider(IdentityProvider):
     def _acquire_upstream_jwt(self) -> str:
         try:
             token = self._token_fn()
+        except TokenAcquisitionError:
+            # The callable already produced a precise, typed error
+            # (for example a metadata-service provider with its own
+            # diagnostic message). Let it propagate unchanged rather
+            # than wrapping it in a second, more generic
+            # TokenAcquisitionError.
+            raise
         except Exception as exc:
             raise TokenAcquisitionError(
                 f"[{self._provider_label}] upstream JWT callable raised "
