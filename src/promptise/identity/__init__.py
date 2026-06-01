@@ -51,6 +51,7 @@ from .providers.entra import (
 )
 from .providers.gcp import GcpMetadataProvider
 from .providers.oidc import OidcCallableProvider, OidcFileProvider
+from .providers.spiffe import SpiffeFileProvider, SpiffeSdkProvider
 
 _configure_default_handler()
 
@@ -72,6 +73,8 @@ __all__ = [
     "OidcFileProvider",
     "PlatformDetectionError",
     "ProviderConfigError",
+    "SpiffeFileProvider",
+    "SpiffeSdkProvider",
     "TokenAcquisitionError",
     "TokenExchangeError",
 ]
