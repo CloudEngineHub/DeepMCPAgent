@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextvars
 import logging
+import os
 import time
 from collections.abc import AsyncIterator, Mapping
 from dataclasses import dataclass, field
@@ -20,6 +21,7 @@ from promptise.engine import PromptGraph, PromptGraphEngine
 
 from .config import HTTPServerSpec, ServerSpec
 from .cross_agent import CrossAgent, make_cross_agent_tools
+from .identity import AgentIdentity, CredentialPrecedenceError
 from .prompt import DEFAULT_SYSTEM_PROMPT
 
 
@@ -224,6 +226,11 @@ class PromptiseAgent:
         self._raw_instructions: str = ""
         self._sandbox_session: Any | None = None
         self._sandbox_manager: Any | None = None
+
+        # Federated workload identity (optional; set by build_agent()).
+        # Exposed publicly so MCP tools and downstream calls can mint
+        # authenticated headers via ``agent.identity.get_auth_header()``.
+        self.identity: AgentIdentity | None = None
 
     # -----------------------------------------------------------------
     # Core invocation methods
@@ -1660,9 +1667,32 @@ def _extract_response_text(output: Any) -> str:
     return str(output)
 
 
-def _normalize_model(model: ModelLike) -> Runnable[Any, Any]:
-    """Normalize the supplied model into a Runnable."""
+def _normalize_model(
+    model: ModelLike, identity: AgentIdentity | None = None
+) -> Runnable[Any, Any]:
+    """Normalize the supplied model into a Runnable.
+
+    When an :class:`~promptise.identity.AgentIdentity` is provided and
+    *model* is a provider id string, the agent's own Anthropic calls are
+    authenticated with the federated token instead of a static API key.
+    Anthropic OAuth access tokens are *bearer* tokens, so the token is
+    placed in the ``Authorization`` header (``api_key=""`` keeps the SDK
+    from also sending an ``x-api-key`` header). A pre-built chat model
+    instance is returned untouched — supply a model string to have the
+    identity injected.
+    """
     if isinstance(model, str):
+        if identity is not None:
+            return cast(
+                Runnable[Any, Any],
+                init_chat_model(
+                    model,
+                    api_key="",
+                    default_headers={
+                        "Authorization": f"Bearer {identity.get_token()}"
+                    },
+                ),
+            )
         # This supports many providers via lc init strings, not just OpenAI.
         return cast(Runnable[Any, Any], init_chat_model(model))
     # Already BaseChatModel or Runnable
@@ -1674,6 +1704,7 @@ async def build_agent(
     servers: Mapping[str, ServerSpec],
     model: ModelLike,
     instructions: str | Any | None = None,
+    identity: AgentIdentity | None = None,
     trace_tools: bool = False,
     cross_agents: Mapping[str, CrossAgent] | None = None,
     sandbox: bool | dict[str, Any] | None = None,
@@ -1713,6 +1744,19 @@ async def build_agent(
             string accepted by ``init_chat_model``, or a Runnable.
         instructions: Optional system prompt.  Defaults to the built-in
             ``DEFAULT_SYSTEM_PROMPT``.
+        identity: Optional :class:`~promptise.identity.AgentIdentity` for
+            zero-static-credential, federated authentication. When
+            provided and *model* is a provider id string, the agent's own
+            Anthropic calls are authenticated with the federated token
+            (no ``ANTHROPIC_API_KEY`` needed) and the identity is exposed
+            as :attr:`PromptiseAgent.identity` so MCP tools can make
+            authenticated downstream calls via
+            ``agent.identity.get_auth_header()``. Raises
+            :class:`~promptise.identity.CredentialPrecedenceError` if
+            ``ANTHROPIC_API_KEY`` is also set, rather than let the static
+            key silently shadow the federated identity. The token is
+            resolved when the model is built; long-lived agents that
+            outlive the token should be rebuilt to pick up a fresh one.
         trace_tools: Print each tool invocation and result to stdout.
         cross_agents: Optional mapping of peer name → CrossAgent.  Each
             peer is exposed as an ``ask_agent_<name>`` tool.
@@ -1752,6 +1796,14 @@ async def build_agent(
     """
     if model is None:  # Defensive check; CLI/code must always pass a model now.
         raise ValueError("A model is required. Provide a model instance or a provider id string.")
+
+    # Refuse to let a static API key silently shadow a federated identity.
+    if identity is not None and os.environ.get("ANTHROPIC_API_KEY"):
+        raise CredentialPrecedenceError(
+            "Both an AgentIdentity and ANTHROPIC_API_KEY are configured. "
+            "The static API key would silently shadow the federated identity. "
+            "Either unset ANTHROPIC_API_KEY or remove the identity= argument."
+        )
 
     # Simple printing callbacks for tracing (kept dependency-free).
     # When an observer is provided the callbacks also record tool events
@@ -1959,7 +2011,7 @@ async def build_agent(
     if not tools:
         print("[promptise] No tools discovered from MCP servers; agent will run without tools.")
 
-    chat: Runnable[Any, Any] = _normalize_model(model)
+    chat: Runnable[Any, Any] = _normalize_model(model, identity)
 
     # Handle Prompt/PromptSuite as instructions
     _prompt_config = None
@@ -2165,6 +2217,9 @@ async def build_agent(
         approval=approval,
         event_notifier=events,
     )
+
+    # Attach the federated identity (if any) for downstream/tool auth.
+    agent.identity = identity
 
     # Set invocation timeout
     if max_invocation_time > 0:
