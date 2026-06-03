@@ -42,3 +42,30 @@ def test_configure_default_handler_is_idempotent() -> None:
             logger.removeHandler(h)
         for h in original:
             logger.addHandler(h)
+
+
+def test_configure_default_handler_skips_non_null_handlers() -> None:
+    """A non-NullHandler already on the logger must not short-circuit the
+    install — the loop skips past it and still adds exactly one NullHandler."""
+    logger = id_logging.logger
+    original = list(logger.handlers)
+    try:
+        # Clean slate with a single *non-null* handler present, so the
+        # idempotency loop iterates past a handler that is not a NullHandler.
+        for h in list(logger.handlers):
+            logger.removeHandler(h)
+        stream_handler = logging.StreamHandler()
+        logger.addHandler(stream_handler)
+
+        id_logging._configure_default_handler()
+
+        null_handlers = [
+            h for h in logger.handlers if isinstance(h, logging.NullHandler)
+        ]
+        assert len(null_handlers) == 1
+        assert stream_handler in logger.handlers
+    finally:
+        for h in list(logger.handlers):
+            logger.removeHandler(h)
+        for h in original:
+            logger.addHandler(h)
