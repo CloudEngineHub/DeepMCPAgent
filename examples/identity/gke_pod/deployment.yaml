@@ -1,0 +1,48 @@
+# GKE Deployment — federated-identity agent using Workload Identity.
+#
+# Prerequisites (manual):
+#   1. Enable Workload Identity on the cluster.
+#   2. Create a GCP service account (GSA) and bind it to this Kubernetes
+#      service account (KSA):
+#        gcloud iam service-accounts add-iam-policy-binding \
+#          AGENT_GSA@PROJECT_ID.iam.gserviceaccount.com \
+#          --role roles/iam.workloadIdentityUser \
+#          --member "serviceAccount:PROJECT_ID.svc.id.goog[NAMESPACE/promptise-agent]"
+#   3. Register a Workload Identity Federation rule in the Anthropic Console
+#      trusting Google (https://accounts.google.com) for this GSA, then fill in
+#      the ANTHROPIC_* identifiers below (identifiers, not secrets).
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promptise-agent
+  annotations:
+    iam.gke.io/gcp-service-account: AGENT_GSA@PROJECT_ID.iam.gserviceaccount.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promptise-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promptise-agent
+  template:
+    metadata:
+      labels:
+        app: promptise-agent
+    spec:
+      serviceAccountName: promptise-agent   # binds the pod to the GSA
+      containers:
+        - name: agent
+          image: YOUR_REGISTRY/promptise-agent:latest
+          command: ["python", "app.py"]
+          env:
+            # No ANTHROPIC_API_KEY — the GSA is the identity.
+            - name: ANTHROPIC_FEDERATION_RULE_ID
+              value: "fdrl_your_rule_id"
+            - name: ANTHROPIC_ORGANIZATION_ID
+              value: "your_org_uuid"
+            - name: ANTHROPIC_SERVICE_ACCOUNT_ID
+              value: "svac_your_service_account"
