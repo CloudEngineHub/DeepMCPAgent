@@ -1,85 +1,110 @@
-"""Unit tests for :class:`MintedToken` and the two-tier refresh windows."""
+"""Unit tests for the cached-credential primitive."""
 
 from __future__ import annotations
 
+import base64
+import json
 import time
 
-from promptise.identity import (
-    ADVISORY_REFRESH_BUFFER_SECONDS,
-    MANDATORY_REFRESH_BUFFER_SECONDS,
-    MintedToken,
-)
+from promptise.identity import CachedCredential, decode_jwt_claims, decode_jwt_expiry
+from promptise.identity._core.cache import CREDENTIAL_REFRESH_BUFFER_SECONDS
 
 
-def test_buffer_constants_match_build_plan() -> None:
-    """The two refresh buffers must match section 4.5 of the build plan exactly."""
-    assert ADVISORY_REFRESH_BUFFER_SECONDS == 120
-    assert MANDATORY_REFRESH_BUFFER_SECONDS == 30
-
-
-def _mint(expires_in: int) -> MintedToken:
-    """Create a token whose nominal expiry is ``expires_in`` seconds from now.
-
-    The test JWT prefix here is the legitimate Anthropic format; this is
-    not a real credential — it is a literal made of the prefix plus the
-    word ``test``.
-    """
-    return MintedToken(
-        access_token="sk-ant-oat01-test",
-        token_type="Bearer",
-        expires_at_monotonic=time.monotonic() + expires_in,
-        expires_in_seconds=expires_in,
+def _jwt_with_exp(exp: float | None) -> str:
+    """Build an unsigned JWT carrying (or omitting) an ``exp`` claim."""
+    header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
+    claims: dict[str, object] = {"sub": "agent"}
+    if exp is not None:
+        claims["exp"] = exp
+    payload = (
+        base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode()
     )
+    return f"{header}.{payload}."
 
 
-def test_fresh_token_needs_no_refresh() -> None:
-    token = _mint(expires_in=3600)
-    assert not token.needs_advisory_refresh()
-    assert not token.needs_mandatory_refresh()
-    assert token.time_until_expiry() > 3500
+# -- CachedCredential.is_stale -------------------------------------------
 
 
-def test_token_inside_advisory_window_only() -> None:
-    # 90 s remaining: inside the 120 s advisory window but outside the
-    # 30 s mandatory window.
-    token = _mint(expires_in=90)
-    assert token.needs_advisory_refresh()
-    assert not token.needs_mandatory_refresh()
+def test_no_expiry_is_always_stale() -> None:
+    cred = CachedCredential(token="x", expires_at_epoch=None)
+    assert cred.is_stale() is True
 
 
-def test_token_inside_mandatory_window_triggers_both() -> None:
-    # 15 s remaining: inside both windows.
-    token = _mint(expires_in=15)
-    assert token.needs_advisory_refresh()
-    assert token.needs_mandatory_refresh()
+def test_future_expiry_is_not_stale() -> None:
+    cred = CachedCredential(token="x", expires_at_epoch=time.time() + 3600)
+    assert cred.is_stale() is False
 
 
-def test_expired_token_triggers_both_windows() -> None:
-    token = _mint(expires_in=-1)
-    assert token.needs_advisory_refresh()
-    assert token.needs_mandatory_refresh()
-    assert token.time_until_expiry() < 0
+def test_within_buffer_is_stale() -> None:
+    # Expires in less than the refresh buffer → re-acquire.
+    cred = CachedCredential(
+        token="x",
+        expires_at_epoch=time.time() + CREDENTIAL_REFRESH_BUFFER_SECONDS - 5,
+    )
+    assert cred.is_stale() is True
 
 
-def test_time_until_expiry_uses_monotonic_clock() -> None:
-    """Section 4.5: wall-clock skew must not affect token validity.
-
-    Asserts the clock used is monotonic by observing that consecutive
-    calls always show a strictly decreasing remaining lifetime.
-    """
-    token = _mint(expires_in=600)
-    remaining_before = token.time_until_expiry()
-    time.sleep(0.05)
-    remaining_after = token.time_until_expiry()
-    assert remaining_before > remaining_after
-    assert remaining_after > 0
+def test_already_expired_is_stale() -> None:
+    cred = CachedCredential(token="x", expires_at_epoch=time.time() - 1)
+    assert cred.is_stale() is True
 
 
-def test_minted_token_is_frozen() -> None:
-    """Tokens are immutable — refresh replaces, never mutates."""
-    token = _mint(expires_in=3600)
-    try:
-        token.access_token = "tampered"  # type: ignore[misc]
-    except (AttributeError, Exception):  # noqa: BLE001 — covers both FrozenInstanceError and AttributeError
-        return
-    raise AssertionError("MintedToken should be frozen but allowed mutation")
+# -- decode_jwt_expiry ----------------------------------------------------
+
+
+def test_decode_expiry_reads_exp_claim() -> None:
+    assert decode_jwt_expiry(_jwt_with_exp(1_700_000_000)) == 1_700_000_000.0
+
+
+def test_decode_expiry_missing_exp_returns_none() -> None:
+    assert decode_jwt_expiry(_jwt_with_exp(None)) is None
+
+
+def test_decode_expiry_malformed_returns_none() -> None:
+    assert decode_jwt_expiry("not-a-jwt") is None
+    assert decode_jwt_expiry("only.two") is None
+    assert decode_jwt_expiry("a.!@#$.c") is None
+
+
+def test_decode_expiry_non_numeric_exp_returns_none() -> None:
+    header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
+    payload = (
+        base64.urlsafe_b64encode(json.dumps({"exp": "soon"}).encode())
+        .rstrip(b"=")
+        .decode()
+    )
+    assert decode_jwt_expiry(f"{header}.{payload}.") is None
+
+
+def test_decode_expiry_boolean_exp_is_rejected() -> None:
+    header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
+    payload = (
+        base64.urlsafe_b64encode(json.dumps({"exp": True}).encode())
+        .rstrip(b"=")
+        .decode()
+    )
+    assert decode_jwt_expiry(f"{header}.{payload}.") is None
+
+
+# -- decode_jwt_claims ----------------------------------------------------
+
+
+def test_decode_claims_returns_payload() -> None:
+    header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
+    payload = (
+        base64.urlsafe_b64encode(json.dumps({"sub": "bot", "iss": "idp"}).encode())
+        .rstrip(b"=")
+        .decode()
+    )
+    assert decode_jwt_claims(f"{header}.{payload}.") == {"sub": "bot", "iss": "idp"}
+
+
+def test_decode_claims_malformed_returns_empty() -> None:
+    assert decode_jwt_claims("not-a-jwt") == {}
+    assert decode_jwt_claims("a.!@#$.c") == {}
+
+
+def test_decode_claims_non_object_returns_empty() -> None:
+    header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
+    payload = base64.urlsafe_b64encode(json.dumps([1, 2]).encode()).rstrip(b"=").decode()
+    assert decode_jwt_claims(f"{header}.{payload}.") == {}

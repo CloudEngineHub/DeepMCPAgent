@@ -39,6 +39,17 @@ SuperAgent file loader, validator, and schema definitions. Handles loading, pars
       show_source: false
       heading_level: 4
 
+### IdentityConfig
+
+The `identity:` section — gives the agent a local or verifiable
+[Agent Identity](../identity/overview.md). See the
+[`.superagent` reference](../core/agents/superagent-files.md#identity).
+
+::: promptise.superagent_schema.IdentityConfig
+    options:
+      show_source: false
+      heading_level: 4
+
 ### Server Configuration
 
 #### ServerConfig

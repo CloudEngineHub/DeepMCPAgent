@@ -245,6 +245,7 @@ nav:
   - Agent Identity:
       - Overview: identity/overview.md
       - Quickstart: identity/quickstart.md
+      - "Guide: End-to-end": identity/guide.md
       - Architecture: identity/architecture.md
       - Providers:
           - Microsoft Entra ID: identity/providers/entra.md

@@ -1,11 +1,14 @@
 # Agent Identity
 
-**Federated authentication for AI agents — zero static credentials in agent code.**
+**Know, trace, and identify the agent that acts.**
 
-Promptise Agent Identity lets a workload prove who it is to Anthropic using the
-identity its platform *already* gives it — an AWS IAM role, a GCP service
-account, a Microsoft Entra managed identity, a SPIFFE SVID, or any OIDC issuer —
-instead of a long-lived `ANTHROPIC_API_KEY` baked into the agent.
+Agent Identity gives every agent a stable, traceable identity — a
+non-human, service-account-style identity (modelled on things like
+Microsoft Entra Agent ID) that answers one question: *which agent did
+this?* That identity is stamped onto everything the agent does — tool
+calls, LLM turns, audit entries — and, when you want it, presented to
+the resources the agent calls (such as MCP servers) so they can
+authenticate and attribute the caller too.
 
 ```python
 from promptise import build_agent
@@ -13,66 +16,116 @@ from promptise.identity import AgentIdentity
 
 agent = await build_agent(
     model="anthropic:claude-sonnet-4-5",
-    servers={},
-    identity=AgentIdentity.from_aws(),   # zero arguments, reads the environment
+    servers={...},
+    identity=AgentIdentity("billing-bot", name="Billing Bot", owner="payments"),
 )
+# Every action this agent records is now attributed to "billing-bot".
 ```
 
-Those lines work unchanged on AWS Lambda, EKS, GKE, AKS, a Kubernetes pod with
-SPIRE, and a GitHub Actions runner. No API key is stored, printed, or committed.
+This is **not** about the LLM credential. The model keeps its own
+authentication; identity is about *who is acting*, for attribution and
+authorization.
 
-## How it works
+## Two tiers of identity
 
-Every provider produces a short-lived **OIDC JWT** from the platform it runs on.
-The framework exchanges that JWT for a short-lived Anthropic access token using
-the [RFC 7523](https://datatracker.ietf.org/doc/html/rfc7523)
-`urn:ietf:params:oauth:grant-type:jwt-bearer` grant, caches the token in memory,
-and refreshes it transparently before it expires. The static-credential problem
-disappears: the only thing on disk is a token the platform rotates for you.
+### Local identity
 
-See [Architecture](architecture.md) for the full request path and the
-[two-tier refresh](architecture.md#token-lifecycle) model.
+Just an `agent_id` (plus optional name, owner, and labels). No
+infrastructure. It is the value the framework stamps onto the
+observability timeline and audit log so you can trace which agent did
+what across a fleet.
 
-## When to use it
+```python
+identity = AgentIdentity("billing-bot", name="Billing Bot", owner="payments")
+identity.agent_id        # "billing-bot"
+identity.claims()        # {"agent_id": "billing-bot", "name": ..., "owner": ..., ...}
+```
 
-- **Cloud-hosted agents.** The workload runs on a platform that issues an
-  identity (AWS/GCP/Azure/Kubernetes). You want to stop managing API keys.
-- **CI/CD agents.** GitLab CI, GitHub Actions, CircleCI, Azure DevOps — any
-  runner that mints an OIDC token per job.
-- **Zero-trust / SPIFFE environments.** A SPIRE agent already issues SVIDs to
-  your workloads.
-- **Audit requirements.** You need every action traceable to a federated
-  service account rather than a shared key.
+### Verifiable identity
 
-## When *not* to use it
+Additionally backed by a **credential provider** — Microsoft Entra, AWS
+IAM, Google Cloud, SPIFFE/SPIRE, or a generic OIDC issuer — that mints a
+short-lived, signed JWT proving the identity. The agent presents this
+credential to the resources it calls so they can *verify* the caller
+rather than trust a self-asserted id.
 
-- **Local development on a laptop** with no platform identity — a plain
-  `ANTHROPIC_API_KEY` is simpler. (You can still use the
-  [OIDC env-var path](providers/oidc.md) with a token you mint by hand.)
-- **Human SSO.** This is workload-to-Claude authentication, not a workforce
-  identity solution.
-- **A credential store.** The framework holds tokens in memory only;
-  persistence is the platform's job.
+```python
+identity = AgentIdentity.from_entra(
+    "billing-bot", client_id="...", resource="api://my-mcp-server"
+)
+identity.is_verifiable       # True
+identity.get_credential()    # a signed JWT, presented to the resource
+identity.auth_header()       # {"Authorization": "Bearer <jwt>"}
 
-## Supported providers
+# One identity, several resources — a credential per audience:
+identity.get_credential("api://billing")   # scoped to the billing resource
+identity.get_credential("api://crm")       # scoped to the CRM resource
+```
 
-| Provider | Factory | JWT source |
+A single verifiable identity can present a resource-scoped credential to
+each service it calls — see
+[Per-resource credentials](architecture.md#per-resource-credentials).
+
+## Where the identity shows up
+
+- **Observability** — every tool call and LLM turn the agent records is
+  tagged with the agent's identifier (its `agent_id`, or the IdP
+  `subject`), so the timeline tells you which agent acted.
+- **MCP & APIs** — a verifiable identity is presented to MCP servers
+  **automatically** (its credential becomes their `bearer_token`); the
+  server verifies it with [`JwksAuth`](../mcp/server/auth-security.md#jwksauth)
+  and authorizes the agent via its JWT auth and `RequireClientId` / role
+  guards.
+- **Audit** — the Guardrails audit log records the verified agent
+  identity (subject/issuer/audience/roles) inside its tamper-evident HMAC
+  chain.
+- **Cross-agent** — when one agent delegates to another, the peer's
+  observability records *who* delegated (the caller's `claims()`).
+
+The `agent_id` / subject drives attribution; the richer `claims()`
+(name, owner, labels) flow to the audit log and cross-agent delegation.
+
+## Credential providers
+
+| Provider | Factory | Identity source |
 | --- | --- | --- |
-| [Microsoft Entra ID](providers/entra.md) | `AgentIdentity.from_entra()` | IMDS, or `$AZURE_FEDERATED_TOKEN_FILE` (AKS Workload Identity) |
-| [AWS IAM](providers/aws.md) | `AgentIdentity.from_aws()` | STS `GetWebIdentityToken`, or an EKS-projected token file |
-| [Google Cloud](providers/gcp.md) | `AgentIdentity.from_gcp()` | Compute metadata server identity token |
+| [Microsoft Entra ID](providers/entra.md) | `AgentIdentity.from_entra()` | IMDS, or `$AZURE_FEDERATED_TOKEN_FILE` (AKS) |
+| [AWS IAM](providers/aws.md) | `AgentIdentity.from_aws()` | STS `GetWebIdentityToken`, or an EKS-projected token |
+| [Google Cloud](providers/gcp.md) | `AgentIdentity.from_gcp()` | Compute metadata identity token |
 | [SPIFFE / SPIRE](providers/spiffe.md) | `AgentIdentity.from_spiffe()` | Workload API socket, or a `spiffe-helper` file |
 | [Generic OIDC](providers/oidc.md) | `AgentIdentity.from_oidc()` | File, callable, or environment variable |
 
-Don't know which one you're on? [`AgentIdentity.auto()`](architecture.md#auto-detection)
-detects the platform from environment markers and picks for you.
+Don't know which platform you're on? [`AgentIdentity.auto()`](architecture.md#auto-detection)
+detects it from environment markers and picks for you.
+
+## Persistence lives in your IdP
+
+An agent's identity is **durable because it lives in an identity
+provider** — a Microsoft Entra **Agent ID**, an app / service principal in
+your OIDC provider, an AWS IAM role, a SPIFFE registration. That directory
+is the system of record: it persists the identity, and it is where you
+create, inventory, govern, and revoke agents. Promptise keeps **no
+identity store of its own** — it authenticates against the IdP through a
+credential provider and uses the identity the IdP issues.
+
+The authoritative identifier comes *from* the IdP, not from a string you
+pass. For a verifiable identity you can omit `agent_id` entirely; the
+identity is then read from the credential's `sub` claim (or `oid` for
+Entra):
+
+```python
+identity = AgentIdentity.from_entra(resource="api://my-mcp-server")
+identity.agent_id            # None — no local handle
+identity.subject()           # "…" — the IdP-assigned identity (sub / oid)
+identity.idp_claims()        # {"sub": …, "oid": …, "iss": …, "aud": …}
+identity.resolve_identifier()  # the authoritative id used for attribution
+```
+
+`"billing-bot"` is the same identity across restarts because the IdP —
+not Promptise — makes it so.
 
 ## Next steps
 
-- [Quickstart](quickstart.md) — a working federated agent in five minutes, with
-  no cloud account required.
-- [Architecture](architecture.md) — the exchange engine, the cache, and the
-  refresh model.
-- [Security](security.md) — the threat model and the framework's
-  secret-handling guarantees.
-- [Migration](migration.md) — move off `ANTHROPIC_API_KEY` with no downtime.
+- [Quickstart](quickstart.md) — a traceable agent in five minutes.
+- [Architecture](architecture.md) — how identity is stamped and presented.
+- [Security](security.md) — the threat model and guarantees.

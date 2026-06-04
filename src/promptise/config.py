@@ -89,6 +89,16 @@ class HTTPServerSpec(_BaseServer):
     headers: dict[str, str] = Field(default_factory=dict)
     auth: str | None = None
 
+    # Resource audience this server expects. When an agent identity is
+    # attached and no explicit bearer_token is set, build_agent presents a
+    # credential minted for this audience (per-resource identity).
+    audience: str | None = Field(
+        default=None,
+        description="Resource audience this server expects. When an agent "
+        "identity is attached, a credential scoped to this audience is "
+        "presented automatically.",
+    )
+
     # Token auth — pass a pre-issued Bearer token (from an IdP or server token endpoint)
     bearer_token: SecretStr | None = Field(
         default=None,

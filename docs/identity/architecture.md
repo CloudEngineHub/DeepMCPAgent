@@ -1,73 +1,97 @@
 # Architecture
 
-Agent Identity is a thin, layered subsystem. User code touches exactly one
-class — `AgentIdentity` — and everything below it is a provider, a cache, and a
-single RFC 7523 exchange call.
+Agent Identity has two jobs: **attribute** every action to the acting
+agent, and (optionally) **present** a verifiable credential to the
+resources the agent calls. The identity itself is a small object; the
+value is in where it flows.
 
-## Request path
-
-```mermaid
-flowchart TD
-    U["User code<br/>build_agent(model=…, identity=AgentIdentity.from_aws())"]
-    AI["AgentIdentity (public class)<br/>forwards get_token / get_auth_header / get_upstream_jwt"]
-    IP["IdentityProvider (abstract base)<br/>holds the cached MintedToken<br/>thread-safe via threading.Lock<br/>two-tier refresh (advisory −120s, mandatory −30s)"]
-    ACQ["_acquire_upstream_jwt() (abstract)<br/>implemented by each concrete provider"]
-    EX["exchange_jwt_for_anthropic_token()<br/>POST /v1/oauth/token<br/>RFC 7523 jwt-bearer grant → MintedToken"]
-    FILE["File provider<br/>re-reads on every refresh"]
-    CALL["Callable provider"]
-    PS["Provider-specific acquisition<br/>• boto3 STS (AWS)<br/>• IMDS HTTP (Entra)<br/>• Metadata server (GCP)<br/>• Workload API (SPIFFE)<br/>• User callable (OIDC)"]
-    DISK["File on disk<br/>• projected token (K8s)<br/>• spiffe-helper output<br/>• $AZURE_FEDERATED_TOKEN_FILE (AKS)"]
-    ANTH["Anthropic /v1/oauth/token"]
-
-    U --> AI --> IP
-    IP --> ACQ
-    IP --> EX
-    EX --> ANTH
-    ACQ --> FILE
-    ACQ --> CALL
-    CALL --> PS
-    FILE --> DISK
-```
-
-The framework owns only two things: the **exchange step** and the **cache**.
-Every provider uses the platform's native SDK or metadata service to obtain the
-upstream JWT — nothing here re-implements an identity provider.
-
-## Token lifecycle
-
-A minted token is a small immutable record (`MintedToken`) carrying the access
-token, its type, and a monotonic expiry. `get_token()` runs a two-tier refresh
-under a `threading.Lock`, so concurrent callers collapse into a single exchange:
+## Attribution path
 
 ```mermaid
 flowchart TD
-    A["get_token()"] --> B{cached token?}
-    B -- no --> R["mandatory refresh<br/>(failure raises)"]
-    B -- yes --> C{"≤ 30s to expiry?<br/>(mandatory window)"}
-    C -- yes --> R
-    C -- no --> D{"≤ 120s to expiry?<br/>(advisory window)"}
-    D -- yes --> E["try refresh;<br/>on failure log WARNING<br/>and keep the cached token"]
-    D -- no --> F["return cached token"]
-    R --> G["return fresh token"]
-    E --> G
+    U["build_agent(model=…, identity=AgentIdentity('billing-bot'))"]
+    AI["AgentIdentity<br/>agent_id, name, owner, labels<br/>+ optional credential provider"]
+    AG["agent.identity<br/>(exposed on the agent)"]
+    OBS["Observability timeline (wired)<br/>tool calls + LLM turns tagged agent_id"]
+    AUD["Audit log (planned)<br/>see DEFERRED.md"]
+    CRED["Credential provider (optional)<br/>Entra / AWS / GCP / SPIFFE / OIDC"]
+    MCP["MCP server / API<br/>validates the credential, attributes the caller"]
+
+    U --> AI --> AG
+    AG --> OBS
+    AG -. planned .-> AUD
+    AI -. verifiable, opt-in .-> CRED -->|"Bearer <jwt>"| MCP
 ```
 
-- **Mandatory window** (`MANDATORY_REFRESH_BUFFER_SECONDS` = 30s, or no token):
-  a refresh is required; any failure propagates as
-  [`TokenAcquisitionError`](security.md#errors) or `TokenExchangeError`.
-- **Advisory window** (`ADVISORY_REFRESH_BUFFER_SECONDS` = 120s): a refresh is
-  *attempted*; if it fails the still-valid cached token is returned and a
-  warning is logged.
+When you pass `identity=` to `build_agent`, the agent's `agent_id`
+becomes the default attribution id for the observability timeline
+(unless you set `observer_agent_id` explicitly). No further wiring is
+needed — the observability subsystem already records every tool call and
+LLM turn with an `agent_id`; identity just supplies it. Only the
+`agent_id` string flows to the timeline today; stamping the full
+`claims()` onto the audit log is a planned follow-up.
 
-Expiry uses `time.monotonic()`, not wall-clock time, so the logic is immune to
-clock skew and NTP steps. The cache is **process-local** by design — minted
-tokens are never shared across processes (see [Security](security.md)).
+## Two tiers
+
+- **Local** — `AgentIdentity("billing-bot", …)`. Pure attribution; needs
+  no infrastructure. Used to tag traces and audit entries.
+- **Verifiable** — `AgentIdentity.from_entra(...)` (or `from_aws`,
+  `from_gcp`, `from_spiffe`, `from_oidc`, `auto`). Adds a credential
+  provider that mints a signed JWT proving the identity, for resources
+  that must authenticate the caller rather than trust a self-asserted id.
+
+## Credential lifecycle
+
+A verifiable identity's credential is a short-lived JWT. The framework
+caches one credential **per audience** per provider and re-acquires it as
+it nears expiry:
+
+- The expiry is read from the JWT's standard `exp` claim
+  (`decode_jwt_expiry`); a credential is re-acquired once it is within
+  `CREDENTIAL_REFRESH_BUFFER_SECONDS` (60s) of expiry.
+- A credential with no decodable `exp` — an opaque token, or a
+  file-projected token rotated in place by the platform — is treated as
+  always-stale and re-acquired on every use, so rotation is always
+  observed.
+
+Concurrent callers collapse into a single acquisition via a lock, and
+the cache is process-local.
+
+## Per-resource credentials
+
+One agent often calls several resources — a billing MCP server, a CRM
+API — and each may require a credential minted for *its* audience. A
+verifiable identity serves all of them from a single `AgentIdentity`:
+
+```python
+identity.get_credential()                      # the provider's default audience
+identity.get_credential("api://billing")       # scoped to the billing resource
+identity.auth_header("api://crm")              # {"Authorization": "Bearer <jwt for crm>"}
+```
+
+What `audience` does depends on the provider:
+
+| Provider kind | Providers | `audience=` behaviour |
+| --- | --- | --- |
+| **Active** (re-mints on demand) | Entra IMDS, AWS STS, GCP metadata, SPIFFE SDK | Mints a credential scoped to the requested audience; falls back to the factory default when omitted. |
+| **Passive** (fixed audience) | EKS / AKS projected-token files, OIDC file / env / callable | The audience is fixed at issue time by the platform; a per-request `audience` is accepted but ignored. |
+
+Each distinct audience is cached and refreshed independently (keyed by
+`audience`, each entry expiring on its own `exp`), so repeated calls to
+the same resource reuse a token while different resources get their own.
+
+!!! note "Passive providers stay single-audience"
+    A projected-token or OIDC-file identity has exactly the audience the
+    platform stamped into the token. If you need a *different* audience
+    from such a source, issue a token for it at the source (a second
+    projected-token volume, a different CI claim) and build a second
+    identity — Promptise cannot re-mint what it did not sign.
 
 ## Auto-detection
 
-`AgentIdentity.auto()` picks a provider from environment markers, in a fixed
-precedence order, with **no metadata-server probe** (it is fast and works
-offline):
+`AgentIdentity.auto(agent_id)` picks a credential provider from
+environment markers, in a fixed precedence order, with **no
+metadata-server probe** (fast, offline-safe):
 
 | Order | Platform | Markers |
 | --- | --- | --- |
@@ -76,43 +100,50 @@ offline):
 | 3 | GCP | `GOOGLE_CLOUD_PROJECT`, `K_SERVICE`, `GCE_METADATA_IP` |
 | 4 | SPIFFE | `SPIFFE_ENDPOINT_SOCKET` |
 
-If a workload sets markers for more than one platform, the first match wins. If
-none match, `auto()` raises [`PlatformDetectionError`](security.md#errors)
-naming the explicit `from_*` factories as the fallback.
+The first match wins; if none match, `auto()` raises
+[`PlatformDetectionError`](security.md#errors) — construct a local
+`AgentIdentity(agent_id)` or use an explicit factory instead.
 
-## `build_agent()` integration
+## MCP integration
 
-When you pass `identity=` to `build_agent()` with a **model id string**, the
-agent's own Anthropic calls are authenticated with the federated token:
+A verifiable identity is presented to MCP servers as a bearer credential
+**automatically**: when you pass `identity=` to `build_agent`, every MCP
+server that has no bearer of its own receives the agent's credential as
+its `bearer_token` (an explicit per-server bearer always wins; the
+credential is resolved at build time).
 
-- The minted token is a *bearer* token, so it is placed in the `Authorization`
-  header (`Authorization: Bearer sk-ant-oat01-…`); no `x-api-key` is sent.
-- If `ANTHROPIC_API_KEY` is also set, `build_agent()` raises
-  [`CredentialPrecedenceError`](security.md#errors) rather than let the static
-  key silently shadow the federated identity.
-- The identity is exposed as `agent.identity`, so MCP tools and downstream
-  calls can mint authenticated headers with `agent.identity.get_auth_header()`.
+Each server's credential is scoped to that server's
+[`HTTPServerSpec.audience`](../core/config.md#httpserverspec) — so a
+single identity presents a `billing`-scoped token to the billing server
+and a `crm`-scoped token to the CRM server, all from one `AgentIdentity`:
 
-The token is resolved when the model is built. A long-lived agent that outlives
-the token lifetime should be rebuilt (or call `agent.identity.get_token()` for a
-fresh token in its own outbound calls).
+```python
+from promptise.config import HTTPServerSpec
 
-!!! note "Anthropic SDK versions"
-    The integration injects the bearer token at the model-construction layer
-    (via LangChain `init_chat_model`) because it works on the SDK versions
-    Promptise targets today. If a future Anthropic SDK ships a first-class
-    workload-identity credential type, the agent's own calls can move onto it
-    without any change to the `AgentIdentity` public surface.
+agent = await build_agent(
+    model="anthropic:claude-sonnet-4-5",
+    identity=identity,
+    servers={
+        "billing": HTTPServerSpec(url="https://billing.internal/mcp",
+                                  audience="api://billing"),
+        "crm":     HTTPServerSpec(url="https://crm.internal/mcp",
+                                  audience="api://crm"),
+    },
+)
+```
 
-## Audit-log enrichment (integration contract)
+Leave `audience` unset to use the identity provider's default audience.
+If the IdP is briefly unreachable when a credential is acquired, the
+build does not fail — it logs a warning and connects without the
+credential, so servers that require auth will reject the unauthenticated
+calls (fail-closed at the server, never a silent drop).
 
-When an `AgentIdentity` is attached to an agent, the Security Guardrails audit
-log can stamp every entry with two extra fields:
-
-- `identity.provider` — the provider's `provider_name` (e.g. `aws-sts`).
-- `identity.service_account_id` — the federated service account id.
-
-These are available from `agent.identity.provider_name` and
-`agent.identity.service_account_id`. Wiring them into the audit-log writer is a
-cross-subsystem change owned by Guardrails and is tracked as a follow-up; the
-contract above is the integration point.
+On the **server** side, the Promptise MCP Server SDK verifies that
+credential with
+[`JwksAuth`](../mcp/server/auth-security.md#jwksauth) — it fetches the
+IdP's public keys from its JWKS endpoint (handling key rotation) and
+validates the agent's token. The validated `subject` and claims are then
+surfaced on the server's `ClientContext`, so guards (`RequireClientId`,
+`HasRole`) authorize and server-side audit records *which agent* called.
+End to end, the agent's IdP identity flows from the IdP, through the
+agent, to the resource — without a shared secret.

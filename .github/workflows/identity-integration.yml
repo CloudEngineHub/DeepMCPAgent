@@ -1,24 +1,13 @@
-# Agent Identity — live federation integration test.
+# Agent Identity — integration test.
 #
-# Runs the examples/identity/github_actions example end-to-end: it mints a real
-# GitHub OIDC token, exchanges it for an Anthropic access token via a Workload
-# Identity Federation rule, and drives one agent invocation — with NO
-# ANTHROPIC_API_KEY.
+# Runs the examples/identity/github_actions example end-to-end: it mints a
+# real GitHub OIDC token and builds a verifiable AgentIdentity from it,
+# proving the agent can produce a credential that proves who it is.
 #
-# MANUAL SETUP REQUIRED (one time, by a maintainer) for the live test to run:
-#   1. In the Anthropic Console, create a Workload Identity Federation rule:
-#        issuer:   https://token.actions.githubusercontent.com
-#        audience: https://api.anthropic.com
-#        subject:  repo:OWNER/REPO:ref:refs/heads/main  (or your chosen ref)
-#   2. Add these as repository *variables* (Settings → Secrets and variables →
-#      Actions → Variables) — they are identifiers, not secrets:
-#        ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID,
-#        ANTHROPIC_SERVICE_ACCOUNT_ID
-#
-# Until that variable is set, this workflow SKIPS the live test (with a notice)
-# rather than failing — so it stays green on forks and unconfigured repos.
-# Note: pull requests from forks do not receive an OIDC token, so the live test
-# runs on same-repo pushes/PRs and workflow_dispatch only.
+# No manual setup, no secrets, no Anthropic federation rule — the runner's
+# own OIDC token is the identity. (Pull requests from forks do not receive
+# an OIDC token, so the live check runs on same-repo pushes/PRs and
+# workflow_dispatch; on forks it skips with a notice.)
 
 name: Identity Integration
 
@@ -34,8 +23,8 @@ permissions:
   contents: read
 
 jobs:
-  federated-auth:
-    name: Live federation test
+  agent-identity:
+    name: Verifiable identity
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,30 +36,20 @@ jobs:
       - name: Install promptise (from source)
         run: pip install -e .
 
-      - name: Check federation configuration
-        id: cfg
-        env:
-          FED: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
-        run: |
-          if [ -z "$FED" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::ANTHROPIC_FEDERATION_RULE_ID repo variable not set — skipping the live federation test. See examples/identity/github_actions for setup."
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Mint the GitHub OIDC token
-        if: steps.cfg.outputs.configured == 'true'
+        id: oidc
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
-            const token = await core.getIDToken('https://api.anthropic.com')
+            const token = await core.getIDToken('api://promptise-agent')
             core.exportVariable('GITHUB_OIDC_TOKEN', token)
+            core.setOutput('minted', 'true')
 
-      - name: Run the federated agent example
-        if: steps.cfg.outputs.configured == 'true'
-        env:
-          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
-          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
-          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+      - name: Run the identity example
+        if: steps.oidc.outputs.minted == 'true'
         run: python examples/identity/github_actions/script.py
+
+      - name: Note skip on forks
+        if: steps.oidc.outputs.minted != 'true'
+        run: echo "::notice::No OIDC token (fork PR) — skipping the live identity check."

@@ -1,46 +1,33 @@
 """``promptise.identity`` — Agent Identity subsystem.
 
-The foundation layer for agentic identity. Federated authentication
-for AI agents via Workload Identity Federation — zero static
-credentials in agent code.
+Identity, tracing, and attribution for AI agents. Every agent gets a
+stable, traceable identity — *who is acting* — so its tool calls, audit
+entries, and outbound requests can all be attributed to it. An identity
+can be **local** (just an ``agent_id``) or **verifiable** — backed by a
+credential provider (Microsoft Entra, AWS IAM, Google Cloud,
+SPIFFE/SPIRE, or a generic OIDC issuer) that mints a signed JWT the
+agent presents to the resources it calls, such as MCP servers.
 
-Day-one supported providers:
-
-* Microsoft Entra ID (IMDS and projected-token modes)
-* AWS IAM (STS and EKS-projected modes)
-* Google Cloud (compute metadata server)
-* SPIFFE / SPIRE (file and Workload API modes)
-* Generic OIDC (file, callable, env-var)
-
-The user-facing surface is the single class :class:`AgentIdentity`
-plus its five ``from_*`` factories. Lower-level classes —
-:class:`IdentityProvider`, :class:`MintedToken`, exception types —
-are exported for advanced use, subclassing, and integration with
-other parts of the framework.
-
-The public surface is intentionally small: build an
-:class:`AgentIdentity` with one of its ``from_*`` factories (or
-:meth:`AgentIdentity.auto`), then call :meth:`~AgentIdentity.get_token`
-or hand it to ``build_agent(identity=...)``. The lower-level provider
-classes and exception types are exported for advanced use, custom
-subclassing, and integration with the rest of the framework.
+The user-facing surface is the single class :class:`AgentIdentity` plus
+its ``from_*`` factories and :meth:`AgentIdentity.auto`. Lower-level
+classes — :class:`IdentityProvider`, the provider bases, exception
+types — are exported for advanced use and custom subclassing.
 """
 
 from __future__ import annotations
 
 from ._core.cache import (
-    ADVISORY_REFRESH_BUFFER_SECONDS,
-    MANDATORY_REFRESH_BUFFER_SECONDS,
-    MintedToken,
+    CREDENTIAL_REFRESH_BUFFER_SECONDS,
+    CachedCredential,
+    decode_jwt_claims,
+    decode_jwt_expiry,
 )
 from ._core.callable_provider import CallableTokenProvider
 from ._core.errors import (
-    CredentialPrecedenceError,
+    CredentialAcquisitionError,
     IdentityError,
     PlatformDetectionError,
     ProviderConfigError,
-    TokenAcquisitionError,
-    TokenExchangeError,
 )
 from ._core.file_provider import FileTokenProvider
 from ._core.provider import IdentityProvider
@@ -58,26 +45,25 @@ from .providers.spiffe import SpiffeFileProvider, SpiffeSdkProvider
 _configure_default_handler()
 
 __all__ = [
-    "ADVISORY_REFRESH_BUFFER_SECONDS",
-    "MANDATORY_REFRESH_BUFFER_SECONDS",
+    "CREDENTIAL_REFRESH_BUFFER_SECONDS",
     "AgentIdentity",
     "AwsEksProjectedProvider",
     "AwsStsProvider",
+    "CachedCredential",
     "CallableTokenProvider",
-    "CredentialPrecedenceError",
+    "CredentialAcquisitionError",
     "EntraManagedIdentityProvider",
     "EntraProjectedTokenProvider",
     "FileTokenProvider",
     "GcpMetadataProvider",
     "IdentityError",
     "IdentityProvider",
-    "MintedToken",
     "OidcCallableProvider",
     "OidcFileProvider",
     "PlatformDetectionError",
     "ProviderConfigError",
     "SpiffeFileProvider",
     "SpiffeSdkProvider",
-    "TokenAcquisitionError",
-    "TokenExchangeError",
+    "decode_jwt_claims",
+    "decode_jwt_expiry",
 ]

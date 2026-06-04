@@ -1,40 +1,9 @@
 # Quickstart
 
-This five-minute path gets you a working federated agent with **no cloud
-account**. It uses the [generic OIDC](providers/oidc.md) env-var mode, so you
-can run it on a laptop or in a plain Docker container — the same code then works
-unchanged on AWS, GCP, Azure, or Kubernetes by swapping the factory.
+Give an agent a traceable identity in five minutes — no infrastructure
+required. Then, optionally, make it verifiable.
 
-## 1. Register a federation rule
-
-In the [Anthropic Console](https://console.anthropic.com), create a Workload
-Identity Federation rule for your issuer and note three identifiers:
-
-- the federation rule id (`fdrl_…`),
-- your organization id (a UUID),
-- the service account id (`svac_…`).
-
-These are **identifiers, not secrets** — but treat them as configuration, not
-literals in code.
-
-## 2. Set the environment
-
-```bash
-export ANTHROPIC_FEDERATION_RULE_ID=fdrl_your_rule_id
-export ANTHROPIC_ORGANIZATION_ID=your_org_uuid
-export ANTHROPIC_SERVICE_ACCOUNT_ID=svac_your_service_account
-
-# The issuer's OIDC token. In CI this is set for you (e.g. $CI_JOB_JWT_V2 on
-# GitLab, the OIDC token on a GitHub Actions runner). Here we read one you
-# already have on disk:
-export MY_OIDC_TOKEN="$(cat ./oidc_token.jwt)"
-
-# Make sure no static key is present — it would shadow the federated identity
-# and build_agent() will refuse to start.
-unset ANTHROPIC_API_KEY
-```
-
-## 3. Build the agent
+## 1. A local identity
 
 ```python
 import asyncio
@@ -44,87 +13,158 @@ from promptise.identity import AgentIdentity
 
 
 async def main() -> None:
-    identity = AgentIdentity.from_oidc(
-        issuer="https://gitlab.com",
-        token_env_var="MY_OIDC_TOKEN",
-        # federation_rule_id / organization_id / service_account_id are read
-        # from the ANTHROPIC_* environment variables set above.
+    identity = AgentIdentity(
+        "billing-bot",
+        name="Billing Bot",
+        owner="payments-team",
+        labels={"env": "prod"},
     )
 
     agent = await build_agent(
         model="anthropic:claude-sonnet-4-5",
         servers={},
         identity=identity,
+        observe=True,   # enable the timeline so attribution is visible
     )
 
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": "Say hello in one sentence."}]}
+    await agent.ainvoke(
+        {"messages": [{"role": "user", "content": "Summarize today's invoices."}]}
     )
-    print(result["messages"][-1].content)
     await agent.shutdown()
 
 
 asyncio.run(main())
 ```
 
-That is the whole integration. `build_agent` authenticates the agent's own
-Anthropic calls with the federated token — no `ANTHROPIC_API_KEY` anywhere.
+Every tool call and LLM turn the agent records is now tagged with
+`agent_id="billing-bot"`. Across a fleet of agents you can answer *which
+agent did what* without any extra wiring.
 
-## 4. Verify the token exchange directly
-
-You can mint a token without building an agent, which is handy for debugging:
+## 2. Inspect the identity
 
 ```python
-from promptise.identity import AgentIdentity
+identity = AgentIdentity("billing-bot", name="Billing Bot", owner="payments-team")
 
-identity = AgentIdentity.from_oidc(
-    issuer="https://gitlab.com",
-    token_env_var="MY_OIDC_TOKEN",
-)
-
-token = identity.get_token()          # exchanges + caches
-assert token.startswith("sk-ant-oat01-")
-print(identity.get_auth_header())     # {"Authorization": "Bearer sk-ant-oat01-…"}
+identity.agent_id          # "billing-bot"
+identity.claims()          # {"agent_id": "billing-bot", "verifiable": False,
+                           #  "name": "Billing Bot", "owner": "payments-team"}
+identity.is_verifiable     # False — local identity
 ```
 
-`get_token()` is cached and thread-safe: repeated calls return the same token
-until it nears expiry, then refresh transparently.
+## 3. Make it verifiable
 
-## 5. Move to a real platform
+When the agent calls resources that must *verify* who it is — an MCP
+server, a protected API — back the identity with a credential provider.
+The signed credential is what the agent presents; the resource validates
+it and attributes the caller.
 
-When you deploy, delete the `MY_OIDC_TOKEN` plumbing and swap one line:
-
-=== "AWS"
+=== "Generic OIDC (works anywhere)"
 
     ```python
-    identity = AgentIdentity.from_aws()
+    identity = AgentIdentity.from_oidc(
+        "billing-bot",
+        issuer="https://gitlab.com",
+        token_env_var="CI_JOB_JWT_V2",
+    )
     ```
 
-=== "GCP"
+=== "Microsoft Entra"
 
     ```python
-    identity = AgentIdentity.from_gcp()
-    ```
-
-=== "Azure"
-
-    ```python
-    identity = AgentIdentity.from_entra()
-    ```
-
-=== "SPIFFE"
-
-    ```python
-    identity = AgentIdentity.from_spiffe()
+    identity = AgentIdentity.from_entra(
+        "billing-bot", client_id="...", resource="api://my-mcp-server"
+    )
     ```
 
 === "Auto-detect"
 
     ```python
-    identity = AgentIdentity.auto()
+    identity = AgentIdentity.auto("billing-bot")   # picks the platform
     ```
 
-Each provider has its own setup page with prerequisites, Console configuration,
-and troubleshooting — see [Microsoft Entra](providers/entra.md),
-[AWS](providers/aws.md), [Google Cloud](providers/gcp.md),
-[SPIFFE](providers/spiffe.md), and [Generic OIDC](providers/oidc.md).
+Then present it to the resources the agent calls:
+
+```python
+identity.get_credential()    # a short-lived, signed identity JWT
+identity.auth_header()       # {"Authorization": "Bearer <jwt>"}
+```
+
+## 4. Present the identity to an MCP server
+
+A verifiable identity plugs into Promptise's MCP auth **automatically**.
+Pass it to `build_agent` and every MCP server that has no bearer of its
+own receives the agent's identity credential, so the server can
+authenticate and attribute the calling agent (via its JWT auth and
+`RequireClientId` / role guards):
+
+```python
+from promptise.config import HTTPServerSpec
+
+agent = await build_agent(
+    model="anthropic:claude-sonnet-4-5",
+    servers={"tools": HTTPServerSpec(url="https://tools.internal/mcp")},
+    identity=identity,   # presented to "tools" as its bearer token
+)
+```
+
+To override for a specific server, set its `bearer_token` explicitly —
+an explicit per-server token always wins. You can also present the
+credential by hand anywhere with `identity.get_credential()` /
+`identity.auth_header()`.
+
+## 5. One identity, several resources
+
+When the agent calls more than one protected resource, give each server
+its own `audience`. The same identity then mints a credential scoped to
+each — no need for a second `AgentIdentity`:
+
+```python
+from promptise.config import HTTPServerSpec
+
+agent = await build_agent(
+    model="anthropic:claude-sonnet-4-5",
+    identity=identity,
+    servers={
+        "billing": HTTPServerSpec(url="https://billing.internal/mcp",
+                                  audience="api://billing"),
+        "crm":     HTTPServerSpec(url="https://crm.internal/mcp",
+                                  audience="api://crm"),
+    },
+)
+```
+
+Providers that can re-mint on demand (Entra IMDS, AWS STS, GCP metadata,
+SPIFFE SDK) honour the per-server audience; fixed-audience sources
+(projected-token files, OIDC file/env) use the audience the platform
+issued. See [Per-resource credentials](architecture.md#per-resource-credentials).
+
+## 6. Declarative — `.superagent` files
+
+You don't have to wire identity in Python. Add an `identity:` block to a
+[`.superagent` file](../core/agents/superagent-files.md#identity) and it is
+applied automatically by `build_agent`, the CLI (`promptise agent`,
+`promptise serve`), and `SuperAgentLoader`:
+
+```yaml
+version: "1.0"
+agent:
+  model: "anthropic:claude-sonnet-4-5"
+identity:
+  provider: entra                  # local|entra|aws|gcp|spiffe|oidc|auto
+  agent_id: billing-bot
+  owner: payments
+  client_id: "${AZURE_CLIENT_ID}"
+  resource: api://my-mcp-server
+servers:
+  tools:
+    type: http
+    url: "https://tools.internal/mcp"
+```
+
+All string fields support `${ENV_VAR}` resolution. For `provider: local`
+only `agent_id` is needed; for `provider: oidc`, `issuer` plus exactly one
+of `token_file` / `token_env_var`.
+
+See the [provider pages](overview.md#credential-providers) for
+per-platform setup, and [Architecture](architecture.md) for how the
+identity flows through the framework.

@@ -390,3 +390,59 @@ class TestManifestToProcessConfig:
         config = manifest_to_process_config(manifest)
         assert config.model == "openai:gpt-5-mini"
         assert config.journal.level == "checkpoint"
+
+    # -- Agent identity in the manifest -----------------------------------
+
+    def test_identity_local_built(self) -> None:
+        manifest = AgentManifestSchema(
+            name="id-local",
+            identity={"provider": "local", "agent_id": "watcher-bot", "owner": "ops"},
+        )
+        config = manifest_to_process_config(manifest)
+        assert config.identity is not None
+        assert config.identity.agent_id == "watcher-bot"
+        assert config.identity.owner == "ops"
+        assert config.identity.is_verifiable is False
+
+    def test_identity_oidc_is_verifiable(self) -> None:
+        manifest = AgentManifestSchema(
+            name="id-oidc",
+            identity={
+                "provider": "oidc",
+                "agent_id": "release-bot",
+                "issuer": "https://gitlab.com",
+                "token_env_var": "CI_JOB_JWT_V2",
+            },
+        )
+        config = manifest_to_process_config(manifest)
+        assert config.identity.is_verifiable is True
+        assert config.identity.credential_provider == "oidc:https://gitlab.com"
+
+    def test_no_identity_block_yields_none(self) -> None:
+        config = manifest_to_process_config(AgentManifestSchema(name="no-id"))
+        assert config.identity is None
+
+    def test_identity_invalid_local_is_rejected(self) -> None:
+        from pydantic import ValidationError
+
+        manifest = AgentManifestSchema(name="bad", identity={"provider": "local"})
+        with pytest.raises(ValidationError, match="requires 'agent_id'"):
+            manifest_to_process_config(manifest)
+
+    def test_identity_env_resolved_via_load_manifest(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("MY_ISSUER", "https://idp.example.com")
+        path = tmp_path / "a.agent"
+        path.write_text(
+            'version: "1.0"\n'
+            "name: a\n"
+            "identity:\n"
+            "  provider: oidc\n"
+            "  agent_id: b\n"
+            "  issuer: ${MY_ISSUER}\n"
+            "  token_env_var: TOK\n",
+            encoding="utf-8",
+        )
+        config = manifest_to_process_config(load_manifest(path))
+        assert config.identity.credential_provider == "oidc:https://idp.example.com"
