@@ -1,83 +1,58 @@
 # Microsoft Entra ID
 
-Federate from Microsoft Entra ID (formerly Azure AD). Two modes are supported
-and `mode="auto"` (the default) picks between them:
+Back an agent's identity with Microsoft Entra so resources can verify
+it. Two modes, with `mode="auto"` (default) choosing between them:
 
-- **IMDS** — for VM / Managed Service Identity workloads. Reads an `id_token`
-  from the Azure Instance Metadata Service.
-- **Projected token** — for AKS Workload Identity. Reads the token file Azure
-  projects into the pod at `$AZURE_FEDERATED_TOKEN_FILE`.
+- **IMDS** — for VM / Managed Service Identity workloads. Reads an
+  `id_token` from the Azure Instance Metadata Service.
+- **Projected token** — for AKS Workload Identity. Reads the token AKS
+  projects to `$AZURE_FEDERATED_TOKEN_FILE`.
+
+!!! note "What Promptise does and doesn't do here"
+    Registering the agent's identity in Entra — as a managed identity, an
+    app with a federated credential, or an Entra **Agent ID** — is an
+    Entra-side operation you do once in Azure. Promptise *consumes* that
+    identity's token (via IMDS or the projected file); it does not create
+    the directory identity.
 
 ## Prerequisites
 
-- A workload running on Azure with either a managed identity (VM/MSI) or AKS
-  Workload Identity configured.
-- `pip install promptise` — no extra dependency; Entra uses plain HTTP and the
-  projected file, no Azure SDK.
-
-## Anthropic Console setup
-
-Create a Workload Identity Federation rule whose issuer is your Entra tenant
-(`https://login.microsoftonline.com/<tenant-id>/v2.0`) and whose subject /
-audience match your managed identity or workload-identity federated credential.
-Record the `fdrl_…`, organization UUID, and `svac_…` values and export them as
-`ANTHROPIC_FEDERATION_RULE_ID`, `ANTHROPIC_ORGANIZATION_ID`, and
-`ANTHROPIC_SERVICE_ACCOUNT_ID`.
+- A workload on Azure with a managed identity (VM/MSI) or AKS Workload
+  Identity configured.
+- The resource the agent authenticates to (an MCP server / API) must
+  trust your Entra tenant and accept the requested `resource` audience.
+- `pip install promptise` — no extra dependency.
 
 ## Usage
 
-=== "Auto (recommended)"
-
-    ```python
-    from promptise.identity import AgentIdentity
-
-    # Projected mode if $AZURE_FEDERATED_TOKEN_FILE is set, else IMDS.
-    identity = AgentIdentity.from_entra()
-    ```
-
-=== "IMDS (VM / MSI)"
-
-    ```python
-    identity = AgentIdentity.from_entra(
-        mode="imds",
-        client_id="...",          # or rely on $AZURE_CLIENT_ID
-    )
-    ```
-
-=== "Projected (AKS)"
-
-    ```python
-    identity = AgentIdentity.from_entra(
-        mode="projected",
-        # token_file defaults to $AZURE_FEDERATED_TOKEN_FILE
-    )
-    ```
-
-Wire it into an agent:
-
 ```python
-from promptise import build_agent
+from promptise.identity import AgentIdentity
 
-agent = await build_agent(
-    model="anthropic:claude-sonnet-4-5",
-    servers={},
-    identity=AgentIdentity.from_entra(),
+identity = AgentIdentity.from_entra(
+    "billing-bot",
+    name="Billing Bot",
+    resource="api://my-mcp-server",   # the resource the credential targets
+    # mode="auto": projected if $AZURE_FEDERATED_TOKEN_FILE is set, else IMDS
+    # client_id="..."  for a user-assigned managed identity (IMDS)
 )
 ```
 
 ## Verify
 
 ```python
-identity = AgentIdentity.from_entra()
-print(identity.provider_name)         # entra-imds or entra-projected
-assert identity.get_token().startswith("sk-ant-oat01-")
+print(identity.credential_provider)        # entra-imds or entra-projected
+credential = identity.get_credential()      # a signed identity JWT
 ```
+
+Present `identity.get_credential()` to the resource (for example, as an
+MCP server's `bearer_token`); the resource validates it and attributes
+the calling agent.
 
 ## Troubleshooting
 
 | Symptom | Likely cause |
 | --- | --- |
-| `TokenAcquisitionError: could not reach the Azure Instance Metadata Service` | Not running on Azure, or egress to `169.254.169.254` is blocked. Use `mode="projected"` on AKS. |
-| `TokenAcquisitionError: IMDS returned HTTP …` | The `client_id` / `resource` does not match a managed identity on this VM. |
-| Projected mode: file-not-found | `$AZURE_FEDERATED_TOKEN_FILE` is unset — AKS Workload Identity is not enabled for the pod. |
-| `TokenExchangeError` | The Console federation rule's issuer/audience does not match the Entra token. |
+| `CredentialAcquisitionError: could not reach the Azure Instance Metadata Service` | Not on Azure, or egress to `169.254.169.254` blocked. Use `mode="projected"` on AKS. |
+| `CredentialAcquisitionError: IMDS returned HTTP …` | The `client_id` / `resource` does not match a managed identity on this VM. |
+| Projected mode: file-not-found | `$AZURE_FEDERATED_TOKEN_FILE` unset — AKS Workload Identity not enabled. |
+| Resource rejects the credential | The resource does not trust the Entra tenant, or the `resource` audience is wrong. |

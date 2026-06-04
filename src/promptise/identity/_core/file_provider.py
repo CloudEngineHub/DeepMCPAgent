@@ -1,4 +1,4 @@
-"""File-backed identity provider — reads a projected JWT on every refresh.
+"""File-backed credential provider — reads a projected JWT on every refresh.
 
 Used by:
 
@@ -9,21 +9,20 @@ Used by:
 * Generic OIDC file mode.
 
 The file is re-opened on every call to :meth:`_acquire_upstream_jwt`.
-Kubernetes and SPIRE rotate projected tokens **in place**; caching
-the contents in memory would defeat the rotation mechanism. This is
-architectural, not a tunable (build plan section 4.6).
+Kubernetes and SPIRE rotate projected tokens **in place**; caching the
+contents in memory would defeat the rotation mechanism.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from .errors import TokenAcquisitionError
+from .errors import CredentialAcquisitionError
 from .provider import IdentityProvider
 
 
 class FileTokenProvider(IdentityProvider):
-    """Reads the upstream JWT from a file on disk on every refresh.
+    """Reads the identity JWT from a file on disk on every refresh.
 
     Args:
         token_file: Filesystem path to the JWT file. The framework
@@ -34,11 +33,6 @@ class FileTokenProvider(IdentityProvider):
             output. Concrete provider subclasses (Entra projected,
             AWS EKS projected, SPIFFE file, generic OIDC file) pass
             their own label.
-        federation_rule_id: See :class:`IdentityProvider`.
-        organization_id: See :class:`IdentityProvider`.
-        service_account_id: See :class:`IdentityProvider`.
-        workspace_id: See :class:`IdentityProvider`.
-        exchange_timeout: See :class:`IdentityProvider`.
     """
 
     def __init__(
@@ -46,19 +40,8 @@ class FileTokenProvider(IdentityProvider):
         *,
         token_file: str | Path,
         provider_label: str = "file",
-        federation_rule_id: str,
-        organization_id: str,
-        service_account_id: str,
-        workspace_id: str | None = None,
-        exchange_timeout: float = 10.0,
     ) -> None:
-        super().__init__(
-            federation_rule_id=federation_rule_id,
-            organization_id=organization_id,
-            service_account_id=service_account_id,
-            workspace_id=workspace_id,
-            exchange_timeout=exchange_timeout,
-        )
+        super().__init__()
         self._token_file: Path = Path(token_file)
         self._provider_label: str = provider_label
 
@@ -71,12 +54,14 @@ class FileTokenProvider(IdentityProvider):
         """Path of the projected JWT file (read-only access)."""
         return self._token_file
 
-    def _acquire_upstream_jwt(self) -> str:
+    def _acquire_upstream_jwt(self, audience: str | None = None) -> str:
+        # Passive: the projected token's audience is fixed by the platform,
+        # so the requested audience is ignored.
         try:
             with self._token_file.open("r", encoding="utf-8") as fh:
                 contents = fh.read()
         except FileNotFoundError as exc:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[{self._provider_label}] projected token file not found at "
                 f"{self._token_file}. Most common cause: the workload is not "
                 f"running with federated token projection enabled. Verify the "
@@ -85,21 +70,21 @@ class FileTokenProvider(IdentityProvider):
                 f"spiffe-helper) writes to this path."
             ) from exc
         except PermissionError as exc:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[{self._provider_label}] projected token file at "
                 f"{self._token_file} is not readable. Most common cause: the "
                 f"process user does not match the file owner of the projected "
                 f"volume. Underlying error: {exc}"
             ) from exc
         except OSError as exc:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[{self._provider_label}] could not read projected token "
                 f"file at {self._token_file} ({type(exc).__name__}): {exc}"
             ) from exc
 
         token = contents.strip()
         if not token:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[{self._provider_label}] projected token file at "
                 f"{self._token_file} is empty. Most common cause: the "
                 f"projection volume was just created and the platform has "

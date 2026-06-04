@@ -1,17 +1,24 @@
-""":class:`IdentityProvider` — caching, locking, and refresh logic.
+""":class:`IdentityProvider` — a verifiable-credential source for an agent.
 
-Every concrete identity provider subclasses :class:`IdentityProvider`
-and implements two members:
+A credential provider mints a short-lived JWT that proves *"this really
+is agent X."* It is the optional, *verifiable* backing of an
+:class:`~promptise.identity.AgentIdentity`: a plain identity is just an
+``agent_id`` used for local attribution, while a verifiable identity can
+present this credential to the resources it calls (an MCP server, an
+HTTP API) so they can authenticate and attribute the caller
+cryptographically.
 
-* the :attr:`provider_name` property — a short string used in log
-  messages and error output;
+Every concrete provider subclasses :class:`IdentityProvider` and
+implements two members:
+
+* the :attr:`provider_name` property — a short label used in logs and
+  error output;
 * the :meth:`_acquire_upstream_jwt` method — fetches a fresh JWT from
-  the cloud platform.
+  the platform (metadata service, STS, Workload API, or a file).
 
-Everything else lives on the base class: the cached
-:class:`MintedToken`, the :class:`threading.Lock` that serialises
-concurrent callers, and the two-tier refresh logic defined in section
-4.5 of the build plan.
+The base class owns the small cache: it holds one :class:`CachedCredential`,
+serialises concurrent callers with a :class:`threading.Lock`, and
+re-acquires the JWT when it nears its ``exp``.
 """
 
 from __future__ import annotations
@@ -19,51 +26,23 @@ from __future__ import annotations
 import threading
 from abc import ABC, abstractmethod
 
-from .._internal.logging import logger
-from .cache import MintedToken
-from .errors import TokenAcquisitionError, TokenExchangeError
-from .exchange import exchange_jwt_for_anthropic_token
+from .cache import CachedCredential, decode_jwt_expiry
 
 
 class IdentityProvider(ABC):
-    """Abstract base for every federated identity provider.
+    """Abstract base for a verifiable agent-identity credential source.
 
-    A single :class:`IdentityProvider` instance is safe to share
-    across threads. Concurrent calls to :meth:`get_token` collapse
-    into one upstream JWT acquisition and one Anthropic exchange,
-    serialised by :attr:`_lock`. The cache is process-local — there
-    is no shared cache between workers in a multi-process deployment.
-    That trade-off is intentional (build plan section 4.4): sharing
-    minted tokens across processes is a security problem the framework
-    explicitly does not solve at this layer.
-
-    Args:
-        federation_rule_id: The ``fdrl_*`` identifier from the
-            Anthropic Console.
-        organization_id: The Anthropic organization UUID.
-        service_account_id: The ``svac_*`` identifier of the workload's
-            service account.
-        workspace_id: Optional ``wrkspc_*`` identifier. When supplied,
-            minted tokens are scoped to a single workspace.
-        exchange_timeout: Seconds to wait for the Anthropic exchange.
-            Default ten seconds.
+    A single instance is safe to share across threads. Concurrent calls
+    to :meth:`get_credential` collapse into one acquisition, serialised
+    by the lock. The cache is process-local: each process acquires its
+    own credential rather than sharing one.
     """
 
-    def __init__(
-        self,
-        *,
-        federation_rule_id: str,
-        organization_id: str,
-        service_account_id: str,
-        workspace_id: str | None = None,
-        exchange_timeout: float = 10.0,
-    ) -> None:
-        self.federation_rule_id: str = federation_rule_id
-        self.organization_id: str = organization_id
-        self.service_account_id: str = service_account_id
-        self.workspace_id: str | None = workspace_id
-        self.exchange_timeout: float = exchange_timeout
-        self._cached: MintedToken | None = None
+    def __init__(self) -> None:
+        # One cached credential per requested audience (``None`` = the
+        # provider's default audience). Lets one identity present to several
+        # resources that each require their own ``aud``.
+        self._cached: dict[str | None, CachedCredential] = {}
         self._lock: threading.Lock = threading.Lock()
 
     @property
@@ -72,88 +51,71 @@ class IdentityProvider(ABC):
         """A short identifier used in log messages and error output."""
 
     @abstractmethod
-    def _acquire_upstream_jwt(self) -> str:
-        """Fetch a fresh upstream JWT from the cloud platform.
+    def _acquire_upstream_jwt(self, audience: str | None = None) -> str:
+        """Fetch a fresh identity JWT from the platform.
 
-        Subclasses call the platform's metadata service, SDK, or read
-        a projected token file. They return the JWT as a bare string;
-        the Anthropic exchange happens in :meth:`_refresh` of this base
-        class.
+        Subclasses call the platform's metadata service, SDK, or read a
+        projected token file and return the JWT as a bare string.
+
+        Args:
+            audience: The resource the credential targets. **Active**
+                providers (Entra IMDS, AWS STS, GCP metadata, SPIFFE SDK)
+                mint a credential for this audience when given, falling
+                back to their configured default when ``None``. **Passive**
+                providers (projected token files, file/env/callable OIDC)
+                serve a token whose audience the platform fixed and ignore
+                this argument.
 
         Raises:
-            TokenAcquisitionError: When the upstream IdP cannot supply
-                a JWT. Subclass implementations wrap their underlying
-                exception with ``raise … from exc`` so the original
-                cause stays attached to ``__cause__``.
+            CredentialAcquisitionError: When the platform cannot supply a
+                JWT. Subclasses wrap their underlying exception with
+                ``raise … from exc`` so the original cause stays attached.
         """
 
-    def get_token(self) -> str:
-        """Return a currently-valid Anthropic access token.
+    def get_credential(self, audience: str | None = None) -> str:
+        """Return a currently-valid identity credential (a JWT).
 
-        Behaviour:
+        Returns the cached credential for ``audience`` when it is still
+        well inside its lifetime; otherwise acquires a fresh one. The
+        credential's expiry is read from its ``exp`` claim; a credential
+        with no decodable expiry (an opaque token, or a rotated file token)
+        is re-acquired on every call.
 
-        * If no token is cached, perform a mandatory refresh.
-        * If the cached token is inside the mandatory window
-          (≤ :data:`~promptise.identity.MANDATORY_REFRESH_BUFFER_SECONDS`
-          to expiry), perform a mandatory refresh. Any failure
-          propagates.
-        * If the cached token is inside the advisory window
-          (≤ :data:`~promptise.identity.ADVISORY_REFRESH_BUFFER_SECONDS`
-          to expiry) but outside the mandatory window, attempt a
-          refresh; on failure, log a warning and continue with the
-          cached token.
-        * Otherwise, return the cached token unchanged.
+        Args:
+            audience: The resource the credential is for. ``None`` uses the
+                provider's default audience. An active provider mints a
+                separate credential per audience (cached per audience); a
+                passive provider's token has a fixed audience and this is
+                ignored.
 
         Returns:
-            A short-lived Anthropic access token (prefix
-            ``sk-ant-oat01-``).
+            The credential JWT to present to a resource.
 
         Raises:
-            TokenAcquisitionError: When the upstream IdP fails AND a
-                mandatory refresh was required.
-            TokenExchangeError: When Anthropic rejects the exchange
-                AND a mandatory refresh was required.
+            CredentialAcquisitionError: When the platform cannot supply
+                a fresh JWT and none is safely cached.
         """
         with self._lock:
-            token = self._cached
-            if token is None or token.needs_mandatory_refresh():
-                self._cached = self._refresh()
-                return self._cached.access_token
-            if token.needs_advisory_refresh():
-                try:
-                    self._cached = self._refresh()
-                    return self._cached.access_token
-                except (TokenAcquisitionError, TokenExchangeError) as exc:
-                    logger.warning(
-                        "advisory refresh failed provider=%s reason=%s; "
-                        "continuing with cached token",
-                        self.provider_name,
-                        exc,
-                    )
-                    return token.access_token
-            return token.access_token
+            cached = self._cached.get(audience)
+            if cached is not None and not cached.is_stale():
+                return cached.token
+            jwt = self._acquire_upstream_jwt(audience)
+            self._cached[audience] = CachedCredential(
+                token=jwt, expires_at_epoch=decode_jwt_expiry(jwt)
+            )
+            return jwt
 
-    def get_auth_header(self) -> dict[str, str]:
-        """Return a ready-to-use ``Authorization`` header value.
+    def auth_header(self, audience: str | None = None) -> dict[str, str]:
+        """Return a ready-to-use ``Authorization`` bearer header.
 
-        Convenience for callers that need to attach a bearer token to
-        a downstream HTTP request (an MCP tool calling a third-party
-        API, an Anthropic SDK that accepts a custom header).
+        Convenience for presenting the identity credential to a resource
+        — an MCP server or a third-party API the agent calls.
+
+        Args:
+            audience: The resource the credential is for (see
+                :meth:`get_credential`).
 
         Returns:
-            A single-key dict ``{"Authorization": "Bearer <token>"}``.
+            ``{"Authorization": "Bearer <credential>"}``.
         """
-        return {"Authorization": f"Bearer {self.get_token()}"}
-
-    def _refresh(self) -> MintedToken:
-        """Acquire a fresh upstream JWT and exchange it for an access token."""
-        jwt = self._acquire_upstream_jwt()
-        return exchange_jwt_for_anthropic_token(
-            jwt,
-            federation_rule_id=self.federation_rule_id,
-            organization_id=self.organization_id,
-            service_account_id=self.service_account_id,
-            workspace_id=self.workspace_id,
-            timeout=self.exchange_timeout,
-            provider_name=self.provider_name,
-        )
+        return {"Authorization": f"Bearer {self.get_credential(audience)}"}

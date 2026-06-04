@@ -164,6 +164,37 @@ auth = AsymmetricJWTAuth(
 
 `AsymmetricJWTAuth` uses the same interface as `JWTAuth` — it works with `AuthMiddleware`, guards, and `ctx.client_id`. Requires the `PyJWT` and `cryptography` packages (optional dependencies).
 
+### JwksAuth
+
+For tokens issued by an identity provider whose signing keys rotate and are published at a **JWKS** endpoint — Microsoft Entra, Okta, Auth0, Keycloak, any OIDC provider. This is the server-side counterpart to [Agent Identity](../../identity/overview.md): an agent presents an IdP-issued identity credential, and `JwksAuth` verifies it against the IdP's public keys (fetched on demand and cached, so key rotation needs no reconfiguration):
+
+```python
+from promptise.mcp.server import JwksAuth, AuthMiddleware
+
+auth = JwksAuth(
+    jwks_url="https://login.microsoftonline.com/<tenant>/discovery/v2.0/keys",
+    issuer="https://login.microsoftonline.com/<tenant>/v2.0",
+    audience="api://my-mcp-server",   # the resource agents target
+)
+server.add_middleware(AuthMiddleware(auth))
+```
+
+The validated token's `sub` and claims are surfaced on `ctx.client` (subject, issuer, audience, claims), so guards (`RequireClientId`, `HasRole`) and audit logs can see **which agent** called. Requires the `PyJWT` and `cryptography` packages.
+
+!!! note "`audience` is required"
+    `JwksAuth` verifies the `aud` claim on every token. This is what stops an agent from replaying a token it was legitimately issued for a *different* resource of the same IdP. Set `audience` to the resource this server represents.
+
+You can let the JWKS endpoint be **discovered** from the issuer's OIDC metadata (`{issuer}/.well-known/openid-configuration`) instead of passing `jwks_url`:
+
+```python
+auth = JwksAuth.from_discovery(
+    issuer="https://login.microsoftonline.com/<tenant>/v2.0",
+    audience="api://my-mcp-server",
+)
+```
+
+The discovery document is fetched once (lazily, on the first verified call) and its `issuer` is checked against the configured one before its `jwks_uri` is trusted.
+
 ### Custom auth provider
 
 Implement the `AuthProvider` protocol for custom authentication (OAuth2 introspection, mTLS, etc.):

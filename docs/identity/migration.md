@@ -1,16 +1,16 @@
-# Migration
+# Adding identity to existing agents
 
-Moving an existing agent from a static `ANTHROPIC_API_KEY` to federated identity
-is a one-line code change plus an environment change. This page shows how to do
-it without downtime.
+Agent Identity is **additive**. It does not change how your agents are
+authenticated to their model or how they call tools — it gives them a
+traceable identity on top of what you already have. Adopting it is a
+one-line change, and it touches nothing else.
 
 ## Before
 
 ```python
-# ANTHROPIC_API_KEY is set in the environment; build_agent reads it implicitly.
 agent = await build_agent(
     model="anthropic:claude-sonnet-4-5",
-    servers={},
+    servers={...},
 )
 ```
 
@@ -21,64 +21,49 @@ from promptise.identity import AgentIdentity
 
 agent = await build_agent(
     model="anthropic:claude-sonnet-4-5",
-    servers={},
-    identity=AgentIdentity.auto(),   # or from_aws(), from_gcp(), …
+    servers={...},
+    identity=AgentIdentity("billing-bot", name="Billing Bot", owner="payments"),
 )
 ```
 
-## Step-by-step, zero downtime
+That is the whole change. Your model credential, MCP servers, memory,
+guardrails, and every other argument are untouched. The only difference
+is that the agent's recorded actions are now attributed to
+`billing-bot`.
 
-1. **Register the federation rule** in the Anthropic Console for the platform
-   your workload runs on, and record the `fdrl_…`, organization UUID, and
-   `svac_…` identifiers. (See the [provider pages](../identity/overview.md#supported-providers)
-   for per-platform Console setup.)
+## Rollout
 
-2. **Verify the exchange out-of-band**, while the old key is still in place.
-   Mint a token in a throwaway script and confirm it succeeds:
+1. **Name your agents.** Give each agent process a stable `agent_id`.
+   Treat it like a service-account name: durable, unique, meaningful.
 
-    ```python
-    from promptise.identity import AgentIdentity
+2. **Add `identity=`** to each `build_agent()` call. Start with a local
+   identity — no infrastructure needed. With `observe=` enabled, the
+   timeline immediately shows which agent produced each tool call and
+   LLM turn.
 
-    identity = AgentIdentity.auto()
-    print(identity.provider_name)
-    token = identity.get_token()
-    assert token.startswith("sk-ant-oat01-")
-    print("federation works")
-    ```
+3. **Make it verifiable where it matters.** For agents that call MCP
+   servers or APIs which must *verify* the caller, switch the local
+   identity to a credential-backed one
+   (`AgentIdentity.from_entra(...)`, `.from_aws(...)`, `.auto(...)`),
+   and present `identity.get_credential()` to those resources. The
+   server validates the signed credential and attributes the call.
 
-    If this raises, fix the federation rule before touching the running agent —
-    the live agent is still healthy on its API key.
+4. **Roll back trivially.** Remove the `identity=` argument. There is no
+   state to migrate and nothing else changes.
 
-3. **Add `identity=` to `build_agent()`** and deploy. Because the credential
-   precedence guard refuses to run with *both* an identity and
-   `ANTHROPIC_API_KEY`, do this together with step 4.
+## What this is not
 
-4. **Unset `ANTHROPIC_API_KEY`** in the same deploy. The guard exists precisely
-   so you cannot accidentally ship a config where the static key silently
-   shadows the federated identity:
+- It is **not** a change to how the agent authenticates to its LLM. The
+  model keeps its own credentials.
+- It is **not** a credential store. A verifiable identity holds a
+  short-lived credential in memory only; the platform issues and rotates
+  it.
 
-    ```text
-    CredentialPrecedenceError: Both an AgentIdentity and ANTHROPIC_API_KEY are
-    configured. The static API key would silently shadow the federated identity.
-    Either unset ANTHROPIC_API_KEY or remove the identity= argument.
-    ```
+## A fleet-wide view
 
-5. **Roll back instantly if needed.** Reverting is symmetric: remove the
-   `identity=` argument and restore `ANTHROPIC_API_KEY`. No data migration, no
-   token state to clean up — the cache is in-memory and per-process.
-
-## Gradual rollout across a fleet
-
-`AgentIdentity.auto()` reads platform environment markers, so the *same image*
-can roll out to mixed platforms and each instance picks the right provider.
-Combined with a feature flag around the `identity=` argument, you can canary one
-deployment, watch the audit log for the `identity.provider` field, and expand.
-
-## Things that do not change
-
-- Your model string, MCP servers, memory, guardrails, and every other
-  `build_agent()` argument are untouched.
-- Downstream MCP tools keep working; they gain the *option* of calling
-  `agent.identity.get_auth_header()` for authenticated outbound requests.
-- Cost, latency, and the agent's behavior are unchanged — only the
-  authentication mechanism moved.
+Because the identity is stamped onto observability and audit, a fleet of
+agents becomes traceable: filter the timeline or audit log by `agent_id`
+to see exactly what one agent did, or which agent touched a resource.
+`AgentIdentity.auto()` lets the *same image* roll out across mixed
+platforms, each instance picking the right credential provider for where
+it runs.

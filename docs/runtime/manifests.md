@@ -39,6 +39,7 @@ The `.agent` format is a YAML file validated against `AgentManifestSchema`. All 
 | `name` | `str` | yes | Unique process name |
 | `model` | `str` | no | LLM model ID (default: `"openai:gpt-5-mini"`) |
 | `instructions` | `str` | no | System prompt for the agent |
+| `identity` | `dict` | no | Agent identity — who the process is (see below) |
 | `servers` | `dict` | no | MCP server specifications |
 | `triggers` | `list` | no | Trigger configurations |
 | `world` | `dict` | no | Initial world state (key-value pairs) |
@@ -49,15 +50,43 @@ The `.agent` format is a YAML file validated against `AgentManifestSchema`. All 
 | `open_mode` | `dict` | no | Open mode guardrails |
 | `entrypoint` | `str` | no | Python module for custom hooks |
 
+### `identity` Section
+
+Optional. Gives the long-running process a stable, traceable
+[Agent Identity](../identity/overview.md) — *who is acting*. Same shape as
+the [`.superagent` identity block](../core/agents/superagent-files.md#identity):
+a local identity tags the process's actions for attribution; a verifiable
+identity (Entra, AWS, GCP, SPIFFE, OIDC, or `auto`) additionally presents a
+signed credential — scoped to each server's `audience` — to the MCP servers
+the process calls. All string fields support `${ENV_VAR}`.
+
+```yaml
+identity:
+  provider: oidc                 # local|entra|aws|gcp|spiffe|oidc|auto
+  agent_id: data-watcher
+  owner: platform
+  issuer: https://gitlab.com
+  token_env_var: CI_JOB_JWT_V2
+```
+
+For `provider: local` only `agent_id` is required; for `provider: oidc`,
+`issuer` plus exactly one of `token_file` / `token_env_var`. See the
+[`.superagent` reference](../core/agents/superagent-files.md#identity) for
+the full field list and the
+[Agent Identity guide](../identity/guide.md) for the end-to-end flow.
+
 ### `servers` Section
 
-MCP server specifications, same format as `.superagent` files:
+MCP server specifications, same format as `.superagent` files. Add an
+`audience` to a server to receive an identity credential minted for it
+(see the `identity` section above):
 
 ```yaml
 servers:
   my_tools:
     type: http
     url: http://localhost:8000/mcp
+    audience: api://my-tools     # optional: identity credential audience
   local_tools:
     type: stdio
     command: python

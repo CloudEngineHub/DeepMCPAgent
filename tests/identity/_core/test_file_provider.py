@@ -1,112 +1,106 @@
 """Unit tests for :class:`FileTokenProvider`.
 
-Covers the file-reading contract: strip trailing whitespace, raise on
-missing or empty files, and — critically — re-read on every refresh
-so projected-token rotation works (build plan section 4.6).
+The base file provider reads a projected JWT on every refresh and caches
+it only while its ``exp`` claim is comfortably in the future.
 """
 
 from __future__ import annotations
 
+import base64
+import json
 import os
-import stat
+import time
 from pathlib import Path
 
 import pytest
 
-from promptise.identity import FileTokenProvider, TokenAcquisitionError
+from promptise.identity import CredentialAcquisitionError, FileTokenProvider
 
 
-def _make_provider(token_file: Path) -> FileTokenProvider:
-    """Construct a provider with synthetic federation IDs."""
-    return FileTokenProvider(
-        token_file=token_file,
-        provider_label="test-file",
-        federation_rule_id="fdrl_test",
-        organization_id="org_test",
-        service_account_id="svac_test",
+def _jwt(exp: float | None) -> str:
+    header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
+    claims: dict[str, object] = {"sub": "agent"}
+    if exp is not None:
+        claims["exp"] = exp
+    payload = (
+        base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode()
     )
+    return f"{header}.{payload}."
 
 
-def test_reads_file_and_strips_whitespace(tmp_path: Path) -> None:
+def test_reads_and_strips_token(tmp_path: Path) -> None:
     f = tmp_path / "token"
-    f.write_text("header.payload.sig\n", encoding="utf-8")
-    provider = _make_provider(f)
-    assert provider._acquire_upstream_jwt() == "header.payload.sig"
+    f.write_text(f"  {_jwt(None)}\n", encoding="utf-8")
+    provider = FileTokenProvider(token_file=f)
+    assert provider.provider_name == "file"
+    assert provider.token_file == f
+    assert provider._acquire_upstream_jwt() == _jwt(None)
+    assert provider.get_credential() == _jwt(None)
 
 
-def test_missing_file_raises_with_path_in_message(tmp_path: Path) -> None:
-    f = tmp_path / "absent"
-    provider = _make_provider(f)
-    with pytest.raises(TokenAcquisitionError, match=str(f)):
-        provider._acquire_upstream_jwt()
+def test_custom_provider_label() -> None:
+    provider = FileTokenProvider(token_file="/nope", provider_label="entra-projected")
+    assert provider.provider_name == "entra-projected"
+
+
+def test_missing_file_raises(tmp_path: Path) -> None:
+    provider = FileTokenProvider(token_file=tmp_path / "absent")
+    with pytest.raises(CredentialAcquisitionError, match="not found"):
+        provider.get_credential()
 
 
 def test_empty_file_raises(tmp_path: Path) -> None:
     f = tmp_path / "token"
     f.write_text("   \n", encoding="utf-8")
-    provider = _make_provider(f)
-    with pytest.raises(TokenAcquisitionError, match="empty"):
-        provider._acquire_upstream_jwt()
+    provider = FileTokenProvider(token_file=f)
+    with pytest.raises(CredentialAcquisitionError, match="is empty"):
+        provider.get_credential()
 
 
-def test_file_is_reread_every_call(tmp_path: Path) -> None:
-    """Section 4.6: the projection mechanism rewrites the file in
-    place. The provider must observe each new write, not cache the
-    first read."""
-    f = tmp_path / "token"
-    f.write_text("first.jwt.value", encoding="utf-8")
-    provider = _make_provider(f)
-    assert provider._acquire_upstream_jwt() == "first.jwt.value"
-
-    # Platform rewrites the file in place — simulate rotation.
-    f.write_text("second.jwt.value", encoding="utf-8")
-    assert provider._acquire_upstream_jwt() == "second.jwt.value"
-
-    f.write_text("third.jwt.value", encoding="utf-8")
-    assert provider._acquire_upstream_jwt() == "third.jwt.value"
+def test_directory_path_raises_os_error(tmp_path: Path) -> None:
+    # Opening a directory for read raises IsADirectoryError (an OSError).
+    provider = FileTokenProvider(token_file=tmp_path)
+    with pytest.raises(CredentialAcquisitionError, match="could not read"):
+        provider.get_credential()
 
 
-def test_token_file_property_exposes_path(tmp_path: Path) -> None:
-    f = tmp_path / "token"
-    f.write_text("anything", encoding="utf-8")
-    provider = _make_provider(f)
-    assert provider.token_file == f
-
-
-@pytest.mark.skipif(os.name == "nt", reason="POSIX permission test")
+@pytest.mark.skipif(
+    os.name != "posix" or os.geteuid() == 0,
+    reason="permission bits are unenforceable as root or on non-POSIX",
+)
 def test_unreadable_file_raises_permission_error(tmp_path: Path) -> None:
-    """If the file exists but the process cannot read it, the provider
-    raises :class:`TokenAcquisitionError` (not the bare OSError)."""
     f = tmp_path / "token"
-    f.write_text("anything", encoding="utf-8")
-    # Strip every read permission. Running tests as root would bypass
-    # this; the CI environment is non-root.
-    f.chmod(stat.S_IWUSR)
-    provider = _make_provider(f)
+    f.write_text("header.payload.sig", encoding="utf-8")
+    f.chmod(0o000)
     try:
-        if os.geteuid() == 0:
-            pytest.skip("running as root; cannot test PermissionError")
-        with pytest.raises(TokenAcquisitionError, match="not readable"):
-            provider._acquire_upstream_jwt()
+        provider = FileTokenProvider(token_file=f)
+        with pytest.raises(CredentialAcquisitionError, match="not readable"):
+            provider.get_credential()
     finally:
-        f.chmod(stat.S_IRUSR | stat.S_IWUSR)
+        f.chmod(0o600)
 
 
-def test_provider_name_returns_label(tmp_path: Path) -> None:
+def test_no_expiry_token_is_reread_on_rotation(tmp_path: Path) -> None:
+    """A token with no decodable expiry is re-read every call, so in-place
+    rotation (Kubernetes/SPIFFE) is observed."""
     f = tmp_path / "token"
-    f.write_text("x.y.z", encoding="utf-8")
-    provider = _make_provider(f)
-    assert provider.provider_name == "test-file"
+    f.write_text(_jwt(None), encoding="utf-8")
+    provider = FileTokenProvider(token_file=f)
+    assert provider.get_credential() == _jwt(None)
+
+    rotated = "header.rotated.sig"
+    f.write_text(rotated, encoding="utf-8")
+    assert provider.get_credential() == rotated
 
 
-def test_path_pointing_at_directory_raises_token_acquisition_error(
-    tmp_path: Path,
-) -> None:
-    """A generic OSError (here IsADirectoryError, from pointing the
-    token path at a directory) is surfaced as TokenAcquisitionError,
-    not leaked as a bare OSError."""
-    directory = tmp_path / "a_directory"
-    directory.mkdir()
-    provider = _make_provider(directory)
-    with pytest.raises(TokenAcquisitionError, match="could not read projected token"):
-        provider._acquire_upstream_jwt()
+def test_token_with_future_expiry_is_cached(tmp_path: Path) -> None:
+    """A token whose exp is far in the future is cached and not re-read."""
+    f = tmp_path / "token"
+    first = _jwt(time.time() + 3600)
+    f.write_text(first, encoding="utf-8")
+    provider = FileTokenProvider(token_file=f)
+    assert provider.get_credential() == first
+
+    # Overwrite the file; the cached, still-valid token is returned.
+    f.write_text(_jwt(time.time() + 7200), encoding="utf-8")
+    assert provider.get_credential() == first

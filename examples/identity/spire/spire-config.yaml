@@ -1,14 +1,8 @@
-# SPIRE configuration — federated-identity agent.
+# SPIRE configuration — an agent with a verifiable SPIFFE identity.
 #
-# This shows the two pieces a SPIRE workload needs: a registration entry that
-# grants the workload a SPIFFE ID, and the pod wiring that mounts the Workload
-# API socket so AgentIdentity.from_spiffe() can fetch a JWT-SVID.
-#
-# Prerequisites (manual):
-#   1. A running SPIRE server + agent (e.g. the spiffe/spire Helm chart).
-#   2. Register a Workload Identity Federation rule in the Anthropic Console
-#      trusting your SPIRE trust domain (spiffe://example.org), then fill in
-#      the ANTHROPIC_* identifiers below (identifiers, not secrets).
+# Shows the two pieces a SPIRE workload needs: a registration entry that
+# grants the workload a SPIFFE ID, and the pod wiring that mounts the
+# Workload API socket so AgentIdentity.from_spiffe() can fetch a JWT-SVID.
 #
 # Create the registration entry (run against the SPIRE server):
 #   spire-server entry create \
@@ -17,6 +11,9 @@
 #     -selector k8s:ns:default \
 #     -selector k8s:sa:promptise-agent \
 #     -jwtSVIDTTL 3600
+#
+# The SPIFFE ID is the agent's identity. A model key (e.g. ANTHROPIC_API_KEY)
+# is only needed if the agent invokes an LLM.
 
 apiVersion: apps/v1
 kind: Deployment
@@ -38,15 +35,8 @@ spec:
           image: YOUR_REGISTRY/promptise-agent:latest
           command: ["python", "app.py"]
           env:
-            # No ANTHROPIC_API_KEY — the SPIFFE identity is the identity.
             - name: SPIFFE_ENDPOINT_SOCKET
               value: "unix:///run/spire/agent/api.sock"
-            - name: ANTHROPIC_FEDERATION_RULE_ID
-              value: "fdrl_your_rule_id"
-            - name: ANTHROPIC_ORGANIZATION_ID
-              value: "your_org_uuid"
-            - name: ANTHROPIC_SERVICE_ACCOUNT_ID
-              value: "svac_your_service_account"
           volumeMounts:
             - name: spire-agent-socket
               mountPath: /run/spire/agent

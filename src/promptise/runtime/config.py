@@ -506,6 +506,17 @@ class ProcessConfig(BaseModel):
         ),
     )
 
+    # -- Agent identity (opt-in) --
+    identity: Any | None = Field(
+        None,
+        description=(
+            "AgentIdentity instance — who this process is. Attributes the "
+            "process's actions to the agent and, when verifiable, presents "
+            "its credential to the MCP servers it calls. Built from the "
+            "manifest's 'identity' block."
+        ),
+    )
+
 
 class DistributedConfig(BaseModel):
     """Distributed runtime coordination configuration.
