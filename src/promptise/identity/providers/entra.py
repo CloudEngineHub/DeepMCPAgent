@@ -1,12 +1,11 @@
-"""Microsoft Entra ID identity provider.
+"""Microsoft Entra ID credential provider.
 
-Two acquisition modes:
+Mints a verifiable identity JWT for an agent from Microsoft Entra, in
+two acquisition modes:
 
 * **Managed identity (IMDS)** — for Azure VMs, VM Scale Sets, and other
   compute with a system- or user-assigned managed identity. Calls the
-  Azure Instance Metadata Service and extracts the OIDC ``id_token``
-  (not the ``access_token`` — the ``id_token`` is the federation
-  assertion).
+  Azure Instance Metadata Service and extracts the OIDC ``id_token``.
 * **Projected token (AKS Workload Identity)** — for AKS pods using the
   Workload Identity admission webhook, which projects a federated token
   to the file named by ``$AZURE_FEDERATED_TOKEN_FILE`` (default
@@ -24,14 +23,13 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
 import httpx
 
 from .._core.callable_provider import CallableTokenProvider
-from .._core.errors import ProviderConfigError, TokenAcquisitionError
+from .._core.errors import CredentialAcquisitionError, ProviderConfigError
 from .._core.file_provider import FileTokenProvider
-from .._internal.env import _resolve_anthropic_credentials
 
 #: Azure Instance Metadata Service token endpoint (link-local address).
 _IMDS_TOKEN_ENDPOINT: str = "http://169.254.169.254/metadata/identity/oauth2/token"
@@ -45,30 +43,27 @@ DEFAULT_AZURE_FEDERATED_TOKEN_FILE: str = (
     "/var/run/secrets/azure/tokens/azure-identity-token"
 )
 
-#: Default resource (audience) requested from IMDS.
-_DEFAULT_RESOURCE: str = "https://api.anthropic.com"
+#: Default resource (audience) requested from IMDS. Set this to the
+#: resource the agent authenticates to (for example, the App ID URI of
+#: an MCP server protected by Entra).
+_DEFAULT_RESOURCE: str = "api://promptise-agent"
 
 #: Default IMDS API version.
 _DEFAULT_IMDS_API_VERSION: str = "2018-02-01"
 
 
 class EntraManagedIdentityProvider(CallableTokenProvider):
-    """Entra managed-identity provider backed by the Azure IMDS endpoint.
+    """Entra managed-identity credential source backed by Azure IMDS.
 
     Args:
         client_id: Optional client ID of a user-assigned managed
             identity. Omit for the resource's system-assigned identity.
-        resource: The resource (audience) to request. Defaults to
-            ``https://api.anthropic.com``.
+        resource: The resource (audience) to request — set this to the
+            resource the agent presents its identity to.
         api_version: IMDS API version. Defaults to ``2018-02-01``.
         imds_endpoint: Override for the IMDS URL — primarily for tests.
         request_timeout: Seconds to wait for the IMDS response.
             Defaults to five seconds; IMDS is link-local and fast.
-        federation_rule_id: See :class:`IdentityProvider`.
-        organization_id: See :class:`IdentityProvider`.
-        service_account_id: See :class:`IdentityProvider`.
-        workspace_id: See :class:`IdentityProvider`.
-        exchange_timeout: See :class:`IdentityProvider`.
     """
 
     def __init__(
@@ -79,11 +74,6 @@ class EntraManagedIdentityProvider(CallableTokenProvider):
         api_version: str = _DEFAULT_IMDS_API_VERSION,
         imds_endpoint: str = _IMDS_TOKEN_ENDPOINT,
         request_timeout: float = 5.0,
-        federation_rule_id: str,
-        organization_id: str,
-        service_account_id: str,
-        workspace_id: str | None = None,
-        exchange_timeout: float = 10.0,
     ) -> None:
         self._client_id: str | None = client_id
         self._resource: str = resource
@@ -93,23 +83,20 @@ class EntraManagedIdentityProvider(CallableTokenProvider):
         super().__init__(
             token_fn=self._fetch_imds_id_token,
             provider_label="entra-imds",
-            federation_rule_id=federation_rule_id,
-            organization_id=organization_id,
-            service_account_id=service_account_id,
-            workspace_id=workspace_id,
-            exchange_timeout=exchange_timeout,
         )
 
-    def _fetch_imds_id_token(self) -> str:
+    def _fetch_imds_id_token(self, audience: str | None = None) -> str:
         """Fetch the OIDC ``id_token`` from the Azure IMDS endpoint.
 
-        Raises a precise :class:`TokenAcquisitionError` on every failure
-        mode; the base :class:`CallableTokenProvider` passes typed
-        errors through unchanged.
+        Requests ``audience`` as the resource when given, otherwise the
+        configured default. Raises a precise
+        :class:`CredentialAcquisitionError` on every failure mode; the
+        base :class:`CallableTokenProvider` passes typed errors through.
         """
+        resource = audience or self._resource
         params: dict[str, str] = {
             "api-version": self._api_version,
-            "resource": self._resource,
+            "resource": resource,
         }
         if self._client_id is not None:
             params["client_id"] = self._client_id
@@ -122,7 +109,7 @@ class EntraManagedIdentityProvider(CallableTokenProvider):
                 timeout=self._request_timeout,
             )
         except httpx.TimeoutException as exc:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[entra-imds] the Azure Instance Metadata Service at "
                 f"{self._imds_endpoint} timed out after "
                 f"{self._request_timeout}s. Most common cause: this workload "
@@ -130,7 +117,7 @@ class EntraManagedIdentityProvider(CallableTokenProvider):
                 f"169.254.169.254 is blocked."
             ) from exc
         except httpx.HTTPError as exc:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[entra-imds] could not reach the Azure Instance Metadata "
                 f"Service at {self._imds_endpoint} ({type(exc).__name__}). "
                 f"Most common cause: this workload is not running on Azure "
@@ -139,24 +126,24 @@ class EntraManagedIdentityProvider(CallableTokenProvider):
             ) from exc
 
         if response.status_code != 200:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[entra-imds] IMDS returned HTTP {response.status_code}. "
                 f"Most common cause: no managed identity is assigned to this "
-                f"resource, or the requested resource {self._resource!r} is "
+                f"resource, or the requested resource {resource!r} is "
                 f"not permitted. Response body: {response.text}"
             )
 
         try:
             body = response.json()
         except ValueError as exc:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[entra-imds] IMDS returned a non-JSON body. Body preview: "
                 f"{response.text[:200]!r}"
             ) from exc
 
         id_token = body.get("id_token")
         if not isinstance(id_token, str) or not id_token:
-            raise TokenAcquisitionError(
+            raise CredentialAcquisitionError(
                 f"[entra-imds] IMDS response did not contain an 'id_token' "
                 f"field. Most common cause: the managed identity returned "
                 f"only an access_token; the federation flow needs the OIDC "
@@ -166,28 +153,18 @@ class EntraManagedIdentityProvider(CallableTokenProvider):
 
 
 class EntraProjectedTokenProvider(FileTokenProvider):
-    """Entra projected-token provider for AKS Workload Identity.
+    """Entra projected-token credential source for AKS Workload Identity.
 
     Args:
         token_file: Path to the projected token. Defaults to the value
             of ``$AZURE_FEDERATED_TOKEN_FILE`` or, if that is unset,
             :data:`DEFAULT_AZURE_FEDERATED_TOKEN_FILE`.
-        federation_rule_id: See :class:`IdentityProvider`.
-        organization_id: See :class:`IdentityProvider`.
-        service_account_id: See :class:`IdentityProvider`.
-        workspace_id: See :class:`IdentityProvider`.
-        exchange_timeout: See :class:`IdentityProvider`.
     """
 
     def __init__(
         self,
         *,
         token_file: str | Path | None = None,
-        federation_rule_id: str,
-        organization_id: str,
-        service_account_id: str,
-        workspace_id: str | None = None,
-        exchange_timeout: float = 10.0,
     ) -> None:
         resolved_path: str | Path
         if token_file is not None:
@@ -200,11 +177,6 @@ class EntraProjectedTokenProvider(FileTokenProvider):
         super().__init__(
             token_file=resolved_path,
             provider_label="entra-projected",
-            federation_rule_id=federation_rule_id,
-            organization_id=organization_id,
-            service_account_id=service_account_id,
-            workspace_id=workspace_id,
-            exchange_timeout=exchange_timeout,
         )
 
 
@@ -214,13 +186,8 @@ def from_entra(
     client_id: str | None = None,
     token_file: str | Path | None = None,
     resource: str = _DEFAULT_RESOURCE,
-    federation_rule_id: str | None = None,
-    organization_id: str | None = None,
-    service_account_id: str | None = None,
-    workspace_id: str | None = None,
-    exchange_timeout: float = 10.0,
 ) -> EntraManagedIdentityProvider | EntraProjectedTokenProvider:
-    """Build a Microsoft Entra ID identity provider.
+    """Build a Microsoft Entra ID credential source.
 
     Args:
         mode: ``"auto"`` (default) picks projected when
@@ -231,16 +198,7 @@ def from_entra(
         token_file: Projected-token path (projected mode only).
             Defaults to ``$AZURE_FEDERATED_TOKEN_FILE``.
         resource: Resource/audience to request from IMDS (IMDS mode
-            only). Defaults to ``https://api.anthropic.com``.
-        federation_rule_id: The ``fdrl_*`` identifier. Falls back to
-            ``ANTHROPIC_FEDERATION_RULE_ID``.
-        organization_id: The organization UUID. Falls back to
-            ``ANTHROPIC_ORGANIZATION_ID``.
-        service_account_id: The ``svac_*`` identifier. Falls back to
-            ``ANTHROPIC_SERVICE_ACCOUNT_ID``.
-        workspace_id: Optional ``wrkspc_*`` identifier. Falls back to
-            ``ANTHROPIC_WORKSPACE_ID``.
-        exchange_timeout: Seconds to wait for the Anthropic exchange.
+            only) — the resource the agent authenticates to.
 
     Returns:
         An :class:`EntraManagedIdentityProvider` for IMDS mode or an
@@ -248,8 +206,7 @@ def from_entra(
 
     Raises:
         ProviderConfigError: If ``mode`` is not one of ``auto``,
-            ``imds``, or ``projected``, or if a required federation
-            identifier is unset.
+            ``imds``, or ``projected``.
     """
     resolved_mode = mode
     if resolved_mode == "auto":
@@ -259,36 +216,10 @@ def from_entra(
             else "imds"
         )
 
-    creds = _resolve_anthropic_credentials(
-        federation_rule_id=federation_rule_id,
-        organization_id=organization_id,
-        service_account_id=service_account_id,
-        workspace_id=workspace_id,
-    )
-    fed = cast(str, creds["federation_rule_id"])
-    org = cast(str, creds["organization_id"])
-    svc = cast(str, creds["service_account_id"])
-    ws = creds["workspace_id"]
-
     if resolved_mode == "projected":
-        return EntraProjectedTokenProvider(
-            token_file=token_file,
-            federation_rule_id=fed,
-            organization_id=org,
-            service_account_id=svc,
-            workspace_id=ws,
-            exchange_timeout=exchange_timeout,
-        )
+        return EntraProjectedTokenProvider(token_file=token_file)
     if resolved_mode == "imds":
-        return EntraManagedIdentityProvider(
-            client_id=client_id,
-            resource=resource,
-            federation_rule_id=fed,
-            organization_id=org,
-            service_account_id=svc,
-            workspace_id=ws,
-            exchange_timeout=exchange_timeout,
-        )
+        return EntraManagedIdentityProvider(client_id=client_id, resource=resource)
     raise ProviderConfigError(
         f"Unknown Entra mode {mode!r}. Valid modes are 'auto', 'imds', and "
         f"'projected'."

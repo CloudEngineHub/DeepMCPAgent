@@ -1,21 +1,11 @@
 # Sample GitHub Actions workflow — copy into .github/workflows/ in YOUR repo.
 #
-# It mints a GitHub OIDC token, exports it, and runs an agent authenticated by
-# federated identity — no ANTHROPIC_API_KEY anywhere.
-#
-# One-time setup in the Anthropic Console (manual):
-#   1. Create a Workload Identity Federation rule whose issuer is
-#        https://token.actions.githubusercontent.com
-#      audience  https://api.anthropic.com
-#      and whose subject matches your repo (e.g. repo:OWNER/REPO:ref:refs/heads/main).
-#   2. Set these as repository variables (Settings → Secrets and variables →
-#      Actions → Variables):
-#        ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID,
-#        ANTHROPIC_SERVICE_ACCOUNT_ID
-#
-# Note: these are identifiers, not secrets — repository *variables* are fine.
+# It mints a GitHub OIDC token and builds a verifiable AgentIdentity from it,
+# giving the agent an identity it can prove to the resources it calls. No
+# Anthropic federation rule and no secrets are required for the identity
+# itself — the runner's OIDC token is the identity.
 
-name: Agent (federated identity)
+name: Agent (verifiable identity)
 
 on:
   workflow_dispatch:
@@ -41,13 +31,11 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const token = await core.getIDToken('https://api.anthropic.com')
+            const token = await core.getIDToken('api://promptise-agent')
             core.exportVariable('GITHUB_OIDC_TOKEN', token)
 
       - name: Run the agent
-        env:
-          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
-          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
-          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
-          # GITHUB_OIDC_TOKEN was exported by the previous step.
+        # GITHUB_OIDC_TOKEN was exported by the previous step. A model key
+        # (e.g. ANTHROPIC_API_KEY) is only needed if the script builds and
+        # invokes an agent — the identity itself needs no key.
         run: python script.py

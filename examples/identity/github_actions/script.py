@@ -1,77 +1,54 @@
-"""GitHub Actions — federated Anthropic auth from an OIDC runner token.
+"""GitHub Actions — a verifiable agent identity from the OIDC runner token.
 
 Demonstrates:
-- AgentIdentity.from_oidc() reading the GitHub Actions OIDC token from an
-  environment variable the workflow exported
-- build_agent(identity=...) with NO ANTHROPIC_API_KEY in the environment
-- a single real agent invocation against an Anthropic model
+- AgentIdentity.from_oidc() giving the agent a verifiable identity, backed
+  by the GitHub Actions OIDC token the workflow exported
+- get_credential() producing the signed credential the agent would present
+  to an MCP server / API so it can verify and attribute the caller
 
-This is the example exercised end-to-end by
-``.github/workflows/identity-integration.yml`` on every pull request.
+This is the example exercised by .github/workflows/identity-integration.yml
+on every pull request. It needs no Anthropic federation rule and no model
+key — it only proves the agent's identity and credential.
 
 Run (inside a GitHub Actions job that set GITHUB_OIDC_TOKEN):
     python examples/identity/github_actions/script.py
-
-Required environment (federation identifiers from the Anthropic Console):
-    ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID,
-    ANTHROPIC_SERVICE_ACCOUNT_ID
-    GITHUB_OIDC_TOKEN  (the issuer JWT; the workflow fetches and exports it)
 """
 
 from __future__ import annotations
 
-import asyncio
 import os
 import sys
 
-from promptise import build_agent
 from promptise.identity import AgentIdentity, IdentityError
 
 
-async def main() -> int:
-    if not os.environ.get("GITHUB_OIDC_TOKEN"):
+def main() -> int:
+    token = os.environ.get("GITHUB_OIDC_TOKEN")
+    if not token:
         print("GITHUB_OIDC_TOKEN is not set — run this inside the workflow.")
         return 2
 
     identity = AgentIdentity.from_oidc(
+        "ci-release-bot",
         issuer="https://token.actions.githubusercontent.com",
+        name="CI Release Bot",
+        owner="platform-team",
         token_env_var="GITHUB_OIDC_TOKEN",
-        # federation_rule_id / organization_id / service_account_id are read
-        # from the ANTHROPIC_* environment variables.
     )
-    print(
-        f"[identity] provider={identity.provider_name} "
-        f"service_account={identity.service_account_id}"
-    )
+    print(f"[identity] claims={identity.claims()}")
 
     try:
-        # Prove the exchange works before spending tokens on an LLM call.
-        token = identity.get_token()
-        assert token.startswith("sk-ant-oat01-")
-        print("[identity] federated token minted successfully")
-
-        agent = await build_agent(
-            model="anthropic:claude-sonnet-4-5",
-            servers={},
-            identity=identity,
-        )
-        result = await agent.ainvoke(
-            {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": "In one sentence, what is workload identity federation?",
-                    }
-                ]
-            }
-        )
-        print("[agent]", result["messages"][-1].content)
-        await agent.shutdown()
+        credential = identity.get_credential()
     except IdentityError as exc:
-        print(f"[identity] federation failed: {type(exc).__name__}: {exc}")
+        print(f"[identity] could not produce a credential: {exc}")
         return 1
+
+    # The credential is the runner's OIDC JWT — what the agent would present
+    # to a resource (e.g. an MCP server's bearer_token) for verification.
+    assert credential == token
+    print("[identity] verifiable credential produced — agent can prove who it is")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    sys.exit(main())

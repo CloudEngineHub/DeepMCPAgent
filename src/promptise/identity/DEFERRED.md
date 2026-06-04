@@ -1,56 +1,110 @@
-# Agent Identity — deferred items
+# Agent Identity — follow-up log
 
-Everything shipped in this subsystem is fully implemented; nothing here is a
-stub. This file records work intentionally left for a follow-up PR, with the
-reason it was deferred and the contract a future change should honor.
+Everything shipped is fully implemented; nothing here is a stub. The four
+attribution follow-ups originally tracked here are now **all done** — the
+framework is end-to-end aware of the acting agent. The three "optional
+future ideas" that followed (OIDC discovery, per-resource credentials,
+structured cross-agent identity) are now **also all done**. This file is
+kept as a record of what landed and where.
 
-## 1. Audit-log enrichment in Security Guardrails
+## 1. Audit-log enrichment in Security Guardrails  *(done)*
 
-**What:** Stamp every Guardrails audit-log entry with two fields when an
-`AgentIdentity` is attached to an agent:
+**Done:** `AuditMiddleware._build_entry` now records the acting agent's
+verified identity — `subject` / `issuer` / `audience` / `roles` from
+`ctx.client` — under an `identity` block on each tamper-evident audit
+entry (inside the HMAC chain). It is populated from the validated token
+(JWT / JWKS auth), so server-side audit answers *which agent did what*,
+not just a `client_id` string. Only identity *descriptors* are recorded —
+never the token or the full claim set, which may carry sensitive data.
 
-- `identity.provider` — `agent.identity.provider_name` (e.g. `aws-sts`)
-- `identity.service_account_id` — `agent.identity.service_account_id`
+## 2. Attribute event notifications to the agent, not the model  *(done)*
 
-**Why deferred:** the audit-log writer lives in the Guardrails subsystem
-(`src/promptise/guardrails.py` / the `AuditMiddleware`), outside this
-subsystem's allowed change surface. Editing it cleanly is a cross-subsystem
-change that should be owned/reviewed by Guardrails.
+**Done:** `PromptiseAgent._actor()` returns the resolved attribution id
+(the agent's `agent_id` / IdP subject, computed once by `build_agent`)
+when an identity is attached, and the model name otherwise. Every
+`emit_event(...)` call now attributes to `self._actor()`, so the events
+subsystem (invocation timeout/error, etc.) names the acting agent.
+Agents with no identity are unaffected (still the model name).
 
-**Contract:** the two values are already exposed as public attributes on
-`AgentIdentity` (and reachable via `agent.identity`), so the follow-up is purely
-additive on the writer side. Documented in
-[`docs/identity/architecture.md`](../../../docs/identity/architecture.md)
-under "Audit-log enrichment".
+## 3. MCP credential presentation + server-side verification  *(done)*
 
-## 2. First-class Anthropic-SDK workload-identity credential
+**Outbound:** `build_agent(identity=…)` presents a *verifiable* identity's
+credential to MCP servers that have no bearer of their own — the
+credential becomes the client's `bearer_token` automatically (best-effort;
+respects an explicit per-server bearer; resolved at build time, scoped to
+each server's `HTTPServerSpec.audience` — see *Per-resource credentials*
+below).
 
-**What:** Authenticate the agent's own Anthropic LLM calls through a dedicated
-Anthropic-SDK credential type instead of the current header injection.
+**Inbound:** `promptise.mcp.server.JwksAuth` verifies an agent's
+IdP-issued token against the IdP's JWKS endpoint (handling key rotation)
+and the existing `AuthMiddleware` surfaces the validated `sub` / claims on
+`ClientContext`, so guards (`RequireClientId`, `HasRole`) and server-side
+audit see *which agent* called — the same `sub`/`oid` that
+`AgentIdentity.subject()` reads on the client side.
 
-**Why deferred:** the installed `anthropic` SDK (0.96.0) exposes no
-`WorkloadIdentityCredentials` (or equivalent), and `build_agent()` constructs
-models through LangChain `init_chat_model`, not a raw `anthropic.Anthropic`
-client. Phase 8 therefore injects the minted bearer token at the
-model-construction layer via `default_headers={"Authorization": "Bearer …"}`
-(the same header shape the SDK's `auth_token` produces) — which works on the
-SDK versions Promptise targets today.
+**Done (was a follow-up):** OIDC discovery —
+`JwksAuth.from_discovery(issuer=…, audience=…)` derives `jwks_url` from the
+issuer's `.well-known/openid-configuration` document (verifying the
+document's own `issuer` matches), so you no longer have to pass the JWKS
+URL explicitly.
 
-**Contract:** when a future Anthropic SDK ships a workload-identity credential
-(or `langchain_anthropic.ChatAnthropic` exposes `auth_token`), migrate
-`_normalize_model()` in `src/promptise/agent.py` onto it. The `AgentIdentity`
-public surface (`get_token`, `get_upstream_jwt`, the federation identifiers)
-already provides everything such a credential needs, so the change is internal
-to `build_agent()` and requires no public-API change.
+## 4. Cross-agent identity propagation  *(done)*
 
-## 3. Per-request token refresh for long-lived attached agents
+**Done:** `make_cross_agent_tools(..., caller_identity=…)` (wired from
+`build_agent`) announces the delegating agent's identity to the peer. The
+ask and broadcast tools prepend a system message — *"Delegated by agent:
+… Caller identity: {claims()}"* — so a peer knows *who is asking* and can
+attribute (or authorize) the delegation. Cheap identity descriptors only;
+no credential token is forwarded.
 
-**What:** Refresh the federated token automatically for an agent whose process
-outlives the token lifetime, without rebuilding the agent.
+## 5. OIDC discovery for `JwksAuth`  *(done)*
 
-**Why deferred:** today the token is resolved when the model is built (see
-Phase 8). `AgentIdentity.get_token()` already performs the two-tier refresh, so
-the cache is sound; what is missing is a hook that re-reads it per request at
-the model layer. This is naturally subsumed by item 2 — an SDK credential that
-calls back into the provider gets refresh for free — so it should be addressed
-together with that migration rather than as a separate header-rewriting shim.
+**Done:** `JwksAuth.from_discovery(*, issuer, audience, …)` fetches
+`{issuer}/.well-known/openid-configuration`, verifies the document's own
+`issuer` matches the one supplied (no open redirect to an attacker's keys),
+and resolves `jwks_uri` lazily. `audience` is **required** — there is no
+fail-open default. See `tests/test_server_auth.py::TestJwksDiscovery`.
+
+## 6. Per-resource credentials  *(done)*
+
+**Done:** `IdentityProvider.get_credential(audience=…)` (and
+`AgentIdentity.get_credential` / `auth_header`) take an optional audience.
+*Active* providers that re-mint (Entra IMDS, AWS STS, GCP metadata, SPIFFE
+SDK) issue a credential scoped to the requested audience; *passive*
+providers (projected-token files, OIDC file/env/callable) have a fixed
+audience and ignore it. Credentials are cached **per audience** (keyed by
+`audience`, each entry expiring on its own `exp`). `build_agent` forwards
+each MCP server's `HTTPServerSpec.audience`, so **one identity presents a
+resource-scoped token to each server**.
+
+## 7. Structured cross-agent identity  *(done)*
+
+**Done:** the delegating agent's identity is propagated to the peer via the
+`_delegation_ctx_var` contextvar set around the peer `ainvoke`, so the
+peer's observability stamps `delegated_by` on every event it records during
+the delegated call — a first-class field, not just the system-message hint
+from item 4. Cheap identity descriptors only; no credential is forwarded.
+
+## 8. Declarative configuration (SuperAgent + runtime manifests)  *(done)*
+
+**Done:** identity is no longer programmatic-only. Both declarative
+surfaces now carry an `identity:` block:
+
+* **`.superagent` files** — `SuperAgentSchema.identity` (an
+  `IdentityConfig`); `SuperAgentLoader.to_identity()` builds the
+  `AgentIdentity` and `to_build_kwargs()` passes it to `build_agent`. The
+  CLI (`promptise agent` / `serve`) inherits this for free.
+* **`.agent` runtime manifests** — `AgentManifestSchema.identity` →
+  `manifest_to_process_config` builds the identity onto `ProcessConfig`;
+  `AgentProcess._build_agent` attributes the process to it and presents its
+  per-audience credential to the MCP servers the process calls.
+
+Construction is shared via `IdentityConfig.to_identity()`, so all surfaces
+build identity identically. `${ENV_VAR}` resolution applies to every
+identity field. The dict→`HTTPServerSpec` resolvers in both surfaces now
+also carry `audience`, so per-resource credentials work declaratively.
+
+## Optional future ideas
+
+- *(none currently tracked — the subsystem is feature-complete for its
+  stated scope, on both the programmatic and declarative surfaces.)*

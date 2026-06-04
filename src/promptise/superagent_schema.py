@@ -11,9 +11,12 @@ unions for type-safe server configuration.
 from __future__ import annotations
 
 import warnings
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+if TYPE_CHECKING:
+    from .identity import AgentIdentity
 
 # =============================================================================
 # Model Configuration Types
@@ -483,6 +486,196 @@ class GuardrailsSection(BaseModel):
     warmup: bool = Field(True, description="Pre-load ML models at startup")
 
 
+class IdentityConfig(BaseModel):
+    """Agent identity configuration for ``.superagent`` files.
+
+    Gives the agent a stable, traceable identity (see
+    :mod:`promptise.identity`). A **local** identity (``provider: local``)
+    needs only an ``agent_id`` and tags the agent's actions for
+    attribution. A **verifiable** identity (any cloud provider, or
+    ``auto``) additionally mints a signed credential the agent presents to
+    the MCP servers it calls, so they can authenticate and attribute it.
+
+    All string fields support ``${ENV_VAR}`` resolution. Fields that do not
+    apply to the chosen ``provider`` are ignored.
+
+    Examples:
+        Local (attribution only)::
+
+            identity:
+              provider: local
+              agent_id: billing-bot
+              owner: payments
+              labels: {env: prod}
+
+        Verifiable via Microsoft Entra::
+
+            identity:
+              provider: entra
+              agent_id: billing-bot
+              client_id: ${AZURE_CLIENT_ID}
+              resource: api://my-mcp-server
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    provider: Literal["local", "entra", "aws", "gcp", "spiffe", "oidc", "auto"] = Field(
+        "local",
+        description=(
+            "Identity backing. 'local' = attribution-only (no credential); "
+            "'entra'/'aws'/'gcp'/'spiffe'/'oidc' = verifiable via that IdP; "
+            "'auto' = detect the platform from the environment."
+        ),
+    )
+    agent_id: str | None = Field(
+        None,
+        description=(
+            "Stable identifier. Required for 'local'; optional for a "
+            "verifiable identity, which can derive it from the IdP's "
+            "sub/oid claim."
+        ),
+    )
+    name: str | None = Field(None, description="Human-readable display name.")
+    owner: str | None = Field(None, description="Owning team or person.")
+    labels: dict[str, str] = Field(
+        default_factory=dict, description="Free-form key/value metadata."
+    )
+
+    # Provider-specific options (all support ${ENV_VAR}).
+    mode: str | None = Field(
+        None,
+        description="Provider mode (entra: auto|imds|projected; aws: "
+        "auto|sts|projected; spiffe: auto|file|sdk).",
+    )
+    client_id: str | None = Field(
+        None, description="Entra managed-identity client id (entra IMDS)."
+    )
+    resource: str | None = Field(
+        None, description="Resource/audience the credential targets (entra)."
+    )
+    region: str | None = Field(None, description="AWS region for STS (aws).")
+    audience: str | None = Field(
+        None, description="Audience the credential targets (aws/gcp/spiffe)."
+    )
+    service_account_email: str | None = Field(
+        None, description="Attached service account whose identity to request (gcp)."
+    )
+    socket_path: str | None = Field(
+        None, description="SPIFFE Workload API socket (spiffe sdk mode)."
+    )
+    issuer: str | None = Field(
+        None, description="OIDC issuer URL — required for provider 'oidc'."
+    )
+    token_file: str | None = Field(
+        None, description="Path to a file holding the JWT (entra/aws/spiffe/oidc)."
+    )
+    token_env_var: str | None = Field(
+        None, description="Env var holding the JWT, re-read each refresh (oidc)."
+    )
+
+    @model_validator(mode="after")
+    def _validate_provider_requirements(self) -> IdentityConfig:
+        """Enforce the per-provider required fields up front."""
+        if self.provider == "local" and not (self.agent_id and self.agent_id.strip()):
+            raise ValueError(
+                "identity.provider 'local' requires 'agent_id' — a local "
+                "identity has no IdP to derive its identifier from."
+            )
+        if self.provider == "oidc":
+            if not (self.issuer and self.issuer.strip()):
+                raise ValueError(
+                    "identity.provider 'oidc' requires 'issuer' (the OIDC "
+                    "issuer URL whose JWTs this agent presents)."
+                )
+            sources = [s for s in (self.token_file, self.token_env_var) if s]
+            if len(sources) != 1:
+                raise ValueError(
+                    "identity.provider 'oidc' requires exactly one of "
+                    "'token_file' or 'token_env_var' (the way the issuer's "
+                    "JWT reaches this workload)."
+                )
+        return self
+
+    def to_identity(self) -> AgentIdentity:
+        """Build the :class:`~promptise.identity.AgentIdentity` this describes.
+
+        Dispatches to the matching identity factory by ``provider``. Shared
+        by every declarative surface (``.superagent`` files and ``.agent``
+        runtime manifests) so identity is constructed identically everywhere.
+
+        Environment variables are expected to be already resolved on this
+        config by the caller's loader.
+
+        Returns:
+            The constructed ``AgentIdentity``.
+
+        Raises:
+            ProviderConfigError: If the configuration is invalid for the
+                chosen provider (e.g. a local identity with no ``agent_id``).
+        """
+        from .identity import AgentIdentity
+
+        def _opt(**kwargs: Any) -> dict[str, Any]:
+            # Pass only the options that were set, letting the factory apply
+            # its own defaults for the rest.
+            return {k: v for k, v in kwargs.items() if v is not None}
+
+        labels = self.labels or None
+        if self.provider == "local":
+            return AgentIdentity(
+                self.agent_id, name=self.name, owner=self.owner, labels=labels
+            )
+        if self.provider == "auto":
+            return AgentIdentity.auto(
+                self.agent_id, name=self.name, owner=self.owner, labels=labels
+            )
+        if self.provider == "entra":
+            return AgentIdentity.from_entra(
+                self.agent_id,
+                name=self.name,
+                owner=self.owner,
+                labels=labels,
+                **_opt(mode=self.mode, client_id=self.client_id,
+                       token_file=self.token_file, resource=self.resource),
+            )
+        if self.provider == "aws":
+            return AgentIdentity.from_aws(
+                self.agent_id,
+                name=self.name,
+                owner=self.owner,
+                labels=labels,
+                **_opt(mode=self.mode, region=self.region,
+                       token_file=self.token_file, audience=self.audience),
+            )
+        if self.provider == "gcp":
+            return AgentIdentity.from_gcp(
+                self.agent_id,
+                name=self.name,
+                owner=self.owner,
+                labels=labels,
+                **_opt(audience=self.audience,
+                       service_account_email=self.service_account_email),
+            )
+        if self.provider == "spiffe":
+            return AgentIdentity.from_spiffe(
+                self.agent_id,
+                name=self.name,
+                owner=self.owner,
+                labels=labels,
+                **_opt(mode=self.mode, token_file=self.token_file,
+                       socket_path=self.socket_path, audience=self.audience),
+            )
+        # provider == "oidc": issuer + exactly one token source (schema-validated)
+        return AgentIdentity.from_oidc(
+            self.agent_id,
+            issuer=self.issuer,  # type: ignore[arg-type]  # required by validator
+            name=self.name,
+            owner=self.owner,
+            labels=labels,
+            **_opt(token_file=self.token_file, token_env_var=self.token_env_var),
+        )
+
+
 class SuperAgentSchema(BaseModel):
     """Root schema for .superagent YAML files.
 
@@ -515,6 +708,15 @@ class SuperAgentSchema(BaseModel):
 
     version: Literal["1.0"] = Field("1.0", description="Schema version")
     agent: AgentSection = Field(..., description="Agent configuration")
+    identity: IdentityConfig | None = Field(
+        None,
+        description=(
+            "Agent identity — who is acting. A local identity tags the "
+            "agent's actions for attribution; a verifiable identity (Entra, "
+            "AWS, GCP, SPIFFE, OIDC) also presents a signed credential to "
+            "the MCP servers it calls."
+        ),
+    )
     servers: dict[str, ServerConfig] = Field(
         default_factory=dict, description="Named MCP server configurations"
     )

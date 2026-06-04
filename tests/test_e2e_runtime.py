@@ -702,3 +702,100 @@ class TestExecutionMode:
         assert ExecutionMode.OPEN.value == "open"
         assert ExecutionMode("strict") is ExecutionMode.STRICT
         assert ExecutionMode("open") is ExecutionMode.OPEN
+
+
+# =========================================================================
+# 13. TestProcessIdentity (identity wired into the runtime build)
+# =========================================================================
+
+
+class TestProcessIdentity:
+    """A process identity is attributed and presented to its MCP servers."""
+
+    def _patch_build(self, captured_bearers: list, captured_build: dict) -> list:
+        from promptise.config import HTTPServerSpec  # noqa: F401
+
+        def _fake_client(**kwargs: object) -> MagicMock:
+            captured_bearers.append(kwargs.get("bearer_token"))
+            return MagicMock()
+
+        multi = MagicMock()
+        multi.__aenter__ = AsyncMock(return_value=multi)
+        multi.__aexit__ = AsyncMock(return_value=None)
+        adapter = MagicMock()
+        adapter.as_langchain_tools = AsyncMock(return_value=[])
+
+        async def _fake_build(**kwargs: object) -> MagicMock:
+            captured_build.update(kwargs)
+            return MagicMock()
+
+        return [
+            patch("promptise.mcp.client.MCPClient", side_effect=_fake_client),
+            patch("promptise.mcp.client.MCPMultiClient", return_value=multi),
+            patch("promptise.mcp.client.MCPToolAdapter", return_value=adapter),
+            patch("promptise.agent.build_agent", side_effect=_fake_build),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_verifiable_identity_presented_per_server_audience(self) -> None:
+        from contextlib import ExitStack
+
+        from promptise.config import HTTPServerSpec
+        from promptise.identity import AgentIdentity, CallableTokenProvider
+
+        seen_audiences: list = []
+
+        def mint(audience: str | None = None) -> str:
+            seen_audiences.append(audience)
+            return f"token-for-{audience}"
+
+        identity = AgentIdentity(
+            "watcher-bot", credential=CallableTokenProvider(token_fn=mint)
+        )
+        cfg = ProcessConfig(
+            model="openai:gpt-5-mini",
+            identity=identity,
+            servers={
+                "data": HTTPServerSpec(
+                    url="https://data.internal/mcp", audience="api://data"
+                )
+            },
+        )
+        process = AgentProcess("watcher", cfg)
+
+        bearers: list = []
+        build_kwargs: dict = {}
+        with ExitStack() as stack:
+            for cm in self._patch_build(bearers, build_kwargs):
+                stack.enter_context(cm)
+            await process._build_agent()
+
+        # Outbound: the per-audience credential reached the MCP client.
+        assert "token-for-api://data" in bearers
+        assert "api://data" in seen_audiences
+        # Attribution: the identity was handed to build_agent.
+        assert build_kwargs["identity"] is identity
+
+    @pytest.mark.asyncio
+    async def test_local_identity_presents_no_credential(self) -> None:
+        from contextlib import ExitStack
+
+        from promptise.config import HTTPServerSpec
+        from promptise.identity import AgentIdentity
+
+        cfg = ProcessConfig(
+            model="openai:gpt-5-mini",
+            identity=AgentIdentity("local-bot"),
+            servers={"data": HTTPServerSpec(url="https://data.internal/mcp")},
+        )
+        process = AgentProcess("watcher", cfg)
+
+        bearers: list = []
+        build_kwargs: dict = {}
+        with ExitStack() as stack:
+            for cm in self._patch_build(bearers, build_kwargs):
+                stack.enter_context(cm)
+            await process._build_agent()
+
+        assert bearers == [None]  # local identity → no credential presented
+        assert build_kwargs["identity"].agent_id == "local-bot"  # still attributed

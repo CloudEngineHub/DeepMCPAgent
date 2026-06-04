@@ -1,23 +1,16 @@
-"""SPIRE workload — federated Anthropic auth with AgentIdentity.from_spiffe().
+"""SPIRE workload — a verifiable agent identity backed by SPIFFE/SPIRE.
 
 Demonstrates:
-- AgentIdentity.from_spiffe() fetching a JWT-SVID from the SPIRE agent's
-  Workload API socket (SDK mode); $SPIFFE_ENDPOINT_SOCKET selects the socket
-- build_agent(identity=...) with NO ANTHROPIC_API_KEY
-- a single real agent invocation
+- AgentIdentity.from_spiffe() giving the agent a verifiable identity from a
+  JWT-SVID fetched over the SPIRE Workload API socket (SDK mode)
+- build_agent(identity=...) attributing every recorded action to the agent
+
+SDK mode needs pyspiffe:  pip install promptise[identity-spiffe]
+(File mode — spiffe-helper writing a JWT-SVID to disk — needs no pyspiffe:
+AgentIdentity.from_spiffe("data-bot", token_file="/run/spiffe/jwt-svid.token").)
 
 Run (inside a workload registered with SPIRE):
     python app.py
-
-SDK mode needs pyspiffe:  pip install promptise[identity-spiffe]
-(For the file-based alternative — spiffe-helper writing a JWT-SVID to disk —
-use AgentIdentity.from_spiffe(token_file="/run/spiffe/jwt-svid.token"), which
-needs no pyspiffe.)
-
-Required environment (federation identifiers from the Anthropic Console):
-    ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID,
-    ANTHROPIC_SERVICE_ACCOUNT_ID
-    SPIFFE_ENDPOINT_SOCKET  (e.g. unix:///run/spire/agent/api.sock)
 """
 
 from __future__ import annotations
@@ -29,25 +22,23 @@ from promptise.identity import AgentIdentity
 
 
 async def main() -> None:
-    identity = AgentIdentity.from_spiffe()  # SDK mode via $SPIFFE_ENDPOINT_SOCKET
-    print(
-        f"[identity] provider={identity.provider_name} "
-        f"service_account={identity.service_account_id}"
+    identity = AgentIdentity.from_spiffe(
+        "data-bot",
+        name="Data Bot",
+        owner="platform-team",
+        audience="api://internal-tools",
+        # SDK mode via $SPIFFE_ENDPOINT_SOCKET
     )
+    print(f"[identity] {identity.claims()}")
+
     agent = await build_agent(
         model="anthropic:claude-sonnet-4-5",
         servers={},
         identity=identity,
+        observe=True,
     )
     result = await agent.ainvoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": "In one sentence, what is workload identity federation?",
-                }
-            ]
-        }
+        {"messages": [{"role": "user", "content": "Say hello in one sentence."}]}
     )
     print("[agent]", result["messages"][-1].content)
     await agent.shutdown()

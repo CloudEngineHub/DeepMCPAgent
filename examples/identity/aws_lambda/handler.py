@@ -1,20 +1,16 @@
-"""AWS Lambda — federated Anthropic auth with AgentIdentity.from_aws().
+"""AWS Lambda — a verifiable agent identity backed by AWS IAM.
 
 Demonstrates:
-- AgentIdentity.from_aws() using the function's execution-role identity via
-  STS GetWebIdentityToken (mode="auto" -> "sts" on Lambda)
-- build_agent(identity=...) with NO ANTHROPIC_API_KEY
-- driving the agent from a synchronous Lambda entrypoint via asyncio.run
+- AgentIdentity.from_aws() giving the agent a verifiable identity from the
+  function's execution-role identity (STS GetWebIdentityToken on Lambda)
+- build_agent(identity=...) attributing every recorded action to the agent,
+  driven from a synchronous Lambda entrypoint via asyncio.run
 
-Deploy:
-    sam build && sam deploy --guided
+The model keeps its own credential; the identity is about *who is acting*.
 
-Required environment (set in template.yaml; identifiers from the Console):
-    ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID,
-    ANTHROPIC_SERVICE_ACCOUNT_ID
-
-Packaging note: STS mode needs boto3 (already present in the Lambda runtime)
-and the AWS extra locally — install with: pip install promptise[identity-aws]
+Deploy:  sam build && sam deploy --guided
+STS mode needs boto3 (present in the Lambda runtime) and the AWS extra
+locally:  pip install promptise[identity-aws]
 """
 
 from __future__ import annotations
@@ -27,13 +23,18 @@ from promptise.identity import AgentIdentity
 
 
 async def _run(prompt: str) -> str:
-    # AWS_REGION is set automatically in the Lambda environment, so
-    # from_aws() needs no arguments.
-    identity = AgentIdentity.from_aws()
+    # AWS_REGION is set automatically in the Lambda environment.
+    identity = AgentIdentity.from_aws(
+        "data-bot",
+        name="Data Bot",
+        owner="analytics-team",
+        audience="api://internal-tools",
+    )
     agent = await build_agent(
         model="anthropic:claude-sonnet-4-5",
         servers={},
         identity=identity,
+        observe=True,
     )
     result = await agent.ainvoke(
         {"messages": [{"role": "user", "content": prompt}]}
@@ -46,5 +47,4 @@ async def _run(prompt: str) -> str:
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Lambda entrypoint."""
     prompt = event.get("prompt", "Say hello in one sentence.")
-    answer = asyncio.run(_run(prompt))
-    return {"statusCode": 200, "body": answer}
+    return {"statusCode": 200, "body": asyncio.run(_run(prompt))}

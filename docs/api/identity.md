@@ -1,7 +1,7 @@
 # Agent Identity API Reference
 
-Federated, zero-static-credential authentication — every public class, factory,
-and exception across `promptise.identity`.
+Identity, tracing, and attribution for agents — every public class,
+factory, and exception across `promptise.identity`.
 
 For concepts and setup, start with the [Agent Identity overview](../identity/overview.md).
 
@@ -9,10 +9,10 @@ For concepts and setup, start with the [Agent Identity overview](../identity/ove
 
 ### AgentIdentity
 
-The entire user-facing surface. Construct one with a factory classmethod
-(`from_entra`, `from_aws`, `from_gcp`, `from_spiffe`, `from_oidc`) or
-`auto()`, then call `get_token()` / `get_auth_header()` or pass it to
-`build_agent(identity=...)`.
+The entire user-facing surface. Construct a local identity directly, or
+use a credential factory (`from_entra`, `from_aws`, `from_gcp`,
+`from_spiffe`, `from_oidc`, or `auto`) to make it verifiable. Pass it to
+`build_agent(identity=...)` to attribute the agent's actions to it.
 
 ::: promptise.identity.AgentIdentity
     options:
@@ -25,37 +25,26 @@ The entire user-facing surface. Construct one with a factory classmethod
         - from_spiffe
         - from_oidc
         - auto
-        - get_token
-        - get_auth_header
-        - get_upstream_jwt
-        - provider
-        - provider_name
-        - federation_rule_id
-        - organization_id
-        - service_account_id
-        - workspace_id
+        - subject
+        - idp_claims
+        - resolve_identifier
+        - claims
+        - get_credential
+        - auth_header
+        - agent_id
+        - name
+        - owner
+        - labels
+        - is_verifiable
+        - credential_provider
+        - credential
 
 ---
 
-## Token model
+## Credential providers
 
-### MintedToken
-
-An immutable minted Anthropic access token with monotonic expiry and the
-two-tier refresh helpers. The module also exposes
-`ADVISORY_REFRESH_BUFFER_SECONDS` (120) and
-`MANDATORY_REFRESH_BUFFER_SECONDS` (30).
-
-::: promptise.identity.MintedToken
-    options:
-      show_source: false
-      heading_level: 4
-
----
-
-## Provider base classes
-
-For advanced use and custom subclassing.
+The verifiable backing of an identity. Use the factory classmethods on
+`AgentIdentity`; these classes are exported for advanced use.
 
 ### IdentityProvider
 
@@ -64,8 +53,8 @@ For advanced use and custom subclassing.
       show_source: false
       heading_level: 4
       members:
-        - get_token
-        - get_auth_header
+        - get_credential
+        - auth_header
         - provider_name
 
 ### FileTokenProvider
@@ -82,11 +71,7 @@ For advanced use and custom subclassing.
       show_source: false
       heading_level: 4
 
----
-
-## Concrete providers
-
-### Microsoft Entra ID
+### Concrete providers
 
 ::: promptise.identity.EntraManagedIdentityProvider
     options:
@@ -98,8 +83,6 @@ For advanced use and custom subclassing.
       show_source: false
       heading_level: 4
 
-### AWS IAM
-
 ::: promptise.identity.AwsStsProvider
     options:
       show_source: false
@@ -110,14 +93,10 @@ For advanced use and custom subclassing.
       show_source: false
       heading_level: 4
 
-### Google Cloud
-
 ::: promptise.identity.GcpMetadataProvider
     options:
       show_source: false
       heading_level: 4
-
-### SPIFFE / SPIRE
 
 ::: promptise.identity.SpiffeFileProvider
     options:
@@ -129,14 +108,37 @@ For advanced use and custom subclassing.
       show_source: false
       heading_level: 4
 
-### Generic OIDC
-
 ::: promptise.identity.OidcFileProvider
     options:
       show_source: false
       heading_level: 4
 
 ::: promptise.identity.OidcCallableProvider
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Credential cache
+
+### CachedCredential
+
+::: promptise.identity.CachedCredential
+    options:
+      show_source: false
+      heading_level: 4
+
+### decode_jwt_claims
+
+::: promptise.identity.decode_jwt_claims
+    options:
+      show_source: false
+      heading_level: 4
+
+### decode_jwt_expiry
+
+::: promptise.identity.decode_jwt_expiry
     options:
       show_source: false
       heading_level: 4
@@ -152,12 +154,7 @@ All derive from `IdentityError`.
       show_source: false
       heading_level: 4
 
-::: promptise.identity.TokenAcquisitionError
-    options:
-      show_source: false
-      heading_level: 4
-
-::: promptise.identity.TokenExchangeError
+::: promptise.identity.CredentialAcquisitionError
     options:
       show_source: false
       heading_level: 4
@@ -167,37 +164,7 @@ All derive from `IdentityError`.
       show_source: false
       heading_level: 4
 
-::: promptise.identity.CredentialPrecedenceError
-    options:
-      show_source: false
-      heading_level: 4
-
 ::: promptise.identity.PlatformDetectionError
-    options:
-      show_source: false
-      heading_level: 4
-
----
-
-## Internals
-
-The exchange engine and platform detection — useful when debugging or building
-a custom provider.
-
-### exchange_jwt_for_anthropic_token
-
-The RFC 7523 `jwt-bearer` exchange every provider funnels through.
-
-::: promptise.identity._core.exchange.exchange_jwt_for_anthropic_token
-    options:
-      show_source: false
-      heading_level: 4
-
-### detect_platform
-
-The environment-marker detection behind `AgentIdentity.auto()`.
-
-::: promptise.identity._internal.detect.detect_platform
     options:
       show_source: false
       heading_level: 4

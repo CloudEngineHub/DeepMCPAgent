@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import contextvars
 import logging
-import os
 import time
 from collections.abc import AsyncIterator, Mapping
 from dataclasses import dataclass, field
@@ -21,7 +20,7 @@ from promptise.engine import PromptGraph, PromptGraphEngine
 
 from .config import HTTPServerSpec, ServerSpec
 from .cross_agent import CrossAgent, make_cross_agent_tools
-from .identity import AgentIdentity, CredentialPrecedenceError
+from .identity import AgentIdentity, IdentityError
 from .prompt import DEFAULT_SYSTEM_PROMPT
 
 
@@ -232,6 +231,21 @@ class PromptiseAgent:
         # authenticated headers via ``agent.identity.get_auth_header()``.
         self.identity: AgentIdentity | None = None
 
+        # Resolved attribution id (the agent's identifier, computed once by
+        # build_agent). Used to attribute event notifications to the agent.
+        self._actor_id: str | None = None
+
+    def _actor(self) -> str | None:
+        """Return the id to attribute the agent's events to.
+
+        When an identity is attached, this is the agent's resolved
+        identifier (``agent_id`` or the IdP subject); otherwise it is the
+        model name, so agents without an identity are unaffected.
+        """
+        if self.identity is not None:
+            return self._actor_id or self.model_name
+        return self.model_name
+
     # -----------------------------------------------------------------
     # Core invocation methods
     # -----------------------------------------------------------------
@@ -280,7 +294,7 @@ class PromptiseAgent:
                             "invocation.timeout",
                             "error",
                             {"timeout_seconds": timeout},
-                            agent_id=self.model_name,
+                            agent_id=self._actor(),
                         )
                     raise TimeoutError(f"Agent invocation exceeded {timeout}s timeout")
             else:
@@ -295,7 +309,7 @@ class PromptiseAgent:
                     "invocation.error",
                     "error",
                     {"error": str(exc)[:200], "error_type": type(exc).__name__},
-                    agent_id=self.model_name,
+                    agent_id=self._actor(),
                 )
             raise
         finally:
@@ -329,7 +343,7 @@ class PromptiseAgent:
                 "invocation.start",
                 "info",
                 {"model": self.model_name},
-                agent_id=self.model_name,
+                agent_id=self._actor(),
             )
 
         # Step 0: Guardrails — scan input BEFORE anything else
@@ -643,7 +657,7 @@ class PromptiseAgent:
                 "invocation.complete",
                 "info",
                 {"duration_ms": round((time.monotonic() - _start_time) * 1000, 1)},
-                agent_id=self.model_name,
+                agent_id=self._actor(),
             )
 
         return output
@@ -807,7 +821,7 @@ class PromptiseAgent:
                     "invocation.start",
                     "info",
                     {"model": self.model_name, "streaming": True},
-                    agent_id=self.model_name,
+                    agent_id=self._actor(),
                 )
 
             # Step 0: Input guardrails
@@ -939,7 +953,7 @@ class PromptiseAgent:
                         "invocation.error",
                         "error",
                         {"error": type(exc).__name__, "streaming": True},
-                        agent_id=self.model_name,
+                        agent_id=self._actor(),
                     )
                 return
 
@@ -1012,7 +1026,7 @@ class PromptiseAgent:
                     "invocation.complete",
                     "info",
                     {"duration_ms": duration, "streaming": True},
-                    agent_id=self.model_name,
+                    agent_id=self._actor(),
                 )
 
         finally:
@@ -1667,32 +1681,9 @@ def _extract_response_text(output: Any) -> str:
     return str(output)
 
 
-def _normalize_model(
-    model: ModelLike, identity: AgentIdentity | None = None
-) -> Runnable[Any, Any]:
-    """Normalize the supplied model into a Runnable.
-
-    When an :class:`~promptise.identity.AgentIdentity` is provided and
-    *model* is a provider id string, the agent's own Anthropic calls are
-    authenticated with the federated token instead of a static API key.
-    Anthropic OAuth access tokens are *bearer* tokens, so the token is
-    placed in the ``Authorization`` header (``api_key=""`` keeps the SDK
-    from also sending an ``x-api-key`` header). A pre-built chat model
-    instance is returned untouched — supply a model string to have the
-    identity injected.
-    """
+def _normalize_model(model: ModelLike) -> Runnable[Any, Any]:
+    """Normalize the supplied model into a Runnable."""
     if isinstance(model, str):
-        if identity is not None:
-            return cast(
-                Runnable[Any, Any],
-                init_chat_model(
-                    model,
-                    api_key="",
-                    default_headers={
-                        "Authorization": f"Bearer {identity.get_token()}"
-                    },
-                ),
-            )
         # This supports many providers via lc init strings, not just OpenAI.
         return cast(Runnable[Any, Any], init_chat_model(model))
     # Already BaseChatModel or Runnable
@@ -1744,19 +1735,17 @@ async def build_agent(
             string accepted by ``init_chat_model``, or a Runnable.
         instructions: Optional system prompt.  Defaults to the built-in
             ``DEFAULT_SYSTEM_PROMPT``.
-        identity: Optional :class:`~promptise.identity.AgentIdentity` for
-            zero-static-credential, federated authentication. When
-            provided and *model* is a provider id string, the agent's own
-            Anthropic calls are authenticated with the federated token
-            (no ``ANTHROPIC_API_KEY`` needed) and the identity is exposed
-            as :attr:`PromptiseAgent.identity` so MCP tools can make
-            authenticated downstream calls via
-            ``agent.identity.get_auth_header()``. Raises
-            :class:`~promptise.identity.CredentialPrecedenceError` if
-            ``ANTHROPIC_API_KEY`` is also set, rather than let the static
-            key silently shadow the federated identity. The token is
-            resolved when the model is built; long-lived agents that
-            outlive the token should be rebuilt to pick up a fresh one.
+        identity: Optional :class:`~promptise.identity.AgentIdentity`
+            giving the agent a traceable identity. When provided, every
+            tool call and LLM turn the agent records is attributed to the
+            agent's identifier — its ``agent_id`` handle, or, for an
+            IdP-backed identity with no handle, the IdP ``subject`` —
+            unless ``observer_agent_id`` is set explicitly. A **verifiable**
+            identity is also presented to MCP servers that have no bearer
+            of their own (its credential becomes their ``bearer_token``),
+            so the server can authenticate and attribute the calling
+            agent. The identity is exposed as
+            :attr:`PromptiseAgent.identity`.
         trace_tools: Print each tool invocation and result to stdout.
         cross_agents: Optional mapping of peer name → CrossAgent.  Each
             peer is exposed as an ``ask_agent_<name>`` tool.
@@ -1797,13 +1786,26 @@ async def build_agent(
     if model is None:  # Defensive check; CLI/code must always pass a model now.
         raise ValueError("A model is required. Provide a model instance or a provider id string.")
 
-    # Refuse to let a static API key silently shadow a federated identity.
-    if identity is not None and os.environ.get("ANTHROPIC_API_KEY"):
-        raise CredentialPrecedenceError(
-            "Both an AgentIdentity and ANTHROPIC_API_KEY are configured. "
-            "The static API key would silently shadow the federated identity. "
-            "Either unset ANTHROPIC_API_KEY or remove the identity= argument."
-        )
+    # Attribute recorded events to the agent's identity by default, so the
+    # observability timeline answers "which agent did what" without extra
+    # wiring. An explicit observer_agent_id still wins. When the identity is
+    # IdP-backed with no local handle, derive the id from the IdP subject —
+    # best-effort, so an unreachable IdP at build time does not fail the build.
+    if identity is not None and observer_agent_id is None:
+        if identity.agent_id is not None:
+            observer_agent_id = identity.agent_id
+        else:
+            try:
+                observer_agent_id = identity.subject()
+            except IdentityError as exc:
+                # Attribution falls back to the default; lower stakes than the
+                # credential presentation above, so this is a debug note.
+                logger.debug(
+                    "Could not resolve IdP subject for attribution (%s: %s)",
+                    type(exc).__name__,
+                    exc,
+                )
+                observer_agent_id = None
 
     # Simple printing callbacks for tracing (kept dependency-free).
     # When an observer is provided the callbacks also record tool events
@@ -1903,6 +1905,30 @@ async def build_agent(
 
         from .mcp.client import MCPClient, MCPMultiClient, MCPToolAdapter
 
+        # When the agent carries a verifiable identity, present its identity
+        # credential to MCP servers that have no explicit bearer of their own —
+        # scoped to each server's ``audience`` so one identity can serve several
+        # resources. Best-effort: an unreachable IdP must not fail the build.
+        def _identity_bearer_for(spec: HTTPServerSpec) -> str | None:
+            if identity is None or not identity.is_verifiable:
+                return None
+            try:
+                return identity.get_credential(spec.audience)
+            except IdentityError as exc:
+                # Do not silently drop the credential: an operator who
+                # configured a verifiable identity expects authenticated MCP
+                # calls. Surface the failure loudly; servers requiring auth
+                # will then reject the unauthenticated calls.
+                logger.warning(
+                    "Agent identity %r could not acquire a credential for MCP "
+                    "server audience %r (%s: %s); connecting without it.",
+                    identity.agent_id,
+                    spec.audience,
+                    type(exc).__name__,
+                    exc,
+                )
+                return None
+
         clients: dict[str, MCPClient] = {}
         for sname, spec in servers.items():
             if isinstance(spec, HTTPServerSpec):
@@ -1912,7 +1938,7 @@ async def build_agent(
                     headers=spec.headers,
                     bearer_token=spec.bearer_token.get_secret_value()
                     if spec.bearer_token
-                    else None,
+                    else _identity_bearer_for(spec),
                     api_key=spec.api_key.get_secret_value() if spec.api_key else None,
                 )
             else:
@@ -1950,7 +1976,9 @@ async def build_agent(
 
     # Attach cross-agent tools if provided
     if cross_agents:
-        tools.extend(make_cross_agent_tools(cross_agents))
+        tools.extend(
+            make_cross_agent_tools(cross_agents, caller_identity=identity)
+        )
 
     # Attach sandbox tools if enabled
     sandbox_manager = None
@@ -2011,7 +2039,7 @@ async def build_agent(
     if not tools:
         print("[promptise] No tools discovered from MCP servers; agent will run without tools.")
 
-    chat: Runnable[Any, Any] = _normalize_model(model, identity)
+    chat: Runnable[Any, Any] = _normalize_model(model)
 
     # Handle Prompt/PromptSuite as instructions
     _prompt_config = None
@@ -2220,6 +2248,7 @@ async def build_agent(
 
     # Attach the federated identity (if any) for downstream/tool auth.
     agent.identity = identity
+    agent._actor_id = observer_agent_id
 
     # Set invocation timeout
     if max_invocation_time > 0:

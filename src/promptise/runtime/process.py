@@ -667,6 +667,9 @@ class AgentProcess:
                             kw["transport"] = spec["transport"]
                         elif "type" in spec:
                             kw["transport"] = spec["type"]
+                        for opt in ("headers", "bearer_token", "api_key", "audience"):
+                            if opt in spec:
+                                kw[opt] = spec[opt]
                         resolved[name] = HTTPServerSpec(**kw)
                     elif "command" in spec:
                         resolved[name] = StdioServerSpec(
@@ -674,6 +677,29 @@ class AgentProcess:
                             args=spec.get("args", []),
                             env=spec.get("env", {}),
                         )
+
+            # When the process carries a verifiable identity, present its
+            # credential to MCP servers that have no bearer of their own —
+            # scoped to each server's audience (best-effort; an unreachable
+            # IdP must not fail the build).
+            def _identity_bearer(spec: HTTPServerSpec) -> str | None:
+                identity = self.config.identity
+                if identity is None or not getattr(identity, "is_verifiable", False):
+                    return None
+                from promptise.identity import IdentityError
+
+                try:
+                    return str(identity.get_credential(spec.audience))
+                except IdentityError as exc:
+                    logger.warning(
+                        "AgentProcess %s: identity could not acquire a "
+                        "credential for MCP server audience %r (%s); "
+                        "connecting without it.",
+                        self.name,
+                        spec.audience,
+                        exc,
+                    )
+                    return None
 
             # Build native MCP clients from resolved specs
             clients: dict[str, MCPClient] = {}
@@ -685,7 +711,7 @@ class AgentProcess:
                         headers=spec.headers,
                         bearer_token=spec.bearer_token.get_secret_value()
                         if spec.bearer_token
-                        else None,
+                        else _identity_bearer(spec),
                         api_key=spec.api_key.get_secret_value() if spec.api_key else None,
                     )
                 else:
@@ -713,6 +739,8 @@ class AgentProcess:
         }
 
         # Wire optional capabilities from ProcessConfig
+        if self.config.identity is not None:
+            build_kwargs["identity"] = self.config.identity
         if self.config.approval is not None:
             build_kwargs["approval"] = self.config.approval
         if self._event_notifier is not None:
