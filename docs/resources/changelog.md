@@ -4,6 +4,20 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
+## Unreleased
+
+### Added
+
+- **Engine: `verify` reasoning pattern** -- `build_agent(agent_pattern="verify")` runs a single-pass self-verifying reasoning node (plan -> solve -> self-check -> final answer) at **one-turn** latency. Validated on `benchmarks/reasoning`: it matches a plain prompt on models that already reason internally, and recovers errors a single pass would miss on weaker/mainstream models -- a good default when you want a self-checking answer without a multi-stage pipeline.
+- **Engine: `PromptNode(context_scope="scoped")`** -- context-lifecycle management for multi-stage reasoning graphs. A scoped node sees only its own working set -- its system prompt (carrying any inherited/distilled state), the task, and its in-progress tool loop -- not the verbose messages produced by other stages, so token usage does not grow super-linearly across stages. Opt-in; `context_scope="full"` (the default) preserves existing behavior.
+- **Benchmarks: `benchmarks/reasoning`** -- a from-scratch, truthful-and-fair reasoning benchmark (deterministic scoring, identical instrumentation for every contender) comparing Promptise reasoning patterns against LangGraph `create_react_agent`. Honest, mixed results are documented in `benchmarks/reasoning/RESULTS.md`.
+
+### Fixed
+
+- **Engine: routing-hint noise** -- a linear node (a single `default_next` with no real branch) no longer receives a "choose the next step" instruction. The hint could be echoed as the answer by weaker models; it now appears only at genuine branch points (two or more distinct targets).
+
+---
+
 ## v0.6.1
 
 ### Fixed

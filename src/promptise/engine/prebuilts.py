@@ -433,11 +433,63 @@ def build_pipeline_graph(*nodes: BaseNode) -> PromptGraph:
     return graph
 
 
+def build_verify_graph(
+    tools: list[BaseTool] | None = None,
+    system_prompt: str = "",
+    *,
+    blocks: list[Any] | None = None,
+    max_node_iterations: int = 6,
+) -> PromptGraph:
+    """Single-pass self-verifying reasoning — one LLM call, but the model
+    must plan, solve, and **check its own answer** within that generation.
+
+    Validated on a reasoning benchmark (``benchmarks/reasoning``): it gives a
+    model the benefit of an explicit verification step at **one-turn**
+    latency (no multi-call overhead). On models that already reason
+    internally it matches a direct prompt; on weaker models the forced
+    self-check recovers errors a single pass would miss. A good default when
+    you want a self-checking answer without a multi-stage pipeline.
+
+    Args:
+        tools: Optional tools for the reasoning node.
+        system_prompt: Base system prompt.
+        blocks: Optional PromptBlocks for the node.
+        max_node_iterations: Tool-loop budget.
+
+    Returns:
+        A single-node ``PromptGraph`` that plans, solves, and verifies in one
+        generation.
+    """
+    graph = PromptGraph(name="verify")
+    graph.add_node(
+        PromptNode(
+            "reason",
+            instructions=(
+                f"{system_prompt}\n\n"
+                "Answer in a single response, thinking carefully:\n"
+                "1) PLAN — restate the problem and outline the steps.\n"
+                "2) SOLVE — work the steps, showing each computation.\n"
+                "3) VERIFY — independently re-check the answer a different way "
+                "or against the constraints; if it is wrong, fix it.\n"
+                "4) Then give the final answer clearly."
+            ).strip(),
+            blocks=list(blocks) if blocks else [],
+            tools=list(tools) if tools else [],
+            tool_choice="auto",
+            default_next="__end__",
+            max_iterations=max_node_iterations,
+        )
+    )
+    graph.set_entry("reason")
+    return graph
+
+
 # ---------------------------------------------------------------------------
 # Register factory methods on PromptGraph class
 # ---------------------------------------------------------------------------
 
 PromptGraph.react = staticmethod(build_react_graph)  # type: ignore[attr-defined]
+PromptGraph.verify = staticmethod(build_verify_graph)  # type: ignore[attr-defined]
 PromptGraph.peoatr = staticmethod(build_peoatr_graph)  # type: ignore[attr-defined]
 PromptGraph.research = staticmethod(build_research_graph)  # type: ignore[attr-defined]
 PromptGraph.autonomous = staticmethod(build_autonomous_graph)  # type: ignore[attr-defined]

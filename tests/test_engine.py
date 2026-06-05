@@ -489,6 +489,14 @@ class TestPrebuiltGraphs:
         assert g.has_node("reason")
         assert g.validate() == []
 
+    def test_verify(self):
+        # Single-pass self-verifying reasoning prebuilt.
+        g = PromptGraph.verify(tools=[], system_prompt="test")
+        assert g.entry == "reason"
+        assert g.has_node("reason")
+        assert g.get_node("reason").default_next == "__end__"
+        assert g.validate() == []
+
     def test_peoatr(self):
         g = PromptGraph.peoatr(tools=[])
         assert g.entry == "plan"
