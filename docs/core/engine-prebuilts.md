@@ -1,6 +1,6 @@
 # Prebuilt Patterns
 
-Seven ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
+Eight ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
 
 ## ReAct (Default)
 
@@ -31,6 +31,46 @@ PromptGraph.react(
     max_node_iterations=15,  # Max tool-calling loops
 )
 ```
+
+## Verify (single-pass self-checking)
+
+A single LLM call in which the model must **plan, solve, and verify its own
+answer** before responding. It adds the accuracy benefit of an explicit
+self-verification step at **one-turn latency** — no multi-call overhead.
+
+```mermaid
+graph LR
+    A["reason<br/>(plan → solve → verify)"] --> END[__end__]
+    style A fill:#1e3a5f,stroke:#60a5fa,color:#fff
+    style END fill:#1a1a1a,stroke:#666,color:#aaa
+```
+
+```python
+agent = await build_agent(..., agent_pattern="verify")
+```
+
+```python
+PromptGraph.verify(
+    tools=None,
+    system_prompt="",
+    blocks=None,
+    max_node_iterations=6,
+)
+```
+
+!!! note "When it helps (measured)"
+    On the reasoning benchmark (`benchmarks/reasoning`), the forced self-check
+    lifts accuracy over a plain direct prompt on **weak and mainstream
+    models** at one-turn latency — e.g. `gpt-4o-mini` on hard traps:
+    **62.5% → 100%** (and roughly **+10 pts** on frontier tasks). A *frontier*
+    model that already reasons strongly internally (`gpt-5-mini`) is at its
+    ceiling already (100% direct), so `verify` only adds a cheap safety check
+    there. Note these are real-API numbers and wobble run-to-run (~7 pts),
+    and `verify` is **comparable to**, not strictly better than, a strong
+    competitor like LangGraph on a capable model — see
+    `benchmarks/reasoning/RESULTS.md` for the honest, full picture.
+    For multi-stage deliberate reasoning with per-stage context scoping,
+    compose a custom graph (see *Custom Graph*).
 
 ## PEOATR
 
