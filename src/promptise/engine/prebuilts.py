@@ -443,10 +443,9 @@ def build_verify_graph(
     """Single-pass self-verifying reasoning — one LLM call, but the model
     must plan, solve, and **check its own answer** within that generation.
 
-    Validated on a reasoning benchmark (``benchmarks/reasoning``): it gives a
-    model the benefit of an explicit verification step at **one-turn**
-    latency (no multi-call overhead). On models that already reason
-    internally it matches a direct prompt; on weaker models the forced
+    It gives a model the benefit of an explicit verification step at
+    **one-turn** latency (no multi-call overhead). On models that already
+    reason internally it matches a direct prompt; on weaker models the forced
     self-check recovers errors a single pass would miss. A good default when
     you want a self-checking answer without a multi-stage pipeline.
 
@@ -484,11 +483,65 @@ def build_verify_graph(
     return graph
 
 
+def build_managed_graph(
+    tools: list[BaseTool] | None = None,
+    system_prompt: str = "",
+    *,
+    blocks: list[Any] | None = None,
+    max_node_iterations: int = 30,
+) -> PromptGraph:
+    """Tool agent with **context lifecycle management** for long tool chains.
+
+    A single tool-using node, but run with ``context_scope="ledger"``: instead
+    of feeding the model an ever-growing transcript of tool calls and results
+    (where it loses track and re-queries the same facts dozens of times), each
+    turn it sees the task plus a compact, **deduplicated "facts gathered"
+    ledger** built from the tool results so far. Context stays bounded and the
+    model stops re-looking-up what it already knows.
+
+    Use this for **deep multi-tool tasks** — traversing a database/graph,
+    gathering many facts then aggregating. It cuts redundant tool calls and
+    bounds token growth on long chains at equal accuracy — an efficiency
+    primitive, not an accuracy claim.
+
+    Args:
+        tools: Tools the agent can call.
+        system_prompt: Base system prompt.
+        blocks: Optional PromptBlocks for the node.
+        max_node_iterations: Tool-loop budget (higher than ReAct's — deep
+            tasks make many calls).
+
+    Returns:
+        A single-node ``PromptGraph`` whose node manages its tool-loop context.
+    """
+    graph = PromptGraph(name="managed")
+    graph.add_node(
+        PromptNode(
+            "reason",
+            instructions=(
+                f"{system_prompt}\n\n"
+                "Gather the facts you need with tools, then answer. A ledger of "
+                "facts you have already gathered is provided each turn — consult "
+                "it and never re-fetch a fact you already have."
+            ).strip(),
+            blocks=list(blocks) if blocks else [],
+            tools=list(tools) if tools else [],
+            tool_choice="auto",
+            context_scope="ledger",
+            default_next="__end__",
+            max_iterations=max_node_iterations,
+        )
+    )
+    graph.set_entry("reason")
+    return graph
+
+
 # ---------------------------------------------------------------------------
 # Register factory methods on PromptGraph class
 # ---------------------------------------------------------------------------
 
 PromptGraph.react = staticmethod(build_react_graph)  # type: ignore[attr-defined]
+PromptGraph.managed = staticmethod(build_managed_graph)  # type: ignore[attr-defined]
 PromptGraph.verify = staticmethod(build_verify_graph)  # type: ignore[attr-defined]
 PromptGraph.peoatr = staticmethod(build_peoatr_graph)  # type: ignore[attr-defined]
 PromptGraph.research = staticmethod(build_research_graph)  # type: ignore[attr-defined]

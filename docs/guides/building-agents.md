@@ -600,7 +600,7 @@ agent = await build_agent(
 )
 ```
 
-7 built-in patterns: `react` (default), `peoatr`, `research`, `autonomous`, `deliberate`, `debate`, `pipeline`. See [Reasoning Patterns](../core/agents/reasoning-patterns.md).
+9 built-in patterns: `react` (default), `verify`, `managed`, `peoatr`, `research`, `autonomous`, `deliberate`, `debate`, `pipeline`. See [Reasoning Patterns](../core/agents/reasoning-patterns.md).
 
 ---
 

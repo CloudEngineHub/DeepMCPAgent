@@ -162,12 +162,16 @@ class PromptNode(BaseNode):
         self.input_keys = list(input_keys) if input_keys else []
         self.output_key = output_key
         self.inherit_context_from = inherit_context_from
-        # "full" (default): the node sees the whole accumulated transcript.
-        # "scoped": the node sees only its own working context — the system
-        # prompt (with any inherited/​injected distilled state), the original
-        # task, and its own in-progress tool loop — NOT the verbose messages
-        # produced by other stages. This bounds token growth across a
-        # multi-stage reasoning graph (context lifecycle management).
+        # Context lifecycle management — how much history this node sees:
+        #   "full" (default): the whole accumulated transcript.
+        #   "scoped": only the system prompt (with any inherited/​injected
+        #     distilled state), the original task, and the node's own
+        #     in-progress tool loop — NOT other stages' verbose messages.
+        #     Bounds token growth across a multi-stage reasoning graph.
+        #   "ledger": for long single-node tool loops — replaces the growing
+        #     tool-call/result transcript with a compact, DEDUPLICATED "facts
+        #     gathered" ledger (from state.observations), so the model stops
+        #     re-querying facts it already has.
         self.context_scope = context_scope
         # Pipeline
         self.preprocessor = preprocessor
@@ -233,7 +237,7 @@ class PromptNode(BaseNode):
         # Auto-inject tool schemas into the prompt so the LLM knows exact
         # parameter names, types, and descriptions — without this, the LLM
         # has to guess from tool names alone, which causes wrong parameters.
-        # This is the #1 accuracy improvement from the benchmark analysis.
+        # This is a major tool-accuracy improvement.
         _has_tools = bool(self.tools or self.inject_tools)
         if _has_tools:
             _all_tools = list(self.tools)
@@ -481,6 +485,47 @@ class PromptNode(BaseNode):
                 messages.append(first_human)
             messages.extend(own_tool_loop)
 
+        elif self.context_scope == "ledger":
+            # Tool-loop context lifecycle management. A long multi-tool task
+            # produces an ever-growing transcript of tool calls + results; the
+            # model loses track and re-queries the same facts many times. Here
+            # we replace that transcript with a compact, DEDUPLICATED "facts
+            # gathered" ledger built from ``state.observations`` (last value
+            # wins per tool+args), so context stays bounded and the model can
+            # see what it already knows and stop re-looking-it-up.
+            first_human = next(
+                (m for m in state.messages if isinstance(m, HumanMessage)), None
+            )
+            facts: dict[str, str] = {}
+            for obs in state.observations:
+                key = f"{obs.get('tool', '?')}({obs.get('args', {})})"
+                facts[key] = str(obs.get("result", ""))
+            # Keep ONLY the most recent assistant turn + its tool results, so the
+            # model still sees its last action's outcome in-flow (without this it
+            # loses continuity and loops). Everything older is in the ledger.
+            last_exchange: list[Any] = []
+            for m in reversed(state.messages):
+                if isinstance(m, (SystemMessage, HumanMessage)):
+                    break
+                last_exchange.append(m)
+                if isinstance(m, AIMessage):
+                    break
+            last_exchange.reverse()
+            messages = [node_sys_msg]
+            if first_human is not None:
+                messages.append(first_human)
+            messages.extend(last_exchange)
+            # The ledger goes LAST — right before the model's turn — where it is
+            # most salient, so the model actually consults it before re-querying.
+            if facts:
+                messages.append(
+                    SystemMessage(
+                        content="Facts already gathered (do NOT call a tool to "
+                        "fetch any of these again):\n"
+                        + "\n".join(f"- {k} = {v}" for k, v in facts.items())
+                    )
+                )
+
         # ── 3. Call LLM ──
         llm_start = time.monotonic()
         try:
@@ -522,6 +567,25 @@ class PromptNode(BaseNode):
                     """Execute a single tool call. Returns (tc_record, content)."""
                     tool_name = tc.get("name", "")
                     tool_args = tc.get("args", {})
+
+                    # Ledger mode: serve a previously-gathered fact from cache
+                    # instead of re-executing the same (tool, args). Deep tasks
+                    # otherwise re-fetch identical facts dozens of times.
+                    if self.context_scope == "ledger":
+                        for obs in state.observations:
+                            if (
+                                obs.get("tool") == tool_name
+                                and obs.get("args") == tool_args
+                                and obs.get("success")
+                            ):
+                                cached = str(obs.get("result", ""))
+                                return (
+                                    {
+                                        "name": tool_name, "args": tool_args,
+                                        "result": cached, "success": True, "cached": True,
+                                    },
+                                    cached,
+                                )
 
                     # Pre-tool hooks
                     for hook in hooks:

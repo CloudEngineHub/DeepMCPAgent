@@ -280,6 +280,7 @@ PromptNode("analyze",
 | `input_keys` | `list[str]` | `None` | Keys from `state.context` to inject as "Input data" in the prompt |
 | `output_key` | `str` | `None` | Write `result.output` to `state.context[output_key]` after execution |
 | `inherit_context_from` | `str` | `None` | Inject the output of another node (reads `state.context["{name}_output"]`) |
+| `context_scope` | `str` | `"full"` | Context lifecycle mode: `"full"` (whole transcript), `"scoped"` (bounded working set), or `"ledger"` (deduplicated facts ledger for long tool loops) — see [Context scope](#context-scope) |
 | `preprocessor` | `Callable` | `None` | Runs before the LLM call: `fn(state, config) -> None` |
 | `postprocessor` | `Callable` | `None` | Runs after: `fn(output, state, config) -> Any` |
 | `include_observations` | `bool` | `True` | Auto-inject recent tool results from `state.observations` |
@@ -311,6 +312,38 @@ PromptNode("analyze",
 - **Cached on re-entry** — on tool-loop re-entries, the system prompt, tool bindings, and model wrapper are reused from the first call
 - **No observation duplication** — observation injection is skipped for tool-using nodes (data already in conversation as ToolMessages)
 - **Separate SystemMessage** — the node's prompt is stored separately from the agent's SystemMessage to prevent inflation
+
+#### Context scope
+
+`context_scope` controls **how much accumulated history the node sees on each LLM
+call** — the single most important lever for context-lifecycle management on long
+or multi-stage tasks. The full transcript grows on every tool call; left
+unbounded it inflates token cost super-linearly and the model starts losing track
+of facts it already gathered. The three modes are all **opt-in** (default `"full"`
+preserves existing behaviour exactly — zero regression):
+
+| Mode | What the node sees | Use it for |
+|------|--------------------|------------|
+| `"full"` *(default)* | The whole accumulated transcript | Short tasks, or when every prior message matters |
+| `"scoped"` | The node's system prompt (carrying any inherited/injected distilled state) + the original task + **only this node's own in-progress tool loop** | Multi-stage reasoning graphs — drops the verbose intermediate messages produced by *other* stages so tokens don't grow across stages |
+| `"ledger"` | System prompt + original task + the **most recent** assistant turn and its tool results + a compact **deduplicated "facts gathered" ledger** | Long single-node tool loops over an interconnected dataset, where the model otherwise re-queries the same facts dozens of times |
+
+```python
+# Multi-stage graph: each stage only sees its own working set.
+PromptNode("analyze", instructions="...", context_scope="scoped")
+
+# Deep tool loop: replace the growing transcript with a facts ledger.
+PromptNode("reason", inject_tools=True, context_scope="ledger")
+```
+
+**How `"ledger"` works:**
+
+- The ledger is built from `state.observations` — one line per `tool(args) = result`, **last value wins** per `(tool, args)` so duplicates collapse.
+- It is placed **last**, immediately before the model's turn, where it is most salient — so the model consults it instead of re-calling a tool.
+- The most recent assistant turn and its tool results are kept *in-flow* so the model doesn't lose continuity and loop.
+- Tool execution is **cache-served**: if the node requests a `(tool, args)` pair already present in `state.observations`, the cached result is returned instead of re-executing — deep tasks otherwise re-fetch identical facts repeatedly.
+
+This is the mechanism behind the [`managed` prebuilt pattern](engine-prebuilts.md#managed-context-managed-tool-loop). It is an **efficiency primitive** — it bounds token growth and removes redundant tool calls without changing the answer the model produces.
 
 ### ToolNode
 

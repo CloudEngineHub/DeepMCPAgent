@@ -2011,6 +2011,9 @@ async def build_agent(
                 "react": lambda: PromptGraph.react(
                     tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
                 ),
+                "managed": lambda: PromptGraph.managed(
+                    tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
+                ),
                 "verify": lambda: PromptGraph.verify(
                     tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
                 ),

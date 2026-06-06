@@ -1,10 +1,12 @@
 # Reasoning Patterns
 
-Every Promptise agent is powered by a Reasoning Graph. By default, `build_agent()` creates a ReAct graph (single node with tools). You can replace this with any of the 7 built-in patterns, or build your own.
+Every Promptise agent is powered by a Reasoning Graph. By default, `build_agent()` creates a ReAct graph (single node with tools). You can replace this with any of the 9 built-in patterns, or build your own.
 
 ```mermaid
 graph TD
     BA[build_agent] -->|'react'| R1[ReAct]
+    BA -->|'verify'| R9[Verify]
+    BA -->|'managed'| R10[Managed]
     BA -->|'peoatr'| R2[PEOATR]
     BA -->|'research'| R3[Research]
     BA -->|'autonomous'| R4[Autonomous]
@@ -24,6 +26,8 @@ graph TD
 
     style BA fill:#1e3a5f,stroke:#60a5fa,color:#fff
     style R1 fill:#1a2e1a,stroke:#4ade80,color:#fff
+    style R9 fill:#1a2e1a,stroke:#4ade80,color:#fff
+    style R10 fill:#1a2e1a,stroke:#4ade80,color:#fff
     style R2 fill:#2d1b4e,stroke:#c084fc,color:#fff
     style R3 fill:#3a2a0a,stroke:#fbbf24,color:#fff
     style R4 fill:#3a1a1a,stroke:#f87171,color:#fff
@@ -45,6 +49,8 @@ agent = await build_agent(model="openai:gpt-5-mini", servers=my_servers)
 
 # Built-in patterns
 agent = await build_agent(..., agent_pattern="react")       # Tool-calling loop
+agent = await build_agent(..., agent_pattern="verify")      # Plan → Solve → Self-check (1 turn)
+agent = await build_agent(..., agent_pattern="managed")     # Tool loop with facts-ledger context
 agent = await build_agent(..., agent_pattern="peoatr")      # Plan → Act → Think → Reflect
 agent = await build_agent(..., agent_pattern="research")    # Search → Verify → Synthesize
 agent = await build_agent(..., agent_pattern="autonomous")  # Agent builds own path
@@ -70,6 +76,49 @@ reason ──→ (tool calls) ──→ reason ──→ ... ──→ final ans
 ```
 
 **Best for:** Simple tool-calling agents, Q&A, most general tasks.
+
+### Verify
+
+A single PromptNode, but the model must **plan, solve, and check its own answer
+within one generation** — the benefit of an explicit verification step at
+one-turn latency (no extra LLM calls). The node prompt forces a `PLAN → SOLVE →
+VERIFY → final answer` structure where the VERIFY step independently re-checks
+the answer a different way and fixes it if wrong.
+
+```
+reason (PLAN → SOLVE → VERIFY → answer)  [single turn]
+```
+
+**Best for:** Arithmetic/logic-heavy questions, anything where a quick
+self-check catches careless errors — without paying for a multi-stage pipeline.
+
+!!! note "Honest scope"
+    On strong models that already reason internally, `verify` matches a direct
+    prompt; its measurable gains show up on weaker/cheaper models where the
+    forced self-check recovers errors a single pass would miss. See the
+    [Verify prebuilt](../engine-prebuilts.md#verify-single-pass-self-checking).
+
+### Managed
+
+A single tool-using node run with `context_scope="ledger"` for **long tool
+chains**. Instead of feeding the model an ever-growing transcript of tool calls
+and results — where it loses track and re-queries the same facts repeatedly —
+each turn it sees the task plus a compact, **deduplicated "facts gathered"
+ledger**. Context stays bounded and identical `(tool, args)` calls are served
+from cache instead of re-executed.
+
+```
+reason ──→ (tool) ──→ reason + facts-ledger ──→ (tool) ──→ ... ──→ answer
+```
+
+**Best for:** Deep multi-tool tasks — traversing a database/graph, gathering
+many facts then aggregating.
+
+!!! note "Honest scope"
+    `managed` is an **efficiency primitive**: on long tool chains it cuts
+    redundant tool calls and bounds token growth at **equal** accuracy — it does
+    not by itself make the model answer more correctly. See
+    [Context scope](../engine-nodes.md#context-scope) for the mechanism.
 
 ### PEOATR
 
