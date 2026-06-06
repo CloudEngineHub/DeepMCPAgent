@@ -497,6 +497,16 @@ class TestPrebuiltGraphs:
         assert g.get_node("reason").default_next == "__end__"
         assert g.validate() == []
 
+    def test_managed(self):
+        # Context-managed tool loop prebuilt (deduplicated facts ledger).
+        g = PromptGraph.managed(tools=[], system_prompt="test")
+        assert g.entry == "reason"
+        assert g.has_node("reason")
+        node = g.get_node("reason")
+        assert node.context_scope == "ledger"
+        assert node.default_next == "__end__"
+        assert g.validate() == []
+
     def test_peoatr(self):
         g = PromptGraph.peoatr(tools=[])
         assert g.entry == "plan"

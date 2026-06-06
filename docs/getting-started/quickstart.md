@@ -118,10 +118,12 @@ agent = await build_agent(
 
 The agent now thinks before acting and synthesizes a structured answer — instead of jumping straight to tool calls.
 
-**7 built-in patterns available:**
+**9 built-in patterns available:**
 
 ```python
 agent = await build_agent(..., agent_pattern="react")       # Default tool loop
+agent = await build_agent(..., agent_pattern="verify")      # Plan → Solve → Self-check (1 turn)
+agent = await build_agent(..., agent_pattern="managed")     # Tool loop with facts-ledger context
 agent = await build_agent(..., agent_pattern="peoatr")      # Plan → Act → Think → Reflect
 agent = await build_agent(..., agent_pattern="research")    # Search → Verify → Synthesize
 agent = await build_agent(..., agent_pattern="autonomous")  # Agent picks from node pool

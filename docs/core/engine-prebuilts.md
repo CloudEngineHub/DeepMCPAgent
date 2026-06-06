@@ -1,6 +1,6 @@
 # Prebuilt Patterns
 
-Eight ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
+Nine ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
 
 ## ReAct (Default)
 
@@ -58,19 +58,56 @@ PromptGraph.verify(
 )
 ```
 
-!!! note "When it helps (measured)"
-    On the reasoning benchmark (`benchmarks/reasoning`), the forced self-check
-    lifts accuracy over a plain direct prompt on **weak and mainstream
-    models** at one-turn latency — e.g. `gpt-4o-mini` on hard traps:
-    **62.5% → 100%** (and roughly **+10 pts** on frontier tasks). A *frontier*
-    model that already reasons strongly internally (`gpt-5-mini`) is at its
-    ceiling already (100% direct), so `verify` only adds a cheap safety check
-    there. Note these are real-API numbers and wobble run-to-run (~7 pts),
-    and `verify` is **comparable to**, not strictly better than, a strong
-    competitor like LangGraph on a capable model — see
-    `benchmarks/reasoning/RESULTS.md` for the honest, full picture.
-    For multi-stage deliberate reasoning with per-stage context scoping,
-    compose a custom graph (see *Custom Graph*).
+!!! note "When it helps"
+    The forced self-check lifts accuracy over a plain direct prompt on **weak
+    and mainstream models** at one-turn latency. A *frontier* model that
+    already reasons strongly internally is typically at its ceiling with a
+    direct prompt, so `verify` there only adds a cheap safety check rather than
+    more accuracy. On a capable model it is **comparable to**, not strictly
+    better than, a well-prompted ReAct pass. For multi-stage deliberate
+    reasoning with per-stage context scoping, compose a custom graph (see
+    *Custom Graph*).
+
+## Managed (context-managed tool loop)
+
+For **deep multi-tool tasks** — traversing a database or graph, gathering
+many facts then aggregating. A single tool-using node run with
+`context_scope="ledger"`: instead of feeding the model an ever-growing
+transcript of tool calls and results (where it loses track and re-queries the
+same facts), each turn it sees the task, its most recent exchange, and a
+compact **deduplicated "facts gathered" ledger**. Identical `(tool, args)`
+calls are also served from cache rather than re-executed.
+
+```mermaid
+graph LR
+    A["reason<br/>(tool loop + facts ledger)"] --> END[__end__]
+    style A fill:#1e3a5f,stroke:#60a5fa,color:#fff
+    style END fill:#1a1a1a,stroke:#666,color:#aaa
+```
+
+```python
+agent = await build_agent(..., agent_pattern="managed")
+```
+
+```python
+PromptGraph.managed(
+    tools=my_tools,
+    system_prompt="",
+    blocks=None,
+    max_node_iterations=30,   # deep tasks make many calls
+)
+```
+
+The underlying primitive is [`PromptNode(context_scope="ledger")`](engine-nodes.md#context-scope),
+which any custom graph can use on a long-running tool node.
+
+!!! note "What it does, honestly"
+    On deep tool chains a *naive* ReAct loop re-queries the same facts many
+    times as its transcript grows — dozens of redundant calls for a handful of
+    distinct facts. The ledger **bounds context and cuts redundant tool calls**
+    at **equal accuracy** — a real cost/latency win on long chains. It is an
+    **efficiency** primitive: it does not by itself make the model's final
+    answer more correct.
 
 ## PEOATR
 
