@@ -45,7 +45,7 @@ build_agent()
 │   instructions ──────── System prompt
 │
 ├─ Reasoning ──────────── What pattern does the agent use to think?
-│   agent_pattern ─────── "react", "verify", "managed", "peoatr", "research", "autonomous", "deliberate", "debate", or PromptGraph
+│   agent_pattern ─────── "react", "verify", "managed", "code-action", "peoatr", "research", "autonomous", "deliberate", "debate", or PromptGraph
 │   node_pool ─────────── List of reasoning nodes for autonomous mode
 │
 ├─ Memory & State ─────── What does the agent remember?
@@ -120,5 +120,5 @@ graph TD
 ## What's Next
 
 - [Building Agents](agents/building-agents.md) — complete `build_agent()` reference with all parameters
-- [Reasoning Patterns](agents/reasoning-patterns.md) — 9 built-in patterns + custom graphs
+- [Reasoning Patterns](agents/reasoning-patterns.md) — 10 built-in patterns + custom graphs
 - [Reasoning Graph Engine](engine.md) — nodes, edges, flags, hooks, and the execution engine
