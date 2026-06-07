@@ -1900,6 +1900,16 @@ async def build_agent(
     if cross_agents:
         tools.extend(make_cross_agent_tools(cross_agents))
 
+    # The code-action pattern REQUIRES a sandbox (the model writes a program we
+    # run in a container). Auto-enable one — with no network, since the program
+    # reaches the outside world only through the host-bridged tools.
+    _ca_name = agent_pattern if isinstance(agent_pattern, str) else (
+        pattern if isinstance(pattern, str) else None
+    )
+    _is_code_action = _ca_name == "code-action"
+    if _is_code_action and not sandbox:
+        sandbox = {"network": "none"}
+
     # Attach sandbox tools if enabled
     sandbox_manager = None
     sandbox_session = None
@@ -1910,28 +1920,52 @@ async def build_agent(
 
             print("[promptise] Initializing sandbox environment...")
             sandbox_manager = SandboxManager(sandbox)
-            sandbox_session = await sandbox_manager.create_session()
-
-            # Nested try to ensure cleanup if tool creation fails
-            try:
-                sandbox_tools = create_sandbox_tools(sandbox_session)
-                tools.extend(sandbox_tools)
+            if _is_code_action:
+                # code-action creates a fresh session per run and does NOT expose
+                # the sandbox meta-tools to the agent. Probe once so we fail fast
+                # with a clear error if Docker is unavailable.
+                _probe = await sandbox_manager.create_session()
+                await _probe.cleanup()
                 print(
-                    f"[promptise] Sandbox ready: {len(sandbox_tools)} sandbox tools added "
+                    "[promptise] Sandbox ready for code-action "
                     f"(backend: {sandbox_manager.config.backend})"
                 )
-            except Exception as tool_error:
-                # Clean up session before re-raising
-                if sandbox_session:
-                    await sandbox_session.cleanup()
-                raise tool_error
+            else:
+                sandbox_session = await sandbox_manager.create_session()
+                # Nested try to ensure cleanup if tool creation fails
+                try:
+                    sandbox_tools = create_sandbox_tools(sandbox_session)
+                    tools.extend(sandbox_tools)
+                    print(
+                        f"[promptise] Sandbox ready: {len(sandbox_tools)} sandbox tools added "
+                        f"(backend: {sandbox_manager.config.backend})"
+                    )
+                except Exception as tool_error:
+                    # Clean up session before re-raising
+                    if sandbox_session:
+                        await sandbox_session.cleanup()
+                    raise tool_error
 
         except Exception as e:
+            if _is_code_action:
+                # No silent fallback — code-action cannot run without a sandbox.
+                raise RuntimeError(
+                    "agent_pattern='code-action' requires a working Docker sandbox, "
+                    f"but it could not be initialized: {e}"
+                ) from e
             print(f"[promptise] Warning: Failed to initialize sandbox: {e}")
             print("[promptise] Agent will continue without sandbox capabilities.")
             # Ensure session is cleared on failure
             sandbox_manager = None
             sandbox_session = None
+
+    # code-action: a factory that yields a fresh sandbox session per run.
+    _code_action_factory: Any | None = None
+    if _is_code_action and sandbox_manager is not None:
+        _ca_mgr = sandbox_manager
+
+        async def _code_action_factory() -> Any:
+            return await _ca_mgr.create_session()
 
     # ------------------------------------------------------------------
     # Memory: normalize provider (actual wrapping happens after graph)
@@ -2013,6 +2047,12 @@ async def build_agent(
                 ),
                 "managed": lambda: PromptGraph.managed(
                     tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
+                ),
+                "code-action": lambda: PromptGraph.code_action(
+                    tools=graph_tools,
+                    system_prompt=sys_prompt,
+                    blocks=graph_blocks,
+                    sandbox_factory=_code_action_factory,
                 ),
                 "verify": lambda: PromptGraph.verify(
                     tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks

@@ -121,6 +121,7 @@ nav:
       - Framework:
           - Building AI Agents: guides/building-agents.md
           - Context Lifecycle Management: guides/context-lifecycle.md
+          - "Code-Action: Agents that Write Programs": guides/code-action.md
           - Building Production MCP Servers: guides/production-mcp-servers.md
           - Building Agentic Runtime Systems: guides/agentic-runtime.md
           - Prompt Engineering: guides/prompt-engineering.md

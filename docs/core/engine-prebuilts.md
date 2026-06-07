@@ -1,6 +1,6 @@
 # Prebuilt Patterns
 
-Nine ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
+Ten ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
 
 ## ReAct (Default)
 
@@ -108,6 +108,54 @@ which any custom graph can use on a long-running tool node.
     at **equal accuracy** — a real cost/latency win on long chains. It is an
     **efficiency** primitive: it does not by itself make the model's final
     answer more correct.
+
+## Code-Action (one sandboxed program)
+
+For **aggregation / data-traversal tasks**, the model writes **one Python
+program** over your tools in a single LLM turn — instead of chaining dozens of
+conversational tool calls. The program runs in Promptise's hardened Docker
+sandbox; its tool calls bridge back to the real host tools, so the model gets
+code's exactness (loops, sums, filters, joins) while every tool call still
+passes through the engine's hooks (budget, health, audit).
+
+```mermaid
+graph LR
+    A["reason<br/>(write 1 program)"] --> S["run in sandbox<br/>(tools bridged to host)"]
+    S --> END[__end__]
+    style A fill:#1e3a5f,stroke:#60a5fa,color:#fff
+    style S fill:#2d1b4e,stroke:#c084fc,color:#fff
+    style END fill:#1a1a1a,stroke:#666,color:#aaa
+```
+
+```python
+agent = await build_agent(..., agent_pattern="code-action")  # sandbox auto-enabled
+```
+
+```python
+PromptGraph.code_action(
+    tools=my_tools,
+    system_prompt="",
+    blocks=None,
+    sandbox_factory=...,   # injected by build_agent
+    max_repairs=1,         # re-try once on a crash, feeding stderr back
+    exec_timeout=120,      # max seconds the program may run
+)
+```
+
+**The mechanism.** In one turn the model writes a program that calls your tools
+as ordinary Python functions. Inside the sandbox those functions are RPC stubs:
+each writes a request to the workspace; a concurrent host loop runs the *real*
+tool and writes back the response. The sandbox has a **read-only rootfs, dropped
+capabilities, and no network** — the program's only outside reach is your
+bridged tools.
+
+!!! warning "Requirements & honest scope"
+    Requires **Docker** (auto-enabled for this pattern). It shines when your
+    tools return **structured data** (lists/dicts/numbers) the program can use
+    directly, and on tasks a conversational loop gets wrong by re-querying and
+    mis-aggregating. It is a *pattern, not a replacement* — for ambiguous or
+    conversational tasks prefer `react`/`managed`. Validated end-to-end on a
+    real sandbox + real model (see `tests/test_code_action_integration.py`).
 
 ## PEOATR
 

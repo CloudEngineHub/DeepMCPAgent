@@ -28,6 +28,7 @@ logger = logging.getLogger("promptise.engine")
 from langchain_core.tools import BaseTool
 
 from .base import BaseNode
+from .code_action import CodeActionNode
 from .graph import PromptGraph
 from .nodes import GuardNode, PromptNode
 
@@ -536,12 +537,66 @@ def build_managed_graph(
     return graph
 
 
+def build_code_action_graph(
+    tools: list[BaseTool] | None = None,
+    system_prompt: str = "",
+    *,
+    blocks: list[Any] | None = None,
+    sandbox_factory: Any | None = None,
+    max_repairs: int = 1,
+    exec_timeout: int = 120,
+) -> PromptGraph:
+    """Code-action reasoning — the model writes **one program**, not a tool chain.
+
+    For aggregation / data-traversal tasks (gather many facts then compute),
+    chaining dozens of conversational tool calls is slow, expensive, and
+    error-prone. ``code-action`` changes the action space: in a single LLM turn
+    the model writes one Python program that calls the available tools (bridged
+    into a hardened Docker sandbox) and computes the answer deterministically.
+    Validated on agentic tasks — a large accuracy gain at a fraction of the
+    tokens and latency, in one turn.
+
+    Requires a sandbox: ``build_agent(agent_pattern="code-action")`` auto-enables
+    it (Docker must be installed and running). The generated code runs with a
+    read-only rootfs, dropped capabilities, seccomp, and **no network** — it can
+    only reach the outside world through the bridged host tools, so every tool
+    call still passes through the engine's hooks (budget, health, audit).
+
+    Args:
+        tools: Tools the program may call (bridged to the host).
+        system_prompt: Base system prompt.
+        blocks: Accepted for signature parity (unused in the program prompt).
+        sandbox_factory: ``async () -> SandboxSession`` (injected by ``build_agent``).
+        max_repairs: Times to feed a crash's stderr back for a fix (default 1).
+        exec_timeout: Max seconds the program may run inside the sandbox.
+
+    Returns:
+        A single-node ``PromptGraph`` that writes and runs a program.
+    """
+    graph = PromptGraph(name="code-action")
+    graph.add_node(
+        CodeActionNode(
+            "reason",
+            tools=list(tools) if tools else [],
+            system_prompt=system_prompt,
+            blocks=list(blocks) if blocks else [],
+            sandbox_factory=sandbox_factory,
+            max_repairs=max_repairs,
+            exec_timeout=exec_timeout,
+            default_next="__end__",
+        )
+    )
+    graph.set_entry("reason")
+    return graph
+
+
 # ---------------------------------------------------------------------------
 # Register factory methods on PromptGraph class
 # ---------------------------------------------------------------------------
 
 PromptGraph.react = staticmethod(build_react_graph)  # type: ignore[attr-defined]
 PromptGraph.managed = staticmethod(build_managed_graph)  # type: ignore[attr-defined]
+PromptGraph.code_action = staticmethod(build_code_action_graph)  # type: ignore[attr-defined]
 PromptGraph.verify = staticmethod(build_verify_graph)  # type: ignore[attr-defined]
 PromptGraph.peoatr = staticmethod(build_peoatr_graph)  # type: ignore[attr-defined]
 PromptGraph.research = staticmethod(build_research_graph)  # type: ignore[attr-defined]

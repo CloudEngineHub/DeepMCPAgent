@@ -90,6 +90,7 @@ agent = await build_agent(..., agent_pattern=graph)
 agent = await build_agent(..., agent_pattern="react")       # Default tool-calling loop
 agent = await build_agent(..., agent_pattern="verify")      # Plan → Solve → Self-check (1 turn)
 agent = await build_agent(..., agent_pattern="managed")     # Tool loop with facts-ledger context
+agent = await build_agent(..., agent_pattern="code-action") # Writes ONE sandboxed program (1 turn)
 agent = await build_agent(..., agent_pattern="peoatr")      # Plan → Act → Think → Reflect
 agent = await build_agent(..., agent_pattern="research")    # Search → Verify → Synthesize
 agent = await build_agent(..., agent_pattern="autonomous")  # Agent builds own path
@@ -235,7 +236,7 @@ Reasoning Graph Engine
 │     ├── ExecutionReport             Per-run summary (iterations, tokens, path)
 │     └── NodeResult                  Per-node trace (30+ fields)
 │
-├─ Prebuilt Patterns (9) ────────────────────────────────────────
+├─ Prebuilt Patterns (10) ───────────────────────────────────────
 │  │
 │  ├─ Simple
 │  │  ├── react                       Single node with tools (default)
@@ -243,7 +244,8 @@ Reasoning Graph Engine
 │  │
 │  ├─ Context-Managed (single node)
 │  │  ├── verify                      Plan → Solve → Self-check (1 turn)
-│  │  └── managed                     Tool loop with deduplicated facts ledger
+│  │  ├── managed                     Tool loop with deduplicated facts ledger
+│  │  └── code-action                 Writes ONE sandboxed program (1 turn)
 │  │
 │  ├─ Structured Reasoning
 │  │  ├── peoatr                      Plan → Act → Think → Reflect
@@ -324,7 +326,7 @@ The LLM can modify the graph during execution — add nodes, skip to nodes, chan
 - [Processors](engine-processors.md) — Pre/post processors for data transformation
 - [Runtime Tool Injection](engine-tools.md) — How MCP tools flow into nodes
 - [Hooks & Observability](engine-hooks.md) — 5 hooks, execution reports, per-node metrics
-- [Prebuilt Patterns](engine-prebuilts.md) — 9 ready-to-use patterns with Mermaid diagrams
+- [Prebuilt Patterns](engine-prebuilts.md) — 10 ready-to-use patterns with Mermaid diagrams
 - [Skills Library](engine-skills.md) — 15 pre-configured node factories
 - [Serialization](engine-serialization.md) — YAML load/save
 - [Building Custom Reasoning](../guides/custom-reasoning.md) — Step-by-step guide
