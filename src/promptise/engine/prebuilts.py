@@ -545,6 +545,7 @@ def build_code_action_graph(
     sandbox_factory: Any | None = None,
     max_repairs: int = 1,
     exec_timeout: int = 120,
+    max_tool_calls: int = 50,
 ) -> PromptGraph:
     """Code-action reasoning — the model writes **one program**, not a tool chain.
 
@@ -569,6 +570,8 @@ def build_code_action_graph(
         sandbox_factory: ``async () -> SandboxSession`` (injected by ``build_agent``).
         max_repairs: Times to feed a crash's stderr back for a fix (default 1).
         exec_timeout: Max seconds the program may run inside the sandbox.
+        max_tool_calls: Hard per-run cap on bridged tool calls (default 50) — a
+            hook-independent safety bound against a program looping a tool.
 
     Returns:
         A single-node ``PromptGraph`` that writes and runs a program.
@@ -583,6 +586,7 @@ def build_code_action_graph(
             sandbox_factory=sandbox_factory,
             max_repairs=max_repairs,
             exec_timeout=exec_timeout,
+            max_tool_calls=max_tool_calls,
             default_next="__end__",
         )
     )

@@ -116,7 +116,9 @@ program** over your tools in a single LLM turn — instead of chaining dozens of
 conversational tool calls. The program runs in Promptise's hardened Docker
 sandbox; its tool calls bridge back to the real host tools, so the model gets
 code's exactness (loops, sums, filters, joins) while every tool call still
-passes through the engine's hooks (budget, health, audit).
+keeps its protections — approval gates if configured, plus budget/health/audit
+hooks when the Agent Runtime has attached them — and the node enforces a hard
+`max_tool_calls` cap per run regardless.
 
 ```mermaid
 graph LR

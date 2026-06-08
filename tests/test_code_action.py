@@ -259,3 +259,59 @@ def test_prebuilt_builds_code_action_graph():
     node = g.get_node("reason")
     assert isinstance(node, CodeActionNode)
     assert node.default_next == "__end__"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Security: hard tool-call cap + bridge request-id validation
+# ──────────────────────────────────────────────────────────────────────────
+@pytest.mark.asyncio
+async def test_max_tool_calls_cap_is_enforced():
+    @tool("ping")
+    def ping() -> str:
+        """Return pong."""
+        return "pong"
+
+    from promptise.engine.state import NodeResult
+
+    node = CodeActionNode("reason", sandbox_factory=_factory(FakeSession([])), max_tool_calls=2)
+    result = NodeResult()
+    state = GraphState(messages=[])
+    r1 = await node._invoke_tool({"ping": ping}, state, {}, "ping", {}, result)
+    r2 = await node._invoke_tool({"ping": ping}, state, {}, "ping", {}, result)
+    r3 = await node._invoke_tool({"ping": ping}, state, {}, "ping", {}, result)  # over the cap
+
+    assert r1 == {"result": "pong"} and r2 == {"result": "pong"}
+    assert "error" in r3 and "budget" in r3["error"]
+    assert len(result.tool_calls) == 2  # the 3rd call never executed the tool
+
+
+def test_safe_rid_regex_blocks_traversal():
+    from promptise.engine.code_action import _SAFE_RID
+
+    assert _SAFE_RID.match("a1b2c3deadbeef")
+    assert _SAFE_RID.match("abc-123_DEF")
+    assert not _SAFE_RID.match("..")
+    assert not _SAFE_RID.match("a/b")
+    assert not _SAFE_RID.match("a b")
+    assert not _SAFE_RID.match("")
+    assert not _SAFE_RID.match("x" * 65)  # too long
+
+
+@pytest.mark.asyncio
+async def test_bridge_ignores_unsafe_request_id():
+    session = FakeSession([])
+    # A request file whose id contains a space — must NOT be serviced.
+    session.fs["/workspace/_rpc/req_bad id.json"] = json.dumps({"tool": "x", "args": {}})
+    node = CodeActionNode("reason", sandbox_factory=_factory(session))
+    from promptise.engine.state import NodeResult
+
+    result = NodeResult()
+    stop = asyncio.Event()
+    task = asyncio.create_task(node._bridge_loop(session, {}, GraphState(messages=[]), {}, result, stop))
+    await asyncio.sleep(0.15)
+    stop.set()
+    await task
+
+    # No response was written for the unsafe id, and no tool was invoked.
+    assert not any(k.startswith("/workspace/_rpc/resp_") for k in session.fs)
+    assert result.tool_calls == []

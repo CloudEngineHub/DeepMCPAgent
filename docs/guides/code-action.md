@@ -84,10 +84,26 @@ The model writes code, so the code runs **contained**:
   **`network="none"`** (auto-set for this pattern).
 - **No direct host access** — the program's *only* reach to the outside world is
   your tools, via the bridge. It can't touch the host filesystem or network.
-- **Tools stay governed** — each bridged tool call invokes the real
-  `BaseTool` on the host **through the engine's hooks**, so your Budget, Health,
-  and audit governance apply to every call exactly as in a normal loop. A
-  program cannot loop a destructive tool past its budget.
+- **Tools keep their protections** — each bridged call invokes the real
+  `BaseTool` on the host. If you wrapped tools with an **approval** gate
+  (`build_agent(..., approval=...)`), bridged calls trigger it too. When you run
+  the agent under the **Agent Runtime**, its governance hooks (budget / health /
+  audit) apply to each bridged call. *Without* the runtime, a plain agent has no
+  budget hook attached — so code-action enforces its **own** hard, hook-independent
+  **`max_tool_calls`** cap per run (default 50) so a generated program can never
+  loop a tool unbounded.
+
+!!! warning "Honest enterprise note"
+    The bridge is a deliberate capability hole: the program can call *any* tool
+    the agent has, programmatically. The containment (above) means the model's
+    **code** can't escape; it does **not** make your **tools** safe on its own.
+    For untrusted input or multi-tenant use: keep code-action's tool set
+    least-privilege, wrap mutating tools with approval, set `max_tool_calls`
+    conservatively, and prefer the **gVisor** backend
+    (`sandbox={"backend": "gvisor", "network": "none"}`) for kernel-level
+    isolation. There is no per-run *cost* budget unless you run under the Agent
+    Runtime — that, and a global concurrency limit on sandbox sessions, are the
+    pieces to add before high-throughput untrusted production.
 
 ```mermaid
 graph LR
