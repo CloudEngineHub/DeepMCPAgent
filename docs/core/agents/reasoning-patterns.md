@@ -129,8 +129,9 @@ For **aggregation / data-traversal tasks** — gather many facts, then compute �
 the model writes **one Python program** over your tools in a single LLM turn,
 instead of chaining dozens of conversational tool calls. The program runs in
 Promptise's hardened Docker sandbox; its tool calls bridge back to the real host
-tools, so the model gets code's exactness (loops, sums, filters) while every tool
-call still passes through the engine's hooks (budget, health, audit).
+tools, so the model gets code's exactness (loops, sums, filters) while each tool
+keeps its protections — approval gates, plus budget/health/audit hooks when the
+Agent Runtime has attached them, and a hard per-run `max_tool_calls` cap.
 
 ```
 reason → write ONE program → run in sandbox (tools bridged to host) → answer

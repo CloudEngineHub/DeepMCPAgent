@@ -9,11 +9,15 @@ answer deterministically. Validated on agentic tasks: large accuracy gain at a
 fraction of the tokens and latency, in one turn.
 
 Security: the model-written code runs inside Promptise's hardened Docker sandbox
-(read-only rootfs, seccomp, dropped capabilities, no network). It can only reach
-the outside world through the *bridge*, which invokes the real
-:class:`~langchain_core.tools.BaseTool` instances on the host — so every tool
-call still passes through the engine's hooks (budget, health, audit) exactly as
-a normal tool call would.
+(read-only rootfs, seccomp, dropped capabilities, no network, resource limits).
+It can only reach the outside world through the *bridge*, which invokes the real
+:class:`~langchain_core.tools.BaseTool` instances on the host. Those host tools
+keep their normal protections — if ``build_agent`` wrapped them with an
+**approval** gate, bridged calls trigger it too; and when the Agent Runtime has
+attached governance **hooks** (budget/health/audit), each bridged call passes
+through them. Independently of any hooks, the node enforces a hard
+``max_tool_calls`` cap per run so a program cannot loop a tool unbounded, and
+validates every bridge request id to keep file I/O inside the RPC directory.
 
 The bridge is a filesystem rendezvous over the sandbox's writable ``/workspace``
 tmpfs: the in-container program writes a request file and blocks; a concurrent
@@ -39,6 +43,10 @@ from .base import BaseNode
 from .state import GraphState, NodeResult
 
 logger = logging.getLogger("promptise.engine.code_action")
+
+# Only hex/uuid-style request ids are serviced (defense-in-depth: a request id
+# can never contain a path separator or traversal sequence).
+_SAFE_RID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 # Directory inside the sandbox used for the host<->program tool bridge.
 _RPC_DIR = "/workspace/_rpc"
@@ -188,6 +196,10 @@ class CodeActionNode(BaseNode):
         max_repairs: How many times to feed a crash's stderr back for a fix.
         result_marker: stdout prefix that marks the final answer line.
         exec_timeout: Max seconds the program may run inside the sandbox.
+        max_tool_calls: Hard upper bound on bridged tool calls per run. Once
+            reached, further calls return an error to the program instead of
+            executing — a hook-independent safety bound so a generated program
+            cannot loop a tool unbounded. Set ``0`` to disable (not advised).
     """
 
     def __init__(
@@ -202,6 +214,7 @@ class CodeActionNode(BaseNode):
         max_repairs: int = 1,
         result_marker: str = "RESULT:",
         exec_timeout: int = 120,
+        max_tool_calls: int = 50,
         **kwargs: Any,
     ) -> None:
         super().__init__(name, **kwargs)
@@ -213,6 +226,7 @@ class CodeActionNode(BaseNode):
         self.max_repairs = max_repairs
         self.result_marker = result_marker
         self.exec_timeout = exec_timeout
+        self.max_tool_calls = max_tool_calls
 
     # ── prompt assembly ──────────────────────────────────────────────────────
     def _build_prompt(self, task: str, tools: list[Any]) -> list[Any]:
@@ -247,6 +261,10 @@ class CodeActionNode(BaseNode):
         result: NodeResult,
     ) -> dict[str, Any]:
         """Run one real tool on the host, through the engine's hooks."""
+        # Hook-independent safety bound: a generated program cannot loop a tool
+        # unbounded, regardless of whether budget governance hooks are attached.
+        if self.max_tool_calls and len(result.tool_calls) >= self.max_tool_calls:
+            return {"error": f"tool-call budget exceeded (max_tool_calls={self.max_tool_calls})"}
         hooks = config.get("_engine_hooks", [])
         tool = tool_map.get(name)
         if tool is None:
@@ -298,6 +316,10 @@ class CodeActionNode(BaseNode):
                 if not (fn.startswith("req_") and fn.endswith(".json")):
                     continue
                 rid = fn[len("req_"):-len(".json")]
+                # Defense-in-depth: only service safe request ids so the id can
+                # never steer host file I/O outside the RPC directory.
+                if not _SAFE_RID.match(rid):
+                    continue
                 if rid in served:
                     continue
                 served.add(rid)
