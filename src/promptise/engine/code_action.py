@@ -56,7 +56,7 @@ _TOOLS_PATH = "/workspace/promptise_tools.py"
 # The in-sandbox RPC client, prepended to the generated tools module. It writes a
 # request atomically (tmp + rename) and waits for the host to write a ``.done``
 # marker (written AFTER the response body, so reads never race a partial write).
-_RPC_CLIENT = '''
+_RPC_CLIENT = """
 import json as _json, os as _os, time as _time, uuid as _uuid
 _RPC = "%s"
 _os.makedirs(_RPC, exist_ok=True)
@@ -78,7 +78,7 @@ def _call(_tool, _args):
     if "error" in _data:
         raise RuntimeError(_data["error"])
     return _data["result"]
-'''
+"""
 
 
 # A factory that produces a ready sandbox session. The node owns the session
@@ -135,7 +135,7 @@ def parse_result(stdout: str, marker: str) -> str:
     for line in stdout.splitlines():
         stripped = line.strip()
         if stripped.startswith(marker):
-            answer = stripped[len(marker):].strip()
+            answer = stripped[len(marker) :].strip()
     if answer:
         return answer
     # Fallback: last non-empty line.
@@ -231,9 +231,7 @@ class CodeActionNode(BaseNode):
     # ── prompt assembly ──────────────────────────────────────────────────────
     def _build_prompt(self, task: str, tools: list[Any]) -> list[Any]:
         api = render_api_spec(tools)
-        system = (
-            f"{self.system_prompt}\n\n" if self.system_prompt else ""
-        ) + (
+        system = (f"{self.system_prompt}\n\n" if self.system_prompt else "") + (
             "You answer the user's question by writing ONE Python 3 program.\n"
             "The following functions are already imported and available to call:\n\n"
             f"{api}\n\n"
@@ -315,7 +313,7 @@ class CodeActionNode(BaseNode):
             for fn in files:
                 if not (fn.startswith("req_") and fn.endswith(".json")):
                     continue
-                rid = fn[len("req_"):-len(".json")]
+                rid = fn[len("req_") : -len(".json")]
                 # Defense-in-depth: only service safe request ids so the id can
                 # never steer host file I/O outside the RPC directory.
                 if not _SAFE_RID.match(rid):
@@ -427,7 +425,9 @@ class CodeActionNode(BaseNode):
         try:
             await session.execute(f"mkdir -p {_RPC_DIR}")
             await write_text(
-                session, _TOOLS_PATH, _render_tools_module(list(tool_map.values()), self.exec_timeout)
+                session,
+                _TOOLS_PATH,
+                _render_tools_module(list(tool_map.values()), self.exec_timeout),
             )
             program = "from promptise_tools import *  # noqa\n\n" + code
             await write_text(session, _PROGRAM_PATH, program)
@@ -447,7 +447,9 @@ class CodeActionNode(BaseNode):
             logger.debug("code-action program:\n%s", program)
             logger.debug(
                 "code-action exit=%s stdout=%r stderr=%r",
-                cmd.exit_code, cmd.stdout[:600], cmd.stderr[:600],
+                cmd.exit_code,
+                cmd.stdout[:600],
+                cmd.stderr[:600],
             )
             return cmd
         finally:
