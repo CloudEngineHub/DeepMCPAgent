@@ -468,9 +468,7 @@ class PromptNode(BaseNode):
         # produced by *other* stages are dropped, so token usage does not grow
         # super-linearly across a multi-stage reasoning graph.
         if self.context_scope == "scoped":
-            first_human = next(
-                (m for m in state.messages if isinstance(m, HumanMessage)), None
-            )
+            first_human = next((m for m in state.messages if isinstance(m, HumanMessage)), None)
             own_tool_loop: list[Any] = []
             for m in reversed(state.messages):
                 if isinstance(m, ToolMessage) or (
@@ -493,9 +491,7 @@ class PromptNode(BaseNode):
             # gathered" ledger built from ``state.observations`` (last value
             # wins per tool+args), so context stays bounded and the model can
             # see what it already knows and stop re-looking-it-up.
-            first_human = next(
-                (m for m in state.messages if isinstance(m, HumanMessage)), None
-            )
+            first_human = next((m for m in state.messages if isinstance(m, HumanMessage)), None)
             facts: dict[str, str] = {}
             for obs in state.observations:
                 key = f"{obs.get('tool', '?')}({obs.get('args', {})})"
@@ -581,8 +577,11 @@ class PromptNode(BaseNode):
                                 cached = str(obs.get("result", ""))
                                 return (
                                     {
-                                        "name": tool_name, "args": tool_args,
-                                        "result": cached, "success": True, "cached": True,
+                                        "name": tool_name,
+                                        "args": tool_args,
+                                        "result": cached,
+                                        "success": True,
+                                        "cached": True,
                                     },
                                     cached,
                                 )
