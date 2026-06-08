@@ -1903,8 +1903,10 @@ async def build_agent(
     # The code-action pattern REQUIRES a sandbox (the model writes a program we
     # run in a container). Auto-enable one — with no network, since the program
     # reaches the outside world only through the host-bridged tools.
-    _ca_name = agent_pattern if isinstance(agent_pattern, str) else (
-        pattern if isinstance(pattern, str) else None
+    _ca_name = (
+        agent_pattern
+        if isinstance(agent_pattern, str)
+        else (pattern if isinstance(pattern, str) else None)
     )
     _is_code_action = _ca_name == "code-action"
     if _is_code_action and not sandbox:
