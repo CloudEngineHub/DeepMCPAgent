@@ -32,7 +32,7 @@ async def main() -> None:
     print(f"[identity] {identity.claims()}")
 
     agent = await build_agent(
-        model="anthropic:claude-sonnet-4-5",
+        model="openai:gpt-5-mini",
         servers={},
         identity=identity,
         observe=True,
