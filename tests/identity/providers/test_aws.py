@@ -125,7 +125,9 @@ def test_eks_reads_env_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
 
 def test_eks_default_path(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(ENV_PROMPTISE_IDENTITY_TOKEN_FILE, raising=False)
-    assert str(AwsEksProjectedProvider().token_file).endswith("promptise/token")
+    # Compare via as_posix(): the default is a POSIX (Linux-only) path, and
+    # str(Path) renders backslashes on Windows runners.
+    assert AwsEksProjectedProvider().token_file.as_posix().endswith("promptise/token")
 
 
 # -- Factory --------------------------------------------------------------
