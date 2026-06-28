@@ -63,6 +63,28 @@ python examples/mcp/client.py
 
 ---
 
+## Agent Identity
+
+Give an agent a stable, traceable identity — and let the resources it calls
+cryptographically verify and attribute the caller. The first two run on a laptop
+with no cloud and no API key.
+
+| Example | What it demonstrates | Level |
+| --- | --- | --- |
+| `examples/identity/local/app.py` | A **local identity** (`agent_id`, attribution, `claims()`) — the 30-second on-ramp | Beginner |
+| `examples/identity/verifiable_mcp/app.py` | The **headline value** end-to-end: agent presents a signed JWT, a server's `JwksAuth` verifies + attributes it (and rejects a wrong-audience token) | Intermediate |
+| `examples/identity/github_actions/` | Production OIDC from GitHub Actions (`from_oidc`) — exercised in CI against a real token | Intermediate |
+| `examples/identity/{aws_lambda,gke_pod,aks_workload,spire}/` | Production credential federation on each platform (`from_aws` / `from_gcp` / `from_entra` / `from_spiffe`) | Advanced |
+
+```bash
+python examples/identity/local/app.py
+python examples/identity/verifiable_mcp/app.py
+```
+
+See [`examples/identity/README.md`](https://github.com/promptise-com/foundry/blob/main/examples/identity/README.md) for the full map and the [Agent Identity docs](../identity/overview.md).
+
+---
+
 ## Prompt Engineering
 
 Compose prompts from blocks, evolve them across conversation turns, and enhance them with strategies, guards, and chaining.

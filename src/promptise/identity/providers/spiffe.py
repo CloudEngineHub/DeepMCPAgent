@@ -31,6 +31,7 @@ from typing import Any, Literal
 from .._core.callable_provider import CallableTokenProvider
 from .._core.errors import CredentialAcquisitionError, ProviderConfigError
 from .._core.file_provider import FileTokenProvider
+from .._core.retry import retry_call
 
 #: Environment variable naming the SPIRE agent Workload API socket.
 ENV_SPIFFE_ENDPOINT_SOCKET: str = "SPIFFE_ENDPOINT_SOCKET"
@@ -116,7 +117,10 @@ class SpiffeSdkProvider(CallableTokenProvider):
 
         client = WorkloadApiClient(spiffe_socket_path=self._socket_path)
         try:
-            jwt_svid = client.fetch_jwt_svid(audiences={audience or self._audience})
+            jwt_svid = retry_call(
+                lambda: client.fetch_jwt_svid(audiences={audience or self._audience}),
+                is_transient=lambda _exc: True,
+            )
         except Exception as exc:
             raise CredentialAcquisitionError(
                 f"[spiffe-sdk] fetching a JWT-SVID from the Workload API at "

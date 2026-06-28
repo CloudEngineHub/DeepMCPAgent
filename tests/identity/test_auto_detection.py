@@ -44,7 +44,12 @@ def test_detects_entra(monkeypatch: pytest.MonkeyPatch, marker: str) -> None:
 
 @pytest.mark.parametrize(
     "marker",
-    ["AWS_LAMBDA_FUNCTION_NAME", "AWS_EXECUTION_ENV", "EKS_POD_NAME", "AWS_WEB_IDENTITY_TOKEN_FILE"],
+    [
+        "AWS_LAMBDA_FUNCTION_NAME",
+        "AWS_EXECUTION_ENV",
+        "EKS_POD_NAME",
+        "AWS_WEB_IDENTITY_TOKEN_FILE",
+    ],
 )
 def test_detects_aws(monkeypatch: pytest.MonkeyPatch, marker: str) -> None:
     monkeypatch.setenv(marker, "x")

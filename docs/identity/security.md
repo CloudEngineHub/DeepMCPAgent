@@ -82,3 +82,27 @@ import logging
 
 logging.getLogger("promptise.identity").setLevel(logging.INFO)
 ```
+
+## Verification status
+
+In the spirit of honest production claims, here is exactly what is verified:
+
+- **Unit-verified (extensive):** every provider's request construction, token
+  extraction, per-audience caching, refresh/expiry math, error classification,
+  transient-retry behaviour, and concurrency (N threads collapse to one
+  acquisition) are covered by the offline test suite. The cloud calls are mocked
+  (monkeypatched boto3 / `httpx` / `pyspiffe`), so the **logic** is proven.
+- **Live-smoke-tested:** the generic OIDC path is exercised end-to-end against a
+  **real token** in CI (`.github/workflows/identity-integration.yml`). The other
+  providers ship opt-in live smoke tests (`tests/identity/integration/`, marked
+  `@pytest.mark.integration`) that run inside the actual platform (Azure IMDS,
+  GCP metadata, AWS STS, a SPIRE socket) — run them in your environment to
+  confirm the live round-trip before you depend on it.
+- **Resilience:** active providers retry transient metadata/STS failures
+  (timeout / connection / 429 / 5xx) with jittered backoff, and never retry an
+  auth (4xx) failure. Server-side JWT verification tolerates a configurable
+  clock-skew `leeway` (default 60s) for `exp`/`nbf`/`iat`.
+
+The honest summary: the **library logic is thoroughly tested**; the **live cloud
+round-trip is confirmable in your own environment** via the gated integration
+tests rather than asserted blindly.

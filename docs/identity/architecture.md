@@ -13,13 +13,13 @@ flowchart TD
     AI["AgentIdentity<br/>agent_id, name, owner, labels<br/>+ optional credential provider"]
     AG["agent.identity<br/>(exposed on the agent)"]
     OBS["Observability timeline (wired)<br/>tool calls + LLM turns tagged agent_id"]
-    AUD["Audit log (planned)<br/>see DEFERRED.md"]
+    AUD["Audit log (wired)<br/>server-side verified identity descriptors"]
     CRED["Credential provider (optional)<br/>Entra / AWS / GCP / SPIFFE / OIDC"]
     MCP["MCP server / API<br/>validates the credential, attributes the caller"]
 
     U --> AI --> AG
     AG --> OBS
-    AG -. planned .-> AUD
+    MCP --> AUD
     AI -. verifiable, opt-in .-> CRED -->|"Bearer <jwt>"| MCP
 ```
 
@@ -27,9 +27,15 @@ When you pass `identity=` to `build_agent`, the agent's `agent_id`
 becomes the default attribution id for the observability timeline
 (unless you set `observer_agent_id` explicitly). No further wiring is
 needed — the observability subsystem already records every tool call and
-LLM turn with an `agent_id`; identity just supplies it. Only the
-`agent_id` string flows to the timeline today; stamping the full
-`claims()` onto the audit log is a planned follow-up.
+LLM turn with an `agent_id`; identity just supplies it.
+
+On the **server** side, the Guardrails `AuditMiddleware` records the
+**verified** caller's identity descriptors — `subject` / `issuer` /
+`audience` / `roles`, taken from the validated JWT — inside each
+tamper-evident, HMAC-chained audit entry. Only identity *descriptors* are
+recorded, never the token or the full claim set (which may carry
+sensitive data). So server-side audit answers *which agent did what*, not
+just a `client_id` string.
 
 ## Two tiers
 

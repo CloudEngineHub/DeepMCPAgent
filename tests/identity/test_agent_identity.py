@@ -37,9 +37,7 @@ def _verifiable() -> AgentIdentity:
 
 
 def _verifiable_with(claims: dict[str, Any], *, agent_id: str | None = None) -> AgentIdentity:
-    return AgentIdentity.from_oidc(
-        agent_id, issuer="https://idp", token_fn=lambda: _jwt(claims)
-    )
+    return AgentIdentity.from_oidc(agent_id, issuer="https://idp", token_fn=lambda: _jwt(claims))
 
 
 # -- Local identity -------------------------------------------------------
@@ -70,7 +68,7 @@ def test_no_id_and_no_credential_raises() -> None:
 
 def test_subject_reads_sub_claim() -> None:
     ident = _verifiable_with({"sub": "spiffe://acme/billing-bot", "iss": "https://idp"})
-    assert ident.agent_id is None              # no local handle passed
+    assert ident.agent_id is None  # no local handle passed
     assert ident.subject() == "spiffe://acme/billing-bot"
     assert ident.resolve_identifier() == "spiffe://acme/billing-bot"
 
@@ -110,8 +108,8 @@ def test_subject_on_local_identity_raises() -> None:
 def test_explicit_agent_id_wins_over_subject() -> None:
     ident = _verifiable_with({"sub": "idp-subject"}, agent_id="friendly-name")
     assert ident.agent_id == "friendly-name"
-    assert ident.resolve_identifier() == "friendly-name"   # explicit label wins
-    assert ident.subject() == "idp-subject"                # IdP id still readable
+    assert ident.resolve_identifier() == "friendly-name"  # explicit label wins
+    assert ident.subject() == "idp-subject"  # IdP id still readable
 
 
 def test_claims_structure() -> None:

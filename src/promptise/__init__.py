@@ -89,6 +89,7 @@ from .guardrails import (
     ScanReport,
     SecurityFinding,
 )
+from .identity import AgentIdentity, IdentityError
 from .mcp.client import MCPClient, MCPClientError, MCPMultiClient, MCPToolAdapter
 from .memory import (
     ChromaProvider,
@@ -196,6 +197,9 @@ __all__ = [
     "PromptiseAgent",
     "CallerContext",
     "get_current_caller",
+    # Agent Identity
+    "AgentIdentity",
+    "IdentityError",
     # Streaming
     "StreamEvent",
     "ToolStartEvent",
