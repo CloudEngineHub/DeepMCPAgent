@@ -17,6 +17,13 @@ Back an agent's identity with AWS IAM. Two modes, with `mode="auto"`
   `$AWS_DEFAULT_REGION`).
 - The resource the agent calls must accept the requested `audience`.
 
+!!! note "Region is validated eagerly (STS mode)"
+    Because STS is regional, `from_aws()` in STS mode resolves and validates the
+    region **at construction** and raises `ProviderConfigError` if none is found
+    — unlike the other providers, which construct lazily and only reach out at
+    `get_credential()`. Pass `region=` or set `$AWS_REGION` where you build the
+    identity. (The EKS-projected mode needs no region and constructs lazily.)
+
 ## Usage
 
 ```python
