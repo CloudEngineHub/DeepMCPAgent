@@ -53,8 +53,6 @@ from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, PrivateAttr
 
-from .observability import _delegation_ctx_var
-
 if TYPE_CHECKING:
     from .identity import AgentIdentity
 
@@ -326,6 +324,10 @@ class _AskAgentTool(BaseTool):
         # Carry the delegating agent's identity into the peer's run so the
         # peer's observability records who delegated (structured, beyond the
         # LLM-visible system message above).
+        # Local import to avoid an import cycle (observability imports back into
+        # this module's chain). Resolved at call time, after both modules load.
+        from .observability import _delegation_ctx_var
+
         token = (
             _delegation_ctx_var.set(self._caller_identity.claims())
             if self._caller_identity is not None
@@ -504,6 +506,10 @@ class _BroadcastTool(BaseTool):
 
         # Set the delegation context before fanning out so each peer task
         # (which copies the current context at start) records who delegated.
+        # Local import to avoid an import cycle (observability imports back into
+        # this module's chain). Resolved at call time, after both modules load.
+        from .observability import _delegation_ctx_var
+
         token = (
             _delegation_ctx_var.set(self._caller_identity.claims())
             if self._caller_identity is not None
