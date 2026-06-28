@@ -24,16 +24,12 @@ def test_configure_default_handler_is_idempotent() -> None:
     try:
         # First call installs one.
         id_logging._configure_default_handler()
-        after_first = [
-            h for h in logger.handlers if isinstance(h, logging.NullHandler)
-        ]
+        after_first = [h for h in logger.handlers if isinstance(h, logging.NullHandler)]
         assert len(after_first) == 1
 
         # Second call is a no-op — still exactly one.
         id_logging._configure_default_handler()
-        after_second = [
-            h for h in logger.handlers if isinstance(h, logging.NullHandler)
-        ]
+        after_second = [h for h in logger.handlers if isinstance(h, logging.NullHandler)]
         assert len(after_second) == 1
     finally:
         # Restore the original handler set so we don't leak state into
@@ -59,9 +55,7 @@ def test_configure_default_handler_skips_non_null_handlers() -> None:
 
         id_logging._configure_default_handler()
 
-        null_handlers = [
-            h for h in logger.handlers if isinstance(h, logging.NullHandler)
-        ]
+        null_handlers = [h for h in logger.handlers if isinstance(h, logging.NullHandler)]
         assert len(null_handlers) == 1
         assert stream_handler in logger.handlers
     finally:

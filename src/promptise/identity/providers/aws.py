@@ -27,6 +27,7 @@ from typing import Any, Literal
 from .._core.callable_provider import CallableTokenProvider
 from .._core.errors import CredentialAcquisitionError, ProviderConfigError
 from .._core.file_provider import FileTokenProvider
+from .._core.retry import aws_is_transient, retry_call
 
 #: Environment variable naming the projected federated-token file.
 ENV_PROMPTISE_IDENTITY_TOKEN_FILE: str = "PROMPTISE_IDENTITY_TOKEN_FILE"
@@ -112,9 +113,12 @@ class AwsStsProvider(CallableTokenProvider):
 
         try:
             client = boto3.client("sts", region_name=self._region)
-            response: dict[str, Any] = client.get_web_identity_token(
-                Audience=[audience or self._audience],
-                SigningAlgorithm=self._signing_algorithm,
+            response: dict[str, Any] = retry_call(
+                lambda: client.get_web_identity_token(
+                    Audience=[audience or self._audience],
+                    SigningAlgorithm=self._signing_algorithm,
+                ),
+                is_transient=aws_is_transient,
             )
         except Exception as exc:
             raise CredentialAcquisitionError(

@@ -442,6 +442,7 @@ class JwksAuth:
         issuer: str | None = None,
         algorithms: tuple[str, ...] = ("RS256", "ES256"),
         meta_key: str = "authorization",
+        leeway: float = 60.0,
     ) -> None:
         if not audience:
             raise ValueError(
@@ -455,6 +456,10 @@ class JwksAuth:
         self._audience = audience
         self._algorithms = list(algorithms)
         self._meta_key = meta_key
+        # Tolerate small NTP clock differences between the IdP and this server
+        # when checking exp/nbf/iat, so a token that is valid "now" is not
+        # rejected because the two clocks differ by a few seconds.
+        self._leeway = leeway
         self._jwk_client: Any = None
         # Discovery mode (set by from_discovery): jwks_url is resolved lazily
         # from the issuer's OIDC discovery document.
@@ -589,6 +594,7 @@ class JwksAuth:
         kwargs: dict[str, Any] = {
             "algorithms": self._algorithms,
             "audience": self._audience,
+            "leeway": self._leeway,
         }
         if self._issuer is not None:
             kwargs["issuer"] = self._issuer

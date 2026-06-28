@@ -22,9 +22,7 @@ def _jwt(exp: float | None) -> str:
     claims: dict[str, object] = {"sub": "agent"}
     if exp is not None:
         claims["exp"] = exp
-    payload = (
-        base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode()
-    )
+    payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode()
     return f"{header}.{payload}."
 
 

@@ -7,6 +7,14 @@ future ideas" that followed (OIDC discovery, per-resource credentials,
 structured cross-agent identity) are now **also all done**. This file is
 kept as a record of what landed and where.
 
+**Verification caveat (honest):** the provider *logic* is thoroughly unit-tested
+(cloud calls mocked), and resilience — retry/backoff, clock-skew leeway,
+concurrency — is covered. The *live* round-trip against each real cloud is
+confirmed via the opt-in, platform-gated tests in `tests/identity/integration/`
+(and the OIDC path in CI), not asserted blindly. Run them in your environment
+rather than reading "fully implemented" as "proven against your cloud." See
+`docs/identity/security.md#verification-status`.
+
 ## 1. Audit-log enrichment in Security Guardrails  *(done)*
 
 **Done:** `AuditMiddleware._build_entry` now records the acting agent's

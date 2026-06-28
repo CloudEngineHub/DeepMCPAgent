@@ -54,9 +54,7 @@ def test_custom_service_account_changes_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        assert "service-accounts/agent@p.iam.gserviceaccount.com/identity" in str(
-            request.url
-        )
+        assert "service-accounts/agent@p.iam.gserviceaccount.com/identity" in str(request.url)
         return httpx.Response(200, text=FAKE_JWT)
 
     _mock_get(monkeypatch, handler)
@@ -113,9 +111,7 @@ def test_audience_override_per_request(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_from_gcp_passes_options() -> None:
-    provider = from_gcp(
-        audience="api://aud", service_account_email="x@y.iam.gserviceaccount.com"
-    )
+    provider = from_gcp(audience="api://aud", service_account_email="x@y.iam.gserviceaccount.com")
     assert isinstance(provider, GcpMetadataProvider)
     assert provider._audience == "api://aud"
     assert provider._service_account_email == "x@y.iam.gserviceaccount.com"

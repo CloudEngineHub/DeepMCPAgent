@@ -16,9 +16,7 @@ def _jwt_with_exp(exp: float | None) -> str:
     claims: dict[str, object] = {"sub": "agent"}
     if exp is not None:
         claims["exp"] = exp
-    payload = (
-        base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode()
-    )
+    payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode()
     return f"{header}.{payload}."
 
 
@@ -68,21 +66,13 @@ def test_decode_expiry_malformed_returns_none() -> None:
 
 def test_decode_expiry_non_numeric_exp_returns_none() -> None:
     header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
-    payload = (
-        base64.urlsafe_b64encode(json.dumps({"exp": "soon"}).encode())
-        .rstrip(b"=")
-        .decode()
-    )
+    payload = base64.urlsafe_b64encode(json.dumps({"exp": "soon"}).encode()).rstrip(b"=").decode()
     assert decode_jwt_expiry(f"{header}.{payload}.") is None
 
 
 def test_decode_expiry_boolean_exp_is_rejected() -> None:
     header = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
-    payload = (
-        base64.urlsafe_b64encode(json.dumps({"exp": True}).encode())
-        .rstrip(b"=")
-        .decode()
-    )
+    payload = base64.urlsafe_b64encode(json.dumps({"exp": True}).encode()).rstrip(b"=").decode()
     assert decode_jwt_expiry(f"{header}.{payload}.") is None
 
 
