@@ -3,30 +3,49 @@
 Give an agent a traceable identity in five minutes — no infrastructure
 required. Then, optionally, make it verifiable.
 
-## 1. A local identity
+## 1. A local identity (no key, no infrastructure)
+
+Creating and inspecting an identity needs nothing — no cloud, no model API key:
+
+```python
+from promptise import AgentIdentity
+
+identity = AgentIdentity(
+    "billing-bot",
+    name="Billing Bot",
+    owner="payments-team",
+    labels={"env": "prod"},
+)
+
+identity.agent_id          # "billing-bot"
+identity.is_verifiable     # False — local identity (id only)
+identity.claims()          # {"agent_id": "billing-bot", "verifiable": False,
+                           #  "name": "Billing Bot", "owner": "payments-team", ...}
+```
+
+That id is what the framework stamps onto everything the agent does. Run it as a
+script: [`examples/identity/local/app.py`](https://github.com/promptise-com/foundry/blob/main/examples/identity/local/app.py).
+
+## 2. See it on the agent's timeline (needs a model key)
+
+Attach the identity to an agent and enable observability — every tool call and
+LLM turn is then tagged with `agent_id="billing-bot"`, so across a fleet you can
+answer *which agent did what*:
 
 ```python
 import asyncio
 
-from promptise import build_agent
-from promptise.identity import AgentIdentity
+from promptise import AgentIdentity, build_agent
 
 
 async def main() -> None:
-    identity = AgentIdentity(
-        "billing-bot",
-        name="Billing Bot",
-        owner="payments-team",
-        labels={"env": "prod"},
-    )
-
+    identity = AgentIdentity("billing-bot", name="Billing Bot", owner="payments-team")
     agent = await build_agent(
-        model="anthropic:claude-sonnet-4-5",
+        model="openai:gpt-5-mini",
         servers={},
         identity=identity,
         observe=True,   # enable the timeline so attribution is visible
     )
-
     await agent.ainvoke(
         {"messages": [{"role": "user", "content": "Summarize today's invoices."}]}
     )
@@ -34,21 +53,6 @@ async def main() -> None:
 
 
 asyncio.run(main())
-```
-
-Every tool call and LLM turn the agent records is now tagged with
-`agent_id="billing-bot"`. Across a fleet of agents you can answer *which
-agent did what* without any extra wiring.
-
-## 2. Inspect the identity
-
-```python
-identity = AgentIdentity("billing-bot", name="Billing Bot", owner="payments-team")
-
-identity.agent_id          # "billing-bot"
-identity.claims()          # {"agent_id": "billing-bot", "verifiable": False,
-                           #  "name": "Billing Bot", "owner": "payments-team"}
-identity.is_verifiable     # False — local identity
 ```
 
 ## 3. Make it verifiable
