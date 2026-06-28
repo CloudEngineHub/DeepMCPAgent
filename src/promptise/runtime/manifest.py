@@ -87,6 +87,14 @@ class AgentManifestSchema(BaseModel):
     name: str = Field(..., description="Process name")
     model: str = Field("openai:gpt-5-mini", description="LLM model ID")
     instructions: str | None = Field(None, description="System prompt")
+    identity: dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Agent identity — who is acting. Same shape as the .superagent "
+            "'identity' block: provider (local/entra/aws/gcp/spiffe/oidc/"
+            "auto), agent_id, and provider options."
+        ),
+    )
     servers: dict[str, Any] = Field(default_factory=dict, description="MCP server specifications")
     triggers: list[dict[str, Any]] = Field(
         default_factory=list, description="Trigger configurations"
@@ -283,7 +291,7 @@ def manifest_to_process_config(
                     spec_kwargs["transport"] = server_data["transport"]
                 elif "type" in server_data:
                     spec_kwargs["transport"] = server_data["type"]
-                for opt in ("headers", "auth", "bearer_token", "api_key"):
+                for opt in ("headers", "auth", "bearer_token", "api_key", "audience"):
                     if opt in server_data:
                         spec_kwargs[opt] = server_data[opt]
                 servers[server_name] = HTTPServerSpec(**spec_kwargs)
@@ -316,10 +324,18 @@ def manifest_to_process_config(
     if manifest.mission:
         mission_cfg = MissionConfig.model_validate(manifest.mission)
 
+    # Build the agent identity (env vars were already resolved in load_manifest).
+    identity = None
+    if manifest.identity:
+        from promptise.superagent_schema import IdentityConfig
+
+        identity = IdentityConfig.model_validate(manifest.identity).to_identity()
+
     # Build ProcessConfig with overrides from manifest.config
     config_data: dict[str, Any] = {
         "model": manifest.model,
         "instructions": manifest.instructions,
+        "identity": identity,
         "execution_mode": execution_mode.value,
         "open_mode": open_mode.model_dump(),
         "servers": servers,

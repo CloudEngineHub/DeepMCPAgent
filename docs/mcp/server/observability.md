@@ -268,10 +268,18 @@ Each entry in `audit.jsonl`:
   "status": "ok",
   "duration_s": 0.045,
   "args": {"patient_id": "P-12345"},
+  "identity": {
+    "subject": "dr-smith-agent",
+    "issuer": "https://login.microsoftonline.com/<tenant>/v2.0",
+    "audience": "api://medical-records-api",
+    "roles": ["records.read"]
+  },
   "prev_hash": "0000...0000",
   "hmac": "a1b2c3d4..."
 }
 ```
+
+When the caller authenticated with a JWT (e.g. [`JwksAuth`](auth-security.md#jwksauth) for an agent presenting an [IdP identity](../../identity/overview.md)), the entry carries an `identity` block with the verified `subject` / `issuer` / `audience` / `roles` — inside the HMAC chain, so *which agent did what* is both attributable and tamper-evident. Only these descriptors are recorded; the token and full claim set are never written to the log.
 
 ### HMAC chain integrity
 

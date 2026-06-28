@@ -1,0 +1,41 @@
+# Sample GitHub Actions workflow — copy into .github/workflows/ in YOUR repo.
+#
+# It mints a GitHub OIDC token and builds a verifiable AgentIdentity from it,
+# giving the agent an identity it can prove to the resources it calls. No
+# Anthropic federation rule and no secrets are required for the identity
+# itself — the runner's OIDC token is the identity.
+
+name: Agent (verifiable identity)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # REQUIRED — lets the job request an OIDC token
+  contents: read
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install promptise
+        run: pip install promptise
+
+      - name: Mint the GitHub OIDC token
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('api://promptise-agent')
+            core.exportVariable('GITHUB_OIDC_TOKEN', token)
+
+      - name: Run the agent
+        # GITHUB_OIDC_TOKEN was exported by the previous step. A model key
+        # (e.g. ANTHROPIC_API_KEY) is only needed if the script builds and
+        # invokes an agent — the identity itself needs no key.
+        run: python script.py
