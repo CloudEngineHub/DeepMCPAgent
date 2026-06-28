@@ -211,6 +211,5 @@ def from_spiffe(
     if resolved_mode == "sdk":
         return SpiffeSdkProvider(socket_path=socket_path, audience=audience)
     raise ProviderConfigError(
-        f"Unknown SPIFFE mode {mode!r}. Valid modes are 'auto', 'file', and "
-        f"'sdk'."
+        f"Unknown SPIFFE mode {mode!r}. Valid modes are 'auto', 'file', and 'sdk'."
     )
