@@ -34,11 +34,17 @@ shell access, ever.
 
 from __future__ import annotations
 
+import errno
 import re
 import string
 import subprocess
+import time
 from collections.abc import Callable
 from typing import Any, Protocol, runtime_checkable
+
+# fork()/spawn can transiently fail under heavy load ("Resource temporarily
+# unavailable"); these are worth a brief retry rather than a hard failure.
+_TRANSIENT_SPAWN_ERRNOS = {errno.EAGAIN, errno.EWOULDBLOCK, errno.ENOMEM}
 
 __all__ = [
     "ShellExecutor",
@@ -122,28 +128,37 @@ class SubprocessShellExecutor:
             merged_env = dict(os.environ)
             merged_env.update(self.env)
 
-        try:
-            # Shell execution is an OPT-IN feature (requires explicitly wiring a
-            # SubprocessShellExecutor into the TemplateEngine). Callers control
-            # the commands via template authorship + optional allowlist. This is
-            # intentionally a *feature*, not a vulnerability — suppress bandit's
-            # generic warning for this reviewed site.
-            result = subprocess.run(  # noqa: S602  # nosec B602
-                cmd,
-                shell=self.shell,
-                capture_output=True,
-                text=True,
-                timeout=self.timeout,
-                cwd=self.cwd,
-                env=merged_env,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise ShellExecutionError(
-                f"shell command timed out after {self.timeout}s: {cmd}"
-            ) from exc
-        except OSError as exc:
-            raise ShellExecutionError(f"shell command failed to start: {exc}") from exc
+        result = None
+        for attempt in range(3):
+            try:
+                # Shell execution is an OPT-IN feature (requires explicitly wiring
+                # a SubprocessShellExecutor into the TemplateEngine). Callers
+                # control the commands via template authorship + optional
+                # allowlist. This is intentionally a *feature*, not a
+                # vulnerability — suppress bandit's generic warning here.
+                result = subprocess.run(  # noqa: S602  # nosec B602
+                    cmd,
+                    shell=self.shell,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout,
+                    cwd=self.cwd,
+                    env=merged_env,
+                    check=False,
+                )
+                break
+            except subprocess.TimeoutExpired as exc:
+                raise ShellExecutionError(
+                    f"shell command timed out after {self.timeout}s: {cmd}"
+                ) from exc
+            except OSError as exc:
+                # Retry a transient spawn failure (e.g. fork hitting EAGAIN under
+                # heavy load); raise on a real error or once retries are spent.
+                if exc.errno in _TRANSIENT_SPAWN_ERRNOS and attempt < 2:
+                    time.sleep(0.2 * (attempt + 1))
+                    continue
+                raise ShellExecutionError(f"shell command failed to start: {exc}") from exc
+        assert result is not None  # nosec B101 - loop either sets result or raises
 
         if result.returncode != 0:
             stderr = (result.stderr or "").strip()

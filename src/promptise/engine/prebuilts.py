@@ -46,7 +46,11 @@ def build_react_graph(
     and when to produce the final answer.  The engine handles the
     tool-calling loop automatically.
 
-    This is the default graph used by ``build_agent()``.
+    This is the default graph used by ``build_agent()``. It runs with
+    ``context_scope="auto"``: simple tasks see the full transcript (unchanged),
+    but once a tool loop grows the node automatically switches to a bounded,
+    deduplicated facts ledger — so context stays manageable and token-efficient
+    on deep tasks without choosing a different pattern.
 
     Args:
         tools: Tools available to the agent.
@@ -68,6 +72,7 @@ def build_react_graph(
             blocks=node_blocks,
             tools=list(tools) if tools else [],
             tool_choice="auto",
+            context_scope="auto",
             max_iterations=max_node_iterations,
             # When the LLM calls a tool, rule 1 in _resolve_transition
             # re-enters this node automatically.  When it produces a

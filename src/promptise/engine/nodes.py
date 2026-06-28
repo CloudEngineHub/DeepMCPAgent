@@ -131,6 +131,7 @@ class PromptNode(BaseNode):
         output_key: str | None = None,
         inherit_context_from: str | None = None,
         context_scope: str = "full",
+        auto_ledger_after: int = 6,
         # Processing pipeline
         preprocessor: Callable | None = None,
         postprocessor: Callable | None = None,
@@ -163,7 +164,12 @@ class PromptNode(BaseNode):
         self.output_key = output_key
         self.inherit_context_from = inherit_context_from
         # Context lifecycle management — how much history this node sees:
-        #   "full" (default): the whole accumulated transcript.
+        #   "auto": behaves like "full" for short tool loops, then switches to
+        #     "ledger" once the loop grows past ``auto_ledger_after`` tool
+        #     results. The default for the built-in ReAct pattern: simple tasks
+        #     are unchanged, deep tool loops stay bounded — context handling and
+        #     token efficiency without choosing a pattern.
+        #   "full": the whole accumulated transcript.
         #   "scoped": only the system prompt (with any inherited/​injected
         #     distilled state), the original task, and the node's own
         #     in-progress tool loop — NOT other stages' verbose messages.
@@ -173,6 +179,8 @@ class PromptNode(BaseNode):
         #     gathered" ledger (from state.observations), so the model stops
         #     re-querying facts it already has.
         self.context_scope = context_scope
+        # "auto" flips to ledger once this many tool results have accumulated.
+        self.auto_ledger_after = auto_ledger_after
         # Pipeline
         self.preprocessor = preprocessor
         self.postprocessor = postprocessor
@@ -187,6 +195,17 @@ class PromptNode(BaseNode):
         from .state import NodeFlag
 
         return NodeFlag.INJECT_TOOLS in self.flags
+
+    def _effective_context_scope(self, state: GraphState) -> str:
+        """Resolve ``context_scope``, expanding ``"auto"`` for the current state.
+
+        ``"auto"`` stays ``"full"`` while the tool loop is short (no change to
+        simple tasks) and switches to ``"ledger"`` once enough tool results have
+        accumulated, so deep tool loops stay bounded automatically.
+        """
+        if self.context_scope != "auto":
+            return self.context_scope
+        return "ledger" if len(state.observations) >= self.auto_ledger_after else "full"
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
         """Execute the full node pipeline:
@@ -466,8 +485,10 @@ class PromptNode(BaseNode):
         # inherited/​injected distilled state), the original task, and this
         # node's own in-progress tool loop. The verbose intermediate messages
         # produced by *other* stages are dropped, so token usage does not grow
-        # super-linearly across a multi-stage reasoning graph.
-        if self.context_scope == "scoped":
+        # super-linearly across a multi-stage reasoning graph. ``"auto"`` resolves
+        # to "full" (short loops) or "ledger" (deep loops) based on the state.
+        _scope = self._effective_context_scope(state)
+        if _scope == "scoped":
             first_human = next((m for m in state.messages if isinstance(m, HumanMessage)), None)
             own_tool_loop: list[Any] = []
             for m in reversed(state.messages):
@@ -483,7 +504,7 @@ class PromptNode(BaseNode):
                 messages.append(first_human)
             messages.extend(own_tool_loop)
 
-        elif self.context_scope == "ledger":
+        elif _scope == "ledger":
             # Tool-loop context lifecycle management. A long multi-tool task
             # produces an ever-growing transcript of tool calls + results; the
             # model loses track and re-queries the same facts many times. Here
@@ -567,7 +588,7 @@ class PromptNode(BaseNode):
                     # Ledger mode: serve a previously-gathered fact from cache
                     # instead of re-executing the same (tool, args). Deep tasks
                     # otherwise re-fetch identical facts dozens of times.
-                    if self.context_scope == "ledger":
+                    if self._effective_context_scope(state) == "ledger":
                         for obs in state.observations:
                             if (
                                 obs.get("tool") == tool_name

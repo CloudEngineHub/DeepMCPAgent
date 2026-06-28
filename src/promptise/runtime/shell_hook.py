@@ -52,6 +52,7 @@ result.
 from __future__ import annotations
 
 import asyncio
+import errno
 import json
 import logging
 import shlex
@@ -59,6 +60,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from .hooks import HookBlocked, HookContext
+
+# Transient fork/spawn failures (EAGAIN, etc.) under heavy load are worth a
+# brief retry instead of failing the hook outright.
+_TRANSIENT_SPAWN_ERRNOS = {errno.EAGAIN, errno.EWOULDBLOCK, errno.ENOMEM}
 
 logger = logging.getLogger(__name__)
 
@@ -152,27 +157,43 @@ class ShellHook:
             }
         ).encode(self.encoding)
 
-        if self.shell:
-            proc = await asyncio.create_subprocess_shell(
-                self.command,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=self.cwd,
-                env=self._merged_env(),
-            )
-        else:
+        args: list[str] | None = None
+        if not self.shell:
             args = shlex.split(self.command)
             if not args:
                 raise ValueError("ShellHook.command is empty")
-            proc = await asyncio.create_subprocess_exec(
-                *args,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=self.cwd,
-                env=self._merged_env(),
-            )
+
+        # Spawn the subprocess, retrying a transient fork/spawn failure (e.g.
+        # EAGAIN, "Resource temporarily unavailable") that can occur under heavy
+        # concurrent load rather than failing the hook outright.
+        proc = None
+        for attempt in range(3):
+            try:
+                if self.shell:
+                    proc = await asyncio.create_subprocess_shell(
+                        self.command,
+                        stdin=asyncio.subprocess.PIPE,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        cwd=self.cwd,
+                        env=self._merged_env(),
+                    )
+                else:
+                    proc = await asyncio.create_subprocess_exec(
+                        *args,  # type: ignore[misc]
+                        stdin=asyncio.subprocess.PIPE,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        cwd=self.cwd,
+                        env=self._merged_env(),
+                    )
+                break
+            except OSError as exc:
+                if exc.errno in _TRANSIENT_SPAWN_ERRNOS and attempt < 2:
+                    await asyncio.sleep(0.2 * (attempt + 1))
+                    continue
+                raise
+        assert proc is not None  # nosec B101 - loop either sets proc or raises
 
         try:
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
