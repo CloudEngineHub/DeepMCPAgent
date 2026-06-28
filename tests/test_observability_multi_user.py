@@ -274,9 +274,7 @@ class TestDelegationStamping:
         c = ObservabilityCollector()
         token = _delegation_ctx_var.set({"agent_id": "ctx-agent"})
         try:
-            entry = c.record(
-                TimelineEventType.TOOL_CALL, metadata={"delegated_by": "explicit"}
-            )
+            entry = c.record(TimelineEventType.TOOL_CALL, metadata={"delegated_by": "explicit"})
         finally:
             _delegation_ctx_var.reset(token)
         assert entry.metadata["delegated_by"] == "explicit"

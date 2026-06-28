@@ -51,10 +51,14 @@ class _FixedModel:
 
 # Shared company tools that return STRUCTURED data (ideal for code-action).
 _EMP = {
-    "Dana Cole": ("Executive", 300000), "Priya Anand": ("Engineering", 210000),
-    "Alex Kim": ("Engineering", 140000), "Jo Park": ("Engineering", 135000),
-    "Ravi Shah": ("Engineering", 150000), "Sam Ortiz": ("Finance", 195000),
-    "Eva Lund": ("Finance", 125000), "Lin Wei": ("Analytics", 190000),
+    "Dana Cole": ("Executive", 300000),
+    "Priya Anand": ("Engineering", 210000),
+    "Alex Kim": ("Engineering", 140000),
+    "Jo Park": ("Engineering", 135000),
+    "Ravi Shah": ("Engineering", 150000),
+    "Sam Ortiz": ("Finance", 195000),
+    "Eva Lund": ("Finance", 125000),
+    "Lin Wei": ("Analytics", 190000),
     "Mae Tan": ("Analytics", 130000),
 }
 
@@ -96,11 +100,7 @@ async def test_real_sandbox_tool_bridge(docker_available):
     async def factory():
         return await manager.create_session()
 
-    program = (
-        "a = get_number('alpha')\n"
-        "b = get_number('beta')\n"
-        "print('RESULT:', a + b)"
-    )
+    program = "a = get_number('alpha')\nb = get_number('beta')\nprint('RESULT:', a + b)"
     node = CodeActionNode("reason", tools=[get_number], sandbox_factory=factory)
     state = GraphState(messages=[HumanMessage(content="sum alpha and beta")])
 
@@ -135,9 +135,15 @@ async def test_full_code_action_agent(docker_available, openai_available):
     )
     try:
         result = await agent.ainvoke(
-            {"messages": [{"role": "user", "content":
-                "What is the combined annual salary of everyone in the "
-                "Engineering department?"}]}
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "What is the combined annual salary of everyone in the "
+                        "Engineering department?",
+                    }
+                ]
+            }
         )
         answer = ""
         for msg in reversed(result["messages"]):
