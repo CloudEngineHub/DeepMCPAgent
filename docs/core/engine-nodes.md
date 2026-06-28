@@ -280,7 +280,8 @@ PromptNode("analyze",
 | `input_keys` | `list[str]` | `None` | Keys from `state.context` to inject as "Input data" in the prompt |
 | `output_key` | `str` | `None` | Write `result.output` to `state.context[output_key]` after execution |
 | `inherit_context_from` | `str` | `None` | Inject the output of another node (reads `state.context["{name}_output"]`) |
-| `context_scope` | `str` | `"full"` | Context lifecycle mode: `"full"` (whole transcript), `"scoped"` (bounded working set), or `"ledger"` (deduplicated facts ledger for long tool loops) — see [Context scope](#context-scope) |
+| `context_scope` | `str` | `"full"` | Context lifecycle mode: `"auto"` (full→ledger automatically; the ReAct default), `"full"` (whole transcript), `"scoped"` (bounded working set), or `"ledger"` (deduplicated facts ledger) — see [Context scope](#context-scope) |
+| `auto_ledger_after` | `int` | `6` | For `context_scope="auto"`: number of accumulated tool results after which the node switches from full transcript to the bounded ledger |
 | `preprocessor` | `Callable` | `None` | Runs before the LLM call: `fn(state, config) -> None` |
 | `postprocessor` | `Callable` | `None` | Runs after: `fn(output, state, config) -> Any` |
 | `include_observations` | `bool` | `True` | Auto-inject recent tool results from `state.observations` |
@@ -319,22 +320,35 @@ PromptNode("analyze",
 call** — the single most important lever for context-lifecycle management on long
 or multi-stage tasks. The full transcript grows on every tool call; left
 unbounded it inflates token cost super-linearly and the model starts losing track
-of facts it already gathered. The three modes are all **opt-in** (default `"full"`
-preserves existing behaviour exactly — zero regression):
+of facts it already gathered.
+
+The **default ReAct pattern uses `"auto"`** — context handling is automatic, with
+no pattern to choose. The four modes:
 
 | Mode | What the node sees | Use it for |
 |------|--------------------|------------|
-| `"full"` *(default)* | The whole accumulated transcript | Short tasks, or when every prior message matters |
+| `"auto"` *(ReAct default)* | `"full"` while the tool loop is short, then `"ledger"` once it grows past `auto_ledger_after` (default 6) tool results | The smart default — simple tasks unchanged, deep tool loops bounded automatically |
+| `"full"` | The whole accumulated transcript | When every prior message must always be visible |
 | `"scoped"` | The node's system prompt (carrying any inherited/injected distilled state) + the original task + **only this node's own in-progress tool loop** | Multi-stage reasoning graphs — drops the verbose intermediate messages produced by *other* stages so tokens don't grow across stages |
 | `"ledger"` | System prompt + original task + the **most recent** assistant turn and its tool results + a compact **deduplicated "facts gathered" ledger** | Long single-node tool loops over an interconnected dataset, where the model otherwise re-queries the same facts dozens of times |
 
 ```python
+# Default agents already get this — no configuration needed:
+PromptNode("reason", inject_tools=True, context_scope="auto", auto_ledger_after=6)
+
 # Multi-stage graph: each stage only sees its own working set.
 PromptNode("analyze", instructions="...", context_scope="scoped")
 
-# Deep tool loop: replace the growing transcript with a facts ledger.
+# Force the ledger from turn 0 (deep tool loop you know will be long):
 PromptNode("reason", inject_tools=True, context_scope="ledger")
 ```
+
+!!! note "Honest scope of `auto`"
+    `auto` is an **efficiency / context-bounding** default: it keeps tokens and
+    context manageable on deep loops at **zero change to short tasks** (below the
+    threshold it is byte-for-byte `"full"`). It does **not** by itself make the
+    model aggregate gathered facts more accurately — for that, change the action
+    space with [code-action](engine-prebuilts.md#code-action-one-sandboxed-program).
 
 **How `"ledger"` works:**
 

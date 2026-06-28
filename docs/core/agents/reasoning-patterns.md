@@ -1,6 +1,16 @@
 # Reasoning Patterns
 
-Every Promptise agent is powered by a Reasoning Graph. By default, `build_agent()` creates a ReAct graph (single node with tools). You can replace this with any of the 10 built-in patterns, or build your own.
+Every Promptise agent is powered by a Reasoning Graph. By default, `build_agent()` creates a ReAct graph (single node with tools) — and that default is **smart by default**: it manages context automatically (`context_scope="auto"`), so simple tasks are unchanged and deep tool loops stay token-efficient without you choosing anything.
+
+!!! tip "Which one do I need? (most people: none)"
+    - **Just call `build_agent(model, servers)`** — the default handles context and tools well for the overwhelming majority of agents.
+    - **Computing over data** (sums, averages, multi-hop joins)? → [`code-action`](#code-action) — write one program instead of chaining tool calls.
+    - **Want a cheap self-check** on a weak/cheap model? → [`verify`](#verify).
+    - **Need a specific multi-stage shape** (debate, research pipeline, deep deliberation)? → the structured patterns below, or [build your own graph](#building-custom-graphs).
+
+    The rest are specialized. Don't reach for a multi-stage pattern expecting more accuracy — on capable models they mostly add latency and tokens; the default plus `code-action` is the efficient path.
+
+You can replace the default with any of the 10 built-in patterns, or build your own.
 
 ```mermaid
 graph TD
