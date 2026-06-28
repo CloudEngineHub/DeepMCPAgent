@@ -20,6 +20,7 @@ import httpx
 
 from .._core.callable_provider import CallableTokenProvider
 from .._core.errors import CredentialAcquisitionError
+from .._core.retry import http_get_with_retry
 
 #: Template for the GCP metadata identity endpoint. The service-account
 #: email segment selects which attached service account issues the token.
@@ -85,7 +86,7 @@ class GcpMetadataProvider(CallableTokenProvider):
         """
         requested_audience = audience or self._audience
         try:
-            response = httpx.get(
+            response = http_get_with_retry(
                 self._metadata_endpoint,
                 params={"audience": requested_audience},
                 headers={"Metadata-Flavor": "Google"},

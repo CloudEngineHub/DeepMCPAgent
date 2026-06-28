@@ -305,10 +305,28 @@ class TestJwksAuth:
             JwksAuth(jwks_url="https://idp/jwks", audience="")
 
     async def test_expired_token_rejected(self) -> None:
+        # Expired well beyond the clock-skew leeway (default 60s).
         auth = _jwks_auth()
         token = _mint(
-            {"sub": "bot", "aud": "api://mcp", "exp": int(time.time()) - 10}
+            {"sub": "bot", "aud": "api://mcp", "exp": int(time.time()) - 300}
         )
+        ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
+        with pytest.raises(AuthenticationError, match="expired"):
+            await auth.authenticate(ctx)
+
+    async def test_token_within_leeway_still_verifies(self) -> None:
+        # A token a few seconds past exp must still verify — small NTP skew
+        # between the IdP and this server should not reject a valid caller.
+        auth = _jwks_auth()  # default leeway = 60s
+        token = _mint({"sub": "bot", "aud": "api://mcp", "exp": int(time.time()) - 15})
+        ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
+        assert await auth.authenticate(ctx) == "bot"
+
+    async def test_leeway_is_configurable_to_zero(self) -> None:
+        # Opt out of skew tolerance: leeway=0 rejects any past-exp token.
+        auth = JwksAuth(jwks_url="https://idp/jwks", audience="api://mcp", leeway=0)
+        auth._jwk_client = _StubJwkClient(_JWKS_PUBLIC_KEY)
+        token = _mint({"sub": "bot", "aud": "api://mcp", "exp": int(time.time()) - 5})
         ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
         with pytest.raises(AuthenticationError, match="expired"):
             await auth.authenticate(ctx)

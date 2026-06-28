@@ -58,9 +58,7 @@ def _install_fake_pyspiffe(monkeypatch: pytest.MonkeyPatch, client_cls: type) ->
     pyspiffe_mod.workloadapi = wl_mod  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "pyspiffe", pyspiffe_mod)
     monkeypatch.setitem(sys.modules, "pyspiffe.workloadapi", wl_mod)
-    monkeypatch.setitem(
-        sys.modules, "pyspiffe.workloadapi.workload_api_client", client_mod
-    )
+    monkeypatch.setitem(sys.modules, "pyspiffe.workloadapi.workload_api_client", client_mod)
 
 
 # -- File mode ------------------------------------------------------------
@@ -79,9 +77,7 @@ def test_file_mode_reads_token(tmp_path: Path) -> None:
 
 def test_socket_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(ENV_SPIFFE_ENDPOINT_SOCKET, "unix:///env/sock")
-    assert SpiffeSdkProvider(socket_path="unix:///explicit")._socket_path == (
-        "unix:///explicit"
-    )
+    assert SpiffeSdkProvider(socket_path="unix:///explicit")._socket_path == ("unix:///explicit")
     assert SpiffeSdkProvider()._socket_path == "unix:///env/sock"
     monkeypatch.delenv(ENV_SPIFFE_ENDPOINT_SOCKET, raising=False)
     assert SpiffeSdkProvider()._socket_path == DEFAULT_SPIFFE_ENDPOINT_SOCKET

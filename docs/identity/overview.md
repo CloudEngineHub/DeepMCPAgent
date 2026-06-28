@@ -26,6 +26,40 @@ This is **not** about the LLM credential. The model keeps its own
 authentication; identity is about *who is acting*, for attribution and
 authorization.
 
+## Why this matters
+
+Agents are a new class of **non-human actor** — they call tools, hit APIs, and
+act continuously, often with no human in the loop. Most teams run them with **no
+real identity**: a shared API key, or a name a process asserts about itself in a
+log. That breaks down fast:
+
+- **Attribution** — across a fleet, *"which agent did this?"* has no reliable
+  answer. A shared key, or a string a process printed about itself, can't be
+  trusted after the fact.
+- **Least privilege** — without a verifiable identity, every agent holding the
+  shared key has the **same** access. You can't scope one agent to billing and
+  another to read-only.
+- **Audit & compliance** — SOC 2 / ISO / internal review ask *who* performed
+  each action. "The model" is not an answer; "`billing-bot`, verified by your
+  IdP" is.
+- **Blast radius** — an over-privileged or unattributable agent is exactly the
+  risk reviewers worry about. The 2025–2026 wave of agent deployments has run
+  ahead of the identity controls that would govern them.
+
+Agent Identity closes the gap with the model enterprises already trust for
+service accounts: a **stable identity** for attribution, plus an optional
+**verifiable credential** minted by your existing IdP — so resources can
+authenticate and authorize the agent with **no new secrets to manage**.
+
+**Who needs it, and when:**
+
+| If you… | Use |
+|---|---|
+| Run more than one agent, or one across a fleet | a **local identity** for attribution — start today, zero infrastructure |
+| Have agents call protected MCP servers / internal APIs | a **verifiable identity** backed by your IdP |
+| Have audit/compliance requirements (who did what) | a **verifiable identity** (the verified subject is recorded in the tamper-evident audit log) |
+| Run multi-tenant or accept untrusted input | a **verifiable identity** + least-privilege scoping — the control that bounds the blast radius |
+
 ## Two tiers of identity
 
 ### Local identity
@@ -97,6 +131,27 @@ The `agent_id` / subject drives attribution; the richer `claims()`
 
 Don't know which platform you're on? [`AgentIdentity.auto()`](architecture.md#auto-detection)
 detects it from environment markers and picks for you.
+
+## Which provider
+
+The fastest answer: call [`AgentIdentity.auto()`](architecture.md#auto-detection)
+and let it detect the platform. If you'd rather be explicit, pick by **where your
+workload runs**:
+
+| Where the agent runs | Use | Mode |
+| --- | --- | --- |
+| Azure VM / VMSS / Container Apps (managed identity) | `from_entra()` | IMDS |
+| Azure Kubernetes Service (AKS workload identity) | `from_entra()` | projected token file |
+| AWS Lambda / EC2 / ECS (IAM role) | `from_aws()` | STS `GetWebIdentityToken` |
+| AWS EKS (IRSA / pod identity) | `from_aws()` | EKS projected token (no boto3) |
+| Google Compute Engine / Cloud Run / GKE | `from_gcp()` | metadata server |
+| Any SPIFFE/SPIRE mesh | `from_spiffe()` | Workload API socket, or `spiffe-helper` file |
+| GitHub Actions, GitLab CI, or any OIDC issuer | `from_oidc()` | env var / file / callable |
+| Local laptop, tests, or "just attribution" | `AgentIdentity("id")` | **local** — no provider |
+
+Optional cloud SDKs are needed only for some modes (boto3 for AWS STS, `pyspiffe`
+for the SPIFFE SDK); the metadata/IMDS/projected-token and OIDC paths need none.
+See the per-provider pages linked in the table above for setup and prerequisites.
 
 ## Persistence lives in your IdP
 

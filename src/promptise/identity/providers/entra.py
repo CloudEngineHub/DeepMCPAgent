@@ -30,6 +30,7 @@ import httpx
 from .._core.callable_provider import CallableTokenProvider
 from .._core.errors import CredentialAcquisitionError, ProviderConfigError
 from .._core.file_provider import FileTokenProvider
+from .._core.retry import http_get_with_retry
 
 #: Azure Instance Metadata Service token endpoint (link-local address).
 _IMDS_TOKEN_ENDPOINT: str = "http://169.254.169.254/metadata/identity/oauth2/token"
@@ -100,7 +101,7 @@ class EntraManagedIdentityProvider(CallableTokenProvider):
             params["client_id"] = self._client_id
 
         try:
-            response = httpx.get(
+            response = http_get_with_retry(
                 self._imds_endpoint,
                 params=params,
                 headers={"Metadata": "true"},
