@@ -166,6 +166,16 @@ module = [
 ]
 ignore_errors = true
 
+# numpy 2.x ships type stubs that use PEP 695 `type` statements (3.12+ syntax).
+# mypy runs with python_version=3.10 (our supported floor), so it rejects parsing
+# those stubs ("Type statement is only supported in Python 3.12 and greater"). We
+# do not type-check numpy's internals — skip following its stubs (treated as Any,
+# consistent with the global ignore_missing_imports).
+[[tool.mypy.overrides]]
+module = ["numpy", "numpy.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
