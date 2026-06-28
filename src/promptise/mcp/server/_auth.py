@@ -511,8 +511,7 @@ class JwksAuth:
             response = httpx.get(url, timeout=self._request_timeout)
         except httpx.HTTPError as exc:
             raise AuthenticationError(
-                f"Could not fetch OIDC discovery document from {url} "
-                f"({type(exc).__name__}: {exc})."
+                f"Could not fetch OIDC discovery document from {url} ({type(exc).__name__}: {exc})."
             )
         if response.status_code != 200:
             raise AuthenticationError(
@@ -521,9 +520,7 @@ class JwksAuth:
         try:
             doc = response.json()
         except ValueError:
-            raise AuthenticationError(
-                f"OIDC discovery at {url} returned a non-JSON body."
-            )
+            raise AuthenticationError(f"OIDC discovery at {url} returned a non-JSON body.")
         if doc.get("issuer") != issuer:
             raise AuthenticationError(
                 f"OIDC discovery issuer mismatch: document declares "
@@ -533,9 +530,7 @@ class JwksAuth:
             )
         jwks_uri = doc.get("jwks_uri")
         if not isinstance(jwks_uri, str) or not jwks_uri:
-            raise AuthenticationError(
-                f"OIDC discovery at {url} did not advertise a 'jwks_uri'."
-            )
+            raise AuthenticationError(f"OIDC discovery at {url} did not advertise a 'jwks_uri'.")
         return jwks_uri
 
     def _client(self) -> Any:

@@ -563,9 +563,7 @@ class IdentityConfig(BaseModel):
     socket_path: str | None = Field(
         None, description="SPIFFE Workload API socket (spiffe sdk mode)."
     )
-    issuer: str | None = Field(
-        None, description="OIDC issuer URL — required for provider 'oidc'."
-    )
+    issuer: str | None = Field(None, description="OIDC issuer URL — required for provider 'oidc'.")
     token_file: str | None = Field(
         None, description="Path to a file holding the JWT (entra/aws/spiffe/oidc)."
     )
@@ -622,9 +620,7 @@ class IdentityConfig(BaseModel):
 
         labels = self.labels or None
         if self.provider == "local":
-            return AgentIdentity(
-                self.agent_id, name=self.name, owner=self.owner, labels=labels
-            )
+            return AgentIdentity(self.agent_id, name=self.name, owner=self.owner, labels=labels)
         if self.provider == "auto":
             return AgentIdentity.auto(
                 self.agent_id, name=self.name, owner=self.owner, labels=labels
@@ -635,8 +631,12 @@ class IdentityConfig(BaseModel):
                 name=self.name,
                 owner=self.owner,
                 labels=labels,
-                **_opt(mode=self.mode, client_id=self.client_id,
-                       token_file=self.token_file, resource=self.resource),
+                **_opt(
+                    mode=self.mode,
+                    client_id=self.client_id,
+                    token_file=self.token_file,
+                    resource=self.resource,
+                ),
             )
         if self.provider == "aws":
             return AgentIdentity.from_aws(
@@ -644,8 +644,12 @@ class IdentityConfig(BaseModel):
                 name=self.name,
                 owner=self.owner,
                 labels=labels,
-                **_opt(mode=self.mode, region=self.region,
-                       token_file=self.token_file, audience=self.audience),
+                **_opt(
+                    mode=self.mode,
+                    region=self.region,
+                    token_file=self.token_file,
+                    audience=self.audience,
+                ),
             )
         if self.provider == "gcp":
             return AgentIdentity.from_gcp(
@@ -653,8 +657,7 @@ class IdentityConfig(BaseModel):
                 name=self.name,
                 owner=self.owner,
                 labels=labels,
-                **_opt(audience=self.audience,
-                       service_account_email=self.service_account_email),
+                **_opt(audience=self.audience, service_account_email=self.service_account_email),
             )
         if self.provider == "spiffe":
             return AgentIdentity.from_spiffe(
@@ -662,8 +665,12 @@ class IdentityConfig(BaseModel):
                 name=self.name,
                 owner=self.owner,
                 labels=labels,
-                **_opt(mode=self.mode, token_file=self.token_file,
-                       socket_path=self.socket_path, audience=self.audience),
+                **_opt(
+                    mode=self.mode,
+                    token_file=self.token_file,
+                    socket_path=self.socket_path,
+                    audience=self.audience,
+                ),
             )
         # provider == "oidc": issuer + exactly one token source (schema-validated)
         return AgentIdentity.from_oidc(

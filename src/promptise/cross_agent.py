@@ -79,6 +79,7 @@ def _caller_identity_message(
         "content": f"Delegated by agent: {who or 'unknown'}. Caller identity: {claims}",
     }
 
+
 # -----------------------------
 # Public API surface
 # -----------------------------

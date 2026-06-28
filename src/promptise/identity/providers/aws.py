@@ -76,9 +76,7 @@ class AwsStsProvider(CallableTokenProvider):
         signing_algorithm: str = _DEFAULT_SIGNING_ALGORITHM,
     ) -> None:
         resolved_region = (
-            region
-            or os.environ.get(ENV_AWS_REGION)
-            or os.environ.get(ENV_AWS_DEFAULT_REGION)
+            region or os.environ.get(ENV_AWS_REGION) or os.environ.get(ENV_AWS_DEFAULT_REGION)
         )
         if not resolved_region:
             raise ProviderConfigError(
@@ -201,11 +199,7 @@ def from_aws(
     """
     resolved_mode = mode
     if resolved_mode == "auto":
-        resolved_mode = (
-            "projected"
-            if os.environ.get(ENV_PROMPTISE_IDENTITY_TOKEN_FILE)
-            else "sts"
-        )
+        resolved_mode = "projected" if os.environ.get(ENV_PROMPTISE_IDENTITY_TOKEN_FILE) else "sts"
 
     if resolved_mode == "projected":
         return AwsEksProjectedProvider(token_file=token_file)
@@ -216,6 +210,5 @@ def from_aws(
             signing_algorithm=signing_algorithm,
         )
     raise ProviderConfigError(
-        f"Unknown AWS mode {mode!r}. Valid modes are 'auto', 'sts', and "
-        f"'projected'."
+        f"Unknown AWS mode {mode!r}. Valid modes are 'auto', 'sts', and 'projected'."
     )

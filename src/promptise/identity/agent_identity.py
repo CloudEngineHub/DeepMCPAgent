@@ -182,11 +182,7 @@ class AgentIdentity:
             ProviderConfigError: If this is a local identity.
         """
         claims = self._require_idp_claims()
-        return {
-            k: claims[k]
-            for k in ("sub", "oid", "iss", "aud", "azp", "appid")
-            if k in claims
-        }
+        return {k: claims[k] for k in ("sub", "oid", "iss", "aud", "azp", "appid") if k in claims}
 
     def resolve_identifier(self) -> str:
         """Return the authoritative identifier for this identity.

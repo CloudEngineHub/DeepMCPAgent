@@ -1976,9 +1976,7 @@ async def build_agent(
 
     # Attach cross-agent tools if provided
     if cross_agents:
-        tools.extend(
-            make_cross_agent_tools(cross_agents, caller_identity=identity)
-        )
+        tools.extend(make_cross_agent_tools(cross_agents, caller_identity=identity))
 
     # The code-action pattern REQUIRES a sandbox (the model writes a program we
     # run in a container). Auto-enable one — with no network, since the program
