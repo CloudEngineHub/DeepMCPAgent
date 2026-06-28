@@ -64,6 +64,14 @@ agent:
   instructions: "You are a research assistant."
   trace: true
 
+identity:
+  provider: entra                      # local|entra|aws|gcp|spiffe|oidc|auto
+  agent_id: research-bot               # who is acting (for attribution)
+  owner: research-team
+  labels: {env: prod}
+  client_id: "${AZURE_CLIENT_ID}"      # provider-specific (Entra here)
+  resource: api://search.example.com   # audience the credential targets
+
 servers:
   search:
     type: http
@@ -139,6 +147,75 @@ The `model` field accepts either a simple string or a detailed configuration obj
         timeout: 30
         base_url: "https://custom-endpoint.example.com/v1"
     ```
+
+#### `identity`
+
+Optional. Gives the agent a stable, traceable [Agent Identity](../../identity/overview.md)
+— *who is acting*. A **local** identity (`provider: local`) tags the
+agent's actions for attribution; a **verifiable** identity (any cloud
+provider, or `auto`) additionally presents a signed credential to the MCP
+servers it calls, so they can authenticate and attribute it. All string
+fields support `${ENV_VAR}`.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `provider` | `"local" \| "entra" \| "aws" \| "gcp" \| "spiffe" \| "oidc" \| "auto"` | `"local"` | Identity backing. |
+| `agent_id` | `str \| None` | `None` | Stable id. **Required** for `local`; optional for verifiable (derived from the IdP `sub`/`oid`). |
+| `name` | `str \| None` | `None` | Human-readable display name. |
+| `owner` | `str \| None` | `None` | Owning team or person. |
+| `labels` | `dict[str, str]` | `{}` | Free-form metadata. |
+| `mode` | `str \| None` | `None` | Provider mode (`entra`: `auto`/`imds`/`projected`; `aws`: `auto`/`sts`/`projected`; `spiffe`: `auto`/`file`/`sdk`). |
+| `client_id` | `str \| None` | `None` | Entra managed-identity client id. |
+| `resource` | `str \| None` | `None` | Resource/audience the credential targets (Entra). |
+| `region` | `str \| None` | `None` | AWS region for STS. |
+| `audience` | `str \| None` | `None` | Audience the credential targets (AWS/GCP/SPIFFE). |
+| `service_account_email` | `str \| None` | `None` | Attached service account (GCP). |
+| `socket_path` | `str \| None` | `None` | SPIFFE Workload API socket (SDK mode). |
+| `issuer` | `str \| None` | `None` | OIDC issuer URL. **Required** for `provider: oidc`. |
+| `token_file` | `str \| None` | `None` | Path to a JWT file (Entra/AWS/SPIFFE/OIDC). |
+| `token_env_var` | `str \| None` | `None` | Env var holding the JWT, re-read each refresh (OIDC). |
+
+=== "Local (attribution only)"
+
+    ```yaml
+    identity:
+      provider: local
+      agent_id: billing-bot
+      owner: payments
+      labels: {env: prod}
+    ```
+
+=== "Verifiable (Microsoft Entra)"
+
+    ```yaml
+    identity:
+      provider: entra
+      agent_id: billing-bot
+      client_id: "${AZURE_CLIENT_ID}"
+      resource: api://my-mcp-server
+    ```
+
+=== "Verifiable (generic OIDC / CI)"
+
+    ```yaml
+    identity:
+      provider: oidc
+      agent_id: release-bot
+      issuer: https://gitlab.com
+      token_env_var: CI_JOB_JWT_V2
+    ```
+
+=== "Auto-detect the platform"
+
+    ```yaml
+    identity:
+      provider: auto
+      agent_id: data-bot
+    ```
+
+For `provider: oidc`, exactly one of `token_file` or `token_env_var` is
+required. See the [Agent Identity guide](../../identity/guide.md) for the
+end-to-end flow (outbound auth, server-side verification, audit).
 
 #### `servers`
 

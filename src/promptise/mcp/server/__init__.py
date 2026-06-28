@@ -23,6 +23,7 @@ from ._auth import (
     AsymmetricJWTAuth,
     AuthMiddleware,
     AuthProvider,
+    JwksAuth,
     JWTAuth,
     OnAuthenticateHook,
 )
@@ -130,6 +131,7 @@ __all__ = [
     "AuthProvider",
     "JWTAuth",
     "AsymmetricJWTAuth",
+    "JwksAuth",
     "APIKeyAuth",
     "AuthMiddleware",
     "OnAuthenticateHook",

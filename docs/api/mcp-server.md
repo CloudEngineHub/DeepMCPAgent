@@ -117,6 +117,13 @@ Production framework for building MCP-compliant tool servers. Every middleware, 
       show_source: false
       heading_level: 4
 
+### JwksAuth
+
+::: promptise.mcp.server.JwksAuth
+    options:
+      show_source: false
+      heading_level: 4
+
 ### APIKeyAuth
 
 ::: promptise.mcp.server.APIKeyAuth

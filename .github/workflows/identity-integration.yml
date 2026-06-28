@@ -1,0 +1,55 @@
+# Agent Identity — integration test.
+#
+# Runs the examples/identity/github_actions example end-to-end: it mints a
+# real GitHub OIDC token and builds a verifiable AgentIdentity from it,
+# proving the agent can produce a credential that proves who it is.
+#
+# No manual setup, no secrets, no Anthropic federation rule — the runner's
+# own OIDC token is the identity. (Pull requests from forks do not receive
+# an OIDC token, so the live check runs on same-repo pushes/PRs and
+# workflow_dispatch; on forks it skips with a notice.)
+
+name: Identity Integration
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # REQUIRED to mint the OIDC token
+  contents: read
+
+jobs:
+  agent-identity:
+    name: Verifiable identity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install promptise (from source)
+        run: pip install -e .
+
+      - name: Mint the GitHub OIDC token
+        id: oidc
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('api://promptise-agent')
+            core.exportVariable('GITHUB_OIDC_TOKEN', token)
+            core.setOutput('minted', 'true')
+
+      - name: Run the identity example
+        if: steps.oidc.outputs.minted == 'true'
+        run: python examples/identity/github_actions/script.py
+
+      - name: Note skip on forks
+        if: steps.oidc.outputs.minted != 'true'
+        run: echo "::notice::No OIDC token (fork PR) — skipping the live identity check."

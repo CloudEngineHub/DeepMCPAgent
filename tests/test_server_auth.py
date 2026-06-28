@@ -2,9 +2,21 @@
 
 from __future__ import annotations
 
-import pytest
+import time
+from types import SimpleNamespace
+from unittest.mock import patch
 
-from promptise.mcp.server._auth import APIKeyAuth, AuthMiddleware, JWTAuth
+import httpx
+import jwt as pyjwt
+import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
+
+from promptise.mcp.server._auth import (
+    APIKeyAuth,
+    AuthMiddleware,
+    JwksAuth,
+    JWTAuth,
+)
 from promptise.mcp.server._context import RequestContext
 from promptise.mcp.server._errors import AuthenticationError
 from promptise.mcp.server._types import ToolDef
@@ -219,3 +231,230 @@ class TestAuthMiddleware:
 
         with pytest.raises(AuthenticationError):
             await mw(ctx, call_next)
+
+
+# =====================================================================
+# JwksAuth — verify IdP-issued agent tokens against a JWKS
+# =====================================================================
+
+_JWKS_PRIVATE_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+_JWKS_PUBLIC_KEY = _JWKS_PRIVATE_KEY.public_key()
+_OTHER_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+
+def _mint(claims: dict, *, key=None) -> str:
+    return pyjwt.encode(
+        claims, key or _JWKS_PRIVATE_KEY, algorithm="RS256", headers={"kid": "k1"}
+    )
+
+
+class _StubJwkClient:
+    """Stand-in for pyjwt's PyJWKClient — returns a fixed public key."""
+
+    def __init__(self, public_key, *, fail: bool = False) -> None:
+        self._public_key = public_key
+        self._fail = fail
+
+    def get_signing_key_from_jwt(self, token: str):
+        if self._fail:
+            raise RuntimeError("no matching kid in JWKS")
+        return SimpleNamespace(key=self._public_key)
+
+
+def _jwks_auth(*, audience="api://mcp", issuer=None, fail_keys=False) -> JwksAuth:
+    auth = JwksAuth(
+        jwks_url="https://idp.example.com/jwks", audience=audience, issuer=issuer
+    )
+    auth._jwk_client = _StubJwkClient(_JWKS_PUBLIC_KEY, fail=fail_keys)
+    return auth
+
+
+class TestJwksAuth:
+    async def test_valid_token_surfaces_subject(self) -> None:
+        auth = _jwks_auth(audience="api://mcp", issuer="https://idp")
+        token = _mint(
+            {"sub": "spiffe://acme/billing-bot", "aud": "api://mcp", "iss": "https://idp"}
+        )
+        ctx = RequestContext(
+            server_name="t", meta={"authorization": f"Bearer {token}"}
+        )
+        assert await auth.authenticate(ctx) == "spiffe://acme/billing-bot"
+        assert ctx.state["_jwt_payload"]["sub"] == "spiffe://acme/billing-bot"
+
+    async def test_missing_token_raises(self) -> None:
+        ctx = RequestContext(server_name="t", meta={})
+        with pytest.raises(AuthenticationError, match="Missing"):
+            await _jwks_auth().authenticate(ctx)
+
+    async def test_wrong_audience_rejected(self) -> None:
+        auth = _jwks_auth(audience="api://mcp")
+        token = _mint({"sub": "bot", "aud": "api://other"})
+        ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
+        with pytest.raises(AuthenticationError, match="Invalid JWT"):
+            await auth.authenticate(ctx)
+
+    async def test_wrong_issuer_rejected(self) -> None:
+        auth = _jwks_auth(issuer="https://idp")
+        token = _mint({"sub": "bot", "aud": "api://mcp", "iss": "https://evil"})
+        ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
+        with pytest.raises(AuthenticationError, match="Invalid JWT"):
+            await auth.authenticate(ctx)
+
+    async def test_audience_is_required(self) -> None:
+        with pytest.raises(ValueError, match="non-empty audience"):
+            JwksAuth(jwks_url="https://idp/jwks", audience="")
+
+    async def test_expired_token_rejected(self) -> None:
+        auth = _jwks_auth()
+        token = _mint(
+            {"sub": "bot", "aud": "api://mcp", "exp": int(time.time()) - 10}
+        )
+        ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
+        with pytest.raises(AuthenticationError, match="expired"):
+            await auth.authenticate(ctx)
+
+    async def test_bad_signature_rejected(self) -> None:
+        # Token signed by a different key than the JWKS returns.
+        auth = _jwks_auth()
+        token = _mint({"sub": "bot"}, key=_OTHER_KEY)
+        ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
+        with pytest.raises(AuthenticationError, match="Invalid JWT"):
+            await auth.authenticate(ctx)
+
+    async def test_unresolvable_key_rejected(self) -> None:
+        auth = _jwks_auth(fail_keys=True)
+        token = _mint({"sub": "bot"})
+        ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
+        with pytest.raises(AuthenticationError, match="Could not resolve a signing key"):
+            await auth.authenticate(ctx)
+
+    def test_verify_token_bool(self) -> None:
+        auth = _jwks_auth()
+        assert auth.verify_token(_mint({"sub": "bot", "aud": "api://mcp"})) is True
+        assert (
+            auth.verify_token(_mint({"sub": "bot", "aud": "api://mcp"}, key=_OTHER_KEY))
+            is False
+        )
+
+    async def test_middleware_surfaces_agent_identity(self) -> None:
+        """The validated agent identity (sub + claims) lands on ctx.client so
+        the server knows which agent called."""
+        auth = _jwks_auth(audience="api://mcp")
+        mw = AuthMiddleware(auth)
+        tdef = ToolDef(
+            name="private",
+            description="",
+            handler=lambda: None,
+            input_schema={},
+            auth=True,
+        )
+        token = _mint({"sub": "agent-billing", "aud": "api://mcp", "iss": "https://idp"})
+        ctx = RequestContext(server_name="t", tool_name="private")
+        ctx.state["tool_def"] = tdef
+        ctx.meta["authorization"] = f"Bearer {token}"
+
+        async def call_next(ctx: RequestContext) -> str:
+            return "ok"
+
+        assert await mw(ctx, call_next) == "ok"
+        assert ctx.client_id == "agent-billing"
+        assert ctx.client.subject == "agent-billing"
+        assert ctx.client.issuer == "https://idp"
+
+
+# =====================================================================
+# JwksAuth.from_discovery — resolve the JWKS via OIDC discovery
+# =====================================================================
+
+_ISSUER = "https://idp.example.com"
+
+
+def _discovery_get(*, issuer=_ISSUER, jwks_uri="https://idp.example.com/keys", status=200):
+    def _get(url, **kwargs):
+        assert url == f"{_ISSUER}/.well-known/openid-configuration"
+        if status != 200:
+            return httpx.Response(status, text="nope")
+        body = {"issuer": issuer}
+        if jwks_uri is not None:
+            body["jwks_uri"] = jwks_uri
+        return httpx.Response(200, json=body)
+
+    return _get
+
+
+def _stub_jwk_factory(url):
+    return _StubJwkClient(_JWKS_PUBLIC_KEY)
+
+
+def _disc_ctx(claims=None):
+    claims = claims or {"sub": "agent-x", "aud": "api://mcp", "iss": _ISSUER}
+    token = _mint(claims)
+    return RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
+
+
+class TestJwksDiscovery:
+    async def test_resolves_jwks_and_verifies(self) -> None:
+        auth = JwksAuth.from_discovery(issuer=_ISSUER, audience="api://mcp")
+        with (
+            patch.object(httpx, "get", _discovery_get()),
+            patch("jwt.PyJWKClient", _stub_jwk_factory),
+        ):
+            assert await auth.authenticate(_disc_ctx()) == "agent-x"
+        assert auth._jwks_url == "https://idp.example.com/keys"  # cached
+
+    async def test_issuer_mismatch_rejected(self) -> None:
+        auth = JwksAuth.from_discovery(issuer=_ISSUER, audience="api://mcp")
+        with (
+            patch.object(httpx, "get", _discovery_get(issuer="https://evil")),
+            patch("jwt.PyJWKClient", _stub_jwk_factory),
+        ):
+            with pytest.raises(AuthenticationError, match="issuer mismatch"):
+                await auth.authenticate(_disc_ctx())
+
+    async def test_missing_jwks_uri_rejected(self) -> None:
+        auth = JwksAuth.from_discovery(issuer=_ISSUER, audience="api://mcp")
+        with patch.object(httpx, "get", _discovery_get(jwks_uri=None)):
+            with pytest.raises(AuthenticationError, match="jwks_uri"):
+                await auth.authenticate(_disc_ctx())
+
+    async def test_discovery_unreachable(self) -> None:
+        auth = JwksAuth.from_discovery(issuer=_ISSUER, audience="api://mcp")
+
+        def _boom(url, **kwargs):
+            raise httpx.ConnectError("no route")
+
+        with patch.object(httpx, "get", _boom):
+            with pytest.raises(AuthenticationError, match="Could not fetch OIDC discovery"):
+                await auth.authenticate(_disc_ctx())
+
+    async def test_discovery_non_200(self) -> None:
+        auth = JwksAuth.from_discovery(issuer=_ISSUER, audience="api://mcp")
+        with patch.object(httpx, "get", _discovery_get(status=503)):
+            with pytest.raises(AuthenticationError, match="HTTP 503"):
+                await auth.authenticate(_disc_ctx())
+
+    async def test_discovery_fetched_once(self) -> None:
+        auth = JwksAuth.from_discovery(issuer=_ISSUER, audience="api://mcp")
+        calls = {"n": 0}
+
+        def _counting_get(url, **kwargs):
+            calls["n"] += 1
+            return httpx.Response(
+                200, json={"issuer": _ISSUER, "jwks_uri": "https://idp.example.com/keys"}
+            )
+
+        with (
+            patch.object(httpx, "get", _counting_get),
+            patch("jwt.PyJWKClient", _stub_jwk_factory),
+        ):
+            await auth.authenticate(_disc_ctx())
+            await auth.authenticate(_disc_ctx())
+        assert calls["n"] == 1  # discovery + client are cached after first use
+
+    def test_requires_issuer(self) -> None:
+        with pytest.raises(ValueError, match="non-empty issuer"):
+            JwksAuth.from_discovery(issuer="", audience="api://mcp")
+
+    def test_requires_audience(self) -> None:
+        with pytest.raises(ValueError, match="non-empty audience"):
+            JwksAuth.from_discovery(issuer=_ISSUER, audience="")
