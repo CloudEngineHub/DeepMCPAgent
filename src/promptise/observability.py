@@ -41,8 +41,8 @@ logger = logging.getLogger(__name__)
 #: cross-agent tools around a peer invocation; read by
 #: :meth:`ObservabilityCollector.record`. Distinct from the caller contextvar
 #: (which a peer's ``ainvoke`` resets), so it survives into the peer's run.
-_delegation_ctx_var: contextvars.ContextVar[dict[str, Any] | None] = (
-    contextvars.ContextVar("promptise_delegation", default=None)
+_delegation_ctx_var: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar(
+    "promptise_delegation", default=None
 )
 
 
@@ -50,6 +50,7 @@ def get_current_delegation() -> dict[str, Any] | None:
     """Return the delegating agent's identity claims, if a cross-agent call
     is in progress; otherwise ``None``."""
     return _delegation_ctx_var.get()
+
 
 __all__ = [
     "TimelineEventType",

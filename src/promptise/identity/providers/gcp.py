@@ -67,9 +67,7 @@ class GcpMetadataProvider(CallableTokenProvider):
         self._metadata_endpoint: str = (
             metadata_endpoint
             if metadata_endpoint is not None
-            else _METADATA_IDENTITY_URL_TEMPLATE.format(
-                service_account_email=service_account_email
-            )
+            else _METADATA_IDENTITY_URL_TEMPLATE.format(service_account_email=service_account_email)
         )
         self._request_timeout: float = request_timeout
         super().__init__(

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Identity
+
+- **Agent Identity subsystem (`promptise.identity`)** — every agent gets a stable, traceable identity (*who is acting*), so its tool calls, audit entries, and outbound requests are all attributable. An identity can be **local** (just an `agent_id`) or **verifiable** — backed by a credential provider that mints a signed JWT the agent presents to the resources it calls (e.g. MCP servers). One user-facing class, `AgentIdentity`, with `from_*` factories and `AgentIdentity.auto()` platform auto-detection.
+- **Workload-identity-federation providers** — Microsoft Entra ID (managed identity + projected token), AWS IAM (STS + EKS projected), Google Cloud (metadata), SPIFFE/SPIRE (file + SDK), and a generic OIDC issuer (file + callable). Per-resource credentials, token caching with refresh buffer, and declarative configuration via `.superagent` / `.agent` manifests.
+- **Wired through the stack** — `build_agent(identity=...)`, cross-agent calls, MCP server auth + HMAC-chained audit, runtime processes, and observability all carry the agent identity. No third-party identity SDKs required for the core; cloud SDKs are optional per provider.
+
 ### Engine
 
 - **Automatic context handling by default (`context_scope="auto"`)** — the default ReAct agent (and thus `build_agent()`) now manages context automatically: it behaves exactly like `"full"` while a tool loop is short (zero change to simple tasks), and switches to the bounded, deduplicated facts-ledger once the loop grows past `auto_ledger_after` (default 6) tool results. Deep tool loops stay token-efficient and context-bounded with no pattern to choose. It's an efficiency/context primitive — not an accuracy claim (for accurate aggregation over data, use `code-action`).

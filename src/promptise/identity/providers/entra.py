@@ -39,9 +39,7 @@ _IMDS_TOKEN_ENDPOINT: str = "http://169.254.169.254/metadata/identity/oauth2/tok
 ENV_AZURE_FEDERATED_TOKEN_FILE: str = "AZURE_FEDERATED_TOKEN_FILE"
 
 #: Default projected-token path used when the env var is unset.
-DEFAULT_AZURE_FEDERATED_TOKEN_FILE: str = (
-    "/var/run/secrets/azure/tokens/azure-identity-token"
-)
+DEFAULT_AZURE_FEDERATED_TOKEN_FILE: str = "/var/run/secrets/azure/tokens/azure-identity-token"
 
 #: Default resource (audience) requested from IMDS. Set this to the
 #: resource the agent authenticates to (for example, the App ID URI of
@@ -137,8 +135,7 @@ class EntraManagedIdentityProvider(CallableTokenProvider):
             body = response.json()
         except ValueError as exc:
             raise CredentialAcquisitionError(
-                f"[entra-imds] IMDS returned a non-JSON body. Body preview: "
-                f"{response.text[:200]!r}"
+                f"[entra-imds] IMDS returned a non-JSON body. Body preview: {response.text[:200]!r}"
             ) from exc
 
         id_token = body.get("id_token")
@@ -210,17 +207,12 @@ def from_entra(
     """
     resolved_mode = mode
     if resolved_mode == "auto":
-        resolved_mode = (
-            "projected"
-            if os.environ.get(ENV_AZURE_FEDERATED_TOKEN_FILE)
-            else "imds"
-        )
+        resolved_mode = "projected" if os.environ.get(ENV_AZURE_FEDERATED_TOKEN_FILE) else "imds"
 
     if resolved_mode == "projected":
         return EntraProjectedTokenProvider(token_file=token_file)
     if resolved_mode == "imds":
         return EntraManagedIdentityProvider(client_id=client_id, resource=resource)
     raise ProviderConfigError(
-        f"Unknown Entra mode {mode!r}. Valid modes are 'auto', 'imds', and "
-        f"'projected'."
+        f"Unknown Entra mode {mode!r}. Valid modes are 'auto', 'imds', and 'projected'."
     )

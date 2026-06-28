@@ -182,8 +182,6 @@ def from_oidc(
         return OidcFileProvider(issuer=issuer, token_file=token_file)
 
     resolved_fn = (
-        token_fn if token_fn is not None else _make_env_var_reader(
-            cast(str, token_env_var)
-        )
+        token_fn if token_fn is not None else _make_env_var_reader(cast(str, token_env_var))
     )
     return OidcCallableProvider(issuer=issuer, token_fn=resolved_fn)
