@@ -31,7 +31,7 @@ async def _run(prompt: str) -> str:
         audience="api://internal-tools",
     )
     agent = await build_agent(
-        model="anthropic:claude-sonnet-4-5",
+        model="openai:gpt-5-mini",
         servers={},
         identity=identity,
         observe=True,

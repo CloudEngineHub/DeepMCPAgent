@@ -32,7 +32,7 @@ async def main() -> None:
     print(f"[identity] credential preview: {identity.get_credential()[:16]}…")
 
     agent = await build_agent(
-        model="anthropic:claude-sonnet-4-5",
+        model="openai:gpt-5-mini",
         servers={},
         identity=identity,
         observe=True,   # the timeline now attributes actions to "data-bot"
