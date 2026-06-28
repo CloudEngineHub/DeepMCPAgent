@@ -56,9 +56,12 @@ def test_empty_file_raises(tmp_path: Path) -> None:
 
 
 def test_directory_path_raises_os_error(tmp_path: Path) -> None:
-    # Opening a directory for read raises IsADirectoryError (an OSError).
+    # Opening a directory for read raises an OSError that the provider wraps.
+    # POSIX raises IsADirectoryError (generic OSError branch -> "could not
+    # read"); Windows raises PermissionError ([Errno 13] -> "not readable").
+    # Either way it surfaces as a CredentialAcquisitionError.
     provider = FileTokenProvider(token_file=tmp_path)
-    with pytest.raises(CredentialAcquisitionError, match="could not read"):
+    with pytest.raises(CredentialAcquisitionError, match="could not read|not readable"):
         provider.get_credential()
 
 
