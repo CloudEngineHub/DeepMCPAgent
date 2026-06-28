@@ -244,6 +244,20 @@ nav:
       - Dashboard: runtime/dashboard.md
       - CLI Commands: runtime/cli.md
 
+  - Agent Identity:
+      - Overview: identity/overview.md
+      - Quickstart: identity/quickstart.md
+      - "Guide: End-to-end": identity/guide.md
+      - Architecture: identity/architecture.md
+      - Providers:
+          - Microsoft Entra ID: identity/providers/entra.md
+          - AWS IAM: identity/providers/aws.md
+          - Google Cloud: identity/providers/gcp.md
+          - SPIFFE / SPIRE: identity/providers/spiffe.md
+          - Generic OIDC: identity/providers/oidc.md
+      - Security: identity/security.md
+      - Migration: identity/migration.md
+
   - Prompting & Context:
       - prompting/index.md
       - Building Prompts:
@@ -270,6 +284,8 @@ nav:
           - RAG: api/rag.md
           - Sandbox: api/sandbox.md
           - Observability: api/observability.md
+      - Identity:
+          - Agent Identity: api/identity.md
       - MCP:
           - MCP Server: api/mcp-server.md
           - MCP Client: api/mcp-client.md
