@@ -682,8 +682,7 @@ def test_identity_aws_sts_selects_sts_provider(tmp_path: Path) -> None:
 def test_identity_spiffe_sdk_selects_sdk_provider(tmp_path: Path) -> None:
     loader = _agent_with_identity(
         tmp_path,
-        "identity:\n  provider: spiffe\n  agent_id: s-bot\n  mode: sdk\n"
-        "  audience: api://m\n",
+        "identity:\n  provider: spiffe\n  agent_id: s-bot\n  mode: sdk\n  audience: api://m\n",
     )
     ident = loader.to_identity()
     assert ident is not None
@@ -694,9 +693,7 @@ def test_identity_auto_uses_detected_platform(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "my-project")
-    loader = _agent_with_identity(
-        tmp_path, "identity:\n  provider: auto\n  agent_id: auto-bot\n"
-    )
+    loader = _agent_with_identity(tmp_path, "identity:\n  provider: auto\n  agent_id: auto-bot\n")
     ident = loader.to_identity()
     assert ident is not None
     assert ident.credential_provider == "gcp-metadata"

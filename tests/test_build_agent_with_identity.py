@@ -49,9 +49,7 @@ async def test_build_agent_attaches_identity() -> None:
         patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
         patch.dict("sys.modules", {"deepagents": None}),
     ):
-        agent = await build_agent(
-            servers={}, model="openai:gpt-5-mini", identity=identity
-        )
+        agent = await build_agent(servers={}, model="openai:gpt-5-mini", identity=identity)
     assert isinstance(agent, PromptiseAgent)
     assert agent.identity is identity
 
@@ -111,9 +109,7 @@ async def test_build_agent_sets_actor_id() -> None:
         patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
         patch.dict("sys.modules", {"deepagents": None}),
     ):
-        agent = await build_agent(
-            servers={}, model="openai:gpt-5-mini", identity=_identity()
-        )
+        agent = await build_agent(servers={}, model="openai:gpt-5-mini", identity=_identity())
     assert agent._actor_id == "billing-bot"
 
 
@@ -150,9 +146,7 @@ async def test_verifiable_identity_is_presented_to_mcp_server() -> None:
     from promptise.config import HTTPServerSpec
 
     token = _jwt({"sub": "agent-x"})
-    identity = AgentIdentity.from_oidc(
-        "bot", issuer="https://idp", token_fn=lambda: token
-    )
+    identity = AgentIdentity.from_oidc("bot", issuer="https://idp", token_fn=lambda: token)
     captured: dict[str, Any] = {}
     with ExitStack() as stack:
         for cm in _patch_mcp(captured):
@@ -180,9 +174,7 @@ async def test_explicit_server_bearer_is_not_overridden() -> None:
             stack.enter_context(cm)
         await build_agent(
             servers={
-                "tools": HTTPServerSpec(
-                    url="https://mcp.internal", bearer_token="server-set"
-                )
+                "tools": HTTPServerSpec(url="https://mcp.internal", bearer_token="server-set")
             },
             model="openai:gpt-5-mini",
             identity=identity,
@@ -234,12 +226,8 @@ async def test_per_server_audience_scopes_the_credential() -> None:
             stack.enter_context(cm)
         await build_agent(
             servers={
-                "billing": HTTPServerSpec(
-                    url="https://billing.internal", audience="api://billing"
-                ),
-                "crm": HTTPServerSpec(
-                    url="https://crm.internal", audience="api://crm"
-                ),
+                "billing": HTTPServerSpec(url="https://billing.internal", audience="api://billing"),
+                "crm": HTTPServerSpec(url="https://crm.internal", audience="api://crm"),
             },
             model="openai:gpt-5-mini",
             identity=identity,
@@ -299,9 +287,7 @@ async def test_unreachable_idp_does_not_fail_the_build(
     assert captured["bearer_token"] is None
     assert isinstance(agent, PromptiseAgent)
     # ...and the operator is told, loudly — never a silent drop.
-    assert any(
-        "could not acquire a credential" in rec.getMessage() for rec in caplog.records
-    )
+    assert any("could not acquire a credential" in rec.getMessage() for rec in caplog.records)
 
 
 # -- Attribution: recorded events are stamped with the agent identity -----

@@ -35,9 +35,7 @@ class TestAuditIdentity:
             audience="api://mcp",
             roles={"writer", "reader"},
         )
-        ctx = RequestContext(
-            server_name="s", tool_name="t", client_id="agent-x", client=client
-        )
+        ctx = RequestContext(server_name="s", tool_name="t", client_id="agent-x", client=client)
         entry = await _audit(mw, ctx)
         assert entry["client_id"] == "agent-x"
         assert entry["identity"] == {
@@ -81,9 +79,7 @@ class TestAuditIdentity:
             issuer="https://idp",
             claims={"sub": "agent-x", "secret_claim": "sensitive-value"},
         )
-        ctx = RequestContext(
-            server_name="s", tool_name="t", client_id="agent-x", client=client
-        )
+        ctx = RequestContext(server_name="s", tool_name="t", client_id="agent-x", client=client)
         entry = await _audit(mw, ctx)
         assert "claims" not in entry["identity"]
         assert "sensitive-value" not in json.dumps(entry)

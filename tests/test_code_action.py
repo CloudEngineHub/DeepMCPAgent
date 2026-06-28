@@ -19,11 +19,11 @@ from langchain_core.tools import tool
 
 from promptise.engine import CodeActionNode, PromptGraph
 from promptise.engine.code_action import (
+    _extract_task,
+    _render_tools_module,
     extract_code,
     parse_result,
     render_api_spec,
-    _extract_task,
-    _render_tools_module,
 )
 from promptise.engine.state import GraphState
 from promptise.sandbox.session import CommandResult
@@ -76,9 +76,9 @@ class FakeSession:
     async def list_files(self, directory: str) -> list[str]:
         prefix = directory.rstrip("/") + "/"
         return [
-            p[len(prefix):]
+            p[len(prefix) :]
             for p in self.fs
-            if p.startswith(prefix) and "/" not in p[len(prefix):]
+            if p.startswith(prefix) and "/" not in p[len(prefix) :]
         ]
 
     async def cleanup(self) -> None:
@@ -158,14 +158,18 @@ async def test_happy_path_writes_runs_parses():
 
 @pytest.mark.asyncio
 async def test_repair_loop_recovers_from_crash():
-    session = FakeSession([
-        CommandResult(1, "", "NameError: name 'x' is not defined"),  # first attempt crashes
-        CommandResult(0, "RESULT: 7\n", ""),                          # repaired attempt
-    ])
-    model = FakeModel([
-        "```python\nprint(x)\n```",            # buggy
-        "```python\nprint('RESULT:', 7)\n```",  # fixed
-    ])
+    session = FakeSession(
+        [
+            CommandResult(1, "", "NameError: name 'x' is not defined"),  # first attempt crashes
+            CommandResult(0, "RESULT: 7\n", ""),  # repaired attempt
+        ]
+    )
+    model = FakeModel(
+        [
+            "```python\nprint(x)\n```",  # buggy
+            "```python\nprint('RESULT:', 7)\n```",  # fixed
+        ]
+    )
     node = CodeActionNode("reason", sandbox_factory=_factory(session), max_repairs=1)
     state = GraphState(messages=[HumanMessage(content="give 7")])
 
@@ -178,10 +182,12 @@ async def test_repair_loop_recovers_from_crash():
 
 @pytest.mark.asyncio
 async def test_exhausted_repairs_reports_error():
-    session = FakeSession([
-        CommandResult(1, "", "boom"),
-        CommandResult(1, "", "boom again"),
-    ])
+    session = FakeSession(
+        [
+            CommandResult(1, "", "boom"),
+            CommandResult(1, "", "boom again"),
+        ]
+    )
     model = FakeModel(["```python\nbad\n```", "```python\nstill bad\n```"])
     node = CodeActionNode("reason", sandbox_factory=_factory(session), max_repairs=1)
     state = GraphState(messages=[HumanMessage(content="x")])
@@ -216,7 +222,9 @@ async def test_bridge_services_a_tool_request():
 
     session = FakeSession([])
     # Pre-seed a pending request as if the in-sandbox program wrote it.
-    session.fs["/workspace/_rpc/req_abc.json"] = json.dumps({"tool": "add", "args": {"a": 1, "b": 2}})
+    session.fs["/workspace/_rpc/req_abc.json"] = json.dumps(
+        {"tool": "add", "args": {"a": 1, "b": 2}}
+    )
 
     node = CodeActionNode("reason", tools=[add], sandbox_factory=_factory(session))
     state = GraphState(messages=[])
@@ -224,9 +232,7 @@ async def test_bridge_services_a_tool_request():
 
     result = NodeResult(node_name="reason")
     stop = asyncio.Event()
-    task = asyncio.create_task(
-        node._bridge_loop(session, {"add": add}, state, {}, result, stop)
-    )
+    task = asyncio.create_task(node._bridge_loop(session, {"add": add}, state, {}, result, stop))
     # give the loop a few cycles to service the request, then stop
     for _ in range(50):
         if "/workspace/_rpc/resp_abc.done" in session.fs:
@@ -307,7 +313,9 @@ async def test_bridge_ignores_unsafe_request_id():
 
     result = NodeResult()
     stop = asyncio.Event()
-    task = asyncio.create_task(node._bridge_loop(session, {}, GraphState(messages=[]), {}, result, stop))
+    task = asyncio.create_task(
+        node._bridge_loop(session, {}, GraphState(messages=[]), {}, result, stop)
+    )
     await asyncio.sleep(0.15)
     stop.set()
     await task
