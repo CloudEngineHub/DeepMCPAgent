@@ -98,7 +98,11 @@ identity-all = [
 # Contributors only. Everything in [all] plus test runners, lint, docs tooling.
 dev = [
   "promptise[all]",
-  "promptise[identity-all]",
+  # Only boto3 is needed to run the identity tests (test_aws imports it).
+  # pyspiffe is intentionally NOT installed for dev/CI — the SPIFFE tests inject
+  # a fake module — and it drags in grpcio, which blows up pip's resolver
+  # ("resolution-too-deep"). Real SPIFFE users install promptise[identity-spiffe].
+  "promptise[identity-aws]",
   # Tests
   "pytest>=8.4",
   "pytest-asyncio>=1.1",

@@ -28,6 +28,7 @@ def docker_available():
         return True
     except Exception:
         pytest.skip("Docker not available")
+        raise AssertionError("unreachable")  # pytest.skip raises; clarifies control flow
 
 
 @pytest.fixture(scope="session")
