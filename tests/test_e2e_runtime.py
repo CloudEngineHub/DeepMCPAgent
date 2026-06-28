@@ -749,16 +749,12 @@ class TestProcessIdentity:
             seen_audiences.append(audience)
             return f"token-for-{audience}"
 
-        identity = AgentIdentity(
-            "watcher-bot", credential=CallableTokenProvider(token_fn=mint)
-        )
+        identity = AgentIdentity("watcher-bot", credential=CallableTokenProvider(token_fn=mint))
         cfg = ProcessConfig(
             model="openai:gpt-5-mini",
             identity=identity,
             servers={
-                "data": HTTPServerSpec(
-                    url="https://data.internal/mcp", audience="api://data"
-                )
+                "data": HTTPServerSpec(url="https://data.internal/mcp", audience="api://data")
             },
         )
         process = AgentProcess("watcher", cfg)

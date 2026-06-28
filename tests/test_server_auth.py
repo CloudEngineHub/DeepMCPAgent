@@ -243,9 +243,7 @@ _OTHER_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
 def _mint(claims: dict, *, key=None) -> str:
-    return pyjwt.encode(
-        claims, key or _JWKS_PRIVATE_KEY, algorithm="RS256", headers={"kid": "k1"}
-    )
+    return pyjwt.encode(claims, key or _JWKS_PRIVATE_KEY, algorithm="RS256", headers={"kid": "k1"})
 
 
 class _StubJwkClient:
@@ -262,9 +260,7 @@ class _StubJwkClient:
 
 
 def _jwks_auth(*, audience="api://mcp", issuer=None, fail_keys=False) -> JwksAuth:
-    auth = JwksAuth(
-        jwks_url="https://idp.example.com/jwks", audience=audience, issuer=issuer
-    )
+    auth = JwksAuth(jwks_url="https://idp.example.com/jwks", audience=audience, issuer=issuer)
     auth._jwk_client = _StubJwkClient(_JWKS_PUBLIC_KEY, fail=fail_keys)
     return auth
 
@@ -275,9 +271,7 @@ class TestJwksAuth:
         token = _mint(
             {"sub": "spiffe://acme/billing-bot", "aud": "api://mcp", "iss": "https://idp"}
         )
-        ctx = RequestContext(
-            server_name="t", meta={"authorization": f"Bearer {token}"}
-        )
+        ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
         assert await auth.authenticate(ctx) == "spiffe://acme/billing-bot"
         assert ctx.state["_jwt_payload"]["sub"] == "spiffe://acme/billing-bot"
 
@@ -307,9 +301,7 @@ class TestJwksAuth:
     async def test_expired_token_rejected(self) -> None:
         # Expired well beyond the clock-skew leeway (default 60s).
         auth = _jwks_auth()
-        token = _mint(
-            {"sub": "bot", "aud": "api://mcp", "exp": int(time.time()) - 300}
-        )
+        token = _mint({"sub": "bot", "aud": "api://mcp", "exp": int(time.time()) - 300})
         ctx = RequestContext(server_name="t", meta={"authorization": f"Bearer {token}"})
         with pytest.raises(AuthenticationError, match="expired"):
             await auth.authenticate(ctx)
@@ -349,10 +341,7 @@ class TestJwksAuth:
     def test_verify_token_bool(self) -> None:
         auth = _jwks_auth()
         assert auth.verify_token(_mint({"sub": "bot", "aud": "api://mcp"})) is True
-        assert (
-            auth.verify_token(_mint({"sub": "bot", "aud": "api://mcp"}, key=_OTHER_KEY))
-            is False
-        )
+        assert auth.verify_token(_mint({"sub": "bot", "aud": "api://mcp"}, key=_OTHER_KEY)) is False
 
     async def test_middleware_surfaces_agent_identity(self) -> None:
         """The validated agent identity (sub + claims) lands on ctx.client so

@@ -151,17 +151,23 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
 
     def on_llm_new_token(
         self,
-        token: str,
+        token: str | list[str | dict[str, Any]],
         *,
         run_id: UUID,
         **kwargs: Any,
     ) -> None:
-        """Capture streaming tokens (FULL level only)."""
+        """Capture streaming tokens (FULL level only).
+
+        ``token`` is typed to match LangChain-core's ``LLMManagerMixin`` base,
+        which widened it from ``str`` to ``str | list[str | dict]`` in the 1.x
+        line. The wider annotation satisfies the override contract on both the
+        0.3.x and 1.x major versions.
+        """
         if self.level != ObserveLevel.FULL:
             return
 
         tokens = self._streaming_tokens.setdefault(run_id, [])
-        tokens.append(token)
+        tokens.append(token if isinstance(token, str) else str(token))
 
     def on_llm_end(
         self,
