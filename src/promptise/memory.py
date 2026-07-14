@@ -1009,18 +1009,22 @@ class MemoryAgent:
         self._auto_store = auto_store
 
     def _caller_user_id(self) -> str | None:
-        """Best-effort lookup of the current CallerContext's ``user_id``.
+        """Best-effort lookup of the current caller's isolation key.
 
-        Imported lazily to avoid a circular import with :mod:`agent`.
-        Returns ``None`` when no invocation is active or no caller was
-        supplied.
+        Returns :attr:`CallerContext.isolation_key` (``tenant::user`` when
+        a tenant is set, else the plain ``user_id``) so memory scoping is
+        tenant-isolated by construction.  Imported lazily to avoid a
+        circular import with :mod:`agent`.  Returns ``None`` when no
+        invocation is active or no caller was supplied.
         """
         try:
             from .agent import get_current_caller
         except Exception:  # pragma: no cover — defensive
             return None
         caller = get_current_caller()
-        return getattr(caller, "user_id", None) if caller is not None else None
+        if caller is None:
+            return None
+        return getattr(caller, "isolation_key", None) or getattr(caller, "user_id", None)
 
     async def _search_memory(self, query: str) -> list[MemoryResult]:
         """Search memory with timeout and graceful degradation."""

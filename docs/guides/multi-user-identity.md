@@ -200,6 +200,41 @@ await agent.chat("What did I ask last time?",
 | Guardrails | Scan results tagged with `caller.user_id` for audit |
 | Observability | Traces include `caller.user_id` for per-user debugging |
 
+### Continuity across cross-agent delegation
+
+The caller survives delegation hops. When an agent handling Alice's request
+delegates to a peer via `ask_peer` / `broadcast`, the peer's `ainvoke()`
+**inherits the ambient `CallerContext`** (unless an explicit `caller=` is
+passed), so the peer's cache scoping, memory search, guardrail tagging, and
+conversation ownership all remain attributed to Alice — the original human
+principal — rather than running unattributed:
+
+```python
+# Outer agent runs as Alice ...
+await orchestrator.ainvoke({"messages": [...]}, caller=alice)
+# ... and any peer it delegates to sees the same principal:
+# get_current_caller() inside the peer's run returns `alice`.
+```
+
+Passing an explicit `caller=` to a peer still takes precedence — inheritance
+only fills the gap when no caller is supplied.
+
+### Tenant isolation
+
+Add `tenant_id` to make every isolation surface tenant-scoped — the table
+above then keys on `tenant::user` instead of the bare `user_id`, so two
+tenants with the same `user_id` are fully isolated:
+
+```python
+acme_alice   = CallerContext(user_id="alice", tenant_id="acme")
+globex_alice = CallerContext(user_id="alice", tenant_id="globex")  # sees NOTHING of acme
+```
+
+Server-side, `AuthMiddleware(auth, tenant_claim="tenant_id")` extracts the
+tenant from the JWT into `ctx.client.tenant_id`, where rate limits, audit
+entries, and the `RequireTenant`/`HasTenant` guards read it. Full guide:
+[Multi-Tenancy](../mcp/server/multi-tenancy.md).
+
 ## JWT Token Structure
 
 The JWT must contain at minimum a `sub` claim (subject = user ID). Optional claims:

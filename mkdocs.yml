@@ -197,6 +197,8 @@ nav:
           - Server Fundamentals: mcp/server/building-servers.md
           - Routers & Middleware: mcp/server/routers-middleware.md
           - Authentication & Security: mcp/server/auth-security.md
+          - Multi-Tenancy: mcp/server/multi-tenancy.md
+          - Approval Gates (HITL): mcp/server/approval-gates.md
           - Production Features: mcp/server/production-features.md
           - Caching & Performance: mcp/server/caching-performance.md
           - Observability & Monitoring: mcp/server/observability.md

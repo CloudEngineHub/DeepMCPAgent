@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 — 2026-07-08
 
 ### Identity
 
@@ -19,6 +19,24 @@
 - **`context_scope="scoped"` on `PromptNode`** — context-lifecycle management: a scoped stage sees only its working set (system prompt + task + its own tool loop), not the whole transcript, bounding token growth across multi-stage reasoning graphs. Opt-in; `default="full"` preserves existing behavior.
 - **`managed` tool pattern + `context_scope="ledger"`** — `build_agent(agent_pattern="managed")`: a context-managed tool loop for deep multi-tool tasks. Instead of an ever-growing transcript (where the model re-queries the same facts), the node keeps a compact deduplicated "facts gathered" ledger and serves identical `(tool, args)` calls from cache. Cuts redundant tool calls and bounds token growth at equal accuracy — an efficiency primitive, not an accuracy claim.
 - **Fix: routing-hint noise** — linear nodes (single `default_next`, no real branch) no longer receive a spurious "choose the next step" instruction that weaker models could emit as their answer.
+
+### MCP Server
+
+- **First-class multi-tenancy** — `tenant_id` becomes a structural isolation invariant across the stack. Server side: `ClientContext.tenant_id` populated by `AuthMiddleware` from a configurable JWT claim (default `tenant_id`) or the API-key config; tenant-qualified rate-limit buckets (one tenant's traffic can never exhaust another's quota); `tenant_id` in every audit entry; `RequireTenant`/`HasTenant` guards; and `MCPServer(require_tenant=True)` to force authentication + tenant identity on every tool. Agent side: `CallerContext.tenant_id` + one derivation (`isolation_key`, `tenant::user`) feeds semantic-cache scope keys, memory scoping, and conversation ownership — two tenants with the same `user_id` can never see each other's data (`SessionAccessDenied` on cross-tenant session access, structurally impossible cache hits, provider-level memory isolation). `SemanticCache.purge_user(user_id, tenant_id=...)` purges exactly the tenant's scope.
+- **Server-side approval gates (HITL where the tool lives)** — `@server.tool(requires_approval=True)` + `ApprovalGateMiddleware` enforce human approval for **any** MCP client, not just Promptise agents. Fail-closed semantics: denied by default on timeout, denied on handler crash, denied if a decision carries `modified_arguments` (the gate cannot rewrite bound arguments). An ungated `requires_approval` declaration **refuses to build** rather than silently not enforcing. Three approvers: `PendingApprover` (blocking pending store + auto-registered role-guarded `approvals_list`/`approvals_decide` admin tools — independent four-eyes review with **enforced separation of duties**: a caller cannot approve their own request), `ElicitationApprover` (MCP elicitation confirms with the human behind the calling client; denies fail-closed without a live session), and any existing `promptise.approval` handler (callback, HMAC-signed webhook) via the shared `ApprovalRequest`/`ApprovalDecision`/`ApprovalHandler` protocol. The gate evaluates the tool's guards **before** requesting approval (unauthorized callers never reach a reviewer), and `requires_approval` survives `include_router`/`mount` composition. Approval requests carry client id, tenant, and JWT subject; outcomes surface as structured `APPROVAL_DENIED` errors visible to the audit chain.
+
+### Dependencies & CI
+
+- **Eight Dependabot updates consolidated** into this single release and tested together, so the whole upgrade lands and verifies as one unit rather than eight separate merges — pydantic ≥2.13.3, cryptography ≥46, orjson ≥3.11.8, numpy ≥2.2.6, and the latest langchain / langchain-openai lines, plus GitHub Actions bumps (checkout v7, setup-python v6, codecov v7, codeql v4).
+- **Verified against the latest majors a clean install resolves** — langchain **1.x** (langchain-core 1.4.8), numpy 2.5, mypy 2.x, pytest 9.x — the framework is runtime-compatible (full suite green) with **no dependency caps**. Compatibility fixes: dependency-resolution unblock (drop `pyspiffe` → `grpcio` from the `dev` extra), an import-cycle break (`cross_agent` ↔ `observability`), a numpy-2.x stub `mypy` override, and a widened `on_llm_new_token` override for langchain-core 1.x.
+- **Cross-platform CI green** — two POSIX-only identity tests made platform-agnostic for Windows; the real-model ML-guardrail tests are skipped on **macOS hosted CI only** (gated on `darwin && $CI`), where the DeBERTa injection scores flap below the 0.85 threshold — they still run on Linux CI, Windows CI, and local macOS dev. The full 30-check matrix passes.
+
+### Fixed
+
+- **CLI: `promptise serve` now ships** — the documented deployment command (`promptise serve myapp:server --transport http --port 8080 --dashboard --reload`) existed in the docs but was never registered in the CLI. It now resolves the `module:attribute` target, validates it is an `MCPServer`, and serves over stdio / HTTP / SSE, with `--dashboard` and `--reload` support and clean stderr errors (stdout stays protocol-clean for stdio).
+- **MCP server: declared per-tool rate limits are enforced** — `@server.tool(rate_limit="100/min")` was accepted and stored but never read. The spec is now parsed at registration (a malformed spec raises `ValueError` immediately) and enforced automatically via an auto-inserted middleware — per client when authentication populates `client_id`, a shared bucket otherwise — raising `RateLimitError` with a `retry_after_seconds` hint. `TestClient` enforces the same contract. New public API: `parse_rate_limit`, `DeclaredRateLimitMiddleware`.
+- **Core: `CallerContext` survives cross-agent delegation** — a peer agent invoked via `ask_peer`/`broadcast` overwrote the ambient caller with `None`, dropping the original user's identity at every delegation hop. `PromptiseAgent.ainvoke` now inherits the ambient `CallerContext` when no explicit `caller` is passed, so a peer's cache scoping, memory search, guardrail tagging, and conversation ownership stay attributed to the original human principal (an explicit `caller=` still takes precedence).
+- **Docs: removed the phantom `AgentAccessPolicy`** — design docs referenced a class that never existed in the codebase. Replaced with the real layered access-control model: transport-level auth providers, per-tool `Guard`s, per-request `CallerContext`, and runtime `OpenModeConfig` guardrails.
 
 ## 1.0.0 — 2026-03-26
 

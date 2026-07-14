@@ -131,6 +131,32 @@ class RateLimitError(MCPError):
         super().__init__(message, **kwargs)
 
 
+class ApprovalDeniedError(MCPError):
+    """Raised when a server-side approval gate denies (or times out on) a call.
+
+    Emitted by ``ApprovalGateMiddleware`` for tools declared with
+    ``requires_approval=True``.  Not retryable by default: retrying would
+    re-request the same approval a human just denied.
+    """
+
+    def __init__(
+        self,
+        message: str = "Approval denied",
+        *,
+        request_id: str | None = None,
+        reviewer_id: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        kwargs.setdefault("code", "APPROVAL_DENIED")
+        kwargs.setdefault("retryable", False)
+        details = kwargs.setdefault("details", {})
+        if request_id is not None:
+            details.setdefault("approval_request_id", request_id)
+        if reviewer_id is not None:
+            details.setdefault("reviewer_id", reviewer_id)
+        super().__init__(message, **kwargs)
+
+
 class ValidationError(MCPError):
     """Raised when input validation fails."""
 

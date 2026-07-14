@@ -24,10 +24,9 @@ Example::
 from __future__ import annotations
 
 import asyncio
-import inspect
 import json
 import logging
-from typing import Any, get_type_hints
+from typing import Any
 
 from mcp.types import (
     GetPromptResult,
@@ -99,6 +98,12 @@ class TestClient:
     def __init__(self, server: Any, *, meta: dict[str, Any] | None = None) -> None:
         self._server = server
         self._meta = meta or {}
+        # Parity with the live server, which auto-inserts declared per-tool
+        # rate-limit enforcement at build time. One persistent instance per
+        # TestClient so token buckets accumulate across calls like production.
+        from ._rate_limit import DeclaredRateLimitMiddleware
+
+        self._declared_rate_limiter = DeclaredRateLimitMiddleware()
 
     # ------------------------------------------------------------------
     # Tool operations
@@ -124,7 +129,33 @@ class TestClient:
             headers: Simulated HTTP headers (e.g. ``{"x-api-key": "..."}``).
                 Merged with client-level meta (headers take precedence).
         """
+        # Tenant invariant parity with the live build path
+        if getattr(self._server, "_require_tenant", False):
+            self._server._apply_require_tenant()
+
         tdef = self._server._tool_registry.get(name)
+
+        # Approval invariant parity: an ungated requires_approval tool is a
+        # configuration error — the live server refuses to build, so raise
+        # here too (outside the error-serialising pipeline: this must crash
+        # the test, not masquerade as a tool error response).
+        if tdef is not None and getattr(tdef, "requires_approval", False):
+            from ._approval_gate import ApprovalGateMiddleware
+
+            # Covered by a server-level OR a router-level gate (both compile
+            # into the per-tool chain) — parity with the live build invariant.
+            covered = any(
+                isinstance(m, ApprovalGateMiddleware) for m in self._server._middlewares
+            ) or any(
+                isinstance(m, ApprovalGateMiddleware)
+                for m in getattr(tdef, "router_middleware", [])
+            )
+            if not covered:
+                raise RuntimeError(
+                    f"Tool {name!r} declares requires_approval=True but no "
+                    "ApprovalGateMiddleware is installed on the server."
+                )
+
         if tdef is None:
             return [
                 TextContent(
@@ -166,6 +197,10 @@ class TestClient:
             if model is not None:
                 arguments = validate_arguments(model, arguments)
 
+            # Snapshot validated user args for middleware (approval gate),
+            # before DI injects framework objects — parity with the live path
+            ctx.state["_tool_arguments"] = dict(arguments)
+
             # 2) Resolve dependency injection
             arguments = await di_resolver.resolve(tdef.handler, arguments)
 
@@ -182,6 +217,13 @@ class TestClient:
 
             # 3) Build middleware chain: server-level + router-level
             all_mw = list(self._server._middlewares)
+            # Enforce a declared @server.tool(rate_limit=...) exactly like the
+            # live server (auto-inserted, guard against a user-installed copy)
+            if tdef.rate_limit:
+                from ._rate_limit import DeclaredRateLimitMiddleware
+
+                if not any(isinstance(m, DeclaredRateLimitMiddleware) for m in all_mw):
+                    all_mw.append(self._declared_rate_limiter)
             if tdef.router_middleware:
                 all_mw.extend(tdef.router_middleware)
 
@@ -407,24 +449,9 @@ class TestClient:
 # ------------------------------------------------------------------
 
 
-def _inject_context(
-    handler: Any,
-    arguments: dict[str, Any],
-    ctx: RequestContext,
-) -> dict[str, Any]:
-    """Inject ``RequestContext`` into handler kwargs for parameters typed as such."""
-    sig = inspect.signature(handler)
-    hints: dict[str, Any] = {}
-    try:
-        hints = get_type_hints(handler)
-    except Exception:
-        logger.debug("Failed to get type hints for handler %s", handler, exc_info=True)
-
-    for pname, param in sig.parameters.items():
-        ann = hints.get(pname, param.annotation)
-        if ann is RequestContext and pname not in arguments:
-            arguments[pname] = ctx
-    return arguments
+# Shared with the live transports (_app.py) so injection is identical on
+# every path — no test/prod divergence.
+from ._context import inject_context as _inject_context
 
 
 async def _invoke_handler(handler: Any, arguments: dict[str, Any]) -> Any:

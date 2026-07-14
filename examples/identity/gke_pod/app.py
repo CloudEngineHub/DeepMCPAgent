@@ -35,7 +35,7 @@ async def main() -> None:
         model="openai:gpt-5-mini",
         servers={},
         identity=identity,
-        observe=True,   # the timeline now attributes actions to "data-bot"
+        observe=True,  # the timeline now attributes actions to "data-bot"
     )
     result = await agent.ainvoke(
         {"messages": [{"role": "user", "content": "Say hello in one sentence."}]}

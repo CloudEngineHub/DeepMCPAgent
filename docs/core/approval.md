@@ -2,6 +2,15 @@
 
 Require human approval before executing sensitive tool calls. The agent pauses, sends an approval request to a human reviewer, and waits for a decision before proceeding or adapting.
 
+!!! info "Server-side approval gates"
+    This page covers **agent-side** approval — governance the agent applies to
+    its own tool calls. To enforce approval **where the tool lives**, for any
+    MCP client (declared with `@server.tool(requires_approval=True)` and
+    enforced by `ApprovalGateMiddleware`), see
+    [Approval Gates (Server-Side HITL)](../mcp/server/approval-gates.md).
+    Both share the same `ApprovalRequest` / `ApprovalDecision` /
+    `ApprovalHandler` protocol, so handlers written for one work with the other.
+
 ```python
 from promptise import build_agent, ApprovalPolicy, CallbackApprovalHandler, ApprovalDecision
 
