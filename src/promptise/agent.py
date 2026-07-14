@@ -35,6 +35,11 @@ class CallerContext:
     Attributes:
         user_id: Unique user identifier.  Used for conversation session
             ownership and observability correlation.
+        tenant_id: Organisation / tenant the caller belongs to.  When set,
+            it becomes part of :attr:`isolation_key`, so every per-user
+            isolation surface (semantic cache, memory search, conversation
+            ownership) is scoped per tenant — two tenants with the same
+            ``user_id`` can never see each other's data.
         bearer_token: JWT or OAuth token for the caller.  Currently
             available for guardrails and logging; MCP token forwarding
             is a planned enhancement.
@@ -47,6 +52,7 @@ class CallerContext:
 
         caller = CallerContext(
             user_id="user-42",
+            tenant_id="acme",
             bearer_token="eyJhbGciOiJIUzI1NiIs...",
             roles={"analyst"},
         )
@@ -55,10 +61,54 @@ class CallerContext:
     """
 
     user_id: str | None = None
+    tenant_id: str | None = None
     bearer_token: str | None = field(default=None, repr=False)
     roles: set[str] = field(default_factory=set)
     scopes: set[str] = field(default_factory=set)
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def isolation_key(self) -> str | None:
+        """The identity key used for every per-user isolation surface.
+
+        ``"{tenant_id}::{user_id}"`` when a tenant is set, otherwise the
+        plain ``user_id``.  This single derivation is what the semantic
+        cache, memory scoping, and conversation ownership all key on, so
+        tenant isolation is a structural invariant rather than a
+        convention.  ``None`` when ``user_id`` is unset.
+        """
+        if self.user_id is None:
+            return None
+        if self.tenant_id:
+            return f"{self.tenant_id}::{self.user_id}"
+        return self.user_id
+
+    def __post_init__(self) -> None:
+        # ``isolation_key`` joins tenant and user as ``f"{tenant}::{user}"``.
+        # Rejecting only the ``"::"`` *substring* in each component is NOT
+        # enough — the join can still *synthesize* a ``::`` at the boundary
+        # when the tenant ends with ``:`` and the user starts with ``:``
+        # (``"a" + "::" + ":b"`` == ``"a:" + "::" + "b"`` == ``"a:::b"``), so
+        # two distinct pairs would collide. To make the map injective we
+        # require the tenant to be **colon-free** (the first ``:`` then
+        # unambiguously starts the separator) and forbid ``"::"`` in the user
+        # (so the tenanted keyspace — always containing ``::`` — stays
+        # disjoint from the untenanted one, a raw user_id). This is what makes
+        # cross-tenant isolation structural rather than advisory. Single
+        # colons in ``user_id`` (SSO ids like ``google:12345``) remain fine.
+        if self.tenant_id is not None:
+            if not self.tenant_id.strip():
+                raise ValueError("tenant_id must be non-empty when provided")
+            if ":" in self.tenant_id:
+                raise ValueError(
+                    f"tenant_id must not contain ':' (got {self.tenant_id!r}) — "
+                    "it delimits the tenant isolation key"
+                )
+        if self.user_id is not None and "::" in self.user_id:
+            raise ValueError(
+                f"user_id must not contain '::' (got {self.user_id!r}) — "
+                "it is the tenant isolation-key separator"
+            )
 
 
 # Thread/async-safe per-request caller context.
@@ -266,7 +316,12 @@ class PromptiseAgent:
             caller: Optional :class:`CallerContext` with per-request
                 identity.  When provided, ``user_id`` is used for
                 conversation ownership and the full context is
-                available to guardrails and observability.
+                available to guardrails and observability.  When omitted,
+                the ambient ``CallerContext`` (if one is already active in
+                this task) is inherited, so cross-agent delegation keeps
+                the original human principal: a peer invoked inside
+                another agent's request scopes its cache, memory,
+                guardrails, and conversations to the original user.
 
         When memory is enabled, relevant context is searched and injected
         as a ``SystemMessage`` before the inner graph runs.  When
@@ -274,7 +329,13 @@ class PromptiseAgent:
         capture every LLM turn, tool call, and token count.
         """
         # Store caller in async-safe contextvar (not on instance — avoids
-        # race conditions when multiple concurrent ainvoke() share one agent)
+        # race conditions when multiple concurrent ainvoke() share one agent).
+        # Inherit the ambient CallerContext when no explicit caller is given:
+        # without this, a peer agent invoked mid-delegation would overwrite
+        # the active context with None and the original user's identity would
+        # be dropped at every cross-agent hop.
+        if caller is None:
+            caller = _caller_ctx_var.get()
         _ctx_token = _caller_ctx_var.set(caller)
         try:
             # Enforce max_invocation_time if configured
@@ -1163,7 +1224,9 @@ class PromptiseAgent:
             return []
         assert self.provider is not None  # guarded by caller
         caller = get_current_caller()
-        user_id = caller.user_id if caller is not None else None
+        # Memory scoping keys on the isolation key (tenant::user) so tenants
+        # with identical user ids never share memories.
+        user_id = caller.isolation_key if caller is not None else None
         try:
             results = await asyncio.wait_for(
                 self.provider.search(query, limit=self._memory_max, user_id=user_id),
@@ -1190,7 +1253,9 @@ class PromptiseAgent:
         from .memory import _extract_user_text
 
         caller = get_current_caller()
-        user_id = caller.user_id if caller is not None else None
+        # Memory scoping keys on the isolation key (tenant::user) so tenants
+        # with identical user ids never share memories.
+        user_id = caller.isolation_key if caller is not None else None
         output_text = _extract_user_text(output)
         content = f"User: {user_text}\nAssistant: {output_text}"
         try:
@@ -1271,7 +1336,10 @@ class PromptiseAgent:
 
         # Resolve user_id: caller takes precedence over explicit user_id
         if caller is not None and caller.user_id is not None:
-            user_id = caller.user_id
+            # Ownership keys on the isolation key (tenant::user when a
+            # tenant is set) so sessions can never cross tenants even for
+            # identical user ids.
+            user_id = caller.isolation_key
 
         # Step 1: Ownership check — before loading messages
         is_new_session = True

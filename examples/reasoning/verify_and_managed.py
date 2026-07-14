@@ -157,8 +157,10 @@ async def demo_managed() -> None:
     result = await agent.ainvoke({"messages": [{"role": "user", "content": question}]})
     answer, tool_calls = _print_answer(result)
     print(f"  {GREEN}{answer}{RESET}")
-    print(f"  {DIM}(expected: 635000 — {tool_calls} tool calls; the ledger "
-          f"prevents re-querying the same employees){RESET}")
+    print(
+        f"  {DIM}(expected: 635000 — {tool_calls} tool calls; the ledger "
+        f"prevents re-querying the same employees){RESET}"
+    )
     await agent.shutdown()
 
 

@@ -705,3 +705,84 @@ cross_agents:
     except Exception as exc:
         console.print(f"[red]Failed to write file:[/red] {exc}")
         raise typer.Exit(1)
+
+
+@app.command()
+def serve(
+    target: Annotated[
+        str,
+        typer.Argument(help="Server target as 'module.path:attribute' (e.g. myapp.server:server)"),
+    ],
+    transport: Annotated[
+        str,
+        typer.Option("--transport", "-t", help="Transport type: stdio, http, or sse"),
+    ] = "stdio",
+    host: Annotated[
+        str,
+        typer.Option("--host", help="Bind host for HTTP/SSE"),
+    ] = "127.0.0.1",
+    port: Annotated[
+        int,
+        typer.Option("--port", "-p", help="Bind port for HTTP/SSE"),
+    ] = 8080,
+    dashboard: Annotated[
+        bool,
+        typer.Option("--dashboard", help="Enable the live terminal dashboard (http/sse only)"),
+    ] = False,
+    reload: Annotated[
+        bool,
+        typer.Option("--reload", help="Hot-reload on source changes (development only)"),
+    ] = False,
+) -> None:
+    """Run an MCP server from a Python module.
+
+    Imports the ``module:attribute`` target, validates it is an
+    ``MCPServer``, and serves it over the chosen transport — the MCP
+    equivalent of ``uvicorn myapp:app``.
+
+    Examples:
+        promptise serve myapp.server:server
+        promptise serve myapp.server:server --transport http --port 8080
+        promptise serve myapp.server:server -t http --dashboard
+        promptise serve myapp.server:server -t http --reload
+    """
+    import argparse as _argparse
+
+    from .mcp.server import MCPServer
+    from .mcp.server._serve_cli import resolve_server, run_serve
+
+    if transport not in ("stdio", "http", "sse"):
+        raise typer.BadParameter(
+            f"Invalid transport {transport!r}: must be one of stdio, http, sse"
+        )
+
+    try:
+        server = resolve_server(target)
+    except (ValueError, ImportError, AttributeError) as exc:
+        # stderr: with the stdio transport, stdout is the MCP protocol stream
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    if not isinstance(server, MCPServer):
+        typer.echo(
+            f"Error: {target!r} resolved to {type(server).__name__}, not an MCPServer instance",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    if dashboard and transport == "stdio":
+        typer.echo(
+            "Warning: --dashboard has no effect with the stdio transport "
+            "(the terminal is the protocol stream); use --transport http or sse.",
+            err=True,
+        )
+
+    args = _argparse.Namespace(
+        target=target,
+        transport=transport,
+        host=host,
+        port=port,
+        dashboard=dashboard,
+        reload=reload,
+    )
+    run_serve(args, server=server)

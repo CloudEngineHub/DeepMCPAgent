@@ -104,42 +104,60 @@ async def main() -> None:
         )
         print(f"  {CYAN}agent{RESET}   is_verifiable={identity.is_verifiable}")
         header = identity.auth_header(AUDIENCE)  # the agent presents this to the server
-        print(f"  {CYAN}agent{RESET}   presents Authorization: Bearer <jwt>  "
-              f"{DIM}({len(header['Authorization'])} chars){RESET}")
+        print(
+            f"  {CYAN}agent{RESET}   presents Authorization: Bearer <jwt>  "
+            f"{DIM}({len(header['Authorization'])} chars){RESET}"
+        )
 
         # ── 3. SERVER side ───────────────────────────────────────────────────
         # The MCP server is configured with JwksAuth for the resource it
         # represents. It fetches the JWKS, verifies signature+audience+expiry,
         # and surfaces the verified subject.
         auth = JwksAuth(jwks_url=jwks_url, audience=AUDIENCE, issuer=ISSUER)
-        ctx = RequestContext(server_name="billing-mcp", meta={"authorization": header["Authorization"]})
+        ctx = RequestContext(
+            server_name="billing-mcp", meta={"authorization": header["Authorization"]}
+        )
         subject = await auth.authenticate(ctx)
-        print(f"  {CYAN}server{RESET}  JwksAuth verified the token → subject = {BOLD}{subject}{RESET}")
+        print(
+            f"  {CYAN}server{RESET}  JwksAuth verified the token → subject = {BOLD}{subject}{RESET}"
+        )
 
         # The server now knows *which agent* called and can authorize it. In a
         # real MCPServer you wire JwksAuth + a RequireClientId / role guard and
         # the middleware enforces it per tool; here we authorize the verified
         # subject directly against an allow-list.
         allow_list = {"billing-bot", "reporting-bot"}
-        print(f"  {CYAN}server{RESET}  authorize subject against {allow_list} → "
-              f"{GREEN + 'allowed' + RESET if subject in allow_list else RED + 'denied' + RESET}")
+        print(
+            f"  {CYAN}server{RESET}  authorize subject against {allow_list} → "
+            f"{GREEN + 'allowed' + RESET if subject in allow_list else RED + 'denied' + RESET}"
+        )
 
         # ── Show the negative case: a forged/wrong-audience token is rejected ─
         bad = jwt.encode(
-            {"sub": "evil-bot", "aud": "api://something-else", "iss": ISSUER,
-             "exp": int(time.time()) + 300},
-            _KEY, algorithm="RS256", headers={"kid": KID},
+            {
+                "sub": "evil-bot",
+                "aud": "api://something-else",
+                "iss": ISSUER,
+                "exp": int(time.time()) + 300,
+            },
+            _KEY,
+            algorithm="RS256",
+            headers={"kid": KID},
         )
         bad_ctx = RequestContext(server_name="billing-mcp", meta={"authorization": f"Bearer {bad}"})
         try:
             await auth.authenticate(bad_ctx)
             print(f"  {RED}server  wrong-audience token was accepted (unexpected!){RESET}")
         except Exception as exc:  # noqa: BLE001 — demo
-            print(f"  {CYAN}server{RESET}  wrong-audience token {GREEN}rejected{RESET} "
-                  f"{DIM}({type(exc).__name__}){RESET}")
+            print(
+                f"  {CYAN}server{RESET}  wrong-audience token {GREEN}rejected{RESET} "
+                f"{DIM}({type(exc).__name__}){RESET}"
+            )
 
-        print(f"\n{GREEN}✓{RESET} The MCP server cryptographically verified and attributed the agent — "
-              f"no shared secret, no self-asserted id.\n")
+        print(
+            f"\n{GREEN}✓{RESET} The MCP server cryptographically verified and attributed the agent — "
+            f"no shared secret, no self-asserted id.\n"
+        )
     finally:
         jwks_server.shutdown()
 

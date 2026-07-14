@@ -140,10 +140,12 @@ Build production-ready MCP servers using the same patterns you know from web fra
 | **Routers** | Group tools by domain with `MCPRouter`, apply shared auth/tags/guards |
 | **Middleware chain** | Logging, timeouts, rate limiting, custom middleware in onion layers |
 | **Authentication** | JWT (`JWTAuth`), API key (`APIKeyAuth`), custom providers |
-| **Guards** | `RequireAuth`, `HasRole`, `HasAllRoles`, `RequireClientId`, custom guards |
+| **Guards** | `RequireAuth`, `HasRole`, `HasAllRoles`, `RequireClientId`, `RequireTenant`, `HasTenant`, custom guards |
 | **Dependency injection** | `Depends()` for database connections, settings, cleanup |
 | **Caching** | `@cached` decorator with `InMemoryCache` or custom backends |
-| **Rate limiting** | `RateLimitMiddleware` with `TokenBucketLimiter`, per-tool granularity |
+| **Rate limiting** | `RateLimitMiddleware` with `TokenBucketLimiter`, per-tool granularity; declared `rate_limit="100/min"` enforced automatically |
+| **Multi-tenancy** | `ClientContext.tenant_id` from a configurable JWT claim; tenant-scoped rate limits + audit, `RequireTenant`/`HasTenant` guards, `require_tenant=True` invariant |
+| **Approval gates (HITL)** | `requires_approval=True` + `ApprovalGateMiddleware` — human approval enforced server-side for any client; pending-queue admin tools, elicitation, callbacks |
 | **Health checks** | Liveness and readiness probes via `HealthCheck` |
 | **Metrics** | `MetricsCollector` with per-tool call counts, error rates, latency |
 | **Dashboard** | Live terminal UI with tool stats, agent activity, and logs |

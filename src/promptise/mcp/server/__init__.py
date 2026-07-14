@@ -17,6 +17,11 @@ Example::
 """
 
 from ._app import MCPServer
+from ._approval_gate import (
+    ApprovalGateMiddleware,
+    ElicitationApprover,
+    PendingApprover,
+)
 from ._audit import AuditMiddleware
 from ._auth import (
     APIKeyAuth,
@@ -47,6 +52,7 @@ from ._dashboard import Dashboard, DashboardMiddleware, DashboardState
 from ._di import Depends
 from ._elicitation import Elicitor
 from ._errors import (
+    ApprovalDeniedError,
     AuthenticationError,
     MCPError,
     PromptError,
@@ -62,8 +68,10 @@ from ._guards import (
     HasAllScopes,
     HasRole,
     HasScope,
+    HasTenant,
     RequireAuth,
     RequireClientId,
+    RequireTenant,
 )
 from ._health import HealthCheck
 from ._hot_reload import hot_reload
@@ -81,7 +89,12 @@ from ._otel import OTelMiddleware
 from ._progress import ProgressReporter
 from ._prometheus import PrometheusMiddleware
 from ._queue import InMemoryQueueBackend, MCPQueue, QueueBackend
-from ._rate_limit import RateLimitMiddleware, TokenBucketLimiter
+from ._rate_limit import (
+    DeclaredRateLimitMiddleware,
+    RateLimitMiddleware,
+    TokenBucketLimiter,
+    parse_rate_limit,
+)
 from ._redis_cache import RedisCache
 from ._router import MCPRouter
 from ._sampling import Sampler
@@ -141,6 +154,8 @@ __all__ = [
     "HasRole",
     "HasAllRoles",
     "HasScope",
+    "HasTenant",
+    "RequireTenant",
     "HasAllScopes",
     "RequireClientId",
     # Concurrency
@@ -149,6 +164,12 @@ __all__ = [
     # Rate limiting
     "TokenBucketLimiter",
     "RateLimitMiddleware",
+    "DeclaredRateLimitMiddleware",
+    "parse_rate_limit",
+    "ApprovalGateMiddleware",
+    "PendingApprover",
+    "ElicitationApprover",
+    "ApprovalDeniedError",
     # Health
     "HealthCheck",
     # Observability

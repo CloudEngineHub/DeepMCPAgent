@@ -257,4 +257,9 @@ class TestFullPipeline:
         ll = server._build_lowlevel_server()
         assert ll.name == "production"
         assert len(server._tool_registry) == 2
-        assert len(server._middlewares) == 4
+        # 4 explicitly installed + DeclaredRateLimitMiddleware auto-inserted
+        # at build time because `search` declares rate_limit="100/min"
+        from promptise.mcp.server import DeclaredRateLimitMiddleware
+
+        assert len(server._middlewares) == 5
+        assert any(isinstance(m, DeclaredRateLimitMiddleware) for m in server._middlewares)

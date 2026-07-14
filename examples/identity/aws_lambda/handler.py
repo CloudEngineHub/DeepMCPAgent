@@ -36,9 +36,7 @@ async def _run(prompt: str) -> str:
         identity=identity,
         observe=True,
     )
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": prompt}]}
-    )
+    result = await agent.ainvoke({"messages": [{"role": "user", "content": prompt}]})
     answer = result["messages"][-1].content
     await agent.shutdown()
     return str(answer)
