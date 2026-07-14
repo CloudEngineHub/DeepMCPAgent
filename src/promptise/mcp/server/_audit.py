@@ -189,6 +189,8 @@ class AuditMiddleware:
             identity["issuer"] = client.issuer
         if getattr(client, "audience", None):
             identity["audience"] = client.audience
+        if getattr(client, "tenant_id", None):
+            identity["tenant_id"] = client.tenant_id
         roles = getattr(client, "roles", None)
         if roles:
             identity["roles"] = sorted(roles)

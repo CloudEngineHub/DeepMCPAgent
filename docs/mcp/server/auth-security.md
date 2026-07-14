@@ -41,7 +41,7 @@ The auth system has three layers:
 
 1. **Auth providers** (`JWTAuth`, `APIKeyAuth`, `AsymmetricJWTAuth`) verify credentials and extract client identity.
 2. **AuthMiddleware** runs in the middleware chain, calling the provider for tools that require auth. On success, it populates `ctx.client` with a structured `ClientContext` containing identity, roles, scopes, JWT claims, IP address, and user-agent.
-3. **Guards** (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`, `RequireClientId`) enforce fine-grained permissions after authentication. When a guard denies access, the error message explains *why* — which roles or scopes were required vs. what the client has.
+3. **Guards** (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`, `RequireClientId`, `RequireTenant`, `HasTenant`) enforce fine-grained permissions after authentication. When a guard denies access, the error message explains *why* — which roles or scopes were required vs. what the client has.
 
 After authentication, everything you need is on `ctx.client`:
 

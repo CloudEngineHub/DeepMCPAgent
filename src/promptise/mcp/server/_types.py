@@ -117,6 +117,7 @@ class ToolDef:
     router_middleware: list[Any] = field(default_factory=list)
     annotations: ToolAnnotations | None = None
     max_concurrent: int | None = None
+    requires_approval: bool = False
 
 
 @dataclass(frozen=True)

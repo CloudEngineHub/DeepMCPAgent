@@ -198,6 +198,16 @@ async def get_employee(employee_id: str) -> dict:
     return await db.get_employee(employee_id)
 ```
 
+Declared limits are enforced automatically — no middleware wiring needed. The
+spec is parsed at registration (`"N/sec"`, `"N/min"`, or `"N/hour"`; a typo
+raises `ValueError` immediately instead of silently never limiting), and each
+declaring tool gets its own token bucket sized to the declared count. Buckets
+are keyed **per client** when authentication populates `client_id`, and fall
+back to a single shared bucket for unauthenticated tools. A declared limit
+composes with a server-wide `RateLimitMiddleware` if you install one: the
+middleware enforces the global policy, the declaration enforces each tool's
+contract.
+
 ### `TokenBucketLimiter`
 
 The built-in rate limiter uses the token bucket algorithm — steady rate with burst capacity:

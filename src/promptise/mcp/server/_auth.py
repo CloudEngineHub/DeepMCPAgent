@@ -653,11 +653,13 @@ class APIKeyAuth:
         self._keys: dict[str, dict[str, Any]] = {}
         for k, v in keys.items():
             if isinstance(v, str):
-                self._keys[k] = {"client_id": v, "roles": []}
+                self._keys[k] = {"client_id": v, "roles": [], "tenant_id": None}
             else:
+                tenant = v.get("tenant_id")
                 self._keys[k] = {
                     "client_id": v.get("client_id", "unknown"),
                     "roles": list(v.get("roles", [])),
+                    "tenant_id": tenant if isinstance(tenant, str) and tenant.strip() else None,
                 }
         self._meta_key = header
 
@@ -688,6 +690,10 @@ class APIKeyAuth:
         # Populate roles for guard compatibility
         if entry["roles"]:
             ctx.state["roles"] = set(entry["roles"])
+        # Stash the key's tenant so AuthMiddleware can attach it to
+        # ClientContext.tenant_id (there is no JWT claim to read from)
+        if entry.get("tenant_id"):
+            ctx.state["_api_key_tenant"] = entry["tenant_id"]
         return entry["client_id"]
 
     def verify_token(self, key: str) -> bool:
@@ -710,6 +716,7 @@ def _build_client_context_from_jwt(
     *,
     existing_roles: set[str] | None = None,
     meta: dict[str, Any] | None = None,
+    tenant_claim: str = "tenant_id",
 ) -> ClientContext:
     """Build a :class:`ClientContext` from a verified JWT payload.
 
@@ -723,6 +730,9 @@ def _build_client_context_from_jwt(
         existing_roles: Roles already extracted by the provider (e.g.
             from API key config).  Merged with JWT ``roles`` claim.
         meta: HTTP headers dict to extract user-agent from.
+        tenant_claim: JWT claim carrying the tenant / organisation id.
+            Only string claim values are accepted; anything else leaves
+            ``tenant_id`` unset (tenant guards then fail closed).
     """
     # Roles: merge JWT "roles" claim with any provider-supplied roles
     jwt_roles = set(payload.get("roles", []))
@@ -745,8 +755,13 @@ def _build_client_context_from_jwt(
     if client_info:
         ip_address = client_info[0]
 
+    # Tenant: configurable claim; only string values are trusted
+    tenant_value = payload.get(tenant_claim)
+    tenant_id = tenant_value if isinstance(tenant_value, str) and tenant_value.strip() else None
+
     return ClientContext(
         client_id=client_id,
+        tenant_id=tenant_id,
         roles=all_roles,
         scopes=scopes,
         claims=payload,
@@ -765,6 +780,7 @@ def _build_client_context_from_api_key(
     roles: set[str],
     *,
     meta: dict[str, Any] | None = None,
+    tenant_id: str | None = None,
 ) -> ClientContext:
     """Build a :class:`ClientContext` for API key auth (no JWT claims)."""
     ip_address: str | None = None
@@ -777,6 +793,7 @@ def _build_client_context_from_api_key(
 
     return ClientContext(
         client_id=client_id,
+        tenant_id=tenant_id,
         roles=roles,
         ip_address=ip_address,
         user_agent=user_agent,
@@ -803,6 +820,11 @@ class AuthMiddleware:
         on_authenticate: Optional async or sync callable that receives
             ``(client_ctx, request_ctx)`` and can mutate ``client_ctx``
             (e.g. populate ``client_ctx.extra``).
+        tenant_claim: JWT claim name carrying the client's tenant /
+            organisation id (default ``"tenant_id"``).  The value lands
+            on ``ClientContext.tenant_id``, where rate limiting, audit
+            entries, and tenant guards read it.  For ``APIKeyAuth``, the
+            tenant comes from the key's config dict instead.
 
     Example::
 
@@ -819,9 +841,11 @@ class AuthMiddleware:
         provider: Any,
         *,
         on_authenticate: OnAuthenticateHook | None = None,
+        tenant_claim: str = "tenant_id",
     ) -> None:
         self._provider = provider
         self._on_authenticate = on_authenticate
+        self._tenant_claim = tenant_claim
 
     async def __call__(self, ctx: RequestContext, call_next: Callable[..., Any]) -> Any:
         tool_def = ctx.state.get("tool_def")
@@ -840,13 +864,15 @@ class AuthMiddleware:
                     client_id,
                     existing_roles=existing_roles,
                     meta=ctx.meta,
+                    tenant_claim=self._tenant_claim,
                 )
             else:
-                # API key auth — no JWT claims, just roles
+                # API key auth — no JWT claims; tenant comes from key config
                 client_ctx = _build_client_context_from_api_key(
                     client_id,
                     existing_roles,
                     meta=ctx.meta,
+                    tenant_id=ctx.state.get("_api_key_tenant"),
                 )
 
             # Merge roles back to ctx.state for backward compatibility
