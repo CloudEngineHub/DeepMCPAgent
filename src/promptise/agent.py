@@ -2016,6 +2016,7 @@ async def build_agent(
                     command=spec.command,
                     args=spec.args,
                     env=spec.env,
+                    cwd=spec.cwd,
                 )
 
         _promptise_multi = MCPMultiClient(clients)
