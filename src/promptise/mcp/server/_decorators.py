@@ -14,7 +14,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any, get_type_hints
 
-from ._context import RequestContext
+from ._context import _wants_request_context
 from ._types import PromptDef, ResourceDef, ToolDef
 from ._validation import build_input_model
 
@@ -46,7 +46,9 @@ def _excluded_params(func: Callable[..., Any]) -> set[str]:
 
     Excluded:
     - ``self``
-    - Parameters annotated as ``RequestContext``
+    - Parameters annotated as ``RequestContext`` (including
+      ``Optional[RequestContext]`` / ``RequestContext | None``, which is also
+      what Python 3.10 produces for ``ctx: RequestContext = None``)
     - Parameters whose default is a ``_DependsMarker``
     """
     excluded: set[str] = set()
@@ -61,9 +63,11 @@ def _excluded_params(func: Callable[..., Any]) -> set[str]:
         if name == "self":
             excluded.add(name)
             continue
-        # Check type annotation
+        # Check type annotation — must use the SAME recognition as
+        # inject_context, else an Optional[RequestContext] param leaks into the
+        # input schema, gets validated to None, and injection then skips it.
         ann = hints.get(name, param.annotation)
-        if ann is RequestContext:
+        if _wants_request_context(ann):
             excluded.add(name)
             continue
         # Check if default is a Depends() marker
