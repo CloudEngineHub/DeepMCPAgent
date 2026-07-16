@@ -112,6 +112,7 @@ nav:
       - Installation: index.md
       - Installation Extras: getting-started/installation-extras.md
       - Quick Start: getting-started/quickstart.md
+      - Cookbook (Recipes): getting-started/cookbook.md
       - Why Promptise Foundry: getting-started/why-promptise.md
       - What is MCP?: getting-started/what-is-mcp.md
       - Model Setup: getting-started/model-setup.md
