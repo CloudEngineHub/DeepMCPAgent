@@ -198,6 +198,7 @@ Every step is opt-in. Features you don't enable have zero overhead.
 
 | Want to... | Go to... |
 |---|---|
+| Grab a quick recipe (memory, cache, auth, approval…) | [Cookbook](cookbook.md) |
 | Use Claude, Gemini, Ollama, or local models | [Model Setup](model-setup.md) |
 | Understand the architecture | [Key Concepts](concepts.md) |
 | Design custom reasoning patterns | [Reasoning Patterns](../core/agents/reasoning-patterns.md) |
