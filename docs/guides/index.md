@@ -6,85 +6,107 @@ keywords: AI agent tutorials, MCP server tutorial, build AI agent guide, agent r
 
 # Guides
 
-Practical, end-to-end guides for building real systems with Promptise Foundry. Each guide takes you from concept to working code, covering architecture decisions, implementation patterns, and production considerations.
+Practical, end-to-end guides for building real systems with Promptise Foundry.
+Each takes you from concept to working code — architecture decisions,
+implementation patterns, and production considerations included.
+
+New here? Follow the **learning path** below in order. Already building? Jump
+straight to the guide for the problem you're solving.
+
+## A learning path
+
+```
+1. Build an agent  →  2. Build the tools it uses  →  3. Secure & isolate it
+        │                        │                            │
+   Building AI Agents     Production MCP Servers      Multi-User / Multi-Tenant
+        │                        │                            │
+        └──────────── 4. Scale & automate ───────────────────┘
+                   Runtime · Multi-Agent Coordination
+```
 
 ---
 
-## Available Guides
+## 1 · Foundations — build and shape an agent
 
 ### [Building AI Agents](building-agents.md)
-
-Build a production-ready AI agent from scratch with MCP tool discovery, persistent memory, full observability, sandboxed code execution, and cross-agent delegation. One function call creates it. Every capability is opt-in.
-
-**You'll learn:** `build_agent()`, model independence, MCP auto-discovery, memory providers, observability transporters, sandbox security, cross-agent delegation, SuperAgent files.
-
----
-
-### [Building Production MCP Servers](production-mcp-servers.md)
-
-Build a production-grade MCP server that AI agents connect to for tool access. Covers tool registration, Pydantic validation, JWT authentication with structured client context, scope-based authorization, routers, middleware, caching, request tracing, and response metadata.
-
-**You'll learn:** MCPServer, tool/resource/prompt decorators, AuthMiddleware, ClientContext, HasScope guards, on_authenticate hooks, MCPRouter, ToolResponse, request tracing.
-
----
-
-### [Building Agentic Runtime Systems](agentic-runtime.md)
-
-Build autonomous, long-running AI agents that react to events, persist state, recover from crashes, enforce governance policies, and scale across machines. Goes from a single cron-triggered agent to a governed, mission-driven, distributed multi-agent operations center.
-
-**You'll learn:** AgentProcess, triggers, persistent context, journals, governance (budget, health, mission, secrets), AgentRuntime, distributed coordination.
-
----
+Build a production-ready agent from scratch with MCP tool discovery, persistent
+memory, observability, sandboxed code execution, and cross-agent delegation.
+One function call creates it; every capability is opt-in.
+**You'll learn:** `build_agent()`, model independence, MCP auto-discovery, memory, observability, sandbox, cross-agent delegation, SuperAgent files.
 
 ### [Prompt Engineering](prompt-engineering.md)
+Build reliable, testable system prompts with typed blocks, token budgeting,
+composable reasoning strategies, runtime guards, and dynamic context injection.
+**You'll learn:** PromptBlocks, strategies, perspectives, guards, context providers, ConversationFlow, registry, testing.
 
-Build reliable, testable system prompts with typed blocks, priority-based token budgeting, composable reasoning strategies, runtime guards, dynamic context injection, conversation flows, version control, and automated testing.
+### [Context Lifecycle Management](context-lifecycle.md)
+Keep deep tool loops token-efficient. The default agent handles context
+automatically (`context_scope="auto"`); go further with `scoped` and `ledger`
+for multi-stage graphs.
+**You'll learn:** `context_scope` (`auto`/`full`/`scoped`/`ledger`), the facts-ledger loop, bounding token growth.
 
-**You'll learn:** PromptBlocks, strategies, perspectives, guards, context providers, ConversationFlow, PromptBuilder, registry, inspector, chaining, YAML templates, testing.
+### [Code-Action: Agents that Write Programs](code-action.md)
+For aggregation and data-traversal, have the model write **one Python program**
+over your tools — a single LLM turn instead of dozens of tool calls — run in a
+hardened Docker sandbox.
+**You'll learn:** `agent_pattern="code-action"`, the sandbox tool-bridge, `max_tool_calls`, when to reach for it.
 
 ---
+
+## 2 · Build the tools your agents use
+
+### [Building Production MCP Servers](production-mcp-servers.md)
+Build a production-grade MCP server: tool registration, Pydantic validation, JWT
+auth with structured client context, scope-based authorization, routers,
+middleware, caching, and request tracing.
+**You'll learn:** `MCPServer`, tool/resource/prompt decorators, `AuthMiddleware`, `ClientContext`, guards, `on_authenticate`, `MCPRouter`, tracing.
+
+---
+
+## 3 · Secure, isolate, and govern
 
 ### [Building Multi-User Systems](multi-user-systems.md)
+End-to-end identity: a user's JWT flows from your backend through the agent to
+the MCP server; conversation ownership, per-user cache/memory isolation,
+guardrails, and tamper-evident audit are all wired to that identity.
+**You'll learn:** `CallerContext`, JWT/OAuth flow, guards, conversation ownership, per-user isolation, audit.
 
-Build a production-ready multi-user AI application with end-to-end identity propagation — JWT authentication flows from your backend through the agent to MCP servers, conversation ownership prevents cross-user access, semantic cache isolates per-user, guardrails protect every input and output, and tamper-evident audit logs record every action with the authenticated identity.
+### [CallerContext: Agent → MCP Identity](multi-user-identity.md)
+The focused reference for *how* identity crosses the wire — what the bearer
+token carries, what the server extracts, and how guards see it.
+**You'll learn:** `CallerContext` fields, JWT propagation, server-side extraction, guard evaluation.
 
-**You'll learn:** CallerContext, JWT/OAuth auth flow, guards (role/scope/client), conversation ownership, per-user cache isolation, guardrails integration, audit logging, session state, complete multi-user architecture.
+### [Secure Multi-Tenant Platform](secure-multi-tenant-platform.md)
+The enterprise capstone: one server serving many customer orgs with **provable
+tenant isolation**, role-based access, **server-side human approval** for
+destructive tools (four-eyes), fair per-tenant usage, and tamper-evident audit.
+**You'll learn:** `tenant_id` isolation invariant, `require_tenant`, `RequireTenant`/`HasTenant`, `requires_approval` + `ApprovalGateMiddleware`, `PendingApprover`, tenant-stamped audit.
 
 ---
 
+## 4 · Scale and automate
+
+### [Building Agentic Runtime Systems](agentic-runtime.md)
+Autonomous, long-running agents that react to events, persist state, recover
+from crashes, enforce governance, and scale across machines.
+**You'll learn:** `AgentProcess`, triggers, journals, governance (budget/health/mission/secrets), `AgentRuntime`, distributed coordination.
+
 ### [Multi-Agent Coordination](multi-agent-teams.md)
-
-Build systems where multiple agents collaborate — sharing tools, delegating tasks, communicating through events, and coordinating through shared state. Covers all four coordination primitives with complete working examples.
-
-**You'll learn:** Shared MCP servers with per-agent roles, `ask_peer()`/`broadcast()` delegation, EventBus pub/sub, shared context with write permissions, fan-out/fan-in, supervisor pattern, pipeline with quality gates, error handling.
+Systems where agents collaborate — sharing tools, delegating, communicating
+through events, and coordinating through shared state.
+**You'll learn:** shared servers with per-agent roles, `ask_peer()`/`broadcast()`, EventBus, shared context, supervisor/pipeline patterns.
 
 ---
 
 ## Hands-On Labs
 
-Domain-specific, copy-paste-ready tutorials. Each lab includes a pre-built MCP server, a specialized reasoning pattern, and runnable code.
+Domain-specific, copy-paste-ready tutorials. Each includes a pre-built MCP
+server, a specialized reasoning pattern, and runnable code.
 
-### [Lab: Customer Support Agent](lab-customer-support.md)
-
-Build a support agent with issue classification, knowledge base search, company policy validation, conversation persistence, and human escalation. Uses a custom Classify → Investigate → Draft → Validate → Respond reasoning pattern.
-
-**You'll build:** CRM tool server, KB search, conversation flows, escalation rules, guardrails.
-
----
-
-### [Lab: Data Analysis Agent](lab-data-analysis.md)
-
-Build an agent that converts questions into SQL queries, cross-references data across tables, and produces accurate reports. The specialized reasoning pattern scored 8/13 accuracy vs generic ReAct's 5/13 in benchmarks.
-
-**You'll build:** SQL analytics server, Plan → Execute → Observe → Verify → Report pattern, semantic cache.
-
----
-
-### [Lab: Code Review Agent](lab-code-review.md)
-
-Build an agent that reviews code for security vulnerabilities using adversarial self-critique. The CritiqueNode challenges its own findings. JustifyNode requires specific line references for every claim.
-
-**You'll build:** Code analysis tools, Read → Analyze → Critique → Justify → Synthesize pattern, per-node model override.
+- **[Customer Support Agent](lab-customer-support.md)** — issue classification, KB search, policy validation, human escalation. *(Classify → Investigate → Draft → Validate → Respond)*
+- **[Data Analysis Agent](lab-data-analysis.md)** — questions → SQL, cross-table joins, accurate reports. *(Plan → Execute → Observe → Verify → Report)*
+- **[Code Review Agent](lab-code-review.md)** — security review via adversarial self-critique with line-referenced claims. *(Read → Analyze → Critique → Justify → Synthesize)*
+- **[Pipeline Observer Agent](lab-pipeline-observer.md)** — an autonomous runtime agent that watches a pipeline, reacts to events, and escalates.
 
 ---
 

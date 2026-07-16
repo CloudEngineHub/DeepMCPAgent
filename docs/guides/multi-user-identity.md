@@ -323,6 +323,6 @@ result = await agent.ainvoke(
 ## See Also
 
 - [Building Multi-User Systems](multi-user-systems.md) — Full 12-step guide with 30-tool server
-- [Lab: Enterprise MCP Server](../examples/mcp/) — 30 tools with role switching CLI
+- [Secure Multi-Tenant Platform](secure-multi-tenant-platform.md) — one server, many customer orgs, provably isolated
 - [MCP Authentication](../mcp/server/auth-security.md) — JWT, OAuth, API key auth deep dive
 - [CallerContext API](../api/agent.md#callercontext) — API reference
