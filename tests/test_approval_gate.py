@@ -658,3 +658,48 @@ class TestRouterLevelGate:
         server.include_router(router)
         result = await TestClient(server).call_tool("r_wipe", {"x": 1})
         assert "APPROVAL_DENIED" in result[0].text
+
+
+class TestOptionalRequestContextInjection:
+    """`ctx: RequestContext = None` gets implicit-Optional'd by Python 3.10's
+    get_type_hints (removed in 3.11). Injection must recognise the Optional /
+    union / string forms on every supported Python, else the param stays None
+    on 3.10 and handlers reading ctx.client crash (regression: a tenancy test
+    failed only on the 3.10 CI matrix)."""
+
+    def test_wants_request_context_forms(self):
+        from typing import Optional
+
+        from promptise.mcp.server._context import RequestContext as RC
+        from promptise.mcp.server._context import _wants_request_context
+
+        assert _wants_request_context(RC)
+        assert _wants_request_context(Optional[RC])  # 3.10 implicit-Optional shape
+        assert _wants_request_context(RC | None)
+        assert _wants_request_context("RequestContext")
+        assert not _wants_request_context(int)
+
+    @pytest.mark.asyncio
+    async def test_optional_ctx_param_injected_on_live_path(self):
+        import mcp.types as mt
+
+        # `RequestContext` is a MODULE-level import (test handlers resolve type
+        # hints against module globals, not local aliases). `... | None = None`
+        # is the exact shape 3.10 produced implicitly for `ctx: RequestContext
+        # = None` — inject_context must populate it, else ctx is None on 3.10.
+        server = MCPServer(name="opt-ctx")
+
+        @server.tool()
+        async def whoami(x: int, ctx: RequestContext | None = None) -> str:
+            """Return whether ctx was injected."""
+            return "injected" if ctx is not None else "NONE"
+
+        ll = server._build_lowlevel_server()
+        handler = ll.request_handlers[mt.CallToolRequest]
+        res = await handler(
+            mt.CallToolRequest(
+                method="tools/call",
+                params=mt.CallToolRequestParams(name="whoami", arguments={"x": 1}),
+            )
+        )
+        assert res.root.content[0].text == "injected"
