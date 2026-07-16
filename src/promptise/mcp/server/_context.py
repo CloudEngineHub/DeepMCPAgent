@@ -217,6 +217,31 @@ def set_context(ctx: RequestContext) -> None:
     _current_context.set(ctx)
 
 
+def _wants_request_context(ann: Any) -> bool:
+    """True if *ann* is (or contains) ``RequestContext``.
+
+    Matches the bare type, ``Optional[RequestContext]`` / ``RequestContext |
+    None`` (Python 3.10's ``get_type_hints`` applies *implicit Optional* to a
+    ``ctx: RequestContext = None`` parameter — 3.11 removed that, hence the
+    version skew this guards against), and an unresolved string annotation
+    (``from __future__ import annotations`` when hint resolution failed).
+    """
+    if ann is RequestContext:
+        return True
+    from typing import get_args
+
+    if RequestContext in get_args(ann):  # Optional[...] / Union[...]
+        return True
+    if isinstance(ann, str):
+        # Unresolved annotation string (from __future__ import annotations when
+        # hint resolution failed). Match RequestContext as a standalone token,
+        # not a substring, so "MyRequestContextThing" is not caught.
+        import re
+
+        return re.search(r"\bRequestContext\b", ann) is not None
+    return False
+
+
 def inject_context(
     handler: Any,
     arguments: dict[str, Any],
@@ -227,7 +252,9 @@ def inject_context(
     Used by both the live transports and ``TestClient`` so a
     ``ctx: RequestContext`` parameter is populated identically on every
     path — no test/prod divergence.  Parameters already supplied (e.g. by
-    dependency injection) are left untouched.
+    dependency injection) are left untouched.  Recognises ``RequestContext``,
+    ``Optional[RequestContext]``, and ``RequestContext | None`` on every
+    supported Python (3.10–3.12).
     """
     import inspect
     from typing import get_type_hints
@@ -240,8 +267,10 @@ def inject_context(
         logger.debug("Failed to get type hints for handler %s", handler, exc_info=True)
 
     for pname, param in sig.parameters.items():
+        if pname in arguments:
+            continue
         ann = hints.get(pname, param.annotation)
-        if ann is RequestContext and pname not in arguments:
+        if _wants_request_context(ann):
             arguments[pname] = ctx
     return arguments
 
