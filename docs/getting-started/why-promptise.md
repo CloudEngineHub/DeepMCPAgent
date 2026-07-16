@@ -23,6 +23,7 @@ One Python install (`pip install promptise`) gives you:
 | **Sandbox** | Docker with seccomp + capability dropping + read-only rootfs + resource limits + network isolation; optional gVisor |
 | **Observability** | 4 levels, 8 transporters (HTML, JSON, log, console, Prometheus, OpenTelemetry, webhook, callback) |
 | **MCP server SDK** | Decorators, middleware (logging, timeout, rate limit, circuit breaker, audit), JWT auth, capability guards, caching, health probes, queue, DI, versioning, OpenAPI ingestion, in-process testing |
+| **Enterprise MCP** | First-class multi-tenancy (`tenant_id` isolation invariant across cache/memory/limits/audit), server-side human-in-the-loop approval gates (`requires_approval` + four-eyes), tenant-qualified rate limits |
 | **MCP client** | Native, no third-party deps. Single, multi-server, and LangChain adapter variants. Three transports (stdio, HTTP, SSE) |
 | **Prompt engineering** | 8 prompt blocks, conversation flows, 5 strategies, 4 perspectives, 14 context providers, schema-strict guards, registry with versioning, inspector for debugging |
 | **Agent runtime** | Process lifecycle, journals, replay engine, 5 trigger types (cron, event, message, webhook, file watch), 4 governance subsystems (budget, health, mission, secrets), distributed coordinator, dashboard |
