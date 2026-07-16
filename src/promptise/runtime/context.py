@@ -27,10 +27,27 @@ Example::
 from __future__ import annotations
 
 import asyncio
+import copy
 import os
 import time
 from dataclasses import dataclass, field
 from typing import Any
+
+
+def _snapshot(value: Any) -> Any:
+    """Return an independent copy of *value* for an audit-history entry.
+
+    The live state store keeps the original (mutable) object so ``get()``
+    returns a writable blackboard value; the history entry must instead be
+    an immutable-after-record snapshot, so a later in-place mutation of the
+    stored value cannot retroactively rewrite past, timestamped audit
+    records. Values that cannot be deep-copied fall back to the original
+    reference (best effort — no worse than the previous behavior).
+    """
+    try:
+        return copy.deepcopy(value)
+    except Exception:  # pragma: no cover — exotic non-copyable objects
+        return value
 
 
 @dataclass
@@ -112,7 +129,7 @@ class AgentContext:
         # Populate initial state
         for key, value in (initial_state or {}).items():
             self._state[key] = value
-            entry = StateEntry(key=key, value=value, source="system")
+            entry = StateEntry(key=key, value=_snapshot(value), source="system")
             self._history.setdefault(key, []).append(entry)
 
     # ------------------------------------------------------------------
@@ -152,7 +169,7 @@ class AgentContext:
         if self._writable_keys is not None and key not in self._writable_keys:
             raise KeyError(f"Key {key!r} is not writable. Allowed: {sorted(self._writable_keys)}")
         self._state[key] = value
-        entry = StateEntry(key=key, value=value, source=source)
+        entry = StateEntry(key=key, value=_snapshot(value), source=source)
         self._history.setdefault(key, []).append(entry)
 
     def state_snapshot(self) -> dict[str, Any]:

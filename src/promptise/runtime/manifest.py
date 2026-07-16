@@ -301,6 +301,7 @@ def manifest_to_process_config(
                     args=server_data.get("args", []),
                     env=server_data.get("env", {}),
                     cwd=server_data.get("cwd"),
+                    keep_alive=server_data.get("keep_alive", True),
                 )
             else:
                 servers[server_name] = server_data

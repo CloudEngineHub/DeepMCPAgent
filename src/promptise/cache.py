@@ -1161,19 +1161,25 @@ class SemanticCache:
         """Derive an **injective**, delimiter-free scope id for ``(tenant, id)``.
 
         Untenanted → the sanitized id (unchanged, backward compatible).
-        Tenanted → ``"t:" + sha256(tenant::id)``.  This is injective in
-        ``(tenant, id)`` because a ``CallerContext`` ``tenant_id`` may not
-        contain the ``::`` separator, and the two keyspaces are **disjoint**:
-        the sanitizer strips ``:`` from untenanted ids, so an untenanted
-        scope id can never contain a colon, while every tenanted key does —
-        no untenanted user_id (not even one literally shaped like
+        Tenanted → ``"t:" + sha256(f"{len(tenant)}:{tenant}:{id}")[:40]``.
+        This is injective in ``(tenant, id)`` because the hash input is
+        **length-prefixed**: the leading ``len(tenant)`` fixes exactly how
+        many following characters are the tenant, so no two distinct
+        ``(tenant, id)`` pairs can produce the same material string no matter
+        where colons fall.  The two keyspaces are also **disjoint**: the
+        sanitizer strips ``:`` from untenanted ids, so an untenanted scope id
+        can never contain a colon, while every tenanted key begins with
+        ``"t:"`` — no untenanted user_id (not even one literally shaped like
         ``"t:<hex>"``, which sanitizes its colon away) can collide with a
         tenanted hash.
 
         A plain ``__`` join was not injective (``("acme","corp__alice")`` and
-        ``("acme__corp","alice")`` both produced ``acme__corp__alice``), and a
-        ``"t."`` prefix still overlapped the untenanted namespace (a user
-        named ``"t.<hex>"`` collided) — hence the colon.
+        ``("acme__corp","alice")`` both produced ``acme__corp__alice``); a
+        bare ``f"{tenant}::{id}"`` was likewise ambiguous under adversarial
+        colons (``("a", ":b")`` and ``("a:", "b")`` collide); and a ``"t."``
+        prefix still overlapped the untenanted namespace (a user named
+        ``"t.<hex>"`` collided) — hence the length-prefixed material and the
+        ``"t:"`` colon prefix.
 
         One derivation shared by scope-key construction and
         :meth:`purge_user`, so a tenant-scoped purge matches exactly what
