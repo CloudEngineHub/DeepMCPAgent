@@ -443,7 +443,11 @@ class ObservabilityCollector:
         # "who delegated this?". Identity descriptors only (no credential).
         delegation = _delegation_ctx_var.get()
         if delegation is not None and "delegated_by" not in raw_metadata:
-            raw_metadata = {**raw_metadata, "delegated_by": delegation}
+            # Snapshot the claims — the contextvar holds one dict shared by
+            # every entry recorded during this delegation, so store an
+            # independent copy or a later mutation of one entry's
+            # ``delegated_by`` would retroactively alter its siblings.
+            raw_metadata = {**raw_metadata, "delegated_by": dict(delegation)}
 
         # Auto-propagate identity from CallerContext when not explicitly
         # supplied.  Imported lazily to avoid a circular dependency with

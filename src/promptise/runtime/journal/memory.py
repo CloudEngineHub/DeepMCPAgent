@@ -53,12 +53,14 @@ class InMemoryJournal:
     async def checkpoint(self, process_id: str, state: dict[str, Any]) -> None:
         """Store a checkpoint."""
         self._checkpoints[process_id] = dict(state)
-        # Also record as a journal entry
+        # Also record as a journal entry — copy the state so the append-only
+        # entry cannot be rewritten by a later mutation of the caller's dict
+        # (consistent with the defensive copy in ``_checkpoints`` above).
         await self.append(
             JournalEntry(
                 process_id=process_id,
                 entry_type="checkpoint",
-                data={"state": state},
+                data={"state": dict(state)},
             )
         )
 
