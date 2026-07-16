@@ -211,6 +211,9 @@ Connect to one or many MCP servers with authentication and LangChain integration
 |---|---|
 | Build a tool server for agents | `MCPServer` + `@server.tool()` ([Step-by-Step Guide](../guides/production-mcp-servers.md)) |
 | Add auth to my server | `JWTAuth` + `AuthMiddleware` + `auth=True` ([Auth & Security](server/auth-security.md)) |
+| Serve many customer orgs (multi-tenant) | `MCPServer(require_tenant=True)` + `RequireTenant`/`HasTenant` ([Multi-Tenancy](server/multi-tenancy.md)) |
+| Require human approval for a tool | `@server.tool(requires_approval=True)` + `ApprovalGateMiddleware` ([Approval Gates](server/approval-gates.md)) |
+| Build a full multi-tenant SaaS backend | [Secure Multi-Tenant Platform guide](../guides/secure-multi-tenant-platform.md) |
 | Organize tools by domain | `MCPRouter` with prefix and tags ([Routers & Middleware](server/routers-middleware.md)) |
 | Cache tool results | `@cached` + `InMemoryCache` or `RedisCache` ([Caching & Performance](server/caching-performance.md)) |
 | Rate limit agents | `RateLimitMiddleware` + `TokenBucketLimiter` ([Caching & Performance](server/caching-performance.md)) |
