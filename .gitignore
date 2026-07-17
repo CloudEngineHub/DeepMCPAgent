@@ -114,3 +114,10 @@ benchmarks/
 # Internal release runbook (not shipped)
 RELEASE.md
 
+
+# Runtime audit / observability outputs (generated when running agents/examples)
+/billing-audit.jsonl
+/workflow-audit.jsonl
+/observability/
+*-audit.jsonl
+*-audit-events.ndjson
