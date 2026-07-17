@@ -12,6 +12,8 @@ categories:
 
 Agent reasoning patterns are the different control flows an LLM follows to solve a task — a single tool-calling loop, a plan-then-act cycle, an adversarial debate, or a hand-built graph. Most guides quietly imply the opposite of what's true: they suggest that stacking more reasoning stages makes an agent smarter. On today's capable models it usually just adds latency and tokens. By the end of this guide you'll know what each of the built-in patterns actually does, when the extra stages earn their cost, and how to switch between them with a single argument.
 
+<!-- more -->
+
 ## What an agent reasoning pattern really is
 
 Under the hood, every pattern in Promptise Foundry is a `PromptGraph`: a set of nodes connected by edges, where each node is one shaped LLM call and the edges decide where control flows next. The default — plain **ReAct** — is a single node that loops: reason, call tools, reason again, answer. Everything more elaborate is just a different topology over that same primitive.

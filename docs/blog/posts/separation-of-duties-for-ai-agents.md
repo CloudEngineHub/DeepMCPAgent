@@ -12,6 +12,8 @@ categories:
 
 Separation of duties for AI agents is the rule that the principal who *requests* a sensitive action can never be the one who *approves* it — and it is exactly the control that quietly collapses the moment whoever drives an agent can also click "approve" on the agent's own request. Most human-in-the-loop wiring stops one step short of this. It pauses before a risky tool call and asks a human to decide, which feels like dual control. But if the human answering the prompt is the same person (or the same service identity) that triggered the call, you have a rubber stamp with extra latency, not a second set of eyes. This post goes past the two sentences a general approval overview can spare and works through what dual control actually means, why the reviewer has to be a *different* principal, and how Promptise Foundry makes `reviewer client_id != caller client_id` a server-enforced default instead of a policy you hope everyone remembers to build.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

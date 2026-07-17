@@ -12,6 +12,8 @@ categories:
 
 If you want to reduce LLM token cost on an agent that calls tools, the first place to look is almost never the conversation — it's the tool schemas you re-send on every single request. Connect an agent to a few MCP servers and you can easily be shipping 20–50 tool definitions, each with a name, description, and full JSON Schema, on every turn — thousands of tokens the model reads before it even sees the user's question. This post shows why that cost is hidden, and how per-query semantic tool selection trims it, with a `request_more_tools` fallback so the agent self-recovers when selection misses. By the end you'll have a runnable agent that only pays for the tools each query actually needs.
 
+<!-- more -->
+
 ## Your biggest hidden token cost is tool schemas, not chat history
 
 Most cost-optimization advice fixates on conversation history: summarize old turns, cap the buffer, use a cheaper model. That's real, but it misses the line item that scales with your *integration surface* rather than your chat length.

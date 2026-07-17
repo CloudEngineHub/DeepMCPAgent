@@ -12,6 +12,8 @@ categories:
 
 To roll out a breaking MCP tool change safely, you publish the new schema as a *new version* beside the old one and let each client migrate on its own clock — instead of editing the live tool in place and forcing every connected agent to move the instant you deploy. That second path is the default one, and it is why a one-line schema edit so often turns into an incident. An MCP tool's `input_schema` is a published contract: agents discovered it, built function calls to match, and will keep sending v1-shaped arguments until *they* change. Add a required field, rename a property, or tighten a type, and every in-flight caller starts getting rejected before your handler even runs.
 
+<!-- more -->
+
 This is a walkthrough for doing it the safe way. We use Promptise Foundry's `VersionedToolRegistry` to serve `search@2.0` beside `search@1.0`, keep `search` pointing at the latest, and deprecate the old contract on a timeline your clients control — not on your deploy schedule.
 
 ## Why one schema edit is normally a flag-day migration

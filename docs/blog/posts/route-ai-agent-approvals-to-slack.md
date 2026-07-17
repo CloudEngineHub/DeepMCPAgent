@@ -12,6 +12,8 @@ categories:
 
 To **route AI agent approvals to Slack** — or PagerDuty, or an internal review app — the decision has to leave your agent's process entirely and land in front of a human who lives in that channel, not at the terminal that happens to be running the agent. That is a different problem from the usual "pop a confirm dialog in the calling app." The reviewer for a $5,000 refund is on call in an ops channel; they are never going to be watching a Python REPL. This post wires the same server-side approval gate that enforces on every MCP client to an external channel using `WebhookApprovalHandler`: it POSTs an HMAC-signed request to your own service, polls for the verdict, and denies by default if the clock runs out — a one-line swap for the in-process reviewers, with no change to the tool.
 
+<!-- more -->
+
 ## The approval that has to leave your process
 
 Most human-in-the-loop wiring surfaces the prompt wherever the agent is running. That is exactly right when the reviewer is the person driving the app — but a real approval channel is somewhere else. Refund sign-off happens in a `#finance-approvals` Slack channel with a Block Kit message and two buttons. A production deletion pages the on-call engineer in PagerDuty. A contract action opens a ticket in your internal review tool. None of those reviewers can see, or should see, the process that hosts the agent.

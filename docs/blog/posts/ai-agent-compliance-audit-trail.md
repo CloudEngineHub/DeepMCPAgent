@@ -12,6 +12,8 @@ categories:
 
 An ai agent compliance audit trail is the one artifact three very different regulators end up asking for in the same shape: show us who did what, prove the record wasn't edited, and prove nothing went missing. A SOC 2 reviewer, a HIPAA auditor, and an EU AI Act conformity assessor read different rulebooks, but when your autonomous agents call tools that move money, touch patient data, or take consequential actions, all three converge on the same primitive — a record of every action, attributed to a verified principal, that survives an adversary with write access. This post shows how one HMAC-chained `AuditMiddleware` trail in Promptise Foundry produces evidence for all three, maps each regime's ask to concrete fields, and is honest about where the log ends and a governance program begins.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

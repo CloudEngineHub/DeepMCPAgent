@@ -12,6 +12,8 @@ categories:
 
 AI agent memory is not one feature — it is a stack of four distinct layers, and most guides only ever cover one of them. They pick a vector database, wire up a `search()` call, and declare the problem solved. That leaves you with an agent that recalls old facts but re-reads your entire conversation on every turn, recomputes identical answers, and blows past the context window the moment history gets long. This guide maps the whole stack: short-term conversation history, long-term vector memory, the semantic cache, and context budgeting. For each layer you'll see exactly which problem it solves and the runnable Python that turns it on in Promptise Foundry.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

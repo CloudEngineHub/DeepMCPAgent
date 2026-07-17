@@ -12,6 +12,8 @@ categories:
 
 Shipping a **multi-tenant AI agent** means one deployment serves many customers, and the single worst thing that can happen is that Acme's data surfaces in Globex's session. If you are building AI features into a SaaS product, tenant separation is not a nice-to-have — it is the invariant your whole security story rests on. This post walks through why per-handler tenant checks fail, what a real isolation boundary looks like, and how to make cross-tenant leakage structurally impossible in Promptise Foundry with one server flag and a `tenant_id` that flows from your JWT all the way to storage.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

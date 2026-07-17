@@ -12,6 +12,8 @@ categories:
 
 Multi-agent audit accountability is the question a compliance reviewer asks the moment your fleet stops being one agent: when Agent A — running on Alice's behalf — hands a subtask to Agent B, and B exports a record or issues a refund, *which principal does the audit trail name as accountable?* This is not the question of how B authenticates the delegation call — that is a separate topic with its own answer. It is the narrower, sharper compliance question that delegation raises: after the handoff, does your tamper-evident record still name **the human who set the chain in motion**, or does it name the sub-agent's service account? Get that wrong and every audited action taken past the first hop is attributed to a bot, and "the bot did it" is not an answer a SOC 2, HIPAA, or EU AI Act auditor accepts.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

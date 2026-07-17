@@ -12,6 +12,8 @@ categories:
 
 If you're searching for a CrewAI alternative, you probably already have a working crew — a set of role-playing agents that collaborate on a task — and you're now hitting the wall between "impressive demo" and "service other people pay for." That wall is rarely about reasoning quality. It's about isolation, human approval on risky actions, and an audit trail you can defend. This post is the honest version: where CrewAI is the right tool, and the specific moment where switching to Promptise Foundry earns its keep. By the end you'll be able to tell which side of that line your project is on, and stand up a tenant-isolated MCP server if you're on ours.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

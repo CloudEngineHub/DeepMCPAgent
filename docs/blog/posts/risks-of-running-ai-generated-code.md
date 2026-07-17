@@ -12,6 +12,8 @@ categories:
 
 The risks of running AI-generated code are easy to underestimate, because the failure mode is invisible right up until the day it isn't: the program runs, prints a plausible answer, and only later do you notice it also read your `.env`, listed `/`, and made an outbound request you never authorized. This post is a threat-model walkthrough rather than another isolation-layer reference. We are going to trace exactly what a model-written Python snippet can reach when it executes inside your process — the working directory and everything around it, environment-variable secrets, and the open network — using LangChain's `PythonREPLTool` as the worked example, and then show why Promptise Foundry treats a hardened container as the default path instead of something you remember to bolt on.
 
+<!-- more -->
+
 ## What "in-process" actually means
 
 When an agent runs code "in-process," it calls something like Python's `exec()` inside the very interpreter that runs your application. That is precisely what LangChain's `PythonREPLTool` does, and to its credit the tool says so — its own documentation warns that it "can execute arbitrary code on the host machine" and the class lives under `langchain_experimental` behind a sanitization notice. The warning is not boilerplate. Code that runs in your process inherits your process: the same user id, the same file descriptors, the same environment block, the same network stack. There is no boundary between "the model's program" and "your service." The blast radius is your entire runtime.

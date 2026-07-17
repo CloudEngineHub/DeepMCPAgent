@@ -12,6 +12,8 @@ categories:
 
 If you have shopped around for RAG for agents, you have probably noticed that "memory" and "RAG" get used as if they were the same feature. They are not. Both push external text into the model's context, but they have different sources, different write paths, and — critically — different triggers. Confuse them and you end up bolting a document-retrieval pipeline onto a problem that a simple per-user fact store would have solved, or vice versa. By the end of this post you will have a clear decision table, a runnable Promptise Foundry example, and an honest read on when Promptise's built-in RAG is enough versus when you should reach for a dedicated ingestion library.
 
+<!-- more -->
+
 ## Agent memory vs retrieval: two different lifecycles
 
 The cleanest way to separate the two is by asking *who decides when the context shows up*.

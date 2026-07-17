@@ -12,6 +12,8 @@ categories:
 
 A **soc 2 audit trail for ai agents** is the artifact you reach for the moment a reviewer stops asking about your policies and asks the pointed question: "for this refund your agent issued, show me who was allowed to call that tool, who actually called it, and prove the record wasn't edited after the fact." Pointing at your LLM provider's SOC 2 badge doesn't answer it — that badge attests to *their* controls, not to evidence of *your* agent's actions. This post is the step-by-step setup: capability-based per-tool guards so only the right agent can take a sensitive action, `AuditMiddleware(signed=True)` with a managed `PROMPTISE_AUDIT_SECRET` so every attempt becomes an attributable, tamper-evident record, PII kept out by default, and a `verify_chain()` report an auditor will accept.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

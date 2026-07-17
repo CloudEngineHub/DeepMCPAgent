@@ -12,6 +12,8 @@ categories:
 
 Put **trim_messages vs a facts ledger** side by side on a deep tool loop and the difference stops being academic: trimming evicts messages by token or message count, so it can throw away the exact record the model still needs three turns later — while a ledger keeps that fact and drops the *duplicates* instead. When a tool-calling agent balloons in the middle of a long task, the reflex is to reach for one of two stock helpers: trim the message history, or summarize it. Both bound the transcript. Both also have a failure mode that only shows up on the tasks that matter most — the deep ones. This post compares those helpers head-to-head with Promptise Foundry's `context_scope="ledger"`, a last-value-wins facts ledger that deduplicates repeated tool calls and cache-serves a repeat instead of re-running it, with no extra model call.
 
+<!-- more -->
+
 ## The stock fix: trim the messages or summarize the history
 
 A naive tool-calling loop feeds the model the **entire** conversation on every turn. By the twentieth call it is re-reading a growing wall of its own past work, paying for thousands of redundant tokens, and losing the thread. There are two well-worn ways to bound that:

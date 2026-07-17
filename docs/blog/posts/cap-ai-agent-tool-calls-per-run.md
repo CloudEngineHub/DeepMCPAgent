@@ -12,6 +12,8 @@ categories:
 
 To cap AI agent tool calls per run in a way that actually reflects risk, you have to stop counting calls and start pricing them — because a plain iteration cap treats a `search` and a `stripe_charge` as the same event. Set `max_iterations=20` and an agent can do twenty harmless lookups, or it can do nineteen lookups and one wire transfer, and your "safety limit" registers both runs as identical. The count is the wrong unit. What you want is a per-run *envelope* where a read costs almost nothing, an irreversible action costs a lot, and — crucially — the agent can see how much of the envelope it has left and spend accordingly. This post shows how to build that with Promptise Foundry's `BudgetConfig`: relative-risk `cost_weight` per tool, a separate cap on irreversible actions, and `inject_remaining` so the model self-prioritizes toward cheap tools first.
 
+<!-- more -->
+
 The thesis in one line: counting tool calls tells you *how busy* an agent was; weighting them tells you *how much risk* it took.
 
 ## A uniform cap counts a wire transfer like a web search

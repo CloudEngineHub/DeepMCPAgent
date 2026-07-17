@@ -12,6 +12,8 @@ categories:
 
 An event-driven AI agent wakes up when something happens in the real world — a webhook fires, a file lands, another service publishes a message — instead of waiting for you to call it or for a clock to tick. Most "autonomous agent" tutorials stop at a cron schedule, which is fine for periodic work but useless when the trigger is external and unpredictable. By the end of this post you'll know the four reactive trigger types Promptise Foundry ships, how to compose several of them on a single process, and how to verify a webhook with HMAC so only trusted callers can wake your agent.
 
+<!-- more -->
+
 ## Beyond cron: what makes an agent reactive
 
 A cron trigger answers "run every five minutes." A reactive AI agent answers a harder question: "run *now*, because this specific thing just occurred." That distinction matters because most production work is event-shaped. A CI pipeline fails. A customer uploads a CSV. A monitoring system crosses a threshold. None of those happen on a schedule, and polling for them wastes tokens and latency.

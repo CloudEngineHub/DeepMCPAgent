@@ -12,6 +12,8 @@ categories:
 
 Building an **air-gapped AI agent** looks deceptively simple: swap the hosted LLM for a local one, unplug the network cable, done. Then the first request fails — not because the model is missing, but because the embedding call, the moderation endpoint, or the tracing exporter tried to reach a host that no longer exists. Teams learn the hard way that "model-agnostic" is not the same as "offline-capable." The model is only one of five layers in a modern agent, and the other four usually assume an internet connection you don't have. This post maps the hidden cloud dependencies that break inside an isolated network, and shows which layers have to be local before you can honestly say you run an AI agent fully offline.
 
+<!-- more -->
+
 ## The hidden cloud dependencies that break an air-gapped agent
 
 When people say an agent framework is "local," they almost always mean the LLM. But an agent is a pipeline, and every stage can quietly reach outbound:

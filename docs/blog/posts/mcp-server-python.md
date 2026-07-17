@@ -12,6 +12,8 @@ categories:
 
 Building an MCP server Python developers can actually ship usually stalls on one thing: hand-writing JSON Schema for every tool so clients know how to call it. This tutorial skips that entirely. With Promptise Foundry you decorate a normal Python function with type hints, and the framework generates the schema, validates every call, and serves the tool over stdio, streamable HTTP, or SSE. By the end you'll have a typed tool running, exposed over HTTP, and covered by an in-process test — no schema boilerplate, no network mocking.
 
+<!-- more -->
+
 ## What an MCP server is (and why type hints matter)
 
 The Model Context Protocol (MCP) is the standard that lets AI agents discover and call your tools. A server advertises a list of tools; each tool has a name, a description, and a JSON Schema describing its parameters. Agents read that schema to build valid calls. If you're new to the protocol, the [What Is MCP?](../../getting-started/what-is-mcp.md) primer walks through the client/server model in plain terms.

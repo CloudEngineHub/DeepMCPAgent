@@ -12,6 +12,8 @@ categories:
 
 Write one MCP tool every AI client can call — Claude Desktop, Cursor, and ChatGPT included — and you never rewrite the same logic per framework again. That is the whole promise of the Model Context Protocol: a tool is a small server that speaks a standard wire format, and anything that speaks the protocol can discover and invoke it. Yet most agent frameworks quietly break that promise. They ask you to author tools as framework-native Python objects that only their own runtime understands, so the moment you want to reuse tools across AI clients you are back to standing up a separate MCP server anyway. This post shows why that gap exists, and how being MCP-native on *both* sides — a server SDK to write the tool and a native MCP client to consume it — collapses two artifacts into one.
 
+<!-- more -->
+
 ## Why one tool should reach every client
 
 Picture a single tool: `search_invoices(customer_id, status)`. In an ideal world you write it once and it lights up everywhere a human or agent already works — the Claude Desktop tool tray, a Cursor MCP connection, a ChatGPT connector, and your own autonomous agents. The protocol was designed for exactly this. A tool publishes a name, a description, and a JSON Schema; every client speaks the same `list_tools` / `call_tool` handshake back to it.

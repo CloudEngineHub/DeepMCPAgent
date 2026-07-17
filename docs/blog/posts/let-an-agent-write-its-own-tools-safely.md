@@ -12,6 +12,8 @@ categories:
 
 To **let an agent write its own tools safely** you have to accept an uncomfortable fact first: the moment an agent authors a Python function and you add it to its toolset, you are running model-written code — and the function it wrote is one string away from `open("/etc/passwd")` or an outbound socket to an address you never approved. The Voyager-style dream, where an agent grows its own skill library as it explores, is genuinely powerful. It is also the exact point where "the agent got smarter" and "the agent got a shell on my box" become the same event. This post is a threat-model deep dive on Promptise Foundry's `create_tool` meta-tool specifically — attack by attack — and on the two guardrails that are on by default so self-authored tools stay tools instead of turning into a breach.
 
+<!-- more -->
+
 ## The thrill and the trap of a self-authoring agent
 
 The self-authoring pattern comes from research like Voyager, where an LLM agent writes reusable skills as code and stashes them in a library it draws on later. The appeal is obvious: you cannot enumerate every capability a long-running research or operations agent will need, so you let it fill the gaps itself. In Promptise, that capability is the `create_tool` meta-tool, available when an `AgentProcess` runs in `ExecutionMode.OPEN` with `allow_tool_creation=True`. The agent calls `create_tool` with a name, a description, a parameter schema, and a body of Python that defines `run(**kwargs) -> str`; the process hot-reloads and the new tool is live.

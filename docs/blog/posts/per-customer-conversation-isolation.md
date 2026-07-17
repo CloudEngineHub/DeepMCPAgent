@@ -12,6 +12,8 @@ categories:
 
 **Per-customer conversation isolation** is the difference between persisting a chat thread and actually keeping one customer from reading another's — and the second is the part most stacks quietly skip. Wiring up a database to store messages by `session_id` is a solved problem: pick SQLite, Postgres, or Redis and you have durable history. The hard problem starts the moment a second customer exists, because a session id is just a string, and any authenticated caller who can produce that string can ask for the thread behind it. This post shows how Promptise Foundry turns "who is allowed to read this thread" from a check you have to remember into an invariant enforced on every read, write, and delete — keyed on the `tenant::user` isolation key so an enumerated session id from another customer is denied, not served.
 
+<!-- more -->
+
 ## Persisting a thread is easy; owning it is the hard part
 
 Storage answers the question "what messages are in session `thread-42`?" It does not answer "is this caller allowed to see session `thread-42`?" Those are different questions, and the second is an authorization question that lives above the store.

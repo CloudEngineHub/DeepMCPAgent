@@ -12,6 +12,8 @@ categories:
 
 To rotate an AI agent's secret without restart, the running process has to be able to swap the credential it holds in memory *while it keeps running* — and that is precisely the operation most agent stacks make impossible. The usual pattern is to read `OPENAI_API_KEY` or a downstream service token from the environment once, at construction time, and hand it to a model client or tool. That value is now frozen inside a live object. When the key leaks, expires, or hits its scheduled rotation, your only lever is to rebuild the client — and for a long-running, self-triggering agent, rebuilding means a restart that tears down the accumulated context, the conversation buffer, and the lifecycle state you worked so hard to keep durable. This post shows how Promptise Foundry's runtime makes the secret a per-process governance concern instead: `${ENV_VAR}` resolution at start, TTL expiry, hot rotation with no restart, and zero-fill revocation on stop — with the value never written to the journal, checkpoint, or status output.
 
+<!-- more -->
+
 The thesis in one line: a credential captured at boot can only be rotated by a reboot. A credential owned by the process — with its own TTL and a `rotate()` you can call live — is rotated in place, and the agent never stops.
 
 ## Why reading the key at boot forces a restart

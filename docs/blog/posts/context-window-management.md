@@ -12,6 +12,8 @@ categories:
 
 Context window management is the difference between an agent that answers the question you asked and one that silently drops it. Every call your agent makes stuffs a system prompt, tool definitions, retrieved memory, and conversation history into a single request — and when that request outgrows the model's window, something has to go. Do nothing and the model either errors out or truncates from wherever the framework happened to stop, which is often the user's latest message. By the end of this post you'll know how to count tokens exactly, assign priorities to every piece of context, and trim gracefully so the parts that matter always survive.
 
+<!-- more -->
+
 ## What context window management actually means
 
 An LLM context window is a hard token ceiling. For `openai:gpt-5-mini` it's 128,000 tokens; for `claude-sonnet-4.5` it's 200,000; for a local `ollama:llama3` it can be as low as 8,192. Everything you send — instructions, tools, memory, history, and the current question — competes for that fixed budget, minus whatever you reserve for the response.

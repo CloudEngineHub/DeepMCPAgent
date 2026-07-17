@@ -12,6 +12,8 @@ categories:
 
 Migrating off LangChain rarely fails because the new framework is worse — it fails because teams try to do it in one weekend, rip out everything at once, and lose the ability to tell whether the port is correct. This guide gives you the opposite: an incremental path where your existing LangChain tools keep working from day one, you move orchestration, memory, and auth one layer at a time, and you verify every step before the next. By the end you'll have a plan to migrate from LangChain to Promptise Foundry without a scary big-bang rewrite, plus a reproducible `.superagent` manifest that captures the finished agent.
 
+<!-- more -->
+
 ## Why teams migrate from LangChain in production
 
 If your prototype runs happily on LangChain, you don't need this post. The pressure to replace LangChain in production usually shows up later, once the agent has real users and real obligations:

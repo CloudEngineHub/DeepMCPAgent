@@ -12,6 +12,8 @@ categories:
 
 Per-tenant rate limiting AI agent platforms need is the difference between a shared deployment that degrades gracefully and one where a single customer's runaway loop pages your on-call at 2 a.m. because every other tenant's requests are suddenly getting refused. In a multi-customer platform, every tenant's agents hit the same MCP tool servers. Most of the time that is fine. Then one tenant ships a buggy prompt, an agent gets stuck reformulating the same `generate_report` call forty times a minute, and your token bucket drains — for everyone. This is the noisy-neighbor problem, and the uncomfortable truth is that a per-client or per-tool limiter alone does not solve it.
 
+<!-- more -->
+
 This post walks through exactly where the leak is, and how Promptise Foundry closes it by making the tenant part of the rate-limit key itself — a structural invariant, not a convention you have to remember to apply at every call site.
 
 ## The noisy-neighbor failure mode

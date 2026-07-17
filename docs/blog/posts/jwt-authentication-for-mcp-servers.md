@@ -12,6 +12,8 @@ categories:
 
 JWT authentication for MCP servers is the piece the protocol spec leaves out: it tells you how to move bytes over stdio, HTTP, or SSE, but not how to prove *who* is calling a tool or stop an unauthorized agent from invoking your `delete_all` endpoint. If you have shipped a Model Context Protocol server and now need to lock it down, you are in the right place. By the end of this post you will understand the three-layer model Promptise Foundry uses — a JWT provider, `AuthMiddleware`, and per-tool guards — and you will have a copy-paste server where only the tools you mark are protected.
 
+<!-- more -->
+
 ## Why transport auth alone is not enough
 
 Most MCP tutorials stop at "put a token in the `Authorization` header." That gets a token to the server, but it answers only one question: is the caller who they say they are? It does not answer the harder question: *is this caller allowed to run this specific tool?*

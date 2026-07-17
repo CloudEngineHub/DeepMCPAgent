@@ -12,6 +12,8 @@ categories:
 
 The MCP vs function calling debate confuses a lot of teams, because the two are not actually competitors — they operate at different layers. Function calling is how an LLM decides *which* tool to call and *with what arguments*. The Model Context Protocol (MCP) is how those tools get *packaged, served, and shared*. By the end of this post you'll know exactly where the crossover point sits, so you can keep raw function calling while your tools fit in one file and reach for MCP the moment they don't — without paying a token tax as your catalog grows.
 
+<!-- more -->
+
 ## What function calling actually is
 
 Function calling is a feature of the model API. You describe your tools as JSON Schema, send those definitions with every request, and the model responds with a structured tool call: a name plus arguments. Your code executes the function and feeds the result back.

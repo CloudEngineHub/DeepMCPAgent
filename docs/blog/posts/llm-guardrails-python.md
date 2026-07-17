@@ -12,6 +12,8 @@ categories:
 
 Shipping LLM guardrails in Python usually means stitching together three or four half-overlapping libraries — one for prompt injection, one for PII, a regex file for secrets, and a hosted moderation API that sends every prompt off your network. That fragmentation is where bugs and compliance gaps live. This guide shows you a different approach: a single composable scanner that covers all six major risk classes, runs entirely on your own hardware, and wires into an agent in three lines. By the end you will be able to block malicious input, redact sensitive output, and add your own domain rules — without any prompt or response ever leaving your infrastructure.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

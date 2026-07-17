@@ -12,6 +12,8 @@ categories:
 
 If you have searched for how to build an AI agent in Python, you have probably found tutorials that hand-wire tool schemas and hard-code a single model. They work until the first thing changes — you swap `gpt-4o-mini` for a local Llama, add a second tool, or move from a notebook to a service — and then you are rewriting glue code instead of building features. This guide takes a different route. By the end you will have a real LLM agent in Python, understand how it discovers and calls tools automatically, and know which parts of the stack you should build yourself versus let a framework handle.
 
+<!-- more -->
+
 ## What "building an AI agent in Python" actually means
 
 An AI agent is more than a single call to an LLM. A raw completion returns text; an agent runs a loop: it reads your instructions, decides whether it needs a tool, calls that tool, reads the result, and repeats until it can answer. To build an AI agent in Python you need four moving parts working together:

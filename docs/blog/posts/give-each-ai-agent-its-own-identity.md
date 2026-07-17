@@ -12,6 +12,8 @@ categories:
 
 Give each AI agent its own identity and "which agent did this?" stops being a guess: instead of threading one shared API key through `env` for a whole fleet, you attach a distinct `AgentIdentity` in the `build_agent()` call, and that identity gets stamped onto every tool call, every LLM turn, and every HMAC-chained audit entry the agent produces. This is a concrete how-to — not another essay about the "identity gap." By the end you'll have two agents that no longer share one credential or one blast radius: a billing bot that can issue refunds and a read-only reporter that can't, each traceable to itself.
 
+<!-- more -->
+
 ## One shared key is one shared blast radius
 
 Here's the setup almost every team starts with. You export one `API_KEY`, read it in every process, and point a fleet of agents at the same MCP servers. It works on day one. Then three things go wrong at once:

@@ -12,6 +12,8 @@ categories:
 
 Choosing between **react vs plan and execute** is one of the first real architecture decisions you make once an agent stops being a demo and starts doing work someone depends on. Both patterns are legitimate; the internet's advice is mostly vibes. This guide is grounded in how the two actually behave on capable models, names the specific task shapes where each one wins, and shows you how to settle the question empirically on your own task instead of arguing about it. By the end you'll know which to reach for first — and how to A/B the two in Promptise Foundry by flipping a single argument.
 
+<!-- more -->
+
 ## The two patterns, in one paragraph each
 
 **ReAct** interleaves reasoning and acting in a tight loop: the model thinks, calls a tool, reads the result, thinks again, and repeats until it can answer. There is no upfront plan — the path emerges as the model learns from each tool result. In Promptise this is the default. `agent_pattern="react"` builds a single reasoning node with your tools attached, and the engine loops LLM → tools → LLM until a final answer. It's the simplest, fastest, and most broadly useful shape, which is exactly why it's the default in [reasoning patterns](../../core/agents/reasoning-patterns.md).

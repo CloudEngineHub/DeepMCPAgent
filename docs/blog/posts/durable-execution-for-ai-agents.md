@@ -12,6 +12,8 @@ categories:
 
 Durable execution for AI agents is the property that lets a long-running, self-triggering agent survive a crash and come back exactly where it left off — same context, same counters, same lifecycle state — instead of restarting from zero. The term "durable execution" comes from the workflow world, where engines like Temporal, Restate, and DBOS made it famous. This page explains what the phrase means once your unit of work stops being a deterministic workflow and becomes a stateful agent, why the existing tools only solve half of it, and how Promptise Foundry closes the gap with a supervised process, an append-only journal, and a replay engine. It is the hub for the whole durability cluster, so it stays at the architecture altitude and points you at the deep dives for each mechanism.
 
+<!-- more -->
+
 ## From durable workflows to durable agents
 
 Durable execution has a precise meaning: the runtime persists the progress of a computation so that, after any failure, it resumes from the last recorded point rather than re-running from the start. Classic durable-execution engines achieve this by recording every step of a workflow to a log and deterministically replaying that log on recovery.

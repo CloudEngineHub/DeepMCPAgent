@@ -12,6 +12,8 @@ categories:
 
 A **code-action agent** flips the action space of an LLM: instead of chaining dozens of conversational tool calls to gather facts and then guessing the arithmetic in its head, the model writes **one Python program** over your tools and runs it. If you have ever watched an agent re-query the same records, blow its context window, and still return the wrong total, this pattern is for you. By the end of this post you will know when the codeact pattern wins, how to switch it on in Promptise Foundry with a single argument, and why the sandbox it runs in is locked down by default — not a bolt-on you have to remember to add.
 
+<!-- more -->
+
 ## What a code-action agent actually does
 
 The **codeact pattern** — sometimes written "code as action" — treats generated code as the agent's action. Rather than emitting a tool call, waiting for a result, emitting another, and so on, the model emits a whole program in a single turn. That program calls your tools as ordinary Python functions, loops over results, filters, joins, and computes an exact answer.

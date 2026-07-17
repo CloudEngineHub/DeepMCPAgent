@@ -12,6 +12,8 @@ categories:
 
 Circuit breakers for tools are the difference between an agent that degrades gracefully and one that burns your token budget while a downstream API is on fire. When a tool starts failing—your payment provider times out, a search API returns 503s—a naive agent does the worst possible thing: it retries in a hot loop, waits out every 30-second timeout, and asks the model to "try again" until your bill and your latency both spike. By the end of this post you'll know how to wrap a flaky tool in a per-tool breaker, pair it with timeout and concurrency limits, and turn a trip into a clean, retryable error the model can reason about.
 
+<!-- more -->
+
 ## Why a degraded tool cascades through an agent
 
 An LLM agent is a retry engine by design. It calls a tool, reads the result, and if the result looks wrong it plans another call. That behavior is exactly what you want when the tool is healthy and exactly what you don't want when it isn't.

@@ -12,6 +12,8 @@ categories:
 
 A useful confidence threshold to stop an AI agent is only trustworthy when the confidence comes from an *independent judge*, not from the agent's own claim that it finished. That distinction is the whole game. The moment you let an agent stop itself the instant it says "done," you have built a rubber stamp: the model declares victory, the loop halts, and nobody checks whether the mission was actually accomplished. Flip the failure around and it is just as bad — an agent with no completion signal at all runs on its trigger forever, re-doing finished work and burning tokens. This post shows the middle path Promptise Foundry makes first-class: a mission whose completion and escalation are both **gated on a separate evaluator's numeric confidence** — `auto_complete` on a confident success, `escalate` below your threshold, and a hard `timeout_hours` backstop so a shaky agent gets a human, not a rubber stamp.
 
+<!-- more -->
+
 The thesis in one line: don't stop when the *agent* says it's done — stop when an *independent judge* is confident it's done, and page a human when that judge is not.
 
 ## Quit early or run forever: two ways auto-stop fails

@@ -12,6 +12,8 @@ categories:
 
 Sandboxed code execution for AI is the difference between an agent that drafts a Python script and an agent that runs it on your production host with your credentials in the environment. The moment you let a model write and execute code — for data analysis, glue scripts, or a self-modifying "open mode" agent — the generated script is untrusted input, no matter how good your prompt is. This post is a decision guide to the specific isolation layers that actually matter, and how to turn them on. By the end you will know exactly what a hardened container gives you, which of those layers most "sandbox" wrappers quietly skip, and how to run generated code with no blast radius.
 
+<!-- more -->
+
 ## Why "sandbox" usually means less than you think
 
 Plenty of frameworks advertise a sandbox and deliver a `subprocess.run()` with a timeout. That stops an infinite loop. It does nothing about a script that reads `~/.aws/credentials`, opens a socket to an attacker, or forks until the box falls over. A real sandbox for **secure agent-written code** has to assume the code is hostile and remove capabilities up front.

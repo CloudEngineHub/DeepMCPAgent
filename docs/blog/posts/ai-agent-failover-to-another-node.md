@@ -12,6 +12,8 @@ categories:
 
 AI agent failover to another node is what you actually need when the machine running a long-lived agent dies mid-run — not a fresh agent that boots with an empty head, but the *specific* crashed process rebuilt where it left off, on a surviving box. Spinning up a replacement is easy. Reconstructing the process that had already scored 128 fraud alerts, advanced a queue cursor, and set its own `pipeline_status = "degraded"` — on a different machine, from durable evidence — is the hard part. This post shows how Promptise Foundry does that with a `RuntimeCoordinator`, static or registry discovery, and a shared journal, with no etcd or Consul in the picture. It also draws an honest line against the distributed runtimes other frameworks ship.
 
+<!-- more -->
+
 ## Why node failover is different from a new agent
 
 A stateless request/response agent needs no failover: if the node hosting it dies, a load balancer routes the next request to another replica and nothing is lost. The problem lives entirely in **long-running, stateful processes** — an [agent process](../../runtime/processes.md) with triggers, a heartbeat, and accumulated context state that has been running for hours.
