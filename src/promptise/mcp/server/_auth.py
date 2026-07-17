@@ -384,6 +384,241 @@ class AsymmetricJWTAuth:
             return False
 
 
+class JwksAuth:
+    """JWT authentication against an identity provider's JWKS endpoint.
+
+    Verifies tokens issued by an external identity provider — Microsoft
+    Entra, an OIDC provider, an internal IdP — by fetching the provider's
+    public keys from its JWKS URL and selecting the one matching the
+    token's ``kid``. Keys are fetched on demand and cached, so issuer key
+    rotation is handled without reconfiguration.
+
+    This is the server-side counterpart to ``promptise.identity``: an
+    agent presents an IdP-issued identity credential, this provider
+    verifies it, and the validated ``sub`` / claims are surfaced on
+    ``ctx.client`` so guards (``RequireClientId``, ``HasRole``) and
+    audit logs can see *which agent* called.
+
+    Requires the ``PyJWT`` and ``cryptography`` packages.
+
+    Args:
+        jwks_url: The IdP's JWKS endpoint (for Entra, e.g.
+            ``https://login.microsoftonline.com/<tenant>/discovery/v2.0/keys``).
+        audience: Expected ``aud`` claim — **required**. Set it to the
+            resource the agents target (e.g. the App ID URI of this
+            server). It is verified on every token, which is what prevents
+            an agent from replaying a token it was issued for a *different*
+            resource of the same IdP (token substitution).
+        issuer: Expected ``iss`` claim. Strongly recommended: when set,
+            tokens from any other issuer are rejected (defence in depth on
+            top of the JWKS key set and audience check).
+        algorithms: Accepted signing algorithms. Asymmetric only, so a
+            token claiming ``HS256`` (algorithm-confusion) is rejected.
+        meta_key: Key in ``ctx.meta`` holding the bearer token.
+
+    Example::
+
+        auth = JwksAuth(
+            jwks_url="https://idp.example.com/.well-known/jwks.json",
+            audience="api://my-mcp-server",
+            issuer="https://idp.example.com",
+        )
+        server.add_middleware(AuthMiddleware(auth))
+
+    Or let the JWKS endpoint be discovered from the issuer's OIDC
+    ``.well-known/openid-configuration`` (see :meth:`from_discovery`)::
+
+        auth = JwksAuth.from_discovery(
+            issuer="https://login.microsoftonline.com/<tenant>/v2.0",
+            audience="api://my-mcp-server",
+        )
+    """
+
+    def __init__(
+        self,
+        *,
+        jwks_url: str,
+        audience: str,
+        issuer: str | None = None,
+        algorithms: tuple[str, ...] = ("RS256", "ES256"),
+        meta_key: str = "authorization",
+        leeway: float = 60.0,
+    ) -> None:
+        if not audience:
+            raise ValueError(
+                "JwksAuth requires a non-empty audience — the resource this "
+                "server represents. Verifying only the signature would accept "
+                "any token from this IdP, including ones minted for other "
+                "resources (token substitution)."
+            )
+        self._jwks_url = jwks_url
+        self._issuer = issuer
+        self._audience = audience
+        self._algorithms = list(algorithms)
+        self._meta_key = meta_key
+        # Tolerate small NTP clock differences between the IdP and this server
+        # when checking exp/nbf/iat, so a token that is valid "now" is not
+        # rejected because the two clocks differ by a few seconds.
+        self._leeway = leeway
+        self._jwk_client: Any = None
+        # Discovery mode (set by from_discovery): jwks_url is resolved lazily
+        # from the issuer's OIDC discovery document.
+        self._discovery_issuer: str | None = None
+        self._request_timeout: float = 5.0
+
+    @classmethod
+    def from_discovery(
+        cls,
+        *,
+        issuer: str,
+        audience: str,
+        algorithms: tuple[str, ...] = ("RS256", "ES256"),
+        meta_key: str = "authorization",
+        request_timeout: float = 5.0,
+    ) -> JwksAuth:
+        """Build a :class:`JwksAuth` that discovers its JWKS from the issuer.
+
+        Resolves the JWKS endpoint from the IdP's OIDC discovery document at
+        ``{issuer}/.well-known/openid-configuration`` instead of taking a
+        ``jwks_url`` directly. The document is fetched once (lazily, on the
+        first verification) and its ``issuer`` is checked against the
+        configured ``issuer`` to prevent a spoofed discovery host. Tokens are
+        then verified with their ``iss`` pinned to ``issuer`` (and ``aud`` to
+        ``audience``, which is required).
+
+        Args:
+            issuer: The OIDC issuer URL (its ``.well-known`` is read).
+            audience: Expected ``aud`` claim — required.
+            algorithms: Accepted signing algorithms.
+            meta_key: Key in ``ctx.meta`` holding the bearer token.
+            request_timeout: Seconds to wait for the discovery fetch.
+        """
+        if not issuer:
+            raise ValueError("JwksAuth.from_discovery requires a non-empty issuer.")
+        auth = cls(
+            jwks_url="",  # resolved lazily from discovery
+            audience=audience,
+            issuer=issuer,
+            algorithms=algorithms,
+            meta_key=meta_key,
+        )
+        auth._discovery_issuer = issuer
+        auth._request_timeout = request_timeout
+        return auth
+
+    def _discover_jwks_url(self) -> str:
+        """Fetch and validate the JWKS URL from the OIDC discovery document."""
+        import httpx
+
+        issuer = self._discovery_issuer or ""
+        url = issuer.rstrip("/") + "/.well-known/openid-configuration"
+        try:
+            response = httpx.get(url, timeout=self._request_timeout)
+        except httpx.HTTPError as exc:
+            raise AuthenticationError(
+                f"Could not fetch OIDC discovery document from {url} ({type(exc).__name__}: {exc})."
+            )
+        if response.status_code != 200:
+            raise AuthenticationError(
+                f"OIDC discovery at {url} returned HTTP {response.status_code}."
+            )
+        try:
+            doc = response.json()
+        except ValueError:
+            raise AuthenticationError(f"OIDC discovery at {url} returned a non-JSON body.")
+        if doc.get("issuer") != issuer:
+            raise AuthenticationError(
+                f"OIDC discovery issuer mismatch: document declares "
+                f"{doc.get('issuer')!r} but {issuer!r} was configured. "
+                f"Refusing to trust a discovery host that claims a different "
+                f"issuer."
+            )
+        jwks_uri = doc.get("jwks_uri")
+        if not isinstance(jwks_uri, str) or not jwks_uri:
+            raise AuthenticationError(f"OIDC discovery at {url} did not advertise a 'jwks_uri'.")
+        return jwks_uri
+
+    def _client(self) -> Any:
+        if self._jwk_client is None:
+            try:
+                from jwt import PyJWKClient
+            except ImportError:
+                raise ImportError(
+                    "PyJWT and cryptography are required for JWKS auth. "
+                    "Install with: pip install PyJWT cryptography"
+                )
+            jwks_url = self._jwks_url
+            if self._discovery_issuer is not None:
+                jwks_url = self._discover_jwks_url()
+                self._jwks_url = jwks_url  # cache for diagnostics
+            self._jwk_client = PyJWKClient(jwks_url)
+        return self._jwk_client
+
+    async def authenticate(self, ctx: RequestContext) -> str:
+        """Authenticate by verifying a JWT against the IdP's JWKS."""
+        token = ctx.meta.get(self._meta_key, "")
+        if token.startswith("Bearer "):
+            token = token[7:]
+        if not token:
+            raise AuthenticationError("Missing authentication token")
+
+        payload = self._verify_token(token)
+        ctx.state["_jwt_payload"] = payload
+        return payload.get("sub", payload.get("client_id", "unknown"))
+
+    def _verify_token(self, token: str) -> dict[str, Any]:
+        """Verify a JWT against the JWKS and return its claims."""
+        try:
+            import jwt as pyjwt
+        except ImportError:
+            raise ImportError(
+                "PyJWT and cryptography are required for JWKS auth. "
+                "Install with: pip install PyJWT cryptography"
+            )
+
+        # Resolve the JWKS client outside the key-lookup try so discovery /
+        # import errors surface with their own clear message.
+        client = self._client()
+        try:
+            signing_key = client.get_signing_key_from_jwt(token)
+        except Exception as exc:  # noqa: BLE001 — JWKS fetch / kid mismatch
+            raise AuthenticationError(
+                f"Could not resolve a signing key from the JWKS at "
+                f"{self._jwks_url} ({type(exc).__name__}: {exc}). Most common "
+                f"cause: the token's 'kid' is not published there, or the JWKS "
+                f"URL is wrong."
+            )
+
+        # Audience is required (enforced at construction); issuer is verified
+        # when configured. Signature + exp are always verified by PyJWT.
+        kwargs: dict[str, Any] = {
+            "algorithms": self._algorithms,
+            "audience": self._audience,
+            "leeway": self._leeway,
+        }
+        if self._issuer is not None:
+            kwargs["issuer"] = self._issuer
+
+        try:
+            payload: dict[str, Any] = pyjwt.decode(token, signing_key.key, **kwargs)
+            return payload
+        except pyjwt.ExpiredSignatureError:
+            raise AuthenticationError(
+                "Token expired",
+                suggestion="Have the agent acquire a fresh identity credential",
+            )
+        except pyjwt.InvalidTokenError as exc:
+            raise AuthenticationError(f"Invalid JWT: {exc}")
+
+    def verify_token(self, token: str) -> bool:
+        """Check if a token is valid without requiring a request context."""
+        try:
+            self._verify_token(token)
+            return True
+        except (AuthenticationError, ImportError):
+            return False
+
+
 class APIKeyAuth:
     """API key-based authentication provider.
 
@@ -418,11 +653,13 @@ class APIKeyAuth:
         self._keys: dict[str, dict[str, Any]] = {}
         for k, v in keys.items():
             if isinstance(v, str):
-                self._keys[k] = {"client_id": v, "roles": []}
+                self._keys[k] = {"client_id": v, "roles": [], "tenant_id": None}
             else:
+                tenant = v.get("tenant_id")
                 self._keys[k] = {
                     "client_id": v.get("client_id", "unknown"),
                     "roles": list(v.get("roles", [])),
+                    "tenant_id": tenant if isinstance(tenant, str) and tenant.strip() else None,
                 }
         self._meta_key = header
 
@@ -453,6 +690,10 @@ class APIKeyAuth:
         # Populate roles for guard compatibility
         if entry["roles"]:
             ctx.state["roles"] = set(entry["roles"])
+        # Stash the key's tenant so AuthMiddleware can attach it to
+        # ClientContext.tenant_id (there is no JWT claim to read from)
+        if entry.get("tenant_id"):
+            ctx.state["_api_key_tenant"] = entry["tenant_id"]
         return entry["client_id"]
 
     def verify_token(self, key: str) -> bool:
@@ -475,6 +716,7 @@ def _build_client_context_from_jwt(
     *,
     existing_roles: set[str] | None = None,
     meta: dict[str, Any] | None = None,
+    tenant_claim: str = "tenant_id",
 ) -> ClientContext:
     """Build a :class:`ClientContext` from a verified JWT payload.
 
@@ -488,6 +730,9 @@ def _build_client_context_from_jwt(
         existing_roles: Roles already extracted by the provider (e.g.
             from API key config).  Merged with JWT ``roles`` claim.
         meta: HTTP headers dict to extract user-agent from.
+        tenant_claim: JWT claim carrying the tenant / organisation id.
+            Only string claim values are accepted; anything else leaves
+            ``tenant_id`` unset (tenant guards then fail closed).
     """
     # Roles: merge JWT "roles" claim with any provider-supplied roles
     jwt_roles = set(payload.get("roles", []))
@@ -510,8 +755,13 @@ def _build_client_context_from_jwt(
     if client_info:
         ip_address = client_info[0]
 
+    # Tenant: configurable claim; only string values are trusted
+    tenant_value = payload.get(tenant_claim)
+    tenant_id = tenant_value if isinstance(tenant_value, str) and tenant_value.strip() else None
+
     return ClientContext(
         client_id=client_id,
+        tenant_id=tenant_id,
         roles=all_roles,
         scopes=scopes,
         claims=payload,
@@ -530,6 +780,7 @@ def _build_client_context_from_api_key(
     roles: set[str],
     *,
     meta: dict[str, Any] | None = None,
+    tenant_id: str | None = None,
 ) -> ClientContext:
     """Build a :class:`ClientContext` for API key auth (no JWT claims)."""
     ip_address: str | None = None
@@ -542,6 +793,7 @@ def _build_client_context_from_api_key(
 
     return ClientContext(
         client_id=client_id,
+        tenant_id=tenant_id,
         roles=roles,
         ip_address=ip_address,
         user_agent=user_agent,
@@ -568,6 +820,11 @@ class AuthMiddleware:
         on_authenticate: Optional async or sync callable that receives
             ``(client_ctx, request_ctx)`` and can mutate ``client_ctx``
             (e.g. populate ``client_ctx.extra``).
+        tenant_claim: JWT claim name carrying the client's tenant /
+            organisation id (default ``"tenant_id"``).  The value lands
+            on ``ClientContext.tenant_id``, where rate limiting, audit
+            entries, and tenant guards read it.  For ``APIKeyAuth``, the
+            tenant comes from the key's config dict instead.
 
     Example::
 
@@ -584,9 +841,11 @@ class AuthMiddleware:
         provider: Any,
         *,
         on_authenticate: OnAuthenticateHook | None = None,
+        tenant_claim: str = "tenant_id",
     ) -> None:
         self._provider = provider
         self._on_authenticate = on_authenticate
+        self._tenant_claim = tenant_claim
 
     async def __call__(self, ctx: RequestContext, call_next: Callable[..., Any]) -> Any:
         tool_def = ctx.state.get("tool_def")
@@ -605,13 +864,15 @@ class AuthMiddleware:
                     client_id,
                     existing_roles=existing_roles,
                     meta=ctx.meta,
+                    tenant_claim=self._tenant_claim,
                 )
             else:
-                # API key auth — no JWT claims, just roles
+                # API key auth — no JWT claims; tenant comes from key config
                 client_ctx = _build_client_context_from_api_key(
                     client_id,
                     existing_roles,
                     meta=ctx.meta,
+                    tenant_id=ctx.state.get("_api_key_tenant"),
                 )
 
             # Merge roles back to ctx.state for backward compatibility

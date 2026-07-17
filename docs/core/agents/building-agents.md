@@ -283,6 +283,7 @@ from promptise.agent import CallerContext
 
 caller = CallerContext(
     user_id="user-alice-001",           # Scopes memory, cache, conversations
+    tenant_id="acme",                   # Tenant-qualifies ALL isolation keys (multi-tenant SaaS)
     bearer_token="eyJhbGciOi...",       # Forwarded to MCP servers as Authorization header
     roles={"analyst", "viewer"},         # Agent-side role info
     scopes={"read", "write"},            # Agent-side scope info

@@ -111,6 +111,13 @@ async def delete_user(user_id: str) -> dict:
     return {"deleted": user_id}
 ```
 
+Two more options carry server-wide invariants: `requires_approval=True`
+requires a human decision before every call — the server **refuses to build**
+unless an `ApprovalGateMiddleware` is installed (see
+[Approval Gates](approval-gates.md)) — and tenant access is enforced with the
+tenant guards or `MCPServer(require_tenant=True)` (see
+[Multi-Tenancy](multi-tenancy.md)).
+
 ### Structured tool outputs
 
 By default, tool return values are serialised to JSON text. For richer responses, return MCP content types directly:

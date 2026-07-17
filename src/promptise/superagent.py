@@ -14,7 +14,7 @@ The loader supports:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 from pydantic import ValidationError
@@ -24,9 +24,13 @@ from .env_resolver import resolve_env_in_dict, validate_all_env_vars_available
 from .exceptions import SuperAgentError, SuperAgentValidationError
 from .superagent_schema import (
     HTTPServerConfig,
+    IdentityConfig,
     StdioServerConfig,
     SuperAgentSchema,
 )
+
+if TYPE_CHECKING:
+    from .identity import AgentIdentity
 
 
 class SuperAgentLoader:
@@ -368,6 +372,27 @@ class SuperAgentLoader:
             kwargs.update(model_config.extra)
         return kwargs
 
+    def to_identity(self) -> AgentIdentity | None:
+        """Build the agent's :class:`~promptise.identity.AgentIdentity`.
+
+        Maps the resolved ``identity:`` section to the matching identity
+        factory. Returns ``None`` when no ``identity:`` block is present.
+        Environment variables in the section are already resolved (via
+        :meth:`resolve_env_vars`) by the time this runs.
+
+        Returns:
+            The constructed ``AgentIdentity``, or ``None``.
+
+        Raises:
+            ProviderConfigError: If the identity configuration is invalid
+                (e.g. a local identity with no ``agent_id``).
+        """
+        schema = self.resolved_schema or self.schema
+        cfg: IdentityConfig | None = schema.identity
+        if cfg is None:
+            return None
+        return cfg.to_identity()
+
     def to_agent_config(self) -> SuperAgentConfig:
         """Convert loaded schema to agent build configuration.
 
@@ -434,6 +459,7 @@ class SuperAgentLoader:
             servers=self.to_server_specs(),
             instructions=schema.agent.instructions,
             trace=schema.agent.trace,
+            identity=self.to_identity(),
             cross_agents=schema.cross_agents or {},
             sandbox=sandbox_config,
             memory=memory_config,
@@ -491,6 +517,7 @@ class SuperAgentConfig:
         servers: dict[str, ServerSpec],
         instructions: str | None = None,
         trace: bool = True,
+        identity: AgentIdentity | None = None,
         cross_agents: dict[str, Any] | None = None,
         sandbox: bool | dict[str, Any] | None = None,
         memory: dict[str, Any] | None = None,
@@ -523,6 +550,7 @@ class SuperAgentConfig:
         self.servers = servers
         self.instructions = instructions
         self.trace = trace
+        self.identity = identity
         self.cross_agents = cross_agents or {}
         self.sandbox = sandbox
         self.memory = memory
@@ -566,6 +594,9 @@ class SuperAgentConfig:
             # Note: cross_agents needs special handling to build actual
             # CrossAgent objects - see CLI integration
         }
+
+        if self.identity is not None:
+            kwargs["identity"] = self.identity
 
         if self.sandbox is not None:
             kwargs["sandbox"] = self.sandbox

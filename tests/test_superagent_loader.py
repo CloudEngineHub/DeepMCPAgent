@@ -573,3 +573,156 @@ servers:
 
     assert result is loader
     assert loader.resolved_schema is not None
+
+
+# ---------------------------------------------------------------------------
+# Agent identity section
+# ---------------------------------------------------------------------------
+
+
+def _agent_with_identity(tmp_path: Path, identity_block: str) -> SuperAgentLoader:
+    body = (
+        'version: "1.0"\n'
+        "agent:\n"
+        '  model: "openai:gpt-5-mini"\n'
+        f"{identity_block}"
+        "servers:\n"
+        "  tools:\n"
+        "    type: http\n"
+        '    url: "https://mcp.internal"\n'
+    )
+    path = tmp_path / "agent.superagent"
+    path.write_text(body)
+    return SuperAgentLoader.from_file(path)
+
+
+def test_identity_local_is_built_and_passed_to_build_kwargs(tmp_path: Path) -> None:
+    loader = _agent_with_identity(
+        tmp_path,
+        "identity:\n"
+        "  provider: local\n"
+        "  agent_id: billing-bot\n"
+        "  name: Billing Bot\n"
+        "  owner: payments\n"
+        "  labels: {env: prod}\n",
+    )
+    ident = loader.to_identity()
+    assert ident is not None
+    assert ident.agent_id == "billing-bot"
+    assert ident.name == "Billing Bot"
+    assert ident.owner == "payments"
+    assert ident.labels == {"env": "prod"}
+    assert ident.is_verifiable is False
+    # The identity flows all the way into build_agent(**kwargs).
+    kwargs = loader.to_agent_config().to_build_kwargs()
+    assert kwargs["identity"].agent_id == "billing-bot"
+
+
+def test_no_identity_section_yields_none(tmp_path: Path) -> None:
+    loader = _agent_with_identity(tmp_path, "")
+    assert loader.to_identity() is None
+    assert "identity" not in loader.to_agent_config().to_build_kwargs()
+
+
+def test_identity_oidc_resolves_env_and_is_verifiable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MY_ISSUER", "https://gitlab.com")
+    monkeypatch.setenv("MY_JWT_VAR", "CI_JOB_JWT_V2")
+    loader = _agent_with_identity(
+        tmp_path,
+        "identity:\n"
+        "  provider: oidc\n"
+        "  agent_id: release-bot\n"
+        "  issuer: ${MY_ISSUER}\n"
+        "  token_env_var: ${MY_JWT_VAR}\n",
+    ).resolve_env_vars()
+    ident = loader.to_identity()
+    assert ident is not None
+    assert ident.is_verifiable is True
+    assert ident.credential_provider == "oidc:https://gitlab.com"
+
+
+def test_identity_entra_imds_selects_managed_identity_provider(tmp_path: Path) -> None:
+    loader = _agent_with_identity(
+        tmp_path,
+        "identity:\n"
+        "  provider: entra\n"
+        "  agent_id: data-bot\n"
+        "  mode: imds\n"
+        "  client_id: abc-123\n"
+        "  resource: api://internal\n",
+    )
+    ident = loader.to_identity()
+    assert ident is not None
+    assert ident.credential_provider == "entra-imds"
+
+
+def test_identity_gcp_selects_metadata_provider(tmp_path: Path) -> None:
+    loader = _agent_with_identity(
+        tmp_path,
+        "identity:\n  provider: gcp\n  agent_id: g-bot\n  audience: api://m\n",
+    )
+    ident = loader.to_identity()
+    assert ident is not None
+    assert ident.credential_provider == "gcp-metadata"
+
+
+def test_identity_aws_sts_selects_sts_provider(tmp_path: Path) -> None:
+    loader = _agent_with_identity(
+        tmp_path,
+        "identity:\n  provider: aws\n  agent_id: a-bot\n  mode: sts\n"
+        "  region: us-east-1\n  audience: api://m\n",
+    )
+    ident = loader.to_identity()
+    assert ident is not None
+    assert ident.credential_provider == "aws-sts"
+
+
+def test_identity_spiffe_sdk_selects_sdk_provider(tmp_path: Path) -> None:
+    loader = _agent_with_identity(
+        tmp_path,
+        "identity:\n  provider: spiffe\n  agent_id: s-bot\n  mode: sdk\n  audience: api://m\n",
+    )
+    ident = loader.to_identity()
+    assert ident is not None
+    assert ident.credential_provider == "spiffe-sdk"
+
+
+def test_identity_auto_uses_detected_platform(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "my-project")
+    loader = _agent_with_identity(tmp_path, "identity:\n  provider: auto\n  agent_id: auto-bot\n")
+    ident = loader.to_identity()
+    assert ident is not None
+    assert ident.credential_provider == "gcp-metadata"
+
+
+def test_identity_local_without_agent_id_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(SuperAgentValidationError, match="requires 'agent_id'"):
+        _agent_with_identity(tmp_path, "identity:\n  provider: local\n")
+
+
+def test_identity_oidc_without_issuer_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(SuperAgentValidationError, match="requires 'issuer'"):
+        _agent_with_identity(
+            tmp_path,
+            "identity:\n  provider: oidc\n  agent_id: b\n  token_env_var: X\n",
+        )
+
+
+def test_identity_oidc_without_token_source_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(SuperAgentValidationError, match="exactly one of"):
+        _agent_with_identity(
+            tmp_path,
+            "identity:\n  provider: oidc\n  agent_id: b\n  issuer: https://idp\n",
+        )
+
+
+def test_identity_unknown_field_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(SuperAgentValidationError):
+        _agent_with_identity(
+            tmp_path,
+            "identity:\n  provider: local\n  agent_id: b\n  bogus: x\n",
+        )

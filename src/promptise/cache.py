@@ -1092,19 +1092,32 @@ class SemanticCache:
                 tool_name,
             )
 
-    async def purge_user(self, user_id: str) -> int:
+    async def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int:
         """Remove all cached entries for a user.
 
         Use for GDPR right-to-erasure compliance.
 
         Args:
             user_id: The user whose cache to purge.
+            tenant_id: The user's tenant, when tenant-scoped callers were
+                used.  Must match the ``CallerContext.tenant_id`` the
+                entries were stored under.
+
+        Note:
+            This purges the **per-user** scope (``user:<id>``), which is the
+            default and the GDPR-relevant one.  A cache created with
+            ``scope="per_session"`` keys entries by session, not user, so
+            ``purge_user`` does not remove them — erase those by their
+            session scope instead.
 
         Returns:
             Number of entries removed.
         """
-        count = await self._backend.purge_user(user_id)
-        logger.info("Cache purged %d entries for user %s", count, user_id)
+        scoped = self._scoped_user_id(tenant_id, user_id)
+        if not scoped:
+            return 0
+        count = await self._backend.purge_user(scoped)
+        logger.info("Cache purged %d entries for user %s", count, scoped)
         # Emit cache.purged event if notifier is available
         notifier = getattr(self, "_event_notifier", None)
         if notifier is not None:
@@ -1143,10 +1156,53 @@ class SemanticCache:
         # Replace colons and slashes to prevent scope key confusion
         return value.strip().replace(":", "_").replace("/", "_")
 
+    @classmethod
+    def _scoped_user_id(cls, tenant_id: str | None, user_id: str) -> str:
+        """Derive an **injective**, delimiter-free scope id for ``(tenant, id)``.
+
+        Untenanted → the sanitized id (unchanged, backward compatible).
+        Tenanted → ``"t:" + sha256(f"{len(tenant)}:{tenant}:{id}")[:40]``.
+        This is injective in ``(tenant, id)`` because the hash input is
+        **length-prefixed**: the leading ``len(tenant)`` fixes exactly how
+        many following characters are the tenant, so no two distinct
+        ``(tenant, id)`` pairs can produce the same material string no matter
+        where colons fall.  The two keyspaces are also **disjoint**: the
+        sanitizer strips ``:`` from untenanted ids, so an untenanted scope id
+        can never contain a colon, while every tenanted key begins with
+        ``"t:"`` — no untenanted user_id (not even one literally shaped like
+        ``"t:<hex>"``, which sanitizes its colon away) can collide with a
+        tenanted hash.
+
+        A plain ``__`` join was not injective (``("acme","corp__alice")`` and
+        ``("acme__corp","alice")`` both produced ``acme__corp__alice``); a
+        bare ``f"{tenant}::{id}"`` was likewise ambiguous under adversarial
+        colons (``("a", ":b")`` and ``("a:", "b")`` collide); and a ``"t."``
+        prefix still overlapped the untenanted namespace (a user named
+        ``"t.<hex>"`` collided) — hence the length-prefixed material and the
+        ``"t:"`` colon prefix.
+
+        One derivation shared by scope-key construction and
+        :meth:`purge_user`, so a tenant-scoped purge matches exactly what
+        was stored.  Empty string when the id sanitizes to nothing.
+        """
+        if not user_id or not user_id.strip():
+            return ""
+        if not tenant_id:
+            return cls._sanitize_scope_id(user_id)
+        # Length-prefix the tenant so the hash INPUT decodes unambiguously
+        # regardless of colon placement — ``f"{tenant}::{user}"`` alone is not
+        # injective ("a"+"::"+":b" == "a:"+"::"+"b"), but ``len:tenant:user``
+        # is (read the length, then exactly that many chars are the tenant).
+        material = f"{len(tenant_id)}:{tenant_id}:{user_id}"
+        digest = hashlib.sha256(material.encode()).hexdigest()
+        return f"t:{digest[:40]}"
+
     def _build_scope_key(self, caller: Any | None) -> str | None:
         """Build the scope isolation key from caller context.
 
         Returns None if caching should be disabled for this request.
+        When the caller carries a ``tenant_id``, it is baked into the
+        scope key — tenants with identical user ids never share entries.
         """
         if self._scope == "shared":
             logger.debug("Cache: using shared scope (no per-user isolation)")
@@ -1156,11 +1212,12 @@ class SemanticCache:
             return None
 
         user_id = getattr(caller, "user_id", None)
+        tenant_id = getattr(caller, "tenant_id", None)
 
         if self._scope == "per_user":
             if user_id is None:
                 return None
-            safe_id = self._sanitize_scope_id(user_id)
+            safe_id = self._scoped_user_id(tenant_id, user_id)
             if not safe_id:
                 return None
             return f"user:{safe_id}"
@@ -1168,13 +1225,14 @@ class SemanticCache:
         if self._scope == "per_session":
             session_id = (getattr(caller, "metadata", None) or {}).get("session_id")
             if session_id:
-                safe_sid = self._sanitize_scope_id(session_id)
+                # Same injective, tenant-qualified derivation as per_user
+                safe_sid = self._scoped_user_id(tenant_id, session_id)
                 if safe_sid:
                     return f"session:{safe_sid}"
             # Fall back to user scope
             if user_id is None:
                 return None
-            safe_id = self._sanitize_scope_id(user_id)
+            safe_id = self._scoped_user_id(tenant_id, user_id)
             if not safe_id:
                 return None
             return f"user:{safe_id}"

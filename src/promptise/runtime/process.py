@@ -38,7 +38,7 @@ import contextlib
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from .config import ExecutionMode, ProcessConfig
@@ -47,6 +47,9 @@ from .conversation import ConversationBuffer
 from .lifecycle import ProcessLifecycle, ProcessState
 from .triggers import create_trigger
 from .triggers.base import BaseTrigger, TriggerEvent
+
+if TYPE_CHECKING:
+    from promptise.config import HTTPServerSpec, StdioServerSpec
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +93,54 @@ def _create_memory_provider(ctx_config: Any) -> Any:
 
     logger.warning("Unknown memory provider type: %s", provider_type)
     return None
+
+
+def _resolve_server_specs(
+    servers: dict[str, Any],
+) -> dict[str, HTTPServerSpec | StdioServerSpec]:
+    """Coerce raw server specs into typed :class:`ServerSpec` objects.
+
+    Entries that are already :class:`HTTPServerSpec` / :class:`StdioServerSpec`
+    pass through unchanged. Dict entries are normalized, carrying through
+    **every** supported field so a dict-based config behaves identically to
+    passing the spec object directly — an HTTP dict keeps ``headers``,
+    ``auth``, ``bearer_token``, ``api_key`` and ``audience``; a stdio dict
+    keeps ``args``, ``env``, ``cwd`` and ``keep_alive``. Unrecognized entries
+    (neither a spec object nor a dict with a ``url``/``command``) are skipped.
+
+    Args:
+        servers: Mapping of server name to spec object or raw dict.
+
+    Returns:
+        Mapping of server name to a typed spec object.
+    """
+    from promptise.config import HTTPServerSpec, StdioServerSpec
+
+    resolved: dict[str, HTTPServerSpec | StdioServerSpec] = {}
+    for name, spec in servers.items():
+        if isinstance(spec, (HTTPServerSpec, StdioServerSpec)):
+            resolved[name] = spec
+        elif isinstance(spec, dict):
+            transport = spec.get("type", spec.get("transport", ""))
+            if transport in ("http", "streamable-http", "sse") or "url" in spec:
+                kw: dict[str, Any] = {"url": spec["url"]}
+                if "transport" in spec:
+                    kw["transport"] = spec["transport"]
+                elif "type" in spec:
+                    kw["transport"] = spec["type"]
+                for opt in ("headers", "auth", "bearer_token", "api_key", "audience"):
+                    if opt in spec:
+                        kw[opt] = spec[opt]
+                resolved[name] = HTTPServerSpec(**kw)
+            elif "command" in spec:
+                resolved[name] = StdioServerSpec(
+                    command=spec["command"],
+                    args=spec.get("args", []),
+                    env=spec.get("env", {}),
+                    cwd=spec.get("cwd"),
+                    keep_alive=spec.get("keep_alive", True),
+                )
+    return resolved
 
 
 class AgentProcess:
@@ -651,29 +702,36 @@ class AgentProcess:
         # Pre-discover MCP tools via native client (cross-task safe),
         # then build the agent WITHOUT servers (tools come via extra_tools).
         if servers:
-            from promptise.config import HTTPServerSpec, StdioServerSpec
+            from promptise.config import HTTPServerSpec
             from promptise.mcp.client import MCPClient, MCPMultiClient, MCPToolAdapter
 
-            # Ensure all server specs are proper ServerSpec objects
-            resolved: dict[str, HTTPServerSpec | StdioServerSpec] = {}
-            for name, spec in servers.items():
-                if isinstance(spec, (HTTPServerSpec, StdioServerSpec)):
-                    resolved[name] = spec
-                elif isinstance(spec, dict):
-                    transport = spec.get("type", spec.get("transport", ""))
-                    if transport in ("http", "streamable-http", "sse") or "url" in spec:
-                        kw: dict[str, Any] = {"url": spec["url"]}
-                        if "transport" in spec:
-                            kw["transport"] = spec["transport"]
-                        elif "type" in spec:
-                            kw["transport"] = spec["type"]
-                        resolved[name] = HTTPServerSpec(**kw)
-                    elif "command" in spec:
-                        resolved[name] = StdioServerSpec(
-                            command=spec["command"],
-                            args=spec.get("args", []),
-                            env=spec.get("env", {}),
-                        )
+            # Ensure all server specs are proper ServerSpec objects,
+            # carrying through every supported field (see
+            # :func:`_resolve_server_specs`).
+            resolved = _resolve_server_specs(servers)
+
+            # When the process carries a verifiable identity, present its
+            # credential to MCP servers that have no bearer of their own —
+            # scoped to each server's audience (best-effort; an unreachable
+            # IdP must not fail the build).
+            def _identity_bearer(spec: HTTPServerSpec) -> str | None:
+                identity = self.config.identity
+                if identity is None or not getattr(identity, "is_verifiable", False):
+                    return None
+                from promptise.identity import IdentityError
+
+                try:
+                    return str(identity.get_credential(spec.audience))
+                except IdentityError as exc:
+                    logger.warning(
+                        "AgentProcess %s: identity could not acquire a "
+                        "credential for MCP server audience %r (%s); "
+                        "connecting without it.",
+                        self.name,
+                        spec.audience,
+                        exc,
+                    )
+                    return None
 
             # Build native MCP clients from resolved specs
             clients: dict[str, MCPClient] = {}
@@ -685,7 +743,7 @@ class AgentProcess:
                         headers=spec.headers,
                         bearer_token=spec.bearer_token.get_secret_value()
                         if spec.bearer_token
-                        else None,
+                        else _identity_bearer(spec),
                         api_key=spec.api_key.get_secret_value() if spec.api_key else None,
                     )
                 else:
@@ -694,6 +752,7 @@ class AgentProcess:
                         command=spec.command,
                         args=spec.args,
                         env=spec.env,
+                        cwd=spec.cwd,
                     )
 
             self._mcp_multi = MCPMultiClient(clients)
@@ -713,6 +772,8 @@ class AgentProcess:
         }
 
         # Wire optional capabilities from ProcessConfig
+        if self.config.identity is not None:
+            build_kwargs["identity"] = self.config.identity
         if self.config.approval is not None:
             build_kwargs["approval"] = self.config.approval
         if self._event_notifier is not None:

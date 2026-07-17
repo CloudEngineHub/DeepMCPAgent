@@ -219,6 +219,13 @@ Core agent creation, invocation, identity, conversations, and the full reasoning
       show_source: false
       heading_level: 4
 
+### CodeActionNode
+
+::: promptise.engine.code_action.CodeActionNode
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
 ## Reasoning Nodes
@@ -302,6 +309,27 @@ Factory functions that build common reasoning patterns. All exposed as static me
 ### build_react_graph
 
 ::: promptise.engine.prebuilts.build_react_graph
+    options:
+      show_source: false
+      heading_level: 4
+
+### build_verify_graph
+
+::: promptise.engine.prebuilts.build_verify_graph
+    options:
+      show_source: false
+      heading_level: 4
+
+### build_managed_graph
+
+::: promptise.engine.prebuilts.build_managed_graph
+    options:
+      show_source: false
+      heading_level: 4
+
+### build_code_action_graph
+
+::: promptise.engine.prebuilts.build_code_action_graph
     options:
       show_source: false
       heading_level: 4

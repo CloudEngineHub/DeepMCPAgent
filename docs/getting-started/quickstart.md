@@ -118,10 +118,13 @@ agent = await build_agent(
 
 The agent now thinks before acting and synthesizes a structured answer — instead of jumping straight to tool calls.
 
-**7 built-in patterns available:**
+**10 built-in patterns available:**
 
 ```python
 agent = await build_agent(..., agent_pattern="react")       # Default tool loop
+agent = await build_agent(..., agent_pattern="verify")      # Plan → Solve → Self-check (1 turn)
+agent = await build_agent(..., agent_pattern="managed")     # Tool loop with facts-ledger context
+agent = await build_agent(..., agent_pattern="code-action") # Writes ONE sandboxed program (1 turn)
 agent = await build_agent(..., agent_pattern="peoatr")      # Plan → Act → Think → Reflect
 agent = await build_agent(..., agent_pattern="research")    # Search → Verify → Synthesize
 agent = await build_agent(..., agent_pattern="autonomous")  # Agent picks from node pool
@@ -195,6 +198,7 @@ Every step is opt-in. Features you don't enable have zero overhead.
 
 | Want to... | Go to... |
 |---|---|
+| Grab a quick recipe (memory, cache, auth, approval…) | [Cookbook](cookbook.md) |
 | Use Claude, Gemini, Ollama, or local models | [Model Setup](model-setup.md) |
 | Understand the architecture | [Key Concepts](concepts.md) |
 | Design custom reasoning patterns | [Reasoning Patterns](../core/agents/reasoning-patterns.md) |
