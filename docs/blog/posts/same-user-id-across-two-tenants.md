@@ -12,6 +12,8 @@ categories:
 
 The problem with the **same user_id across two tenants** is that it looks fine right up until it doesn't: two of your customers, Acme and Globex, each have a user literally named `alice`, and the day both are active, whatever you key memory, cache, and conversation history on had better distinguish them. If that key is `user_id` alone, it doesn't — and the failure is silent. No exception, no log line, just Acme's `alice` occasionally reading Globex's `alice`'s data. This post is about why a per-user key is not a per-tenant key, what an *injective* isolation key is, and the subtler risk most treatments skip: not just accidental collision, but deliberate **forgery** of another tenant's namespace.
 
+<!-- more -->
+
 ## The collision you won't catch in a demo
 
 In a demo you have one tenant, so `user_id` is unique and everything works. The moment you onboard a second customer, `user_id` stops being globally unique — it's only unique *within* a tenant. Your identity provider issues `alice` inside Acme and `alice` inside Globex, and both are correct. The bug is entirely on your side, in how you derive storage keys.

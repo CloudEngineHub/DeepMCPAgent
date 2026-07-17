@@ -12,6 +12,8 @@ categories:
 
 **Long-running agent context bloat** is the reason a deep tool-calling task that looked great in your demo becomes slow, expensive, and subtly wrong in production. Every tool call appends its request and result to the transcript, so by the twentieth call the model is re-reading a growing wall of its own past work on every turn — losing the thread, re-querying facts it already fetched, and paying for thousands of redundant tokens each time. This post is the Promptise Foundry decision guide for `context_scope`, the node-level lever that keeps a 30-tool task bounded instead of drowning in the middle. By the end you'll know which of the four modes to reach for, and you'll have a runnable example that stays flat while a naive loop balloons.
 
+<!-- more -->
+
 ## Why long-running agent context bloat happens
 
 A naive tool-calling loop feeds the model the **entire** conversation on every turn. The message list grows like this:

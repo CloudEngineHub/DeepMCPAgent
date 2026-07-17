@@ -12,6 +12,8 @@ categories:
 
 Secret detection for LLM systems is the guardrail almost nobody instruments, and it is the one that quietly turns a helpful agent into an exfiltration channel. Everyone hardens the obvious surfaces — auth on the API, TLS on the wire, secrets in a vault — and then pipes raw user input, model output, and tool arguments straight past all of it. An API key pasted into a support chat, a `DATABASE_URL` echoed back in a debugging answer, an RSA private key baked into code the sandbox is about to run: each one is a credential leaving your trust boundary in plain text. By the end of this article you will know exactly where those leaks happen and how to layer a local, zero-network `CredentialDetector` over your agent so keys get caught the moment they appear.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

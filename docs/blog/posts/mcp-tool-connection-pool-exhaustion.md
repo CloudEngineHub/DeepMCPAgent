@@ -12,6 +12,8 @@ categories:
 
 MCP tool connection pool exhaustion is what happens when one slow downstream API doesn't just fail its own call — its tool keeps handler coroutines and pooled DB or HTTP connections open through every timeout, the shared pool saturates, and unrelated healthy tools start queueing behind it. The failure is sneaky because the sick tool often *works*, just slowly. By the end of this post you'll be able to reproduce that cascade in-process and cap its blast radius with two composable middlewares, so a single stalled MCP tool can never consume the server's shared capacity.
 
+<!-- more -->
+
 ## How one stalled tool starves a shared connection pool
 
 Picture an MCP server exposing a dozen tools to your agents. Ten of them are fast and local. One — `fetch_shipping_quote` — calls a third-party API that has just started to hang, returning after 8 seconds instead of 80 milliseconds. Nobody has changed a line of your code.

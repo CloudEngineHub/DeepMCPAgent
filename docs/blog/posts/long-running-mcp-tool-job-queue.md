@@ -12,6 +12,8 @@ categories:
 
 A long-running MCP tool job queue exists because of one hard fact about the Model Context Protocol: a tool call is a single request/response exchange, so a report that takes ten minutes to build times the client out and loses its result long before your handler returns. The agent sends `tools/call`, the connection holds open waiting for a reply, and somewhere around the 30-, 60-, or 120-second mark — whatever your transport, proxy, or client library decided — the request is abandoned. Your handler may still be running server-side, dutifully finishing the PDF, but there is no longer anyone listening for the answer. The work happened; the result evaporated.
 
+<!-- more -->
+
 This post walks through why that failure is structural to MCP, what other frameworks do about it today, and how Promptise Foundry's `MCPQueue` turns any slow tool into a durable job with `queue_submit` / `queue_status` / `queue_result` / `queue_cancel` / `queue_list`, priority scheduling, exponential-backoff retry, and live progress reporting.
 
 ## Why a request/response tool call can't survive a long job

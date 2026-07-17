@@ -12,6 +12,8 @@ categories:
 
 MCP authentication is the part of the Model Context Protocol that the spec deliberately leaves to you — and most tutorials stop at a hard-coded shared secret. That is fine for a laptop demo and dangerous the moment an agent can call a tool that spends money, deletes records, or reads another tenant's data. This guide shows how to do layered, capability-based access properly in Promptise Foundry: transport-level providers (JWT, RS256/ES256, API keys) that verify *who is calling*, plus per-tool guards that decide *what they may do* — all in copy-paste code, not theory. By the end you will have a server where a public health check, a scoped read tool, and an admin-only write tool coexist safely.
 
+<!-- more -->
+
 New to the protocol itself? Start with [What Is MCP? Model Context Protocol Explained](what-is-mcp.md), then come back here to lock it down.
 
 ## Why MCP authentication is your job, not the spec's

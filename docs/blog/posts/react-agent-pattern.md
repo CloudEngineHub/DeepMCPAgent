@@ -12,6 +12,8 @@ categories:
 
 The ReAct agent pattern is the loop underneath almost every tool-using LLM agent you have ever built: the model reasons about what to do, acts by calling a tool, observes the result, and repeats until it can answer. It is simple enough to hand-roll in twenty lines — which is exactly why so many production agents ship with a fragile version of it that quietly degrades on longer tasks. By the end of this post you will understand the pattern from first principles, be able to name the specific failure mode that bites hand-rolled loops, and stand up a production ReAct agent in a single function call where context stays bounded automatically.
 
+<!-- more -->
+
 ## What is a ReAct agent?
 
 A ReAct agent is a **reasoning and acting agent**: it interleaves chain-of-thought reasoning with concrete actions (tool calls) instead of trying to answer everything in one shot. The name comes from *Reason + Act*. Rather than the model guessing an answer, it thinks out loud about what information it needs, calls a tool to get that information, reads the result, and uses it to decide the next step.

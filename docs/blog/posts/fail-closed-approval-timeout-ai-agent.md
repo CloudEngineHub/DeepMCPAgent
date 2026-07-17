@@ -12,6 +12,8 @@ categories:
 
 A **fail-closed approval timeout** is the single setting that decides what your **AI agent** does when a human reviewer never answers — and for anything that moves money, deletes data, or pages a customer, the only safe answer is *don't run it*. Most human-in-the-loop wiring gets the happy path right: a reviewer clicks approve, the tool fires; they click deny, it doesn't. The dangerous cases are the ambiguous ones — the reviewer is asleep, the approval channel is down, the reviewer edited the request, or a thousand pending calls have buried the queue. What happens *then* is the whole game, and it is exactly where home-grown approval logic tends to leave a hole. This post is the complete treatment of every deny path in Promptise Foundry's server-side gate, and the one invariant that ties them together: **every ambiguous outcome resolves to a denial**.
 
+<!-- more -->
+
 ## The action that runs because nobody said no
 
 Picture a `wire_transfer` tool guarded by an approval step. At 3 a.m. an autonomous agent — a scheduled trigger, a batch job, a second agent in a delegation chain — decides to call it. There is no human at a console. The approval request goes out over your pager integration.

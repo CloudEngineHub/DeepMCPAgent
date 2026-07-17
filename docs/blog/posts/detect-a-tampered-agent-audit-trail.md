@@ -12,6 +12,8 @@ categories:
 
 To **detect a tampered agent audit trail** you need one property a plain JSONL file or stdout stream can never give you on its own: a way to prove, after the fact, that no record was edited, deleted, or reordered. A log your agent appends to is just bytes on disk. Anyone with write access — a compromised process, a careless migration script, an insider covering their tracks — can rewrite a line, drop an entry, or truncate the file, and nothing about the surviving data reveals the change. This post is the operational verification workflow, not the theory: exactly what Promptise's `verify_chain()` checks, how the break localizes to the specific entry an insert, edit, or delete touched, and how to wire the check into CI, a periodic integrity job, and an incident-response runbook so you can prove a clean chain on demand.
 
+<!-- more -->
+
 If you are still deciding whether you even need this — as opposed to the trace exports you already have — read [Why AI Agent Traces Aren't an Audit Trail (or SOC 2 Proof)](ai-agent-observability-vs-audit-trail.md) first. This post assumes you've decided the log is evidence and now need to verify it.
 
 !!! warning "Not legal or compliance advice"

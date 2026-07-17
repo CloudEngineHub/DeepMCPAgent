@@ -12,6 +12,8 @@ categories:
 
 To **secure an MCP server on the public internet** you have to accept one uncomfortable fact first: the moment your server has a public URL, every tool you registered becomes a callable endpoint for anyone who finds it — not just your agent, but any script, scanner, or rogue MCP client on Earth. A bearer token is table stakes, and it is not hardening. Hardening is what happens *after* auth: capability checks per tool, limits that survive a burst, breakers that stop a cascade, a trail you can prove wasn't edited, and a human in the loop on the calls that move money. This post wires all of that into one middleware chain you can copy, run offline, and ship.
 
+<!-- more -->
+
 ## Every public tool is now an attack surface
 
 On your laptop, an MCP server over stdio is only reachable by the process that launched it. Expose the same server over HTTP on a public host and the threat model inverts. The tools you wrote for "our agent" are now reachable by:

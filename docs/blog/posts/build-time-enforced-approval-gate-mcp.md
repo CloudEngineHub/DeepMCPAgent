@@ -12,6 +12,8 @@ categories:
 
 A **build-time enforced approval gate MCP** servers can't quietly skip is the difference between an approval you *declared* and an approval that actually *fires* — and that gap is where most human-in-the-loop wiring silently fails. The usual argument for server-side approval is that client-side prompts are bypassable; that case is already made, and it is not this post. The sharper question is the one that bites teams six months into production: you marked a tool as needing sign-off, so why did it run unattended anyway? Almost always because the approval lived somewhere that could be *forgotten* — a branch in the driver code, a flag on a task, a node you meant to add — and nothing failed when it wasn't there. This is about the three enforcement invariants that make a *declared* approval mechanically un-skippable.
 
+<!-- more -->
+
 ## The approval you wrote that never fires
 
 Picture a `refund` tool. Someone did the right thing and marked it as high-stakes: it needs a human to sign off before money moves. Months later it fires at 3 a.m. with no reviewer in sight. Nobody removed the approval. Nobody bypassed a prompt. The approval was declared in one place and *enforced* in another, and the two drifted apart without a single error.

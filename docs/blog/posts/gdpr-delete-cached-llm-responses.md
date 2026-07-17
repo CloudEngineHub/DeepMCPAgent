@@ -12,6 +12,8 @@ categories:
 
 To **gdpr delete cached llm responses** for a single data subject, you should be able to name the user, call one function, and be done — without touching any other customer's cached data. That is not how most LLM caches work. A semantic cache keys each entry by a prompt or content hash so it can serve a saved answer for a similar query, and that hash carries no notion of *who* asked. So when a user exercises their Article 17 right to erasure, you are left with two bad options: flush the entire cache and destroy every customer's hit rate to erase one person, or write and maintain a bespoke key-scanning script that walks the store looking for entries that "belong" to that subject — entries the cache never labelled as theirs in the first place. Promptise Foundry closes that gap structurally: each subject lives in its own cache partition, and `SemanticCache.purge_user(user_id, tenant_id=...)` drops exactly that partition and nothing else.
 
+<!-- more -->
+
 This post shows the mechanism, the exact code to wire an erasure endpoint, and — honestly — what `purge_user` does and does not cover.
 
 !!! warning "Not legal or compliance advice"

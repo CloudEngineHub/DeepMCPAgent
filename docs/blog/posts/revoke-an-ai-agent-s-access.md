@@ -12,6 +12,8 @@ categories:
 
 To **revoke an AI agent's access** the moment it misbehaves, you need a single place to flip — not a scavenger hunt for a leaked string across every service that trusts it. That is exactly what a static per-agent API key can't give you: revoking it means minting a new one, editing every deployment that holds the old value, and redeploying without a gap — all while you may not even be sure *which* agent leaked it. Back the agent with an identity from your IdP instead, and revocation collapses into one directory operation: disable the identity, and its short-lived, audience-scoped credentials stop validating everywhere, with no server reconfiguration. This post shows the revoke path, why short-lived tokens keep the blast radius small, and how Promptise zero-fills any credential a running agent still holds in memory.
 
+<!-- more -->
+
 ## Rotating a static key means redeploying everything that trusts it
 
 Here is the kill switch most teams actually have. Each agent carries a static bearer token or API key, pasted into its tool config and copied into CI, a `.env`, maybe a screenshot. When one leaks — or one agent goes rogue — "revoking" it means all of this, in order:

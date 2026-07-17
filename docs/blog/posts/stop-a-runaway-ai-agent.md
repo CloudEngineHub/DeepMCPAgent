@@ -12,6 +12,8 @@ categories:
 
 To reliably stop a runaway AI agent you need a kill switch that acts on the *process*, not a counter that raises an exception inside one function call. That distinction is the whole game. Almost every framework hands you a per-run cap — `max_iterations`, `recursion_limit`, a usage limit — and calls it a safety control. But those caps raise an exception inside a single `ainvoke()`, and an exception only exists if there is a caller sitting there to catch it. The moment your agent is running unattended on a cron, a webhook, or a file trigger, there is no such caller: each trigger fires a fresh invocation, the counter resets to zero, and nothing halts the thing that is actually misbehaving. This post reframes the runaway agent kill switch as *runtime enforcement* — budget, behavioral-health, and mission breaches that become out-of-band `pause`/`stop`/`escalate` actions on a supervised `AgentProcess` — and shows you how to wire one in a few lines.
 
+<!-- more -->
+
 The thesis in one line: a counter that throws is not a kill switch. A runtime that halts the process is.
 
 ## Why a counter that throws is not a kill switch

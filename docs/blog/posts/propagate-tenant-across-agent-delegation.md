@@ -12,6 +12,8 @@ categories:
 
 To **propagate tenant across agent delegation** is to keep one promise: when your orchestrator agent hands work to a peer mid-request, the peer's cache, memory, and conversation history stay scoped to the *original* end-user's tenant — not to the process, and not to whatever principal the peer happens to think it is serving. This is the data-isolation side of delegation, and it is distinct from *attribution* (knowing which agent asked). Attribution answers "who delegated?"; isolation answers "whose data can the delegate touch?". Get attribution right and you still have a leak if the peer reads a shared vector store under the wrong tenant. This post shows how Promptise Foundry makes the tenant ride along automatically, so `ask_agent_<peer>` and `broadcast_to_agents` never silently widen the blast radius.
 
+<!-- more -->
+
 ## The hop where isolation usually breaks
 
 On a shared multi-tenant platform, a request arrives carrying an identity — say Acme's Alice. Your orchestrator agent scopes its own semantic cache, memory search, and conversation ownership to that tenant. So far so good. Then the orchestrator delegates a sub-task to a research peer. That single hop is where isolation quietly evaporates in most designs, because the handoff carries a *message*, not the *principal*. The peer starts a fresh invocation, sees no tenant, and falls back to the process default — which is "all tenants" if it shares a store.

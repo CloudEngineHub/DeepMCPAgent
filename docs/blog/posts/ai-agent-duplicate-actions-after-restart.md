@@ -12,6 +12,8 @@ categories:
 
 If you have ever debugged **ai agent duplicate actions after restart**, you know the failure is never the crash itself — it is what the agent does when it comes back. A stateless retry loop restarts the process from zero, and the agent cheerfully re-runs work it already finished: re-charging a card it already charged, re-sending an email it already sent. The crash was survivable. The re-execution is the incident. This post is specifically about the exactly-once / idempotency failure mode — not general crash recovery — and how Promptise Foundry attacks it with two independent guards: a replay engine that reconstructs state from *recorded results* instead of re-running completed work, and an irreversible-action budget that caps destructive calls even if the first guard has a bug.
 
+<!-- more -->
+
 ## The double-fire failure mode, dissected
 
 Picture a billing agent processing a support ticket. It calls `stripe_charge`, the charge succeeds, and then — before the agent writes "done" anywhere durable — the container gets OOM-killed or the node is rescheduled. A naive supervisor sees a dead process and restarts it. The agent has no memory of the charge, so it charges again. That is an **agent double charge after crash**, and it is the canonical example of why "just restart it" is not a durability strategy for autonomous agents.

@@ -12,6 +12,8 @@ categories:
 
 To **know when your AI agent achieved its goal** — not merely that it stopped — you need something that evaluates the objective, because a turn cap only proves a counter ran out. This is the quiet failure mode of every long-running agent: it exits cleanly, your logs go green, and nobody notices that the migration is half-done, the queue still has open items, or the research brief never actually answered the question. "Stopped" and "succeeded" are different facts, and almost every framework only measures the first one. This post shows the difference between a hard limit and an evaluated judgment, and how Promptise Foundry wires a separate judge model into the runtime so a supervised process ends when the mission is genuinely met.
 
+<!-- more -->
+
 The thesis in one line: `max_turns` tells you the agent quit; only a judge scoring your success criteria tells you it won.
 
 ## Why "it stopped" is not "it succeeded"

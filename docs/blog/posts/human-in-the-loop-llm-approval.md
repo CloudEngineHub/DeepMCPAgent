@@ -12,6 +12,8 @@ categories:
 
 Human-in-the-loop LLM approval is the difference between an agent that can safely touch production and one that stays stuck in a demo. The hard part is not intercepting tool calls — it is deciding *which* ones actually need a human. Approve everything and your reviewers drown in `get_status` prompts until they rubber-stamp a `delete_database` by reflex. Approve nothing and one hallucinated argument wipes a table. By the end of this post you will have a five-layer classifier that auto-clears the safe calls, escalates only the risky ones, and fails closed when no one answers.
 
+<!-- more -->
+
 ## Approving everything is unusable; approving nothing is unsafe
 
 Most first attempts at an [AI agent approval workflow](../../core/approval.md) put a single gate in front of every tool. It works for a day. Then reality sets in:

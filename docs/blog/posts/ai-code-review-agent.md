@@ -12,6 +12,8 @@ categories:
 
 An **ai code review agent** is easy to stand up and hard to trust: point a model at a diff, ask for problems, and you get a wall of "consider using parameterized queries" that flags string concatenation in a comment as a SQL injection. The complaint every team has about LLM code review is noise. By the end of this post you'll have built a reviewer that challenges its own findings with an adversarial critique pass, forces a specific line reference behind every claim, and routes cheap triage and deep analysis to different models so the whole thing stays affordable.
 
+<!-- more -->
+
 ## Why LLM code review produces so much noise
 
 A one-shot prompt has no incentive to be right — only to be complete. Ask a model to "find security issues" and it optimizes for coverage, listing every pattern that *could* be a problem regardless of whether it's exploitable in this codebase. That's the failure mode behind most automated code review AI experiments: the signal is real, but it's buried under theoretical concerns, style opinions, and confident hallucinations about lines that don't exist.

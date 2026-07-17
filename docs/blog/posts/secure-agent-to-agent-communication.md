@@ -12,6 +12,8 @@ categories:
 
 Secure agent-to-agent communication is the part of every multi-agent demo that quietly gets skipped: one agent delegates a task to another, the second agent acts, and when you open the log the only actor recorded is "the assistant." That is not an audit trail — it is a shrug. If a planner agent asks a payments agent to issue a refund, you need to know *which* agent asked, whether the callee was allowed to trust it, and where that decision landed in a tamper-evident record. By the end of this article you will know how Promptise Foundry propagates a verifiable caller identity through a delegation call and lands the answer to "who delegated to whom" in an HMAC-chained audit log.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

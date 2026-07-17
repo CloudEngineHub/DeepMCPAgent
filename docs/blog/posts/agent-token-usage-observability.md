@@ -12,6 +12,8 @@ categories:
 
 **Agent token usage observability** is the difference between guessing at your token bill and knowing, turn by turn, exactly where it goes. Most teams reach for a fix — a semantic cache, a facts ledger, tool selection — before they have a single number telling them which part of the agent is actually expensive. That's backwards. You can't cut what you can't see, and the tokens are almost never spread evenly: a couple of fat tool schemas and one or two long reasoning turns usually dominate, while your cache quietly misses more often than you think. This post shows how to attribute token usage across every LLM turn and every tool call with Promptise Foundry's built-in observability — no external tracing service, no code beyond one flag.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

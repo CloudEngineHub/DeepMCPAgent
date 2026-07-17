@@ -12,6 +12,8 @@ categories:
 
 When a European bank, hospital group, or public-sector team specifies a **sovereign AI agent EU data residency** deployment, they mean something exact and non-negotiable: every byte the agent touches — prompts, retrieved context, tool arguments, generated code — must stay on infrastructure inside the region, on components you operate, with no packet crossing to a US-hosted API. That is harder than pointing your model string at a European endpoint, because an agent framework has more channels to the internet than the model call. This post walks through a deployment where inference, embeddings, the vector store, the safety guardrails, and code execution are all bound to local, no-egress components — and, critically, where that binding lives in one declarative `.superagent` file an auditor can read top to bottom instead of trusting five separate integrations.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

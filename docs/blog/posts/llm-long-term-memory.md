@@ -12,6 +12,8 @@ categories:
 
 Adding **LLM long-term memory** to a Python agent is where most tutorials go quiet. They show you how to embed a string and push it into a vector database, then stop — as if storage were the whole job. It isn't. The hard half is retrieval: deciding *what* to pull back, *when* to inject it, and *how* to keep the loop identical whether you're running an in-memory stub in tests or a persistent store in production. By the end of this guide you'll have a working memory loop that auto-searches and injects relevant context before every model call, and you'll be able to swap backends by changing a single line.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

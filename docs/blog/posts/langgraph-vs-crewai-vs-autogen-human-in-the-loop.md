@@ -12,6 +12,8 @@ categories:
 
 Read enough roundups and you get the same **LangGraph vs CrewAI vs AutoGen human in the loop** comparison — three feature checklists, all ticking the "supports HITL" box — while the question that actually decides your architecture goes unasked: *where does the approval physically execute?* This post is a capability matrix, not another retelling of the bypass argument. For each framework we state exactly where the check runs and what that implies, then show the one row that's structurally different: a gate that lives on the tool itself.
 
+<!-- more -->
+
 ## Where HITL runs in each framework today
 
 Let's be precise and fair, because every framework here ships a *real*, working human-in-the-loop control. None of these is a client-side "are you sure?" hack. They differ in one property — the location of the enforcement point.

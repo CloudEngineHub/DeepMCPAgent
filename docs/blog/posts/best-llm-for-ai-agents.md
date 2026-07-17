@@ -12,6 +12,8 @@ categories:
 
 Search for the best LLM for AI agents and you will drown in leaderboards that rank models on trivia, essays, and math word problems — none of which tell you whether a model can reliably call your tools without hallucinating an argument. The honest answer is that there is no single "best" model; there is only the best model for *your* workload, measured on *your* tasks. This guide walks through what actually matters when a model has to drive an agent, and shows you the practical trick that lets you A/B two models on your own tasks by swapping a single string — no rewrite required.
 
+<!-- more -->
+
 ## What actually makes the best LLM for tool calling
 
 A chatbot model and an agent model are graded on different things. A chatbot just has to produce good prose. An agent has to run a loop: read your instructions, decide whether it needs a tool, emit a well-formed tool call, read the result, and repeat until it can answer. That loop punishes models that look great on chat benchmarks but stumble the moment structure is required.

@@ -12,6 +12,8 @@ categories:
 
 A production AI agent checklist is what separates a demo that answers once in your terminal from a system you can put in front of real users, bursty traffic, and an auditor who wants to know who invoked the refund tool at 2 a.m. The hard part of shipping an agent was never the prompt — it's everything around the tool calls: identity, load, failure, accountability, and isolation. This post is that checklist, mapped item by item to a concrete layer you can turn on today with [Promptise Foundry](../../getting-started/quickstart.md). By the end you'll know exactly what production-ready AI agents require and how to add each layer without a rewrite.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

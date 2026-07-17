@@ -12,6 +12,8 @@ categories:
 
 The moment to **escalate an AI agent to a human** is not when it throws one exception — it is when a downstream tool has quietly degraded and the agent has been failing, retrying, and failing again on a loop that no caller is watching. That is the runaway nobody sees coming. A single failed tool call is easy: it raises, something catches it, maybe it retries. But when an API you depend on starts returning 500s across the board, an unattended agent does not stop. It keeps invoking, keeps burning tokens and compute, and keeps producing nothing — and because each trigger fires a fresh run, there is no exception bubbling up to anyone. You find out at the end of the month, on the bill. This post is about closing that gap with a first-class escalation path: a sliding-window error-rate detector that decides *the tool is down, get a human*, pages your on-call channel, and suspends the process — automatically.
 
+<!-- more -->
+
 ## The failure mode: a degraded tool and a silent retry loop
 
 Picture a reconciliation agent on a five-minute cron. Every tick it pulls the open-payout queue, calls a payments API to settle each item, and writes the result back. It has run cleanly for weeks.

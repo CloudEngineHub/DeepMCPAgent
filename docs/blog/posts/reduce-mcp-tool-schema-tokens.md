@@ -12,6 +12,8 @@ categories:
 
 The reliable way to **reduce MCP tool schema tokens** — the JSON definitions your agent ships to the model on every single call — is usually not the one teams reach for first. The headline move is semantic top-K selection: embed the query, embed each tool description, and send only the handful of tools that look relevant. It is the biggest single saver, and Promptise Foundry ships it. But it has two properties that rule it out for a lot of real deployments: it needs a per-query embedding pass, and it changes *which tools the model sees from one request to the next*. If your deployment is air-gapped, or your tool set has to be deterministic — every call presents the same tools, auditable and reproducible — per-query selection is off the table. This post is about the other half of `optimize_tools`: the graded static levels that shrink each tool's JSON schema deterministically, cutting tokens without ever changing tool availability.
 
+<!-- more -->
+
 ## Where the tokens go: every tool's full schema, every call
 
 When an agent connects to MCP servers, every tool's name, full description, and complete JSON Schema is serialized into the function-calling payload on **every** invocation. Twenty to fifty tools, each with a paragraph of description and a nested parameter schema, easily runs 5,000–15,000 tokens before the conversation even starts. It is the single largest fixed cost after the transcript, and unlike the transcript it does not shrink — you pay the full definition block on turn one and on turn thirty, identically.

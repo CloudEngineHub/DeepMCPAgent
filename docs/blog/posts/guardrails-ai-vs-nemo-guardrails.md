@@ -12,6 +12,8 @@ categories:
 
 The reason `guardrails ai vs nemo guardrails` is a hard question to search is that the two tools barely overlap — one validates structured output, the other scripts conversational flow — and neither is really a drop-in for the other. If you are evaluating LLM safety libraries, the first job is to name your actual failure mode, because the wrong tool for your risk class is worse than no tool at all. This post lays out what each library is genuinely good at, shows where Promptise Foundry's local-first security scanner fits, and gives you a side-by-side matrix so you can pick the layer that matches the failure you are actually trying to prevent. No winner is declared; the goal is a decision you can defend.
 
+<!-- more -->
+
 ## Three tools, three different jobs
 
 "Guardrails" is an overloaded word. Before comparing anything, separate the jobs these libraries do:

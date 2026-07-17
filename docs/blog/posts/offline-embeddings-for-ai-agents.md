@@ -12,6 +12,8 @@ categories:
 
 Running **offline embeddings for AI agents** is the difference between retrieval that is genuinely air-gapped and retrieval that quietly ships your entire private corpus to a third party twice. Most teams get the vector store right — they stand up Chroma, FAISS, Qdrant, or pgvector inside their own network, confirm the database never phones home, and check the box marked "on-prem." Then they wire an embeddings step in front of it that calls a hosted API, and every chunk of that private corpus egresses the moment it's indexed and again on every query. The vector *math* is local. The text that produces the vectors is not. This post walks through that embedding-egress trap and shows how Promptise Foundry pins **both** memory retrieval and semantic tool selection to a single local embedding model, so nothing leaves the host.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

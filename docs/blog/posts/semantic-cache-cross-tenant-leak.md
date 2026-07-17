@@ -12,6 +12,8 @@ categories:
 
 A **semantic cache cross-tenant leak** is the failure mode that only similarity caching can produce: tenant B types a paraphrase of a question tenant A already asked, the two queries embed to nearly the same vector, and — without a caller-scoped partition — the lookup hands tenant B the completion Promptise stored for tenant A. An exact-match cache can never do this. It keys on the literal prompt string, so a reworded question misses and goes to the model. The moment you cache by *meaning* to save money, you also open a channel where meaning, not identity, decides who sees what. This post isolates that leak vector precisely, and shows how Promptise Foundry confines every similarity search to the caller's own tenant-qualified partition — by default, and fail-closed.
 
+<!-- more -->
+
 ## Why similarity caching opens a door exact-match caching keeps shut
 
 Think about what a cache hit *is* in each design.

@@ -12,6 +12,8 @@ categories:
 
 You can build an AI agent with Promptise in about ten minutes, starting from an empty file and ending with a tool-using agent you can chat with from your terminal. No orchestration boilerplate, no schema wiring, no abstractions to learn before you write the first useful line. This Promptise tutorial walks through every step — install, one API key, a first agent, real tools, and launching it from the CLI — and everything here is copy-pasteable. By the end you'll have a running agent and know exactly which parameter to flip when you're ready for production.
 
+<!-- more -->
+
 ## Install Promptise (pip install promptise)
 
 Promptise is a single package. Install it and set one provider key:

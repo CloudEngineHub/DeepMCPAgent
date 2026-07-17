@@ -12,6 +12,8 @@ categories:
 
 Per-tenant data isolation is the promise that Acme's data never surfaces in Globex's session — and it only counts if it holds at *every* layer your agent touches, not just the one you remembered to check. Most frameworks leave you to hand-roll a tenant check in each handler, which fails silently the first time one call site forgets. This post shows how Promptise Foundry makes tenant separation a structural invariant: a `tenant_id` that flows from the JWT claim into rate-limit buckets, audit entries, tool guards, memory, and — critically — the semantic cache scope. By the end you'll be able to turn on server-wide isolation with one flag and reason about exactly where the boundary lives.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

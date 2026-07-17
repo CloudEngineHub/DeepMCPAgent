@@ -12,6 +12,8 @@ categories:
 
 A SPIFFE SVID identity for AI agents is the cleanest way to authenticate an autonomous agent inside a service mesh you already run: if your platform uses SPIRE, every workload already receives a short-lived, cryptographic SVID from the Workload API, yet no mainstream agent framework consumes one to prove *which* agent is acting. This how-to closes that gap. You will wire `AgentIdentity.from_spiffe` into `build_agent`, let SPIRE mint a per-audience JWT-SVID for each MCP server the agent calls, and verify those tokens server-side with `JwksAuth` against your trust domain — with automatic SVID rotation and not one static secret in code or `env`.
 
+<!-- more -->
+
 ## What a SPIFFE SVID actually gives your agent
 
 SPIFFE (the Secure Production Identity Framework For Everyone) issues each workload a **SVID** — a SPIFFE Verifiable Identity Document — bound to a SPIFFE ID like `spiffe://example.org/ns/prod/sa/billing-bot`. SPIRE, its reference implementation, runs a node agent that serves the local Workload API socket; a workload asks that socket for its identity and gets back a signed credential no human provisioned. There are two SVID shapes: an **X.509-SVID** for mTLS, and a **JWT-SVID** — a short-lived, signed JWT scoped to a requested `audience`. For an agent calling MCP servers over HTTP with a bearer token, the JWT-SVID is the right instrument.

@@ -12,6 +12,8 @@ categories:
 
 Tool calling in Python is the mechanism that turns a language model from a text generator into something that can actually *do* things — look up an order, query a database, call an internal API. The concept is simple, but the standard tutorials bury you in JSON Schema boilerplate: for every function you want to expose, you hand-write a schema describing its name, parameters, and types, and keep that schema in sync with the code forever. By the end of this post you'll understand exactly how tool calling works under the hood, and you'll see the shortcut most guides skip — pointing your agent at an MCP server so tools appear auto-discovered, with schemas derived straight from your Python type hints.
 
+<!-- more -->
+
 ## What tool calling in Python actually is
 
 At its core, tool calling (also called function calling) is a loop between your code and the model:

@@ -12,6 +12,8 @@ categories:
 
 To **time-travel debug an AI agent**, you rewind its recorded history to the exact step before it did something baffling, rebuild the state it was actually looking at, and replay its decisions deterministically — instead of squinting at stdout and guessing. When a request/response function misbehaves you set a breakpoint and re-run it. An autonomous agent gives you neither luxury: it woke itself on a trigger you didn't watch, called an LLM whose output you can't reproduce, mutated its own state across dozens of invocations, and fired a side effect you now have to explain. This post shows how a Promptise journal plus its rewind and replay engines turn "why did it do that?" into a reproducible postmortem, and where that differs — honestly — from LangGraph's graph-state time-travel.
 
+<!-- more -->
+
 ## Why "read the stdout" fails on an autonomous agent
 
 Logs answer *what* the process printed. A postmortem needs *why it decided* — and those are different data structures. A log line like `applied hold on acme-42` tells you the outcome but not the state the agent held at the instant it chose the hold: which context keys were set, what the conversation looked like, which trigger had just fired. By the time you're reading logs, that state is gone. The process has moved on, mutated its counters, and overwritten the exact values that would explain the decision.

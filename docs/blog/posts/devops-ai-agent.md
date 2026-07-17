@@ -12,6 +12,8 @@ categories:
 
 A real devops ai agent is not a chat window you paste stack traces into — it's a long-lived process that wakes up when your pipeline emits an event, investigates on its own, fixes what it safely can, and only pages a human for the genuine criticals. That daemon shape is where most tutorials stop and where production teams actually start. By the end of this post you'll understand the pattern SRE teams use, see a webhook-triggered agent process wired with budget, health, and mission governance, and know how the journal replays state after a crash so a restart doesn't lose the incident it was working.
 
+<!-- more -->
+
 ## From chat demo to daemon: what a devops ai agent really needs
 
 The gap between a demo and an on-call replacement is not the model — it's the lifecycle around the model. A CI/CD monitoring agent has to survive things a chat script never faces:

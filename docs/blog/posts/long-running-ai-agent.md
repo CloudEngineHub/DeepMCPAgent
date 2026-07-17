@@ -12,6 +12,8 @@ categories:
 
 Building a long-running AI agent is where most tutorials quietly fall apart: they show you a `while True:` loop that calls the model, prints a reply, and forgets everything the moment the terminal closes. That loop is not a persistent AI agent — it's a script with a heartbeat problem, no crash recovery, and no way to run more than one thing at a time. By the end of this post you'll understand what a real lifecycle container manages for you, and you'll have a runnable Promptise Foundry agent that keeps living, remembering, and reacting across hours and restarts.
 
+<!-- more -->
+
 ## Why a `while True` loop is not a persistent AI agent
 
 The naive pattern looks fine in a demo:

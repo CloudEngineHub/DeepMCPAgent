@@ -12,6 +12,8 @@ categories:
 
 Choosing between SPIFFE vs Entra vs AWS IAM for AI agents is not really a question of which identity provider is *best* in the abstract — it is a question of which one your platform already issues workload identities from, because that is the one you can back an agent with today. If you have already decided your agents deserve their own verifiable identity instead of a shared key (the case the [workload-identity hub](workload-identity-for-ai-agents.md) makes), this is the follow-up decision: pick the provider. This post is a bake-off across the five Promptise supports — SPIFFE/SPIRE, Microsoft Entra, AWS IAM, Google Cloud, and generic OIDC — compared on the three things that actually differ between them: how the token is acquired, how you revoke it, and when each one fits.
 
+<!-- more -->
+
 ## The choice is "which directory," not "which identity store"
 
 The [Agent Identity overview](../../identity/overview.md) is blunt about one design decision that shapes this entire comparison: **Promptise keeps no identity store of its own.** It does not mint identities, hold a directory of agents, or become a second place you have to provision and revoke. It *consumes* the identity your existing provider already issues, through a credential provider that acquires, caches, and refreshes a short-lived JWT the agent presents to the resources it calls.

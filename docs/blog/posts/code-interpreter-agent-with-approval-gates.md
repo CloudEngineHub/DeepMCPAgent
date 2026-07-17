@@ -12,6 +12,8 @@ categories:
 
 Building a **code interpreter agent with approval gates** means letting the model write and run one program over *your* tools while every mutating call it makes still stops at a human — and gets counted against a hard per-run budget. That combination is the whole point of this guide. The code-interpreter (codeact) pattern itself is easy; the interesting engineering is the governance you refuse to give up when you hand a model an execution surface. This post is scoped to exactly that: enable `agent_pattern="code-action"`, wrap the tools that change state with an approval gate, keep a hard `max_tool_calls` cap on the generated program, and pick the gVisor backend when the input is untrusted.
 
+<!-- more -->
+
 If you want the case for the pattern in the first place — why one sandboxed program beats a 30-call tool loop — read [the code-action guide](../../guides/code-action.md) first. Here we assume you're sold on codeact and worried about the safety story. Good instinct.
 
 ## The governance you keep when the model writes code

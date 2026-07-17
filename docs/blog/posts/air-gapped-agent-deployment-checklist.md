@@ -12,6 +12,8 @@ categories:
 
 This **air-gapped agent deployment checklist** is written for the teams who cannot hand-wave the offline story: banks, hospitals, insurers, and government programs shipping an agent into a network with no route to the public internet. A general production checklist tells you to add auth, rate limits, and health checks — all necessary, none of which prove that nothing leaves the perimeter. The offline dimension is its own discipline: every model staged on-box, every guardrail running on-device, code execution locked to no network, memory kept local and injection-scanned, and every sensitive action captured in a tamper-evident chain your auditor can verify. This is the pre-production list that closes the gap a standard checklist skips.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

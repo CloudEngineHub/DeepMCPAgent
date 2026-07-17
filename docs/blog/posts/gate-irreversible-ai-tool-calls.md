@@ -12,6 +12,8 @@ categories:
 
 To **gate irreversible AI tool calls** the way a security review actually asks for, one lock is never enough — because the two things that can go wrong are orthogonal. A destructive tool (a refund, a delete, an outbound email, a production deploy) can fire because *nobody said yes* to that specific call, or it can fire because *someone said yes too many times*. Approval closes the first hole. It does nothing about the second. Promptise Foundry pairs two independent controls so both have to agree before a destructive action runs: a server-side `requires_approval=True` gate that decides **who** signs off on each call, and an agent-runtime budget with `max_irreversible_per_run` that decides **how many** destructive calls a single run is even permitted. Approve-per-call and cap-the-count are different questions, and the answer to one never covers the other.
 
+<!-- more -->
+
 ## The failure a single lock can't catch
 
 Give a support agent a `refund` tool and a human approver. A reviewer sees each request and clicks approve or deny. This feels complete — a human is in the loop. It is not complete, and here is the exact run that gets past it.

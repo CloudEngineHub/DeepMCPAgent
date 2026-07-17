@@ -12,6 +12,8 @@ categories:
 
 Running **offline guardrail models** on an air-gapped host sounds like it should be a config flag, but the failure mode is subtle: a guardrail or embedding model that expects to auto-download from a model hub does not gracefully degrade when the network is gone — it hard-fails or blocks on the first user message, in production, at the exact moment you least want a surprise. The DeBERTa injection classifier, GLiNER NER model, Llama Guard, and the `all-MiniLM-L6-v2` embedding model that powers semantic tool selection all default to pulling weights from Hugging Face the first time they run. On a laptop that is fine. In a classified data center or a sovereign-cloud tenant with no egress, that first `from_pretrained()` call raises a connection error and takes your agent down with it.
 
+<!-- more -->
+
 This is the provisioning how-to that nobody writes. The fix is not a hack — Promptise Foundry lets you pass an explicit local path to every guardrail detector and to the embedding model, then load them all up front with a single `warmup()` call, so you can boot the process, prove it made zero outbound requests, and only then accept traffic.
 
 ## Why an offline guardrail model fails closed, not soft

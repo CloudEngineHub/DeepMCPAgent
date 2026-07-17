@@ -12,6 +12,8 @@ categories:
 
 How does an AI agent authenticate to an API without a static, long-lived key you have to babysit? The default answer — mint one API key per agent, paste it into the tool config, and hope it never leaks — is the exact anti-pattern that modern identity abandoned for humans a decade ago. Humans stopped carrying passwords into every system and moved to short-lived, provider-issued tokens; agents, a brand-new class of non-human actor, deserve the same. This pillar walks the real alternative end to end: a short-lived credential minted from the agent's *own* workload identity, presented to each API automatically, and verified server-side with published keys. No secret to store, rotate, or leak.
 
+<!-- more -->
+
 First, the one distinction that untangles this whole topic: **the API key that authenticates your LLM call is not the credential that authenticates your agent to a downstream API.** The model keeps its own key. Everything below is about *who is acting* when the agent then reaches out to a billing service, a CRM, or an internal MCP server. The [Agent Identity overview](../../identity/overview.md) states it plainly — identity is orthogonal to the model credential.
 
 ## The default answer, and why it's the wrong one

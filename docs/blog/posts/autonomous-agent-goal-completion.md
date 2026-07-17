@@ -12,6 +12,8 @@ categories:
 
 Reliable **autonomous agent goal completion** is not a boolean the agent emits when it feels finished — it is a judgment an independent evaluator makes about accumulated evidence, and the difference between those two definitions is the difference between an agent you can leave running and one you have to babysit. A long-running agent has to answer a question no single LLM call can answer on its own: *is the goal actually done, or does it just look done from inside the transcript?* Get that answer wrong in one direction and the agent quits with the job half-finished; get it wrong in the other and it runs on its trigger forever, re-checking work that was completed an hour ago. This post digs into the subsystem Promptise Foundry uses to answer it: a **mission** — an objective, success criteria, and a periodic LLM-as-judge that scores a persistent process against them until the goal is genuinely met, then auto-completes.
 
+<!-- more -->
+
 The thesis in one line: an autonomous agent should not decide it is finished because it *said* so — it should be judged finished because a separate evaluator, looking at the evidence, is confident the objective is met.
 
 ## Why "done" is the hardest state in an autonomous loop

@@ -12,6 +12,8 @@ categories:
 
 An autonomous AI agent runtime is the layer most tutorials skip: the part that keeps a supervised agent alive, reacting, and recoverable long after your Python script would have exited. Nearly every "build an autonomous agent" post stops at a ReAct while-loop running in `python agent.py` — one process, no supervision, and everything gone the moment it crashes or you close the terminal. That is a demo, not a system. By the end of this post you'll know exactly what the runtime layer adds, how the `AgentProcess` lifecycle works, and how to wrap an agent you already have so it survives a restart.
 
+<!-- more -->
+
 ## What is an autonomous AI agent, really?
 
 Let's be precise about the words, because the industry is loose with them. A single LLM call is a function: text in, text out. A ReAct loop wraps that call so the model can think, call a tool, observe the result, and repeat until it produces an answer. That loop is genuinely useful — it's how an agent *reasons* — but it is still just control flow inside one invocation.

@@ -12,6 +12,8 @@ categories:
 
 The single agent vs multi-agent decision gets made too early and for the wrong reasons — usually a diagram in a slide deck rather than a signal in your workload. Splitting one agent into several feels like progress, but it buys you a coordination layer, extra token overhead, and a new class of failures before it buys you any capability. This guide gives you the concrete signals that actually justify a split, the cost governance you should put in place first, and runnable code for adding delegation to Promptise Foundry only when the signals fire.
 
+<!-- more -->
+
 ## Start with one agent (the honest default)
 
 A single, well-scoped `build_agent()` handles far more than most people expect. It has memory, guardrails, a sandbox, semantic caching, and tool discovery from any number of MCP servers — all behind one factory call. Before you reach for a team, ask whether your problem is really two problems or just one problem with a lot of tools.

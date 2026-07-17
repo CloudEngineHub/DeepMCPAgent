@@ -12,6 +12,8 @@ categories:
 
 Setting a real daily budget for AI agents means capping what an agent does across a whole day, not what it does inside one function call — and that distinction is the entire problem with the guardrails most frameworks ship. A per-run cap like `max_iterations` counts to N and resets to zero the moment the next invocation starts. That is fine for a chatbot a human is watching. It is worthless for an agent on a five-minute cron, because the thing you actually want to bound — total tool calls, total cost units, total runs — is spread across hundreds of invocations that never see each other's counters. This post shows how Promptise Foundry's `BudgetConfig` daily scope gives a long-lived, trigger-driven process a genuine 24-hour ceiling: `max_tool_calls_per_day`, `max_cost_per_day`, `max_runs_per_day`, and a configurable `daily_reset_hour_utc`, all tracked across every cron-, webhook-, and event-driven run.
 
+<!-- more -->
+
 The thesis in one line: a counter that resets on every invocation is not a daily budget. Counters that persist across every invocation and reset once, on a clock you choose, are.
 
 ## Why a per-run cap resets to zero on every trigger

@@ -12,6 +12,8 @@ categories:
 
 Getting **per-resource credentials for one agent** right is the difference between a fleet you can reason about and a drawer full of static tokens you rotate by hand. A real agent rarely talks to one backend. `billing-bot` reads invoices from a billing MCP server *and* pulls account details from a CRM API — and each of those resources, if it takes security seriously, demands a token minted for *its own* audience. The billing server wants an `aud` of `api://billing`; the CRM wants `api://crm`; neither should ever accept the other's token. The naive answer is one static bearer per backend, provisioned and rotated separately, which is exactly where leaks and over-scoping creep in. Promptise Foundry mints a resource-scoped credential *per audience* from a single `AgentIdentity` — cached and refreshed independently, and verified server-side with an audience check that blocks a token from being replayed at the wrong resource.
 
+<!-- more -->
+
 ## The problem: one agent, N backends, N audiences
 
 Picture the ordinary case. Your agent needs both of these:

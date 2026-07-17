@@ -12,6 +12,8 @@ categories:
 
 A semantic cache for LLMs serves a stored answer when a new question *means* the same thing as one you already answered — not just when the two strings match byte for byte. That is the difference between a cache that almost never hits (exact-match) and one that quietly absorbs the "how do refunds work?" / "what's your refund policy?" / "can I get my money back?" long tail that real users type. This post skips the tutorial-grade theory and focuses on the two things that decide whether similarity-based caching is safe in production, then shows you how to turn it on in Promptise Foundry with one argument and measure your real hit rate before you commit.
 
+<!-- more -->
+
 ## How LLM response caching works when it matches by meaning
 
 Exact-match caching stores a response under a hash of the prompt. Change one word and you miss. That is fine for deterministic API responses and useless for natural language, where the same intent arrives in a hundred surface forms.

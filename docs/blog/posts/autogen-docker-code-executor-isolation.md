@@ -12,6 +12,8 @@ categories:
 
 If you are evaluating **autogen docker code executor isolation** for running model-written code, start with the good news: AutoGen genuinely ships `DockerCommandLineCodeExecutor`, and it really does put generated code in a Docker container instead of your Python process. That is a meaningful boundary and a real step up from executing code in-process. This post credits that up front, then draws the honest line between "a container" and a *hardened agent code sandbox* — the difference between Docker's defaults and a profile purpose-built for untrusted model code, plus the piece AutoGen's executor does not do at all: bridging each tool call back through host governance.
 
+<!-- more -->
+
 ## What AutoGen's Docker executor actually gives you
 
 Let's be precise and fair, because AutoGen earns the credit. `DockerCommandLineCodeExecutor` lives in the `autogen-ext` package (`autogen_ext.code_executors.docker`). When the model emits a code block, the executor writes it to a file in a bind-mounted work directory and runs it inside a container — `python:3-slim` by default — with a `timeout`, and cleans the container up afterward (`auto_remove`, `stop_container`). Compared to `LocalCommandLineCodeExecutor`, which runs the same code directly on your host, this is the responsible option, and AutoGen documents it as such.

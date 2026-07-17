@@ -12,6 +12,8 @@ categories:
 
 EU AI Act agent logging is where a lot of otherwise-solid agent deployments quietly fail their first audit, because the log they built for debugging is not the log the regulation asks for. Article 12 of Regulation (EU) 2024/1689 requires high-risk AI systems to *technically allow for the automatic recording of events over the lifetime of the system*, at a level of detail that ensures traceability appropriate to the system's intended purpose. If your autonomous agent scores credit applications, screens CVs, or triages a benefits claim — all Annex III high-risk categories — a `print()` to stdout and a span in a trace backend do not clear that bar. This post explains what Article 12 actually asks for, why the usual logging falls short on three specific properties, and how a tamper-evident audit trail with verified per-principal attribution maps to the obligation. (It is engineering guidance, not legal advice — pair it with your own counsel.)
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

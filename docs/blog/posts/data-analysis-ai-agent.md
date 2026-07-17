@@ -12,6 +12,8 @@ categories:
 
 A data analysis AI agent turns a plain-English question — "which region grew fastest last quarter, and by how much?" — into SQL, runs it, cross-references the results, and hands back an exact number. The catch is that a generic ReAct loop is dangerous here: when it has to join two tables and do arithmetic across the results, it will confidently invent a figure that looks plausible and is simply wrong. By the end of this post you'll know why that happens, and how to wire a plan-execute-verify reasoning pattern plus a bounded, ledger-scoped tool loop so your agent checks its math before it speaks.
 
+<!-- more -->
+
 ## Why generic ReAct agents hallucinate numbers
 
 Plain ReAct is one node in a loop: reason, call a tool, reason again, answer. For a single lookup — "what's the status of order 4471?" — that's perfect. It falls apart on analytics for two structural reasons.

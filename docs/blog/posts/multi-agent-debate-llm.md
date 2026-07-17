@@ -12,6 +12,8 @@ categories:
 
 A multi-agent debate LLM setup runs the same question through three roles — one model proposes an answer, another attacks it, and a judge decides who was right — instead of trusting a single pass. The appeal is obvious: adversarial scrutiny catches mistakes that a lone model, confidently wrong, will happily ship. The catch is just as real: you pay for it in latency and tokens. By the end of this post you'll know exactly what the Proposer → Critic → Judge graph does in Promptise Foundry, how to stand one up in a few lines, and — just as importantly — the narrow set of queries where it earns its keep versus the far larger set where a single verify pass is the smarter buy.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

@@ -12,6 +12,8 @@ categories:
 
 Conversation persistence is the difference between a demo and a product: without it, every LLM agent forgets the last message the moment the process restarts, and a multi-user app happily serves one person's thread to another. Most tutorials hardcode a single database and quietly skip session ownership, so you inherit a rewrite the day you move from SQLite to Postgres — and a security bug you won't notice until someone reports it. This post shows how to persist chat history in Python behind one `ConversationStore` protocol, swap backends without touching application code, and enforce session ownership so users can only load their own conversations.
 
+<!-- more -->
+
 ## Why conversation persistence is a first-class concern
 
 An LLM agent is stateless. Each call to the model is a fresh request; the "memory" you see in ChatGPT is an illusion the application maintains by replaying prior messages back into the prompt. If you don't store those messages somewhere durable, three things break:

@@ -12,6 +12,8 @@ categories:
 
 A **tenant-scoped audit log** for an AI agent's tool calls exists to answer two questions a compliance auditor puts to you in the same breath: *show me every action your system took for Acme*, and *prove that record wasn't edited after the fact*. Both are easy to wave at and hard to actually satisfy. A general trace store can usually show you *something* about Acme, but "every action" means the tenant has to be a field you can filter on cleanly — not a tag one call site set and another forgot. And "prove it wasn't edited" means the trail needs integrity you can hand to a third party, not your assurance that the database looks fine. This post is about the per-tenant forensics angle specifically: how to produce a slice of the trail that belongs to exactly one customer, and hand it over with a proof it wasn't altered.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

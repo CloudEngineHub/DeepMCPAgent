@@ -12,6 +12,8 @@ categories:
 
 You can **cache MCP tool results** at the server so that the same expensive lookup — a database query, a paid pricing API, an Elasticsearch scan — runs once per TTL window instead of five times in one conversation. An agent-side semantic cache is a great lever, but it only saves *LLM tokens*: it stops the model re-reasoning over a paraphrased question. It does nothing for the *other* repeated cost, which is your tool handler re-hitting the backend every time the model decides it needs that fact again. Those are two different bills, and they need two different caches.
 
+<!-- more -->
+
 This post is about the second one: **MCP server response caching**. In Promptise Foundry it's a first-class server primitive — a `@cached` decorator, an `InMemoryCache` and a distributed `RedisCache`, a `CacheMiddleware`, and a custom `key_func` so one tenant's cached result never answers another tenant's call. No `functools.lru_cache` in every handler, no bespoke Redis wrapper you rewrite per tool.
 
 ## Why the same tool call costs you five times

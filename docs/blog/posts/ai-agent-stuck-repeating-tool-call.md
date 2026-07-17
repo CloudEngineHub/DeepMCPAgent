@@ -12,6 +12,8 @@ categories:
 
 An **AI agent stuck repeating tool call** after identical tool call — say, `get_status(id=42)` on every single turn — burns its entire iteration budget without making a shred of progress, and most frameworks will not tell you it is happening until the budget is spent. This is one of the cheapest, most insidious ways an autonomous agent fails: it is not crashing, it is not erroring, it is confidently doing the exact same nothing over and over. By the end of this post you will know precisely why an iteration counter catches this late (or never), how a purpose-built **stuck detector** trips after N identical consecutive calls with zero extra LLM calls, and how to wire pause / stop / escalate around it in a few lines.
 
+<!-- more -->
+
 ## The exact failure: an agent stuck on get_status(id=42)
 
 Here is the shape of it. Your agent is supposed to kick off a job and wait for it to finish. It calls `start_job()`, gets back an id, then polls:

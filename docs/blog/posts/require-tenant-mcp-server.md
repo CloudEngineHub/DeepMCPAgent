@@ -12,6 +12,8 @@ categories:
 
 A **require_tenant mcp server** turns tenant isolation from a check you remember to add into an invariant the framework enforces at build time. Instead of adding a tenant guard to each tool by hand — and hoping the next tool, the next router, and the mounted third-party server all get one too — you set a single flag on the constructor, and every tool the server exposes is forced to authenticate and carry a tenant guard before you write a line of handler code. This post is about the exact mechanics of that flag: what `MCPServer(require_tenant=True)` does at build time, how to prove it with a runnable unit test, why it covers registration paths you didn't write yourself, and where it is honestly stronger than the opt-in checks other frameworks hand you.
 
+<!-- more -->
+
 ## The opt-in trap: one forgotten guard is a cross-tenant hole
 
 Per-handler tenant checks work perfectly until the day they don't. You add `guards=[RequireTenant()]` to your first five tools during review, everyone nods, and the pattern looks solid. Then one of these happens:

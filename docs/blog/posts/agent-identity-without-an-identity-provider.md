@@ -12,6 +12,8 @@ categories:
 
 You can give an AI agent a real, traceable **agent identity without an identity provider** — no IdP, no new secrets, no infrastructure at all — and still answer "which agent did this?" within your own systems from the very first run. Most identity advice skips straight to the hard part: register the agent in Entra, mint short-lived JWTs, verify them with JWKS. That's the right destination for a fleet calling protected APIs, but it's a non-starter on an air-gapped network or in an early-stage prototype where there is no directory to register anything in yet. Promptise Foundry's `AgentIdentity` is deliberately two-tier: it starts as a **local identity** that costs nothing to stand up, already stamps attribution onto everything the agent does, and upgrades *in place* to a verifiable, IdP-backed credential the day you actually need one.
 
+<!-- more -->
+
 ## The IdP assumption is a non-starter for air-gapped and early-stage agents
 
 Walk through the standard "give your agent an identity" checklist and you hit the same wall twice.

@@ -12,6 +12,8 @@ categories:
 
 You can **hot-reload agent instructions without losing state** — rewrite a running agent's system prompt mid-conversation, let its graph rebuild around the new prompt, and keep every message the agent has already exchanged — and then undo the whole thing with a single `rollback()` call. This post is deliberately narrow. It isn't a tour of open mode's fourteen meta-tools; it's about the one mechanic that decides whether a self-modifying agent is safe to run in production: when the agent changes itself, does the live conversation survive, and can you get back? In Promptise Foundry the answer is yes on both counts, and the machinery that guarantees it — a preserved conversation buffer, a `max_rebuilds` cap, and one-call rollback — is what this article walks through.
 
+<!-- more -->
+
 ## The real problem with a self-modifying agent: amnesia and no undo
 
 An agent that can rewrite its own instructions sounds powerful right up until the moment it does. Two failure modes show up immediately, and both are about state rather than intelligence.

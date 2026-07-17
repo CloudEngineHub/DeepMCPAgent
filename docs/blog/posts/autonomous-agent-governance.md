@@ -12,6 +12,8 @@ categories:
 
 Autonomous agent governance is the set of controls that answer the one question every tech lead asks before an agent runs unattended in production: what stops it from looping forever, calling an expensive API 4,000 times, or issuing a refund at 3am with nobody watching? A `build_agent()` call gives you a capable request-response agent, but the moment you let it run on a trigger with no human in the loop, "capable" is not enough — you need an envelope it cannot exceed. By the end of this post you will know the concrete controls Promptise Foundry ships for that envelope, and how to wrap your own agent in a budget plus a health policy with a real hard stop.
 
+<!-- more -->
+
 ## The go/no-go checklist for an unattended agent
 
 An autonomous agent is just a stateless LLM wired to tools and a trigger. Left alone, three failure modes show up in production over and over:

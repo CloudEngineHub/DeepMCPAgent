@@ -12,6 +12,8 @@ categories:
 
 If you are researching **LangGraph vs Promptise** for an agent that has to stay alive for hours or days — not just answer one request and exit — you are comparing two different layers of the stack, and it pays to be precise about which one you actually need. LangGraph excels at orchestrating the control flow *inside* a single invocation. Promptise's Agent Runtime targets the layer *above* the graph: an OS-level process that wakes on triggers, survives crashes, and stays under governance. By the end of this post you will be able to tell which layer your project needs, and you will have runnable code for a supervised, crash-recoverable agent.
 
+<!-- more -->
+
 ## What LangGraph does well: the graph layer
 
 LangGraph is a library for building stateful graphs of LLM calls. You define nodes, edges, and conditional routing, and it threads a state object through the graph as execution proceeds. Its checkpointer snapshots that state so a run can pause, resume, and support human-in-the-loop review inside one execution. For a support bot that branches on intent, or a research loop that fans out and reduces, that model is clean and expressive.

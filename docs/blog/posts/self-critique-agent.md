@@ -12,6 +12,8 @@ categories:
 
 A self-critique agent is an LLM that checks its own work before it answers — it drafts a response, inspects that draft for mistakes, and fixes them in the same step. The appeal is obvious: catch the careless error before the user ever sees it. The catch is that reflection is not free, and most teams bolt it onto models that don't need it. By the end of this article you'll know which introspection techniques pay for themselves, which mostly burn tokens, and how to add a cheap self-check to a small model in a single line.
 
+<!-- more -->
+
 ## What a self-critique agent actually does
 
 "Reflection" gets used for three different things, and conflating them is where the wasted spend starts. It helps to name them precisely:

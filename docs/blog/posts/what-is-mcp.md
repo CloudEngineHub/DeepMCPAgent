@@ -12,6 +12,8 @@ categories:
 
 If you have ever asked *what is MCP* and come away with a spec diagram but no running code, this post is the fix. The **Model Context Protocol** (MCP) is an open standard for connecting language models to tools, data, and prompts in one uniform way — so a tool you build once can be called by any MCP-compatible agent. By the end of this article you will understand the protocol's moving parts and see an agent auto-discover and call a real tool in under ten lines of Python, with zero manual wiring.
 
+<!-- more -->
+
 This is the hub page for our MCP cluster. It stays practical: enough theory to reason about the protocol, then a working example you can run today, then links out to the deeper subtopics — building servers, connecting clients, auth, and testing.
 
 ## What is MCP, in one sentence

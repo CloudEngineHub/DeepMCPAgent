@@ -12,6 +12,8 @@ categories:
 
 If you are shopping for an **AI agent framework with built-in governance** — one where you can cap an agent at a cost ceiling, bound the number of irreversible actions it may take, and hold it to a mission it must actually make progress on — the honest state of the market is that most frameworks answer "write it yourself." They ship a limiter, and a limiter is a real, useful thing. But a single step counter is not a governance envelope, and the gap between the two is exactly where unattended agents get expensive or dangerous. This post maps what governance each popular framework really ships, credits the single-dimension caps some of them provide, and shows the four first-class subsystems Promptise Foundry puts in the box — budget, health, mission, and secrets — each with the same `log`/`pause`/`stop`/`escalate` enforcement path.
 
+<!-- more -->
+
 ## What built-in governance actually has to cover
 
 "Governance" is a vague word, so pin it down. A governance layer is what stands between a capable agent and an unattended one. The moment you take the human out of the loop and put the agent on a trigger, four distinct failure modes appear, and a real governance layer has an answer for each:

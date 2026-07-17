@@ -12,6 +12,8 @@ categories:
 
 Most guides to OAuth for AI agents drown you in redirect URLs, consent screens, and PKCE — none of which your agent uses. An autonomous agent is a machine calling another machine. There is no browser, no human clicking "Allow." The grant you actually want is **client_credentials**: the agent presents a signed token it got from your identity provider, and your server verifies that token against the issuer's public keys. By the end of this post you'll know exactly which OAuth flow agents use, and how to verify agent-presented tokens in a Promptise MCP server with `JwksAuth` and `AsymmetricJWTAuth` — no shared secret in sight.
 
+<!-- more -->
+
 ## What "OAuth for AI agents" actually means
 
 OAuth2 has several grant types. The interactive ones (`authorization_code`, with PKCE) exist to get a human's consent through a browser. Agents don't have a browser and don't represent a logged-in person, so those flows don't fit.

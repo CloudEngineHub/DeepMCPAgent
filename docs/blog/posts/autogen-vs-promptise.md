@@ -12,6 +12,8 @@ categories:
 
 If you're weighing **AutoGen vs Promptise** for a multi-agent system, the honest answer starts with what each tool was actually built for. Microsoft's AutoGen is a research-first library for conversational agents that talk to each other in a loop — brilliant for exploring ideas in a notebook. Promptise Foundry treats each agent as a governed HTTP service with authentication, audit, and tenancy. By the end of this post you'll know which model fits your problem, and you'll have seen real code for wiring agent-to-agent calls in Promptise.
 
+<!-- more -->
+
 ## Where AutoGen is the better fit
 
 Let's give AutoGen its due, because for a large class of work it's the right call.

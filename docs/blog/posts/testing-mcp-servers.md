@@ -12,6 +12,8 @@ categories:
 
 Testing MCP servers usually means starting a process, waiting for it to bind a port, and firing HTTP or stdio requests at it from a separate test runner. That works, but it is slow, it is flaky in CI, and it turns a two-line assertion into a fixture that manages subprocesses and sockets. This post shows the alternative: run the complete request pipeline — validation, dependency injection, guards, middleware, and your handler — entirely in-process with Promptise Foundry's `TestClient`, so your tests stay as fast and deterministic as plain function calls. By the end you will be able to test tools, guards, middleware, and error handling without ever opening a network connection.
 
+<!-- more -->
+
 ## Why booting a server is the wrong default for tests
 
 A live-server test has to solve problems that have nothing to do with your tool logic. You pick a free port, start the transport, poll until it is ready, run your assertions, and tear it all down — and every one of those steps is a chance for a race condition. Under parallel CI workers, port collisions and startup timeouts produce the exact kind of intermittent red build that erodes trust in the suite.

@@ -12,6 +12,8 @@ categories:
 
 The phrase **AI agent no data egress** shows up on every sovereign and regulated procurement checklist, and it means something precise: the agent — and the framework wrapped around it — must not send data outside your network without your explicit say-so. Most teams read that as a statement about the model endpoint. It isn't only that. Long before you invoke an LLM, the framework you chose may already open outbound connections for "anonymous telemetry" or route your execution traces through a hosted service. To a security reviewer, both are egress you have to justify, whether the payload is anonymous or not. This post audits what agent frameworks send outbound by default, and shows how to keep full observability — every LLM turn, tool call, latency, and cache hit — on transporters that never leave your network.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

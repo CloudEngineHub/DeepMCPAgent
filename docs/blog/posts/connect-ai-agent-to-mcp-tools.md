@@ -12,6 +12,8 @@ categories:
 
 To connect an AI agent to MCP tools in production, you need two things: reliable auto-discovery so you never hand-wire schemas, and a way to stop a large tool catalog from bloating every prompt. Most tutorials give you the first and quietly skip the second — then your token bill climbs as you add servers. This post shows the production path with Promptise: point the agent at your MCP servers, let it discover every tool, and flip tool optimization to `SEMANTIC` so local embeddings select only the tools each query actually needs. By the end you'll have a working config, the air-gapped local-embeddings variant, and a clear sense of when you don't need any of it.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

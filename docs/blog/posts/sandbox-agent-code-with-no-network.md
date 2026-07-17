@@ -12,6 +12,8 @@ categories:
 
 To **sandbox agent code with no network** is the single highest-leverage control you can put between a code-writing agent and a data breach — because a program with an open socket doesn't need a bug to exfiltrate your data, it just needs a plausible-looking line the model was talked into writing. A code interpreter that "does some math" also has your process's network stack, and one `urllib.request.urlopen` turns a local read into a POST to `attacker.example`. Cutting the egress is obvious. The reason teams don't is subtler, and it's the honest problem this post is about: for most sandboxes, cutting the network also cuts the program off from the very tools it exists to use. This is how Promptise Foundry breaks that trade-off — `NetworkMode.NONE`, auto-set for the code-action pattern, where the isolated program's only reach to the outside world is your tools, invoked over a filesystem bridge that needs no network at all.
 
+<!-- more -->
+
 ## The exfiltration path hiding in your code interpreter
 
 When an agent writes and runs Python "in-process," it runs inside the interpreter that runs your service. The code inherits your process: the same user id, the same environment block, and — the part that matters here — the same network stack. That last inheritance is what turns a curiosity into an incident.

@@ -12,6 +12,8 @@ categories:
 
 The debate over API keys vs JWT for AI agents usually gets strawmanned: a vendor comparison declares static keys "insecure" and pushes you toward tokens you don't need yet. That framing is wrong. For a single internal tool with one caller, a pre-shared API key is a perfectly good, production-grade choice — and Promptise Foundry ships `APIKeyAuth` as a first-class provider, not a training-wheels fallback. By the end of this article you'll be able to match your actual threat model to the right provider, and know the exact moment JWT and verifiable identity start earning their extra complexity.
 
+<!-- more -->
+
 ## Two first-class providers, one decision
 
 Both auth styles are supported on equal footing by the same `AuthMiddleware` and the same per-tool guards. Nothing about a Promptise MCP server is "designed for JWT" and grudgingly tolerant of keys. You pick the provider; the rest of the stack — role guards, tenant guards, audit logging — behaves identically.

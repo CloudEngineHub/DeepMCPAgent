@@ -12,6 +12,8 @@ categories:
 
 Any useful **agent framework tool approval comparison** has to start with the question the feature checklists quietly skip: not *does* the framework support human-in-the-loop, but *where does the approval check physically execute* — and what happens the day a second client calls the same tool. Every major framework ticks the "supports HITL" box, and every one of them ships a real mechanism. They differ on one property that decides your architecture: the location of the enforcement point. This post maps that property precisely, framework by framework, and shows the row that sits somewhere structurally different — on the tool itself.
 
+<!-- more -->
+
 ## The buyer's question: where does the check actually run?
 
 "Human-in-the-loop" is not one feature. It's a pause, and a pause has to live *somewhere*. In the mainstream agent frameworks, that somewhere is the process that drives the agent: the graph executor, the crew loop, the conversation topology, or your own application code. For a single self-contained app, that's exactly right — there's one caller, and the pause lives with it.

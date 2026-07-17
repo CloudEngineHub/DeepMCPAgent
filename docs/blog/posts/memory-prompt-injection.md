@@ -12,6 +12,8 @@ categories:
 
 Memory prompt injection is the attack most local-vector setups never see coming: you scan the user's message for "ignore your rules," wave it through, and then — one line later — your agent auto-injects a *retrieved memory* into the system prompt that says exactly that. A vector store is trivial to stand up. What is not trivial is remembering that everything you recall from it is untrusted text. Whoever could write to that store — a prior conversation, a scraped document, a support ticket that got summarized into long-term memory — planted an instruction that fires on a later, unrelated query. This post shows why the retrieval path needs its own defense, and how Promptise Foundry scans recalled memory before it ever reaches the model.
 
+<!-- more -->
+
 ## The second-order channel: poisoned memory that fires later
 
 Most teams reason about injection as a *first-order* problem. Untrusted text arrives in the user turn, you run a classifier on it, you block the obvious attacks. Done.

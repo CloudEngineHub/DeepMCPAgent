@@ -12,6 +12,8 @@ categories:
 
 Building a **scheduled AI agent** usually starts with the same advice you find everywhere: wrap your Python script in system crontab and walk away. That works until you notice the agent has no memory of yesterday's run, no record of what it did, and no ceiling on how much it can spend. This post shows you a better pattern — attach a `CronTrigger` to a persistent `AgentProcess` so every scheduled run shares a conversation buffer, a durable journal, and governance limits. By the end you will have a cron AI agent running on a real schedule in about five lines of configuration.
 
+<!-- more -->
+
 ## Why crontab is the wrong home for an LLM agent
 
 A system cron entry runs your script cold. The interpreter boots, your code builds an agent, does one thing, and the process exits. Nothing survives to the next run. For a shell script that rotates logs, that is exactly what you want. For an LLM agent, it quietly removes the four things that make scheduled autonomy safe:

@@ -12,6 +12,8 @@ categories:
 
 Deploying AI agents to Kubernetes is where most agent projects stall: the tool server runs fine on your laptop, but the cluster wants HTTP endpoints, real health probes, and metrics it can scale on — none of which a bare `python server.py` gives you. Promptise closes that gap with pieces you can wire in a few lines: a `HealthCheck` for dependency-aware readiness, `PrometheusMiddleware` for metrics, and `promptise serve --transport http` to run the server without boilerplate. By the end of this post you'll have a copy-paste path from a local MCP server to a running Kubernetes `Deployment` with liveness, readiness, and startup probes and a scrapeable `/metrics` endpoint.
 
+<!-- more -->
+
 This guide is about the servers your agents call — the MCP tool servers that hold your business logic. That is the piece you containerize and scale. The agent that consumes them connects over HTTP, and we cover that at the end.
 
 ## From local server to an MCP server Kubernetes deployment
