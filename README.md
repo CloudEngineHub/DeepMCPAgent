@@ -261,117 +261,163 @@ Assemble a system prompt from typed blocks with a token budget, let it change ac
 
 ## Everything Promptise ships
 
-<sub>The full list — every capability linked to its documentation. Expand a section to see what's inside.</sub>
+<sub>Every capability, grouped by pillar and linked to its docs. Six parts, one framework.</sub>
 
 <br/>
 
-<details>
-<summary><b>🤖 &nbsp;Agent</b> — the core you build on</summary>
+<table>
+<tr>
+<td valign="top" width="26%">
+
+#### 🤖&nbsp; Agent
+<sub>One function turns any model into a production agent.</sub>
+
+**[Explore →](https://docs.promptise.com/core/)**
+
+</td>
+<td valign="top">
+
+`Setup` &nbsp; [Build](https://docs.promptise.com/core/agents/building-agents/) · [Server config](https://docs.promptise.com/core/agents/server-specs/) · [Network server](https://docs.promptise.com/core/agents/network-server/) · [SuperAgent files](https://docs.promptise.com/core/agents/superagent-files/) · [Custom patterns](https://docs.promptise.com/core/agents/reasoning-patterns/) · [Cross-agent](https://docs.promptise.com/core/agents/cross-agent/)
+
+`Memory & state` &nbsp; [Memory](https://docs.promptise.com/core/memory/) · [RAG](https://docs.promptise.com/core/rag/) · [Conversations](https://docs.promptise.com/core/conversations/) · [Semantic cache](https://docs.promptise.com/core/cache/) · [Context engine](https://docs.promptise.com/core/context-engine/)
+
+`Security` &nbsp; [Guardrails](https://docs.promptise.com/core/guardrails/) · [Approval](https://docs.promptise.com/core/approval/) · [Auto-approval](https://docs.promptise.com/core/approval-classifier/) · [Sandbox](https://docs.promptise.com/core/sandbox/)
+
+`Performance` &nbsp; [Tool optimization](https://docs.promptise.com/core/tool-optimization/) · [Fallback](https://docs.promptise.com/core/fallback/) · [Adaptive strategy](https://docs.promptise.com/core/adaptive-strategy/)
+
+`Execution` &nbsp; [Streaming](https://docs.promptise.com/core/streaming/) · [Events](https://docs.promptise.com/core/events/) · [Observability](https://docs.promptise.com/core/observability/)
+
+`Reference` &nbsp; [Config](https://docs.promptise.com/core/config/) · [Types](https://docs.promptise.com/core/types/) · [Default prompt](https://docs.promptise.com/core/default-prompt/) · [Callbacks](https://docs.promptise.com/core/callback-handler/) · [Tools](https://docs.promptise.com/core/tools/) · [Env resolver](https://docs.promptise.com/core/env-resolver/) · [Exceptions](https://docs.promptise.com/core/exceptions/) · [CLI](https://docs.promptise.com/core/cli/)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+#### 🧠&nbsp; Reasoning Engine
+<sub>Reasoning as a graph you can read and change.</sub>
+
+**[Explore →](https://docs.promptise.com/core/engine/)**
+
+</td>
+<td valign="top">
+
+`Graph` &nbsp; [Overview](https://docs.promptise.com/core/engine/) · [Nodes](https://docs.promptise.com/core/engine-nodes/) · [Edges](https://docs.promptise.com/core/engine-edges/) · [Flags](https://docs.promptise.com/core/engine-flags/) · [Internals](https://docs.promptise.com/core/engine-internals/)
+
+`Patterns & skills` &nbsp; [Prebuilt patterns](https://docs.promptise.com/core/engine-prebuilts/) · [Skills](https://docs.promptise.com/core/engine-skills/) · [Skill registry](https://docs.promptise.com/core/skill-registry/) · [Custom reasoning](https://docs.promptise.com/guides/custom-reasoning/)
+
+`Runtime` &nbsp; [Tool injection](https://docs.promptise.com/core/engine-tools/) · [Processors](https://docs.promptise.com/core/engine-processors/) · [Hooks](https://docs.promptise.com/core/engine-hooks/) · [Serialization](https://docs.promptise.com/core/engine-serialization/)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+#### 🔧&nbsp; MCP Server & Client
+<sub>Build a tool once; every agent can use it.</sub>
+
+**[Explore →](https://docs.promptise.com/mcp/)**
+
+</td>
+<td valign="top">
+
+`Server` &nbsp; [Guide](https://docs.promptise.com/guides/production-mcp-servers/) · [Fundamentals](https://docs.promptise.com/mcp/server/building-servers/) · [Routers & middleware](https://docs.promptise.com/mcp/server/routers-middleware/) · [Auth & security](https://docs.promptise.com/mcp/server/auth-security/) · [Multi-tenancy](https://docs.promptise.com/mcp/server/multi-tenancy/) · [Approval gates](https://docs.promptise.com/mcp/server/approval-gates/) · [Production](https://docs.promptise.com/mcp/server/production-features/) · [Caching](https://docs.promptise.com/mcp/server/caching-performance/) · [Observability](https://docs.promptise.com/mcp/server/observability/) · [Resilience](https://docs.promptise.com/mcp/server/resilience-patterns/) · [Queue](https://docs.promptise.com/mcp/server/queue/) · [Advanced](https://docs.promptise.com/mcp/server/advanced-patterns/) · [Deployment](https://docs.promptise.com/mcp/server/deployment/) · [Testing](https://docs.promptise.com/mcp/server/testing/)
+
+`Client` &nbsp; [Guide](https://docs.promptise.com/mcp/client/) · [Tool adapter](https://docs.promptise.com/mcp/client/tool-adapter/)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+#### ⚡&nbsp; Agent Runtime
+<sub>Run agents unattended, on budget, recoverable.</sub>
+
+**[Explore →](https://docs.promptise.com/runtime/)**
+
+</td>
+<td valign="top">
+
+`Core` &nbsp; [Processes](https://docs.promptise.com/runtime/processes/) · [Orchestration API](https://docs.promptise.com/runtime/api/) · [Manager](https://docs.promptise.com/runtime/runtime-manager/) · [Context & state](https://docs.promptise.com/runtime/context/) · [Lifecycle](https://docs.promptise.com/runtime/lifecycle/) · [Hooks](https://docs.promptise.com/runtime/hooks/) · [Conversation](https://docs.promptise.com/runtime/conversation/)
+
+`Governance` &nbsp; [Mission](https://docs.promptise.com/runtime/governance/mission/) · [Budget](https://docs.promptise.com/runtime/governance/budget/) · [Health](https://docs.promptise.com/runtime/governance/health/) · [Secrets](https://docs.promptise.com/runtime/governance/secrets/)
+
+`Triggers` &nbsp; [Overview](https://docs.promptise.com/runtime/triggers/) · [Cron](https://docs.promptise.com/runtime/triggers/cron/) · [Event & webhook](https://docs.promptise.com/runtime/triggers/event-webhook/) · [File watch](https://docs.promptise.com/runtime/triggers/file-watch/)
+
+`Journal & recovery` &nbsp; [Overview](https://docs.promptise.com/runtime/journal/) · [Backends](https://docs.promptise.com/runtime/journal/backends/) · [Replay](https://docs.promptise.com/runtime/journal/replay/) · [Rewind](https://docs.promptise.com/runtime/journal/rewind/)
+
+`Config & scale` &nbsp; [Options](https://docs.promptise.com/runtime/configuration/) · [Manifests](https://docs.promptise.com/runtime/manifests/) · [Meta-tools](https://docs.promptise.com/runtime/meta-tools/) · [Coordinator](https://docs.promptise.com/runtime/distributed/coordinator/) · [Discovery](https://docs.promptise.com/runtime/distributed/discovery-transport/) · [Dashboard](https://docs.promptise.com/runtime/dashboard/) · [CLI](https://docs.promptise.com/runtime/cli/)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+#### 🔐&nbsp; Agent Identity
+<sub>An authenticated identity for every agent.</sub>
+
+**[Explore →](https://docs.promptise.com/identity/overview/)**
+
+</td>
+<td valign="top">
+
+`Core` &nbsp; [Overview](https://docs.promptise.com/identity/overview/) · [Quickstart](https://docs.promptise.com/identity/quickstart/) · [Guide](https://docs.promptise.com/identity/guide/) · [Architecture](https://docs.promptise.com/identity/architecture/) · [Security](https://docs.promptise.com/identity/security/) · [Migration](https://docs.promptise.com/identity/migration/)
+
+`Providers` &nbsp; [Microsoft Entra ID](https://docs.promptise.com/identity/providers/entra/) · [AWS IAM](https://docs.promptise.com/identity/providers/aws/) · [Google Cloud](https://docs.promptise.com/identity/providers/gcp/) · [SPIFFE / SPIRE](https://docs.promptise.com/identity/providers/spiffe/) · [Generic OIDC](https://docs.promptise.com/identity/providers/oidc/)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+#### ✨&nbsp; Prompt Engineering
+<sub>Prompts built like software — versioned and tested.</sub>
+
+**[Explore →](https://docs.promptise.com/prompting/)**
+
+</td>
+<td valign="top">
+
+`Build` &nbsp; [PromptBlocks](https://docs.promptise.com/prompting/blocks/) · [ConversationFlow](https://docs.promptise.com/prompting/flows/) · [Builder](https://docs.promptise.com/prompting/builder/) · [Loader & templates](https://docs.promptise.com/prompting/loader-templates/) · [Shell injection](https://docs.promptise.com/prompting/shell-interpolation/)
+
+`Strategies` &nbsp; [Strategies](https://docs.promptise.com/prompting/strategies/) · [Chaining](https://docs.promptise.com/prompting/chaining/) · [Context & variables](https://docs.promptise.com/prompting/context/)
+
+`Quality` &nbsp; [Guards](https://docs.promptise.com/prompting/guards/) · [Inspector](https://docs.promptise.com/prompting/inspector/) · [Testing](https://docs.promptise.com/prompting/testing/) · [Suite & registry](https://docs.promptise.com/prompting/suite-registry/)
+
+</td>
+</tr>
+</table>
 
 <br/>
 
-**Setup** — [Building agents](https://docs.promptise.com/core/agents/building-agents/) · [Server configuration](https://docs.promptise.com/core/agents/server-specs/) · [Network server](https://docs.promptise.com/core/agents/network-server/) · [SuperAgent (.superagent) files](https://docs.promptise.com/core/agents/superagent-files/) · [Custom reasoning patterns](https://docs.promptise.com/core/agents/reasoning-patterns/) · [Cross-agent delegation](https://docs.promptise.com/core/agents/cross-agent/)
+<div align="center"><sub><b>Also in the docs</b></sub></div>
 
-**Memory & state** — [Memory providers](https://docs.promptise.com/core/memory/) · [RAG foundation](https://docs.promptise.com/core/rag/) · [Conversation persistence](https://docs.promptise.com/core/conversations/) · [Semantic cache](https://docs.promptise.com/core/cache/) · [Context engine](https://docs.promptise.com/core/context-engine/)
+<table>
+<tr>
+<td valign="top" width="26%"><sub><b>📚 &nbsp;Guides & Labs</b></sub></td>
+<td valign="top">
 
-**Security & safety** — [Guardrails](https://docs.promptise.com/core/guardrails/) · [Human approval (HITL)](https://docs.promptise.com/core/approval/) · [Auto-approval classifier](https://docs.promptise.com/core/approval-classifier/) · [Sandbox](https://docs.promptise.com/core/sandbox/)
+[Building agents](https://docs.promptise.com/guides/building-agents/) · [Context lifecycle](https://docs.promptise.com/guides/context-lifecycle/) · [Code-action](https://docs.promptise.com/guides/code-action/) · [Production MCP servers](https://docs.promptise.com/guides/production-mcp-servers/) · [Agentic runtime](https://docs.promptise.com/guides/agentic-runtime/) · [Prompt engineering](https://docs.promptise.com/guides/prompt-engineering/) · [Multi-user systems](https://docs.promptise.com/guides/multi-user-systems/) · [Agent-to-MCP identity](https://docs.promptise.com/guides/multi-user-identity/) · [Secure multi-tenant platform](https://docs.promptise.com/guides/secure-multi-tenant-platform/) · [Multi-agent coordination](https://docs.promptise.com/guides/multi-agent-teams/) &nbsp;•&nbsp; **Labs:** [Customer support](https://docs.promptise.com/guides/lab-customer-support/) · [Data analysis](https://docs.promptise.com/guides/lab-data-analysis/) · [Code review](https://docs.promptise.com/guides/lab-code-review/) · [Pipeline observer](https://docs.promptise.com/guides/lab-pipeline-observer/)
 
-**Performance** — [Tool optimization](https://docs.promptise.com/core/tool-optimization/) · [Model fallback](https://docs.promptise.com/core/fallback/) · [Adaptive strategy](https://docs.promptise.com/core/adaptive-strategy/)
+</td>
+</tr>
+<tr>
+<td valign="top"><sub><b>📖 &nbsp;API reference</b></sub></td>
+<td valign="top">
 
-**Execution** — [Streaming](https://docs.promptise.com/core/streaming/) · [Events & notifications](https://docs.promptise.com/core/events/) · [Observability](https://docs.promptise.com/core/observability/)
+[Agent](https://docs.promptise.com/api/agent/) · [Config](https://docs.promptise.com/api/config/) · [Memory](https://docs.promptise.com/api/memory/) · [RAG](https://docs.promptise.com/api/rag/) · [Sandbox](https://docs.promptise.com/api/sandbox/) · [Observability](https://docs.promptise.com/api/observability/) · [Identity](https://docs.promptise.com/api/identity/) · [MCP server](https://docs.promptise.com/api/mcp-server/) · [MCP client](https://docs.promptise.com/api/mcp-client/) · [Prompts](https://docs.promptise.com/api/prompts/) · [Runtime](https://docs.promptise.com/api/runtime/) · [Cross-agent](https://docs.promptise.com/api/cross-agent/) · [SuperAgent](https://docs.promptise.com/api/superagent/) · [Utilities](https://docs.promptise.com/api/utilities/)
 
-**Reference** — [Config & server specs](https://docs.promptise.com/core/config/) · [Types & ModelLike](https://docs.promptise.com/core/types/) · [Default system prompt](https://docs.promptise.com/core/default-prompt/) · [Callback handler](https://docs.promptise.com/core/callback-handler/) · [Tools & schema helpers](https://docs.promptise.com/core/tools/) · [Environment resolver](https://docs.promptise.com/core/env-resolver/) · [Exceptions](https://docs.promptise.com/core/exceptions/) · [CLI](https://docs.promptise.com/core/cli/)
+</td>
+</tr>
+<tr>
+<td valign="top"><sub><b>🚀 &nbsp;Start here</b></sub></td>
+<td valign="top">
 
-</details>
+[Installation](https://docs.promptise.com/) · [Extras](https://docs.promptise.com/getting-started/installation-extras/) · [Quick start](https://docs.promptise.com/getting-started/quickstart/) · [Cookbook](https://docs.promptise.com/getting-started/cookbook/) · [Why Promptise](https://docs.promptise.com/getting-started/why-promptise/) · [What is MCP?](https://docs.promptise.com/getting-started/what-is-mcp/) · [Model setup](https://docs.promptise.com/getting-started/model-setup/) · [Best LLMs](https://docs.promptise.com/getting-started/best-llms-for-agents/) · [Key concepts](https://docs.promptise.com/getting-started/concepts/) · [Glossary](https://docs.promptise.com/getting-started/glossary/) &nbsp;•&nbsp; **More:** [Blog](https://docs.promptise.com/blog/) · [Showcase](https://docs.promptise.com/resources/showcase/) · [Examples](https://docs.promptise.com/resources/examples/) · [Migration](https://docs.promptise.com/resources/migration/) · [Changelog](https://docs.promptise.com/resources/changelog/) · [FAQ](https://docs.promptise.com/faq/) · [Contributing](https://docs.promptise.com/resources/contributing/)
 
-<details>
-<summary><b>🧠 &nbsp;Reasoning Engine</b> — reasoning as a graph you can shape</summary>
-
-<br/>
-
-**Graph** — [Engine overview](https://docs.promptise.com/core/engine/) · [Nodes](https://docs.promptise.com/core/engine-nodes/) · [Edges & transitions](https://docs.promptise.com/core/engine-edges/) · [Node flags](https://docs.promptise.com/core/engine-flags/) · [Engine internals](https://docs.promptise.com/core/engine-internals/)
-
-**Patterns & skills** — [Prebuilt patterns](https://docs.promptise.com/core/engine-prebuilts/) · [Skills library](https://docs.promptise.com/core/engine-skills/) · [Skill registry](https://docs.promptise.com/core/skill-registry/) · [Build custom reasoning](https://docs.promptise.com/guides/custom-reasoning/)
-
-**Runtime** — [Tool injection](https://docs.promptise.com/core/engine-tools/) · [Processors](https://docs.promptise.com/core/engine-processors/) · [Hooks & observability](https://docs.promptise.com/core/engine-hooks/) · [Serialization & YAML](https://docs.promptise.com/core/engine-serialization/)
-
-</details>
-
-<details>
-<summary><b>🔧 &nbsp;MCP Server & Client SDK</b> — build tools any agent can use</summary>
-
-<br/>
-
-**Server SDK** — [Step-by-step guide](https://docs.promptise.com/guides/production-mcp-servers/) · [Server fundamentals](https://docs.promptise.com/mcp/server/building-servers/) · [Routers & middleware](https://docs.promptise.com/mcp/server/routers-middleware/) · [Authentication & security](https://docs.promptise.com/mcp/server/auth-security/) · [Multi-tenancy](https://docs.promptise.com/mcp/server/multi-tenancy/) · [Approval gates (HITL)](https://docs.promptise.com/mcp/server/approval-gates/) · [Production features](https://docs.promptise.com/mcp/server/production-features/) · [Caching & performance](https://docs.promptise.com/mcp/server/caching-performance/) · [Observability & monitoring](https://docs.promptise.com/mcp/server/observability/) · [Resilience patterns](https://docs.promptise.com/mcp/server/resilience-patterns/) · [Queue & background jobs](https://docs.promptise.com/mcp/server/queue/) · [Advanced patterns](https://docs.promptise.com/mcp/server/advanced-patterns/) · [Deployment](https://docs.promptise.com/mcp/server/deployment/) · [Testing](https://docs.promptise.com/mcp/server/testing/)
-
-**Client SDK** — [Client guide](https://docs.promptise.com/mcp/client/) · [Tool adapter (MCP → LangChain)](https://docs.promptise.com/mcp/client/tool-adapter/)
-
-</details>
-
-<details>
-<summary><b>⚡ &nbsp;Agent Runtime</b> — run agents unattended, on budget, recoverable</summary>
-
-<br/>
-
-**Core** — [Agent processes](https://docs.promptise.com/runtime/processes/) · [Orchestration API](https://docs.promptise.com/runtime/api/) · [Runtime manager](https://docs.promptise.com/runtime/runtime-manager/) · [Context & state](https://docs.promptise.com/runtime/context/) · [Lifecycle events](https://docs.promptise.com/runtime/lifecycle/) · [Hooks](https://docs.promptise.com/runtime/hooks/) · [Conversation management](https://docs.promptise.com/runtime/conversation/)
-
-**Governance** — [Mission model (LLM-as-judge)](https://docs.promptise.com/runtime/governance/mission/) · [Autonomy budget](https://docs.promptise.com/runtime/governance/budget/) · [Behavioral health](https://docs.promptise.com/runtime/governance/health/) · [Secret scoping](https://docs.promptise.com/runtime/governance/secrets/)
-
-**Triggers** — [Overview](https://docs.promptise.com/runtime/triggers/) · [Cron](https://docs.promptise.com/runtime/triggers/cron/) · [Event & webhook](https://docs.promptise.com/runtime/triggers/event-webhook/) · [File watch](https://docs.promptise.com/runtime/triggers/file-watch/)
-
-**Journal & recovery** — [Overview](https://docs.promptise.com/runtime/journal/) · [Backends](https://docs.promptise.com/runtime/journal/backends/) · [Replay engine](https://docs.promptise.com/runtime/journal/replay/) · [Rewind engine](https://docs.promptise.com/runtime/journal/rewind/)
-
-**Config & scale** — [Options](https://docs.promptise.com/runtime/configuration/) · [Agent manifests (.agent)](https://docs.promptise.com/runtime/manifests/) · [Meta-tools (self-modifying agents)](https://docs.promptise.com/runtime/meta-tools/) · [Distributed coordinator](https://docs.promptise.com/runtime/distributed/coordinator/) · [Discovery & transport](https://docs.promptise.com/runtime/distributed/discovery-transport/) · [Dashboard](https://docs.promptise.com/runtime/dashboard/) · [CLI](https://docs.promptise.com/runtime/cli/)
-
-</details>
-
-<details>
-<summary><b>🔐 &nbsp;Agent Identity</b> — an authenticated identity for every agent</summary>
-
-<br/>
-
-[Overview](https://docs.promptise.com/identity/overview/) · [Quickstart](https://docs.promptise.com/identity/quickstart/) · [End-to-end guide](https://docs.promptise.com/identity/guide/) · [Architecture](https://docs.promptise.com/identity/architecture/) · [Security](https://docs.promptise.com/identity/security/) · [Migration](https://docs.promptise.com/identity/migration/)
-
-**Providers** — [Microsoft Entra ID](https://docs.promptise.com/identity/providers/entra/) · [AWS IAM](https://docs.promptise.com/identity/providers/aws/) · [Google Cloud](https://docs.promptise.com/identity/providers/gcp/) · [SPIFFE / SPIRE](https://docs.promptise.com/identity/providers/spiffe/) · [Generic OIDC](https://docs.promptise.com/identity/providers/oidc/)
-
-</details>
-
-<details>
-<summary><b>✨ &nbsp;Prompt Engineering</b> — prompts built like software</summary>
-
-<br/>
-
-**Building prompts** — [PromptBlocks](https://docs.promptise.com/prompting/blocks/) · [ConversationFlow](https://docs.promptise.com/prompting/flows/) · [Prompt builder](https://docs.promptise.com/prompting/builder/) · [Loader & templates](https://docs.promptise.com/prompting/loader-templates/) · [Shell context injection](https://docs.promptise.com/prompting/shell-interpolation/)
-
-**Strategies & chaining** — [Strategies](https://docs.promptise.com/prompting/strategies/) · [Chaining](https://docs.promptise.com/prompting/chaining/) · [Context & variables](https://docs.promptise.com/prompting/context/)
-
-**Quality & testing** — [Guards & validation](https://docs.promptise.com/prompting/guards/) · [Inspector](https://docs.promptise.com/prompting/inspector/) · [Testing utilities](https://docs.promptise.com/prompting/testing/) · [Suite & registry](https://docs.promptise.com/prompting/suite-registry/)
-
-</details>
-
-<details>
-<summary><b>📚 &nbsp;Guides, Labs & API Reference</b></summary>
-
-<br/>
-
-**Guides** — [Building AI agents](https://docs.promptise.com/guides/building-agents/) · [Context lifecycle](https://docs.promptise.com/guides/context-lifecycle/) · [Code-action agents](https://docs.promptise.com/guides/code-action/) · [Production MCP servers](https://docs.promptise.com/guides/production-mcp-servers/) · [Agentic runtime systems](https://docs.promptise.com/guides/agentic-runtime/) · [Prompt engineering](https://docs.promptise.com/guides/prompt-engineering/) · [Multi-user systems](https://docs.promptise.com/guides/multi-user-systems/) · [Agent-to-MCP identity](https://docs.promptise.com/guides/multi-user-identity/) · [Secure multi-tenant platform](https://docs.promptise.com/guides/secure-multi-tenant-platform/) · [Multi-agent coordination](https://docs.promptise.com/guides/multi-agent-teams/)
-
-**Labs** — [Customer support agent](https://docs.promptise.com/guides/lab-customer-support/) · [Data analysis agent](https://docs.promptise.com/guides/lab-data-analysis/) · [Code review agent](https://docs.promptise.com/guides/lab-code-review/) · [Pipeline observer agent](https://docs.promptise.com/guides/lab-pipeline-observer/)
-
-**API reference** — [Agent](https://docs.promptise.com/api/agent/) · [Config](https://docs.promptise.com/api/config/) · [Memory](https://docs.promptise.com/api/memory/) · [RAG](https://docs.promptise.com/api/rag/) · [Sandbox](https://docs.promptise.com/api/sandbox/) · [Observability](https://docs.promptise.com/api/observability/) · [Identity](https://docs.promptise.com/api/identity/) · [MCP server](https://docs.promptise.com/api/mcp-server/) · [MCP client](https://docs.promptise.com/api/mcp-client/) · [Prompts](https://docs.promptise.com/api/prompts/) · [Runtime](https://docs.promptise.com/api/runtime/) · [Cross-agent](https://docs.promptise.com/api/cross-agent/) · [SuperAgent](https://docs.promptise.com/api/superagent/) · [Utilities](https://docs.promptise.com/api/utilities/)
-
-</details>
-
-<details>
-<summary><b>🚀 &nbsp;Getting started & resources</b></summary>
-
-<br/>
-
-**Start here** — [Installation](https://docs.promptise.com/) · [Installation extras](https://docs.promptise.com/getting-started/installation-extras/) · [Quick start](https://docs.promptise.com/getting-started/quickstart/) · [Cookbook (recipes)](https://docs.promptise.com/getting-started/cookbook/) · [Why Promptise](https://docs.promptise.com/getting-started/why-promptise/) · [What is MCP?](https://docs.promptise.com/getting-started/what-is-mcp/) · [Model setup](https://docs.promptise.com/getting-started/model-setup/) · [Best LLMs for agents](https://docs.promptise.com/getting-started/best-llms-for-agents/) · [Key concepts](https://docs.promptise.com/getting-started/concepts/) · [Glossary](https://docs.promptise.com/getting-started/glossary/)
-
-**Resources** — [Blog](https://docs.promptise.com/blog/) · [Showcase](https://docs.promptise.com/resources/showcase/) · [Examples gallery](https://docs.promptise.com/resources/examples/) · [Migration guide](https://docs.promptise.com/resources/migration/) · [Changelog](https://docs.promptise.com/resources/changelog/) · [FAQ](https://docs.promptise.com/faq/) · [Contributing](https://docs.promptise.com/resources/contributing/)
-
-</details>
+</td>
+</tr>
+</table>
 
 <br/>
 
