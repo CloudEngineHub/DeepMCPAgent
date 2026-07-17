@@ -12,6 +12,8 @@ categories:
 
 The question of **ai agent observability vs audit trail** usually starts with a comforting assumption: the traces your stack already emits — LangSmith runs, Logfire spans, OpenTelemetry exports — will double as compliance evidence when an auditor asks what your agent did. They won't. Those traces are mutable debugging telemetry, and a vendor's SOC 2 badge attests to that vendor's controls, not to the integrity of the log your own agent produces. This post draws the exact line between the two, names precisely what today's observability tools do and don't guarantee, and shows the one primitive a span export can't give you: a record whose integrity you can verify on demand.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

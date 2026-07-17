@@ -12,6 +12,8 @@ categories:
 
 The **server-side vs agent-side ai approval** decision is the one most teams get wrong by not knowing they had a decision to make — they wire a single human-in-the-loop hook, wherever the docs put it, and assume that one hook is doing two jobs it can't do at once. Promptise Foundry ships two distinct enforcement layers for a reason, and this post puts them side by side so you can map each sensitive tool to the layer it actually belongs in.
 
+<!-- more -->
+
 The short version: agent-side [`ApprovalPolicy`](../../core/approval.md) is a fast, in-process triage layer that lives with a specific agent and, paired with the [`AutoApprovalClassifier`](../../core/approval-classifier.md), keeps reviewers from drowning in low-risk calls. Server-side [`ApprovalGateMiddleware`](../../mcp/server/approval-gates.md) is a security boundary that sits on the tool itself and holds for *any* MCP client. They are not competitors. They share one `ApprovalHandler` protocol, both fail closed, and the interesting move is running both.
 
 ## "Should I approve this?" is two questions, not one

@@ -12,6 +12,8 @@ categories:
 
 If you are asking **does LangChain support multi-tenancy**, the honest answer is: not as a first-class concept — LangChain hands you excellent building blocks (memory stores, caches, retrievers, rate limiters), but there is no tenant identity that flows through them, so per-tenant isolation is something you wire and enforce yourself on every call. That is not a knock; it is a scope decision. This post is precise about exactly what LangChain gives you today, where the classic "two customers both named alice" leak comes from, and how Promptise Foundry turns tenancy from a filter you can forget into a structural invariant.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

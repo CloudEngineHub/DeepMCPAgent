@@ -12,6 +12,8 @@ categories:
 
 A self-modifying AI agent — one that can rewrite its own prompt, author a new tool, or connect to another server while it's still running — sounds like exactly the kind of thing you should never ship to production. The instinct is right: an agent with unrestricted write access to its own configuration is a liability. But "never" is the wrong lesson. The right one is *never without guardrails*. By the end of this post you'll know what Promptise Foundry's **open mode** actually lets an agent do, the concrete safeguards that box it in, and how to enable it in a `.agent` manifest so an agent can safely author its own first tool.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

@@ -12,6 +12,8 @@ categories:
 
 Most tutorials teach you to build an MCP server, then stop — but an MCP client is what actually connects your agent to that server, discovers its tools, and calls them. This tutorial covers the side most guides skip: how to connect to one server, fan out across many servers behind a single unified tool list with auto-routing, and convert MCP tools into LangChain tools you can drop into any agent. Everything here uses Promptise Foundry's native MCP client — three small classes, no third-party MCP dependency to audit or update. By the end you'll be able to wire an agent to any MCP server in a few lines of Python.
 
+<!-- more -->
+
 ## What an MCP client actually does
 
 If you're new to the protocol, start with [What Is MCP? Model Context Protocol Explained](what-is-mcp.md) or the [What is MCP](../../getting-started/what-is-mcp.md) concepts page. The short version: MCP standardizes how an LLM application discovers and calls tools exposed by a separate server process. The server publishes tools; the client is the piece that speaks the protocol back to it.

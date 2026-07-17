@@ -12,6 +12,8 @@ categories:
 
 **Multi-tenant RAG** almost always ships as one shared vector store plus a hand-written metadata filter bolted onto every query — and the first query that forgets the filter quietly leaks Acme's documents into Globex's answer. There is no exception, no stack trace, no failing test. The retrieval just returns a neighbor from the wrong customer, the model summarizes it, and you find out when a support ticket arrives. This post is about the retrieval path specifically: why per-query filters are the wrong place to enforce a security boundary, what other frameworks hand you today, and how Promptise Foundry threads the tenant into retrieval automatically so a forgotten filter is structurally impossible.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

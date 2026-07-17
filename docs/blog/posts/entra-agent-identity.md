@@ -12,6 +12,8 @@ categories:
 
 If your organization already runs on Azure, wiring **Entra agent identity** into your AI agents is less about adopting something new and more about consuming an identity you can already issue. This post is for teams standardized on Microsoft Entra who want a billing bot, a reporting bot, or any autonomous agent to present a signed, Entra-verified token to the MCP servers it calls — automatically, with no static API keys to leak or rotate. By the end you will know exactly which piece Azure owns, which piece Promptise Foundry owns, and how to get from a managed identity to a verified tool call in one `build_agent()` call.
 
+<!-- more -->
+
 ## What Entra agent identity actually gives you
 
 An agent is a non-human actor. It calls tools, hits internal APIs, and often acts with no human in the loop — so "which agent did this?" needs a real answer, not a shared key or a name a process prints about itself. Promptise gives every agent a stable identity for attribution, and, when you want it, a **verifiable** identity backed by a credential provider that mints a short-lived signed JWT. The [Agent Identity overview](../../identity/overview.md) lays out the two tiers: a local identity (zero infrastructure, just an `agent_id`) and a verifiable identity backed by Entra, AWS, GCP, SPIFFE, or a generic OIDC issuer.

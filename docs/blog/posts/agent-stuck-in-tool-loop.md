@@ -12,6 +12,8 @@ categories:
 
 If your agent is stuck in a tool loop — calling the same lookup over and over, its answer never arriving, its token bill climbing every turn — you are hitting the single most common production failure on deep tool tasks. It is not a prompt-wording problem and it is not a model problem. It is context bloat: a naive tool-calling loop feeds the model its entire transcript on every turn, and once that transcript grows large enough, the model loses the thread and re-fetches facts it already has. By the end of this post you will know exactly why the loop degrades, how the `context_scope` lever bounds it, and how to flatten token growth with a one-argument switch.
 
+<!-- more -->
+
 ## Why an agent gets stuck in a tool loop
 
 A hand-rolled reason–act–observe loop appends every tool request and every tool result to the running conversation, then replays the whole thing to the model on the next turn:

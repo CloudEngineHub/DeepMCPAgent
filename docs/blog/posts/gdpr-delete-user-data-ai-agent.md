@@ -12,6 +12,8 @@ categories:
 
 When a subject-access team hands you a **GDPR delete user data AI agent** request, the hard part is never the primary database — you already know how to run a `DELETE` there. The hard part is every *other* place the agent quietly kept a copy of that person: the long-term memory it embedded from their conversations, the semantic cache holding their answered questions, and the observability timeline recording who did what. A modern agent is not one store. It is three or four persistence layers wired behind one `build_agent()` call, and a right-to-erasure request has to reach all of them or it is not complete. This post shows how to erase one user from every store the agent wrote to — with a single call per layer, keyed to the exact principal so you delete that person and no one else.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

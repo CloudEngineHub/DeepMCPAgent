@@ -12,6 +12,8 @@ categories:
 
 To hide MCP tools per client, you stop shipping one flat tool list to everyone and instead tailor the list each caller discovers at `list_tools` time — the anonymous integration sees `search_orders` and `get_order`, while an authenticated operator additionally sees `issue_refund` and `delete_customer`. A public MCP server that advertises its destructive admin tools to every caller has already lost the argument: even if a guard stops the call, you have leaked the shape of your privileged surface to anyone who runs discovery, and you have handed a confused agent tools it will eventually try to use. The clean fix is to make the *advertised* toolset a function of *who is asking*.
 
+<!-- more -->
+
 This post builds that per-client view with three primitives — `TagFilterTransform`, `VisibilityTransform`, and per-tool guards (`HasRole` / `HasScope`) — shows the exact enforcement boundary between "hidden" and "blocked," and is precise about where other frameworks already draw part of this line and where Promptise Foundry makes per-caller visibility a first-class layer.
 
 !!! warning "Not legal or compliance advice"

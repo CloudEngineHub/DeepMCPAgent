@@ -12,6 +12,8 @@ categories:
 
 When compliance asks **who approved this ai agent action** — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post is scoped narrowly to one thing: the *provenance of an approval decision*. Not whether the audit log is tamper-evident (that question is settled elsewhere), but what actually lands on it when a human signs off, and whether that record can survive an auditor who does not trust your good intentions.
 
+<!-- more -->
+
 The tamper-evidence of the chain — the HMAC links that prove no entry was edited after the fact — is a separate concern, covered in the [Production Features overview](../../mcp/server/production-features.md). Here we assume the chain is trustworthy and ask a sharper question: *given a trustworthy record, does an approval decision leave enough on it to defend the sign-off?*
 
 !!! warning "Not legal or compliance advice"

@@ -12,6 +12,8 @@ categories:
 
 Behavioral anomaly detection for AI agents is the difference between knowing an agent took *too many* steps and knowing it is stuck in a `search → read → search → read` loop, emitting empty responses, or failing half its tool calls. A turn cap or iteration limit answers exactly one question — "how many steps?" — and nothing about *what kind* of trouble the agent is in. This post maps four lightweight detectors to the four failures they catch, and shows why they cost zero extra tokens: detection is pure pattern matching over the agent's own call-and-response history, gated by cooldowns so it never turns into an alert storm.
 
+<!-- more -->
+
 ## Why turn and iteration caps miss the real failures
 
 Every agent framework ships a step counter. It exists to stop a runaway before it exhausts a budget or a context window, and it does that job. But a counter is blind to the *shape* of the work. Three of the most common production failures all sit comfortably under a generous iteration cap:

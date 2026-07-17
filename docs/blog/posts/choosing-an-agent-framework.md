@@ -12,6 +12,8 @@ categories:
 
 Choosing an agent framework is a decision you live with for years, so it deserves more rigor than a feature comparison table and a GitHub star count. Most teams pick based on the demo that ran fastest, then discover six months later that the real cost was somewhere the demo never touched — tool maintenance, access control, or vendor lock-in. This post gives you a vendor-neutral scored rubric so you can evaluate AI agent frameworks against the criteria that actually bite in production, and shows concretely where an MCP-native design removes an entire category of work most frameworks make you own forever.
 
+<!-- more -->
+
 By the end you'll have a repeatable scorecard you can run against any candidate — including Promptise Foundry — and a clear sense of which trade-offs matter for your team.
 
 !!! warning "Not legal or compliance advice"

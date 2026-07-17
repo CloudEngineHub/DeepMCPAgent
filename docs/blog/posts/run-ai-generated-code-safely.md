@@ -12,6 +12,8 @@ categories:
 
 To **run AI-generated code safely** you have to satisfy two requirements at once, and most stacks only meet one of them: *can the model's code escape the box?* and *is every tool that code reaches inside the box still governed the way the rest of your agent is?* Containment answers the first. Almost nothing answers the second. This field guide contrasts the three ways teams actually run model-written code today — an in-process REPL, a bolt-on third-party sandbox, and a hardened first-party sandbox with a governed tool bridge — and shows why Promptise Foundry treats *both* containment and per-call tool governance as first-class parts of one layer instead of two separate integrations you assemble yourself.
 
+<!-- more -->
+
 ## The three ways to run model-written code
 
 Every approach to executing LLM-written Python lands in one of three buckets. They differ on two independent axes — does it isolate the code, and does it govern the tool calls that code makes — and only the third gets both.

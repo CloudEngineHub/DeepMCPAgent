@@ -12,6 +12,8 @@ categories:
 
 Human-in-the-loop approval is the control that lets an autonomous agent do real work — issue a refund, delete a record, wire money — without letting it do that work unsupervised. The instinct most teams reach for first is a client-side confirmation: the agent asks "are you sure?" and waits for a click. That feels safe, but it protects nothing, because the confirmation lives in the caller you happen to be using today. By the end of this article you'll understand why approval has to live on the server that owns the tool, and you'll have a runnable gate that denies irreversible calls until a human signs off.
 
+<!-- more -->
+
 ## Why client-side confirmation isn't a control
 
 An MCP tool is a network endpoint. The moment you expose `refund` or `delete_account`, any MCP client can call it — your production agent, a teammate's script, a scheduled job, a future integration you haven't built yet. A confirmation prompt rendered in one agent's chat UI is invisible to every other caller. It's a UX nicety, not a security boundary.

@@ -12,6 +12,8 @@ categories:
 
 **AI agent behavioral anomaly detection** is what tells you *which* way your agent has gone wrong — a poller frozen on `get_status(id=42)`, a `search → read` cycle that never converges, an agent answering with empty strings, or one whose tool calls are half-failing — by watching the *pattern* of its calls instead of merely counting them. A runaway agent is not always expensive per call. The quiet failures cost you a whole night of the same cheap request, or a slow drip of trivial replies, while every infrastructure dashboard stays green because CPU and memory look fine. This post shows how the Promptise Foundry runtime catches those failures with four pure-pattern-matching detectors — no extra LLM calls — how to tell a behavioral stall apart from a context-bloat loop so you apply the *right* fix, and how the runtime pauses or escalates a live process the moment a detector trips.
 
+<!-- more -->
+
 ## Two agents look "stuck." They fail for opposite reasons.
 
 Two very different failures both get reported as "the agent is stuck in a loop," and they need opposite fixes. Confusing them is the reason people spend a day tuning the wrong knob.

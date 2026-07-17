@@ -12,6 +12,8 @@ categories:
 
 In a zero-trust agent mesh you must **verify the calling agent server-side** — cryptographically, on the resource that receives the call — because a self-asserted agent name in a request body is trivial to forge. Agent A tells your billing server "I am `billing-bot`"; your server believes it; a compromised or misconfigured Agent B says exactly the same thing. If the only thing standing between a caller and `issue_refund` is a string it chose for itself, you have no security boundary at all — you have a naming convention.
 
+<!-- more -->
+
 Zero-trust has one rule: never trust, always verify, and verify at the resource. For AI agents that means the *receiving* MCP server does the work. It checks that the caller's credential was minted by an identity provider you trust, that it was minted for *this* resource, that it belongs to the *specific* agent you allow, and it records the verified subject so an auditor can prove who did what. This post wires that server-side half end to end. It is the counterpart to the outbound question — [how does an AI agent authenticate to an API?](how-does-an-ai-agent-authenticate-to-an-api.md) covers minting and presenting the credential; here we verify it.
 
 ## Why a self-asserted agent name is not identity

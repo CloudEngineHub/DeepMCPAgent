@@ -12,6 +12,8 @@ categories:
 
 To compose multiple MCP servers into one gateway, you mount each team's server behind a namespace prefix so an agent connects to a single endpoint and discovers one clean toolbelt — `pay_charge`, `usr_get_user`, `rpt_revenue` — instead of juggling three URLs, three auth handshakes, and three tool lists it has to deduplicate itself. That much is table stakes; several frameworks can prefix-and-merge. The part that actually decides whether a gateway survives contact with production is what happens *at the seam*: can you filter what each client sees across the composed surface based on who is asking, and can two mounted servers ship different versions of the same tool without a name collision?
 
+<!-- more -->
+
 This post builds a real gateway from three separate servers with `mount()`, then layers the governance that a merged surface needs — per-client visibility, tag filtering, and versioned coexistence — and is honest about where other frameworks already draw that line and where Promptise Foundry makes it structural.
 
 ## Three servers, one endpoint, one problem

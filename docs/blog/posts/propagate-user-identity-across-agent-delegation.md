@@ -12,6 +12,8 @@ categories:
 
 The honest answer for most agent stacks is: not unless you thread it by hand. To **propagate user identity across agent delegation** — so that when an orchestrator acting on Alice's behalf hands a subtask to a peer via `ask_peer` or `broadcast`, the peer still runs *as Alice* — you normally have to pass the principal down every hop yourself. Miss it on one call and the peer runs unattributed: its memory search, its semantic cache, its conversation ownership, and its audit trail all detach from the real user. In a multi-tenant product, "unattributed" quietly becomes "cross-tenant," and that is the exact leak a security reviewer will find.
 
+<!-- more -->
+
 This post looks at that one hop — the delegation call — across LangGraph, CrewAI, AutoGen, and Promptise Foundry, and shows how Promptise inherits the ambient `CallerContext` into the peer automatically so `tenant::user` isolation holds by default, plus how `delegated_by` lands on the peer's timeline to answer "who caused this?"
 
 ## The hop where the principal usually gets dropped

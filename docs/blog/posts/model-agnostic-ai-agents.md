@@ -12,6 +12,8 @@ categories:
 
 Model-agnostic AI agents let you change the model behind your agent without touching the rest of your code. In Promptise Foundry the model is just a string you pass to `build_agent()`, so the same agent — same tools, same memory, same guardrails — can run on `openai:gpt-5-mini` today, `anthropic:claude-sonnet-4.5` tomorrow, and a local `ollama:llama3` in an air-gapped deployment, with no rewrite in between. By the end of this post you'll know exactly how that swap works, how to run entirely offline, and when pinning to one provider is actually the smarter choice.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

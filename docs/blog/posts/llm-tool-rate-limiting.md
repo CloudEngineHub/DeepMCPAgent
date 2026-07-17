@@ -12,6 +12,8 @@ categories:
 
 LLM tool rate limiting is the part of production agent infrastructure that most tutorials skip, and it is exactly the part that pages your team at 2 a.m. An agent is not a well-behaved REST client that makes one request per user action. Give it a task and it will fan out five, ten, or fifty tool calls in a single turn, retrying and reformulating as it reasons. A flat "requests per minute" cap treats all of that as one undifferentiated stream, which is why it protects nothing. By the end of this guide you will know how to declare a rate limit directly on the tool that needs it, how the token bucket behaves under bursty agent traffic, and when a plain API gateway is the better tool for the job.
 
+<!-- more -->
+
 ## Why a global limiter is the wrong abstraction for agents
 
 Classic API rate-limiting guides assume a predictable client: one browser, one mobile app, one request at a time. Agents break that assumption in two ways.

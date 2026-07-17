@@ -12,6 +12,8 @@ categories:
 
 The honest way to frame **langgraph checkpointing vs journaling** is not "which one persists state" — both genuinely do — but "what unit each one persists": a LangGraph checkpoint saves the state of a single graph run, while a Promptise journal records the append-only event stream of a long-running, self-triggering process. That distinction sounds academic until a process reboots at 2am mid-run and you need it back exactly where it was. This post draws the line precisely, shows what each mechanism captures, and gives you a runnable script so you can watch a journal rebuild a crashed process from its own event log.
 
+<!-- more -->
+
 ## What a LangGraph checkpoint actually captures
 
 Give LangGraph credit where it is due, because a lot of "LangGraph alternative" content gets this wrong. LangGraph checkpointing is real, durable, and well-engineered. When you attach a checkpointer — `MemorySaver` for tests, or the durable `SqliteSaver`/`PostgresSaver` backends — LangGraph writes a **snapshot of the graph's channel state at every super-step**, keyed by the `thread_id` you pass in `config={"configurable": {"thread_id": ...}}`. Each snapshot carries metadata: the step number, which node produced which writes, and any pending writes. Because a checkpoint is saved per super-step, a thread accumulates a linear history you can walk with `get_state_history()` and fork from by `checkpoint_id`. That is genuine time-travel.

@@ -12,6 +12,8 @@ categories:
 
 Per-tenant MCP rate limiting is the difference between a quota that protects each customer and a quota that merely protects your process — and on a shared MCP server, per-client throttling quietly gives you the second while you think you bought the first. The trap is subtle: a token-bucket limiter keyed by "client" looks tenant-aware right up until two of your tenants authenticate a user whose id happens to be the same string. The moment `acme`'s user `u-42` and `globex`'s user `u-42` collide onto one bucket, one customer's burst starts spending another customer's quota, and neither of them did anything wrong. Worse, a single tenant that spins up many client ids can collectively soak up the shared throughput everyone else depends on, because nothing in a per-client scheme says "this tenant, as a whole, gets this much."
 
+<!-- more -->
+
 This post is about closing that gap structurally. We will look at why per-client is not per-tenant, what other frameworks give you today, and how Promptise Foundry's `RateLimitMiddleware` tenant-qualifies every bucket with an injective key — with per-tool granularity on top — so one tenant's traffic can never touch another's.
 
 ## Per-client throttling isn't tenant isolation

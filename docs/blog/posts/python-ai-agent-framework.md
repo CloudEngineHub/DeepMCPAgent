@@ -12,6 +12,8 @@ categories:
 
 A Python AI agent framework is a library that handles the plumbing between a large language model and the real world — tool discovery, memory, conversation persistence, guardrails, and observability — so you don't rebuild it for every project. The term gets thrown around loosely, and plenty of "frameworks" are really just thin wrappers around a chat completion call. This post cuts through that: it defines exactly what a framework adds over a hand-rolled loop, shows the moving parts concretely, and is honest about the times a plain script is the better choice. By the end you'll be able to look at your own project and decide whether you actually need one.
 
+<!-- more -->
+
 ## What is an agent framework, exactly?
 
 At its core, an AI *agent* is a loop. The model receives a goal, decides on an action (often a tool call), you run that action, feed the result back, and repeat until the model produces a final answer. You can write that loop yourself in about forty lines of Python. So what is an agent framework adding on top?

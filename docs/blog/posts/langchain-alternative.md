@@ -12,6 +12,8 @@ categories:
 
 If you are shopping for a **LangChain alternative**, you have probably already shipped something on LangChain, hit a wall in production, and started looking for a cleaner foundation without throwing away the integrations you rely on. That is the honest tension this post is about. By the end you will know exactly where LangChain still wins, what a production-grade stack adds on top, and how to keep your existing LangChain tools running while you move orchestration, memory, and auth onto Promptise Foundry — one layer at a time, no rip-and-replace.
 
+<!-- more -->
+
 ## Why teams look for a LangChain alternative
 
 LangChain earned its place. Its integration catalog — model providers, vector stores, document loaders, retrievers — is genuinely unmatched, and that breadth is a real asset when you are prototyping. Nobody should pretend otherwise.

@@ -12,6 +12,8 @@ categories:
 
 Getting **multi-user agent identity** right is the difference between a demo and a product your auditors will sign off on. The moment two customers share one agent, you have to answer a hard question: when Alice asks "show my invoices," how does *her* identity reach the tool server so it returns *her* data and not Bob's — without the client simply asserting whatever roles it likes? This post traces the whole path in Promptise Foundry: from a per-request `CallerContext` in your app, to a bearer token on the wire, to server-side JWT extraction and role/tenant guards. By the end you'll be able to wire it end to end and know exactly where the trust boundary sits.
 
+<!-- more -->
+
 ## Two identities: the human principal and the acting agent
 
 Multi-user systems actually carry two distinct identities, and conflating them is where most designs go wrong.

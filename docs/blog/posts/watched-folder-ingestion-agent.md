@@ -12,6 +12,8 @@ categories:
 
 A **watched folder ingestion agent** watches a drop folder, wakes the instant a file lands, and runs an LLM over it — extract, classify, route, emit. This is not a tour of the runtime's trigger types; that overview lives in the [Triggers guide](../../runtime/triggers/index.md). It is one end-to-end build. We wire a `FileWatchTrigger` to a supervised `AgentProcess`, and then solve the three things a naive watcher gets wrong the moment it meets production: reprocessing after a crash, an unbounded bill when a thousand files land at once, and losing everything the agent learned between drops. The watch itself is the easy part. The durable, restart-safe pipeline around it is the point.
 
+<!-- more -->
+
 ## Why a naive watcher reprocesses everything after a crash
 
 The tutorial version of this is a twenty-line `watchdog` or `inotify` script: register a handler, glob the directory on startup to catch anything that arrived while you were down, and process each match. It works on your laptop. Then it meets a crash.

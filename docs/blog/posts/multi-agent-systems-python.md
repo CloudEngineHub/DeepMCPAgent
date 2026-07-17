@@ -12,6 +12,8 @@ categories:
 
 Building multi-agent systems in Python is rarely blocked by the modeling — the hard part is coordinating several agents without turning your codebase into a tangle of ad-hoc HTTP calls and shared globals. Most guides stop at the word "orchestration" and hand you a box diagram. This one skips the hand-waving: you'll learn the four concrete coordination primitives Promptise Foundry gives you, see runnable code for cross-agent delegation over HTTP+JWT, and leave with a decision table so you can pick a topology instead of copying someone else's.
 
+<!-- more -->
+
 ## When you actually need a multi-agent system
 
 Start with the honest question: do you need more than one agent at all? A single, well-scoped agent with good tools handles far more than people expect. If your problem is "answer support tickets" or "review a pull request," reach for one agent first — the walkthrough in [How to Build a Customer Support AI Agent](customer-support-ai-agent.md) ships a production system with exactly one.

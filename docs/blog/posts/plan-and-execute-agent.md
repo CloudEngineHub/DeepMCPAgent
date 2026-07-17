@@ -12,6 +12,8 @@ categories:
 
 A plan-and-execute agent writes an explicit plan before it touches a single tool, then works through that plan step by step instead of improvising one call at a time. It sounds strictly better than a plain tool-calling loop—and that intuition is the biggest trap in agent design. By the end of this post you'll understand exactly what the Plan → Act → Think → Reflect loop does, how to run one in Promptise Foundry with a single parameter, and—just as important—how to tell when the extra planning step earns its cost versus when it just burns tokens.
 
+<!-- more -->
+
 ## What a plan-and-execute agent actually does
 
 The default agent loop is ReAct: reason, call a tool, read the result, reason again, repeat until you have an answer. It's greedy. It decides the *next* action based on what it just saw, with no commitment to a larger structure. That's fast and it's usually enough—see [The ReAct Agent Pattern Explained (with Code)](react-agent-pattern.md) for the mechanics.

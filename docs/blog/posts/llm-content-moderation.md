@@ -12,6 +12,8 @@ categories:
 
 Picking a backend for LLM content moderation usually forces an early, sticky decision: run a safety model locally, or call a hosted API. Get it wrong and you either ship a 4.9 GB model into an environment with no GPU budget, or route every user prompt through a cloud endpoint that your compliance team has not signed off on. This post gives you an honest local-vs-cloud breakdown of the two most common choices — Meta's Llama Guard and Azure AI Content Safety — and shows how Promptise Foundry puts both behind a single `ContentSafetyDetector` interface so the choice becomes a config flag, not a rewrite.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

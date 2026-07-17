@@ -12,6 +12,8 @@ categories:
 
 Going from OpenAPI to MCP is the fastest way to make an API you already own callable by AI agents — and you can do it without touching a single route handler. If your service already ships a Swagger or OpenAPI document, Promptise Foundry can read that spec and generate one MCP tool per operation, complete with JSON Schema derived from your existing parameter definitions. By the end of this article you'll have an OpenAPI mcp server running that proxies real HTTP calls to your API, and you'll know how to layer authentication, rate limits, and endpoint filtering on top so agents only touch what you allow.
 
+<!-- more -->
+
 ## Why you shouldn't rewrite your API for agents
 
 The naive path to agent access is to hand-write an MCP tool wrapper for every endpoint: copy the path, restate the parameters, re-encode the request, and keep all of it in sync with the API forever. For a service with fifty endpoints, that's fifty wrappers and fifty chances for drift between what the schema promises and what the endpoint actually accepts.

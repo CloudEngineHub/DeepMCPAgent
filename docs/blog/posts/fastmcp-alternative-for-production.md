@@ -12,6 +12,8 @@ categories:
 
 If you are shopping for a **fastmcp alternative for production**, start by dropping the framing that FastMCP is a toy — it is a genuinely capable MCP server SDK, and the honest question is not *whether it works* but *how much production plumbing you still assemble by hand*. FastMCP gets you typed tools, mounting, auth, and a real middleware pipeline. This pillar walks the **fastmcp vs promptise** decision feature by feature, gives FastMCP full credit for what it already does well, and then marks the four capabilities Promptise Foundry folds into one middleware stack that FastMCP leaves you to bolt together yourself: versioned tool coexistence, per-tool circuit breaking, tenant-qualified rate limits, and an MCP-native durable job queue.
 
+<!-- more -->
+
 The goal here is not to declare a winner in the abstract. It is to help you predict, before you commit, which parts of your **production mcp server framework** you will build once with a decorator and which parts you will design, test, and maintain yourself.
 
 ## What FastMCP already gets right

@@ -12,6 +12,8 @@ categories:
 
 Workload identity for AI agents is the practice of giving every agent a stable, verifiable identity of its own — minted by the identity provider you already run — instead of handing the whole fleet one shared API key. If you deploy more than one agent, you have probably already felt the gap: your logs say "the model" did something, your audit trail can't name which agent hit which tool, and every agent holds the same credential so every agent has the same blast radius. By the end of this post you will know exactly what workload identity means for agents, why it is the same problem enterprises solved for services years ago, and how to give your first agent a real identity with no new secrets to manage.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

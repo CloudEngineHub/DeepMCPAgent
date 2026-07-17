@@ -12,6 +12,8 @@ categories:
 
 Any honest python ai agent framework comparison has to start with a concession: there is no single winner. The right choice depends on whether you're prototyping a demo, building a RAG search product, or shipping multi-tenant agents to production. This guide compares LangChain, LlamaIndex, CrewAI, Pydantic AI, and Promptise Foundry without strawmen — it says plainly where each tool is the better fit, then pinpoints the one design decision that separates them: how tools reach your agent. By the end you'll know which framework matches your stack and why an MCP-first approach changes the calculus.
 
+<!-- more -->
+
 ## The frameworks in this comparison
 
 These are the libraries most teams shortlist, and the job each one does best:

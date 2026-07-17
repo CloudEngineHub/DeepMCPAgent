@@ -12,6 +12,8 @@ categories:
 
 The choice at the heart of **mcp elicitation approval vs four-eyes review** is not "should this tool need a human?" — you already decided that when you marked it `requires_approval=True`. The real question is *which* human, and *when*: do you confirm with the person sitting behind the client that made the call, right now, mid-run — or do you park the call in a queue for an independent reviewer who was not the one who triggered it? Both are legitimate. They protect against different failures, and picking the wrong one either annoys your users or lets a caller wave through their own risky action. This post is a decision guide, and the good news is that in Promptise Foundry the two models sit behind one interchangeable handler, so choosing is a one-line change you can make per tool.
 
+<!-- more -->
+
 ## "Really delete this?" is not "a second person must sign off"
 
 Start from the two questions the approval is actually answering, because they are not the same question.

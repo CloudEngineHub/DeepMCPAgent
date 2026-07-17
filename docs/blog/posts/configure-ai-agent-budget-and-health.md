@@ -12,6 +12,8 @@ categories:
 
 To **configure AI agent budget and health** kill-switches you should not need a monitoring side-project, a supervisor loop, or a scatter of `try/except` blocks around every tool call — you need one config block on the process. This is the copy-paste recipe, not the why-you-need-it explainer: paste one `ProcessConfig` (or one `.agent` YAML manifest), fill in your per-run and daily limits, your irreversible-action cap, the four behavioral-health detectors, pick `pause` / `stop` / `escalate`, point a webhook at Slack, and ship a governed, self-limiting agent in a single file. The runtime enforces the whole declaration for you, around every invocation, out-of-band. Below is the exact block.
 
+<!-- more -->
+
 If you want the argument for *why* runtime enforcement beats a per-run counter that throws, read the companion post [How to Stop a Runaway AI Agent (Runtime Kill Switches)](stop-a-runaway-ai-agent.md). This post assumes you're sold and just want the block.
 
 ## The one governance block you paste

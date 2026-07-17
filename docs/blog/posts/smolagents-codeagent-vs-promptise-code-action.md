@@ -12,6 +12,8 @@ categories:
 
 The **smolagents codeagent vs promptise code-action** question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls `issue_refund()` or `delete_customer()`, *where does that call execute, and what governs it?* This is a precise-delta piece, not a "they have nothing" one. By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.
 
+<!-- more -->
+
 ## Same program, different execution boundary
 
 Both frameworks implement the same core idea, and it is a good one. Instead of the model emitting a chain of conversational tool calls — reason, act, observe, repeat — it writes a single Python program that loops, filters, joins, and aggregates over your tools, then runs it. Hugging Face's smolagents calls this a `CodeAgent`; the underlying research idea is the "code as action" (CodeAct) pattern. Promptise calls it `agent_pattern="code-action"`. For data-heavy work, one program beats thirty tool calls on tokens, latency, and arithmetic accuracy — the full case for the pattern is in our [code-action guide](../../guides/code-action.md).

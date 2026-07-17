@@ -12,6 +12,8 @@ categories:
 
 Every multi-tenant tutorial hands you a `tenant_id` and moves on, but the honest question is where that value comes from — and the two answers Promptise Foundry supports are a **tenant_id from jwt claim** and a tenant bound to each API key. Get that sourcing step right and the rest of your isolation story (tenant-qualified rate limits, per-tenant audit, cache scoping) follows for free. Get it wrong — a claim you forgot to read, a number where you expected a string, a request with no tenant at all — and a claim-less caller slips through as tenant-less, which is the one outcome a multi-customer platform can never afford.
 
+<!-- more -->
+
 This post is the missing chapter: exactly how to **source `tenant_id` in an MCP server**, the two places it can legitimately originate, how the value is coerced, and what happens when it is absent under `require_tenant=True`.
 
 ## The two legitimate sources of a tenant_id

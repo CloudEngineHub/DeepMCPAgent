@@ -12,6 +12,8 @@ categories:
 
 To version MCP tools without breaking clients, you have to treat a tool's schema as a published API contract — because that is exactly what every connected agent already assumes it is. An agent does not read your source code. It reads the `input_schema` your server advertises, builds a function call to match, and trusts that the shape it saw at discovery time is the shape you will accept at call time. Rename one field from `customer` to `customer_id`, tighten `filters` from optional to required, or drop a property some prompt still references, and every agent already in flight starts emitting arguments your handler rejects. Nothing crashed on your side. You just changed the contract out from under callers who never agreed to the new terms.
 
+<!-- more -->
+
 This post walks through why that failure is structural, what other frameworks do about it today, and how Promptise Foundry's `VersionedToolRegistry` lets `search` and `search@1.0` live side by side so a schema change stops being an outage.
 
 ## The schema is the contract, and one field breaks it

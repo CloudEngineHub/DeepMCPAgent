@@ -12,6 +12,8 @@ categories:
 
 To **auto-stop a runaway AI agent**, you need something that can tell a *stuck* agent apart from a merely *busy* one — and a recursion counter cannot, because all it knows is how many steps have gone by. Set `recursion_limit=25` and an agent can take twenty-five productive steps toward a finished task, or it can call `get_status(id=42)` twenty-five times in a row and learn nothing. To the counter those runs are identical: same integer, same ceiling, same hard error at the end. The count is the wrong signal. What you actually want is a monitor that watches the *shape* of the agent's behavior over time — the same call repeated, a tool pattern cycling, responses collapsing to nothing, errors spiking — and halts the process the moment that shape turns pathological, long before the step budget runs out. This post shows how Promptise Foundry's [behavioral health governance](../../runtime/governance/health.md) does exactly that: four anomaly detectors, per-anomaly cooldowns, and a graduated log → pause → escalate response that stops the runaway automatically.
 
+<!-- more -->
+
 The thesis in one line: a step counter measures *how far* an agent has gone; behavioral health measures *whether it is still making progress*.
 
 ## A recursion counter can't tell a stuck agent from a busy one

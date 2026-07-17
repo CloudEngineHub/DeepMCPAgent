@@ -12,6 +12,8 @@ categories:
 
 The code that runs when a webhook hits your service has one deceptively small job: **verify webhook signature ai agent** triggers before you let them wake anything, because an unauthenticated POST is an open door straight into an autonomous process. This post is not the tour of reactive triggers — that lives in the [triggers overview](../../runtime/triggers/index.md). It is about the one mechanism that decides whether the request is real: HMAC-SHA256 over the raw body, read from `X-Webhook-Signature`, compared in constant time, and rejected *before* the agent is ever invoked. Get that check right and the rest of your pipeline inherits a trustworthy entry point. Get it wrong and everything downstream is running on forged input.
 
+<!-- more -->
+
 ## What a correct signature check actually requires
 
 A shared-secret HMAC scheme has exactly three moving parts, and each one has a subtle failure mode.

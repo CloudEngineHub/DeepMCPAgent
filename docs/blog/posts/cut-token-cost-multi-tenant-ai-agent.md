@@ -12,6 +12,8 @@ categories:
 
 To **cut token cost, multi-tenant AI agent** deployments have to fight three inefficiencies at once — a leaky shared cache, unbounded tool-loop transcripts, and the full set of tool schemas resent on every call — because one agent serving many customers multiplies each of them per tenant. A waste that is annoying for a single-user demo becomes the dominant line on your bill when a thousand tenants hit the same code path. This post is the hub that connects the three cost levers Promptise Foundry ships as first-class, composable primitives on one `build_agent()` call — a per-tenant semantic cache, a `context_scope="ledger"` transcript, and `optimize_tools` — and then shows you how to prove the savings with built-in observability rather than trust a marketing number.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

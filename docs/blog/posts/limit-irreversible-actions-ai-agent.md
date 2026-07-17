@@ -12,6 +12,8 @@ categories:
 
 To limit irreversible actions an AI agent takes in a single run, you need a control that counts *destructive* calls separately from everything else the agent does. This is a different problem from stopping a runaway loop, and it is the one that keeps operators awake. A looping agent that calls `get_status(id=42)` forty times is embarrassing and cheap. An agent that reasons its way into ten `issue_refund` calls, or fires the same dunning email to your entire customer list, or deletes ten accounts because a webhook payload looked plausible — that is not embarrassing, it is a Monday-morning incident review. The failure isn't volume. It's a *small number of destructive calls*, each one individually reasonable, that together are unrecoverable.
 
+<!-- more -->
+
 The uncomfortable part is that every per-run cap you already have makes this failure *worse*, not better, because it treats a database read and a wire transfer as the same unit of "one step."
 
 ## Why a uniform call cap can't stop the 3am wire transfers

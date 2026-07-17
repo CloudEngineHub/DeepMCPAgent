@@ -12,6 +12,8 @@ categories:
 
 A production customer support ai agent is not a single-turn question-and-answer bot with a vector store bolted on. Real support is a conversation that changes shape as it goes — you greet, you figure out what's actually wrong, you look up the order, and only then do you resolve or escalate. Most tutorials ship the easy 20% (retrieve an article, paste it into a prompt) and skip the parts that break in production: behavior that shifts across turns, a reply that gets validated before it sends, escalation rules, and history that survives a restart. By the end of this guide you'll have built all of those with Promptise Foundry, and you'll be able to run the whole thing with your own `OPENAI_API_KEY`.
 
+<!-- more -->
+
 ## What a real support agent needs beyond RAG
 
 Retrieval-augmented generation answers "what does the docs page say?" That's necessary but nowhere near sufficient. A customer service interaction has stages, and each stage wants a different behavior from the model:

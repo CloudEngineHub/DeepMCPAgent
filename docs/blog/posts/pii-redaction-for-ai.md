@@ -12,6 +12,8 @@ categories:
 
 PII redaction for AI is the control that keeps credit card numbers, national IDs, and email addresses from leaking into an LLM prompt, into the model's response, or into the logs in between. Most teams add it in one direction — they scrub what the user types — and quietly ship the other two. By the end of this post you'll know why redaction has to run on outgoing prompts, on model responses, and on the arguments of any tool call a human is asked to approve, and you'll have runnable Python that does all three offline with Promptise Foundry's `PIIDetector`.
 
+<!-- more -->
+
 The failure mode is boring and expensive. A support agent pastes a full customer record into a chat, the model echoes an SSN back verbatim, and now that SSN is sitting in your conversation store, your observability timeline, and possibly a third-party model provider's logs. Redaction that only guards the input never catches it.
 
 !!! warning "Not legal or compliance advice"

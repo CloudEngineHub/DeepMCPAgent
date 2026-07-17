@@ -12,6 +12,8 @@ categories:
 
 Search **add approval queue to MCP server** and you'll find plenty on gating a tool, but almost nothing on the reviewer side — and the reviewer side is four separate chores: a pending store that holds a blocked call, admin endpoints a human can drive to release it, role-based access so only reviewers can touch those endpoints, and a separation-of-duties check so the person who *made* the call can't rubber-stamp their own request. This is the reviewer-side build — not "how do I gate a tool" (a gate that runs a policy or a webhook is covered elsewhere), but "how do I stand up an independent human queue that a *different* person drains." In Promptise Foundry it is one object: `PendingApprover`. This post shows the whole flow end to end, then covers the honest edges so you deploy it knowing exactly what it does and doesn't survive.
 
+<!-- more -->
+
 ## What the queue has to do that a gate alone doesn't
 
 An [approval gate](../../mcp/server/approval-gates.md) answers one question: *may this specific call proceed?* Point it at a callback and it decides in-line; point it at a webhook and an external system decides. Neither of those is a **queue**. A four-eyes review queue has a harder shape:

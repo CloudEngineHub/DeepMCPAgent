@@ -12,6 +12,8 @@ categories:
 
 If you're weighing **Pydantic AI vs Promptise** for a project that lives or dies on structured output, you've already found the crux of the decision: both frameworks give you typed, validated responses, but they draw the box around the problem very differently. Pydantic AI treats an agent as a typed function — clean, minimal, Pydantic all the way down. Promptise Foundry treats structured output as one layer beside memory, semantic cache, a sandbox, multi-tenant MCP, and runtime governance. By the end of this post you'll know which shape fits your stack, and you'll have runnable code for schema-strict output with automatic retry.
 
+<!-- more -->
+
 ## Where Pydantic AI is the better fit
 
 Let's be fair before we compare. Pydantic AI is an excellent **typed agent framework**, and for a large class of projects it's the right call. Reach for it when:

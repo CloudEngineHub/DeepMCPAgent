@@ -12,6 +12,8 @@ categories:
 
 If you need to **propagate user identity across agent delegation**, the honest answer for CrewAI is: not out of the box. CrewAI can absolutely hand work from one agent to another — that part works well and has for a long time. What it doesn't do is carry the *requesting human* along for the ride. When agent A delegates to agent B, the person who asked the question disappears, and B runs with whatever ambient credentials the process happens to hold. This post explains exactly where the principal is lost, what CrewAI actually does today, and how Promptise Foundry's `CallerContext` keeps `user_id`, `tenant_id`, `roles`, and `scopes` intact across every delegated hop.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 

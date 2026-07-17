@@ -12,6 +12,8 @@ categories:
 
 Delete one tenant's data for GDPR right-to-erasure and you inherit a deceptively hard requirement: remove exactly that customer's records from the semantic cache, the vector store, and long-term memory — and nothing belonging to anyone else. On a shared multi-tenant agent, "their data" is smeared across at least three stores, each keyed differently, and a right-to-erasure request gives you a legal deadline to prove you got all of it. This post shows how Promptise Foundry turns that into one call per surface — `cache.purge_user("alice", tenant_id="acme")` and `provider.purge_user(caller.isolation_key)` — where the tenant is baked into the key, so the purge matches exactly what was stored.
 
+<!-- more -->
+
 !!! warning "Not legal or compliance advice"
     The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 
