@@ -24,6 +24,10 @@ result = await agent.ainvoke(input, caller=CallerContext(user_id="user-42"))
 
 ---
 
+!!! warning "Not legal or compliance advice"
+    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
+
+
 ## How It Works
 
 1. User sends a message
@@ -108,6 +112,7 @@ await agent.ainvoke(input, caller=CallerContext(user_id="bob"))    # Bob's cache
 
 **How it works internally:**
 - Cache key prefix is `user:{user_id}` — Alice's entries are keyed `user:alice`, Bob's are `user:bob`
+- With `CallerContext(tenant_id="acme")` the key is tenant-qualified — an injective, colon-prefixed hash (`user:t:<sha256>`) disjoint from the untenanted namespace, so two tenants with the same `user_id` can never share a cache partition
 - Similarity search only runs within a user's own partition — no cross-user matching possible
 - If no `CallerContext` is provided, caching is silently disabled for that request (with a debug log: `"Cache: no CallerContext or user_id provided"`)
 - `purge_user("alice")` removes all of Alice's cached entries (GDPR compliance)
@@ -265,6 +270,9 @@ Disable with `invalidate_on_write=False` if your tools don't affect query result
 ```python
 # Delete all cached data for a user
 count = await cache.purge_user("user-42")
+
+# Tenant-scoped callers: purge exactly that tenant's scope
+count = await cache.purge_user("user-42", tenant_id="acme")
 ```
 
 ---

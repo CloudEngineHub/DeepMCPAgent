@@ -21,12 +21,11 @@ Example::
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from ._decorators import _excluded_params, build_prompt_def, build_resource_def, build_tool_def
 from ._registry import PromptRegistry, ResourceRegistry, ToolRegistry
-from ._types import ToolDef
 from ._validation import build_input_model
 
 
@@ -93,6 +92,8 @@ class MCPRouter:
         open_world_hint: bool | None = None,
         # Per-tool concurrency limit
         max_concurrent: int | None = None,
+        # Server-side human-in-the-loop approval
+        requires_approval: bool = False,
     ) -> Callable[..., Any]:
         """Register a tool (same signature as ``MCPServer.tool()``)."""
         all_guards = list(guards or [])
@@ -137,6 +138,7 @@ class MCPRouter:
                 roles=roles,
                 annotations=annotations,
                 max_concurrent=max_concurrent,
+                requires_approval=requires_approval,
             )
             self._tool_registry.register(tool_def)
             excluded = _excluded_params(func)
@@ -297,20 +299,17 @@ def _merge_router(
             merged_auth = True
         merged_guards = combined_guards + list(tdef.guards)
 
-        new_tdef = ToolDef(
+        # replace() copies EVERY field and overrides only what the merge
+        # changes — so a newly added ToolDef field (e.g. requires_approval)
+        # can never be silently dropped during composition.
+        new_tdef = replace(
+            tdef,
             name=prefixed_name,
-            description=tdef.description,
-            handler=tdef.handler,
-            input_schema=tdef.input_schema,
             tags=merged_tags,
             auth=merged_auth,
-            rate_limit=tdef.rate_limit,
-            timeout=tdef.timeout,
             guards=merged_guards,
-            roles=list(tdef.roles),
             router_middleware=combined_middleware,
-            annotations=tdef.annotations,
-            max_concurrent=tdef.max_concurrent,
+            roles=list(tdef.roles),
         )
         server._tool_registry.register(new_tdef)
 

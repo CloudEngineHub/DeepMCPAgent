@@ -47,11 +47,36 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field, PrivateAttr
+
+if TYPE_CHECKING:
+    from .identity import AgentIdentity
+
+
+def _caller_identity_message(
+    identity: AgentIdentity | None,
+) -> dict[str, str] | None:
+    """Build a system message announcing the delegating agent's identity.
+
+    Lets a peer agent know *who is asking* so it can attribute (and, if it
+    chooses, authorize) the delegation. Uses the caller's cheap identity
+    descriptors (``claims()``) — never a credential token.
+    """
+    if identity is None:
+        return None
+    claims = identity.claims()
+    who = claims.get("agent_id")
+    if who is None and claims.get("credential_provider"):
+        who = f"verifiable via {claims['credential_provider']}"
+    return {
+        "role": "system",
+        "content": f"Delegated by agent: {who or 'unknown'}. Caller identity: {claims}",
+    }
+
 
 # -----------------------------
 # Public API surface
@@ -85,6 +110,7 @@ def make_cross_agent_tools(
     *,
     tool_name_prefix: str = "ask_agent_",
     include_broadcast: bool = True,
+    caller_identity: AgentIdentity | None = None,
 ) -> list[BaseTool]:
     """Create LangChain tools for cross-agent communication.
 
@@ -154,6 +180,7 @@ def make_cross_agent_tools(
                 ).strip(),
                 target=spec.agent,
                 extract=_best_text,
+                caller_identity=caller_identity,
             )
         )
 
@@ -168,6 +195,7 @@ def make_cross_agent_tools(
                 ),
                 peers=peers,
                 extract=_best_text,
+                caller_identity=caller_identity,
             )
         )
 
@@ -232,6 +260,7 @@ class _AskAgentTool(BaseTool):
 
     _target: Runnable[Any, Any] = PrivateAttr()
     _extract: Callable[[Any], str] = PrivateAttr()
+    _caller_identity: AgentIdentity | None = PrivateAttr(default=None)
 
     def __init__(
         self,
@@ -240,6 +269,7 @@ class _AskAgentTool(BaseTool):
         description: str,
         target: Runnable[Any, Any],
         extract: Callable[[Any], str],
+        caller_identity: AgentIdentity | None = None,
     ) -> None:
         """Initialize the ask tool.
 
@@ -248,10 +278,13 @@ class _AskAgentTool(BaseTool):
             description: Human description for planning.
             target: The peer agent runnable to call.
             extract: Function that extracts the final text from peer results.
+            caller_identity: Optional identity of the delegating agent,
+                announced to the peer so it knows who is asking.
         """
         super().__init__(name=name, description=description)
         self._target = target
         self._extract = extract
+        self._caller_identity = caller_identity
 
     async def _arun(
         self,
@@ -276,6 +309,10 @@ class _AskAgentTool(BaseTool):
             executor failures). On timeout, returns a string instead of raising.
         """
         payload: list[dict[str, Any]] = []
+        # Announce the delegating agent's identity so the peer knows who asks.
+        identity_msg = _caller_identity_message(self._caller_identity)
+        if identity_msg:
+            payload.append(identity_msg)
         # Put context first to bias some executors that read system first
         if context:
             payload.append({"role": "system", "content": f"Caller context: {context}"})
@@ -284,16 +321,32 @@ class _AskAgentTool(BaseTool):
         async def _call() -> Any:
             return await self._target.ainvoke({"messages": payload})
 
-        res = None
-        if timeout_s and timeout_s > 0:
-            import anyio
+        # Carry the delegating agent's identity into the peer's run so the
+        # peer's observability records who delegated (structured, beyond the
+        # LLM-visible system message above).
+        # Local import to avoid an import cycle (observability imports back into
+        # this module's chain). Resolved at call time, after both modules load.
+        from .observability import _delegation_ctx_var
 
-            with anyio.move_on_after(timeout_s) as scope:
+        token = (
+            _delegation_ctx_var.set(self._caller_identity.claims())
+            if self._caller_identity is not None
+            else None
+        )
+        try:
+            res = None
+            if timeout_s and timeout_s > 0:
+                import anyio
+
+                with anyio.move_on_after(timeout_s) as scope:
+                    res = await _call()
+                if scope.cancelled_caught:
+                    return "Timed out waiting for peer agent reply."
+            else:
                 res = await _call()
-            if scope.cancelled_caught:
-                return "Timed out waiting for peer agent reply."
-        else:
-            res = await _call()
+        finally:
+            if token is not None:
+                _delegation_ctx_var.reset(token)
 
         if res is None:
             return "No response from peer agent."
@@ -363,6 +416,7 @@ class _BroadcastTool(BaseTool):
 
     _peers: Mapping[str, CrossAgent] = PrivateAttr()
     _extract: Callable[[Any], str] = PrivateAttr()
+    _caller_identity: AgentIdentity | None = PrivateAttr(default=None)
 
     def __init__(
         self,
@@ -371,6 +425,7 @@ class _BroadcastTool(BaseTool):
         description: str,
         peers: Mapping[str, CrossAgent],
         extract: Callable[[Any], str],
+        caller_identity: AgentIdentity | None = None,
     ) -> None:
         """Initialize the broadcast tool.
 
@@ -379,10 +434,13 @@ class _BroadcastTool(BaseTool):
             description: Human description for planning.
             peers: Mapping of peer name → :class:`CrossAgent`.
             extract: Function that extracts the final text from peer results.
+            caller_identity: Optional identity of the delegating agent,
+                announced to each peer so it knows who is asking.
         """
         super().__init__(name=name, description=description)
         self._peers = peers
         self._extract = extract
+        self._caller_identity = caller_identity
 
     async def _arun(
         self,
@@ -419,9 +477,15 @@ class _BroadcastTool(BaseTool):
 
         results: dict[str, str] = {}
 
+        identity_msg = _caller_identity_message(self._caller_identity)
+
         async def _one(name: str, target: Runnable[Any, Any]) -> None:
             async def _call() -> Any:
-                return await target.ainvoke({"messages": [{"role": "user", "content": message}]})
+                msgs: list[dict[str, str]] = []
+                if identity_msg:
+                    msgs.append(identity_msg)
+                msgs.append({"role": "user", "content": message})
+                return await target.ainvoke({"messages": msgs})
 
             if timeout_s and timeout_s > 0:
                 with anyio.move_on_after(timeout_s) as scope:
@@ -440,10 +504,25 @@ class _BroadcastTool(BaseTool):
                 except Exception as exc:
                     results[name] = f"Error: {exc}"
 
-        # Using TaskGroup for compatibility across anyio versions
-        async with anyio.create_task_group() as tg:
-            for n, s in selected:
-                tg.start_soon(_one, n, s.agent)
+        # Set the delegation context before fanning out so each peer task
+        # (which copies the current context at start) records who delegated.
+        # Local import to avoid an import cycle (observability imports back into
+        # this module's chain). Resolved at call time, after both modules load.
+        from .observability import _delegation_ctx_var
+
+        token = (
+            _delegation_ctx_var.set(self._caller_identity.claims())
+            if self._caller_identity is not None
+            else None
+        )
+        try:
+            # Using TaskGroup for compatibility across anyio versions
+            async with anyio.create_task_group() as tg:
+                for n, s in selected:
+                    tg.start_soon(_one, n, s.agent)
+        finally:
+            if token is not None:
+                _delegation_ctx_var.reset(token)
 
         return results
 

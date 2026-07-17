@@ -6,6 +6,10 @@ keywords: multi-user AI agent, multi-tenant AI agent, AI agent authentication, J
 
 # Building Agentic Multi-User Systems
 
+!!! warning "Not legal or compliance advice"
+    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
+
+
 ## What You'll Build
 
 A production-ready multi-user AI application where authenticated users each get isolated conversations, personalized memory, scoped cache, and guardrailed responses — backed by MCP servers with JWT authentication, role-based access control, tamper-evident audit logging, and per-user session state. The full stack: user authenticates → agent processes their request with their identity → MCP tools enforce their permissions → response is guardrailed → conversation persists to their session.
@@ -793,18 +797,66 @@ async def handle_user_message(user_jwt: str, user_id: str, session_id: str, mess
 
 ---
 
+## Multi-tenancy and approval gates
+
+For SaaS platforms serving many organizations — or any tool that needs a human
+in the loop — two features turn the per-user isolation above into per-tenant
+invariants and add server-enforced approval.
+
+**First-class multi-tenancy.** Give each API key (or JWT claim) a tenant, and
+tenant identity flows into every isolation surface — cache, sessions, rate
+limits, audit, and guards — so two tenants with the *same* user id can never
+see each other's data:
+
+```python
+auth = APIKeyAuth(keys={
+    "sk-acme":   {"client_id": "svc", "roles": ["analyst"], "tenant_id": "acme"},
+    "sk-globex": {"client_id": "svc", "roles": ["analyst"], "tenant_id": "globex"},
+})
+server = MCPServer("api", require_tenant=True)   # every tool must carry a tenant
+server.add_middleware(AuthMiddleware(auth))       # or AuthMiddleware(JWTAuth(...), tenant_claim="org")
+
+@server.tool(auth=True, guards=[HasTenant("acme")])   # tenant-scoped access
+async def acme_report(ctx: RequestContext) -> dict: ...
+```
+
+Agent side, `CallerContext(user_id="alice", tenant_id="acme")` scopes cache,
+memory, and conversations per tenant automatically. Full guide:
+[Multi-Tenancy](../mcp/server/multi-tenancy.md).
+
+**Server-side approval gates.** Declare a destructive tool `requires_approval`
+and install an `ApprovalGateMiddleware` — the call blocks until a human
+approves, for any MCP client, denied by default on timeout:
+
+```python
+from promptise.mcp.server import ApprovalGateMiddleware, PendingApprover
+
+approver = PendingApprover(server, approver_role="approver")
+server.add_middleware(ApprovalGateMiddleware(approver, timeout=300))
+
+@server.tool(auth=True, guards=[HasRole("billing")], requires_approval=True)
+async def issue_refund(order_id: str, amount: float) -> dict: ...
+```
+
+Guards run before a reviewer is bothered, and a caller can't approve their own
+request (four-eyes). Full guide:
+[Approval Gates](../mcp/server/approval-gates.md). Runnable end-to-end demo:
+`examples/mcp/tenancy_and_approval.py`.
+
 ## Security Architecture Summary
 
 | Layer | Feature | What it protects |
 |---|---|---|
 | **Transport** | JWT/OAuth/API key auth | Identifies every caller |
-| **Authorization** | Guards (role, scope, client ID) | Controls who can call which tools |
+| **Authorization** | Guards (role, scope, client ID, tenant) | Controls who can call which tools |
+| **Multi-tenancy** | `tenant_id` across cache/sessions/limits/audit | Prevents cross-tenant leakage (even for identical user ids) |
+| **Human-in-the-loop** | `requires_approval` + `ApprovalGateMiddleware` | Blocks destructive calls until a human approves (four-eyes) |
 | **Session isolation** | SessionState per client | Prevents cross-client state leakage |
 | **Conversation ownership** | `_enforce_ownership()` | Prevents cross-user conversation access |
-| **Cache isolation** | `per_user` scope key | Prevents cross-user cache hits |
+| **Cache isolation** | `per_user` scope key (tenant-qualified) | Prevents cross-user / cross-tenant cache hits |
 | **Input protection** | Prompt injection detection | Blocks LLM manipulation attempts |
 | **Output protection** | PII/credential redaction | Prevents sensitive data leakage |
-| **Audit trail** | HMAC-chained audit log | Tamper-evident record of every action |
+| **Audit trail** | HMAC-chained audit log (tenant-stamped) | Tamper-evident record of every action |
 | **Secret management** | Per-process SecretScope | Credentials isolated, TTL-expired, zero-filled |
 
 ---
@@ -821,6 +873,8 @@ async def handle_user_message(user_jwt: str, user_id: str, session_id: str, mess
 **MCP server reference:**
 
 - [Auth & Security](../mcp/server/auth-security.md) — JWT, OAuth, API keys, guards, audit logging
+- [Multi-Tenancy](../mcp/server/multi-tenancy.md) — tenant isolation across the whole stack
+- [Approval Gates](../mcp/server/approval-gates.md) — server-side human-in-the-loop
 - [Routers & Middleware](../mcp/server/routers-middleware.md) — middleware chain, DI, session state
 
 **Other guides:**

@@ -53,6 +53,11 @@ class ClientContext:
 
     Attributes:
         client_id: Unique client identifier (from JWT ``sub`` or API key mapping).
+        tenant_id: Tenant / organisation the client belongs to.  Populated by
+            :class:`AuthMiddleware` from a configurable JWT claim (default
+            ``tenant_id``) or from the API-key config dict.  A first-class
+            field — rate limiting, audit entries, and tenant guards
+            (``RequireTenant`` / ``HasTenant``) all key on it.
         roles: Set of role strings the client holds.
         scopes: Set of OAuth2 scope strings (from JWT ``scope`` claim).
         claims: Full JWT payload dict (empty for API key auth).
@@ -64,8 +69,8 @@ class ClientContext:
         ip_address: Client IP address from the transport layer, or ``None``.
         user_agent: ``User-Agent`` header value, or ``None``.
         extra: Custom metadata populated by the server's ``on_authenticate``
-            enrichment hook.  Any additional client info (org, tenant,
-            plan tier, etc.) goes here.
+            enrichment hook.  Any additional client info (org, plan tier,
+            etc.) goes here.
 
     Example::
 
@@ -81,6 +86,7 @@ class ClientContext:
     """
 
     client_id: str = "anonymous"
+    tenant_id: str | None = None
     roles: set[str] = field(default_factory=set)
     scopes: set[str] = field(default_factory=set)
     claims: dict[str, Any] = field(default_factory=dict)
@@ -209,6 +215,64 @@ def get_context() -> RequestContext:
 def set_context(ctx: RequestContext) -> None:
     """Set the request context for the current async task."""
     _current_context.set(ctx)
+
+
+def _wants_request_context(ann: Any) -> bool:
+    """True if *ann* is (or contains) ``RequestContext``.
+
+    Matches the bare type, ``Optional[RequestContext]`` / ``RequestContext |
+    None`` (Python 3.10's ``get_type_hints`` applies *implicit Optional* to a
+    ``ctx: RequestContext = None`` parameter — 3.11 removed that, hence the
+    version skew this guards against), and an unresolved string annotation
+    (``from __future__ import annotations`` when hint resolution failed).
+    """
+    if ann is RequestContext:
+        return True
+    from typing import get_args
+
+    if RequestContext in get_args(ann):  # Optional[...] / Union[...]
+        return True
+    if isinstance(ann, str):
+        # Unresolved annotation string (from __future__ import annotations when
+        # hint resolution failed). Match RequestContext as a standalone token,
+        # not a substring, so "MyRequestContextThing" is not caught.
+        import re
+
+        return re.search(r"\bRequestContext\b", ann) is not None
+    return False
+
+
+def inject_context(
+    handler: Any,
+    arguments: dict[str, Any],
+    ctx: RequestContext,
+) -> dict[str, Any]:
+    """Bind *ctx* into a handler parameter annotated ``RequestContext``.
+
+    Used by both the live transports and ``TestClient`` so a
+    ``ctx: RequestContext`` parameter is populated identically on every
+    path — no test/prod divergence.  Parameters already supplied (e.g. by
+    dependency injection) are left untouched.  Recognises ``RequestContext``,
+    ``Optional[RequestContext]``, and ``RequestContext | None`` on every
+    supported Python (3.10–3.12).
+    """
+    import inspect
+    from typing import get_type_hints
+
+    sig = inspect.signature(handler)
+    hints: dict[str, Any] = {}
+    try:
+        hints = get_type_hints(handler)
+    except Exception:
+        logger.debug("Failed to get type hints for handler %s", handler, exc_info=True)
+
+    for pname, param in sig.parameters.items():
+        if pname in arguments:
+            continue
+        ann = hints.get(pname, param.annotation)
+        if _wants_request_context(ann):
+            arguments[pname] = ctx
+    return arguments
 
 
 def clear_context() -> None:

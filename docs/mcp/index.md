@@ -140,10 +140,12 @@ Build production-ready MCP servers using the same patterns you know from web fra
 | **Routers** | Group tools by domain with `MCPRouter`, apply shared auth/tags/guards |
 | **Middleware chain** | Logging, timeouts, rate limiting, custom middleware in onion layers |
 | **Authentication** | JWT (`JWTAuth`), API key (`APIKeyAuth`), custom providers |
-| **Guards** | `RequireAuth`, `HasRole`, `HasAllRoles`, `RequireClientId`, custom guards |
+| **Guards** | `RequireAuth`, `HasRole`, `HasAllRoles`, `RequireClientId`, `RequireTenant`, `HasTenant`, custom guards |
 | **Dependency injection** | `Depends()` for database connections, settings, cleanup |
 | **Caching** | `@cached` decorator with `InMemoryCache` or custom backends |
-| **Rate limiting** | `RateLimitMiddleware` with `TokenBucketLimiter`, per-tool granularity |
+| **Rate limiting** | `RateLimitMiddleware` with `TokenBucketLimiter`, per-tool granularity; declared `rate_limit="100/min"` enforced automatically |
+| **Multi-tenancy** | `ClientContext.tenant_id` from a configurable JWT claim; tenant-scoped rate limits + audit, `RequireTenant`/`HasTenant` guards, `require_tenant=True` invariant |
+| **Approval gates (HITL)** | `requires_approval=True` + `ApprovalGateMiddleware` — human approval enforced server-side for any client; pending-queue admin tools, elicitation, callbacks |
 | **Health checks** | Liveness and readiness probes via `HealthCheck` |
 | **Metrics** | `MetricsCollector` with per-tool call counts, error rates, latency |
 | **Dashboard** | Live terminal UI with tool stats, agent activity, and logs |
@@ -209,6 +211,9 @@ Connect to one or many MCP servers with authentication and LangChain integration
 |---|---|
 | Build a tool server for agents | `MCPServer` + `@server.tool()` ([Step-by-Step Guide](../guides/production-mcp-servers.md)) |
 | Add auth to my server | `JWTAuth` + `AuthMiddleware` + `auth=True` ([Auth & Security](server/auth-security.md)) |
+| Serve many customer orgs (multi-tenant) | `MCPServer(require_tenant=True)` + `RequireTenant`/`HasTenant` ([Multi-Tenancy](server/multi-tenancy.md)) |
+| Require human approval for a tool | `@server.tool(requires_approval=True)` + `ApprovalGateMiddleware` ([Approval Gates](server/approval-gates.md)) |
+| Build a full multi-tenant SaaS backend | [Secure Multi-Tenant Platform guide](../guides/secure-multi-tenant-platform.md) |
 | Organize tools by domain | `MCPRouter` with prefix and tags ([Routers & Middleware](server/routers-middleware.md)) |
 | Cache tool results | `@cached` + `InMemoryCache` or `RedisCache` ([Caching & Performance](server/caching-performance.md)) |
 | Rate limit agents | `RateLimitMiddleware` + `TokenBucketLimiter` ([Caching & Performance](server/caching-performance.md)) |

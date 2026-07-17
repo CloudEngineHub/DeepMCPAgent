@@ -27,7 +27,7 @@ from typing import Any, cast
 from uuid import uuid4
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 
@@ -130,6 +130,8 @@ class PromptNode(BaseNode):
         input_keys: list[str] | None = None,
         output_key: str | None = None,
         inherit_context_from: str | None = None,
+        context_scope: str = "full",
+        auto_ledger_after: int = 6,
         # Processing pipeline
         preprocessor: Callable | None = None,
         postprocessor: Callable | None = None,
@@ -161,6 +163,24 @@ class PromptNode(BaseNode):
         self.input_keys = list(input_keys) if input_keys else []
         self.output_key = output_key
         self.inherit_context_from = inherit_context_from
+        # Context lifecycle management — how much history this node sees:
+        #   "auto": behaves like "full" for short tool loops, then switches to
+        #     "ledger" once the loop grows past ``auto_ledger_after`` tool
+        #     results. The default for the built-in ReAct pattern: simple tasks
+        #     are unchanged, deep tool loops stay bounded — context handling and
+        #     token efficiency without choosing a pattern.
+        #   "full": the whole accumulated transcript.
+        #   "scoped": only the system prompt (with any inherited/​injected
+        #     distilled state), the original task, and the node's own
+        #     in-progress tool loop — NOT other stages' verbose messages.
+        #     Bounds token growth across a multi-stage reasoning graph.
+        #   "ledger": for long single-node tool loops — replaces the growing
+        #     tool-call/result transcript with a compact, DEDUPLICATED "facts
+        #     gathered" ledger (from state.observations), so the model stops
+        #     re-querying facts it already has.
+        self.context_scope = context_scope
+        # "auto" flips to ledger once this many tool results have accumulated.
+        self.auto_ledger_after = auto_ledger_after
         # Pipeline
         self.preprocessor = preprocessor
         self.postprocessor = postprocessor
@@ -175,6 +195,17 @@ class PromptNode(BaseNode):
         from .state import NodeFlag
 
         return NodeFlag.INJECT_TOOLS in self.flags
+
+    def _effective_context_scope(self, state: GraphState) -> str:
+        """Resolve ``context_scope``, expanding ``"auto"`` for the current state.
+
+        ``"auto"`` stays ``"full"`` while the tool loop is short (no change to
+        simple tasks) and switches to ``"ledger"`` once enough tool results have
+        accumulated, so deep tool loops stay bounded automatically.
+        """
+        if self.context_scope != "auto":
+            return self.context_scope
+        return "ledger" if len(state.observations) >= self.auto_ledger_after else "full"
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
         """Execute the full node pipeline:
@@ -225,7 +256,7 @@ class PromptNode(BaseNode):
         # Auto-inject tool schemas into the prompt so the LLM knows exact
         # parameter names, types, and descriptions — without this, the LLM
         # has to guess from tool names alone, which causes wrong parameters.
-        # This is the #1 accuracy improvement from the benchmark analysis.
+        # This is a major tool-accuracy improvement.
         _has_tools = bool(self.tools or self.inject_tools)
         if _has_tools:
             _all_tools = list(self.tools)
@@ -331,22 +362,27 @@ class PromptNode(BaseNode):
             ]
             system_parts.append("Past learnings:\n" + "\n".join(ref_lines))
 
-        # Inject available transitions so the LLM can route dynamically
-        # The LLM can set output._next or output.route to choose a path
-        if self.transitions or self.default_next:
+        # Inject available transitions so the LLM can route dynamically.
+        # Only do this when there is a genuine CHOICE — i.e. the node has
+        # explicit transitions to two or more distinct targets. A node that
+        # only has a single linear default_next has nothing to route, so
+        # telling the model to "choose the next step" is noise that a weaker
+        # model can latch onto and emit as its answer.
+        if self.transitions:
             route_options = list(self.transitions.values())
             if self.default_next:
                 route_options.append(self.default_next)
-            # Deduplicate while preserving order
+            # Deduplicate while preserving order; "__end__" is not a step the
+            # model should be told to pick.
             seen: set[str] = set()
             unique_routes = []
             for r in route_options:
-                if r not in seen:
+                if r not in seen and r != "__end__":
                     seen.add(r)
                     unique_routes.append(r)
-            if unique_routes and not self.tools:
-                # Only show routing instructions for non-tool nodes
-                # (tool nodes route automatically based on tool_calls)
+            if len(unique_routes) > 1 and not self.tools:
+                # Only show routing instructions for non-tool nodes with a
+                # real branch (tool nodes route automatically on tool_calls).
                 system_parts.append(
                     "Available next steps: " + ", ".join(unique_routes) + "\n"
                     "Set the 'route' field in your response to choose which step to take next."
@@ -443,6 +479,70 @@ class PromptNode(BaseNode):
 
         # Structured output is already applied in the cached model_to_use
 
+        # ── 2b. Context scoping ──
+        # When the node is context-scoped, replace the full transcript with a
+        # bounded working set: this node's system prompt (already carrying any
+        # inherited/​injected distilled state), the original task, and this
+        # node's own in-progress tool loop. The verbose intermediate messages
+        # produced by *other* stages are dropped, so token usage does not grow
+        # super-linearly across a multi-stage reasoning graph. ``"auto"`` resolves
+        # to "full" (short loops) or "ledger" (deep loops) based on the state.
+        _scope = self._effective_context_scope(state)
+        if _scope == "scoped":
+            first_human = next((m for m in state.messages if isinstance(m, HumanMessage)), None)
+            own_tool_loop: list[Any] = []
+            for m in reversed(state.messages):
+                if isinstance(m, ToolMessage) or (
+                    isinstance(m, AIMessage) and getattr(m, "tool_calls", None)
+                ):
+                    own_tool_loop.append(m)
+                else:
+                    break
+            own_tool_loop.reverse()
+            messages = [node_sys_msg]
+            if first_human is not None:
+                messages.append(first_human)
+            messages.extend(own_tool_loop)
+
+        elif _scope == "ledger":
+            # Tool-loop context lifecycle management. A long multi-tool task
+            # produces an ever-growing transcript of tool calls + results; the
+            # model loses track and re-queries the same facts many times. Here
+            # we replace that transcript with a compact, DEDUPLICATED "facts
+            # gathered" ledger built from ``state.observations`` (last value
+            # wins per tool+args), so context stays bounded and the model can
+            # see what it already knows and stop re-looking-it-up.
+            first_human = next((m for m in state.messages if isinstance(m, HumanMessage)), None)
+            facts: dict[str, str] = {}
+            for obs in state.observations:
+                key = f"{obs.get('tool', '?')}({obs.get('args', {})})"
+                facts[key] = str(obs.get("result", ""))
+            # Keep ONLY the most recent assistant turn + its tool results, so the
+            # model still sees its last action's outcome in-flow (without this it
+            # loses continuity and loops). Everything older is in the ledger.
+            last_exchange: list[Any] = []
+            for m in reversed(state.messages):
+                if isinstance(m, (SystemMessage, HumanMessage)):
+                    break
+                last_exchange.append(m)
+                if isinstance(m, AIMessage):
+                    break
+            last_exchange.reverse()
+            messages = [node_sys_msg]
+            if first_human is not None:
+                messages.append(first_human)
+            messages.extend(last_exchange)
+            # The ledger goes LAST — right before the model's turn — where it is
+            # most salient, so the model actually consults it before re-querying.
+            if facts:
+                messages.append(
+                    SystemMessage(
+                        content="Facts already gathered (do NOT call a tool to "
+                        "fetch any of these again):\n"
+                        + "\n".join(f"- {k} = {v}" for k, v in facts.items())
+                    )
+                )
+
         # ── 3. Call LLM ──
         llm_start = time.monotonic()
         try:
@@ -484,6 +584,28 @@ class PromptNode(BaseNode):
                     """Execute a single tool call. Returns (tc_record, content)."""
                     tool_name = tc.get("name", "")
                     tool_args = tc.get("args", {})
+
+                    # Ledger mode: serve a previously-gathered fact from cache
+                    # instead of re-executing the same (tool, args). Deep tasks
+                    # otherwise re-fetch identical facts dozens of times.
+                    if self._effective_context_scope(state) == "ledger":
+                        for obs in state.observations:
+                            if (
+                                obs.get("tool") == tool_name
+                                and obs.get("args") == tool_args
+                                and obs.get("success")
+                            ):
+                                cached = str(obs.get("result", ""))
+                                return (
+                                    {
+                                        "name": tool_name,
+                                        "args": tool_args,
+                                        "result": cached,
+                                        "success": True,
+                                        "cached": True,
+                                    },
+                                    cached,
+                                )
 
                     # Pre-tool hooks
                     for hook in hooks:

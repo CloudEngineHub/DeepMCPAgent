@@ -1,0 +1,376 @@
+"""Tests for ``build_agent(identity=...)`` — agent identity attribution.
+
+A supplied AgentIdentity is attached as ``agent.identity`` and, by
+default, attributes every recorded event to ``identity.agent_id`` so the
+observability timeline answers "which agent did what". The identity does
+not touch the LLM credential.
+"""
+
+from __future__ import annotations
+
+import base64
+import json
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from promptise.agent import PromptiseAgent, _normalize_model, build_agent
+from promptise.identity import AgentIdentity
+
+FAKE_JWT = "header.payload.sig"
+
+
+def _identity() -> AgentIdentity:
+    return AgentIdentity("billing-bot", name="Billing Bot")
+
+
+def _jwt(claims: dict[str, Any]) -> str:
+    h = base64.urlsafe_b64encode(b'{"alg":"none"}').rstrip(b"=").decode()
+    p = base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode()
+    return f"{h}.{p}."
+
+
+def _make_mock_inner() -> MagicMock:
+    mock = MagicMock()
+    mock.ainvoke = AsyncMock(return_value={"messages": []})
+    mock.invoke = MagicMock(return_value={"messages": []})
+    return mock
+
+
+# -- agent.identity attachment --------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_build_agent_attaches_identity() -> None:
+    identity = _identity()
+    with (
+        patch("promptise.agent._normalize_model", return_value=MagicMock()),
+        patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
+        patch.dict("sys.modules", {"deepagents": None}),
+    ):
+        agent = await build_agent(servers={}, model="openai:gpt-5-mini", identity=identity)
+    assert isinstance(agent, PromptiseAgent)
+    assert agent.identity is identity
+
+
+@pytest.mark.asyncio
+async def test_build_agent_identity_defaults_to_none() -> None:
+    with (
+        patch("promptise.agent._normalize_model", return_value=MagicMock()),
+        patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
+        patch.dict("sys.modules", {"deepagents": None}),
+    ):
+        agent = await build_agent(servers={}, model="openai:gpt-5-mini")
+    assert agent.identity is None
+
+
+# -- The identity does not touch the model credential ---------------------
+
+
+@pytest.mark.asyncio
+async def test_identity_is_not_injected_into_the_model() -> None:
+    """_normalize_model must be called with the model only — the identity
+    is for attribution, never for authenticating the LLM call."""
+    with (
+        patch("promptise.agent._normalize_model") as mock_norm,
+        patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
+        patch.dict("sys.modules", {"deepagents": None}),
+    ):
+        mock_norm.return_value = MagicMock()
+        await build_agent(servers={}, model="openai:gpt-5-mini", identity=_identity())
+    assert mock_norm.call_args.args == ("openai:gpt-5-mini",)
+    assert mock_norm.call_args.kwargs == {}
+
+
+def test_normalize_model_takes_only_the_model() -> None:
+    sentinel = MagicMock()
+    assert _normalize_model(sentinel) is sentinel
+
+
+def test_actor_attribution_prefers_identity() -> None:
+    """Event notifications attribute to the agent identity when present, and
+    fall back to the model name otherwise (no change for non-identity agents)."""
+    agent = PromptiseAgent(inner=MagicMock(), model_name="anthropic:claude-x")
+    assert agent._actor() == "anthropic:claude-x"  # no identity → model name
+
+    agent.identity = AgentIdentity("billing-bot")
+    agent._actor_id = "billing-bot"
+    assert agent._actor() == "billing-bot"  # identity → resolved actor id
+
+    agent._actor_id = None  # identity present but subject unresolved at build
+    assert agent._actor() == "anthropic:claude-x"  # falls back to model name
+
+
+@pytest.mark.asyncio
+async def test_build_agent_sets_actor_id() -> None:
+    with (
+        patch("promptise.agent._normalize_model", return_value=MagicMock()),
+        patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
+        patch.dict("sys.modules", {"deepagents": None}),
+    ):
+        agent = await build_agent(servers={}, model="openai:gpt-5-mini", identity=_identity())
+    assert agent._actor_id == "billing-bot"
+
+
+# -- MCP credential presentation ------------------------------------------
+
+
+def _patch_mcp(captured: dict[str, Any]) -> list[Any]:
+    """Return patch context managers that capture MCPClient kwargs and stub
+    the multi-client/adapter so a non-empty `servers` build runs offline."""
+
+    def _fake_client(**kwargs: Any) -> MagicMock:
+        captured.update(kwargs)
+        return MagicMock()
+
+    multi = MagicMock()
+    multi.__aenter__ = AsyncMock(return_value=multi)
+    multi.__aexit__ = AsyncMock(return_value=None)
+    adapter = MagicMock()
+    adapter.as_langchain_tools = AsyncMock(return_value=[])
+    return [
+        patch("promptise.agent._normalize_model", return_value=MagicMock()),
+        patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
+        patch("promptise.mcp.client.MCPClient", side_effect=_fake_client),
+        patch("promptise.mcp.client.MCPMultiClient", return_value=multi),
+        patch("promptise.mcp.client.MCPToolAdapter", return_value=adapter),
+        patch.dict("sys.modules", {"deepagents": None}),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_verifiable_identity_is_presented_to_mcp_server() -> None:
+    from contextlib import ExitStack
+
+    from promptise.config import HTTPServerSpec
+
+    token = _jwt({"sub": "agent-x"})
+    identity = AgentIdentity.from_oidc("bot", issuer="https://idp", token_fn=lambda: token)
+    captured: dict[str, Any] = {}
+    with ExitStack() as stack:
+        for cm in _patch_mcp(captured):
+            stack.enter_context(cm)
+        await build_agent(
+            servers={"tools": HTTPServerSpec(url="https://mcp.internal")},
+            model="openai:gpt-5-mini",
+            identity=identity,
+        )
+    assert captured["bearer_token"] == token
+
+
+@pytest.mark.asyncio
+async def test_explicit_server_bearer_is_not_overridden() -> None:
+    from contextlib import ExitStack
+
+    from promptise.config import HTTPServerSpec
+
+    identity = AgentIdentity.from_oidc(
+        "bot", issuer="https://idp", token_fn=lambda: _jwt({"sub": "agent-x"})
+    )
+    captured: dict[str, Any] = {}
+    with ExitStack() as stack:
+        for cm in _patch_mcp(captured):
+            stack.enter_context(cm)
+        await build_agent(
+            servers={
+                "tools": HTTPServerSpec(url="https://mcp.internal", bearer_token="server-set")
+            },
+            model="openai:gpt-5-mini",
+            identity=identity,
+        )
+    assert captured["bearer_token"] == "server-set"
+
+
+@pytest.mark.asyncio
+async def test_per_server_audience_scopes_the_credential() -> None:
+    """Each server's ``audience`` is forwarded to the credential provider so
+    one identity presents a resource-scoped token to each MCP server."""
+    from contextlib import ExitStack
+
+    from promptise.config import HTTPServerSpec
+    from promptise.identity import CallableTokenProvider
+
+    seen: list[str | None] = []
+
+    def mint(audience: str | None = None) -> str:
+        seen.append(audience)
+        return f"token-for-{audience}"
+
+    identity = AgentIdentity("bot", credential=CallableTokenProvider(token_fn=mint))
+
+    bearers: list[Any] = []
+
+    def _fake_client(**kwargs: Any) -> MagicMock:
+        bearers.append(kwargs.get("bearer_token"))
+        return MagicMock()
+
+    multi = MagicMock()
+    multi.__aenter__ = AsyncMock(return_value=multi)
+    multi.__aexit__ = AsyncMock(return_value=None)
+    adapter = MagicMock()
+    adapter.as_langchain_tools = AsyncMock(return_value=[])
+
+    with ExitStack() as stack:
+        for cm in (
+            patch("promptise.agent._normalize_model", return_value=MagicMock()),
+            patch(
+                "promptise.agent.PromptGraphEngine",
+                return_value=_make_mock_inner(),
+            ),
+            patch("promptise.mcp.client.MCPClient", side_effect=_fake_client),
+            patch("promptise.mcp.client.MCPMultiClient", return_value=multi),
+            patch("promptise.mcp.client.MCPToolAdapter", return_value=adapter),
+            patch.dict("sys.modules", {"deepagents": None}),
+        ):
+            stack.enter_context(cm)
+        await build_agent(
+            servers={
+                "billing": HTTPServerSpec(url="https://billing.internal", audience="api://billing"),
+                "crm": HTTPServerSpec(url="https://crm.internal", audience="api://crm"),
+            },
+            model="openai:gpt-5-mini",
+            identity=identity,
+        )
+    assert set(seen) == {"api://billing", "api://crm"}
+    assert "token-for-api://billing" in bearers
+    assert "token-for-api://crm" in bearers
+
+
+@pytest.mark.asyncio
+async def test_local_identity_presents_no_mcp_credential() -> None:
+    from contextlib import ExitStack
+
+    from promptise.config import HTTPServerSpec
+
+    captured: dict[str, Any] = {}
+    with ExitStack() as stack:
+        for cm in _patch_mcp(captured):
+            stack.enter_context(cm)
+        await build_agent(
+            servers={"tools": HTTPServerSpec(url="https://mcp.internal")},
+            model="openai:gpt-5-mini",
+            identity=AgentIdentity("local-bot"),
+        )
+    assert captured["bearer_token"] is None
+
+
+@pytest.mark.asyncio
+async def test_unreachable_idp_does_not_fail_the_build(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """If the IdP cannot mint a credential at build time, the build must not
+    crash: it warns and connects without the credential (fail-closed at the
+    server, never a silent drop or a hard build failure)."""
+    import logging
+    from contextlib import ExitStack
+
+    from promptise.config import HTTPServerSpec
+    from promptise.identity import CallableTokenProvider, CredentialAcquisitionError
+
+    def boom(audience: str | None = None) -> str:
+        raise CredentialAcquisitionError("metadata server unreachable")
+
+    identity = AgentIdentity("bot", credential=CallableTokenProvider(token_fn=boom))
+
+    captured: dict[str, Any] = {}
+    with ExitStack() as stack:
+        for cm in _patch_mcp(captured):
+            stack.enter_context(cm)
+        with caplog.at_level(logging.WARNING):
+            agent = await build_agent(
+                servers={"tools": HTTPServerSpec(url="https://mcp.internal")},
+                model="openai:gpt-5-mini",
+                identity=identity,
+            )
+    # The credential was dropped (not propagated as a crash)...
+    assert captured["bearer_token"] is None
+    assert isinstance(agent, PromptiseAgent)
+    # ...and the operator is told, loudly — never a silent drop.
+    assert any("could not acquire a credential" in rec.getMessage() for rec in caplog.records)
+
+
+# -- Attribution: recorded events are stamped with the agent identity -----
+
+
+@pytest.mark.asyncio
+async def test_observability_is_attributed_to_the_agent() -> None:
+    captured: dict[str, Any] = {}
+
+    def _fake_handler(collector: Any, *, agent_id: str, **kwargs: Any) -> MagicMock:
+        captured["agent_id"] = agent_id
+        return MagicMock()
+
+    with (
+        patch("promptise.agent._normalize_model", return_value=MagicMock()),
+        patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
+        patch(
+            "promptise.callback_handler.PromptiseCallbackHandler",
+            side_effect=_fake_handler,
+        ),
+        patch.dict("sys.modules", {"deepagents": None}),
+    ):
+        await build_agent(
+            servers={},
+            model="openai:gpt-5-mini",
+            identity=_identity(),
+            observe=True,
+        )
+    assert captured["agent_id"] == "billing-bot"
+
+
+@pytest.mark.asyncio
+async def test_attribution_uses_idp_subject_when_no_agent_id() -> None:
+    """A verifiable identity with no local agent_id is attributed to the IdP
+    subject read from its credential."""
+    captured: dict[str, Any] = {}
+
+    def _fake_handler(collector: Any, *, agent_id: str, **kwargs: Any) -> MagicMock:
+        captured["agent_id"] = agent_id
+        return MagicMock()
+
+    token = _jwt({"sub": "spiffe://acme/billing-bot"})
+    identity = AgentIdentity.from_oidc(issuer="https://idp", token_fn=lambda: token)
+    assert identity.agent_id is None
+
+    with (
+        patch("promptise.agent._normalize_model", return_value=MagicMock()),
+        patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
+        patch(
+            "promptise.callback_handler.PromptiseCallbackHandler",
+            side_effect=_fake_handler,
+        ),
+        patch.dict("sys.modules", {"deepagents": None}),
+    ):
+        agent = await build_agent(
+            servers={}, model="openai:gpt-5-mini", identity=identity, observe=True
+        )
+    assert captured["agent_id"] == "spiffe://acme/billing-bot"
+    assert agent.identity is identity
+
+
+@pytest.mark.asyncio
+async def test_explicit_observer_agent_id_wins() -> None:
+    captured: dict[str, Any] = {}
+
+    def _fake_handler(collector: Any, *, agent_id: str, **kwargs: Any) -> MagicMock:
+        captured["agent_id"] = agent_id
+        return MagicMock()
+
+    with (
+        patch("promptise.agent._normalize_model", return_value=MagicMock()),
+        patch("promptise.agent.PromptGraphEngine", return_value=_make_mock_inner()),
+        patch(
+            "promptise.callback_handler.PromptiseCallbackHandler",
+            side_effect=_fake_handler,
+        ),
+        patch.dict("sys.modules", {"deepagents": None}),
+    ):
+        await build_agent(
+            servers={},
+            model="openai:gpt-5-mini",
+            identity=_identity(),
+            observer_agent_id="explicit-id",
+            observe=True,
+        )
+    assert captured["agent_id"] == "explicit-id"

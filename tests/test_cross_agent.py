@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from promptise.cross_agent import CrossAgent, make_cross_agent_tools
+from promptise.identity import AgentIdentity
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -190,3 +191,243 @@ class TestExports:
 
         assert CrossAgent is not None
         assert make_cross_agent_tools is not None
+
+
+# ---------------------------------------------------------------------------
+# Caller identity propagation
+# ---------------------------------------------------------------------------
+
+
+def _ask_tool(tools: list, name: str = "ask_agent_peer"):
+    return next(t for t in tools if t.name == name)
+
+
+@pytest.mark.asyncio
+async def test_ask_announces_caller_identity() -> None:
+    peer = _mock_agent("hi")
+    tools = make_cross_agent_tools(
+        {"peer": CrossAgent(agent=peer, description="d")},
+        caller_identity=AgentIdentity("billing-bot", owner="payments"),
+    )
+    await _ask_tool(tools)._arun(message="help")
+    sent = peer.ainvoke.call_args.args[0]["messages"]
+    assert sent[0]["role"] == "system"
+    assert "billing-bot" in sent[0]["content"]
+    assert sent[-1] == {"role": "user", "content": "help"}
+
+
+@pytest.mark.asyncio
+async def test_ask_without_identity_has_no_announcement() -> None:
+    peer = _mock_agent("hi")
+    tools = make_cross_agent_tools({"peer": CrossAgent(agent=peer, description="d")})
+    await _ask_tool(tools)._arun(message="help")
+    sent = peer.ainvoke.call_args.args[0]["messages"]
+    assert sent[0] == {"role": "user", "content": "help"}
+
+
+@pytest.mark.asyncio
+async def test_broadcast_announces_caller_identity() -> None:
+    peer = _mock_agent("hi")
+    tools = make_cross_agent_tools(
+        {"peer": CrossAgent(agent=peer, description="d")},
+        caller_identity=AgentIdentity("billing-bot"),
+    )
+    bcast = next(t for t in tools if t.name == "broadcast_to_agents")
+    await bcast._arun(message="help")
+    sent = peer.ainvoke.call_args.args[0]["messages"]
+    assert sent[0]["role"] == "system"
+    assert "billing-bot" in sent[0]["content"]
+
+
+@pytest.mark.asyncio
+async def test_delegation_context_visible_to_peer_and_reset() -> None:
+    from promptise.observability import get_current_delegation
+
+    seen: dict = {}
+
+    class _Peer:
+        async def ainvoke(self, inp):  # noqa: ANN001
+            seen["delegation"] = get_current_delegation()
+            return {"messages": [MagicMock(type="ai", content="ok")]}
+
+    tools = make_cross_agent_tools(
+        {"peer": CrossAgent(agent=_Peer())},
+        caller_identity=AgentIdentity("billing-bot", owner="pay"),
+    )
+    await _ask_tool(tools)._arun(message="go")
+    assert seen["delegation"]["agent_id"] == "billing-bot"
+    assert get_current_delegation() is None  # reset after the call (no leak)
+
+
+@pytest.mark.asyncio
+async def test_delegation_context_reset_even_when_peer_raises() -> None:
+    # The reset must run in a `finally`: if a delegated peer raises, the
+    # delegation contextvar must still be cleared so it does not leak into
+    # the caller's own subsequent events.
+    from promptise.observability import get_current_delegation
+
+    class _Peer:
+        async def ainvoke(self, inp):  # noqa: ANN001
+            raise RuntimeError("peer exploded")
+
+    tools = make_cross_agent_tools(
+        {"peer": CrossAgent(agent=_Peer())},
+        caller_identity=AgentIdentity("billing-bot"),
+    )
+    with pytest.raises(RuntimeError, match="peer exploded"):
+        await _ask_tool(tools)._arun(message="go")
+    assert get_current_delegation() is None  # reset despite the error
+
+
+@pytest.mark.asyncio
+async def test_no_delegation_context_without_identity() -> None:
+    from promptise.observability import get_current_delegation
+
+    seen: dict = {}
+
+    class _Peer:
+        async def ainvoke(self, inp):  # noqa: ANN001
+            seen["delegation"] = get_current_delegation()
+            return {"messages": [MagicMock(type="ai", content="ok")]}
+
+    tools = make_cross_agent_tools({"peer": CrossAgent(agent=_Peer())})
+    await _ask_tool(tools)._arun(message="go")
+    assert seen["delegation"] is None
+
+
+@pytest.mark.asyncio
+async def test_broadcast_sets_delegation_for_each_peer() -> None:
+    from promptise.observability import get_current_delegation
+
+    seen: list = []
+
+    class _Peer:
+        async def ainvoke(self, inp):  # noqa: ANN001
+            seen.append(get_current_delegation())
+            return {"messages": [MagicMock(type="ai", content="ok")]}
+
+    tools = make_cross_agent_tools(
+        {"a": CrossAgent(agent=_Peer()), "b": CrossAgent(agent=_Peer())},
+        caller_identity=AgentIdentity("billing-bot"),
+    )
+    bcast = next(t for t in tools if t.name == "broadcast_to_agents")
+    await bcast._arun(message="go")
+    assert len(seen) == 2
+    assert all(d is not None and d["agent_id"] == "billing-bot" for d in seen)
+    assert get_current_delegation() is None
+
+
+# ---------------------------------------------------------------------------
+# CallerContext continuity across delegation
+# ---------------------------------------------------------------------------
+
+
+class TestCallerContextContinuity:
+    """The original human principal must survive cross-agent hops.
+
+    ``PromptiseAgent.ainvoke`` inherits the ambient ``CallerContext`` when no
+    explicit ``caller`` is passed, so a peer invoked inside another agent's
+    request scopes its cache, memory, guardrails, and conversations to the
+    original user instead of running unattributed.
+    """
+
+    @pytest.mark.asyncio
+    async def test_peer_inherits_ambient_caller_through_delegation(self):
+        from promptise.agent import CallerContext, PromptiseAgent, get_current_caller
+
+        seen: dict = {}
+
+        class _PeerInner:
+            async def ainvoke(self, inp, config=None):
+                seen["caller"] = get_current_caller()
+                return {"messages": [MagicMock(type="ai", content="ok")]}
+
+        peer = PromptiseAgent(inner=_PeerInner())
+        outer_ctx = CallerContext(user_id="alice", roles={"analyst"})
+
+        class _OuterInner:
+            async def ainvoke(self, inp, config=None):
+                # Simulates a cross-agent tool firing inside the outer run
+                tools = make_cross_agent_tools({"peer": CrossAgent(agent=peer)})
+                await _ask_tool(tools)._arun(message="hi")
+                return {"messages": [MagicMock(type="ai", content="done")]}
+
+        outer = PromptiseAgent(inner=_OuterInner())
+        await outer.ainvoke({"messages": []}, caller=outer_ctx)
+
+        assert seen["caller"] is outer_ctx
+        assert get_current_caller() is None  # no leak after the run
+
+    @pytest.mark.asyncio
+    async def test_explicit_caller_still_wins_over_ambient(self):
+        from promptise.agent import CallerContext, PromptiseAgent, get_current_caller
+
+        seen: dict = {}
+
+        class _PeerInner:
+            async def ainvoke(self, inp, config=None):
+                seen["caller"] = get_current_caller()
+                return {"messages": [MagicMock(type="ai", content="ok")]}
+
+        peer = PromptiseAgent(inner=_PeerInner())
+        ambient_ctx = CallerContext(user_id="alice")
+        explicit_ctx = CallerContext(user_id="bob")
+
+        class _OuterInner:
+            async def ainvoke(self, inp, config=None):
+                await peer.ainvoke({"messages": []}, caller=explicit_ctx)
+                return {"messages": [MagicMock(type="ai", content="done")]}
+
+        outer = PromptiseAgent(inner=_OuterInner())
+        await outer.ainvoke({"messages": []}, caller=ambient_ctx)
+
+        assert seen["caller"] is explicit_ctx
+
+    @pytest.mark.asyncio
+    async def test_no_ambient_no_caller_stays_none(self):
+        from promptise.agent import PromptiseAgent, get_current_caller
+
+        seen: dict = {}
+
+        class _Inner:
+            async def ainvoke(self, inp, config=None):
+                seen["caller"] = get_current_caller()
+                return {"messages": [MagicMock(type="ai", content="ok")]}
+
+        agent = PromptiseAgent(inner=_Inner())
+        await agent.ainvoke({"messages": []})
+
+        assert seen["caller"] is None
+
+    @pytest.mark.asyncio
+    async def test_broadcast_children_inherit_ambient_caller(self):
+        from promptise.agent import CallerContext, PromptiseAgent, get_current_caller
+
+        seen: dict = {}
+
+        def _recording_peer(name: str) -> PromptiseAgent:
+            class _Inner:
+                async def ainvoke(self, inp, config=None):
+                    seen[name] = get_current_caller()
+                    return {"messages": [MagicMock(type="ai", content=name)]}
+
+            return PromptiseAgent(inner=_Inner())
+
+        peers = {
+            "one": CrossAgent(agent=_recording_peer("one")),
+            "two": CrossAgent(agent=_recording_peer("two")),
+        }
+        outer_ctx = CallerContext(user_id="carol")
+
+        class _OuterInner:
+            async def ainvoke(self, inp, config=None):
+                tools = make_cross_agent_tools(peers)
+                broadcast = next(t for t in tools if "broadcast" in t.name)
+                await broadcast._arun(message="status?")
+                return {"messages": [MagicMock(type="ai", content="done")]}
+
+        outer = PromptiseAgent(inner=_OuterInner())
+        await outer.ainvoke({"messages": []}, caller=outer_ctx)
+
+        assert seen["one"] is outer_ctx
+        assert seen["two"] is outer_ctx

@@ -22,6 +22,7 @@ from promptise.observability import (
     TimelineEntry,
     TimelineEventCategory,
     TimelineEventType,
+    _delegation_ctx_var,
 )
 
 # ---------------------------------------------------------------------------
@@ -245,3 +246,35 @@ class TestConcurrentRecording:
             events = c.for_user(u)
             assert len(events) == 5
             assert all(e.details == u for e in events)
+
+
+# ---------------------------------------------------------------------------
+# Cross-agent delegation stamping
+# ---------------------------------------------------------------------------
+
+
+class TestDelegationStamping:
+    def test_delegated_by_stamped_from_contextvar(self) -> None:
+        c = ObservabilityCollector()
+        token = _delegation_ctx_var.set({"agent_id": "billing-bot", "owner": "pay"})
+        try:
+            entry = c.record(TimelineEventType.TOOL_CALL)
+        finally:
+            _delegation_ctx_var.reset(token)
+        assert entry.metadata["delegated_by"] == {
+            "agent_id": "billing-bot",
+            "owner": "pay",
+        }
+
+    def test_no_delegated_by_when_unset(self) -> None:
+        entry = ObservabilityCollector().record(TimelineEventType.TOOL_CALL)
+        assert "delegated_by" not in entry.metadata
+
+    def test_explicit_metadata_delegated_by_wins(self) -> None:
+        c = ObservabilityCollector()
+        token = _delegation_ctx_var.set({"agent_id": "ctx-agent"})
+        try:
+            entry = c.record(TimelineEventType.TOOL_CALL, metadata={"delegated_by": "explicit"})
+        finally:
+            _delegation_ctx_var.reset(token)
+        assert entry.metadata["delegated_by"] == "explicit"
