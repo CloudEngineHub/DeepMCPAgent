@@ -6,6 +6,10 @@ keywords: multi-user AI agent, multi-tenant AI agent, AI agent authentication, J
 
 # Building Agentic Multi-User Systems
 
+!!! warning "Not legal or compliance advice"
+    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
+
+
 ## What You'll Build
 
 A production-ready multi-user AI application where authenticated users each get isolated conversations, personalized memory, scoped cache, and guardrailed responses — backed by MCP servers with JWT authentication, role-based access control, tamper-evident audit logging, and per-user session state. The full stack: user authenticates → agent processes their request with their identity → MCP tools enforce their permissions → response is guardrailed → conversation persists to their session.
