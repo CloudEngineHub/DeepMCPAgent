@@ -1,0 +1,48 @@
+# SPIRE configuration — an agent with a verifiable SPIFFE identity.
+#
+# Shows the two pieces a SPIRE workload needs: a registration entry that
+# grants the workload a SPIFFE ID, and the pod wiring that mounts the
+# Workload API socket so AgentIdentity.from_spiffe() can fetch a JWT-SVID.
+#
+# Create the registration entry (run against the SPIRE server):
+#   spire-server entry create \
+#     -spiffeID spiffe://example.org/promptise-agent \
+#     -parentID spiffe://example.org/spire/agent/k8s_psat/CLUSTER/NODE \
+#     -selector k8s:ns:default \
+#     -selector k8s:sa:promptise-agent \
+#     -jwtSVIDTTL 3600
+#
+# The SPIFFE ID is the agent's identity. A model key (e.g. ANTHROPIC_API_KEY)
+# is only needed if the agent invokes an LLM.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promptise-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promptise-agent
+  template:
+    metadata:
+      labels:
+        app: promptise-agent
+    spec:
+      serviceAccountName: promptise-agent
+      containers:
+        - name: agent
+          image: YOUR_REGISTRY/promptise-agent:latest
+          command: ["python", "app.py"]
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: "unix:///run/spire/agent/api.sock"
+          volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/agent
+              readOnly: true
+      volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/agent
+            type: Directory

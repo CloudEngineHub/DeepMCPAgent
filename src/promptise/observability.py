@@ -21,6 +21,7 @@ Example::
 
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 import threading
@@ -34,6 +35,22 @@ from enum import Enum
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+#: Carries the identity of a *delegating* agent across a cross-agent call so
+#: the peer's timeline entries are stamped with ``delegated_by``. Set by the
+#: cross-agent tools around a peer invocation; read by
+#: :meth:`ObservabilityCollector.record`. Distinct from the caller contextvar
+#: (which a peer's ``ainvoke`` resets), so it survives into the peer's run.
+_delegation_ctx_var: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar(
+    "promptise_delegation", default=None
+)
+
+
+def get_current_delegation() -> dict[str, Any] | None:
+    """Return the delegating agent's identity claims, if a cross-agent call
+    is in progress; otherwise ``None``."""
+    return _delegation_ctx_var.get()
+
 
 __all__ = [
     "TimelineEventType",
@@ -420,6 +437,17 @@ class ObservabilityCollector:
         raw_metadata = metadata or {}
         if self._sanitizer is not None:
             raw_metadata = self._sanitizer(raw_metadata)
+
+        # Stamp the delegating agent's identity when this event is recorded
+        # inside a cross-agent delegation, so the peer's timeline answers
+        # "who delegated this?". Identity descriptors only (no credential).
+        delegation = _delegation_ctx_var.get()
+        if delegation is not None and "delegated_by" not in raw_metadata:
+            # Snapshot the claims — the contextvar holds one dict shared by
+            # every entry recorded during this delegation, so store an
+            # independent copy or a later mutation of one entry's
+            # ``delegated_by`` would retroactively alter its siblings.
+            raw_metadata = {**raw_metadata, "delegated_by": dict(delegation)}
 
         # Auto-propagate identity from CallerContext when not explicitly
         # supplied.  Imported lazily to avoid a circular dependency with

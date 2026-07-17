@@ -28,6 +28,7 @@ logger = logging.getLogger("promptise.engine")
 from langchain_core.tools import BaseTool
 
 from .base import BaseNode
+from .code_action import CodeActionNode
 from .graph import PromptGraph
 from .nodes import GuardNode, PromptNode
 
@@ -45,7 +46,11 @@ def build_react_graph(
     and when to produce the final answer.  The engine handles the
     tool-calling loop automatically.
 
-    This is the default graph used by ``build_agent()``.
+    This is the default graph used by ``build_agent()``. It runs with
+    ``context_scope="auto"``: simple tasks see the full transcript (unchanged),
+    but once a tool loop grows the node automatically switches to a bounded,
+    deduplicated facts ledger — so context stays manageable and token-efficient
+    on deep tasks without choosing a different pattern.
 
     Args:
         tools: Tools available to the agent.
@@ -67,6 +72,7 @@ def build_react_graph(
             blocks=node_blocks,
             tools=list(tools) if tools else [],
             tool_choice="auto",
+            context_scope="auto",
             max_iterations=max_node_iterations,
             # When the LLM calls a tool, rule 1 in _resolve_transition
             # re-enters this node automatically.  When it produces a
@@ -433,11 +439,174 @@ def build_pipeline_graph(*nodes: BaseNode) -> PromptGraph:
     return graph
 
 
+def build_verify_graph(
+    tools: list[BaseTool] | None = None,
+    system_prompt: str = "",
+    *,
+    blocks: list[Any] | None = None,
+    max_node_iterations: int = 6,
+) -> PromptGraph:
+    """Single-pass self-verifying reasoning — one LLM call, but the model
+    must plan, solve, and **check its own answer** within that generation.
+
+    It gives a model the benefit of an explicit verification step at
+    **one-turn** latency (no multi-call overhead). On models that already
+    reason internally it matches a direct prompt; on weaker models the forced
+    self-check recovers errors a single pass would miss. A good default when
+    you want a self-checking answer without a multi-stage pipeline.
+
+    Args:
+        tools: Optional tools for the reasoning node.
+        system_prompt: Base system prompt.
+        blocks: Optional PromptBlocks for the node.
+        max_node_iterations: Tool-loop budget.
+
+    Returns:
+        A single-node ``PromptGraph`` that plans, solves, and verifies in one
+        generation.
+    """
+    graph = PromptGraph(name="verify")
+    graph.add_node(
+        PromptNode(
+            "reason",
+            instructions=(
+                f"{system_prompt}\n\n"
+                "Answer in a single response, thinking carefully:\n"
+                "1) PLAN — restate the problem and outline the steps.\n"
+                "2) SOLVE — work the steps, showing each computation.\n"
+                "3) VERIFY — independently re-check the answer a different way "
+                "or against the constraints; if it is wrong, fix it.\n"
+                "4) Then give the final answer clearly."
+            ).strip(),
+            blocks=list(blocks) if blocks else [],
+            tools=list(tools) if tools else [],
+            tool_choice="auto",
+            default_next="__end__",
+            max_iterations=max_node_iterations,
+        )
+    )
+    graph.set_entry("reason")
+    return graph
+
+
+def build_managed_graph(
+    tools: list[BaseTool] | None = None,
+    system_prompt: str = "",
+    *,
+    blocks: list[Any] | None = None,
+    max_node_iterations: int = 30,
+) -> PromptGraph:
+    """Tool agent with **context lifecycle management** for long tool chains.
+
+    A single tool-using node, but run with ``context_scope="ledger"``: instead
+    of feeding the model an ever-growing transcript of tool calls and results
+    (where it loses track and re-queries the same facts dozens of times), each
+    turn it sees the task plus a compact, **deduplicated "facts gathered"
+    ledger** built from the tool results so far. Context stays bounded and the
+    model stops re-looking-up what it already knows.
+
+    Use this for **deep multi-tool tasks** — traversing a database/graph,
+    gathering many facts then aggregating. It cuts redundant tool calls and
+    bounds token growth on long chains at equal accuracy — an efficiency
+    primitive, not an accuracy claim.
+
+    Args:
+        tools: Tools the agent can call.
+        system_prompt: Base system prompt.
+        blocks: Optional PromptBlocks for the node.
+        max_node_iterations: Tool-loop budget (higher than ReAct's — deep
+            tasks make many calls).
+
+    Returns:
+        A single-node ``PromptGraph`` whose node manages its tool-loop context.
+    """
+    graph = PromptGraph(name="managed")
+    graph.add_node(
+        PromptNode(
+            "reason",
+            instructions=(
+                f"{system_prompt}\n\n"
+                "Gather the facts you need with tools, then answer. A ledger of "
+                "facts you have already gathered is provided each turn — consult "
+                "it and never re-fetch a fact you already have."
+            ).strip(),
+            blocks=list(blocks) if blocks else [],
+            tools=list(tools) if tools else [],
+            tool_choice="auto",
+            context_scope="ledger",
+            default_next="__end__",
+            max_iterations=max_node_iterations,
+        )
+    )
+    graph.set_entry("reason")
+    return graph
+
+
+def build_code_action_graph(
+    tools: list[BaseTool] | None = None,
+    system_prompt: str = "",
+    *,
+    blocks: list[Any] | None = None,
+    sandbox_factory: Any | None = None,
+    max_repairs: int = 1,
+    exec_timeout: int = 120,
+    max_tool_calls: int = 50,
+) -> PromptGraph:
+    """Code-action reasoning — the model writes **one program**, not a tool chain.
+
+    For aggregation / data-traversal tasks (gather many facts then compute),
+    chaining dozens of conversational tool calls is slow, expensive, and
+    error-prone. ``code-action`` changes the action space: in a single LLM turn
+    the model writes one Python program that calls the available tools (bridged
+    into a hardened Docker sandbox) and computes the answer deterministically.
+    Validated on agentic tasks — a large accuracy gain at a fraction of the
+    tokens and latency, in one turn.
+
+    Requires a sandbox: ``build_agent(agent_pattern="code-action")`` auto-enables
+    it (Docker must be installed and running). The generated code runs with a
+    read-only rootfs, dropped capabilities, seccomp, and **no network** — it can
+    only reach the outside world through the bridged host tools, so every tool
+    call still passes through the engine's hooks (budget, health, audit).
+
+    Args:
+        tools: Tools the program may call (bridged to the host).
+        system_prompt: Base system prompt.
+        blocks: Accepted for signature parity (unused in the program prompt).
+        sandbox_factory: ``async () -> SandboxSession`` (injected by ``build_agent``).
+        max_repairs: Times to feed a crash's stderr back for a fix (default 1).
+        exec_timeout: Max seconds the program may run inside the sandbox.
+        max_tool_calls: Hard per-run cap on bridged tool calls (default 50) — a
+            hook-independent safety bound against a program looping a tool.
+
+    Returns:
+        A single-node ``PromptGraph`` that writes and runs a program.
+    """
+    graph = PromptGraph(name="code-action")
+    graph.add_node(
+        CodeActionNode(
+            "reason",
+            tools=list(tools) if tools else [],
+            system_prompt=system_prompt,
+            blocks=list(blocks) if blocks else [],
+            sandbox_factory=sandbox_factory,
+            max_repairs=max_repairs,
+            exec_timeout=exec_timeout,
+            max_tool_calls=max_tool_calls,
+            default_next="__end__",
+        )
+    )
+    graph.set_entry("reason")
+    return graph
+
+
 # ---------------------------------------------------------------------------
 # Register factory methods on PromptGraph class
 # ---------------------------------------------------------------------------
 
 PromptGraph.react = staticmethod(build_react_graph)  # type: ignore[attr-defined]
+PromptGraph.managed = staticmethod(build_managed_graph)  # type: ignore[attr-defined]
+PromptGraph.code_action = staticmethod(build_code_action_graph)  # type: ignore[attr-defined]
+PromptGraph.verify = staticmethod(build_verify_graph)  # type: ignore[attr-defined]
 PromptGraph.peoatr = staticmethod(build_peoatr_graph)  # type: ignore[attr-defined]
 PromptGraph.research = staticmethod(build_research_graph)  # type: ignore[attr-defined]
 PromptGraph.autonomous = staticmethod(build_autonomous_graph)  # type: ignore[attr-defined]

@@ -86,7 +86,43 @@ spec = HTTPServerSpec(
     url="http://localhost:8080/mcp",
     headers={"authorization": "Bearer <token>"},
 )
+
+# Resource audience for agent-identity credentials
+spec = HTTPServerSpec(
+    url="https://billing.internal/mcp",
+    audience="api://billing",
+)
 ```
+
+#### `audience` — per-resource agent identity
+
+`audience` declares the resource identifier this server expects in a
+credential's `aud` claim. It only matters when you attach an
+[Agent Identity](../identity/overview.md) to `build_agent` **and** leave
+`bearer_token` unset: the agent then presents a credential **minted for
+this audience**, so one identity can authenticate to several servers, each
+with its own audience.
+
+```python
+from promptise import build_agent, HTTPServerSpec
+from promptise.identity import AgentIdentity
+
+agent = await build_agent(
+    model="anthropic:claude-sonnet-4-5",
+    identity=AgentIdentity.from_entra("billing-bot"),
+    servers={
+        "billing": HTTPServerSpec(url="https://billing.internal/mcp",
+                                  audience="api://billing"),
+        "crm":     HTTPServerSpec(url="https://crm.internal/mcp",
+                                  audience="api://crm"),
+    },
+)
+```
+
+Leave `audience` unset to use the identity provider's default audience. An
+explicit `bearer_token` always wins and ignores `audience`. See
+[Per-resource credentials](../identity/architecture.md#per-resource-credentials)
+for which providers can re-mint per audience.
 
 ### ServerSpec union
 

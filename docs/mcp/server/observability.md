@@ -2,6 +2,10 @@
 
 Track what your MCP server is doing in production with built-in metrics, distributed tracing, Prometheus export, structured logging, audit trails, and a live terminal dashboard.
 
+!!! warning "Not legal or compliance advice"
+    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
+
+
 ## Built-in Metrics
 
 ### `MetricsCollector`
@@ -268,10 +272,18 @@ Each entry in `audit.jsonl`:
   "status": "ok",
   "duration_s": 0.045,
   "args": {"patient_id": "P-12345"},
+  "identity": {
+    "subject": "dr-smith-agent",
+    "issuer": "https://login.microsoftonline.com/<tenant>/v2.0",
+    "audience": "api://medical-records-api",
+    "roles": ["records.read"]
+  },
   "prev_hash": "0000...0000",
   "hmac": "a1b2c3d4..."
 }
 ```
+
+When the caller authenticated with a JWT (e.g. [`JwksAuth`](auth-security.md#jwksauth) for an agent presenting an [IdP identity](../../identity/overview.md)), the entry carries an `identity` block with the verified `subject` / `issuer` / `audience` / `roles` — inside the HMAC chain, so *which agent did what* is both attributable and tamper-evident. Only these descriptors are recorded; the token and full claim set are never written to the log.
 
 ### HMAC chain integrity
 

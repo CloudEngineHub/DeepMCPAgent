@@ -15,6 +15,10 @@ agent = await build_agent(
 
 ---
 
+!!! warning "Not legal or compliance advice"
+    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
+
+
 ## Why
 
 Without the Context Engine, context is assembled ad-hoc — memory, strategies, prompt blocks, conversation history, and runtime context all inject independently with no coordination. If the total exceeds the model's context window, the LLM either errors out or silently truncates (often losing the user's message at the end).

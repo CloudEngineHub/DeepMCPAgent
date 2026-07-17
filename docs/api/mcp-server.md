@@ -117,6 +117,13 @@ Production framework for building MCP-compliant tool servers. Every middleware, 
       show_source: false
       heading_level: 4
 
+### JwksAuth
+
+::: promptise.mcp.server.JwksAuth
+    options:
+      show_source: false
+      heading_level: 4
+
 ### APIKeyAuth
 
 ::: promptise.mcp.server.APIKeyAuth
@@ -708,6 +715,74 @@ Generate MCP tools from OpenAPI specs automatically.
 ### ServerLogger
 
 ::: promptise.mcp.server.ServerLogger
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Multi-Tenancy
+
+### RequireTenant
+
+::: promptise.mcp.server.RequireTenant
+    options:
+      show_source: false
+      heading_level: 4
+
+### HasTenant
+
+::: promptise.mcp.server.HasTenant
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Approval Gates
+
+### ApprovalGateMiddleware
+
+::: promptise.mcp.server.ApprovalGateMiddleware
+    options:
+      show_source: false
+      heading_level: 4
+
+### PendingApprover
+
+::: promptise.mcp.server.PendingApprover
+    options:
+      show_source: false
+      heading_level: 4
+
+### ElicitationApprover
+
+::: promptise.mcp.server.ElicitationApprover
+    options:
+      show_source: false
+      heading_level: 4
+
+### ApprovalDeniedError
+
+::: promptise.mcp.server.ApprovalDeniedError
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Rate Limiting
+
+### parse_rate_limit
+
+::: promptise.mcp.server.parse_rate_limit
+    options:
+      show_source: false
+      heading_level: 4
+
+### DeclaredRateLimitMiddleware
+
+::: promptise.mcp.server.DeclaredRateLimitMiddleware
     options:
       show_source: false
       heading_level: 4

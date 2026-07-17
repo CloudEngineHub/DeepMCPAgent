@@ -29,6 +29,7 @@ Example::
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from typing import Any
 
 logger = logging.getLogger("promptise.server")
@@ -63,22 +64,16 @@ def mount(
         name = f"{prefix}_{tdef.name}" if prefix else tdef.name
         merged_tags = list(tdef.tags) + extra_tags
 
-        from ._types import ToolDef
-
-        new_def = ToolDef(
+        # replace() copies EVERY field and overrides only the prefixed name +
+        # merged tags — no ToolDef field (auth, guards, requires_approval, ...)
+        # can be silently dropped when mounting one server into another.
+        new_def = replace(
+            tdef,
             name=name,
-            description=tdef.description,
-            handler=tdef.handler,
-            input_schema=tdef.input_schema,
             tags=merged_tags,
-            auth=tdef.auth,
-            rate_limit=tdef.rate_limit,
-            timeout=tdef.timeout,
             guards=list(tdef.guards),
             roles=list(tdef.roles),
             router_middleware=list(tdef.router_middleware),
-            annotations=tdef.annotations,
-            max_concurrent=tdef.max_concurrent,
         )
         parent._tool_registry.register(new_def)
 

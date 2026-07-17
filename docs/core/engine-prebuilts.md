@@ -1,6 +1,6 @@
 # Prebuilt Patterns
 
-Seven ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
+Ten ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
 
 ## ReAct (Default)
 
@@ -31,6 +31,133 @@ PromptGraph.react(
     max_node_iterations=15,  # Max tool-calling loops
 )
 ```
+
+## Verify (single-pass self-checking)
+
+A single LLM call in which the model must **plan, solve, and verify its own
+answer** before responding. It adds the accuracy benefit of an explicit
+self-verification step at **one-turn latency** — no multi-call overhead.
+
+```mermaid
+graph LR
+    A["reason<br/>(plan → solve → verify)"] --> END[__end__]
+    style A fill:#1e3a5f,stroke:#60a5fa,color:#fff
+    style END fill:#1a1a1a,stroke:#666,color:#aaa
+```
+
+```python
+agent = await build_agent(..., agent_pattern="verify")
+```
+
+```python
+PromptGraph.verify(
+    tools=None,
+    system_prompt="",
+    blocks=None,
+    max_node_iterations=6,
+)
+```
+
+!!! note "When it helps"
+    The forced self-check lifts accuracy over a plain direct prompt on **weak
+    and mainstream models** at one-turn latency. A *frontier* model that
+    already reasons strongly internally is typically at its ceiling with a
+    direct prompt, so `verify` there only adds a cheap safety check rather than
+    more accuracy. On a capable model it is **comparable to**, not strictly
+    better than, a well-prompted ReAct pass. For multi-stage deliberate
+    reasoning with per-stage context scoping, compose a custom graph (see
+    *Custom Graph*).
+
+## Managed (context-managed tool loop)
+
+For **deep multi-tool tasks** — traversing a database or graph, gathering
+many facts then aggregating. A single tool-using node run with
+`context_scope="ledger"`: instead of feeding the model an ever-growing
+transcript of tool calls and results (where it loses track and re-queries the
+same facts), each turn it sees the task, its most recent exchange, and a
+compact **deduplicated "facts gathered" ledger**. Identical `(tool, args)`
+calls are also served from cache rather than re-executed.
+
+```mermaid
+graph LR
+    A["reason<br/>(tool loop + facts ledger)"] --> END[__end__]
+    style A fill:#1e3a5f,stroke:#60a5fa,color:#fff
+    style END fill:#1a1a1a,stroke:#666,color:#aaa
+```
+
+```python
+agent = await build_agent(..., agent_pattern="managed")
+```
+
+```python
+PromptGraph.managed(
+    tools=my_tools,
+    system_prompt="",
+    blocks=None,
+    max_node_iterations=30,   # deep tasks make many calls
+)
+```
+
+The underlying primitive is [`PromptNode(context_scope="ledger")`](engine-nodes.md#context-scope),
+which any custom graph can use on a long-running tool node.
+
+!!! note "What it does, honestly"
+    On deep tool chains a *naive* ReAct loop re-queries the same facts many
+    times as its transcript grows — dozens of redundant calls for a handful of
+    distinct facts. The ledger **bounds context and cuts redundant tool calls**
+    at **equal accuracy** — a real cost/latency win on long chains. It is an
+    **efficiency** primitive: it does not by itself make the model's final
+    answer more correct.
+
+## Code-Action (one sandboxed program)
+
+For **aggregation / data-traversal tasks**, the model writes **one Python
+program** over your tools in a single LLM turn — instead of chaining dozens of
+conversational tool calls. The program runs in Promptise's hardened Docker
+sandbox; its tool calls bridge back to the real host tools, so the model gets
+code's exactness (loops, sums, filters, joins) while every tool call still
+keeps its protections — approval gates if configured, plus budget/health/audit
+hooks when the Agent Runtime has attached them — and the node enforces a hard
+`max_tool_calls` cap per run regardless.
+
+```mermaid
+graph LR
+    A["reason<br/>(write 1 program)"] --> S["run in sandbox<br/>(tools bridged to host)"]
+    S --> END[__end__]
+    style A fill:#1e3a5f,stroke:#60a5fa,color:#fff
+    style S fill:#2d1b4e,stroke:#c084fc,color:#fff
+    style END fill:#1a1a1a,stroke:#666,color:#aaa
+```
+
+```python
+agent = await build_agent(..., agent_pattern="code-action")  # sandbox auto-enabled
+```
+
+```python
+PromptGraph.code_action(
+    tools=my_tools,
+    system_prompt="",
+    blocks=None,
+    sandbox_factory=...,   # injected by build_agent
+    max_repairs=1,         # re-try once on a crash, feeding stderr back
+    exec_timeout=120,      # max seconds the program may run
+)
+```
+
+**The mechanism.** In one turn the model writes a program that calls your tools
+as ordinary Python functions. Inside the sandbox those functions are RPC stubs:
+each writes a request to the workspace; a concurrent host loop runs the *real*
+tool and writes back the response. The sandbox has a **read-only rootfs, dropped
+capabilities, and no network** — the program's only outside reach is your
+bridged tools.
+
+!!! warning "Requirements & honest scope"
+    Requires **Docker** (auto-enabled for this pattern). It shines when your
+    tools return **structured data** (lists/dicts/numbers) the program can use
+    directly, and on tasks a conversational loop gets wrong by re-querying and
+    mis-aggregating. It is a *pattern, not a replacement* — for ambiguous or
+    conversational tasks prefer `react`/`managed`. Validated end-to-end on a
+    real sandbox + real model (see `tests/test_code_action_integration.py`).
 
 ## PEOATR
 

@@ -9,12 +9,12 @@
   <h1>Promptise Foundry</h1>
 
   <p>
-    <strong>The foundation layer for agentic intelligence.</strong>
+    <strong>The first full-stack Agentic Engineering framework.</strong>
   </p>
 
   <p>
-    <em>Ship full-stack agentic systems the way they're meant to be built —</em><br/>
-    <em>production-ready, secure by default, with the developer experience modern Python deserves.</em>
+    <em>Build agents and the tools they use. Design how they reason. Run them as autonomous, governed systems.</em><br/>
+    <em>Ship them to real customers — multi-tenant, secure, and observable. One framework, not a dozen libraries.</em>
   </p>
 
   <br/>
@@ -35,7 +35,7 @@
     <img alt="Typed" src="https://img.shields.io/badge/mypy-strict-%238b5cf6">
     <img alt="Security" src="https://img.shields.io/badge/bandit-0%20HIGH-%2322c55e">
     <img alt="MCP" src="https://img.shields.io/badge/MCP-native-%23f97316">
-    <img alt="Tests" src="https://img.shields.io/badge/tests-3148-%2306b6d4">
+    <img alt="Tests" src="https://img.shields.io/badge/tests-3493-%2306b6d4">
   </p>
 
   <br/>
@@ -47,7 +47,7 @@
     &nbsp;·&nbsp;
     <a href="https://docs.promptise.com/getting-started/quickstart/"><strong>Quick Start</strong></a>
     &nbsp;·&nbsp;
-    <a href="https://docs.promptise.com/resources/showcase/"><strong>Showcase</strong></a>
+    <a href="https://docs.promptise.com/blog/"><strong>Blog</strong></a>
     &nbsp;·&nbsp;
     <a href="https://github.com/promptise-com/foundry/discussions"><strong>Discussions</strong></a>
   </p>
@@ -59,14 +59,13 @@
 
 <br/>
 
-### One Python framework. The full agentic stack.
+## What Promptise is
 
-<sub>From your first agent to a fleet running in production — without gluing libraries together.</sub>
+Promptise is **one framework for the whole job of building with AI agents** — the agents, the tools they use, the reasoning behind them, the runtime that keeps them running, and the security and governance to put them in front of customers. Not a single feature, but the full stack you'd otherwise assemble from a dozen separate libraries.
 
-- **Agents** that discover tools and remember context.
-- **MCP servers** with access control, governance, and audit trails — multi-user, scalable, secure by default.
-- **Reasoning engine** you can shape, like bricks.
-- **Autonomous runtime** that recovers from crashes and stays within budget.
+Most agent stacks are assembled by hand: a model SDK, a tool layer, a vector database, auth, guardrails, a job runner, logging — glued together and kept alive by you. **Promptise pulls all of it into one framework.** `build_agent()` and a Python decorator give you the agent and its tools; memory, security, multi-tenancy, human approvals, a runtime, and observability are already inside, each switched on with a parameter.
+
+The impact: you build what your agent *does*, not the ten libraries underneath it. A prototype becomes something you can put in front of paying customers without rebuilding the production layer each time — and the same install that runs one agent on your laptop runs a fleet serving real users.
 
 <br/>
 
@@ -97,10 +96,10 @@ async def main():
             "tools": HTTPServerSpec(url="http://localhost:8000/mcp"),
         },
         instructions="You are a helpful assistant.",
-        memory=ChromaProvider(persist_directory="./memory"),
-        guardrails=PromptiseSecurityScanner.default(),
-        cache=SemanticCache(),
-        observe=True,
+        memory=ChromaProvider(persist_directory="./memory"),  # remembers across calls
+        guardrails=PromptiseSecurityScanner.default(),          # blocks injection, redacts PII
+        cache=SemanticCache(),                                  # serves similar queries instantly
+        observe=True,                                           # traces every step
     )
 
     result = await agent.ainvoke({
@@ -116,8 +115,8 @@ asyncio.run(main())
 
 <div align="center">
 <sub>
-One call. Auto tool discovery from MCP servers. Memory auto-searched before every invocation.<br/>
-Guardrails block injection and redact PII. Semantic cache serves similar queries instantly. Full observability.
+One call. The agent finds its tools on the MCP server on its own. Memory, guardrails, cache, and tracing are each a single line —<br/>
+and the ones you don't pass cost you nothing. Works with OpenAI, Anthropic, Gemini, or a local model via Ollama.
 </sub>
 </div>
 
@@ -128,8 +127,8 @@ Guardrails block injection and redact PII. Semantic cache serves similar queries
 <br/>
 
 <div align="center">
-  <h2>Five pillars. One framework.</h2>
-  <p><sub>Each pillar replaces an entire category of libraries you would otherwise assemble yourself.</sub></p>
+  <h2>The five parts of the framework</h2>
+  <p><sub>Each replaces a stack of libraries you'd otherwise wire together yourself.</sub></p>
 </div>
 
 <br/>
@@ -145,9 +144,9 @@ Guardrails block injection and redact PII. Semantic cache serves similar queries
 
 ### Agent
 
-Turn any LLM into a production-ready agent with one function call.
+**One function turns any model into a working agent.**
 
-`build_agent()` · auto MCP tool discovery · semantic tool optimization (40–70% fewer tokens) · 3 memory providers with auto-injection · 4 conversation stores · 6-head security scanner · semantic cache with per-user isolation · sandboxed code execution · auto-approval classifier · pluggable RAG · streaming · model fallback · adaptive strategy.
+`build_agent()` connects to your tool servers, discovers the tools on its own, and gives the agent what it needs to be useful in practice: memory that's searched before every reply, a security scanner that blocks prompt injection and redacts PII, response caching, sandboxed code execution, and full tracing. Each is one parameter. Any model — OpenAI, Anthropic, Gemini, a local model, or anything built on LangChain.
 
 [Agent docs →](https://docs.promptise.com/core/agents/building-agents/)
 
@@ -164,9 +163,9 @@ Turn any LLM into a production-ready agent with one function call.
 
 ### Reasoning Engine
 
-Compose reasoning the way you compose code. Not a black box.
+**Decide how the agent thinks — or use a preset.**
 
-`PromptGraph` with **20 node types** — 10 standard (`PromptNode`, `ToolNode`, `RouterNode`, `GuardNode`, `ParallelNode`, `LoopNode`, `HumanNode`, `TransformNode`, `SubgraphNode`, `AutonomousNode`) and 10 reasoning (`ThinkNode`, `PlanNode`, `ReflectNode`, `CritiqueNode`, `SynthesizeNode`, `ValidateNode`, `ObserveNode`, `JustifyNode`, `RetryNode`, `FanOutNode`). **7 prebuilt patterns** (`react`, `peoatr`, `research`, `autonomous`, `deliberate`, `debate`, `pipeline`). **18 node flags** for typed capabilities. Agent-assembled paths from a node pool. Lifecycle hooks. Skill registry. JSON serialization.
+Most tasks run fine on the default tool loop. When you need more control, lay out the agent's reasoning as a graph you can read and change: think, use tools, check its own answer, then respond. Seven presets cover common shapes — research, debate, plan-act-reflect, one-shot self-verify, write-one-program — and you build your own when none fit. No black box.
 
 [Reasoning docs →](https://docs.promptise.com/core/engine/)
 
@@ -183,9 +182,9 @@ Compose reasoning the way you compose code. Not a black box.
 
 ### MCP Server SDK
 
-Production server and native client for the Model Context Protocol — multi-user, scalable, secure by default.
+**Build a tool once; every agent can use it.**
 
-`@server.tool()` with auto-schema from type hints · JWT + OAuth2 + API-key access control · role/scope guards · **12+ middleware** (rate limit, circuit breaker, audit, cache, OTel) · HMAC-chained audit logs · priority job queue with retries and progress · versioning + transforms · OpenAPI import · `MCPMultiClient` federation · live 6-tab dashboard · `TestClient` for in-process testing · **3 transports** (stdio, HTTP, SSE).
+Write a Python function, add `@server.tool()`, and it becomes an MCP tool with a schema taken straight from your type hints. The same tool works with Promptise agents and with Claude Desktop, Cursor, and any other MCP client. It comes with authentication, per-tool permissions, rate limits, circuit breakers, tamper-evident audit logs, a background job queue, and a test client that runs the whole request path without a network.
 
 [MCP docs →](https://docs.promptise.com/mcp/)
 
@@ -202,9 +201,9 @@ Production server and native client for the Model Context Protocol — multi-use
 
 ### Agent Runtime
 
-The operating system for autonomous agents.
+**Keep agents running, on budget, and recoverable.**
 
-**5 trigger types** (cron, webhook, file watch, event, message) · crash recovery via journal replay · **5 rewind modes** · 14 lifecycle hooks · budget enforcement with tool costs · health monitoring (stuck, loop, empty, error rate) · mission tracking with LLM-as-judge · secret scoping with TTL and zero-fill revocation · **14 meta-tools** for self-modifying agents · **37-endpoint REST API** with typed client · live agent inbox · distributed multi-node coordination.
+Turn an agent into a long-running process that wakes on a schedule, a webhook, or a file change. It writes down every step, so a crash resumes from where it stopped instead of starting over. Set limits on tool calls and spend, watch for stuck or looping behavior, and require a human when it hits something risky. Run one, or a fleet across machines.
 
 [Runtime docs →](https://docs.promptise.com/runtime/)
 
@@ -221,9 +220,9 @@ The operating system for autonomous agents.
 
 ### Prompt Engineering
 
-Prompts built like software. Not strings.
+**Prompts you can version and test, not strings you paste.**
 
-**8 block types** with priority-based token budgeting · conversation flows that evolve per phase · **5 composable strategies** (`chain_of_thought + self_critique`) · 4 perspectives · **14 context providers** auto-injected every turn · SSTI-safe template engine with opt-in shell · 5 guards · SemVer registry with rollback · inspector that traces every assembly decision · test helpers (`mock_llm()`, `assert_schema()`) · `chain`, `parallel`, `branch`, `retry`, `fallback`.
+Assemble a system prompt from typed blocks with a token budget, let it change across the phases of a conversation, and check it with the same kind of tools you use for code. Version prompts, roll back a bad one, and trace exactly how each was built — so a prompt change is a reviewable diff, not a mystery.
 
 [Prompts docs →](https://docs.promptise.com/prompting/)
 
@@ -237,80 +236,184 @@ Prompts built like software. Not strings.
 
 <br/>
 
-## Documentation
+<div align="center">
+  <h2>Built for putting agents in front of customers</h2>
+  <p><sub>The parts most teams end up hand-building. Here they're in the framework, off by default, on with a parameter.</sub></p>
+</div>
+
+<br/>
+
+- **Multi-tenant, by construction.** Tag a request with a tenant, and every place data lives — [memory](https://docs.promptise.com/core/memory/), [cache](https://docs.promptise.com/core/cache/), [conversations](https://docs.promptise.com/core/conversations/), rate limits, [audit](https://docs.promptise.com/mcp/server/observability/) — stays separated per customer. Two customers who both have a user named `alice` can never see each other's data. It's a structural rule, not a filter you have to remember on every query. → [Multi-Tenant Platform guide](https://docs.promptise.com/guides/secure-multi-tenant-platform/)
+
+- **Human approval, enforced on the server.** Mark a tool as needing sign-off and the approval is required no matter which app calls it — including one you didn't write. Denies on timeout, rejects self-approval, records who approved what. → [Approval Gates](https://docs.promptise.com/mcp/server/approval-gates/)
+
+- **A real identity for each agent.** Agents authenticate as themselves to the APIs they call, backed by Microsoft Entra ID, AWS, Google Cloud, SPIFFE, or plain OIDC — so you can retire the shared API key, and every action traces to the person it acted for, even across agents calling agents. → [Agent Identity](https://docs.promptise.com/identity/overview/)
+
+- **Audit you can hand to a reviewer.** Every action is written to a tamper-evident chain, tied to the tenant and the user. Delete one customer's data with a single call when they ask. → [Auth & Security](https://docs.promptise.com/mcp/server/auth-security/)
+
+- **Runs offline.** The security models, embeddings, and vector store can all run locally — so the whole stack works air-gapped, for on-prem or regulated customers who can't send data out. → [Guardrails](https://docs.promptise.com/core/guardrails/) · [Model Setup](https://docs.promptise.com/getting-started/model-setup/)
+
+<br/>
+
+## &nbsp;
+
+<br/>
+
+## Everything Promptise ships
+
+<sub>Every capability, grouped by pillar and linked to its docs. Six parts, one framework.</sub>
+
+<br/>
 
 <table>
 <tr>
-<td colspan="2" width="66%" valign="top">
+<td valign="top" width="26%">
 
-### <a href="https://docs.promptise.com/getting-started/quickstart/">Quick Start →</a>
+#### 🤖&nbsp; Agent
+<sub>One function turns any model into a production agent.</sub>
 
-<sub>Your first agent in 5 minutes. <code>pip install</code>, point at an MCP server, ship.</sub>
+**[Explore →](https://docs.promptise.com/core/)**
 
 </td>
 <td valign="top">
 
-### <a href="https://docs.promptise.com/getting-started/concepts/">Key Concepts →</a>
+`Setup` &nbsp; [Build](https://docs.promptise.com/core/agents/building-agents/) · [Server config](https://docs.promptise.com/core/agents/server-specs/) · [Network server](https://docs.promptise.com/core/agents/network-server/) · [SuperAgent files](https://docs.promptise.com/core/agents/superagent-files/) · [Custom patterns](https://docs.promptise.com/core/agents/reasoning-patterns/) · [Cross-agent](https://docs.promptise.com/core/agents/cross-agent/)
 
-<sub>Architecture, design principles, the five pillars.</sub>
+`Memory & state` &nbsp; [Memory](https://docs.promptise.com/core/memory/) · [RAG](https://docs.promptise.com/core/rag/) · [Conversations](https://docs.promptise.com/core/conversations/) · [Semantic cache](https://docs.promptise.com/core/cache/) · [Context engine](https://docs.promptise.com/core/context-engine/)
+
+`Security` &nbsp; [Guardrails](https://docs.promptise.com/core/guardrails/) · [Approval](https://docs.promptise.com/core/approval/) · [Auto-approval](https://docs.promptise.com/core/approval-classifier/) · [Sandbox](https://docs.promptise.com/core/sandbox/)
+
+`Performance` &nbsp; [Tool optimization](https://docs.promptise.com/core/tool-optimization/) · [Fallback](https://docs.promptise.com/core/fallback/) · [Adaptive strategy](https://docs.promptise.com/core/adaptive-strategy/)
+
+`Execution` &nbsp; [Streaming](https://docs.promptise.com/core/streaming/) · [Events](https://docs.promptise.com/core/events/) · [Observability](https://docs.promptise.com/core/observability/)
+
+`Reference` &nbsp; [Config](https://docs.promptise.com/core/config/) · [Types](https://docs.promptise.com/core/types/) · [Default prompt](https://docs.promptise.com/core/default-prompt/) · [Callbacks](https://docs.promptise.com/core/callback-handler/) · [Tools](https://docs.promptise.com/core/tools/) · [Env resolver](https://docs.promptise.com/core/env-resolver/) · [Exceptions](https://docs.promptise.com/core/exceptions/) · [CLI](https://docs.promptise.com/core/cli/)
 
 </td>
 </tr>
-
 <tr>
 <td valign="top">
 
-### <a href="https://docs.promptise.com/guides/building-agents/">Building Agents →</a>
+#### 🧠&nbsp; Reasoning Engine
+<sub>Reasoning as a graph you can read and change.</sub>
 
-<sub>Step-by-step, simple to production.</sub>
-
-</td>
-<td valign="top">
-
-### <a href="https://docs.promptise.com/core/engine/">Reasoning Engine →</a>
-
-<sub>Graphs, nodes, flags, patterns.</sub>
+**[Explore →](https://docs.promptise.com/core/engine/)**
 
 </td>
 <td valign="top">
 
-### <a href="https://docs.promptise.com/guides/production-mcp-servers/">MCP Servers →</a>
+`Graph` &nbsp; [Overview](https://docs.promptise.com/core/engine/) · [Nodes](https://docs.promptise.com/core/engine-nodes/) · [Edges](https://docs.promptise.com/core/engine-edges/) · [Flags](https://docs.promptise.com/core/engine-flags/) · [Internals](https://docs.promptise.com/core/engine-internals/)
 
-<sub>Production tool servers with access control, middleware, and audit trails.</sub>
+`Patterns & skills` &nbsp; [Prebuilt patterns](https://docs.promptise.com/core/engine-prebuilts/) · [Skills](https://docs.promptise.com/core/engine-skills/) · [Skill registry](https://docs.promptise.com/core/skill-registry/) · [Custom reasoning](https://docs.promptise.com/guides/custom-reasoning/)
+
+`Runtime` &nbsp; [Tool injection](https://docs.promptise.com/core/engine-tools/) · [Processors](https://docs.promptise.com/core/engine-processors/) · [Hooks](https://docs.promptise.com/core/engine-hooks/) · [Serialization](https://docs.promptise.com/core/engine-serialization/)
 
 </td>
 </tr>
-
 <tr>
 <td valign="top">
 
-### <a href="https://docs.promptise.com/guides/agentic-runtime/">Agent Runtime →</a>
+#### 🔧&nbsp; MCP Server & Client
+<sub>Build a tool once; every agent can use it.</sub>
 
-<sub>Autonomous agents with governance, triggers, and crash recovery.</sub>
+**[Explore →](https://docs.promptise.com/mcp/)**
 
 </td>
-<td colspan="2" valign="top">
+<td valign="top">
 
-### <a href="https://docs.promptise.com/prompting/">Prompt Engineering →</a>
+`Server` &nbsp; [Guide](https://docs.promptise.com/guides/production-mcp-servers/) · [Fundamentals](https://docs.promptise.com/mcp/server/building-servers/) · [Routers & middleware](https://docs.promptise.com/mcp/server/routers-middleware/) · [Auth & security](https://docs.promptise.com/mcp/server/auth-security/) · [Multi-tenancy](https://docs.promptise.com/mcp/server/multi-tenancy/) · [Approval gates](https://docs.promptise.com/mcp/server/approval-gates/) · [Production](https://docs.promptise.com/mcp/server/production-features/) · [Caching](https://docs.promptise.com/mcp/server/caching-performance/) · [Observability](https://docs.promptise.com/mcp/server/observability/) · [Resilience](https://docs.promptise.com/mcp/server/resilience-patterns/) · [Queue](https://docs.promptise.com/mcp/server/queue/) · [Advanced](https://docs.promptise.com/mcp/server/advanced-patterns/) · [Deployment](https://docs.promptise.com/mcp/server/deployment/) · [Testing](https://docs.promptise.com/mcp/server/testing/)
 
-<sub>Composable blocks, strategies, flows, and guards. Prompts built like software, not strings.</sub>
+`Client` &nbsp; [Guide](https://docs.promptise.com/mcp/client/) · [Tool adapter](https://docs.promptise.com/mcp/client/tool-adapter/)
 
 </td>
 </tr>
-
 <tr>
-<td colspan="2" valign="top">
+<td valign="top">
 
-### <a href="https://docs.promptise.com/resources/showcase/">Showcase →</a>
+#### ⚡&nbsp; Agent Runtime
+<sub>Run agents unattended, on budget, recoverable.</sub>
 
-<sub>End-to-end working patterns and reference implementations.</sub>
+**[Explore →](https://docs.promptise.com/runtime/)**
 
 </td>
 <td valign="top">
 
-### <a href="https://docs.promptise.com/api/agent/">API Reference →</a>
+`Core` &nbsp; [Processes](https://docs.promptise.com/runtime/processes/) · [Orchestration API](https://docs.promptise.com/runtime/api/) · [Manager](https://docs.promptise.com/runtime/runtime-manager/) · [Context & state](https://docs.promptise.com/runtime/context/) · [Lifecycle](https://docs.promptise.com/runtime/lifecycle/) · [Hooks](https://docs.promptise.com/runtime/hooks/) · [Conversation](https://docs.promptise.com/runtime/conversation/)
 
-<sub>Every class, method, parameter.</sub>
+`Governance` &nbsp; [Mission](https://docs.promptise.com/runtime/governance/mission/) · [Budget](https://docs.promptise.com/runtime/governance/budget/) · [Health](https://docs.promptise.com/runtime/governance/health/) · [Secrets](https://docs.promptise.com/runtime/governance/secrets/)
+
+`Triggers` &nbsp; [Overview](https://docs.promptise.com/runtime/triggers/) · [Cron](https://docs.promptise.com/runtime/triggers/cron/) · [Event & webhook](https://docs.promptise.com/runtime/triggers/event-webhook/) · [File watch](https://docs.promptise.com/runtime/triggers/file-watch/)
+
+`Journal & recovery` &nbsp; [Overview](https://docs.promptise.com/runtime/journal/) · [Backends](https://docs.promptise.com/runtime/journal/backends/) · [Replay](https://docs.promptise.com/runtime/journal/replay/) · [Rewind](https://docs.promptise.com/runtime/journal/rewind/)
+
+`Config & scale` &nbsp; [Options](https://docs.promptise.com/runtime/configuration/) · [Manifests](https://docs.promptise.com/runtime/manifests/) · [Meta-tools](https://docs.promptise.com/runtime/meta-tools/) · [Coordinator](https://docs.promptise.com/runtime/distributed/coordinator/) · [Discovery](https://docs.promptise.com/runtime/distributed/discovery-transport/) · [Dashboard](https://docs.promptise.com/runtime/dashboard/) · [CLI](https://docs.promptise.com/runtime/cli/)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+#### 🔐&nbsp; Agent Identity
+<sub>An authenticated identity for every agent.</sub>
+
+**[Explore →](https://docs.promptise.com/identity/overview/)**
+
+</td>
+<td valign="top">
+
+`Core` &nbsp; [Overview](https://docs.promptise.com/identity/overview/) · [Quickstart](https://docs.promptise.com/identity/quickstart/) · [Guide](https://docs.promptise.com/identity/guide/) · [Architecture](https://docs.promptise.com/identity/architecture/) · [Security](https://docs.promptise.com/identity/security/) · [Migration](https://docs.promptise.com/identity/migration/)
+
+`Providers` &nbsp; [Microsoft Entra ID](https://docs.promptise.com/identity/providers/entra/) · [AWS IAM](https://docs.promptise.com/identity/providers/aws/) · [Google Cloud](https://docs.promptise.com/identity/providers/gcp/) · [SPIFFE / SPIRE](https://docs.promptise.com/identity/providers/spiffe/) · [Generic OIDC](https://docs.promptise.com/identity/providers/oidc/)
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+#### ✨&nbsp; Prompt Engineering
+<sub>Prompts built like software — versioned and tested.</sub>
+
+**[Explore →](https://docs.promptise.com/prompting/)**
+
+</td>
+<td valign="top">
+
+`Build` &nbsp; [PromptBlocks](https://docs.promptise.com/prompting/blocks/) · [ConversationFlow](https://docs.promptise.com/prompting/flows/) · [Builder](https://docs.promptise.com/prompting/builder/) · [Loader & templates](https://docs.promptise.com/prompting/loader-templates/) · [Shell injection](https://docs.promptise.com/prompting/shell-interpolation/)
+
+`Strategies` &nbsp; [Strategies](https://docs.promptise.com/prompting/strategies/) · [Chaining](https://docs.promptise.com/prompting/chaining/) · [Context & variables](https://docs.promptise.com/prompting/context/)
+
+`Quality` &nbsp; [Guards](https://docs.promptise.com/prompting/guards/) · [Inspector](https://docs.promptise.com/prompting/inspector/) · [Testing](https://docs.promptise.com/prompting/testing/) · [Suite & registry](https://docs.promptise.com/prompting/suite-registry/)
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+<div align="center"><sub><b>Also in the docs</b></sub></div>
+
+<table>
+<tr>
+<td valign="top" width="26%"><sub><b>📚 &nbsp;Guides & Labs</b></sub></td>
+<td valign="top">
+
+[Building agents](https://docs.promptise.com/guides/building-agents/) · [Context lifecycle](https://docs.promptise.com/guides/context-lifecycle/) · [Code-action](https://docs.promptise.com/guides/code-action/) · [Production MCP servers](https://docs.promptise.com/guides/production-mcp-servers/) · [Agentic runtime](https://docs.promptise.com/guides/agentic-runtime/) · [Prompt engineering](https://docs.promptise.com/guides/prompt-engineering/) · [Multi-user systems](https://docs.promptise.com/guides/multi-user-systems/) · [Agent-to-MCP identity](https://docs.promptise.com/guides/multi-user-identity/) · [Secure multi-tenant platform](https://docs.promptise.com/guides/secure-multi-tenant-platform/) · [Multi-agent coordination](https://docs.promptise.com/guides/multi-agent-teams/) &nbsp;•&nbsp; **Labs:** [Customer support](https://docs.promptise.com/guides/lab-customer-support/) · [Data analysis](https://docs.promptise.com/guides/lab-data-analysis/) · [Code review](https://docs.promptise.com/guides/lab-code-review/) · [Pipeline observer](https://docs.promptise.com/guides/lab-pipeline-observer/)
+
+</td>
+</tr>
+<tr>
+<td valign="top"><sub><b>📖 &nbsp;API reference</b></sub></td>
+<td valign="top">
+
+[Agent](https://docs.promptise.com/api/agent/) · [Config](https://docs.promptise.com/api/config/) · [Memory](https://docs.promptise.com/api/memory/) · [RAG](https://docs.promptise.com/api/rag/) · [Sandbox](https://docs.promptise.com/api/sandbox/) · [Observability](https://docs.promptise.com/api/observability/) · [Identity](https://docs.promptise.com/api/identity/) · [MCP server](https://docs.promptise.com/api/mcp-server/) · [MCP client](https://docs.promptise.com/api/mcp-client/) · [Prompts](https://docs.promptise.com/api/prompts/) · [Runtime](https://docs.promptise.com/api/runtime/) · [Cross-agent](https://docs.promptise.com/api/cross-agent/) · [SuperAgent](https://docs.promptise.com/api/superagent/) · [Utilities](https://docs.promptise.com/api/utilities/)
+
+</td>
+</tr>
+<tr>
+<td valign="top"><sub><b>🚀 &nbsp;Start here</b></sub></td>
+<td valign="top">
+
+[Installation](https://docs.promptise.com/) · [Extras](https://docs.promptise.com/getting-started/installation-extras/) · [Quick start](https://docs.promptise.com/getting-started/quickstart/) · [Cookbook](https://docs.promptise.com/getting-started/cookbook/) · [Why Promptise](https://docs.promptise.com/getting-started/why-promptise/) · [What is MCP?](https://docs.promptise.com/getting-started/what-is-mcp/) · [Model setup](https://docs.promptise.com/getting-started/model-setup/) · [Best LLMs](https://docs.promptise.com/getting-started/best-llms-for-agents/) · [Key concepts](https://docs.promptise.com/getting-started/concepts/) · [Glossary](https://docs.promptise.com/getting-started/glossary/) &nbsp;•&nbsp; **More:** [Blog](https://docs.promptise.com/blog/) · [Showcase](https://docs.promptise.com/resources/showcase/) · [Examples](https://docs.promptise.com/resources/examples/) · [Migration](https://docs.promptise.com/resources/migration/) · [Changelog](https://docs.promptise.com/resources/changelog/) · [FAQ](https://docs.promptise.com/faq/) · [Contributing](https://docs.promptise.com/resources/contributing/)
 
 </td>
 </tr>
@@ -324,7 +427,7 @@ Prompts built like software. Not strings.
 
 <div align="center">
   <h2>Ecosystem</h2>
-  <p><sub>Promptise plugs into what your team already runs.</sub></p>
+  <p><sub>Promptise plugs into what your team already runs — and runs fully offline when it has to.</sub></p>
 </div>
 
 <br/>
@@ -340,7 +443,7 @@ Prompts built like software. Not strings.
 <a href="https://mistral.ai"><img alt="Mistral" src="https://img.shields.io/badge/Mistral-FA520F?style=for-the-badge&logoColor=white"></a>
 <a href="https://huggingface.co"><img alt="Hugging Face" src="https://img.shields.io/badge/Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black"></a>
 
-<sub>+ any LangChain <code>BaseChatModel</code> · <code>FallbackChain</code> for automatic failover</sub>
+<sub>+ any LangChain <code>BaseChatModel</code> · <code>FallbackChain</code> for automatic failover · <a href="https://docs.promptise.com/getting-started/model-setup/">Model setup →</a></sub>
 
 <br/><br/>
 
@@ -350,7 +453,7 @@ Prompts built like software. Not strings.
 <a href="https://mem0.ai"><img alt="Mem0" src="https://img.shields.io/badge/Mem0-111111?style=for-the-badge&logoColor=white"></a>
 <a href="https://www.sbert.net"><img alt="Sentence Transformers" src="https://img.shields.io/badge/Sentence--Transformers-EE4C2C?style=for-the-badge"></a>
 
-<sub>Local embeddings · air-gapped model paths · prompt-injection mitigation built in</sub>
+<sub>Local embeddings · air-gapped model paths · per-tenant isolation · <a href="https://docs.promptise.com/core/memory/">Memory →</a></sub>
 
 <br/><br/>
 
@@ -360,7 +463,19 @@ Prompts built like software. Not strings.
 <a href="https://redis.io"><img alt="Redis" src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white"></a>
 <a href="https://sqlite.org"><img alt="SQLite" src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white"></a>
 
-<sub>Session ownership enforced · per-user isolation for cache and guardrails</sub>
+<sub>Session ownership enforced · per-tenant isolation for cache and guardrails · <a href="https://docs.promptise.com/core/conversations/">Conversations →</a></sub>
+
+<br/><br/>
+
+#### &nbsp;&nbsp;Identity &amp; Auth&nbsp;&nbsp;
+
+<a href="https://www.microsoft.com/security/business/identity-access/microsoft-entra-id"><img alt="Microsoft Entra ID" src="https://img.shields.io/badge/Entra%20ID-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white"></a>
+<a href="https://aws.amazon.com/iam/"><img alt="AWS IAM" src="https://img.shields.io/badge/AWS%20IAM-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white"></a>
+<a href="https://cloud.google.com"><img alt="Google Cloud" src="https://img.shields.io/badge/Google%20Cloud-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white"></a>
+<a href="https://spiffe.io"><img alt="SPIFFE" src="https://img.shields.io/badge/SPIFFE%2FSPIRE-000000?style=for-the-badge"></a>
+<a href="https://openid.net/connect/"><img alt="OIDC" src="https://img.shields.io/badge/OIDC-F78C40?style=for-the-badge&logo=openid&logoColor=white"></a>
+
+<sub>A verifiable identity per agent — no shared keys · <a href="https://docs.promptise.com/identity/overview/">Agent Identity →</a></sub>
 
 <br/><br/>
 
@@ -371,18 +486,18 @@ Prompts built like software. Not strings.
 <a href="https://slack.com"><img alt="Slack" src="https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white"></a>
 <a href="https://www.pagerduty.com"><img alt="PagerDuty" src="https://img.shields.io/badge/PagerDuty-06AC38?style=for-the-badge&logo=pagerduty&logoColor=white"></a>
 
-<sub>8 transporters: OTel · Prometheus · Slack · PagerDuty · Webhook · HTML · JSON · Console</sub>
+<sub>8 transporters: OTel · Prometheus · Slack · PagerDuty · Webhook · HTML · JSON · Console · <a href="https://docs.promptise.com/core/observability/">Observability →</a></sub>
 
 <br/><br/>
 
-#### &nbsp;&nbsp;Sandbox &amp; Infrastructure&nbsp;&nbsp;
+#### &nbsp;&nbsp;Sandbox &amp; Deployment&nbsp;&nbsp;
 
 <a href="https://www.docker.com"><img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white"></a>
 <a href="https://gvisor.dev"><img alt="gVisor" src="https://img.shields.io/badge/gVisor-4285F4?style=for-the-badge&logoColor=white"></a>
-<a href="https://kubernetes.io"><img alt="Kubernetes" src="https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white"></a>
 <a href="https://en.wikipedia.org/wiki/Seccomp"><img alt="seccomp" src="https://img.shields.io/badge/seccomp-111111?style=for-the-badge"></a>
+<a href="https://kubernetes.io"><img alt="Kubernetes" src="https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white"></a>
 
-<sub>Docker + seccomp + gVisor + capability dropping · Kubernetes-native health probes</sub>
+<sub>Docker + seccomp + gVisor + capability dropping · Kubernetes health probes · <a href="https://docs.promptise.com/core/sandbox/">Sandbox →</a></sub>
 
 <br/><br/>
 
@@ -400,8 +515,6 @@ Prompts built like software. Not strings.
 <br/>
 
 ## &nbsp;
-
-<br/>
 
 <div align="center">
   <sub>
@@ -427,7 +540,7 @@ Prompts built like software. Not strings.
   <br/>
   <br/>
 
-  <sub><sup>Formerly known as <a href="https://github.com/cryxnet/DeepMCPAgent">DeepMCPAgent</a> — a public preview of one sliver of this framework (MCP-native agent tooling). Promptise Foundry is the full system it was a teaser for: reasoning engine, agent runtime, prompt engineering, sandboxed execution, governance, and observability.</sup></sub>
+  <sub><sup>Formerly <a href="https://github.com/cryxnet/DeepMCPAgent">DeepMCPAgent</a> — a public preview of one sliver of this framework (MCP-native agent tooling). Promptise Foundry is the full system it hinted at: reasoning engine, agent runtime, prompt engineering, sandboxed execution, governance, and observability.</sup></sub>
 
   <br/>
 </div>

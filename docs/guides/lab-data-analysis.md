@@ -225,4 +225,4 @@ The key difference: the schema-aware prompt tells the LLM exact column names and
 
 - [Custom Reasoning Guide](custom-reasoning.md) — Build more complex patterns
 - [Node Flags Reference](../core/engine-flags.md) — All 16 production flags
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — 7 built-in patterns
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — 10 built-in patterns

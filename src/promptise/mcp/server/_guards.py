@@ -142,6 +142,65 @@ class RequireClientId(Guard):
         )
 
 
+class RequireTenant(Guard):
+    """Guard that requires the client to belong to *some* tenant.
+
+    Reads ``ctx.client.tenant_id``, populated by ``AuthMiddleware`` from
+    the configured JWT tenant claim (default ``tenant_id``) or from the
+    API-key config dict.  Fails closed: no authentication → no tenant →
+    denied.  Auto-applied to every tool when the server is built with
+    ``MCPServer(require_tenant=True)``.
+
+    Example::
+
+        @server.tool(auth=True, guards=[RequireTenant()])
+        async def list_records() -> list:
+            ...
+    """
+
+    async def check(self, ctx: RequestContext) -> bool:
+        client = getattr(ctx, "client", None)
+        return bool(client is not None and getattr(client, "tenant_id", None))
+
+    def describe_denial(self, ctx: RequestContext) -> str:
+        return (
+            "This tool requires a tenant identity, but the client presented "
+            "no tenant claim (check the token's tenant claim or the API-key "
+            "config's tenant_id)"
+        )
+
+
+class HasTenant(Guard):
+    """Guard that requires the client to belong to one of the given tenants.
+
+    Args:
+        tenant_ids: One or more allowed tenant identifiers.
+
+    Example::
+
+        @server.tool(auth=True, guards=[HasTenant("acme", "globex")])
+        async def partner_tool() -> str:
+            ...
+    """
+
+    def __init__(self, *tenant_ids: str) -> None:
+        self._allowed = set(tenant_ids)
+
+    async def check(self, ctx: RequestContext) -> bool:
+        client = getattr(ctx, "client", None)
+        tenant = getattr(client, "tenant_id", None) if client is not None else None
+        return tenant in self._allowed
+
+    def describe_denial(self, ctx: RequestContext) -> str:
+        client = getattr(ctx, "client", None)
+        tenant = getattr(client, "tenant_id", None) if client is not None else None
+        actual = tenant if tenant else "(none)"
+        return (
+            f"Requires tenant in [{', '.join(sorted(self._allowed))}], "
+            f"but client belongs to [{actual}]"
+        )
+
+
 class HasScope(Guard):
     """Guard that requires **any** of the given OAuth2 scopes.
 

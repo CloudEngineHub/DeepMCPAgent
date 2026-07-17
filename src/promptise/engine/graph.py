@@ -83,6 +83,9 @@ class PromptGraph:
     # Prebuilt factory helpers — bound at import time by ``engine/prebuilts.py``.
     # Declared here (as ``Any``) so static analysis recognises them as attributes.
     react: Any
+    managed: Any
+    code_action: Any
+    verify: Any
     peoatr: Any
     research: Any
     autonomous: Any

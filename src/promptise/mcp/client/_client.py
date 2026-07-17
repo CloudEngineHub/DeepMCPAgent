@@ -53,6 +53,8 @@ class MCPClient:
         command: Executable for stdio transport (e.g. ``"python"``).
         args: Arguments for the stdio command.
         env: Environment variables for the stdio process.
+        cwd: Working directory for the stdio subprocess.  When ``None``
+            the subprocess inherits the parent process's working directory.
         timeout: HTTP request timeout in seconds.
 
     Example — unauthenticated::
@@ -101,6 +103,7 @@ class MCPClient:
         command: str | None = None,
         args: list[str] | None = None,
         env: dict[str, str] | None = None,
+        cwd: str | None = None,
         timeout: float = 30.0,
     ) -> None:
         self._url = url
@@ -109,6 +112,7 @@ class MCPClient:
         self._command = command
         self._args = args or []
         self._env = env or {}
+        self._cwd = cwd
         self._timeout = timeout
 
         # Session state (set on __aenter__)
@@ -262,17 +266,31 @@ class MCPClient:
         self._session = await self._session_ctx.__aenter__()
         await self._session.initialize()
 
-    async def _connect_stdio(self) -> None:
+    def _stdio_params(self) -> Any:
+        """Build the stdio launch parameters, including the working dir.
+
+        Factored out so the parameter mapping — notably ``cwd`` — can be
+        unit-tested without launching a subprocess.
+
+        Raises:
+            MCPClientError: If no command is configured for stdio transport.
+        """
         if not self._command:
             raise MCPClientError("command is required for stdio transport")
 
-        from mcp.client.stdio import StdioServerParameters, stdio_client
+        from mcp.client.stdio import StdioServerParameters
 
-        params = StdioServerParameters(
+        return StdioServerParameters(
             command=self._command,
             args=self._args,
             env=self._env or None,
+            cwd=self._cwd,
         )
+
+    async def _connect_stdio(self) -> None:
+        from mcp.client.stdio import stdio_client
+
+        params = self._stdio_params()
         self._transport_ctx = stdio_client(params)
         read_stream, write_stream = await self._transport_ctx.__aenter__()
 

@@ -14,7 +14,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any, get_type_hints
 
-from ._context import RequestContext
+from ._context import _wants_request_context
 from ._types import PromptDef, ResourceDef, ToolDef
 from ._validation import build_input_model
 
@@ -46,7 +46,9 @@ def _excluded_params(func: Callable[..., Any]) -> set[str]:
 
     Excluded:
     - ``self``
-    - Parameters annotated as ``RequestContext``
+    - Parameters annotated as ``RequestContext`` (including
+      ``Optional[RequestContext]`` / ``RequestContext | None``, which is also
+      what Python 3.10 produces for ``ctx: RequestContext = None``)
     - Parameters whose default is a ``_DependsMarker``
     """
     excluded: set[str] = set()
@@ -61,9 +63,11 @@ def _excluded_params(func: Callable[..., Any]) -> set[str]:
         if name == "self":
             excluded.add(name)
             continue
-        # Check type annotation
+        # Check type annotation — must use the SAME recognition as
+        # inject_context, else an Optional[RequestContext] param leaks into the
+        # input schema, gets validated to None, and injection then skips it.
         ann = hints.get(name, param.annotation)
-        if ann is RequestContext:
+        if _wants_request_context(ann):
             excluded.add(name)
             continue
         # Check if default is a Depends() marker
@@ -87,11 +91,19 @@ def build_tool_def(
     roles: list[str] | None = None,
     annotations: Any | None = None,
     max_concurrent: int | None = None,
+    requires_approval: bool = False,
 ) -> ToolDef:
     """Build a ``ToolDef`` from a decorated function."""
     tool_name = name or func.__name__
     tool_desc = _get_description(func, description)
     excluded = _excluded_params(func)
+
+    # Fail fast on a malformed rate-limit spec: a typo like "100/mn" must
+    # error at registration, not silently never limit at request time.
+    if rate_limit is not None:
+        from ._rate_limit import parse_rate_limit
+
+        parse_rate_limit(rate_limit)
 
     _, schema = build_input_model(func, exclude=excluded)
 
@@ -108,6 +120,7 @@ def build_tool_def(
         roles=roles or [],
         annotations=annotations,
         max_concurrent=max_concurrent,
+        requires_approval=requires_approval,
     )
 
 

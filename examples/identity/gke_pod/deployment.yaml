@@ -1,0 +1,40 @@
+# GKE Deployment — an agent with a verifiable GCP identity (Workload Identity).
+#
+# Prerequisites (manual):
+#   1. Enable Workload Identity on the cluster.
+#   2. Create a GCP service account (GSA) and bind it to this Kubernetes
+#      service account (KSA):
+#        gcloud iam service-accounts add-iam-policy-binding \
+#          AGENT_GSA@PROJECT_ID.iam.gserviceaccount.com \
+#          --role roles/iam.workloadIdentityUser \
+#          --member "serviceAccount:PROJECT_ID.svc.id.goog[NAMESPACE/promptise-agent]"
+#
+# The GSA is the agent's identity. A model key (e.g. ANTHROPIC_API_KEY) is
+# only needed if the agent invokes an LLM.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promptise-agent
+  annotations:
+    iam.gke.io/gcp-service-account: AGENT_GSA@PROJECT_ID.iam.gserviceaccount.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promptise-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promptise-agent
+  template:
+    metadata:
+      labels:
+        app: promptise-agent
+    spec:
+      serviceAccountName: promptise-agent   # binds the pod to the GSA
+      containers:
+        - name: agent
+          image: YOUR_REGISTRY/promptise-agent:latest
+          command: ["python", "app.py"]

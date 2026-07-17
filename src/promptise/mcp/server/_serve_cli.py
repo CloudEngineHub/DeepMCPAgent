@@ -114,13 +114,17 @@ def resolve_server(target: str) -> Any:
     return server
 
 
-def run_serve(args: argparse.Namespace) -> None:
+def run_serve(args: argparse.Namespace, server: Any | None = None) -> None:
     """Execute the ``serve`` command.
 
     Args:
         args: Parsed command-line arguments.
+        server: Optional pre-resolved ``MCPServer`` instance. When ``None``,
+            the server is resolved from ``args.target`` (lets callers
+            validate the resolved object before dispatch).
     """
-    server = resolve_server(args.target)
+    if server is None:
+        server = resolve_server(args.target)
 
     if args.reload:
         from ._hot_reload import hot_reload

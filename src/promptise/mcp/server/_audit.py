@@ -153,6 +153,15 @@ class AuditMiddleware:
             except Exception:
                 entry["result"] = "<unserializable>"
 
+        # Record the verified identity of the acting agent (from a JWT/JWKS
+        # auth provider), so the tamper-evident log answers "which agent did
+        # what" — not just a client_id string. Only identity *descriptors* are
+        # included (subject, issuer, audience, roles); never the token or the
+        # full claim set, which may carry sensitive data.
+        identity = self._identity_fields(ctx)
+        if identity:
+            entry["identity"] = identity
+
         if self._signed:
             entry["prev_hash"] = self._prev_hash
             payload = json.dumps(entry, sort_keys=True, default=str)
@@ -160,6 +169,32 @@ class AuditMiddleware:
             self._prev_hash = entry["hmac"]
 
         return entry
+
+    @staticmethod
+    def _identity_fields(ctx: RequestContext) -> dict[str, Any]:
+        """Extract verified-identity descriptors from ``ctx.client``.
+
+        Returns the acting agent's ``subject`` / ``issuer`` / ``audience`` /
+        ``roles`` when present (JWT or JWKS auth), or an empty dict for
+        unauthenticated or API-key calls. Never includes the token or the
+        full claim set.
+        """
+        client = getattr(ctx, "client", None)
+        if client is None:
+            return {}
+        identity: dict[str, Any] = {}
+        if getattr(client, "subject", None):
+            identity["subject"] = client.subject
+        if getattr(client, "issuer", None):
+            identity["issuer"] = client.issuer
+        if getattr(client, "audience", None):
+            identity["audience"] = client.audience
+        if getattr(client, "tenant_id", None):
+            identity["tenant_id"] = client.tenant_id
+        roles = getattr(client, "roles", None)
+        if roles:
+            identity["roles"] = sorted(roles)
+        return identity
 
     @property
     def entries(self) -> list[dict[str, Any]]:

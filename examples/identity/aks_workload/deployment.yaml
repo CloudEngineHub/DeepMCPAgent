@@ -1,0 +1,44 @@
+# AKS Deployment — an agent with a verifiable Entra identity (Workload Identity).
+#
+# Prerequisites (manual):
+#   1. Enable the OIDC issuer and Workload Identity add-on on the AKS cluster.
+#   2. Create a managed identity and a federated credential that trusts this
+#      Kubernetes service account:
+#        az identity federated-credential create \
+#          --name promptise-agent --identity-name AGENT_MI \
+#          --resource-group RG --issuer "$AKS_OIDC_ISSUER" \
+#          --subject system:serviceaccount:NAMESPACE:promptise-agent \
+#          --audience api://AzureADTokenExchange
+#
+# The managed identity is the agent's identity. A model key (e.g.
+# ANTHROPIC_API_KEY) is only needed if the agent invokes an LLM.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promptise-agent
+  annotations:
+    azure.workload.identity/client-id: AGENT_MANAGED_IDENTITY_CLIENT_ID
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promptise-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promptise-agent
+  template:
+    metadata:
+      labels:
+        app: promptise-agent
+        azure.workload.identity/use: "true"   # injects the projected token
+    spec:
+      serviceAccountName: promptise-agent
+      containers:
+        - name: agent
+          image: YOUR_REGISTRY/promptise-agent:latest
+          command: ["python", "app.py"]
+          # AZURE_FEDERATED_TOKEN_FILE and AZURE_CLIENT_ID are injected
+          # automatically by the Workload Identity webhook.

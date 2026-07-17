@@ -69,6 +69,11 @@ class MCPServer:
         name: Server name advertised to MCP clients.
         version: Server version string.
         instructions: Optional instructions sent to clients on initialisation.
+        require_auth: Force ``auth=True`` on every registered tool.
+        require_tenant: Make tenant identity a server-wide invariant: every
+            tool authenticates and carries a ``RequireTenant`` guard, so a
+            client whose token lacks the tenant claim is denied on every
+            call.  Implies ``require_auth``.
     """
 
     def __init__(
@@ -80,12 +85,14 @@ class MCPServer:
         auto_manifest: bool = True,
         shutdown_timeout: float | None = 30.0,
         require_auth: bool = False,
+        require_tenant: bool = False,
     ) -> None:
         self.name = name
         self.version = version
         self.instructions = instructions
         self._shutdown_timeout = shutdown_timeout
-        self._require_auth = require_auth
+        self._require_auth = require_auth or require_tenant
+        self._require_tenant = require_tenant
 
         self._tool_registry = ToolRegistry()
         self._resource_registry = ResourceRegistry()
@@ -140,6 +147,8 @@ class MCPServer:
         open_world_hint: bool | None = None,
         # Per-tool concurrency limit
         max_concurrent: int | None = None,
+        # Server-side human-in-the-loop approval
+        requires_approval: bool = False,
     ) -> Callable[..., Any]:
         """Register a function as an MCP tool.
 
@@ -162,6 +171,12 @@ class MCPServer:
                 (MCP annotation hint).
             max_concurrent: Maximum concurrent calls for this tool.
                 When reached, additional calls receive a retryable error.
+            requires_approval: Require a human approval decision before every
+                call to this tool, enforced **server-side** for any MCP
+                client.  The server must install an
+                ``ApprovalGateMiddleware`` — building a server with an
+                ungated ``requires_approval`` tool raises at build time
+                rather than silently not enforcing it.
 
         Example::
 
@@ -217,6 +232,7 @@ class MCPServer:
                 roles=roles,
                 annotations=annotations,
                 max_concurrent=max_concurrent,
+                requires_approval=requires_approval,
             )
             self._tool_registry.register(tool_def)
 
@@ -609,8 +625,10 @@ class MCPServer:
             dashboard_state.middleware_count = len(self._middlewares)
             _dashboard_obj = Dashboard(dashboard_state)
 
-        # ---- Print banner (only when dashboard is off) ----
-        if not dashboard:
+        # ---- Print banner (dashboard off, and never on stdio) ----
+        # stdio uses stdout for the JSON-RPC protocol stream — any banner
+        # there corrupts it, so the banner is HTTP/SSE-only.
+        if not dashboard and transport != "stdio":
             self._print_banner(transport=transport, host=host, port=port)
 
         # ---- Auth gate for transport-level rejection ----
@@ -682,6 +700,27 @@ class MCPServer:
             middleware_count=len(self._middlewares),
         )
 
+    def _apply_require_tenant(self) -> None:
+        """Enforce ``MCPServer(require_tenant=True)`` on every registered tool.
+
+        Forces ``auth=True`` and appends a ``RequireTenant`` guard to each
+        tool that lacks one, covering every registration path (decorator,
+        routers, mounts, OpenAPI import).  Idempotent — called at build
+        time and by ``TestClient`` so all execution paths enforce the
+        tenant invariant.  Guards fail closed: an unauthenticated call or
+        a token without the tenant claim is denied.
+        """
+        if not self._require_tenant:
+            return
+        from ._guards import RequireTenant
+
+        for tdef in self._tool_registry.list_all():
+            # ToolDef is a frozen dataclass; the registry holds the same
+            # instance everywhere, so mutate in place via the escape hatch.
+            object.__setattr__(tdef, "auth", True)
+            if not any(isinstance(g, RequireTenant) for g in tdef.guards):
+                tdef.guards.append(RequireTenant())
+
     def _register_tool_handlers(self, ll: LowLevelServer) -> None:
         tool_reg = self._tool_registry
         input_models = self._input_models
@@ -689,6 +728,9 @@ class MCPServer:
         middlewares = self._middlewares
         exception_handlers = self._exception_handlers
         session_manager = self._session_manager
+
+        # Tenant invariant: apply before chains are compiled
+        self._apply_require_tenant()
 
         # Auto-insert per-tool concurrency limiter if any tool has
         # max_concurrent set (guard against double-insert)
@@ -698,6 +740,45 @@ class MCPServer:
 
             if not any(isinstance(m, PerToolConcurrencyLimiter) for m in middlewares):
                 middlewares.append(PerToolConcurrencyLimiter())
+
+        # Auto-insert declared rate-limit enforcement if any tool has
+        # rate_limit set (guard against double-insert). This makes
+        # @server.tool(rate_limit="100/min") enforced with no manual wiring.
+        has_declared_rate_limits = any(getattr(t, "rate_limit", None) for t in tool_reg.list_all())
+        if has_declared_rate_limits:
+            from ._rate_limit import DeclaredRateLimitMiddleware
+
+            if not any(isinstance(m, DeclaredRateLimitMiddleware) for m in middlewares):
+                middlewares.append(DeclaredRateLimitMiddleware())
+
+        # Approval invariant: a declared requires_approval MUST be gated.
+        # Unlike rate limits, a gate cannot be auto-inserted (someone has to
+        # decide WHO approves), so an ungated declaration is a configuration
+        # error — refuse to build rather than silently not enforcing it.
+        from ._approval_gate import ApprovalGateMiddleware
+
+        server_has_gate = any(isinstance(m, ApprovalGateMiddleware) for m in middlewares)
+        # A gated tool is covered when a gate sits in the server chain OR in
+        # that tool's own router_middleware (router-level gate) — both are
+        # compiled into the per-tool chain below, so either enforces.
+        ungated_tools = [
+            t.name
+            for t in tool_reg.list_all()
+            if getattr(t, "requires_approval", False)
+            and not server_has_gate
+            and not any(
+                isinstance(m, ApprovalGateMiddleware) for m in getattr(t, "router_middleware", [])
+            )
+        ]
+        if ungated_tools:
+            raise RuntimeError(
+                f"Tools {ungated_tools} declare requires_approval=True but no "
+                "ApprovalGateMiddleware is installed (neither server- nor "
+                "router-level). Add one, e.g.: server.add_middleware("
+                "ApprovalGateMiddleware(handler=PendingApprover(server))). "
+                "Refusing to start a server whose declared approval gates "
+                "would not be enforced."
+            )
 
         # Pre-compile middleware chains per tool at build time so we
         # don't re-build closure chains on every request.
@@ -777,6 +858,13 @@ class MCPServer:
                 meta=dict(http_headers),
             )
             ctx.state["tool_def"] = tdef
+            # Expose the MCP session to middleware (e.g. the approval gate's
+            # elicitation approver). None when unavailable — consumers must
+            # fail closed.
+            try:
+                ctx.state["_mcp_session"] = ll.request_context.session
+            except Exception:
+                ctx.state["_mcp_session"] = None
             set_context(ctx)
 
             di_resolver = DependencyResolver()
@@ -786,8 +874,21 @@ class MCPServer:
                 if model is not None:
                     arguments = validate_arguments(model, arguments)
 
+                # Snapshot the validated user arguments for middleware that
+                # needs them (approval gate) — before DI injects framework
+                # objects (Elicitor, SessionState, ...) into the dict.
+                ctx.state["_tool_arguments"] = dict(arguments)
+
                 # Resolve dependency injection
                 arguments = await di_resolver.resolve(tdef.handler, arguments)
+
+                # Inject RequestContext into a ``ctx: RequestContext`` param, so
+                # the documented parameter pattern works on the live transports
+                # exactly as it does under TestClient (previously only the test
+                # client injected it — a test/prod divergence).
+                from ._context import inject_context
+
+                arguments = inject_context(tdef.handler, arguments, ctx)
 
                 # Detect injectable types in resolved args and bind them
                 from ._background import BackgroundTasks as _BG
