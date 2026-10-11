@@ -2847,9 +2847,10 @@ class _TracedTool(WrappingTool):
 
 class _ReusedToolReporter:
     """Engine hook: reports a call answered from an earlier result
-    (``ContextCompaction(reuse_results=...)``) to ``trace_tools`` /
-    ``observer``.  Such a call never reaches the tool or its tracing wrapper,
-    so without this it would be invisible."""
+    (``ContextCompaction(reuse_results=...)``, or a repeat in one model turn
+    of a ``ToolNode(deduplicate=True)``) to ``trace_tools`` / ``observer``.
+    Such a call never reaches the tool or its tracing wrapper, so without
+    this it would be invisible."""
 
     def __init__(self, report: Callable[[str, dict[str, Any], str], None]) -> None:
         self._report = report
