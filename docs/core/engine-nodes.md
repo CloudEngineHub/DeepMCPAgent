@@ -391,10 +391,55 @@ ToolNode("search",
 |-----------|------|---------|-------------|
 | `name` | `str` | *required* | Node identifier |
 | `tools` | `list[BaseTool]` | `None` | Available tools |
-| `validate_inputs` | `bool` | `True` | Validate tool arguments before calling |
+| `validate_inputs` | `bool` | `True` | Check each call's arguments against the tool's parameter schema before calling it; invalid arguments do not reach the tool (see below) |
 | `deduplicate` | `bool` | `True` | Run identical `(tool, args)` calls of one model turn once (see below) |
-| `max_result_chars` | `int` | `4000` | Truncate tool results to this length |
+| `max_result_chars` | `int` | `4000` | Truncate successful tool results to this length |
 | `tool_selector` | `Callable` | `None` | Custom function `(state) -> (tool_name, args)` to pick which tool to call. Without one, the node runs the tool calls of the most recent assistant message that has tool calls |
+
+**A call runs as it does in a `PromptNode`.** Whichever node runs a tool, the
+call goes through the same steps and is reported the same way:
+
+- The engine hooks' [`pre_tool`](engine-hooks.md#tool-hooks) run first and may
+  change the arguments; a `pre_tool` hook that raises blocks the call. Then the
+  tool runs, then `post_tool` hooks may change the result.
+- The tool is invoked as a tool call, so a tool with an
+  `InjectedToolCallId` argument gets its id, and a tool that reports an error
+  counts as failed: the model gets an MCP server's own error envelope
+  (`{"error": {"code": "TOOL_ERROR", "message": ...}}`) in a `ToolMessage` with
+  `status="error"`. A tool that raises gives `"Error: <type>: <message>"`.
+  Each `ToolMessage` carries the tool's `name`.
+- Each call streams: `astream_events()` yields `on_tool_start` and then
+  `on_tool_end` (`status`, `duration_ms`, `reused`) or `on_tool_error`, and
+  `astream_with_tools()` turns them into `ToolStartEvent` / `ToolEndEvent` with
+  the call's `tool_index`, `duration_ms`, `success` and `reused`
+  ([Streaming](streaming.md#what-a-streamed-run-does)). A `ToolNode` runs one
+  turn's calls one after another, in order, so each call's `tool_end` comes
+  before the next call's `tool_start`.
+
+**What `validate_inputs=True` checks.** After the `pre_tool` hooks, the
+arguments are validated against the schema the model is offered for the tool
+(its `args_schema` without injected arguments). As for MCP tools, an explicit
+`null` for an optional parameter that cannot be null counts as not given and is
+left out. When the arguments do not match, the tool does not run; the call's
+`ToolMessage` (`status="error"`) is the same message a
+`promptise.tools.ToolArgumentError` gives, which lists each problem by argument
+path and tells the model to correct the call:
+
+```text
+Invalid arguments for tool 'create_order':
+- qty: Input should be a valid integer, unable to parse string as an integer (got "two")
+Correct the arguments and call the tool again.
+```
+
+The call counts as failed (`tool_calls_failed`, `success: false` in the
+stream), `post_tool` hooks see it, and callbacks get its start and an
+`on_tool_error` with the `ToolArgumentError` (code `INVALID_ARGUMENTS`). An MCP
+tool (also behind an approval gate or guardrails) checks its own arguments the
+same way and gives the same message, so the node leaves the check to it, and
+`trace_tools` and the `observer` show the rejected call as for any MCP call. A
+tool whose schema is a JSON-schema dict rather than a pydantic model is not
+checked by the node; it validates its own input when it runs. With
+`validate_inputs=False` the arguments go to the tool as they are.
 
 **What `deduplicate=True` covers.** Only the calls of **one model turn** (the
 tool calls of one assistant message). When the model asks for the same tool
@@ -404,9 +449,12 @@ result. The repeat is reported as reused, like a call answered by
 [`ContextCompaction(reuse_results=...)`](../guides/context-lifecycle.md#repeated-calls-run-the-tool):
 `trace_tools` prints `↺ Reusing an earlier result for tool: ...`, the
 `observer` records it with `reused: true`, LangChain callbacks get its start and
-end with `metadata["promptise_reused"]`, engine hooks get `on_tool_reused`, and
+end with `metadata["promptise_reused"]`, engine hooks get `on_tool_reused`
+(instead of `pre_tool` / `post_tool`), stream events have `reused: true`, and
 `NodeResult.tool_calls` has it with `"reused": True` (`tool_calls_deduplicated`
-counts it). A failed call is never reused.
+counts it). The repeat gets the first call's result as the model saw it, after
+`post_tool` hooks. A failed call, including one a `pre_tool` hook blocked or
+one with invalid arguments, is never reused.
 
 A call in a **later** model turn, a later pass of a `tool_selector`, or another
 run always runs the tool, so a status or health check returns the current

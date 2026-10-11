@@ -121,15 +121,34 @@ class GraphIterationLimitError(GraphExecutionError):
 
 def _pending_tools(messages: list[Any]) -> list[str] | None:
     """Tools whose results end *messages* unanswered, or ``None`` when the
-    conversation ends on an answer (anything but a tool exchange)."""
-    if not messages or not isinstance(messages[-1], (ToolMessage, AIMessage)):
+    conversation ends on an answer (anything but a tool exchange).
+
+    The tools are those of the trailing tool results: a model turn's calls,
+    and calls a ``ToolNode(tool_selector=...)`` made without one (its
+    ``ToolMessage`` carries the tool's ``name``).  A model turn that asked
+    for tools that never ran names its calls.
+    """
+    if not messages:
         return None
-    if isinstance(messages[-1], AIMessage) and not messages[-1].tool_calls:
+    last = messages[-1]
+    if isinstance(last, AIMessage):
+        if not last.tool_calls:
+            return None
+        return list(dict.fromkeys(str(tc.get("name") or "?") for tc in last.tool_calls))
+    if not isinstance(last, ToolMessage):
         return None
+    asked = {
+        tc.get("id"): str(tc.get("name") or "?")
+        for message in messages
+        if isinstance(message, AIMessage)
+        for tc in message.tool_calls
+    }
+    names: list[str] = []
     for message in reversed(messages):
-        if isinstance(message, AIMessage) and message.tool_calls:
-            return list(dict.fromkeys(str(tc.get("name", "?")) for tc in message.tool_calls))
-    return ["?"]
+        if not isinstance(message, ToolMessage):
+            break
+        names.append(asked.get(message.tool_call_id) or message.name or "?")
+    return list(dict.fromkeys(reversed(names)))
 
 
 class PromptGraphEngine:

@@ -17,11 +17,12 @@ class MyHook:
         return result
 
     async def pre_tool(self, tool_name: str, args: dict, state: GraphState) -> dict:
-        """Called before each tool call inside PromptNode. Can modify args."""
+        """Called before each tool call of a PromptNode or ToolNode. Returns the
+        args to call the tool with. Raise to block the call."""
         return args
 
     async def post_tool(self, tool_name: str, result: str, args: dict, state: GraphState) -> str:
-        """Called after each tool call. Can modify result string."""
+        """Called after each tool call. Returns the result the model sees."""
         return result
 
     async def on_tool_reused(self, tool_name: str, args: dict, result: str, state: GraphState) -> None:
@@ -65,6 +66,42 @@ engine = PromptGraphEngine(
     ],
 )
 ```
+
+## Tool Hooks
+
+`pre_tool` and `post_tool` run around every tool call of a `PromptNode` and of a
+`ToolNode`, the same way in both:
+
+1. Each hook's `pre_tool(tool_name, args, state)`, in registration order. It
+   returns the arguments to use, so a hook can change them (the next hook and
+   the tool get what it returned).
+2. The tool runs with those arguments (after a `ToolNode(validate_inputs=True)`
+   has checked them against the tool's schema).
+3. Each hook's `post_tool(tool_name, result, args, state)`, in registration
+   order, with the arguments the tool got. It returns the result to use: what
+   it returns is what the model sees in the call's `ToolMessage`.
+
+**Blocking a call.** A `pre_tool` hook blocks a call by raising. The tool does
+not run and no `post_tool` hook is called for it; the model gets
+`"Error: <exception message>"` as the call's result (`status="error"`), the call
+counts as failed (`NodeResult.tool_calls_failed`), and the stream reports it as
+`on_tool_error` (`ToolEndEvent(success=False, tool_summary="Tool call failed")`
+in `astream_with_tools()`). The model can then answer, or call something else.
+A `post_tool` hook that raises makes the call fail the same way, after the tool
+ran.
+
+```python
+class ReadOnlyHook:
+    async def pre_tool(self, tool_name, args, state):
+        if tool_name.startswith(("delete_", "drop_")):
+            raise PermissionError(f"{tool_name} is not allowed in read-only mode")
+        return args
+```
+
+A call answered from an earlier result without running the tool
+(`ContextCompaction(reuse_results=...)`, or a repeat in one model turn of a
+`ToolNode(deduplicate=True)`) gets `on_tool_reused` instead of `pre_tool` /
+`post_tool`; its result is the earlier call's, as `post_tool` left it.
 
 ## Built-in Hooks
 

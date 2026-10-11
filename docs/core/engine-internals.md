@@ -354,7 +354,7 @@ graph TD
         FLAGS_POST --> H2["post_node hooks (result modifiable)"]
     end
 
-    subgraph "Per-tool execution (inside PromptNode)"
+    subgraph "Per-tool execution (PromptNode and ToolNode)"
         H3["pre_tool hooks (args modifiable)"] --> TOOL["tool.ainvoke()"]
         TOOL --> H4["post_tool hooks (result modifiable)"]
     end
