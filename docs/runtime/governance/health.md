@@ -22,7 +22,7 @@ config = ProcessConfig(
         empty_threshold=3,       # 3 consecutive short responses = anomaly
         empty_max_chars=10,      # Below 10 chars = trivial response
         error_rate_threshold=0.5, # 50%+ error rate = anomaly
-        on_anomaly="escalate",   # "pause", "stop", "escalate", "log"
+        on_anomaly="escalate",   # "log", "pause" or "escalate"
         cooldown=300,            # 5 min between same anomaly type
         escalation=EscalationTarget(
             webhook_url="https://hooks.slack.com/...",
@@ -67,7 +67,7 @@ After an anomaly, the next successful invocation emits a single `health.recovere
 
 ### Error rate detection
 
-Sliding window error rate. When the fraction of failed tool calls exceeds `error_rate_threshold`, something is systematically wrong.
+Sliding window error rate over the last `error_window` invocations. An invocation counts as failed when it raises and has used up its retries (`trigger_delivery.max_retries`). When the fraction of failed invocations reaches `error_rate_threshold`, something is systematically wrong.
 
 ## Enforcement actions
 
@@ -75,8 +75,11 @@ Sliding window error rate. When the fraction of failed tool calls exceeds `error
 |--------|----------|
 | `"log"` | Log the anomaly, continue execution |
 | `"pause"` | Suspend the process |
-| `"stop"` | Stop the process entirely |
 | `"escalate"` | Fire escalation notification, then suspend |
+
+The action runs when the invocation that produced the anomaly ends, whether the run succeeded or raised (a stuck tool loop often ends in `GraphIterationLimitError`), and however long the run went on after the anomaly was detected. An anomaly from a failed run that is only detected once the failure is recorded (`high_error_rate`) is acted on right then. Each anomaly is acted on once: a later healthy run does not pause the process again for it. Every new anomaly also emits a `health.anomaly` event (`process_name`, `anomaly_type`, `details`).
+
+A suspended process keeps queueing its trigger events; `resume()` (or `POST /api/v1/processes/{name}/resume`) lets it continue. To stop a process outright on a hard limit, use the [Autonomy Budget](budget.md) with `on_exceeded="stop"`.
 
 ## API reference
 
@@ -103,9 +106,11 @@ Sliding window error rate. When the fraction of failed tool calls exceeds `error
 | `.record_response(text)` | Record the agent's final reply for empty detection (not tool results) |
 | `.record_success()` | Record a successful invocation; returns `True` once, on the first success after an anomaly |
 | `.begin_invocation()` | Start a new invocation: clears the tool history used by stuck/loop detection (the runtime calls it) |
+| `.record_error()` | Record a failed invocation for error-rate detection |
+| `.take_new_anomalies()` | Anomalies detected since the previous call, each returned once (the runtime calls it when a run ends to apply `on_anomaly`) |
 | `.anomalies` | List of all detected anomalies |
 | `.latest_anomaly` | Most recent anomaly (or None) |
-| `.clear()` | Reset all history and anomalies |
+| `.health_status()` | Summary dict used by `process.status()` |
 
 ### `AnomalyType`
 

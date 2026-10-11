@@ -87,6 +87,8 @@ class HealthMonitor:
         self._anomaly_count: dict[AnomalyType, int] = dict.fromkeys(AnomalyType, 0)
         # Set when an anomaly fires; cleared by the next clean success.
         self._unrecovered = False
+        # Anomalies not yet handed to the owner (see take_new_anomalies).
+        self._new_anomalies: list[Anomaly] = []
 
     # ------------------------------------------------------------------
     # Properties
@@ -101,6 +103,16 @@ class HealthMonitor:
     def latest_anomaly(self) -> Anomaly | None:
         """Most recent anomaly, or ``None``."""
         return self._anomalies[-1] if self._anomalies else None
+
+    def take_new_anomalies(self) -> list[Anomaly]:
+        """Return the anomalies detected since the previous call.
+
+        Each anomaly is returned once.  ``AgentProcess`` calls this when a
+        run ends (successfully or not) to apply ``on_anomaly`` to what the
+        run produced, however long ago in the run it was detected.
+        """
+        new, self._new_anomalies = self._new_anomalies, []
+        return new
 
     @property
     def tool_history(self) -> list[tuple[str, str]]:
@@ -364,6 +376,7 @@ class HealthMonitor:
     def _register_anomaly(self, anomaly: Anomaly) -> None:
         """Record an anomaly and update cooldown tracking."""
         self._anomalies.append(anomaly)
+        self._new_anomalies.append(anomaly)
         self._anomaly_count[anomaly.anomaly_type] += 1
         self._last_anomaly_time[anomaly.anomaly_type] = time.monotonic()
         self._unrecovered = True
