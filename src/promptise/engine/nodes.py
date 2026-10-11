@@ -83,8 +83,9 @@ _FAILURE_CAUSE_ATTR = "_failure_cause"
 TOOL_SELECTOR_KEY = "_tool_selector"
 
 #: Callback ``metadata`` key set to ``True`` on the ``on_tool_start`` of a call
-#: answered from an earlier result (``ContextCompaction(reuse_results=...)``)
-#: instead of running the tool.
+#: answered from an earlier result (``ContextCompaction(reuse_results=...)``,
+#: or a repeat in one model turn of a ``ToolNode(deduplicate=True)``) instead
+#: of running the tool.
 REUSED_TOOL_METADATA_KEY = "promptise_reused"
 
 
@@ -1213,6 +1214,11 @@ class PromptNode(BaseNode):
 # ---------------------------------------------------------------------------
 
 
+def _call_fingerprint(tool_name: str, args: dict[str, Any]) -> str:
+    """A key equal for calls with the same tool and arguments."""
+    return f"{tool_name}::{json.dumps(args, sort_keys=True, default=str)}"
+
+
 class ToolNode(BaseNode):
     """Execute a specific tool or let the engine pick from available tools.
 
@@ -1223,11 +1229,21 @@ class ToolNode(BaseNode):
     Args:
         tools: Available tools for this node.
         validate_inputs: Validate tool arguments against schema.
-        deduplicate: Block identical (tool, args) calls.
+        deduplicate: Run identical (tool, args) calls of one model turn
+            once.  Each repeat in that turn still gets its own
+            ``ToolMessage`` with the first call's result, and is reported
+            as reused (``trace_tools``, ``observer``, callbacks, engine
+            hooks' ``on_tool_reused``, ``"reused": True`` in
+            ``NodeResult.tool_calls``).  A call in a later model turn, a
+            later pass of a ``tool_selector``, or another run runs the
+            tool again, so a status check gets the current value.  A failed
+            call is never reused.  The record lives in the run, never on
+            the node, so sequential and concurrent runs of a graph do not
+            affect each other.
         max_result_chars: Cap tool result size.
         tool_selector: Optional callable that selects which tool
-            to call based on state.  If ``None``, uses the first
-            tool call from the most recent AI message.
+            to call based on state.  If ``None``, runs the tool calls
+            of the most recent AI message that has tool calls.
     """
 
     def __init__(
@@ -1247,7 +1263,6 @@ class ToolNode(BaseNode):
         self.deduplicate = deduplicate
         self.max_result_chars = max_result_chars
         self.tool_selector = tool_selector
-        self._called_fingerprints: set[str] = set()
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
         """Execute tools from state or selector."""
@@ -1271,21 +1286,46 @@ class ToolNode(BaseNode):
                         )
                     break
 
+        # Deduplication is per model turn of this run.  Nodes are shared by
+        # every run of the graph (sequential and concurrent), so nothing about
+        # a run is kept on the node: the run's own messages say which calls
+        # already have a result, and this turn's results are kept here.
+        answered = (
+            {m.tool_call_id for m in state.messages if isinstance(m, ToolMessage)}
+            if self.deduplicate
+            else set()
+        )
+        turn_results: dict[str, str] = {}  # (tool, args) -> first successful result
+
         for tool_name, tool_args, tool_id in calls:
             tc_record: dict[str, Any] = {"name": tool_name, "args": tool_args}
+            fingerprint = _call_fingerprint(tool_name, tool_args) if self.deduplicate else ""
 
-            # Dedup check
-            if self.deduplicate:
-                fp = f"{tool_name}::{json.dumps(tool_args, sort_keys=True)}"
-                if fp in self._called_fingerprints:
-                    tc_record["result"] = "DUPLICATE: identical call already made"
-                    tc_record["success"] = False
-                    result.tool_calls_deduplicated += 1
-                    result.tool_calls.append(tc_record)
-                    continue
-                self._called_fingerprints.add(fp)
+            if tool_id in answered:
+                # The graph reached this node again before the model's next
+                # turn: the call already ran in this run and has its result.
+                # Running it again would repeat its effects and give the
+                # tool_call_id a second result.
+                logger.debug(
+                    "ToolNode %r: call %s to %r already has a result in this run; not run again",
+                    self.name,
+                    tool_id,
+                    tool_name,
+                )
+                result.tool_calls_deduplicated += 1
+                continue
 
-            if tool_name not in tool_map:
+            earlier = turn_results.get(fingerprint) if self.deduplicate else None
+            if earlier is not None:
+                # The same call earlier in this turn: answer it with that
+                # result, so its tool_call_id has one, and report it as reused.
+                await _report_reused_call(
+                    tool_map.get(tool_name), tool_name, tool_args, earlier, tool_id, state, config
+                )
+                content = earlier
+                tc_record.update(result=content, success=True, reused=True)
+                result.tool_calls_deduplicated += 1
+            elif tool_name not in tool_map:
                 content = f"Error: Unknown tool '{tool_name}'"
                 tc_record["result"] = content
                 tc_record["success"] = False
@@ -1302,9 +1342,12 @@ class ToolNode(BaseNode):
                     tc_record["result"] = content
                     tc_record["success"] = False
                     result.tool_calls_failed += 1
+                if self.deduplicate and tc_record["success"]:
+                    turn_results.setdefault(fingerprint, content)
 
-            state.messages.append(ToolMessage(content=content, tool_call_id=tool_id))
-            result.messages_added.append(ToolMessage(content=content, tool_call_id=tool_id))
+            tool_msg = ToolMessage(content=content, tool_call_id=tool_id)
+            state.messages.append(tool_msg)
+            result.messages_added.append(tool_msg)
             result.tool_calls.append(tc_record)
 
             state.add_observation(
