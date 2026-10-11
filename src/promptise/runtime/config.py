@@ -55,7 +55,10 @@ class OpenModeConfig(BaseModel):
         max_custom_tools: Max number of agent-created tools.
         max_dynamic_triggers: Max number of dynamically added triggers.
         max_instruction_length: Max character length for modified instructions.
-        max_rebuilds: Max agent rebuilds per lifetime (``None`` = unlimited).
+        max_rebuilds: Max agent rebuilds (hot reloads) per lifetime of the
+            process object; restarts do not reset it. A change the limit
+            refuses is not applied, now or after a restart.
+            ``rollback()`` is not refused. ``None`` = unlimited.
         allowed_mcp_urls: Whitelist of MCP server URLs (empty = any).
         sandbox_custom_tools: Execute agent-written tools in sandbox.
         allow_process_spawn: Agent can spawn new processes within the

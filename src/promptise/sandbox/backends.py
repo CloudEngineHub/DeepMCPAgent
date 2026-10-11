@@ -95,6 +95,18 @@ class SandboxBackend(ABC):
         """
         pass
 
+    async def kill_container(self, container_id: str) -> None:
+        """Stop a container at once, without a grace period.
+
+        Used when the container is removed right after (a non-persistent
+        session's cleanup). The default stops it with
+        :meth:`stop_container`; backends override it with a faster kill.
+
+        Args:
+            container_id: Container ID
+        """
+        await self.stop_container(container_id)
+
     @abstractmethod
     async def remove_container(self, container_id: str) -> None:
         """Remove a container.
@@ -713,11 +725,34 @@ class DockerBackend(SandboxBackend):
         """
         client = await self._get_client()
 
+        def _stop() -> None:
+            client.containers.get(container_id).stop(timeout=5)
+
         try:
-            container = client.containers.get(container_id)
-            container.stop(timeout=5)
+            await asyncio.get_running_loop().run_in_executor(None, _stop)
         except Exception as e:
             logger.warning("[sandbox] Failed to stop container %s: %s", container_id, e)
+
+    async def kill_container(self, container_id: str) -> None:
+        """Kill a Docker container (SIGKILL), without a grace period.
+
+        A sandbox container's main process is ``/bin/bash``, which ignores
+        ``SIGTERM`` as PID 1, so a graceful ``docker stop`` always waited out
+        its whole timeout before killing it.
+
+        Args:
+            container_id: Container ID
+        """
+        client = await self._get_client()
+
+        def _kill() -> None:
+            client.containers.get(container_id).kill()
+
+        try:
+            await asyncio.get_running_loop().run_in_executor(None, _kill)
+        except Exception as e:
+            # Already exited or gone: remove_container (force) still cleans up.
+            logger.debug("[sandbox] Could not kill container %s: %s", container_id, e)
 
     async def remove_container(self, container_id: str) -> None:
         """Remove Docker container.
@@ -727,9 +762,11 @@ class DockerBackend(SandboxBackend):
         """
         client = await self._get_client()
 
+        def _remove() -> None:
+            client.containers.get(container_id).remove(force=True)
+
         try:
-            container = client.containers.get(container_id)
-            container.remove(force=True)
+            await asyncio.get_running_loop().run_in_executor(None, _remove)
         except Exception as e:
             logger.warning("[sandbox] Failed to remove container %s: %s", container_id, e)
 

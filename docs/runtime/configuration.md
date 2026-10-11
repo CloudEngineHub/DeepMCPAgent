@@ -162,7 +162,7 @@ Guardrails for open execution mode. Only takes effect when `execution_mode` is `
 | `max_custom_tools` | `int` | `20` | Max number of agent-created tools |
 | `max_dynamic_triggers` | `int` | `10` | Max dynamically added triggers |
 | `max_instruction_length` | `int` | `10000` | Max character length for modified instructions |
-| `max_rebuilds` | `int \| None` | `None` | Max agent rebuilds per lifetime (`None` = unlimited) |
+| `max_rebuilds` | `int \| None` | `None` | Max agent rebuilds (hot reloads) per lifetime of the process object; restarts do not reset it. A change refused by the limit is not applied, now or after a restart; `rollback()` is not refused (`None` = unlimited) |
 | `allowed_mcp_urls` | `list[str]` | `[]` | Whitelist of MCP server URLs (empty = any) |
 | `sandbox_custom_tools` | `bool` | `True` | Execute agent-written tools in a sandbox |
 | `allow_process_spawn` | `bool` | `False` | Agent can spawn new processes in the runtime |

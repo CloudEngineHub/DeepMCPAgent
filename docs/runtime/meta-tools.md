@@ -71,7 +71,7 @@ The instruction length is capped by `OpenModeConfig.max_instruction_length` (def
 
 ## create_tool
 
-Defines a new Python function tool. The code must define a `run(**kwargs) -> str` function.
+Defines a new Python function tool. The code must define a `run` function that returns a string.
 
 **Input schema:**
 
@@ -79,8 +79,29 @@ Defines a new Python function tool. The code must define a `run(**kwargs) -> str
 |---|---|---|
 | `tool_name` | `str` | Unique name for the new tool |
 | `tool_description` | `str` | Description of what the tool does |
-| `parameters` | `dict` | JSON schema for tool parameters |
-| `python_code` | `str` | Python code defining `run(**kwargs) -> str` |
+| `parameters` | `dict` | JSON object schema of the tool's parameters (empty: one free-form `input` string) |
+| `python_code` | `str` | Python code defining `run(...) -> str` |
+
+`parameters` shapes the new tool's inputs. Each property of the object schema is a parameter of the tool, offered to the model with its type and constraints, and passed to `run` as a keyword argument:
+
+```python
+create_tool(
+    tool_name="add",
+    tool_description="Add two integers.",
+    parameters={
+        "type": "object",
+        "properties": {"a": {"type": "integer"}, "b": {"type": "integer"}},
+        "required": ["a", "b"],
+    },
+    python_code="def run(a, b):\n    return str(a + b)",
+)
+# The new tool is called as add(a=2, b=3) -> "5"
+```
+
+- The arguments are validated against the schema before `run` is called. Invalid arguments raise `ToolArgumentError` (the model sees each problem and can correct the call), and `run` is not called.
+- `run` gets the arguments the caller gave, as plain JSON (nested objects are dicts), plus each property's schema `default` when the caller left it out. An optional parameter without a schema default that the caller left out is not passed, so `run`'s own default applies.
+- Property names must be usable as Python keyword arguments (identifiers, not keywords, not starting with `_`), and `required` may only name declared properties. A schema that is not an object schema, or that lists parameters without `properties`, is refused with an error and no tool is created.
+- With empty `parameters` (or an object schema without properties), the tool takes one free-form `input` string: `run(input="...")`.
 
 The number of custom tools is capped by `OpenModeConfig.max_custom_tools` (default: 20). Duplicate names are rejected. After creation, a hot-reload is triggered.
 
@@ -225,9 +246,15 @@ When a meta-tool modifies instructions, tools, or MCP servers, the process perfo
 4. The rebuild count is incremented.
 5. A new invocation resumes with the updated agent.
 
-If the rebuild fails, the process keeps the previous agent.
+If the rebuild fails, the process keeps the previous agent, and the change is undone: the instructions, tool or server the meta-tool added is removed again, so a later start does not apply it.
 
-If `OpenModeConfig.max_rebuilds` is set, the process will refuse further modifications once the limit is reached.
+### `max_rebuilds`
+
+If `OpenModeConfig.max_rebuilds` is set, the process refuses further modifications once that many hot reloads have happened. The limit counts over the lifetime of the `AgentProcess` object: `stop()` / `start()`, crash recovery and `restart_policy` restarts do not reset it (`status()["rebuild_count"]`).
+
+A refused change is not made at all. `modify_instructions`, `create_tool` and `connect_mcp_server` answer `Error: max rebuilds (N) reached; the change was not applied`, and the process's instructions, custom tools and servers stay as they were, so a restart does not apply the refused change either. The limit is checked before the change is staged, under the same lock as the rebuild.
+
+`rollback()` is not refused by the limit: it is how an operator undoes the agent's changes. It counts as a rebuild.
 
 ---
 
