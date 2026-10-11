@@ -234,12 +234,14 @@ class SandboxSession:
     async def cleanup(self) -> None:
         """Clean up the sandbox session.
 
-        Stops and removes the container unless persistent mode is enabled.
+        Kills and removes the container unless persistent mode is enabled.
+        The container is removed at once, so it is killed without a grace
+        period (a graceful stop waited its full timeout, 5 s, every time).
         """
         if self._running:
             self._running = False
             if not self.config.persistent:
-                await self.backend.stop_container(self.container_id)
+                await self.backend.kill_container(self.container_id)
                 await self.backend.remove_container(self.container_id)
 
     async def __aenter__(self) -> SandboxSession:

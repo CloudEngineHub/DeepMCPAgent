@@ -121,7 +121,7 @@ sandbox; its tool calls bridge back to the real host tools, so the model gets
 code's exactness (loops, sums, filters, joins) while every tool call still
 keeps its protections — approval gates if configured, plus budget/health/audit
 hooks when the Agent Runtime has attached them — and the node enforces a hard
-`max_tool_calls` cap per run regardless.
+`max_tool_calls` cap on each program regardless.
 
 ```mermaid
 graph LR
@@ -149,10 +149,22 @@ PromptGraph.code_action(
     system_prompt="",
     blocks=None,
     sandbox_factory=...,   # injected by build_agent
-    max_repairs=1,         # re-try once on a crash, feeding stderr back
+    max_repairs=1,         # re-try once on a failed program, feeding the error back
     exec_timeout=120,      # max seconds the program may run
+    max_tool_calls=50,     # hard cap on each program's tool calls
 )
 ```
+
+**The tool-call budget.** Every call a program makes counts against
+`max_tool_calls`, failed ones included. Once a program reaches it, each further
+call raises `ToolBudgetExceeded` in the program without running the tool, a
+warning is logged, and the program's output is discarded (it is incomplete,
+even if the program caught the error). A repair gets a fresh budget, so a run
+makes at most `(max_repairs + 1) × max_tool_calls` calls; with no repair left
+the node fails and the run raises `GraphExecutionError`. MCP tool results that
+are JSON text reach the program decoded (lists, dicts, numbers), and an MCP
+tool error raises in the program. `ExecutionReport.tool_calls` counts the
+programs' calls. See [Code-Action](../guides/code-action.md#the-tool-call-budget).
 
 **The mechanism.** In one turn the model writes a program that calls your tools
 as ordinary Python functions. Inside the sandbox those functions are RPC stubs:

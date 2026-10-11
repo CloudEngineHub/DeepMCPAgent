@@ -16,8 +16,11 @@ keep their normal protections — if ``build_agent`` wrapped them with an
 **approval** gate, bridged calls trigger it too; and when the Agent Runtime has
 attached governance **hooks** (budget/health/audit), each bridged call passes
 through them. Independently of any hooks, the node enforces a hard
-``max_tool_calls`` cap per run so a program cannot loop a tool unbounded, and
+``max_tool_calls`` cap on the calls each program makes (every call counts,
+failed ones included) so a program cannot loop a tool unbounded, and
 validates every bridge request id to keep file I/O inside the RPC directory.
+A program that reaches the cap gets ``ToolBudgetExceeded`` for each further
+call, and its output is never taken as the answer.
 
 The bridge is a filesystem rendezvous over the sandbox's writable ``/workspace``
 tmpfs: the in-container program writes a request file and blocks; a concurrent
@@ -34,6 +37,7 @@ import re
 import shlex
 import time
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -61,8 +65,16 @@ _RPC_CLIENT = """
 import json as _json, os as _os, time as _time, uuid as _uuid
 _RPC = "%s"
 _os.makedirs(_RPC, exist_ok=True)
+_BUDGET_SPENT = []
+
+
+class ToolBudgetExceeded(RuntimeError):
+    \"\"\"The program used up its tool-call budget (max_tool_calls).\"\"\"
+
 
 def _call(_tool, _args):
+    if _BUDGET_SPENT:
+        raise ToolBudgetExceeded(_BUDGET_SPENT[0])
     _rid = _uuid.uuid4().hex
     _req, _tmp = _RPC + "/req_" + _rid + ".json", _RPC + "/req_" + _rid + ".json.tmp"
     _resp, _done = _RPC + "/resp_" + _rid + ".json", _RPC + "/resp_" + _rid + ".done"
@@ -76,10 +88,31 @@ def _call(_tool, _args):
         _time.sleep(0.02)
     with open(_resp) as _f:
         _data = _json.load(_f)
+    if _data.get("budget_exceeded"):
+        _BUDGET_SPENT.append(_data["error"])
+        raise ToolBudgetExceeded(_data["error"])
     if "error" in _data:
         raise RuntimeError(_data["error"])
     return _data["result"]
 """
+
+
+@dataclass
+class _ToolBudget:
+    """The tool calls one program run has made against ``max_tool_calls``.
+
+    Every call the program asks for counts: successful, failed, an unknown
+    tool, or a call a ``pre_tool`` hook blocked. Calls beyond the limit are
+    refused (``refused``) and do not run.
+    """
+
+    limit: int
+    used: int = 0
+    refused: int = 0
+
+    @property
+    def exhausted(self) -> bool:
+        return self.refused > 0
 
 
 class CodeActionConfig(BaseModel):
@@ -91,10 +124,15 @@ class CodeActionConfig(BaseModel):
     Attributes:
         exec_timeout: Max seconds the generated program may run in the
             sandbox. When it expires the program's processes are killed.
-        max_repairs: How many times a crashing program's stderr is fed back
-            to the model for a fix.
-        max_tool_calls: Hard per-run cap on bridged tool calls. ``0``
-            disables the cap (not advised).
+        max_repairs: How many times a failed program (it crashed, or it
+            reached ``max_tool_calls``) is fed back to the model for a fix.
+        max_tool_calls: Hard cap on the bridged tool calls of each program
+            the model writes. Every call counts, failed ones included. The
+            first program and each repaired one get their own budget, so a
+            run makes at most ``(max_repairs + 1) * max_tool_calls`` calls.
+            A program that reaches the cap gets ``ToolBudgetExceeded`` for
+            each further call, and its output is never taken as the answer.
+            ``0`` disables the cap (not advised).
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -252,6 +290,43 @@ async def _read_text(session: Any, path: str) -> str | None:
     return res.stdout if res.success else None
 
 
+def _is_mcp_tool(tool: Any) -> bool:
+    """Whether *tool* is a Promptise MCP tool, bare or behind Promptise's
+    wrappers (approval gate, guardrail scanning, tool tracing)."""
+    from promptise.mcp.client._tool_adapter import _PromptiseMCPTool
+    from promptise.tools import WrappingTool
+
+    inner: Any = tool
+    for _ in range(8):  # wrappers nest a few levels deep at most
+        if not isinstance(inner, WrappingTool):
+            break
+        inner = getattr(inner, "_inner", None)
+    return isinstance(inner, _PromptiseMCPTool)
+
+
+def _parse_mcp_text(tool_name: str, text: str) -> Any:
+    """The value an MCP tool's text result carries.
+
+    A Promptise MCP server sends a tool's return value as text: JSON for
+    lists and dicts, ``str()`` for numbers, the string itself for a string.
+    Text that is valid JSON is decoded (so a list arrives as a list and a
+    number as a number); any other text is returned as it is. A Promptise
+    error envelope (``{"error": {"code": ..., "message": ...}}``) raises
+    :class:`~promptise.mcp.client.MCPToolError`, like the MCP tool itself
+    does for an error result.
+    """
+    from promptise.mcp.client._tool_adapter import MCPToolError, _error_envelope
+
+    envelope = _error_envelope(text)
+    if envelope is not None:
+        code, message, retryable = envelope
+        raise MCPToolError(tool_name, message, code=code, retryable=retryable, text=text)
+    try:
+        return json.loads(text)
+    except ValueError:
+        return text
+
+
 class CodeActionNode(BaseNode):
     """A node that solves a task by writing and running one sandboxed program.
 
@@ -265,13 +340,20 @@ class CodeActionNode(BaseNode):
         sandbox_factory: ``async () -> SandboxSession``. Required at run time;
             the node creates one session per run and cleans it up.
         model_override: Optional per-node model.
-        max_repairs: How many times to feed a crash's stderr back for a fix.
+        max_repairs: How many times to feed a failed program (a crash, or a
+            program that reached ``max_tool_calls``) back for a fix.
         result_marker: stdout prefix that marks the final answer line.
         exec_timeout: Max seconds the program may run inside the sandbox.
-        max_tool_calls: Hard upper bound on bridged tool calls per run. Once
-            reached, further calls return an error to the program instead of
-            executing — a hook-independent safety bound so a generated program
-            cannot loop a tool unbounded. Set ``0`` to disable (not advised).
+        max_tool_calls: Hard upper bound on the bridged tool calls of each
+            program (the first and each repaired one get their own budget).
+            Every call counts: successful, failed, an unknown tool, or one a
+            hook blocked. Once reached, further calls raise
+            ``ToolBudgetExceeded`` in the program instead of executing, a
+            warning is logged, and the program's output is discarded: the
+            model is asked for a program that needs fewer calls, or, with no
+            repairs left, the node fails (``GraphExecutionError``). A
+            hook-independent safety bound so a generated program cannot loop
+            a tool unbounded. Set ``0`` to disable (not advised).
     """
 
     def __init__(
@@ -322,7 +404,14 @@ class CodeActionNode(BaseNode):
             "str). When unsure of the shape, handle both dict and string.\n"
             "- Do the work in Python — loops, sums, filtering, etc.\n"
             f"- Print the final answer on the last line as: {self.result_marker} <answer>\n"
-            "- Output ONLY the program inside a single ```python code block, no prose.\n"
+            + (
+                f"- The program may make at most {self.max_tool_calls} function calls in "
+                "total. A call beyond that raises ToolBudgetExceeded and the program's "
+                "answer is discarded, so plan the calls you need.\n"
+                if self.max_tool_calls
+                else ""
+            )
+            + "- Output ONLY the program inside a single ```python code block, no prose.\n"
             "- Do not call input(); do not access the network."
             + (
                 "\n- The earlier conversation is included for context; answer the latest question."
@@ -337,6 +426,14 @@ class CodeActionNode(BaseNode):
         ]
 
     # ── tool bridge ──────────────────────────────────────────────────────────
+    def _budget_message(self, name: str) -> str:
+        limit = self.max_tool_calls
+        return (
+            f"tool-call budget exhausted: this program already made {limit} tool "
+            f"call(s) (max_tool_calls={limit}), so the call to {name!r} was refused and "
+            "every further call will be; the program's output will be discarded"
+        )
+
     async def _invoke_tool(
         self,
         tool_map: dict[str, Any],
@@ -345,21 +442,45 @@ class CodeActionNode(BaseNode):
         name: str,
         args: dict[str, Any],
         result: NodeResult,
+        budget: _ToolBudget | None = None,
     ) -> dict[str, Any]:
-        """Run one real tool on the host, through the engine's hooks."""
+        """Run one real tool on the host, through the engine's hooks.
+
+        *budget* is the calling program's tool-call budget. Without one (a
+        direct call), the calls already recorded on *result* count.
+        """
+        if budget is None:
+            budget = _ToolBudget(
+                self.max_tool_calls, used=len(result.tool_calls) + result.tool_calls_failed
+            )
         # Hook-independent safety bound: a generated program cannot loop a tool
         # unbounded, regardless of whether budget governance hooks are attached.
-        if self.max_tool_calls and len(result.tool_calls) >= self.max_tool_calls:
-            return {"error": f"tool-call budget exceeded (max_tool_calls={self.max_tool_calls})"}
+        # Every call counts, whether it succeeds or not.
+        if budget.limit and budget.used >= budget.limit:
+            budget.refused += 1
+            message = self._budget_message(name)
+            if budget.refused == 1:
+                logger.warning("code-action node %r: %s", self.name, message)
+            return {"error": message, "budget_exceeded": True}
+        budget.used += 1
+
         hooks = config.get("_engine_hooks", [])
         tool = tool_map.get(name)
-        if tool is None:
-            return {"error": f"unknown tool: {name}"}
+        call_start = time.perf_counter()
         try:
+            if tool is None:
+                raise LookupError(f"unknown tool: {name}")
             for hook in hooks:
                 if hasattr(hook, "pre_tool"):
                     args = await hook.pre_tool(name, args, state)
             output = await tool.ainvoke(args)
+            text: str | None = None
+            if isinstance(output, str) and _is_mcp_tool(tool):
+                # An MCP tool answers with the text of the server's result,
+                # which carries JSON data as JSON text: hand the program the
+                # data (lists, dicts, numbers) as the docs promise.
+                text = output
+                output = _parse_mcp_text(name, output)
             # Preserve JSON-serializable structure so the program receives real
             # Python objects (dict/list/number/str), not a stringified blob.
             try:
@@ -367,7 +488,8 @@ class CodeActionNode(BaseNode):
                 value: Any = output
             except (TypeError, ValueError):
                 value = str(output)
-            text = value if isinstance(value, str) else json.dumps(value, default=str)
+            if text is None:
+                text = value if isinstance(value, str) else json.dumps(value, default=str)
             # post_tool(tool_name, result, args, state) may rewrite the result
             # (redaction, truncation); the program and the record get that.
             for hook in hooks:
@@ -379,16 +501,26 @@ class CodeActionNode(BaseNode):
                             value = json.loads(rewritten)
                         except ValueError:
                             value = rewritten
-            obs = {"tool": name, "args": args, "result": text, "success": True}
-            state.observations.append(obs)
+            state.add_observation(
+                name,
+                text,
+                args,
+                success=True,
+                duration_ms=(time.perf_counter() - call_start) * 1000,
+            )
             result.tool_calls.append({"name": name, "args": args, "result": text})
             return {"result": value}
         except Exception as exc:  # noqa: BLE001 — surface error to the program
             result.tool_calls_failed += 1
-            state.observations.append(
-                {"tool": name, "args": args, "result": str(exc), "success": False}
+            message = str(exc) if tool is None else f"{type(exc).__name__}: {exc}"
+            state.add_observation(
+                name,
+                str(exc),
+                args,
+                success=False,
+                duration_ms=(time.perf_counter() - call_start) * 1000,
             )
-            return {"error": f"{type(exc).__name__}: {exc}"}
+            return {"error": message}
 
     async def _bridge_loop(
         self,
@@ -398,8 +530,11 @@ class CodeActionNode(BaseNode):
         config: dict[str, Any],
         result: NodeResult,
         stop: asyncio.Event,
+        budget: _ToolBudget | None = None,
     ) -> None:
         """Service the program's tool requests until it finishes."""
+        if budget is None:
+            budget = _ToolBudget(self.max_tool_calls)
         served: set[str] = set()
         while not stop.is_set():
             try:
@@ -427,7 +562,13 @@ class CodeActionNode(BaseNode):
                     served.discard(rid)
                     continue
                 resp = await self._invoke_tool(
-                    tool_map, state, config, req.get("tool", ""), req.get("args", {}), result
+                    tool_map,
+                    state,
+                    config,
+                    req.get("tool", ""),
+                    req.get("args", {}),
+                    result,
+                    budget,
                 )
                 await write_text(session, f"{_RPC_DIR}/resp_{rid}.json", json.dumps(resp))
                 await write_text(session, f"{_RPC_DIR}/resp_{rid}.done", "")
@@ -467,6 +608,7 @@ class CodeActionNode(BaseNode):
 
         # 1. Generate the program (1 LLM turn; +1 per repair).
         code = ""
+        failure = ""
         for attempt in range(self.max_repairs + 1):
             llm_start = time.perf_counter()
             try:
@@ -483,8 +625,10 @@ class CodeActionNode(BaseNode):
             code = extract_code(raw)
 
             # 2. Run it in the sandbox (bridging tool calls back to the host).
-            run = await self._run_program(code, tool_map, state, config, result)
-            if run.success:
+            # Each program gets its own tool-call budget.
+            budget = _ToolBudget(self.max_tool_calls)
+            run = await self._run_program(code, tool_map, state, config, result, budget)
+            if run.success and not budget.exhausted:
                 answer = parse_result(run.stdout, self.result_marker)
                 result.total_tokens = result.prompt_tokens + result.completion_tokens
                 result.raw_output = answer
@@ -496,21 +640,43 @@ class CodeActionNode(BaseNode):
                 result.duration_ms = (time.perf_counter() - start) * 1000
                 return result
 
-            # 3. Repair: feed the failure back and try again.
+            # 3. Repair: feed the failure back and try again. A program that
+            # reached the tool-call budget is a failure even if it caught the
+            # error and printed something: its output is incomplete.
+            if budget.exhausted:
+                failure = (
+                    "the program reached the tool-call budget (max_tool_calls="
+                    f"{self.max_tool_calls}) and its further calls were refused, so its "
+                    "output was discarded"
+                )
+                feedback = (
+                    f"Your program tried to make more than {self.max_tool_calls} function "
+                    f"calls. Each program may make at most {self.max_tool_calls}; calls "
+                    "beyond that raise ToolBudgetExceeded, so its output was incomplete "
+                    f"and was discarded. Write a program that needs at most "
+                    f"{self.max_tool_calls} calls (the new program gets a fresh budget) "
+                    "and output only the program."
+                )
+                if run.stderr.strip():
+                    feedback += f"\n\nIts error output:\n\n{run.stderr[-800:]}"
+            else:
+                last_line = next(
+                    (ln.strip() for ln in reversed(run.stderr.splitlines()) if ln.strip()),
+                    f"exit code {run.exit_code}",
+                )
+                failure = f"the program crashed: {last_line[:300]}"
+                feedback = (
+                    "Your program failed with this error — fix it and output "
+                    f"only the corrected program:\n\n{run.stderr[-800:]}"
+                )
             if attempt < self.max_repairs:
-                messages = messages + [
-                    AIMessage(content=raw),
-                    HumanMessage(
-                        content=(
-                            "Your program failed with this error — fix it and output "
-                            f"only the corrected program:\n\n{run.stderr[-800:]}"
-                        )
-                    ),
-                ]
+                messages = messages + [AIMessage(content=raw), HumanMessage(content=feedback)]
 
         # All attempts failed.
         result.total_tokens = result.prompt_tokens + result.completion_tokens
-        result.error = f"program failed after {self.max_repairs + 1} attempt(s)"
+        result.error = (
+            f"program failed after {self.max_repairs + 1} attempt(s); last attempt: {failure}"
+        )
         result.raw_output = code
         result.output = ""
         result.duration_ms = (time.perf_counter() - start) * 1000
@@ -523,8 +689,11 @@ class CodeActionNode(BaseNode):
         state: GraphState,
         config: dict[str, Any],
         result: NodeResult,
+        budget: _ToolBudget | None = None,
     ) -> Any:
         """Write + execute the program in a fresh sandbox session, bridging tools."""
+        if budget is None:
+            budget = _ToolBudget(self.max_tool_calls)
         session = await self.sandbox_factory()  # type: ignore[misc]
         try:
             await session.execute(f"mkdir -p {_RPC_DIR}")
@@ -541,7 +710,7 @@ class CodeActionNode(BaseNode):
                 session.execute(f"python3 {_PROGRAM_PATH}", timeout=self.exec_timeout)
             )
             bridge_task = asyncio.create_task(
-                self._bridge_loop(session, tool_map, state, config, result, stop)
+                self._bridge_loop(session, tool_map, state, config, result, stop, budget)
             )
             tool_start = time.perf_counter()
             cmd = await prog_task

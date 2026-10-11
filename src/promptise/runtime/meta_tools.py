@@ -53,13 +53,20 @@ class CreateToolArgs(BaseModel):
     tool_description: str = Field(..., description="Description of what the tool does.")
     parameters: dict[str, Any] = Field(
         default_factory=dict,
-        description="JSON schema for tool parameters.",
+        description=(
+            "JSON schema of the tool's parameters: an object schema such as "
+            '{"type": "object", "properties": {"a": {"type": "integer"}}, '
+            '"required": ["a"]}. Each property is passed to run() as a keyword '
+            "argument. Leave it empty for a tool that takes one free-form "
+            "'input' string."
+        ),
     )
     python_code: str = Field(
         ...,
         description=(
             "Python code for the tool function body. "
-            "Must define a function called 'run' that takes **kwargs "
+            "Must define a function called 'run' that takes the declared "
+            "parameters as keyword arguments (or 'input' when there are none) "
             "and returns a string."
         ),
     )
@@ -221,8 +228,18 @@ async def _modify_instructions(process: Any, new_instructions: str) -> str:
     if len(new_instructions) > max_len:
         return f"Error: instructions exceed max length ({len(new_instructions)} > {max_len})"
 
-    process._dynamic_instructions = new_instructions
-    result = await process._hot_reload(reason="instructions modified")
+    # Staged under the rebuild lock, only once the rebuild is allowed (a
+    # refused change must not take effect on the next restart).
+    def stage() -> Any:
+        previous = process._dynamic_instructions
+        process._dynamic_instructions = new_instructions
+
+        def undo() -> None:
+            process._dynamic_instructions = previous
+
+        return undo
+
+    result: str = await process._hot_reload(reason="instructions modified", stage=stage)
     return result
 
 
@@ -249,12 +266,27 @@ async def _create_tool(
             tool_description,
             python_code,
             sandbox=process.config.open_mode.sandbox_custom_tools,
+            parameters=parameters,
         )
-        process._custom_tools.append(tool)
-        result = await process._hot_reload(reason=f"tool '{tool_name}' created")
-        return f"Tool '{tool_name}' created. {result}"
     except Exception as exc:
         return f"Error creating tool: {exc}"
+
+    def stage() -> Any:
+        process._custom_tools.append(tool)
+
+        def undo() -> None:
+            if tool in process._custom_tools:
+                process._custom_tools.remove(tool)
+
+        return undo
+
+    try:
+        result = await process._hot_reload(reason=f"tool '{tool_name}' created", stage=stage)
+    except Exception as exc:
+        return f"Error creating tool: {exc}"
+    if result.startswith("Error"):
+        return result
+    return f"Tool '{tool_name}' created. {result}"
 
 
 async def _connect_mcp_server(
@@ -288,16 +320,24 @@ async def _connect_mcp_server(
     try:
         from promptise.config import HTTPServerSpec
 
-        process._dynamic_servers[server_name] = HTTPServerSpec(
-            url=url,
-            transport=transport,
+        spec = HTTPServerSpec(url=url, transport=transport)
+
+        def stage() -> Any:
+            process._dynamic_servers[server_name] = spec
+
+            def undo() -> None:
+                process._dynamic_servers.pop(server_name, None)
+
+            return undo
+
+        result = await process._hot_reload(
+            reason=f"MCP server '{server_name}' connected", stage=stage
         )
-        result = await process._hot_reload(reason=f"MCP server '{server_name}' connected")
-        return f"Connected to MCP server '{server_name}' at {url}. {result}"
     except Exception as exc:
-        # Remove from dynamic servers on failure
-        process._dynamic_servers.pop(server_name, None)
         return f"Error connecting to MCP server: {exc}"
+    if result.startswith("Error"):
+        return result
+    return f"Connected to MCP server '{server_name}' at {url}. {result}"
 
 
 async def _add_trigger(
@@ -592,12 +632,103 @@ async def _list_capabilities(process: Any) -> str:
 
 
 class _DynamicToolArgs(BaseModel):
-    """Generic args schema for agent-created dynamic tools."""
+    """Generic args schema for agent-created tools declared without parameters."""
 
     input: str = Field(
         default="",
         description="Free-form input string passed to the dynamic tool.",
     )
+
+
+_SCHEMA_KEYS_WITHOUT_PROPERTIES = frozenset(
+    {"type", "title", "description", "additionalProperties", "required"}
+)
+
+
+def _dynamic_args_schema(name: str, parameters: dict[str, Any] | None) -> type[BaseModel]:
+    """The args schema of an agent-created tool, from its declared ``parameters``.
+
+    ``parameters`` is a JSON object schema (``{"type": "object",
+    "properties": {...}, "required": [...]}``); each property becomes a
+    keyword argument of ``run``.  A tool declared without properties takes
+    the single free-form ``input`` string (:class:`_DynamicToolArgs`).
+
+    Raises:
+        ValueError: ``parameters`` is not a usable object schema.
+    """
+    import keyword
+
+    from promptise.tools import _jsonschema_to_pydantic
+
+    if not parameters:
+        return _DynamicToolArgs
+    example = '{"type": "object", "properties": {"a": {"type": "integer"}}, "required": ["a"]}'
+    if not isinstance(parameters, dict) or parameters.get("type", "object") != "object":
+        raise ValueError(f"parameters must be a JSON object schema, such as {example}")
+    properties = parameters.get("properties")
+    if properties is None:
+        unknown = sorted(set(parameters) - _SCHEMA_KEYS_WITHOUT_PROPERTIES)
+        if unknown:
+            raise ValueError(
+                f"parameters has no 'properties' but has {unknown}: declare the "
+                f"parameters under 'properties', as in {example}"
+            )
+        return _DynamicToolArgs
+    if not isinstance(properties, dict):
+        raise ValueError(f"parameters['properties'] must be an object, as in {example}")
+    if not properties:
+        return _DynamicToolArgs
+    for prop in properties:
+        if not (isinstance(prop, str) and prop.isidentifier()) or (
+            keyword.iskeyword(prop) or prop.startswith("_")
+        ):
+            raise ValueError(f"parameter name {prop!r} is not usable as a Python keyword argument")
+    required = parameters.get("required") or []
+    if not isinstance(required, list) or any(r not in properties for r in required):
+        raise ValueError("parameters['required'] must list names declared in 'properties'")
+    return _jsonschema_to_pydantic(parameters, model_name=f"Args_{name}")
+
+
+def _dynamic_tool_class() -> type[Any]:
+    """A ``StructuredTool`` that passes ``run`` exactly the arguments given.
+
+    The arguments are validated against the declared schema and handed to
+    ``run`` as plain JSON (nested objects as dicts), with the declared
+    schema defaults for arguments left out; an optional parameter without
+    a default that the caller left out is not passed, so ``run``'s own
+    default applies.  Invalid arguments raise
+    :class:`~promptise.tools.ToolArgumentError`.
+    """
+    global _DYNAMIC_TOOL_CLASS
+    if _DYNAMIC_TOOL_CLASS is not None:
+        return _DYNAMIC_TOOL_CLASS
+
+    from langchain_core.tools import StructuredTool
+
+    from promptise.tools import parse_tool_arguments
+
+    class _DynamicTool(StructuredTool):
+        schema_defaults: dict[str, Any] = Field(default_factory=dict)
+
+        @property
+        def tool_call_schema(self) -> Any:
+            # Offer the declared schema whole (LangChain's rebuild drops
+            # field constraints and the model config).
+            return self.args_schema
+
+        def _to_args_and_kwargs(
+            self, tool_input: str | dict[str, Any], tool_call_id: str | None
+        ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+            if not isinstance(tool_input, dict) or self.args_schema is _DynamicToolArgs:
+                return super()._to_args_and_kwargs(tool_input, tool_call_id)
+            given = parse_tool_arguments(self.name, self.args_schema, tool_input)
+            return (), {**self.schema_defaults, **given}
+
+    _DYNAMIC_TOOL_CLASS = _DynamicTool
+    return _DynamicTool
+
+
+_DYNAMIC_TOOL_CLASS: type[Any] | None = None
 
 
 def _make_sandbox_globals() -> dict[str, Any]:
@@ -696,11 +827,15 @@ def _build_dynamic_tool(
     python_code: str,
     *,
     sandbox: bool = True,
+    parameters: dict[str, Any] | None = None,
 ) -> Any:
     """Build a LangChain tool from agent-provided Python code.
 
     The code must define a function called ``run`` that accepts
-    keyword arguments and returns a string.
+    keyword arguments and returns a string.  The tool's arguments are the
+    properties of the *parameters* JSON schema, each passed to ``run`` as a
+    keyword argument; without parameters, the tool takes one free-form
+    ``input`` string (``run(input=...)``).
 
     When ``sandbox=True``, the code runs with restricted builtins:
     no file I/O, no imports, no ``exec``/``eval``, no ``open``.
@@ -720,11 +855,20 @@ def _build_dynamic_tool(
         python_code: Python code defining a ``run(**kwargs) -> str``
             function.
         sandbox: Restrict builtins for safety (default ``True``).
+        parameters: JSON object schema of the tool's parameters.
 
     Returns:
         A LangChain ``StructuredTool`` instance.
+
+    Raises:
+        ValueError: *parameters* is not a usable JSON object schema.
     """
-    from langchain_core.tools import StructuredTool
+    args_schema = _dynamic_args_schema(name, parameters)
+    schema_defaults: dict[str, Any] = {}
+    if args_schema is not _DynamicToolArgs and parameters:
+        for prop, prop_schema in (parameters.get("properties") or {}).items():
+            if isinstance(prop_schema, dict) and "default" in prop_schema:
+                schema_defaults[prop] = prop_schema["default"]
 
     async def _execute(**kwargs: Any) -> str:
         try:
@@ -786,12 +930,13 @@ def _build_dynamic_tool(
         except Exception as exc:
             return f"Error executing tool: {exc}"
 
-    return StructuredTool(
+    return _dynamic_tool_class()(
         name=name,
         description=description,
-        args_schema=_DynamicToolArgs,
+        args_schema=args_schema,
         coroutine=_execute,
         func=lambda **kw: None,
+        schema_defaults=schema_defaults,
     )
 
 

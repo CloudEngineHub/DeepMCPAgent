@@ -75,6 +75,15 @@ The bridge preserves JSON-serializable return values, so a tool that returns a
 tools still work — the model is told to parse them — but structured returns are
 more reliable.
 
+**MCP tools** (`servers=...`) answer with the text of the server's result, and a
+server sends lists and dicts as JSON text. The bridge decodes it: when an MCP
+tool's text result is valid JSON, the program gets the data (`list_orders("2026-09")`
+returns a `list`, a number returns an `int` or `float`); any other text arrives
+as a `str`. A tool error (an MCP error result, or a Promptise
+`{"error": {"code": ..., "message": ...}}` envelope) raises in the program, with
+the server's code and message (`RuntimeError: MCPToolError: NOT_FOUND: ...`).
+Python tools are not decoded: a `str` they return stays a `str`.
+
 ## The security model
 
 The model writes code, so the code runs **contained**:
@@ -92,8 +101,8 @@ The model writes code, so the code runs **contained**:
   the agent under the **Agent Runtime**, its governance hooks (budget / health /
   audit) apply to each bridged call. *Without* the runtime, a plain agent has no
   budget hook attached — so code-action enforces its **own** hard, hook-independent
-  **`max_tool_calls`** cap per run (default 50) so a generated program can never
-  loop a tool unbounded.
+  **`max_tool_calls`** cap on each program (default 50) so a generated program can
+  never loop a tool unbounded (see [The tool-call budget](#the-tool-call-budget)).
 
 !!! warning "Honest enterprise note"
     The bridge is a deliberate capability hole: the program can call *any* tool
@@ -138,7 +147,32 @@ sandbox can stay fully network-isolated.
 If the program crashes, code-action feeds the **stderr** back to the model for a
 bounded number of fixes (`max_repairs`, default 1) before giving up. This
 recovers the common "off-by-one in the parsing" class of errors without an
-unbounded loop.
+unbounded loop. A program that reaches the tool-call budget is a failure too
+(below). When no repair is left, the node fails and the run raises
+`GraphExecutionError`; `ExecutionReport.error` says why the last program failed.
+
+## The tool-call budget
+
+`max_tool_calls` (default 50) caps the tool calls of **each program**:
+
+- **Every call counts**: successful ones, failed ones (a tool that raised, an MCP
+  error), calls to an unknown tool, and calls a `pre_tool` hook blocked.
+- **Reaching it is an error, never a quiet result.** Once a program has made
+  `max_tool_calls` calls, its next call raises `ToolBudgetExceeded` (a
+  `RuntimeError`, importable in the program) without running the tool, and so
+  does every later call. The node logs a warning, and the program's output is
+  **discarded**, even if the program caught the error and printed an answer:
+  it is incomplete.
+- **Repairs get a fresh budget.** The model is told the program tried to make
+  more than `max_tool_calls` calls and asked for one that needs fewer; that
+  program gets its own `max_tool_calls`. A run therefore makes at most
+  `(max_repairs + 1) × max_tool_calls` calls. With no repair left, the run fails
+  (`GraphExecutionError`, and `ExecutionReport.error` names `max_tool_calls`).
+- The prompt tells the model the limit, so it can plan for it.
+
+`ExecutionReport.tool_calls` (`agent.last_report` / `engine.last_report`) counts
+the calls the programs made, failed ones included; refused calls never ran and
+are not counted.
 
 ## Configuration
 
@@ -152,8 +186,8 @@ agent = await build_agent(
     agent_pattern="code-action",
     code_action={
         "exec_timeout": 60,    # seconds the program may run (default 120)
-        "max_repairs": 2,      # stderr-driven self-repair attempts (default 1)
-        "max_tool_calls": 20,  # hard per-run cap on bridged tool calls (default 50)
+        "max_repairs": 2,      # self-repair attempts after a failed program (default 1)
+        "max_tool_calls": 20,  # hard cap on each program's bridged tool calls (default 50)
     },
     sandbox={"memory_limit": "1G"},  # optional; network stays "none"
 )
@@ -168,8 +202,9 @@ PromptGraph.code_action(
     tools=my_tools,
     system_prompt="",
     sandbox_factory=...,   # injected by build_agent; supply your own for custom graphs
-    max_repairs=1,         # stderr-driven self-repair attempts
+    max_repairs=1,         # self-repair attempts after a failed program
     exec_timeout=120,      # seconds the program may run inside the sandbox
+    max_tool_calls=50,     # hard cap on each program's bridged tool calls
 )
 ```
 
@@ -178,7 +213,10 @@ PromptGraph.code_action(
 - **Needs Docker.** `build_agent(agent_pattern="code-action")` raises a clear
   error if a sandbox can't be initialized — there is no silent fallback, because
   running model-written code outside a sandbox would be unsafe.
-- **Latency floor.** Each run spins a fresh container (~1–2s). The token and
+- **Latency floor.** Each program runs in a fresh container: starting it,
+  running the program and removing it takes about 1 s on a warm Docker host,
+  plus the program's own time (each repair adds another container, and
+  `build_agent` starts one once to check the sandbox works). The token and
   accuracy wins dominate on real aggregation tasks, but for a one-shot lookup a
   plain `react` call is snappier.
 - **Not magic on reasoning.** Code-action makes the *computation* exact; it does

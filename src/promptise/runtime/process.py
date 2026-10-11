@@ -43,6 +43,7 @@ import logging
 import secrets
 import time
 from collections import deque
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -2286,14 +2287,40 @@ class AgentProcess:
     # Open mode: Hot-reload + Rollback
     # ------------------------------------------------------------------
 
-    async def _hot_reload(self, *, reason: str = "") -> str:
+    def _rebuild_refusal(self) -> str | None:
+        """The refusal message once ``max_rebuilds`` is reached, else ``None``.
+
+        The limit counts hot reloads over the process object's lifetime:
+        ``stop()`` / ``start()`` and automatic restarts do not reset it.
+        """
+        max_rebuilds = self.config.open_mode.max_rebuilds
+        if max_rebuilds is not None and self._rebuild_count >= max_rebuilds:
+            return f"Error: max rebuilds ({max_rebuilds}) reached; the change was not applied"
+        return None
+
+    async def _hot_reload(
+        self,
+        *,
+        reason: str = "",
+        stage: Callable[[], Callable[[], None]] | None = None,
+        enforce_limit: bool = True,
+    ) -> str:
         """Rebuild the agent graph with current dynamic state.
 
         Thread-safe via ``_rebuild_lock``.  Preserves conversation
         history across the rebuild.  Only available in open mode.
 
+        A change to the dynamic state (instructions, custom tools, MCP
+        servers) is passed as *stage*: it is applied under the lock, only
+        once the rebuild is allowed, and undone if the rebuild fails, so
+        a refused or failed change is never left behind for a later
+        restart to apply.
+
         Args:
             reason: Human-readable reason for the rebuild (logged).
+            stage: Applies the change and returns a function that undoes it.
+            enforce_limit: Refuse once ``OpenModeConfig.max_rebuilds`` is
+                reached (``False`` for :meth:`rollback`).
 
         Returns:
             Status message indicating success or failure.
@@ -2305,17 +2332,32 @@ class AgentProcess:
             if self.config.execution_mode != ExecutionMode.OPEN:
                 raise RuntimeError("Hot reload is only available in open mode")
 
-            # Check rebuild limits
-            max_rebuilds = self.config.open_mode.max_rebuilds
-            if max_rebuilds is not None and self._rebuild_count >= max_rebuilds:
-                return f"Error: max rebuilds ({max_rebuilds}) reached"
+            # Check rebuild limits before anything changes.
+            if enforce_limit:
+                refusal = self._rebuild_refusal()
+                if refusal is not None:
+                    logger.warning(
+                        "AgentProcess %s: hot reload refused (%s): %s",
+                        self.name,
+                        reason,
+                        refusal,
+                    )
+                    return refusal
+
+            undo = stage() if stage is not None else None
 
             # 1. Preserve conversation history (async-safe)
             history = await self._conversation_buffer.async_snapshot()
 
-            # 2. Rebuild with merged config (static + dynamic)
+            # 2. Rebuild with merged config (static + dynamic). On failure the
+            # process keeps its previous agent, and the change is undone.
             old_agent, old_mcp = self._agent, self._mcp_multi
-            await self._build_agent()
+            try:
+                await self._build_agent()
+            except BaseException:
+                if undo is not None:
+                    undo()
+                raise
 
             # 3. Close the old agent and its MCP client (its stdio servers
             # exit) -- after the invocation that asked for the reload, if
@@ -2343,6 +2385,10 @@ class AgentProcess:
 
         Clears all dynamic state (instructions, tools, servers,
         triggers) and rebuilds the agent from the original config.
+        A rollback is not refused by ``OpenModeConfig.max_rebuilds`` (it
+        is how an operator undoes the agent's changes), but it counts as a
+        rebuild.  If the rebuild fails, the instructions, tools and servers
+        are restored and the previous agent is kept.
 
         Returns:
             Status message.
@@ -2353,22 +2399,33 @@ class AgentProcess:
         if self.config.execution_mode != ExecutionMode.OPEN:
             raise RuntimeError("Rollback is only available in open mode")
 
-        # Clear dynamic instructions
-        self._dynamic_instructions = None
-
-        # Clear custom tools
-        self._custom_tools.clear()
-
-        # Clear dynamic servers
-        self._dynamic_servers.clear()
-
         # Stop and clear dynamic triggers
         for trigger in self._dynamic_triggers:
             with contextlib.suppress(Exception):
                 await trigger.stop()
         self._dynamic_triggers.clear()
 
-        return await self._hot_reload(reason="rollback to original configuration")
+        def clear() -> Callable[[], None]:
+            saved = (
+                self._dynamic_instructions,
+                list(self._custom_tools),
+                dict(self._dynamic_servers),
+            )
+            self._dynamic_instructions = None
+            self._custom_tools.clear()
+            self._dynamic_servers.clear()
+
+            def undo() -> None:
+                self._dynamic_instructions = saved[0]
+                self._custom_tools[:] = saved[1]
+                self._dynamic_servers.clear()
+                self._dynamic_servers.update(saved[2])
+
+            return undo
+
+        return await self._hot_reload(
+            reason="rollback to original configuration", stage=clear, enforce_limit=False
+        )
 
     def __repr__(self) -> str:
         return (
