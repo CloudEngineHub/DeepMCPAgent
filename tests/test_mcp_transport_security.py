@@ -28,7 +28,7 @@ from typing import Any
 
 import httpx
 import pytest
-import uvicorn
+from _live_server import serve_mcp
 
 from promptise.mcp.server import (
     APIKeyAuth,
@@ -68,40 +68,10 @@ class _Live:
 
 
 @asynccontextmanager
-async def _serve(
-    server: MCPServer, transport: str, monkeypatch: pytest.MonkeyPatch, **run_kwargs: Any
-) -> AsyncIterator[_Live]:
+async def _serve(server: MCPServer, transport: str, **run_kwargs: Any) -> AsyncIterator[_Live]:
     """Run *server* on ``127.0.0.1:<ephemeral>`` for the duration of the block."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    task = asyncio.ensure_future(
-        server.run_async(transport=transport, host="127.0.0.1", port=0, **run_kwargs)
-    )
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()  # surfaces a startup failure
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 5
-        port = instances[0].servers[0].sockets[0].getsockname()[1]
+    async with serve_mcp(server, transport=transport, **run_kwargs) as port:
         yield _Live(base=f"http://127.0.0.1:{port}", port=port)
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
 
 
 def _rpc_body(method: str, params: dict[str, Any], rid: int | None) -> dict[str, Any]:
@@ -291,7 +261,7 @@ class TestStreamableHTTPIdentityIsPerRequest:
     async def test_headers_and_request_id_follow_each_call(self, monkeypatch):
         """Passthrough shape: the session was opened with ``Bearer A``; a later
         call with ``Bearer B`` must see B, and a header-less call must see nothing."""
-        async with _serve(_echo_server(), "http", monkeypatch) as live:
+        async with _serve(_echo_server(), "http") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 c = _StreamableHTTP(http, live.base)
                 r = await c.initialize({"Authorization": "Bearer A", "x-request-id": "req-init"})
@@ -314,7 +284,7 @@ class TestStreamableHTTPIdentityIsPerRequest:
     async def test_api_key_caller_runs_as_itself_on_a_foreign_session(self, monkeypatch):
         """Without the transport gate the session is shared; tenant B posting its
         own valid key to A's session must run as B — and B has no approver role."""
-        async with _serve(_api_key_server(require_auth=False), "http", monkeypatch) as live:
+        async with _serve(_api_key_server(require_auth=False), "http") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 c = _StreamableHTTP(http, live.base)
                 assert (await c.initialize(KEY_A)).status_code == 200
@@ -345,7 +315,7 @@ class TestStreamableHTTPIdentityIsPerRequest:
         token_a = jwt.create_token({"sub": "user-a", "tenant_id": "t-a"})
         token_b = jwt.create_token({"sub": "user-b", "tenant_id": "t-b"})
 
-        async with _serve(server, "http", monkeypatch) as live:
+        async with _serve(server, "http") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 c = _StreamableHTTP(http, live.base)
                 assert (
@@ -362,7 +332,7 @@ class TestStreamableHTTPIdentityIsPerRequest:
         valid credential on a known session id is answered as if the session did
         not exist, a header-less request is refused at the gate, and the owner
         keeps working."""
-        async with _serve(_api_key_server(require_auth=True), "http", monkeypatch) as live:
+        async with _serve(_api_key_server(require_auth=True), "http") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 c = _StreamableHTTP(http, live.base)
                 assert (await c.initialize(KEY_A)).status_code == 200
@@ -400,7 +370,7 @@ class TestStreamableHTTPIdentityIsPerRequest:
         token_a = jwt.create_token({"sub": "user-a"})
         token_b = jwt.create_token({"sub": "user-b"})
 
-        async with _serve(server, "http", monkeypatch) as live:
+        async with _serve(server, "http") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 c = _StreamableHTTP(http, live.base)
                 assert (
@@ -415,7 +385,7 @@ class TestStreamableHTTPIdentityIsPerRequest:
 
 class TestSSEIdentityIsPerRequest:
     async def test_headers_follow_each_post(self, monkeypatch):
-        async with _serve(_echo_server(), "sse", monkeypatch) as live:
+        async with _serve(_echo_server(), "sse") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 async with _SSE(http, live.base, {"Authorization": "Bearer STREAM"}) as s:
                     await s.initialize({"Authorization": "Bearer A"})
@@ -431,7 +401,7 @@ class TestSSEIdentityIsPerRequest:
         assert seen[1]["request_id"] != "req-b"
 
     async def test_api_key_caller_runs_as_itself_on_a_foreign_session(self, monkeypatch):
-        async with _serve(_api_key_server(require_auth=False), "sse", monkeypatch) as live:
+        async with _serve(_api_key_server(require_auth=False), "sse") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 async with _SSE(http, live.base, KEY_A) as s:
                     await s.initialize(KEY_A)
@@ -442,7 +412,7 @@ class TestSSEIdentityIsPerRequest:
                     assert "approver" in _tool_text(await s.message())
 
     async def test_transport_gate_binds_the_session_to_its_credential(self, monkeypatch):
-        async with _serve(_api_key_server(require_auth=True), "sse", monkeypatch) as live:
+        async with _serve(_api_key_server(require_auth=True), "sse") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 async with _SSE(http, live.base, KEY_A) as s:
                     await s.initialize(KEY_A)
@@ -615,7 +585,7 @@ class TestTransportSecurityPolicy:
 
 class TestStreamableHTTPRejectsRebinding:
     async def test_loopback_bind_refuses_foreign_host_and_origin(self, monkeypatch):
-        async with _serve(_echo_server(), "http", monkeypatch) as live:
+        async with _serve(_echo_server(), "http") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 c = _StreamableHTTP(http, live.base)
                 rebound_host = {"Host": f"attacker.example:{live.port}"}
@@ -651,7 +621,6 @@ class TestStreamableHTTPRejectsRebinding:
         async with _serve(
             _echo_server(),
             "http",
-            monkeypatch,
             allowed_hosts=["mcp.internal:*"],
             allowed_origins=["https://app.internal"],
         ) as live:
@@ -676,7 +645,7 @@ class TestStreamableHTTPRejectsRebinding:
 
 class TestSSERejectsRebinding:
     async def test_loopback_bind_refuses_foreign_host_and_origin(self, monkeypatch):
-        async with _serve(_echo_server(), "sse", monkeypatch) as live:
+        async with _serve(_echo_server(), "sse") as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 async with _SSE(http, live.base, {"Host": f"attacker.example:{live.port}"}) as bad:
                     assert bad.stream_status == 421 and bad.endpoint is None
@@ -695,9 +664,7 @@ class TestSSERejectsRebinding:
                     assert "authorization" in _tool_text(await s.message())
 
     async def test_explicit_allow_list_is_honoured(self, monkeypatch):
-        async with _serve(
-            _echo_server(), "sse", monkeypatch, allowed_hosts=["mcp.internal:*"]
-        ) as live:
+        async with _serve(_echo_server(), "sse", allowed_hosts=["mcp.internal:*"]) as live:
             async with httpx.AsyncClient(timeout=10) as http:
                 async with _SSE(http, live.base, {"Host": f"attacker.example:{live.port}"}) as bad:
                     assert bad.stream_status == 421

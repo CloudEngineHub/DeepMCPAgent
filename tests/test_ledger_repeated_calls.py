@@ -20,14 +20,13 @@ The agents run on a scripted chat model (no LLM API); the MCP server binds
 
 from __future__ import annotations
 
-import asyncio
 import itertools
 from collections.abc import AsyncIterator, Iterable, Iterator
 from contextlib import asynccontextmanager
 from typing import Any
 
 import pytest
-import uvicorn
+from _live_server import serve_mcp
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
@@ -143,36 +142,10 @@ async def _ask(model: _Scripted, tools: list[Any], **kwargs: Any) -> dict[str, A
 
 
 @asynccontextmanager
-async def _serve(server: MCPServer, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[str]:
-    """Run *server* over Streamable HTTP and yield its ``/mcp`` URL."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    task = asyncio.ensure_future(server.run_async(transport="http", host="127.0.0.1", port=0))
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 5
-        port = instances[0].servers[0].sockets[0].getsockname()[1]
+async def _serve(server: MCPServer) -> AsyncIterator[str]:
+    """Run *server* over Streamable HTTP on a free loopback port; yield its ``/mcp`` URL."""
+    async with serve_mcp(server) as port:
         yield f"http://127.0.0.1:{port}/mcp"
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
 
 
 class _ToolCallbacks(AsyncCallbackHandler):
@@ -242,7 +215,7 @@ async def test_polling_an_mcp_tool_reaches_the_server_every_time(monkeypatch, ca
         return _status(len(hits))
 
     model = _Scripted([*_polls(10), AIMessage(content="Job j1 is done.")])
-    async with _serve(server, monkeypatch) as url:
+    async with _serve(server) as url:
         agent = await build_agent(
             model=model, servers={"jobs": HTTPServerSpec(url=url)}, trace_tools=True
         )

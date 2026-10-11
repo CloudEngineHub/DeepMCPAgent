@@ -250,3 +250,87 @@ async def test_key_rotation_warning_comes_on_the_first_audited_call(tmp_path, ca
         assert not any("key rotated" in r.getMessage() for r in caplog.records)
         await TestClient(rotated).call_tool("ping", {})
     assert any("key rotated" in r.getMessage() for r in caplog.records)
+
+
+# ---------------------------------------------------------------------------
+# multi-user-systems.md and secure-multi-tenant-platform.md
+# ---------------------------------------------------------------------------
+
+
+async def test_multi_user_customer_ops_server_example(secrets_env):
+    from unittest.mock import AsyncMock
+
+    from promptise.mcp.server import JWTAuth, verify_audit_log
+
+    code = _code_block("guides/multi-user-systems.md", "A real MCP server with 30 tools")
+    assert "${" not in code  # keys come from the environment, not literal placeholders
+    db = types.SimpleNamespace(get_customer=AsyncMock(return_value={"id": "c1"}))
+    ns = _run(code, db=db)
+    server = ns["server"]
+    assert len(server._tool_registry.list_all()) == 30  # as the guide says
+
+    anonymous = _text(
+        await TestClient(server).call_tool("customers_get_customer", {"customer_id": "c1"})
+    )
+    assert "AUTHENTICATION_ERROR" in anonymous
+    token = JWTAuth(secret="showcase-jwt-secret-at-least-32-bytes").create_token(
+        {"sub": "support-agent", "scope": "read"}, expires_in=60
+    )
+    client = TestClient(server, meta={"authorization": f"Bearer {token}"})
+    result = json.loads(
+        _text(await client.call_tool("customers_get_customer", {"customer_id": "c1"}))
+    )
+    assert result == {"id": "c1"}
+
+    report = verify_audit_log(str(secrets_env / "audit.jsonl"), "showcase-audit-secret")
+    assert report.ok and report.entries == 2
+
+
+@pytest.mark.parametrize(
+    ("page", "heading"),
+    [
+        ("guides/multi-user-systems.md", "Step 4: Enable Tamper-Evident Audit Logging"),
+        ("guides/secure-multi-tenant-platform.md", "Step 4 — Tamper-evident audit, tenant-stamped"),
+    ],
+)
+async def test_guide_audit_examples_sign_with_the_environment_key(secrets_env, page, heading):
+    from promptise.mcp.server import MCPServer, verify_audit_log
+
+    server = MCPServer("guide")
+
+    @server.tool()
+    async def ping() -> str:
+        return "pong"
+
+    code = _code_block(page, heading)
+    assert "${" not in code
+    _run(code, server=server)  # AuditMiddleware(secret=...) raised TypeError here
+    await TestClient(server).call_tool("ping", {})
+    report = verify_audit_log(str(secrets_env / "audit.jsonl"), "showcase-audit-secret")
+    assert report.ok and report.entries == 1
+
+
+_KEY_TAKING_CALLS = re.compile(
+    r"\b(JWTAuth|AsymmetricJWTAuth|AuditMiddleware|HTTPServerSpec|MCPClient|"
+    r"PostgresConversationStore)\((?:[^()]|\([^()]*\))*?[\"']\$\{",
+    re.DOTALL,
+)
+
+
+def _python_blocks(path: Path) -> list[str]:
+    return re.findall(r"```python\n(.*?)```", path.read_text(encoding="utf-8"), re.DOTALL)
+
+
+def test_no_doc_example_passes_a_literal_env_placeholder_or_audit_secret_kwarg():
+    """``"${VAR}"`` is only expanded by ``.superagent`` files, the env resolver
+    and a few documented parameters; these calls take it literally.  And
+    ``AuditMiddleware`` has no ``secret=`` parameter (it is ``hmac_secret=``)."""
+    problems = []
+    for path in sorted(DOCS.rglob("*.md")):
+        for block in _python_blocks(path):
+            if re.search(r"AuditMiddleware\((?:[^()]|\([^()]*\))*?\bsecret=", block, re.DOTALL):
+                problems.append(f"{path.relative_to(DOCS)}: AuditMiddleware(secret=...)")
+            match = _KEY_TAKING_CALLS.search(block)
+            if match:
+                problems.append(f'{path.relative_to(DOCS)}: {match.group(1)}("${{...}}")')
+    assert problems == []

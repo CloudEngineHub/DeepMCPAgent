@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import pytest
-import uvicorn
+from _live_server import serve_mcp
 from mcp.shared.exceptions import McpError
 from mcp.shared.memory import create_connected_server_and_client_session
 from mcp.types import (
@@ -675,54 +675,12 @@ class TestManifestAndIncludePrompts:
 # 3 + 9. MCPClient / MCPMultiClient methods and agent tools (live HTTP)
 # =====================================================================
 
-# Local test servers stay inside the reserved range 8520-8529.
-_TEST_PORTS = range(8520, 8530)
-
-
-def _free_test_port() -> int:
-    import socket
-
-    for port in _TEST_PORTS:
-        with socket.socket() as probe:
-            try:
-                probe.bind(("127.0.0.1", port))
-            except OSError:
-                continue
-            return port
-    raise RuntimeError("no free port in 8520-8529 for the test MCP server")
-
 
 @asynccontextmanager
-async def _serve(server: MCPServer, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[str]:
-    """Run *server* over Streamable HTTP on a port in 8520–8529."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    port = _free_test_port()
-    task = asyncio.ensure_future(server.run_async(transport="http", host="127.0.0.1", port=port))
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 5
+async def _serve(server: MCPServer) -> AsyncIterator[str]:
+    """Run *server* over Streamable HTTP on a free loopback port; yield its ``/mcp`` URL."""
+    async with serve_mcp(server) as port:
         yield f"http://127.0.0.1:{port}/mcp"
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
 
 
 def _client_server() -> MCPServer:
@@ -746,7 +704,7 @@ def _client_server() -> MCPServer:
 
 class TestLiveClient:
     async def test_client_methods_and_access_control(self, monkeypatch):
-        async with _serve(_client_server(), monkeypatch) as url:
+        async with _serve(_client_server()) as url:
             async with MCPClient(url=url, api_key="sk-user") as user:
                 resources = {str(r.uri) for r in await user.list_resources()}
                 assert {"secrets://payroll", "public://hello", "docs://manifest"} <= resources
@@ -792,7 +750,7 @@ class TestLiveClient:
             def note() -> str:
                 return "from other"
 
-            async with _serve(other, monkeypatch) as other_url:
+            async with _serve(other) as other_url:
                 multi = MCPMultiClient(
                     {
                         "main": MCPClient(url=url, api_key="sk-admin"),
@@ -835,7 +793,7 @@ class TestLiveClient:
         def a() -> str:
             return "a"
 
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             async with MCPMultiClient({"s": MCPClient(url=url)}) as multi:
                 tools = await make_resource_tools(multi, taken={"read_resource"})
         assert {t.name for t in tools} == {"list_resources", "mcp_read_resource"}
@@ -921,7 +879,7 @@ class TestAgentToolsForwardCallerToken:
             user_id="manager", bearer_token=jwt.create_token({"sub": "manager", "roles": ["hr"]})
         )
 
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             agent = await build_agent(
                 model=_ReadThenAnswer.make("read_resource", {"uri": "hr://payroll"}),
                 servers={"hr": HTTPServerSpec(url=url, bearer_token=agent_token)},
@@ -953,7 +911,7 @@ class TestAgentToolsForwardCallerToken:
         model = _ReadThenAnswer.make(
             "get_prompt", {"name": "dismissal", "arguments": {"name": "Bob"}}
         )
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             agent = await build_agent(
                 model=model,
                 servers={"hr": HTTPServerSpec(url=url, bearer_token=agent_token)},
@@ -972,7 +930,7 @@ class TestAgentToolsForwardCallerToken:
         server, jwt = _jwt_role_server()
         agent_token = jwt.create_token({"sub": "hr-agent", "roles": ["hr"]})
         clerk_token = jwt.create_token({"sub": "clerk", "roles": ["staff"]})
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             async with MCPMultiClient({"hr": MCPClient(url=url, bearer_token=agent_token)}) as m:
                 ok = await m.read_resource("hr://payroll")
                 assert json.loads(ok.contents[0].text) == {"total": 1000}
@@ -1045,7 +1003,7 @@ class TestHideUnauthorized:
         assert {p["name"] for p in manifest["prompts"]} == {"hello"}
 
     async def test_live_server_filters_per_caller(self, monkeypatch):
-        async with _serve(_hidden_server(), monkeypatch) as url:
+        async with _serve(_hidden_server()) as url:
             async with MCPClient(url=url, api_key="sk-user") as user:
                 uris = {str(r.uri) for r in await user.list_resources()}
                 templates = {t.uriTemplate for t in await user.list_resource_templates()}

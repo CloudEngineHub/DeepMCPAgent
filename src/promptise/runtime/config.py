@@ -14,11 +14,12 @@ Two preset configurations are provided for common environments:
 from __future__ import annotations
 
 import ipaddress
+import warnings
 from collections.abc import Callable
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 # ---------------------------------------------------------------------------
 # Execution modes
@@ -539,8 +540,12 @@ class MissionConfig(BaseModel):
         confidence_threshold: Below this = pause + escalate.
         timeout_hours: Max hours (0 = no timeout).
         max_invocations: Max invocations (0 = unlimited).
-        auto_complete: Stop process when mission achieved.
-        on_complete: Behavior when mission completes.
+        auto_complete: Stop the process when the mission is achieved
+            (``False`` keeps it running; its later invocations are
+            skipped, since the mission is completed).
+        on_complete: Deprecated and ignored.  It was never read: what
+            happens on completion is decided by ``auto_complete`` alone.
+            Setting it emits a ``FutureWarning``; it will be removed.
         escalation: Escalation target for low confidence.
     """
 
@@ -553,8 +558,23 @@ class MissionConfig(BaseModel):
     timeout_hours: float = Field(0.0, ge=0)
     max_invocations: int = Field(0, ge=0)
     auto_complete: bool = Field(True)
-    on_complete: Literal["stop", "continue", "suspend"] = Field("stop")
+    on_complete: Literal["stop", "continue", "suspend"] | None = Field(
+        None, description="Deprecated and ignored; use auto_complete."
+    )
     escalation: EscalationTarget | None = Field(None)
+
+    @field_validator("on_complete")
+    @classmethod
+    def _warn_on_complete_ignored(cls, v: str | None) -> str | None:
+        if v is not None:
+            warnings.warn(
+                "MissionConfig.on_complete is ignored and will be removed: a completed "
+                "mission stops the process when auto_complete=True (the default). Set "
+                "auto_complete=False to keep the process running after completion.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        return v
 
 
 # ---------------------------------------------------------------------------

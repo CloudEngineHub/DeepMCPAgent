@@ -286,8 +286,8 @@ async def search_flights(origin: str, destination: str, date: str) -> list[dict]
     """Search available flights."""
     return await flight_api.search(origin, destination, date)
 
-server.mount(weather)
-server.mount(flights)
+server.include_router(weather)
+server.include_router(flights)
 ```
 
 ---

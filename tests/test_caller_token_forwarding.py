@@ -9,7 +9,7 @@ Now every tool call made during an invocation whose ``CallerContext`` carries
 a ``bearer_token`` goes over a session opened for that token, so the server
 authenticates the user.  Concurrent invocations never share a session or a
 header dict.  The end-to-end tests run a real ``MCPServer`` with ``JWTAuth``
-over Streamable HTTP on a loopback port in 8500-8509.
+over Streamable HTTP on a free loopback port.
 """
 
 from __future__ import annotations
@@ -18,13 +18,12 @@ import asyncio
 import contextvars
 import json
 import logging
-import socket
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
 import pytest
-import uvicorn
+from _live_server import serve_mcp
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
@@ -37,6 +36,7 @@ from promptise.mcp.client import MCPClient, MCPClientError, MCPMultiClient
 from promptise.mcp.client._caller_sessions import CallerSessionPool
 from promptise.mcp.client._client import InFlightToolCall
 from promptise.mcp.server import (
+    APIKeyAuth,
     AuthMiddleware,
     Depends,
     Elicitor,
@@ -134,52 +134,11 @@ class _Approvals:
         return True
 
 
-# Local test servers stay inside a fixed, reserved port range.
-_TEST_PORTS = range(8500, 8510)
-
-
-def _free_test_port() -> int:
-    for port in _TEST_PORTS:
-        with socket.socket() as probe:
-            try:
-                probe.bind(("127.0.0.1", port))
-            except OSError:
-                continue
-            return port
-    raise RuntimeError("no free port in 8500-8509 for the test MCP server")
-
-
 @asynccontextmanager
-async def _serve(server: MCPServer, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[str]:
-    """Run *server* over Streamable HTTP and yield its ``/mcp`` URL."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    port = _free_test_port()
-    task = asyncio.ensure_future(server.run_async(transport="http", host="127.0.0.1", port=port))
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 5
+async def _serve(server: MCPServer) -> AsyncIterator[str]:
+    """Run *server* over Streamable HTTP on a free loopback port; yield its ``/mcp`` URL."""
+    async with serve_mcp(server) as port:
         yield f"http://127.0.0.1:{port}/mcp"
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
 
 
 class _CallWhoami(BaseChatModel):
@@ -218,7 +177,7 @@ async def _whoami(agent: Any, caller: CallerContext | None) -> dict:
 
 class TestAgentForwardsCallerToken:
     async def test_concurrent_callers_each_see_their_own_identity(self, monkeypatch):
-        async with _serve(_crm_server(overlap=2), monkeypatch) as url:
+        async with _serve(_crm_server(overlap=2)) as url:
             # The trap from the multi-tenant guide: one agent, built with the
             # first user's token, shared by every user.
             agent = await build_agent(
@@ -240,7 +199,7 @@ class TestAgentForwardsCallerToken:
             )
             for i in range(8)
         ]
-        async with _serve(_crm_server(overlap=len(callers)), monkeypatch) as url:
+        async with _serve(_crm_server(overlap=len(callers))) as url:
             agent = await build_agent(
                 model=_CallWhoami(),
                 servers={"crm": HTTPServerSpec(url=url, bearer_token=SERVICE_TOKEN)},
@@ -253,7 +212,7 @@ class TestAgentForwardsCallerToken:
         assert seen == [{"user": c.user_id, "tenant": c.tenant_id} for c in callers * 2]
 
     async def test_without_a_caller_token_the_spec_credential_is_used(self, monkeypatch):
-        async with _serve(_crm_server(), monkeypatch) as url:
+        async with _serve(_crm_server()) as url:
             agent = await build_agent(
                 model=_CallWhoami(),
                 servers={"crm": HTTPServerSpec(url=url, bearer_token=SERVICE_TOKEN)},
@@ -268,7 +227,7 @@ class TestAgentForwardsCallerToken:
         assert tokenless == {"user": "crm-agent", "tenant": "platform"}
 
     async def test_server_can_opt_out(self, monkeypatch):
-        async with _serve(_crm_server(), monkeypatch) as url:
+        async with _serve(_crm_server()) as url:
             agent = await build_agent(
                 model=_CallWhoami(),
                 servers={
@@ -292,7 +251,7 @@ class TestAgentForwardsCallerToken:
                 {"sub": "mallory", "org": "acme"}
             ),
         )
-        async with _serve(_crm_server(), monkeypatch) as url:
+        async with _serve(_crm_server()) as url:
             agent = await build_agent(
                 model=_CallWhoami(),
                 servers={"crm": HTTPServerSpec(url=url, bearer_token=SERVICE_TOKEN)},
@@ -316,7 +275,7 @@ class TestAgentForwardsCallerToken:
     async def test_caller_token_session_answers_server_approval_prompts(self, monkeypatch):
         busy_started = asyncio.Event()
         approvals = _Approvals()
-        async with _serve(_gated_crm_server(busy_started), monkeypatch) as url:
+        async with _serve(_gated_crm_server(busy_started)) as url:
             agent = await build_agent(
                 model=_CallWhoami(),
                 servers={"crm": HTTPServerSpec(url=url, bearer_token=SERVICE_TOKEN)},
@@ -346,6 +305,119 @@ class TestAgentForwardsCallerToken:
 
 def _text_of(result: Any) -> str:
     return "".join(getattr(block, "text", "") for block in result.content)
+
+
+# =====================================================================
+# An explicit per-server API key wins over a forwarded caller token
+# =====================================================================
+
+API_KEY = "crm-agent-key-0123456789"
+
+
+def _keyed_crm_server() -> MCPServer:
+    """A server that only accepts its API key (checked at the HTTP gate too)."""
+    server = MCPServer("crm", require_auth=True)
+    server.add_middleware(
+        AuthMiddleware(
+            APIKeyAuth(keys={API_KEY: {"client_id": "crm-agent", "tenant_id": "platform"}})
+        )
+    )
+
+    @server.tool(read_only_hint=True)
+    async def whoami(ctx: RequestContext) -> dict:
+        """Show which user and organisation this server thinks is calling."""
+        return {"user": ctx.client.client_id, "tenant": ctx.client.tenant_id}
+
+    return server
+
+
+class TestExplicitServerCredentialWins:
+    """The caller's bearer used to be sent next to ``x-api-key``; the gate
+    checked the bearer first and answered 401 on every call that carried a
+    caller token (the agent-identity bug of 1.3.3, again)."""
+
+    @pytest.mark.parametrize(
+        "spec_kwargs",
+        [{"api_key": API_KEY}, {"headers": {"X-API-Key": API_KEY}}],
+        ids=["api_key", "x-api-key-header"],
+    )
+    async def test_api_key_server_answers_a_caller_with_a_token(self, spec_kwargs):
+        async with _serve(_keyed_crm_server()) as url:
+            agent = await build_agent(
+                model=_CallWhoami(), servers={"crm": HTTPServerSpec(url=url, **spec_kwargs)}
+            )
+            try:
+                seen = await _whoami(agent, ALICE)
+            finally:
+                await agent.shutdown()
+
+        assert seen == {"user": "crm-agent", "tenant": "platform"}
+
+    async def test_explicit_forwarding_sends_the_caller_token_next_to_the_key(self):
+        """Asked for explicitly, the caller's token is sent (and a bearer-first
+        gate judges it, not the key)."""
+        async with _serve(_keyed_crm_server()) as url:
+            agent = await build_agent(
+                model=_CallWhoami(),
+                servers={
+                    "crm": HTTPServerSpec(url=url, api_key=API_KEY, forward_caller_token=True)
+                },
+            )
+            try:
+                result = await agent.ainvoke(
+                    {"messages": [{"role": "user", "content": "Who am I?"}]}, caller=ALICE
+                )
+                tokenless = await _whoami(agent, None)
+            finally:
+                await agent.shutdown()
+
+        tool_error = next(m for m in result["messages"] if isinstance(m, ToolMessage)).content
+        assert "401 Unauthorized" in tool_error
+        assert tokenless == {"user": "crm-agent", "tenant": "platform"}
+
+
+class TestForwardsCallerToken:
+    @pytest.mark.parametrize(
+        ("spec_kwargs", "forwards"),
+        [
+            ({}, True),
+            ({"bearer_token": "agent-token"}, True),  # replaced by the caller's token
+            ({"headers": {"Authorization": "Bearer agent-token"}}, True),
+            ({"api_key": "k"}, False),
+            ({"headers": {"x-api-key": "k"}}, False),
+            ({"headers": {"X-Api-Key": "k"}}, False),
+            ({"api_key": "k", "forward_caller_token": True}, True),
+            ({"forward_caller_token": False}, False),
+            ({"bearer_token": "agent-token", "forward_caller_token": False}, False),
+        ],
+    )
+    def test_resolution(self, spec_kwargs, forwards):
+        spec = HTTPServerSpec(url="http://127.0.0.1:1/mcp", **spec_kwargs)
+        assert spec.forwards_caller_token is forwards
+
+    @pytest.mark.parametrize("forward", [None, True, False])
+    def test_the_choice_survives_a_round_trip(self, forward):
+        spec = HTTPServerSpec(url="http://x/mcp", api_key="k", forward_caller_token=forward)
+        copy = HTTPServerSpec.model_validate(spec.model_dump())
+        assert copy.forwards_caller_token is spec.forwards_caller_token
+
+    def test_agent_manifest_keeps_the_setting(self):
+        """A ``.agent`` manifest used to drop ``forward_caller_token``."""
+        from promptise.runtime.manifest import AgentManifestSchema, manifest_to_process_config
+
+        manifest = AgentManifestSchema.model_validate(
+            {
+                "name": "t",
+                "model": "openai:gpt-5-mini",
+                "servers": {
+                    "vendor": {"url": "http://v/mcp", "forward_caller_token": False},
+                    "keyed": {"url": "http://k/mcp", "api_key": "k"},
+                },
+            }
+        )
+        servers = manifest_to_process_config(manifest).servers
+        assert servers["vendor"].forwards_caller_token is False
+        assert servers["keyed"].forwards_caller_token is False
 
 
 # =====================================================================
