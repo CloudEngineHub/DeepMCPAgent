@@ -227,7 +227,8 @@ Search → Verify → Synthesize. Three-stage research pipeline with optional ve
 
 ```mermaid
 graph LR
-    S[search] --> V[verify]
+    S[search] -->|tool calls| S
+    S --> V[verify]
     V -->|pass| SY[synthesize]
     V -->|fail| S
     SY --> END[__end__]
@@ -249,10 +250,16 @@ PromptGraph.research(
     system_prompt="",        # Shared system prompt
     blocks=None,             # Shared blocks
     verify=True,             # Include verification step (set False to skip)
+    max_search_steps=12,     # Search budget per run (each tool-loop round counts)
+    max_verify_rounds=2,     # How many times verify may run
 )
 ```
 
-Verification loops back to search until findings pass quality gates.
+- **Search** (PromptNode) — Gather information with the tools, then reply with the findings. After a failed check it sees the verifier's issues (`state.context["verification"]`) and looks up what is missing.
+- **Verify** (ValidateNode) — A model call that checks the findings against the tool results in the conversation and returns a `ResearchVerdict` (`passes`, `issues`; in `promptise.engine.prebuilts`): every claim backed by a tool result, nothing contradicting the sources or itself, the whole question covered. A failed check routes back to search.
+- **Synthesize** (PromptNode) — Write the final answer from the findings.
+
+Verify runs at most `max_verify_rounds` times; once it has, and when search has used its budget, the run moves on to synthesize, so it always ends with a written answer. Each check is one extra model call; pass `verify=False` for search → synthesize without it. For a deterministic check without a model call instead, build the graph yourself with a [`GuardNode`](engine-nodes.md) and your own guards in place of verify.
 
 ## Autonomous
 
@@ -284,32 +291,44 @@ agent = await build_agent(..., agent_pattern="autonomous")
 PromptGraph.autonomous(
     node_pool=None,          # List of BaseNode instances to choose from
     system_prompt="",        # System prompt for the planner
-    tools=None,              # Default tools (used if no pool provided)
+    tools=None,              # Tools for the default reason node (if no pool provided)
     max_steps=15,            # Maximum autonomous decision steps
+    blocks=None,             # PromptBlocks for the default nodes
+    max_tool_rounds=10,      # Model calls per reason step in the default pool
 )
 ```
 
-The LLM sees the node catalog (names, descriptions, flags) and picks the best step at each iteration. If no pool is provided, default reason/analyze/synthesize nodes are created from the tools.
+The LLM sees the node catalog (names, descriptions, the tools each step calls, which steps finish the run) and picks the next step, or `__done__`. If no pool is provided, the default pool is `reason` (with the tools), `analyze` and `synthesize`, which writes the final answer and is terminal.
+
+- **A step runs its whole tool loop.** A chosen node is re-run while its model keeps calling tools (up to the node's `max_iterations`), so one step can make several tool calls and read their results before the agent picks again.
+- **The routing exchange stays out of the conversation.** The step menu and the model's JSON choice are sent for that one call and never added to the messages, so they can't pile up or become the reply.
+- **Tool names map to steps.** A tool name given as the next step runs the pool node that has that tool; an unknown name is reported back to the next routing call.
+- **The run ends with an answer.** When the agent finishes (`__done__`, `max_steps`, or an unparseable choice) without a terminal node having run last, the `AutonomousNode`'s `answer_node` runs — by default the first terminal node; with none in the pool, the node asks the model for the final answer itself.
+- **Streaming.** `AutonomousNode` streams the chosen steps' model chunks and tool events; the routing calls are not streamed.
 
 ## Deliberate
 
-Think → Plan → Act → Observe → Reflect. Slower, higher-quality reasoning that thinks before acting and observes results carefully.
+Think → Plan → Act → Observe → Reflect → Answer. Slower, higher-quality reasoning that thinks before acting and observes results carefully.
 
 ```mermaid
 graph TD
     TH[think] --> PL[plan]
+    PL -->|quality < 3| PL
     PL --> AC[act]
+    AC -->|tool calls| AC
     AC --> OB[observe]
     OB --> RE[reflect]
     RE -->|continue| AC
     RE -->|replan| PL
-    RE -->|answer| END[__end__]
+    RE -->|answer| ANS[answer]
+    ANS --> END[__end__]
 
     style TH fill:#2d1b4e,stroke:#c084fc,color:#fff
     style PL fill:#1e3a5f,stroke:#60a5fa,color:#fff
     style AC fill:#1a2e1a,stroke:#4ade80,color:#fff
     style OB fill:#3a2a0a,stroke:#fbbf24,color:#fff
     style RE fill:#3a1a1a,stroke:#f87171,color:#fff
+    style ANS fill:#1a2e1a,stroke:#4ade80,color:#fff
     style END fill:#1a1a1a,stroke:#666,color:#aaa
 ```
 
@@ -321,40 +340,54 @@ agent = await build_agent(..., agent_pattern="deliberate")
 PromptGraph.deliberate(
     tools=None,              # Tools for the act node
     system_prompt="",        # Shared system prompt
+    blocks=None,             # Shared blocks
+    max_act_steps=12,        # Act budget per run (each tool-loop round counts)
 )
 ```
 
-Uses reasoning nodes: ThinkNode → PlanNode → PromptNode (with tools) → ObserveNode → ReflectNode.
+Uses reasoning nodes: ThinkNode → PlanNode → PromptNode (with tools) → ObserveNode → ReflectNode → SynthesizeNode. Plan and reflect return structured output (`PeoatrPlan`, `PeoatrReflection`, as in PEOATR), so the plan's quality gate and reflect's `continue` / `replan` / `answer` route always reach the engine. Every stage has a budget (plan 3, act `max_act_steps`, reflect 4); act and reflect hand over to `answer` when theirs is used, so the run always ends with the `answer` stage's written reply.
 
 ## Debate
 
-Adversarial two-agent debate. Proposer and critic alternate until consensus.
+Adversarial debate. The proposer answers with tools, the critic and the judge send it back until the answer holds up, then `answer` writes the reply.
 
 ```mermaid
 graph TD
-    PR[proposer] --> CR[critic]
+    PR[proposer] -->|tool calls| PR
+    PR --> CR[critic]
     CR -->|severity high| PR
     CR -->|severity low| JU[judge]
-    JU --> END[__end__]
+    JU -->|fail| PR
+    JU -->|pass| ANS[answer]
+    ANS --> END[__end__]
 
     style PR fill:#1e3a5f,stroke:#60a5fa,color:#fff
     style CR fill:#3a1a1a,stroke:#f87171,color:#fff
     style JU fill:#1a2e1a,stroke:#4ade80,color:#fff
+    style ANS fill:#1a2e1a,stroke:#4ade80,color:#fff
     style END fill:#1a1a1a,stroke:#666,color:#aaa
 ```
 
 ```python
-agent = await build_agent(..., agent_pattern="debate")
+agent = await build_agent(..., agent_pattern="debate")  # the proposer gets the agent's tools
 ```
 
 ```python
 PromptGraph.debate(
     system_prompt="",        # Shared system prompt
-    max_rounds=5,            # Maximum debate rounds before judge decides
+    tools=None,              # Tools for the proposer
+    blocks=None,             # Shared blocks
+    max_rounds=3,            # How many times the critic and the judge may each run
+    max_proposer_steps=12,   # Proposer budget per run (each tool-loop round counts)
 )
 ```
 
-Uses CritiqueNode for the critic and ValidateNode for the judge. The proposer generates, the critic challenges, and the judge renders a final verdict.
+- **Proposer** (PromptNode) — Answers with the tools. On a revision it sees the latest critique and verdict (`state.context["critique"]`, `state.context["verdict"]`).
+- **Critic** (CritiqueNode) — Returns a `DebateCritique` (`weaknesses`, `improvements`, `severity` from 0.0 to 1.0); above 0.3 the answer goes back to the proposer.
+- **Judge** (ValidateNode) — Returns a `DebateVerdict` (`passes`, `issues`); a failed verdict goes back to the proposer, a pass goes to `answer`.
+- **Answer** (SynthesizeNode) — Writes the final reply: the latest proposal, corrected for any issue still listed.
+
+The schemas are in `promptise.engine.prebuilts`. When the critic has run `max_rounds` times the run goes to the judge; when the judge or the proposer has used its budget, it goes to `answer`, so a debate always ends with a written answer.
 
 ## Pipeline
 

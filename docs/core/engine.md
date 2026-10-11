@@ -94,8 +94,8 @@ agent = await build_agent(..., agent_pattern="code-action") # Writes ONE sandbox
 agent = await build_agent(..., agent_pattern="peoatr")      # Plan → Act → Think → Reflect → Answer
 agent = await build_agent(..., agent_pattern="research")    # Search → Verify → Synthesize
 agent = await build_agent(..., agent_pattern="autonomous")  # Agent builds own path
-agent = await build_agent(..., agent_pattern="deliberate")  # Think → Plan → Act → Observe → Reflect
-agent = await build_agent(..., agent_pattern="debate")      # Proposer ↔ Critic → Judge
+agent = await build_agent(..., agent_pattern="deliberate")  # Think → Plan → Act → Observe → Reflect → Answer
+agent = await build_agent(..., agent_pattern="debate")      # Proposer ↔ Critic → Judge → Answer
 
 # Or pass a PromptGraph directly
 agent = await build_agent(..., agent_pattern=my_graph)
@@ -249,12 +249,12 @@ Reasoning Graph Engine
 │  │
 │  ├─ Structured Reasoning
 │  │  ├── peoatr                      Plan → Act → Think → Reflect → Answer
-│  │  ├── deliberate                  Think → Plan → Act → Observe → Reflect
+│  │  ├── deliberate                  Think → Plan → Act → Observe → Reflect → Answer
 │  │  └── research                    Search → Verify → Synthesize
 │  │
 │  └─ Advanced
 │     ├── autonomous                  Agent builds own path from pool
-│     └── debate                      Proposer ↔ Critic → Judge
+│     └── debate                      Proposer ↔ Critic → Judge → Answer
 │
 ├─ Skills Library (15 factories) ─────────────────────────────────
 │  │

@@ -258,6 +258,7 @@ def _ensure_registry() -> None:
                     _Field("max_steps", _DATA),
                     _Field("entry_node", _DATA),
                     _Field("terminal_nodes", _DATA),
+                    _Field("answer_node", _DATA),
                 )
             ),
             RetryNode: _Spec(
