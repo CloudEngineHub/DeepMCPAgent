@@ -33,3 +33,24 @@ from dotenv import load_dotenv  # noqa: E402
 
 # Load environment variables from .env file
 load_dotenv()
+
+
+import sys  # noqa: E402
+
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _clear_sse_shutdown_flag():
+    """Start every test with sse-starlette's process-wide shutdown flag clear.
+
+    A uvicorn server stopped in-process can leave ``AppStatus.should_exit``
+    set, and every later SSE response then closes at once (the client
+    hangs).  ``_live_server`` clears it after each server it stops; this
+    catches a server started any other way.  Only touched once a test has
+    imported sse-starlette.
+    """
+    sse = sys.modules.get("sse_starlette.sse")
+    if sse is not None:
+        sse.AppStatus.should_exit = False
+    yield

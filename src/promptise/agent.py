@@ -51,7 +51,9 @@ class CallerContext:
             opened for this token — never shared with another caller —
             so the server authenticates the user, not the credential the
             agent was built with.  A server opts out with
-            ``HTTPServerSpec(forward_caller_token=False)``.  stdio servers
+            ``HTTPServerSpec(forward_caller_token=False)``; a server with
+            an API key keeps it unless it sets
+            ``forward_caller_token=True``.  stdio servers
             have no request headers and never receive it.  Tool
             discovery at build time still uses the server spec's
             credentials.
@@ -3130,10 +3132,11 @@ async def build_agent(
             ``get_prompt`` tool (its description lists the prompts and their
             arguments) that returns the rendered prompt for the agent to
             follow.  A generated tool is named ``mcp_<name>`` when an MCP
-            server already has a tool with its name.  With
-            ``forward_caller_token`` set on a server, both send the invoking
-            caller's bearer token, exactly like MCP tool calls; otherwise
-            they use the credentials configured for the server.
+            server already has a tool with its name.  For a server that
+            receives caller tokens (``HTTPServerSpec.forwards_caller_token``),
+            both send the invoking caller's bearer token, exactly like MCP
+            tool calls; otherwise they use the credentials configured for
+            the server.
         flow: Optional :class:`~promptise.prompts.flows.ConversationFlow`
             instance, subclass, or zero-argument factory.  The system
             prompt then evolves across turns with the flow's phase and
@@ -3484,12 +3487,14 @@ async def build_agent(
         await _promptise_multi.__aenter__()
 
         # Every server's tools send the invoking caller's bearer token unless
-        # its spec opts out. stdio servers are included so the multi-client
-        # can warn that the token cannot reach them.
+        # its spec opts out, or has an API key that the caller's bearer
+        # would otherwise override (HTTPServerSpec.forwards_caller_token).
+        # stdio servers are included so the multi-client can warn that the
+        # token cannot reach them.
         forward_to = [
             sname
             for sname, spec in servers.items()
-            if not isinstance(spec, HTTPServerSpec) or spec.forward_caller_token
+            if not isinstance(spec, HTTPServerSpec) or spec.forwards_caller_token
         ]
         adapter = MCPToolAdapter(
             _promptise_multi,

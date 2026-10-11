@@ -35,8 +35,7 @@ from typing import Any
 import httpx
 import jwt as pyjwt
 import pytest
-import uvicorn
-from sse_starlette.sse import AppStatus
+from _live_server import serve_asgi, serve_mcp
 
 from promptise.mcp.client import (
     MCPClient,
@@ -105,82 +104,15 @@ def _inventory(*, extra_tool: bool = False, require_auth: bool = False) -> MCPSe
 # ---------------------------------------------------------------------------
 
 
-def _forget_sse_shutdown() -> None:
-    """Clear sse-starlette's process-wide shutdown flag after a server stops.
-
-    A uvicorn server stopped while an SSE stream is open sets
-    ``AppStatus.should_exit`` for the whole process, and every later SSE
-    response then closes at once.  A real restart is a new process; an
-    in-process restart must reset the flag to behave like one.
-    """
-    AppStatus.should_exit = False
-
-
 @asynccontextmanager
 async def _serve(
-    server: MCPServer,
-    monkeypatch: pytest.MonkeyPatch,
-    *,
-    port: int = 0,
-    transport: str = "http",
-    **run_kwargs: Any,
+    server: MCPServer, *, port: int = 0, transport: str = "http", **run_kwargs: Any
 ) -> AsyncIterator[int]:
     """Run *server* through ``run_async`` on ``127.0.0.1``; yield the bound port."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    task = asyncio.ensure_future(
-        server.run_async(transport=transport, host="127.0.0.1", port=port, **run_kwargs)
-    )
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()  # surfaces a startup failure
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 2
-        yield instances[0].servers[0].sockets[0].getsockname()[1]
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
-        _forget_sse_shutdown()
-
-
-@asynccontextmanager
-async def _serve_asgi(app: Any) -> AsyncIterator[int]:
-    """Run an ASGI *app* under uvicorn on ``127.0.0.1``; yield the bound port."""
-    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=0, log_level="warning"))
-    task = asyncio.ensure_future(server.serve())
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()
-            if server.started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        server.config.timeout_graceful_shutdown = 2
-        yield server.servers[0].sockets[0].getsockname()[1]
-    finally:
-        server.should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
-        _forget_sse_shutdown()
+    async with serve_mcp(
+        server, port=port, transport=transport, graceful_timeout=2, **run_kwargs
+    ) as bound:
+        yield bound
 
 
 def _text(result: Any) -> str:
@@ -248,7 +180,7 @@ class TestReconnectAfterRestart:
     async def test_client_reopens_the_session_after_a_restart(self, monkeypatch):
         client: MCPClient | None = None
         try:
-            async with _serve(_inventory(), monkeypatch) as port:
+            async with _serve(_inventory()) as port:
                 client = MCPClient(url=f"http://127.0.0.1:{port}/mcp")
                 await client.__aenter__()
                 first = await asyncio.wait_for(
@@ -257,7 +189,7 @@ class TestReconnectAfterRestart:
                 assert '"in_stock": 42' in _text(first)
                 assert client.session_generation == 1
             # Same address, fresh process: the old session id is unknown there.
-            async with _serve(_inventory(), monkeypatch, port=port):
+            async with _serve(_inventory(), port=port):
                 result = await asyncio.wait_for(
                     client.call_tool("check_stock", {"sku": "A"}), TIMEOUT
                 )
@@ -352,13 +284,13 @@ class TestReconnectAfterRestart:
             stop(proc)
 
     async def test_multi_client_relists_tools_from_the_new_deployment(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             multi = MCPMultiClient({"inventory": MCPClient(url=f"http://127.0.0.1:{port}/mcp")})
             await multi.__aenter__()
             await multi.list_tools()
             assert multi.tool_to_server == {"check_stock": "inventory"}
         try:
-            async with _serve(_inventory(extra_tool=True), monkeypatch, port=port):
+            async with _serve(_inventory(extra_tool=True), port=port):
                 result = await asyncio.wait_for(
                     multi.call_tool("check_stock", {"sku": "A"}), TIMEOUT
                 )
@@ -371,13 +303,13 @@ class TestReconnectAfterRestart:
 
     async def test_agent_tools_keep_working_across_a_restart(self, monkeypatch):
         """The path build_agent uses: LangChain tools over MCPMultiClient."""
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             multi = MCPMultiClient({"inventory": MCPClient(url=f"http://127.0.0.1:{port}/mcp")})
             await multi.__aenter__()
             (tool,) = await MCPToolAdapter(multi).as_langchain_tools()
             assert '"in_stock": 42' in str(await tool.ainvoke({"sku": "A"}))
         try:
-            async with _serve(_inventory(), monkeypatch, port=port):
+            async with _serve(_inventory(), port=port):
                 for _ in range(3):
                     out = await asyncio.wait_for(tool.ainvoke({"sku": "A"}), TIMEOUT)
                     assert '"in_stock": 42' in str(out)
@@ -386,11 +318,11 @@ class TestReconnectAfterRestart:
             await multi.__aexit__(None, None, None)
 
     async def test_concurrent_calls_share_one_reinitialisation(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             client = MCPClient(url=f"http://127.0.0.1:{port}/mcp")
             await client.__aenter__()
         try:
-            async with _serve(_inventory(), monkeypatch, port=port):
+            async with _serve(_inventory(), port=port):
                 results = await asyncio.wait_for(
                     asyncio.gather(
                         *(client.call_tool("check_stock", {"sku": str(i)}) for i in range(5))
@@ -403,14 +335,14 @@ class TestReconnectAfterRestart:
             await client.__aexit__(None, None, None)
 
     async def test_server_down_then_back_recovers_on_the_next_call(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             client = MCPClient(url=f"http://127.0.0.1:{port}/mcp", timeout=3)
             await client.__aenter__()
         try:
             # Nothing listens now: the call fails, and is not retried.
             with pytest.raises(MCPClientError):
                 await asyncio.wait_for(client.call_tool("check_stock", {"sku": "A"}), TIMEOUT)
-            async with _serve(_inventory(), monkeypatch, port=port):
+            async with _serve(_inventory(), port=port):
                 result = await asyncio.wait_for(
                     client.call_tool("check_stock", {"sku": "A"}), TIMEOUT
                 )
@@ -419,11 +351,11 @@ class TestReconnectAfterRestart:
             await client.__aexit__(None, None, None)
 
     async def test_auto_reconnect_off_reports_the_lost_session(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             client = MCPClient(url=f"http://127.0.0.1:{port}/mcp", auto_reconnect=False)
             await client.__aenter__()
         try:
-            async with _serve(_inventory(), monkeypatch, port=port):
+            async with _serve(_inventory(), port=port):
                 with pytest.raises(MCPClientError, match="no longer knows this MCP session"):
                     await asyncio.wait_for(client.call_tool("check_stock", {"sku": "A"}), TIMEOUT)
                 assert client.session_generation == 1
@@ -431,7 +363,7 @@ class TestReconnectAfterRestart:
             await client.__aexit__(None, None, None)
 
     async def test_closed_client_does_not_reconnect(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             client = MCPClient(url=f"http://127.0.0.1:{port}/mcp")
             async with client:
                 pass
@@ -447,7 +379,7 @@ class TestReconnectAfterRestart:
 
 class TestEndpointNotFound:
     async def test_url_without_mcp_path_is_a_typed_404(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             url = f"http://127.0.0.1:{port}"
             with pytest.raises(MCPConnectionRejectedError) as info:
                 async with MCPClient(url=url):
@@ -460,7 +392,7 @@ class TestEndpointNotFound:
         )
 
     async def test_multi_client_names_the_server(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             multi = MCPMultiClient({"inventory": MCPClient(url=f"http://127.0.0.1:{port}/")})
             with pytest.raises(MCPConnectionRejectedError, match="Server 'inventory' rejected"):
                 async with multi:
@@ -496,7 +428,7 @@ class TestCORS:
 
     async def test_default_config_admits_a_browser_client(self, monkeypatch):
         cors = CORSConfig(allow_origins=[BROWSER])
-        async with _serve(_inventory(), monkeypatch, cors=cors, allowed_origins=[BROWSER]) as port:
+        async with _serve(_inventory(), cors=cors, allowed_origins=[BROWSER]) as port:
             url = f"http://127.0.0.1:{port}/mcp"
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 preflight = await http.options(
@@ -521,7 +453,7 @@ class TestCORS:
     async def test_preflight_is_answered_before_the_auth_gate(self, monkeypatch):
         server = _inventory(require_auth=True)
         cors = CORSConfig(allow_origins=[BROWSER])
-        async with _serve(server, monkeypatch, cors=cors, allowed_origins=[BROWSER]) as port:
+        async with _serve(server, cors=cors, allowed_origins=[BROWSER]) as port:
             url = f"http://127.0.0.1:{port}/mcp"
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 preflight = await http.options(
@@ -545,7 +477,7 @@ class TestCORS:
     async def test_sse_transport_applies_the_same_cors(self, monkeypatch):
         cors = CORSConfig(allow_origins=[BROWSER])
         async with _serve(
-            _inventory(), monkeypatch, transport="sse", cors=cors, allowed_origins=[BROWSER]
+            _inventory(), transport="sse", cors=cors, allowed_origins=[BROWSER]
         ) as port:
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 preflight = await http.options(
@@ -676,7 +608,7 @@ class TestBindDefault:
 
 class TestHealthRoutes:
     async def test_probes_without_a_health_check(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch) as port:
+        async with _serve(_inventory()) as port:
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 live = await http.get(f"http://127.0.0.1:{port}/health")
                 ready = await http.get(f"http://127.0.0.1:{port}/health/ready")
@@ -701,7 +633,7 @@ class TestHealthRoutes:
         health.add_check("cache", lambda: False, required_for_ready=False)
         health.register_resources(server)
 
-        async with _serve(server, monkeypatch) as port:
+        async with _serve(server) as port:
             base = f"http://127.0.0.1:{port}"
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 # Probes carry no credentials and still pass the auth gate.
@@ -734,7 +666,7 @@ class TestHealthRoutes:
                 ).status_code == 401
 
     async def test_sse_transport_serves_the_probes(self, monkeypatch):
-        async with _serve(_inventory(), monkeypatch, transport="sse") as port:
+        async with _serve(_inventory(), transport="sse") as port:
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 assert (await http.get(f"http://127.0.0.1:{port}/health")).status_code == 200
                 assert (await http.get(f"http://127.0.0.1:{port}/health/ready")).status_code == 200
@@ -758,7 +690,7 @@ class TestHealthRoutes:
 class TestASGIApp:
     async def test_runs_under_uvicorn(self):
         app = _inventory().asgi_app()
-        async with _serve_asgi(app) as port:
+        async with serve_asgi(app) as port:
             async with MCPClient(url=f"http://127.0.0.1:{port}/mcp") as client:
                 result = await asyncio.wait_for(
                     client.call_tool("check_stock", {"sku": "A"}), TIMEOUT
@@ -769,7 +701,7 @@ class TestASGIApp:
 
     async def test_validates_host_against_loopback_plus_allowed_hosts(self):
         app = _inventory().asgi_app(allowed_hosts=["mcp.example.com"])
-        async with _serve_asgi(app) as port:
+        async with serve_asgi(app) as port:
             url = f"http://127.0.0.1:{port}/mcp"
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
 
@@ -785,7 +717,7 @@ class TestASGIApp:
 
     async def test_stateless_app_needs_no_session(self):
         app = _inventory().asgi_app(stateless=True)
-        async with _serve_asgi(app) as port:
+        async with serve_asgi(app) as port:
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 init = await http.post(
                     f"http://127.0.0.1:{port}/mcp", json=INIT, headers=MCP_HEADERS
@@ -808,7 +740,7 @@ class TestASGIApp:
 
     async def test_sse_app(self):
         app = _inventory().asgi_app("sse")
-        async with _serve_asgi(app) as port:
+        async with serve_asgi(app) as port:
             async with MCPClient(url=f"http://127.0.0.1:{port}/sse", transport="sse") as client:
                 tools = await asyncio.wait_for(client.list_tools(), TIMEOUT)
                 assert [t.name for t in tools] == ["check_stock"]
@@ -835,7 +767,7 @@ def _sdk_transport_deprecations(caught: list[warnings.WarningMessage]) -> list[s
 
 class TestStreamableHttpClientApi:
     async def test_connecting_raises_no_sdk_deprecation_warning(self):
-        async with _serve_asgi(_inventory().asgi_app()) as port:
+        async with serve_asgi(_inventory().asgi_app()) as port:
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
                 async with MCPClient(url=f"http://127.0.0.1:{port}/mcp") as client:
@@ -861,7 +793,7 @@ class TestStreamableHttpClientApi:
             asked.append(force_refresh)
             return jwt_auth.create_token({"sub": "agent-7"}, expires_in=300)
 
-        async with _serve_asgi(server.asgi_app()) as port:
+        async with serve_asgi(server.asgi_app()) as port:
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
                 async with MCPClient(
@@ -890,7 +822,7 @@ class TestStreamableHttpClientApi:
         monkeypatch.setattr(
             mcp.client, "streamable_http", types.SimpleNamespace(streamablehttp_client=old_api)
         )
-        async with _serve_asgi(_inventory().asgi_app()) as port:
+        async with serve_asgi(_inventory().asgi_app()) as port:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", DeprecationWarning)
                 async with MCPClient(url=f"http://127.0.0.1:{port}/mcp") as client:
@@ -922,7 +854,7 @@ class TestExplicitCredentialWinsOverIdentity:
         identity = AgentIdentity(
             "agent", credential=CallableTokenProvider(token_fn=lambda a: token)
         )
-        async with _serve_asgi(_inventory(require_auth=True).asgi_app()) as port:
+        async with serve_asgi(_inventory(require_auth=True).asgi_app()) as port:
             agent = await build_agent(
                 model=Scripted(),
                 identity=identity,
@@ -960,7 +892,7 @@ def _token_server() -> tuple[MCPServer, JWTAuth]:
 class TestTokenEndpointOverHttp:
     async def test_standard_form_encoded_client_credentials_request(self):
         server, jwt_auth = _token_server()
-        async with _serve_asgi(server.asgi_app()) as port:
+        async with serve_asgi(server.asgi_app()) as port:
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 resp = await http.post(
                     f"http://127.0.0.1:{port}/auth/token",
@@ -982,7 +914,7 @@ class TestTokenEndpointOverHttp:
 
     async def test_http_basic_client_authentication(self):
         server, jwt_auth = _token_server()
-        async with _serve_asgi(server.asgi_app()) as port:
+        async with serve_asgi(server.asgi_app()) as port:
             async with httpx.AsyncClient(timeout=TIMEOUT) as http:
                 resp = await http.post(
                     f"http://127.0.0.1:{port}/auth/token",
@@ -994,7 +926,7 @@ class TestTokenEndpointOverHttp:
 
     async def test_fetch_token_then_call_a_tool(self):
         server, _ = _token_server()
-        async with _serve_asgi(server.asgi_app()) as port:
+        async with serve_asgi(server.asgi_app()) as port:
             token = await MCPClient.fetch_token(
                 f"http://127.0.0.1:{port}/auth/token", "billing-agent", "s3cret"
             )

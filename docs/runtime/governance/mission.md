@@ -110,7 +110,8 @@ The agent can also call `check_mission` in open mode to inspect full evaluation 
 | `confidence_threshold` | `float` | `0.7` | Below this → pause the mission and escalate |
 | `timeout_hours` | `float` | `0` | Max hours (0 = no timeout) |
 | `max_invocations` | `int` | `0` | Fail the mission after this many invocations (0 = unlimited) |
-| `auto_complete` | `bool` | `True` | Stop process when achieved |
+| `auto_complete` | `bool` | `True` | Stop the process when achieved. `False` keeps it running (its later invocations are skipped: the mission is completed) |
+| `on_complete` | `str \| None` | `None` | **Deprecated, ignored.** It was never read; setting it emits a `FutureWarning`. Use `auto_complete` |
 | `escalation` | `EscalationTarget \| None` | `None` | Where to notify on low confidence |
 
 ### `MissionTracker`

@@ -52,11 +52,14 @@ User (JWT) → Your Backend → agent.ainvoke(..., caller=CallerContext(...))
 Start with the MCP server — the tool layer that enforces permissions. Every tool call arrives with the caller's identity.
 
 ```python
+import os
+
 from promptise.mcp.server import MCPServer, JWTAuth, AuthMiddleware, HasRole, HasScope
 
-auth = JWTAuth(secret="${JWT_SECRET}")
+auth = JWTAuth(secret=os.environ["JWT_SECRET"])  # the signing key, from the environment
 
-server = MCPServer(name="customer-api", auth=auth)
+server = MCPServer(name="customer-api", require_auth=True)
+server.add_middleware(AuthMiddleware(auth))
 ```
 
 The `JWTAuth` provider validates Bearer tokens on every request. It extracts `sub` (client_id), `roles`, and `scope` claims from the JWT payload. Verified tokens are cached in an LRU (256 entries by default) so repeated calls with the same token skip cryptographic validation.
@@ -66,6 +69,8 @@ The `JWTAuth` provider validates Bearer tokens on every request. It extracts `su
 Production servers have many tools across domains. Here's a customer operations server with 30 tools organized into routers — each domain has its own namespace, guards, and middleware:
 
 ```python
+import os
+
 from promptise.mcp.server import (
     MCPServer, MCPRouter, JWTAuth, AuthMiddleware,
     HasRole, HasScope, HasAllRoles, RequireAuth,
@@ -73,13 +78,18 @@ from promptise.mcp.server import (
     AuditMiddleware, RequestContext,
 )
 
-auth = JWTAuth(secret="${JWT_SECRET}")
-server = MCPServer(name="customer-ops", auth=auth)
+auth = JWTAuth(secret=os.environ["JWT_SECRET"])
+server = MCPServer(name="customer-ops", require_auth=True)
 
+# Outermost first: the audit log records every call, refused ones too;
+# the limiter runs after AuthMiddleware so each client gets its own bucket.
 server.add_middleware(LoggingMiddleware())
+server.add_middleware(
+    AuditMiddleware(log_path="audit.jsonl", hmac_secret=os.environ["AUDIT_SECRET"])
+)
+server.add_middleware(AuthMiddleware(auth))
+server.add_middleware(RateLimitMiddleware(rate_per_minute=1200))  # 20 calls/s per client
 server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
-server.add_middleware(RateLimitMiddleware(requests_per_second=20))
-server.add_middleware(AuditMiddleware(secret="${AUDIT_SECRET}"))
 
 # ── Customer Management (7 tools) ────────────────────────────
 customers = MCPRouter(prefix="customers")
@@ -120,7 +130,7 @@ async def get_customer_segments(customer_id: str) -> list[str]:
     """Get marketing segments for a customer."""
     return await db.get_segments(customer_id)
 
-server.mount(customers)
+server.include_router(customers)
 
 # ── Orders & Billing (8 tools) ───────────────────────────────
 orders = MCPRouter(prefix="orders")
@@ -165,7 +175,7 @@ async def get_payment_methods(customer_id: str) -> list[dict]:
     """List saved payment methods for a customer."""
     return await billing.get_payment_methods(customer_id)
 
-server.mount(orders)
+server.include_router(orders)
 
 # ── Support Tickets (8 tools) ────────────────────────────────
 tickets = MCPRouter(prefix="tickets")
@@ -210,7 +220,7 @@ async def close_ticket(ticket_id: str, resolution: str) -> str:
     """Close a resolved ticket."""
     return await db.close_ticket(ticket_id, resolution)
 
-server.mount(tickets)
+server.include_router(tickets)
 
 # ── Analytics & Reporting (4 tools) ──────────────────────────
 analytics = MCPRouter(prefix="analytics")
@@ -235,7 +245,7 @@ async def support_metrics(period: str = "weekly") -> dict:
     """Get support team performance metrics."""
     return await analytics_db.support_metrics(period)
 
-server.mount(analytics)
+server.include_router(analytics)
 
 # ── Internal Operations (3 tools) ────────────────────────────
 ops = MCPRouter(prefix="ops")
@@ -256,7 +266,7 @@ async def audit_log(hours: int = 24) -> list[dict]:
     """Retrieve recent audit log entries."""
     return await db.get_audit_log(hours=hours)
 
-server.mount(ops)
+server.include_router(ops)
 ```
 
 That's 30 tools across 5 domains. Each domain has its own router with appropriate guards. The agent discovers all 30 automatically — but sending all 30 tool descriptions to the LLM on every message wastes thousands of tokens. That's where semantic tool optimization comes in.
@@ -367,11 +377,10 @@ The `ClientContext` carries everything your handler needs to scope data access, 
 Use the `on_authenticate` hook to add application-specific fields (plan, org, tenant) from your database:
 
 ```python
-async def enrich_client(ctx):
-    user = await db.get_user(ctx.client_id)
-    ctx.client.extra["org_id"] = user.org_id
-    ctx.client.extra["plan"] = user.plan
-    return ctx
+async def enrich_client(client, ctx):
+    user = await db.get_user(client.client_id)
+    client.extra["org_id"] = user.org_id
+    client.extra["plan"] = user.plan
 
 middleware = AuthMiddleware(auth, on_authenticate=enrich_client)
 server.add_middleware(middleware)
@@ -384,11 +393,18 @@ server.add_middleware(middleware)
 Every tool call is recorded with the authenticated identity — who called what, when, with what arguments, and what happened:
 
 ```python
+import os
+
 from promptise.mcp.server import AuditMiddleware
 
-audit = AuditMiddleware(secret="${AUDIT_HMAC_SECRET}")
+audit = AuditMiddleware(
+    log_path="audit.jsonl",
+    hmac_secret=os.environ["AUDIT_SECRET"],  # keep this key: it verifies the file later
+)
 server.add_middleware(audit)
 ```
+
+Check the file at any time with `promptise audit verify audit.jsonl --key-env AUDIT_SECRET`.
 
 Each audit entry includes `client_id`, `tool_name`, `request_id`, `timestamp`, `duration`, `status`, and optionally `args` and `result`. Every entry is HMAC-chained — each entry includes a hash of the previous one. If anyone tampers with the log (edit, delete, reorder), the chain breaks and the tampering is detectable.
 
@@ -713,6 +729,8 @@ A multi-user customer support system with every feature integrated:
 
 ```python
 import asyncio
+import os
+
 from promptise import build_agent, PromptiseSecurityScanner
 from promptise.agent import CallerContext
 from promptise.config import HTTPServerSpec
@@ -723,7 +741,7 @@ from promptise.memory import ChromaProvider
 # Shared across all requests (stateless, thread-safe)
 scanner = PromptiseSecurityScanner.default()
 scanner.warmup()
-conversation_store = PostgresConversationStore(dsn="${DATABASE_URL}")
+conversation_store = PostgresConversationStore(dsn=os.environ["DATABASE_URL"])
 
 async def handle_user_message(user_jwt: str, user_id: str, session_id: str, message: str):
     """Handle a single user message with full multi-user isolation.

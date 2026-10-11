@@ -348,7 +348,6 @@ config = ProcessConfig(
         max_invocations=50,         # Fail after 50 invocations
         auto_complete=True,         # Stop when mission succeeds
         eval_model="openai:gpt-5-mini",  # Separate model for evaluation
-        on_complete="stop",         # "stop", "continue", or "suspend"
         escalation=EscalationTarget(
             webhook_url="https://hooks.slack.com/services/...",
         ),

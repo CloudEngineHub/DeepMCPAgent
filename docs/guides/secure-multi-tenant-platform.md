@@ -150,10 +150,17 @@ Add `AuditMiddleware` for an HMAC-chained, append-only record. Each entry
 carries the acting tenant, so per-customer forensics need no external join.
 
 ```python
+import os
+
 from promptise.mcp.server import AuditMiddleware
 
-server.add_middleware(AuditMiddleware(secret="${AUDIT_SECRET}"))
+server.add_middleware(
+    AuditMiddleware(log_path="audit.jsonl", hmac_secret=os.environ["AUDIT_SECRET"])
+)
 ```
+
+Keep `AUDIT_SECRET`: it is what verifies the file later
+(`promptise audit verify audit.jsonl --key-env AUDIT_SECRET`).
 
 Approval outcomes flow through the same pipeline: a denial surfaces as a
 structured `APPROVAL_DENIED` error (recorded like any error, with the approval

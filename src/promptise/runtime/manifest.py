@@ -293,7 +293,14 @@ def manifest_to_process_config(
                     spec_kwargs["transport"] = server_data["transport"]
                 elif "type" in server_data:
                     spec_kwargs["transport"] = server_data["type"]
-                for opt in ("headers", "auth", "bearer_token", "api_key", "audience"):
+                for opt in (
+                    "headers",
+                    "auth",
+                    "bearer_token",
+                    "api_key",
+                    "audience",
+                    "forward_caller_token",
+                ):
                     if opt in server_data:
                         spec_kwargs[opt] = server_data[opt]
                 servers[server_name] = HTTPServerSpec(**spec_kwargs)
