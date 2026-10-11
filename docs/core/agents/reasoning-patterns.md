@@ -147,7 +147,9 @@ instead of chaining dozens of conversational tool calls. The program runs in
 Promptise's hardened Docker sandbox; its tool calls bridge back to the real host
 tools, so the model gets code's exactness (loops, sums, filters) while each tool
 keeps its protections — approval gates, plus budget/health/audit hooks when the
-Agent Runtime has attached them, and a hard per-run `max_tool_calls` cap.
+Agent Runtime has attached them, and a hard `max_tool_calls` cap on each
+program (every call counts; a program that reaches it fails instead of
+answering, and a repaired program gets a fresh budget).
 
 ```
 reason → write ONE program → run in sandbox (tools bridged to host) → answer

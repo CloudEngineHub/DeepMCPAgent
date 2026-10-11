@@ -365,3 +365,362 @@ async def test_post_tool_hook_gets_the_result_and_can_rewrite_it():
     assert out == {"result": {"id": "c1", "email": "[EMAIL]"}}
     assert "alice@example.com" not in result.tool_calls[0]["result"]
     assert "alice@example.com" not in state.observations[-1]["result"]
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# 1.3.3: the tool-call budget counts every call and is never silent; MCP JSON
+# results arrive as data; the report counts the calls
+# ──────────────────────────────────────────────────────────────────────────
+class _BudgetError(RuntimeError):
+    """Stands in for the in-sandbox ToolBudgetExceeded."""
+
+
+class BridgingSession(FakeSession):
+    """A FakeSession whose ``python3`` run executes a scripted async program.
+
+    The program calls tools through the same filesystem RPC the real
+    in-sandbox client uses (request file, then wait for the ``.done``
+    marker), so the node's real bridge loop services the calls.
+    """
+
+    def __init__(self, programs):
+        super().__init__([])
+        self.programs = list(programs)
+
+    async def call(self, tool_name, args):
+        import uuid
+
+        rid = uuid.uuid4().hex
+        self.fs[f"/workspace/_rpc/req_{rid}.json"] = json.dumps({"tool": tool_name, "args": args})
+        while f"/workspace/_rpc/resp_{rid}.done" not in self.fs:
+            await asyncio.sleep(0.002)
+        data = json.loads(self.fs[f"/workspace/_rpc/resp_{rid}.json"])
+        if data.get("budget_exceeded"):
+            raise _BudgetError(data["error"])
+        if "error" in data:
+            raise RuntimeError(data["error"])
+        return data["result"]
+
+    async def execute(self, command: str, timeout=None, workdir=None) -> CommandResult:
+        if command.startswith("python3"):
+            self.execs.append(command)
+            program = self.programs.pop(0)
+            try:
+                return CommandResult(0, await program(self.call), "")
+            except Exception as exc:  # an uncaught error crashes the program
+                return CommandResult(1, "", f"Traceback ...\n{type(exc).__name__}: {exc}")
+        return await super().execute(command, timeout=timeout, workdir=workdir)
+
+    async def cleanup(self) -> None:
+        # Each run gets a fresh container: forget the previous run's files.
+        await super().cleanup()
+        self.fs.clear()
+
+
+def _calls_then_print(count, tool_name="price", catch=True):
+    """A program that calls *tool_name* *count* times and prints the sum."""
+
+    async def program(call):
+        total = 0
+        for i in range(count):
+            try:
+                total += await call(tool_name, {"sku": str(i)})
+            except Exception:
+                if not catch:
+                    raise
+        return f"RESULT: {total}\n"
+
+    return program
+
+
+@pytest.mark.asyncio
+async def test_failed_calls_count_against_max_tool_calls():
+    """A failing tool used to be callable without limit: only successful calls
+    were counted against max_tool_calls."""
+    executed = []
+
+    @tool
+    def lookup(key: str) -> str:
+        """Look up a key."""
+        executed.append(key)
+        raise ValueError(f"no such key {key}")
+
+    from promptise.engine.state import NodeResult
+
+    node = CodeActionNode("reason", sandbox_factory=_factory(FakeSession([])), max_tool_calls=3)
+    result = NodeResult()
+    state = GraphState(messages=[])
+    responses = [
+        await node._invoke_tool({"lookup": lookup}, state, {}, "lookup", {"key": str(i)}, result)
+        for i in range(10)
+    ]
+
+    assert len(executed) == 3  # the 4th..10th calls never reached the tool
+    assert all("ValueError" in r["error"] for r in responses[:3])
+    assert all(r.get("budget_exceeded") for r in responses[3:])
+    assert "max_tool_calls=3" in responses[3]["error"]
+    assert result.tool_calls_failed == 3
+
+
+@pytest.mark.asyncio
+async def test_unknown_tool_calls_count_against_the_budget():
+    from promptise.engine.code_action import _ToolBudget
+    from promptise.engine.state import NodeResult
+
+    node = CodeActionNode("reason", sandbox_factory=_factory(FakeSession([])), max_tool_calls=2)
+    budget = _ToolBudget(2)
+    result = NodeResult()
+    state = GraphState(messages=[])
+    for _ in range(3):
+        resp = await node._invoke_tool({}, state, {}, "nope", {}, result, budget)
+    assert budget.used == 2 and budget.exhausted
+    assert resp.get("budget_exceeded")
+
+
+@pytest.mark.asyncio
+async def test_a_program_that_reaches_the_budget_is_repaired_with_a_fresh_budget(caplog):
+    """The program catches the budget error and prints a wrong total: that must
+    not be the answer. The repair is told why and gets its own budget."""
+    executed = []
+
+    @tool
+    def price(sku: str) -> int:
+        """Get a price."""
+        executed.append(sku)
+        return 10
+
+    session = BridgingSession([_calls_then_print(6), _calls_then_print(3)])
+    model = FakeModel(["```python\n# loop 6\n```", "```python\n# loop 3\n```"])
+    node = CodeActionNode(
+        "reason", tools=[price], sandbox_factory=_factory(session), max_tool_calls=3
+    )
+    state = GraphState(messages=[HumanMessage(content="sum the prices")])
+
+    with caplog.at_level("WARNING", logger="promptise.engine.code_action"):
+        result = await node.execute(state, {"_engine_model": model})
+
+    assert result.error is None
+    assert result.output == "30"  # the repaired program's answer, not the first's
+    assert model.calls == 2
+    assert len(executed) == 6  # 3 per program: each program had its own budget
+    assert any("max_tool_calls=3" in r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_the_repair_prompt_names_the_budget():
+    seen_prompts = []
+
+    class RecordingModel(FakeModel):
+        async def ainvoke(self, messages, config=None):
+            seen_prompts.append(messages)
+            return await super().ainvoke(messages, config)
+
+    @tool
+    def price(sku: str) -> int:
+        """Get a price."""
+        return 10
+
+    session = BridgingSession([_calls_then_print(5), _calls_then_print(2)])
+    model = RecordingModel(["```python\nA\n```", "```python\nB\n```"])
+    node = CodeActionNode(
+        "reason", tools=[price], sandbox_factory=_factory(session), max_tool_calls=2
+    )
+    result = await node.execute(
+        GraphState(messages=[HumanMessage(content="go")]), {"_engine_model": model}
+    )
+
+    assert result.output == "20"
+    system = seen_prompts[0][0].content
+    assert "at most 2 function calls" in system and "ToolBudgetExceeded" in system
+    feedback = seen_prompts[1][-1].content
+    assert "more than 2 function calls" in feedback
+    assert "ToolBudgetExceeded" in feedback and "fresh budget" in feedback
+
+
+@pytest.mark.asyncio
+async def test_budget_exhausted_with_no_repairs_left_fails_the_run():
+    """An engine run whose last program reached the budget raises; it is never
+    reported as a successful answer."""
+    from promptise.engine import GraphExecutionError, PromptGraphEngine
+
+    @tool
+    def price(sku: str) -> int:
+        """Get a price."""
+        return 10
+
+    session = BridgingSession([_calls_then_print(5)])
+    graph = PromptGraph.code_action(
+        tools=[price], sandbox_factory=_factory(session), max_tool_calls=2, max_repairs=0
+    )
+    engine = PromptGraphEngine(graph=graph, model=FakeModel(["```python\nloop\n```"]))
+
+    with pytest.raises(GraphExecutionError, match="max_tool_calls=2"):
+        await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+    assert engine.last_report.error and "tool-call budget" in engine.last_report.error
+
+
+@pytest.mark.asyncio
+async def test_a_crash_after_the_budget_is_reported_as_the_budget():
+    @tool
+    def price(sku: str) -> int:
+        """Get a price."""
+        return 10
+
+    session = BridgingSession([_calls_then_print(5, catch=False)])
+    node = CodeActionNode(
+        "reason",
+        tools=[price],
+        sandbox_factory=_factory(session),
+        max_tool_calls=2,
+        max_repairs=0,
+    )
+    result = await node.execute(
+        GraphState(messages=[HumanMessage(content="go")]), {"_engine_model": FakeModel(["x"])}
+    )
+    assert result.output == ""
+    assert "tool-call budget (max_tool_calls=2)" in result.error
+
+
+@pytest.mark.asyncio
+async def test_report_counts_code_action_tool_calls():
+    """ExecutionReport.tool_calls was always 0 for code-action runs."""
+    from promptise.engine import PromptGraphEngine
+
+    @tool
+    def price(sku: str) -> int:
+        """Get a price."""
+        if sku == "2":
+            raise ValueError("unknown sku")
+        return 10
+
+    session = BridgingSession([_calls_then_print(4)])
+    graph = PromptGraph.code_action(tools=[price], sandbox_factory=_factory(session))
+    engine = PromptGraphEngine(graph=graph, model=FakeModel(["```python\nloop\n```"]))
+    out = await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+
+    assert out["messages"][-1].content == "30"
+    assert engine.last_report.tool_calls == 4  # 3 successful + 1 failed
+    assert engine.last_report.error is None
+
+
+# ── MCP results ──────────────────────────────────────────────────────────
+class _TextMulti:
+    """Stands in for MCPMultiClient: every call returns the given text."""
+
+    def __init__(self, text: str, *, is_error: bool = False):
+        self.text = text
+        self.is_error = is_error
+
+    async def call_tool(self, name, arguments, **kwargs):
+        from mcp.types import CallToolResult, TextContent
+
+        return CallToolResult(
+            content=[TextContent(type="text", text=self.text)], isError=self.is_error
+        )
+
+
+def _mcp_tool(text: str, *, is_error: bool = False):
+    from pydantic import BaseModel
+
+    from promptise.mcp.client._tool_adapter import _PromptiseMCPTool
+
+    class _Args(BaseModel):
+        month: str
+
+    return _PromptiseMCPTool(
+        name="list_orders",
+        description="List orders.",
+        args_schema=_Args,
+        tool_name="list_orders",
+        multi=_TextMulti(text, is_error=is_error),  # type: ignore[arg-type]
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('["SO-1", "SO-2"]', ["SO-1", "SO-2"]),
+        ('{"sku": "KB-101", "unit_price": 89}', {"sku": "KB-101", "unit_price": 89}),
+        ("42", 42),
+        ("12.5", 12.5),
+        ("shipped", "shipped"),  # not JSON: stays text
+        ("line one\nline two", "line one\nline two"),
+    ],
+)
+async def test_mcp_tool_json_text_reaches_the_program_as_data(text, expected):
+    from promptise.engine.state import NodeResult
+
+    tool_ = _mcp_tool(text)
+    node = CodeActionNode("reason", sandbox_factory=_factory(FakeSession([])))
+    result = NodeResult()
+    state = GraphState(messages=[])
+    resp = await node._invoke_tool(
+        {"list_orders": tool_}, state, {}, "list_orders", {"month": "2026-09"}, result
+    )
+    assert resp == {"result": expected}
+    # The record keeps the server's text.
+    assert result.tool_calls[0]["result"] == text
+    assert state.observations[-1]["result"] == text
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_behind_a_wrapper_is_parsed_too():
+    from promptise.agent import _TracedTool
+    from promptise.engine.state import NodeResult
+
+    inner = _mcp_tool('{"total": 3}')
+    wrapped = _TracedTool(inner, on_before=None, on_after=None, on_error=None)
+    node = CodeActionNode("reason", sandbox_factory=_factory(FakeSession([])))
+    resp = await node._invoke_tool(
+        {"list_orders": wrapped},
+        GraphState(messages=[]),
+        {},
+        "list_orders",
+        {"month": "2026-09"},
+        NodeResult(),
+    )
+    assert resp == {"result": {"total": 3}}
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_errors_reach_the_program_as_errors():
+    from promptise.engine.code_action import _parse_mcp_text
+    from promptise.engine.state import NodeResult
+    from promptise.mcp.client import MCPToolError
+
+    envelope = '{"error": {"code": "NOT_FOUND", "message": "no order SO-9"}}'
+    node = CodeActionNode("reason", sandbox_factory=_factory(FakeSession([])))
+    result = NodeResult()
+    resp = await node._invoke_tool(
+        {"list_orders": _mcp_tool(envelope)},
+        GraphState(messages=[]),
+        {},
+        "list_orders",
+        {"month": "x"},
+        result,
+    )
+    assert "MCPToolError" in resp["error"] and "no order SO-9" in resp["error"]
+    assert result.tool_calls_failed == 1 and result.tool_calls == []
+
+    # An envelope that reaches the node as text (a tool that handles its own
+    # errors) is an error as well, not a dict the program would misread.
+    with pytest.raises(MCPToolError, match="no order SO-9"):
+        _parse_mcp_text("list_orders", envelope)
+
+
+@pytest.mark.asyncio
+async def test_python_tool_string_results_are_not_parsed():
+    """Only MCP tools carry data as JSON text; a Python tool's str stays a str."""
+    from promptise.engine.state import NodeResult
+
+    @tool
+    def code() -> str:
+        """Return a code."""
+        return "007"
+
+    node = CodeActionNode("reason", sandbox_factory=_factory(FakeSession([])))
+    resp = await node._invoke_tool(
+        {"code": code}, GraphState(messages=[]), {}, "code", {}, NodeResult()
+    )
+    assert resp == {"result": "007"}

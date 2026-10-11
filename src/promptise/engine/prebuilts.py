@@ -627,10 +627,13 @@ def build_code_action_graph(
         system_prompt: Base system prompt.
         blocks: Accepted for signature parity (unused in the program prompt).
         sandbox_factory: ``async () -> SandboxSession`` (injected by ``build_agent``).
-        max_repairs: Times to feed a crash's stderr back for a fix (default 1).
+        max_repairs: Times to feed a failed program (a crash, or one that
+            reached ``max_tool_calls``) back for a fix (default 1).
         exec_timeout: Max seconds the program may run inside the sandbox.
-        max_tool_calls: Hard per-run cap on bridged tool calls (default 50) — a
-            hook-independent safety bound against a program looping a tool.
+        max_tool_calls: Hard cap on each program's bridged tool calls
+            (default 50), failed calls included — a hook-independent safety
+            bound against a program looping a tool. A program that reaches
+            it fails (its output is discarded); a repair gets a fresh budget.
 
     Returns:
         A single-node ``PromptGraph`` that writes and runs a program.
