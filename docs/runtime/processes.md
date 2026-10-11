@@ -124,8 +124,9 @@ config = ProcessConfig(
 | Method | Transition | Description |
 |---|---|---|
 | `await process.start()` | CREATED -> STARTING -> RUNNING | Build agent, start triggers, enter main loop |
-| `await process.stop()` | RUNNING -> STOPPING -> STOPPED | Stop triggers, cancel tasks, clean up |
+| `await process.stop()` | RUNNING -> STOPPING -> STOPPED | Stop triggers, cancel tasks, shut the agent down and close its MCP connections (stdio servers exit) |
 | `await process.inject(event)` | -- | Push a `TriggerEvent` into the process queue |
+| `process.update_instructions(text)` | -- | New instructions from the next invocation on (the agent is rebuilt before it runs; no restart) |
 | `process.status()` | -- | Return a status dict (state, invocations, queue, etc.) |
 | `process.state` | -- | Current `ProcessState` enum value |
 | `process.context` | -- | Access the `AgentContext` instance |
@@ -347,7 +348,8 @@ How restarts behave:
 - The first attempt waits `restart_backoff` seconds; each further consecutive attempt doubles the wait (capped at 60 s). A restart that fails to start counts as an attempt.
 - The attempt count resets after a successful invocation, so `max_restarts` limits a *streak* of failures, not the process's lifetime. A restarted process also starts a fresh `max_consecutive_failures` streak. `max_lifetime` recycling does not count as an attempt.
 - When `max_restarts` is reached the process stays `FAILED` (a `restart_exhausted` journal entry is written).
-- An explicit `stop()` never triggers a restart and cancels a pending one. Stops the runtime performs on purpose (budget or health `"stop"`, mission completion) are not restarted either.
+- An explicit `stop()` never triggers a restart and cancels a pending one. Stops the runtime performs on purpose (budget `"stop"`, mission completion) are not restarted either.
+- Each restart shuts the old agent down and closes its MCP connections (stdio servers exit) before it starts again.
 - A failure of your own `start()` call raises to you and is not retried.
 - Each attempt emits a `process.restarted` event and the `FAILED` transition emits `process.failed`. `status()` reports `restart_count`.
 

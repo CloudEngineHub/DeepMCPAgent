@@ -220,9 +220,12 @@ Always available regardless of `OpenModeConfig` settings. Returns a human-readab
 When a meta-tool modifies instructions, tools, or MCP servers, the process performs a **hot-reload**:
 
 1. The conversation buffer is preserved.
-2. The agent graph is rebuilt with the new configuration.
-3. The rebuild count is incremented.
-4. A new invocation resumes with the updated agent.
+2. The agent graph is rebuilt with the new configuration, with a fresh connection to each MCP server.
+3. The previous agent and its MCP connections are closed (stdio servers exit) once the invocation that asked for the reload has finished; until then that run keeps using the tools it started with.
+4. The rebuild count is incremented.
+5. A new invocation resumes with the updated agent.
+
+If the rebuild fails, the process keeps the previous agent.
 
 If `OpenModeConfig.max_rebuilds` is set, the process will refuse further modifications once the limit is reached.
 

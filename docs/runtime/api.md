@@ -93,6 +93,8 @@ curl -X PATCH http://localhost:9100/api/v1/processes/monitor/budget \
   -d '{"max_cost_per_day": 500.0}'
 ```
 
+An `instructions` patch (`{"instructions": "..."}`, a string) replaces the process's instructions, including any an open-mode agent set for itself. The next invocation rebuilds the agent with them before it runs, keeping the connected MCP servers, the conversation history and the process state; an invocation already running finishes with the old instructions. No restart is needed. A process that is not running uses them when it starts. The same is available in Python as `process.update_instructions(text)`.
+
 The body of a `budget`, `health` or `mission` patch holds the fields to change, named as in [`BudgetConfig`, `HealthConfig` and `MissionConfig`](governance/budget.md). The patched section is validated against its model before anything changes, with the same limits as at deploy time and strict JSON types (`"5"` is not a number, `1` is not `true`). A field the model does not declare, including inside `escalation` or `tool_costs`, is answered with `422 UNKNOWN_FIELD`; an invalid value with `422 INVALID_CONFIG`. In both cases nothing is changed, even when other fields in the same patch are valid. `null` clears an optional field such as `max_cost_per_day`.
 
 ### Trigger Management
@@ -146,6 +148,8 @@ curl -X DELETE http://localhost:9100/api/v1/processes/payment-bot/secrets \
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/v1/processes/{name}/journal` | Read journal entries (supports `?limit=50&type=invocation_result`) |
+
+The process files its journal entries under its name (so they survive a restart, which gets a new `process_id`), and the endpoint reads them by name. The response is `{"name", "entries": [{"entry_type", "timestamp", "data"}, ...], "count"}`, oldest first, or `{"name", "entries": [], "journal_enabled": false}` when the process has no journal.
 
 ```bash
 # Read last 20 journal entries

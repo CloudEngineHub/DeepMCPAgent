@@ -2,10 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import time
+from typing import Any
+
+from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+from langchain_core.messages import AIMessage
 
 from promptise.runtime.config import MissionConfig
-from promptise.runtime.mission import MissionEvaluation, MissionState, MissionTracker
+from promptise.runtime.mission import (
+    MissionEvaluation,
+    MissionEvidence,
+    MissionState,
+    MissionTracker,
+)
 
 # ---------------------------------------------------------------------------
 # MissionState enum
@@ -337,3 +348,156 @@ class TestSerialization:
         restored = MissionTracker.from_dict(data, cfg)
         prompt = restored.context_summary()
         assert "find bugs" in prompt
+
+
+# ---------------------------------------------------------------------------
+# LLM judge and max_invocations, end to end (scripted models, no API key)
+# ---------------------------------------------------------------------------
+
+
+class _ScriptedJudge(GenericFakeChatModel):
+    """A chat model that replays scripted replies and accepts bind_tools()."""
+
+    def bind_tools(self, tools: Any, **kwargs: Any) -> _ScriptedJudge:
+        return self
+
+
+def _judge(reply: dict[str, Any]) -> _ScriptedJudge:
+    return _ScriptedJudge(messages=iter([AIMessage(content=json.dumps(reply))]))
+
+
+class TestLLMJudge:
+    """The judge is a real ``build_agent`` agent (it lacked ``servers``)."""
+
+    async def test_judge_verdict_completes_the_mission(self) -> None:
+        tracker = MissionTracker(
+            MissionConfig(enabled=True, objective="Say done.", success_criteria="Said done."),
+            process_id="p",
+        )
+        evaluation = await tracker.evaluate(
+            MissionEvidence(conversation=[{"role": "assistant", "content": "done"}]),
+            _judge(
+                {
+                    "achieved": True,
+                    "confidence": 0.95,
+                    "reasoning": "The agent said done.",
+                    "progress_summary": "Complete",
+                }
+            ),
+        )
+        assert evaluation.reasoning == "The agent said done."
+        assert evaluation.achieved is True
+        assert evaluation.confidence == 0.95
+        assert evaluation.source == "llm"
+        assert tracker.state == MissionState.COMPLETED
+
+    async def test_confident_not_yet_keeps_the_mission_active(self) -> None:
+        tracker = MissionTracker(
+            MissionConfig(enabled=True, objective="Clear the backlog", success_criteria="Empty"),
+            process_id="p",
+        )
+        evaluation = await tracker.evaluate(
+            MissionEvidence(conversation=[{"role": "assistant", "content": "3 left"}]),
+            _judge(
+                {
+                    "achieved": False,
+                    "confidence": 0.9,
+                    "reasoning": "3 items remain.",
+                    "progress_summary": "7 of 10",
+                }
+            ),
+        )
+        assert evaluation.reasoning == "3 items remain."
+        assert tracker.state == MissionState.ACTIVE
+        assert tracker.should_evaluate() is False  # no invocation counted yet
+
+
+class _StubAgent:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def ainvoke(self, input: Any, config: Any = None) -> dict[str, Any]:
+        self.calls += 1
+        return {"messages": [{"role": "assistant", "content": f"run {self.calls}"}]}
+
+    async def shutdown(self) -> None:
+        pass
+
+
+async def _process_with_stub(config: Any, **kwargs: Any) -> tuple[Any, _StubAgent]:
+    from promptise.runtime.process import AgentProcess
+
+    process = AgentProcess("m", config, **kwargs)
+    agent = _StubAgent()
+
+    async def build() -> None:
+        process._agent = agent
+
+    process._build_agent = build  # type: ignore[method-assign]
+    return process, agent
+
+
+class TestMaxInvocations:
+    async def test_mission_fails_after_max_invocations(self) -> None:
+        from promptise import CallbackSink, EventNotifier
+        from promptise.runtime.config import ProcessConfig
+        from promptise.runtime.triggers.base import TriggerEvent
+
+        seen: list[Any] = []
+        notifier = EventNotifier(sinks=[CallbackSink(seen.append)])
+        process, agent = await _process_with_stub(
+            ProcessConfig(
+                mission=MissionConfig(
+                    enabled=True,
+                    objective="o",
+                    success_criteria="c",
+                    eval_every=100,  # no judge call in this test
+                    max_invocations=2,
+                )
+            ),
+            event_notifier=notifier,
+        )
+        await process.start()
+        try:
+            for i in range(5):
+                await process.inject(
+                    TriggerEvent(trigger_id="t", trigger_type="manual", payload={"i": i})
+                )
+            for _ in range(100):
+                if process._trigger_queue.empty():
+                    break
+                await asyncio.sleep(0.02)
+            await asyncio.sleep(0.2)  # let the last event finish
+            assert agent.calls == 2
+            assert process._mission.state == MissionState.FAILED
+        finally:
+            await process.stop()
+        failed = [e for e in seen if e.event_type == "mission.failed"]
+        assert len(failed) == 1
+        assert failed[0].data["reason"] == "max_invocations"
+
+    async def test_unlimited_by_default(self) -> None:
+        from promptise.runtime.config import ProcessConfig
+        from promptise.runtime.triggers.base import TriggerEvent
+
+        process, agent = await _process_with_stub(
+            ProcessConfig(
+                mission=MissionConfig(
+                    enabled=True, objective="o", success_criteria="c", eval_every=100
+                )
+            )
+        )
+        await process.start()
+        try:
+            for i in range(4):
+                await process.inject(
+                    TriggerEvent(trigger_id="t", trigger_type="manual", payload={"i": i})
+                )
+            for _ in range(100):
+                if agent.calls == 4:
+                    break
+                await asyncio.sleep(0.02)
+            assert agent.calls == 4
+            assert process._mission.state == MissionState.ACTIVE
+        finally:
+            await process.stop()

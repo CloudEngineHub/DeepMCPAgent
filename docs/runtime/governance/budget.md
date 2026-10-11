@@ -202,11 +202,13 @@ The budget system handles **behavioral limits** (what the agent is allowed to do
 
 ## Context injection
 
-When `inject_remaining=True`, the agent sees remaining budget in its system prompt before every invocation:
+When `inject_remaining=True`, the agent sees remaining budget in a system message before every invocation. It lists every limit, `None` for one that is not set (with `max_tool_calls_per_run=20`, `max_irreversible_per_run=2` and `max_runs_per_day=50`, at the start of a run):
 
 ```
-[Budget Remaining] {"tool_calls_this_run": 15, "cost_this_run": 18.5, "tool_calls_today": 340}
+[Budget Remaining] {'tool_calls_run': 20, 'llm_turns_run': None, 'cost_run': None, 'irreversible_run': 2, 'tool_calls_day': None, 'runs_day': 49, 'cost_day': None}
 ```
+
+The values are what is left of each limit (`BudgetState.remaining()`); the run that is starting already counts toward `runs_day`.
 
 This lets the agent prioritize — if it's running low on budget, it can choose cheaper tools or skip non-essential operations. In open mode, the agent can also call `check_budget` to inspect remaining limits programmatically.
 
@@ -237,16 +239,23 @@ When a limit is exceeded (after the invocation in which it happened):
 | `"stop"` | Stop the process entirely. Requires manual restart. |
 | `"escalate"` | Fire escalation notification (webhook + EventBus), then suspend. |
 
-Escalation sends a POST to the configured webhook URL with violation details:
+Escalation sends a POST to the configured webhook URL (and emits the same payload as `escalation.event_type` on the process's EventBus) with the violation:
 
 ```json
 {
-  "type": "budget_exceeded",
+  "type": "budget_violation",
+  "process_id": "0c8e5d0a-6b8f-4c56-9a52-0f4f3c1e9b7d",
   "process_name": "support-agent",
-  "violation": "max_cost_per_day exceeded (102.5 / 100.0)",
-  "timestamp": "2026-03-23T14:30:00Z"
+  "violation": {
+    "limit_name": "max_cost_per_day",
+    "limit_value": 100.0,
+    "current_value": 102.5,
+    "tool_name": "send_email"
+  }
 }
 ```
+
+`limit_name` is the `BudgetConfig` field that was exceeded; `tool_name` is the tool whose call exceeded it, or `null` when no tool call did (a run over `max_runs_per_day`, or a model turn over `max_llm_turns_per_run`).
 
 The webhook URL must resolve to a public address (SSRF protection). The host is resolved before every notification, the notification is dropped with a warning if any address is private, loopback, link-local (cloud metadata) or otherwise internal, and the POST goes to the address that was checked, so a DNS record that changes in between (DNS rebinding) cannot send it to an internal service. Redirects are not followed. The same applies to health and mission escalations.
 

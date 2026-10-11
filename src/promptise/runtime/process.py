@@ -43,7 +43,7 @@ import logging
 import secrets
 import time
 from collections import deque
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -354,9 +354,19 @@ class AgentProcess:
         # Agent (built lazily in start())
         self._agent: Any | None = None
 
-        # MCP multi-client (native Promptise client for tool access)
+        # MCP multi-client (native Promptise client for tool access).
+        # The process owns it: it is closed on stop, before a restart and
+        # when a rebuild replaces it (see _retire_agent / _close_agent).
         self._mcp_multi: Any | None = None
         self._mcp_adapter: Any | None = None
+        self._mcp_tools: list[Any] = []
+        # Agents (and their MCP clients) replaced while invocations were
+        # still running on them; closed once no invocation is in flight.
+        self._retired: list[tuple[Any | None, Any | None]] = []
+        self._inflight = 0
+        # Set by update_instructions(): the next invocation rebuilds the
+        # agent with the new instructions first.
+        self._instructions_changed = False
 
         # Triggers (static, from config)
         self._event_bus = event_bus
@@ -689,7 +699,9 @@ class AgentProcess:
                 if self._secrets is not None:
                     await self._secrets.resolve_initial()
 
-                # 1. Build the agent
+                # 1. Build the agent (closing one left over when start()
+                # follows a FAILED state without a stop()).
+                await self._release_agent(wait_for_runs=True)
                 await self._build_agent()
                 await self._init_payload_scanner()
 
@@ -831,18 +843,9 @@ class AgentProcess:
             with contextlib.suppress(Exception):
                 await trigger.stop()
 
-        # 5. Shutdown agent.  The event notifier belongs to whoever passed
-        # it in (often shared by every process of a runtime): detach it so
-        # the agent's shutdown doesn't stop it before ``process.stopped``
-        # (and other processes' events) are delivered.
-        if self._agent is not None:
-            if (
-                self._event_notifier is not None
-                and getattr(self._agent, "_event_notifier", None) is self._event_notifier
-            ):
-                self._agent._event_notifier = None
-            with contextlib.suppress(Exception):
-                await self._agent.shutdown()
+        # 5. Shutdown the agent and close the MCP client the process opened
+        # for it (its stdio servers exit), plus any replaced by a rebuild.
+        await self._release_agent()
 
         # Clear.  When a worker stops its own process (budget "stop",
         # mission auto-complete) it was skipped above; cancel it last, once
@@ -937,6 +940,22 @@ class AgentProcess:
         """Resume from SUSPENDED or AWAITING state."""
         await self._lifecycle.transition(ProcessState.RUNNING, reason="resume() called")
         logger.info("AgentProcess %s resumed", self.name)
+
+    def update_instructions(self, instructions: str) -> None:
+        """Replace the agent's instructions from the next invocation on.
+
+        The next invocation rebuilds the agent with *instructions* before
+        it runs (reusing the connected MCP tools); an invocation already
+        running finishes with the old instructions.  A process that is not
+        running uses them when it starts.  They replace any instructions
+        an open-mode agent set for itself, and :meth:`rollback` keeps them.
+
+        Args:
+            instructions: The new system prompt.
+        """
+        self.config.instructions = instructions
+        self._dynamic_instructions = None
+        self._instructions_changed = True
 
     async def inject(self, event: TriggerEvent) -> None:
         """Manually inject a trigger event into the queue.
@@ -1122,14 +1141,97 @@ class AgentProcess:
 
         Pre-discovers MCP tools via MCPMultiClient and passes them as
         extra_tools so the agent is built without holding server
-        connections open across asyncio task boundaries.
+        connections open across asyncio task boundaries.  The process
+        owns that client: it replaces ``self._mcp_multi`` only once the
+        new agent is built (closing the new client if the build fails),
+        and the caller retires the previous one (:meth:`_hot_reload`) or
+        has already closed it (:meth:`start`).
         """
-        from promptise.agent import build_agent as _build
-
         # Merge servers: static + dynamic
         servers = dict(self.config.servers or {})
         servers.update(self._dynamic_servers)
 
+        mcp_multi: Any | None = None
+        mcp_adapter: Any | None = None
+        mcp_tools: list[Any] = []
+        try:
+            # Pre-discover MCP tools via native client (cross-task safe),
+            # then build the agent WITHOUT servers (tools come via extra_tools).
+            if servers:
+                from promptise.config import HTTPServerSpec
+                from promptise.mcp.client import MCPClient, MCPMultiClient, MCPToolAdapter
+
+                # Ensure all server specs are proper ServerSpec objects,
+                # carrying through every supported field (see
+                # :func:`_resolve_server_specs`).
+                resolved = _resolve_server_specs(servers)
+
+                from promptise.agent import identity_token_provider
+
+                # Build native MCP clients from resolved specs
+                clients: dict[str, MCPClient] = {}
+                for name, spec in resolved.items():
+                    if isinstance(spec, HTTPServerSpec):
+                        clients[name] = MCPClient(
+                            url=spec.url,
+                            transport=spec.transport,
+                            headers=spec.headers,
+                            bearer_token=spec.bearer_token.get_secret_value()
+                            if spec.bearer_token
+                            else None,
+                            # The process identity, renewed per request and
+                            # failing closed (see identity_token_provider).
+                            bearer_token_provider=identity_token_provider(
+                                self.config.identity, spec, owner=f"AgentProcess {self.name!r}"
+                            ),
+                            api_key=spec.api_key.get_secret_value() if spec.api_key else None,
+                        )
+                    else:
+                        clients[name] = MCPClient(
+                            transport="stdio",
+                            command=spec.command,
+                            args=spec.args,
+                            env=spec.env,
+                            cwd=spec.cwd,
+                        )
+
+                multi = MCPMultiClient(clients)
+                # A failed connect closes the clients it had connected.
+                await multi.__aenter__()
+                mcp_multi = multi
+                # Same per-caller token forwarding as build_agent(): servers
+                # that opt out keep the spec's credential for every call.
+                mcp_adapter = MCPToolAdapter(
+                    multi,
+                    forward_caller_token=[
+                        sname
+                        for sname, spec in resolved.items()
+                        if not isinstance(spec, HTTPServerSpec) or spec.forward_caller_token
+                    ],
+                )
+                mcp_tools = await mcp_adapter.as_langchain_tools()
+
+            agent = await self._create_agent(mcp_tools)
+        except BaseException:
+            await self._close_agent(None, mcp_multi)
+            raise
+
+        self._agent = agent
+        self._mcp_multi = mcp_multi
+        self._mcp_adapter = mcp_adapter
+        self._mcp_tools = mcp_tools
+
+    async def _create_agent(self, mcp_tools: list[Any]) -> Any:
+        """Build a PromptiseAgent from the current configuration.
+
+        Uses the given (already discovered) MCP tools, so it can rebuild
+        the agent for new instructions without reconnecting to servers.
+        """
+        from promptise.agent import build_agent as _build
+
+        # The instructions are read now: a change made from here on is
+        # picked up by the next rebuild.
+        self._instructions_changed = False
         # Use dynamic instructions if set, otherwise config instructions
         instructions = self._dynamic_instructions or self.config.instructions or ""
 
@@ -1139,61 +1241,7 @@ class AgentProcess:
             from .meta_tools import create_meta_tools
 
             extra_tools.extend(create_meta_tools(self, runtime=self._runtime))
-
-        # Pre-discover MCP tools via native client (cross-task safe),
-        # then build the agent WITHOUT servers (tools come via extra_tools).
-        if servers:
-            from promptise.config import HTTPServerSpec
-            from promptise.mcp.client import MCPClient, MCPMultiClient, MCPToolAdapter
-
-            # Ensure all server specs are proper ServerSpec objects,
-            # carrying through every supported field (see
-            # :func:`_resolve_server_specs`).
-            resolved = _resolve_server_specs(servers)
-
-            from promptise.agent import identity_token_provider
-
-            # Build native MCP clients from resolved specs
-            clients: dict[str, MCPClient] = {}
-            for name, spec in resolved.items():
-                if isinstance(spec, HTTPServerSpec):
-                    clients[name] = MCPClient(
-                        url=spec.url,
-                        transport=spec.transport,
-                        headers=spec.headers,
-                        bearer_token=spec.bearer_token.get_secret_value()
-                        if spec.bearer_token
-                        else None,
-                        # The process identity, renewed per request and
-                        # failing closed (see identity_token_provider).
-                        bearer_token_provider=identity_token_provider(
-                            self.config.identity, spec, owner=f"AgentProcess {self.name!r}"
-                        ),
-                        api_key=spec.api_key.get_secret_value() if spec.api_key else None,
-                    )
-                else:
-                    clients[name] = MCPClient(
-                        transport="stdio",
-                        command=spec.command,
-                        args=spec.args,
-                        env=spec.env,
-                        cwd=spec.cwd,
-                    )
-
-            self._mcp_multi = MCPMultiClient(clients)
-            await self._mcp_multi.__aenter__()
-            # Same per-caller token forwarding as build_agent(): servers
-            # that opt out keep the spec's credential for every call.
-            self._mcp_adapter = MCPToolAdapter(
-                self._mcp_multi,
-                forward_caller_token=[
-                    sname
-                    for sname, spec in resolved.items()
-                    if not isinstance(spec, HTTPServerSpec) or spec.forward_caller_token
-                ],
-            )
-            mcp_tools = await self._mcp_adapter.as_langchain_tools()
-            extra_tools.extend(mcp_tools)
+        extra_tools.extend(mcp_tools)
 
         # Build kwargs — add optional capabilities from config
         build_kwargs: dict[str, Any] = {
@@ -1232,10 +1280,84 @@ class AgentProcess:
         if hasattr(self.config, "max_invocation_time") and self.config.max_invocation_time:
             build_kwargs["max_invocation_time"] = self.config.max_invocation_time
 
-        self._agent = await _build(**build_kwargs)
+        agent = await _build(**build_kwargs)
         # The agent must not stop the notifier on shutdown: stop() still
         # emits process.stopped afterwards, and a runtime's notifier is shared.
-        self._agent._owns_event_notifier = False
+        agent._owns_event_notifier = False
+        return agent
+
+    async def _close_agent(self, agent: Any | None, mcp_multi: Any | None) -> None:
+        """Shut an agent down and close the MCP client built for it."""
+        if agent is not None:
+            # The event notifier belongs to whoever passed it in (often
+            # shared by every process of a runtime): detach it so the
+            # agent's shutdown doesn't stop it before ``process.stopped``
+            # (and other processes' events) are delivered.
+            if (
+                self._event_notifier is not None
+                and getattr(agent, "_event_notifier", None) is self._event_notifier
+            ):
+                agent._event_notifier = None
+            with contextlib.suppress(Exception):
+                await agent.shutdown()
+        if mcp_multi is not None:
+            # The client closes each session in the task that opened it,
+            # so this is safe from any task (stop(), a restart, a rebuild).
+            try:
+                await mcp_multi.__aexit__(None, None, None)
+            except Exception:
+                logger.debug("AgentProcess %s: error closing MCP client", self.name, exc_info=True)
+
+    async def _retire_agent(self, agent: Any | None, mcp_multi: Any | None) -> None:
+        """Close a replaced agent once no invocation still runs on it."""
+        if agent is None and mcp_multi is None:
+            return
+        self._retired.append((agent, mcp_multi))
+        if self._inflight == 0:
+            await self._close_retired()
+
+    async def _close_retired(self) -> None:
+        """Close every retired agent and MCP client."""
+        while self._retired:
+            agent, mcp_multi = self._retired.pop(0)
+            await self._close_agent(agent, mcp_multi)
+
+    async def _release_agent(self, *, wait_for_runs: bool = False) -> None:
+        """Close the current agent, its MCP client and retired ones.
+
+        Args:
+            wait_for_runs: Leave them open until no invocation is running
+                on them (see :meth:`_retire_agent`) instead of closing them
+                now.
+        """
+        agent, mcp_multi = self._agent, self._mcp_multi
+        self._agent = None
+        self._mcp_multi = None
+        self._mcp_adapter = None
+        self._mcp_tools = []
+        if wait_for_runs:
+            await self._retire_agent(agent, mcp_multi)
+            return
+        await self._close_agent(agent, mcp_multi)
+        await self._close_retired()
+
+    async def _apply_instruction_change(self) -> None:
+        """Rebuild the agent with changed instructions (next invocation).
+
+        Reuses the connected MCP tools; the previous agent is closed once
+        no invocation is running on it.
+        """
+        async with self._rebuild_lock:
+            if not self._instructions_changed or self._agent is None:
+                return
+            old = self._agent
+            try:
+                self._agent = await self._create_agent(self._mcp_tools)
+            except BaseException:
+                self._instructions_changed = True  # try again next time
+                raise
+            logger.info("AgentProcess %s: rebuilt the agent with new instructions", self.name)
+            await self._retire_agent(old, None)
 
     def _create_triggers(self) -> list[BaseTrigger]:
         """Instantiate triggers from config.
@@ -1590,6 +1712,7 @@ class AgentProcess:
                         if self._health is not None:
                             with contextlib.suppress(Exception):
                                 await self._health.record_error()
+                            await self._handle_health_anomalies()
                         logger.exception(
                             "AgentProcess %s: invocation failed (consecutive=%d/%d)",
                             self.name,
@@ -1615,6 +1738,31 @@ class AgentProcess:
 
     async def _invoke_agent(self, event: TriggerEvent) -> Any:
         """Single agent invocation with context and memory injection.
+
+        Applies changed instructions first (see :meth:`update_instructions`)
+        and the health ``on_anomaly`` action afterwards, also when the run
+        raises.  An agent replaced while this invocation ran on it is
+        closed once no invocation is in flight.
+        """
+        if self._agent is None:
+            raise RuntimeError("Agent not built")
+        self._inflight += 1
+        try:
+            if self._instructions_changed:
+                await self._apply_instruction_change()
+            return await self._run_invocation(event)
+        except Exception:
+            # A run that raised (e.g. a stuck tool loop ending in
+            # GraphIterationLimitError) still gets the health action.
+            await self._handle_health_anomalies()
+            raise
+        finally:
+            self._inflight -= 1
+            if self._inflight == 0 and self._retired:
+                await self._close_retired()
+
+    async def _run_invocation(self, event: TriggerEvent) -> Any:
+        """Run the agent once for *event*.
 
         1. Inject context state as system message
         2. Inject conversation history (short-term memory)
@@ -1661,21 +1809,7 @@ class AgentProcess:
                     self._mission.state.value,
                 )
                 return None
-            if self._mission.is_timed_out():
-                self._mission.fail("Mission timeout reached")
-                logger.info("AgentProcess %s: mission timed out", self.name)
-                # Emit mission.failed event
-                if self._event_notifier is not None:
-                    from promptise.events import emit_event
-
-                    emit_event(
-                        self._event_notifier,
-                        "mission.failed",
-                        "critical",
-                        {"process_name": self.name, "reason": "timeout"},
-                        agent_id=self.name,
-                        metadata=self._event_metadata(),
-                    )
+            if self._fail_mission_if_out_of_bounds():
                 return None
 
         # Format the trigger event as a user message
@@ -1911,51 +2045,8 @@ class AgentProcess:
                     metadata=self._event_metadata(),
                 )
 
-        # -- Post-invoke: handle health anomalies --
-        if self._health is not None and self._health.latest_anomaly is not None:
-            latest = self._health.latest_anomaly
-            # Only act on anomalies from this invocation (within last 5s)
-            if latest.timestamp >= datetime.now(timezone.utc) - timedelta(seconds=5):
-                from .escalation import escalate as _escalate
-
-                # Emit health.anomaly event
-                if self._event_notifier is not None:
-                    from promptise.events import emit_event
-
-                    emit_event(
-                        self._event_notifier,
-                        "health.anomaly",
-                        "warning",
-                        {
-                            "process_name": self.name,
-                            "anomaly_type": latest.anomaly_type.value,
-                            "details": latest.details,
-                        },
-                        agent_id=self.name,
-                        metadata=self._event_metadata(),
-                    )
-
-                action = self.config.health.on_anomaly
-                if action == "pause":
-                    with contextlib.suppress(Exception):
-                        await self.suspend()
-                elif action == "stop":
-                    with contextlib.suppress(Exception):
-                        await self.stop()
-                elif action == "escalate" and self.config.health.escalation:
-                    with contextlib.suppress(Exception):
-                        await _escalate(
-                            self.config.health.escalation,
-                            {
-                                "type": "health_anomaly",
-                                "process_id": self.process_id,
-                                "anomaly_type": latest.anomaly_type.value,
-                                "details": latest.details,
-                            },
-                            event_bus=self._event_bus,
-                        )
-                    with contextlib.suppress(Exception):
-                        await self.suspend()
+        # -- Post-invoke: act on anomalies detected during this run --
+        await self._handle_health_anomalies()
 
         # -- Post-invoke: evaluate mission --
         if self._mission is not None and self._mission.should_evaluate():
@@ -2036,12 +2127,104 @@ class AgentProcess:
                             event_bus=self._event_bus,
                         )
 
+        # -- Post-invoke: a mission still open after its last allowed
+        # invocation fails now, not when the next trigger arrives --
+        if self._mission is not None and self._mission.state.value not in (
+            "completed",
+            "failed",
+        ):
+            self._fail_mission_if_out_of_bounds()
+
         logger.debug(
             "AgentProcess %s: invocation #%d complete",
             self.name,
             self._invocation_count,
         )
         return result
+
+    def _fail_mission_if_out_of_bounds(self) -> bool:
+        """Fail the mission on ``timeout_hours`` or ``max_invocations``.
+
+        Returns:
+            ``True`` if the mission was failed.
+        """
+        if self._mission is None:
+            return False
+        if self._mission.is_timed_out():
+            reason, message = "timeout", "Mission timeout reached"
+        elif self._mission.is_over_limit():
+            reason = "max_invocations"
+            message = f"Mission reached max_invocations ({self.config.mission.max_invocations})"
+        else:
+            return False
+        self._mission.fail(message)
+        logger.info("AgentProcess %s: %s", self.name, message)
+        if self._event_notifier is not None:
+            from promptise.events import emit_event
+
+            emit_event(
+                self._event_notifier,
+                "mission.failed",
+                "critical",
+                {"process_name": self.name, "reason": reason},
+                agent_id=self.name,
+                metadata=self._event_metadata(),
+            )
+        return True
+
+    async def _handle_health_anomalies(self) -> None:
+        """Emit ``health.anomaly`` and apply ``on_anomaly`` for new anomalies.
+
+        Called after every invocation, whether it succeeded or raised, and
+        after a failed one is recorded.  Each anomaly is handled once, when
+        the run that produced it ends, however long ago it was detected.
+        """
+        if self._health is None:
+            return
+        new = self._health.take_new_anomalies()
+        if not new:
+            return
+        from .escalation import escalate as _escalate
+
+        if self._event_notifier is not None:
+            from promptise.events import emit_event
+
+            for anomaly in new:
+                emit_event(
+                    self._event_notifier,
+                    "health.anomaly",
+                    "warning",
+                    {
+                        "process_name": self.name,
+                        "anomaly_type": anomaly.anomaly_type.value,
+                        "details": anomaly.details,
+                    },
+                    agent_id=self.name,
+                    metadata=self._event_metadata(),
+                )
+
+        latest = new[-1]
+        action = self.config.health.on_anomaly
+        if action == "pause":
+            with contextlib.suppress(Exception):
+                await self.suspend()
+        elif action == "stop":
+            with contextlib.suppress(Exception):
+                await self.stop()
+        elif action == "escalate" and self.config.health.escalation:
+            with contextlib.suppress(Exception):
+                await _escalate(
+                    self.config.health.escalation,
+                    {
+                        "type": "health_anomaly",
+                        "process_id": self.process_id,
+                        "anomaly_type": latest.anomaly_type.value,
+                        "details": latest.details,
+                    },
+                    event_bus=self._event_bus,
+                )
+            with contextlib.suppress(Exception):
+                await self.suspend()
 
     async def _heartbeat_loop(self) -> None:
         """Periodic health check and idle timeout monitoring."""
@@ -2130,13 +2313,14 @@ class AgentProcess:
             # 1. Preserve conversation history (async-safe)
             history = await self._conversation_buffer.async_snapshot()
 
-            # 2. Shutdown old agent (closes MCP connections)
-            if self._agent is not None:
-                with contextlib.suppress(Exception):
-                    await self._agent.shutdown()
-
-            # 3. Rebuild with merged config (static + dynamic)
+            # 2. Rebuild with merged config (static + dynamic)
+            old_agent, old_mcp = self._agent, self._mcp_multi
             await self._build_agent()
+
+            # 3. Close the old agent and its MCP client (its stdio servers
+            # exit) -- after the invocation that asked for the reload, if
+            # any, has finished with them.
+            await self._retire_agent(old_agent, old_mcp)
 
             # 4. Restore conversation history (async-safe)
             await self._conversation_buffer.async_replace(history)
