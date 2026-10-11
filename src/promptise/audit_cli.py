@@ -87,7 +87,12 @@ def verify(
 
     failed = not report.ok or (strict and bool(report.warnings))
     if as_json:
-        print(json.dumps(report.to_dict(), indent=2))
+        data = report.to_dict()
+        # "ok" is the chain verdict; "passed" is the exit code's verdict,
+        # which also counts warnings under --strict.
+        data["strict"] = strict
+        data["passed"] = not failed
+        print(json.dumps(data, indent=2))
         raise typer.Exit(code=1 if failed else 0)
 
     for issue in report.problems:
@@ -98,7 +103,14 @@ def verify(
     summary = f"{report.entries} entr{'y' if report.entries == 1 else 'ies'}"
     if restarts:
         summary += f", chain continued across {restarts} restart{'s' if restarts != 1 else ''}"
-    if report.ok:
+    if report.ok and failed:
+        # --strict: the chain verifies, but the warnings fail the check.
+        count = len(report.warnings)
+        _console.print(
+            f"[red]FAILED[/red] {summary}: no tampering found, but {count} "
+            f"warning{'s' if count != 1 else ''} fail the check under --strict."
+        )
+    elif report.ok:
         state = "intact" if report.continuous else "intact, but not one continuous chain"
         _console.print(f"[green]OK[/green] {summary}: {state}.")
         if report.last_hash:

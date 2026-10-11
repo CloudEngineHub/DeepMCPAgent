@@ -38,7 +38,7 @@ import inspect
 import itertools
 import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
-from contextlib import AsyncExitStack
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
@@ -398,6 +398,84 @@ class _RetiredSession:
         self.auth = auth
 
 
+def _asks_for_json_body(resp: httpx.Response) -> bool:
+    """Whether a token endpoint refused a form body because it reads JSON only.
+
+    The built-in token endpoint of Promptise 1.3.2 and earlier answers a
+    form-encoded request with ``400 {"error": "invalid_request", "message":
+    "Request body must be valid JSON."}``.
+    """
+    try:
+        body = resp.json()
+    except ValueError:
+        return False
+    return (
+        isinstance(body, dict)
+        and body.get("error") == "invalid_request"
+        and "must be valid JSON" in str(body.get("message", ""))
+    )
+
+
+#: Read timeout for the streamable HTTP transport's long-lived response
+#: streams (the SDK's own default).
+_SSE_READ_TIMEOUT = 300.0
+
+
+def _streamable_http_opener(
+    url: str,
+    headers: dict[str, str] | None,
+    timeout: float,
+    bearer: _BearerAuth | None,
+) -> Callable[[], Any]:
+    """A factory for the streamable HTTP transport's async context manager.
+
+    Newer mcp SDKs have ``streamable_http_client(url, http_client=...)`` and
+    deprecate ``streamablehttp_client`` (a ``DeprecationWarning`` on every
+    connection as of mcp 1.30); older SDKs (the minimum this package
+    supports is 1.9) only have the latter.  Both get the same
+    httpx client: *headers*, a *timeout* with the SDK's 300 s read timeout
+    for open streams, and, with a *bearer*, the per-request token hook and
+    the transport that tells a retired session apart.
+    """
+    from mcp.client import streamable_http as _sh
+
+    def _http_client(
+        headers: dict[str, str] | None = None,
+        timeout: httpx.Timeout | None = None,
+        auth: httpx.Auth | None = None,
+    ) -> httpx.AsyncClient:
+        if bearer is not None:
+            return httpx.AsyncClient(
+                headers=headers,
+                timeout=timeout,
+                auth=auth,
+                transport=_RetiredSessionTransport(bearer),
+            )
+        from mcp.shared._httpx_utils import create_mcp_http_client
+
+        return create_mcp_http_client(headers=headers, timeout=timeout, auth=auth)
+
+    new_api = getattr(_sh, "streamable_http_client", None)
+    if new_api is None:  # an older SDK
+        legacy = _sh.streamablehttp_client
+        factory: dict[str, Any] = {}
+        if bearer is not None:
+            factory = {"auth": bearer, "httpx_client_factory": _http_client}
+        return lambda: legacy(url=url, headers=headers, timeout=timeout, **factory)
+
+    @asynccontextmanager
+    async def _open() -> AsyncGenerator[Any, None]:
+        client = _http_client(
+            headers=headers,
+            timeout=httpx.Timeout(timeout, read=_SSE_READ_TIMEOUT),
+            auth=bearer,
+        )
+        async with client, new_api(url, http_client=client) as streams:
+            yield streams
+
+    return _open
+
+
 class MCPClient:
     """Production-grade MCP client for a single server.
 
@@ -598,11 +676,17 @@ class MCPClient:
         *,
         timeout: float = 10.0,
     ) -> str:
-        """Fetch a Bearer token from a server's token endpoint.
+        """Fetch a Bearer token with an OAuth 2.0 ``client_credentials`` grant.
 
-        This is a convenience for development/testing when the MCP server
-        has a built-in token issuer enabled via
-        :meth:`~promptise.mcp.server.MCPServer.enable_token_endpoint`.
+        Sends a standard RFC 6749 token request: a form-encoded
+        (``application/x-www-form-urlencoded``) POST with
+        ``grant_type=client_credentials``, ``client_id`` and
+        ``client_secret``.  That works against the MCP server's built-in
+        token issuer (:meth:`~promptise.mcp.server.MCPServer.enable_token_endpoint`)
+        and against any token endpoint that accepts ``client_secret_post``.
+        A built-in issuer from Promptise 1.3.2 or earlier only reads JSON; when
+        one answers that the body must be JSON, the request is retried once as
+        JSON.
 
         For production, obtain tokens from your Identity Provider
         (Auth0, Keycloak, Okta, etc.) and pass them directly via
@@ -628,15 +712,17 @@ class MCPClient:
                 "httpx is required for fetch_token(). Install it with: pip install httpx"
             ) from exc
 
+        form = {
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
         try:
             async with httpx.AsyncClient(timeout=timeout) as http:
-                resp = await http.post(
-                    token_url,
-                    json={
-                        "client_id": client_id,
-                        "client_secret": client_secret,
-                    },
-                )
+                resp = await http.post(token_url, data=form, headers={"Accept": "application/json"})
+                if resp.status_code == 400 and _asks_for_json_body(resp):
+                    # A built-in token endpoint from Promptise <= 1.3.2.
+                    resp = await http.post(token_url, json=form)
                 if resp.status_code != 200:
                     body = resp.text
                     raise MCPClientError(f"Token request failed (HTTP {resp.status_code}): {body}")
@@ -729,31 +815,7 @@ class MCPClient:
         if self._transport in ("http", "streamable-http"):
             if not self._url:
                 raise MCPClientError("url is required for HTTP transport")
-            from mcp.client.streamable_http import streamablehttp_client
-
-            factory: dict[str, Any] = {}
-            if auth is not None:
-                bearer = auth
-
-                def _client_factory(
-                    headers: dict[str, str] | None = None,
-                    timeout: httpx.Timeout | None = None,
-                    auth: httpx.Auth | None = None,
-                ) -> httpx.AsyncClient:
-                    return httpx.AsyncClient(
-                        headers=headers,
-                        timeout=timeout,
-                        auth=auth,
-                        transport=_RetiredSessionTransport(bearer),
-                    )
-
-                factory = {"auth": auth, "httpx_client_factory": _client_factory}
-            return lambda: streamablehttp_client(
-                url=self._url,
-                headers=self._headers or None,
-                timeout=self._timeout,
-                **factory,
-            )
+            return _streamable_http_opener(self._url, self._headers or None, self._timeout, auth)
         if self._transport == "sse":
             if not self._url:
                 raise MCPClientError("url is required for SSE transport")

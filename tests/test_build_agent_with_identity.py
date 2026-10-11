@@ -339,6 +339,37 @@ async def test_authorization_header_counts_as_the_servers_own_bearer() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "spec_kwargs",
+    [
+        {"api_key": "sk-server"},
+        {"headers": {"X-API-Key": "sk-server"}},
+    ],
+    ids=["api_key", "x-api-key header"],
+)
+async def test_api_key_counts_as_the_servers_own_credential(spec_kwargs: dict[str, Any]) -> None:
+    """An API-key server gets only its key: the identity's bearer next to it
+    made the server check the bearer first and answer 401."""
+    from contextlib import ExitStack
+
+    from promptise.agent import identity_token_provider
+    from promptise.config import HTTPServerSpec
+
+    identity = AgentIdentity.from_oidc(
+        "bot", issuer="https://idp", token_fn=lambda: _jwt({"sub": "agent-x"})
+    )
+    spec = HTTPServerSpec(url="https://mcp.internal", **spec_kwargs)
+    assert identity_token_provider(identity, spec) is None
+    captured: dict[str, Any] = {}
+    with ExitStack() as stack:
+        for cm in _patch_mcp(captured):
+            stack.enter_context(cm)
+        await build_agent(servers={"tools": spec}, model="openai:gpt-5-mini", identity=identity)
+    assert captured["bearer_token_provider"] is None
+    assert captured["bearer_token"] is None
+
+
+@pytest.mark.asyncio
 async def test_identity_credential_is_refreshed_per_request() -> None:
     """A renewed credential is what the next request presents, and a 401
     (force_refresh=True) bypasses the identity's cache."""

@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.3.3 — unreleased
+
+### Fixed
+- **An agent identity no longer overrides a server's `api_key`** -- `build_agent(identity=...)` (and `AgentProcess`) presented the identity's bearer to every server without a `bearer_token`, including one configured with `HTTPServerSpec(api_key=...)`. The client sent `Authorization: Bearer <identity token>` next to `x-api-key`, the server's auth gate checked the bearer first, and the connection failed with `401`, so one agent could not use identity-authenticated servers and API-key servers together. An explicit per-server credential now always wins: `bearer_token`, `api_key`, or an `Authorization` / `x-api-key` header in `headers`.
+- **The built-in token endpoint and `MCPClient.fetch_token()` speak OAuth 2.0 (RFC 6749)** -- `enable_token_endpoint()` read only a JSON body and answered a standard form-encoded `client_credentials` request with `400`, and `fetch_token()` posted JSON without `grant_type`, so it failed against a standard token endpoint. The endpoint now accepts `application/x-www-form-urlencoded` requests and HTTP Basic client authentication, answers errors with the standard `error_description` (`message` is kept), and sends `Cache-Control: no-store`. JSON bodies are still accepted. `fetch_token()` sends a form-encoded `grant_type=client_credentials` request, and retries once as JSON when a built-in endpoint from 1.3.2 or earlier asks for JSON.
+- **Tool name collisions: the list matches the routing** -- when two servers expose a tool with the same name, `MCPMultiClient.list_tools()` (and so the agent's tool list) contained every copy, while calls went to the server listed last and the warning said only that version is used. It now returns only that server's copy; `list_prompts()` likewise. A server whose session is re-opened no longer takes a colliding name over from a server listed after it.
+- **`promptise audit verify --strict` no longer prints "OK ... intact." when it fails** -- with only warnings (a truncated last line, say), the summary said `OK` while the exit code was `1`. It now reads `FAILED ... no tampering found, but N warning(s) fail the check under --strict`, and `--json` adds `strict` and `passed` (the exit code's verdict) next to `ok` (the chain's verdict).
+- **A built-in identity guard implies `auth=True`** -- `guards=[RequireAuth()]` (or `HasRole`, `HasScope`, `RequireClientId`, the tenant guards) on a tool without `auth=True` denied every caller, valid credentials or not, because `AuthMiddleware` authenticates only `auth=True` tools. Such a guard now implies `auth=True`, as `roles=[...]` already did, on tools, resources, prompts and router-level guards. Custom guards are unchanged.
+- **Custom auth providers can hand their claims to `AuthMiddleware`** -- the documented `ctx.state["jwt_payload"] = claims` was ignored (`AuthMiddleware` read only the built-in providers' private `_jwt_payload`), so roles, scopes and tenant from a custom provider never reached `ctx.client`, and `roles=[...]` denied every call. `ctx.state["jwt_payload"]` is now the public key for a custom provider's verified claims.
+- **`MCPClient` no longer triggers the MCP SDK's `DeprecationWarning`** -- with mcp 1.30 every HTTP connection warned `Use streamable_http_client instead.` The client now uses `streamable_http_client` when the installed SDK has it and falls back to `streamablehttp_client` on older SDKs (down to the minimum, mcp 1.9).
+- **Per-client rate limits that collapse into one shared bucket are reported** -- `RateLimitMiddleware` keys its buckets by `ctx.client_id`, which is set only when `AuthMiddleware` runs before it and the tool is authenticated; otherwise every caller silently shared one `"global"` bucket, and one runaway client throttled all the others. When an `AuthMiddleware` is installed but cannot identify the caller for the limiter (it runs after the limiter, or the tool is not `auth=True`), the server now logs a warning naming the tools, once, at startup (and on `TestClient`'s first call). A `key_func` marks the key as deliberate and is not reported. A limiter without a synchronous `consume(key)` method now raises `TypeError` when `RateLimitMiddleware` is created, instead of failing every call with `INTERNAL_ERROR`.
+
+### Changed
+- A tool, resource or prompt with a built-in identity guard is now authenticated: a caller without credentials gets `AUTHENTICATION_ERROR` where it got `ACCESS_DENIED` (it was denied either way).
+- `MCPMultiClient.list_tools()` / `list_prompts()` return one entry per name when servers collide (the copy calls are routed to).
+- A form-encoded request to the built-in token endpoint must carry `grant_type` (RFC 6749); a JSON request still defaults to `client_credentials`.
+
+### Documentation
+- testing.md "Testing with authentication": passed `algorithm=` (not a `JWTAuth` parameter), relied on a guard without `auth=True`, and made a token without `exp`; it now runs, and the test suite runs it.
+- auth-security.md "Custom auth provider": stored the claims under a key `AuthMiddleware` did not read; it now shows the `jwt_payload` contract and runs.
+- caching-performance.md "Tiered rate limiting": defined `async check(key, ctx)`, which `RateLimitMiddleware` never calls (every call failed with `INTERNAL_ERROR`); it now uses `consume(key)` with a `key_func` that puts the tier in the key. A new note says when buckets are per client.
+- showcase.md: the database and payments MCP server snippets used `MCPServer(auth=...)`, `AuthMiddleware()` without a provider and `RateLimitMiddleware(requests_per_minute=...)`, none of which exist, and passed `"${JWT_SECRET}"` / `"${AUDIT_SECRET}"` literally as keys. They read the keys from the environment and run.
+- approval-gates.md "Audit visibility": the approval request id is in the error the client receives and in the gate's log lines, not in the audit entry as the page said.
+- observability.md: a key rotation warning comes on the first audited call after startup, not at startup.
+- identity/guide.md: an explicit per-server `api_key` (or `x-api-key` header) wins over the agent identity, like `bearer_token`.
+
 ## 1.3.2 — 2026-10-11
 
 ### Fixed

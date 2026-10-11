@@ -565,3 +565,135 @@ class TestJwksKeySet:
         for _ in range(10):
             assert auth.verify_token(forged) is False
         assert endpoint.fetches <= fetches + 1
+
+
+# =====================================================================
+# Identity guards imply auth=True (as roles= does)
+# =====================================================================
+
+_GUARD_SECRET = "identity-guard-test-secret-32-bytes"
+
+
+def _guarded_server():
+    from promptise.mcp.server import MCPServer
+
+    server = MCPServer("secure")
+    jwt_auth = JWTAuth(secret=_GUARD_SECRET)
+    server.add_middleware(AuthMiddleware(jwt_auth))
+    return server, jwt_auth
+
+
+async def _call(server, tool: str, token: str | None = None) -> str:
+    from promptise.mcp.server import TestClient
+
+    meta = {"authorization": f"Bearer {token}"} if token else {}
+    return (await TestClient(server, meta=meta).call_tool(tool, {}))[0].text
+
+
+class TestIdentityGuardsImplyAuth:
+    async def test_require_auth_guard_passes_a_valid_token(self):
+        """Without auth=True the caller was never authenticated, so
+        RequireAuth denied every call, valid token or not."""
+        from promptise.mcp.server import RequireAuth
+
+        server, jwt_auth = _guarded_server()
+
+        @server.tool(guards=[RequireAuth()])
+        async def secret_data() -> str:
+            return "top-secret-info"
+
+        token = jwt_auth.create_token({"sub": "u"}, expires_in=60)
+        assert await _call(server, "secret_data", token) == "top-secret-info"
+        assert "AUTHENTICATION_ERROR" in await _call(server, "secret_data")
+
+    async def test_scope_guard_reads_the_token(self):
+        from promptise.mcp.server import HasScope
+
+        server, jwt_auth = _guarded_server()
+
+        @server.tool(guards=[HasScope("write")])
+        async def update() -> str:
+            return "updated"
+
+        ok = jwt_auth.create_token({"sub": "u", "scope": "read write"}, expires_in=60)
+        weak = jwt_auth.create_token({"sub": "u", "scope": "read"}, expires_in=60)
+        assert await _call(server, "update", ok) == "updated"
+        assert "ACCESS_DENIED" in await _call(server, "update", weak)
+
+    def test_custom_guard_does_not_change_auth(self):
+        from promptise.mcp.server import MCPServer
+
+        class Always:
+            async def check(self, ctx):
+                return True
+
+        server = MCPServer("s")
+
+        @server.tool(guards=[Always()])
+        async def open_tool() -> str:
+            return "ok"
+
+        assert server._tool_registry.get("open_tool").auth is False
+
+    async def test_router_guard_implies_auth(self):
+        from promptise.mcp.server import MCPRouter, RequireAuth
+
+        server, jwt_auth = _guarded_server()
+        router = MCPRouter(prefix="admin", guards=[RequireAuth()])
+
+        @router.tool()
+        async def stats() -> str:
+            return "stats"
+
+        server.include_router(router)
+        token = jwt_auth.create_token({"sub": "u"}, expires_in=60)
+        assert await _call(server, "admin_stats", token) == "stats"
+
+    def test_resource_and_prompt_guards_imply_auth(self):
+        from promptise.mcp.server import HasRole
+
+        server, _ = _guarded_server()
+
+        @server.resource("config://app", guards=[HasRole("ops")])
+        async def app_config() -> str:
+            return "{}"
+
+        @server.prompt(guards=[HasRole("ops")])
+        async def triage() -> str:
+            return "triage"
+
+        assert server._resource_registry.list_all()[0].auth is True
+        assert server._prompt_registry.list_all()[0].auth is True
+
+
+# =====================================================================
+# Custom providers hand their claims to AuthMiddleware
+# =====================================================================
+
+
+class TestCustomProviderClaims:
+    async def test_jwt_payload_state_key_reaches_ctx_client(self):
+        """The documented key; AuthMiddleware used to read only "_jwt_payload"."""
+        from promptise.mcp.server import MCPServer
+
+        class Introspection:
+            async def authenticate(self, ctx: RequestContext) -> str:
+                ctx.state["jwt_payload"] = {
+                    "sub": "svc-1",
+                    "roles": ["admin"],
+                    "scope": "read write",
+                    "tenant_id": "acme",
+                }
+                return "svc-1"
+
+        server = MCPServer("crm")
+        server.add_middleware(AuthMiddleware(Introspection()))
+
+        @server.tool(roles=["admin"])
+        async def whoami(ctx: RequestContext) -> dict:
+            c = ctx.client
+            return {"id": c.client_id, "scopes": sorted(c.scopes), "tenant": c.tenant_id}
+
+        text = await _call(server, "whoami", "opaque-token")
+        assert '"id": "svc-1"' in text and '"tenant": "acme"' in text
+        assert '"scopes": ["read", "write"]' in text

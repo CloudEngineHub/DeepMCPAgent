@@ -392,6 +392,25 @@ class TestCli:
         assert result.exit_code == 0 and "truncated" in result.output
         assert _cli(str(log), "--strict", env=env).exit_code == 1
 
+    def test_strict_failure_does_not_print_ok(self, log: Path) -> None:
+        """The summary used to read "OK ... intact." while the exit code was 1."""
+        log.write_text(log.read_text() + '{"timestamp": 17')
+        result = _cli(str(log), "--strict", env={"PROMPTISE_AUDIT_SECRET": KEY})
+        assert result.exit_code == 1
+        assert "OK" not in result.output and "intact." not in result.output
+        assert "FAILED" in result.output and "--strict" in result.output
+        assert "1 warning fail" in result.output
+
+    def test_strict_json_says_whether_the_check_passed(self, log: Path) -> None:
+        log.write_text(log.read_text() + '{"timestamp": 17')
+        env = {"PROMPTISE_AUDIT_SECRET": KEY}
+        strict = _cli(str(log), "--strict", "--json", env=env)
+        assert strict.exit_code == 1
+        report = json.loads(strict.output)
+        assert report["ok"] is True and report["strict"] is True and report["passed"] is False
+        lenient = json.loads(_cli(str(log), "--json", env=env).output)
+        assert lenient["passed"] is True and lenient["strict"] is False
+
     def test_json_report(self, log: Path) -> None:
         result = _cli(str(log), "--json", env={"PROMPTISE_AUDIT_SECRET": KEY})
         assert result.exit_code == 0

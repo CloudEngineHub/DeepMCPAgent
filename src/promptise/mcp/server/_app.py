@@ -172,6 +172,8 @@ class MCPServer:
 
         # Middleware chain
         self._middlewares: list[Any] = []
+        # Shared-rate-limit-bucket warnings already logged (once each)
+        self._rate_limit_warned: set[str] = set()
 
         # Auth provider (auto-tracked from AuthMiddleware for transport gating)
         self._auth_provider: Any = None
@@ -236,8 +238,13 @@ class MCPServer:
             auth: Require authentication for this tool.
             rate_limit: Rate limit string, e.g. ``"100/min"``.
             timeout: Per-call timeout in seconds.
-            guards: Access control guards (checked before handler).
-            roles: Required roles shorthand (creates ``HasRole`` guard).
+            guards: Access control guards (checked before handler).  A
+                built-in identity guard (``RequireAuth``, ``HasRole``,
+                ``HasScope``, ``RequireClientId``, tenant guards) implies
+                ``auth=True``: it can only pass once the caller is
+                authenticated.
+            roles: Required roles shorthand (creates ``HasRole`` guard;
+                implies ``auth=True``).
             title: Human-readable title (MCP annotation hint).
             read_only_hint: Tool does not modify state (MCP annotation hint).
             destructive_hint: Tool may perform destructive operations
@@ -1047,6 +1054,18 @@ class MCPServer:
             middleware_count=len(self._middlewares),
         )
 
+    def _warn_shared_rate_limit_buckets(self) -> None:
+        """Warn (once per message) when per-client rate limits share one bucket.
+
+        See :func:`~promptise.mcp.server._rate_limit.shared_bucket_warnings`.
+        """
+        from ._rate_limit import shared_bucket_warnings
+
+        for message in shared_bucket_warnings(self._tool_registry.list_all(), self._middlewares):
+            if message not in self._rate_limit_warned:
+                self._rate_limit_warned.add(message)
+                logger.warning("MCPServer '%s': %s", self.name, message)
+
     def _all_definitions(self) -> list[Any]:
         """Every registered tool, resource, resource template and prompt."""
         return [
@@ -1206,6 +1225,8 @@ class MCPServer:
 
             if not any(isinstance(m, DeclaredRateLimitMiddleware) for m in middlewares):
                 middlewares.append(DeclaredRateLimitMiddleware())
+
+        self._warn_shared_rate_limit_buckets()
 
         # Approval invariant: a declared requires_approval MUST be gated.
         # Unlike rate limits, a gate cannot be auto-inserted (someone has to

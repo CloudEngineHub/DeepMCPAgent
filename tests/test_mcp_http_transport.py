@@ -26,11 +26,14 @@ import socket
 import subprocess
 import sys
 import textwrap
+import time
+import warnings
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
+import jwt as pyjwt
 import pytest
 import uvicorn
 from sse_starlette.sse import AppStatus
@@ -47,7 +50,9 @@ from promptise.mcp.server import (
     AuthMiddleware,
     CORSConfig,
     HealthCheck,
+    JWTAuth,
     MCPServer,
+    RequestContext,
 )
 from promptise.mcp.server._transport import (
     MCP_CORS_ALLOW_HEADERS,
@@ -813,3 +818,186 @@ class TestASGIApp:
             _inventory().asgi_app("stdio")
         with pytest.raises(ValueError, match="stateless"):
             _inventory().asgi_app("sse", stateless=True)
+
+
+# =====================================================================
+# The SDK's streamable HTTP client API (mcp 1.30 deprecates the old one)
+# =====================================================================
+
+
+def _sdk_transport_deprecations(caught: list[warnings.WarningMessage]) -> list[str]:
+    return [
+        str(w.message)
+        for w in caught
+        if issubclass(w.category, DeprecationWarning) and "streamable" in str(w.message).lower()
+    ]
+
+
+class TestStreamableHttpClientApi:
+    async def test_connecting_raises_no_sdk_deprecation_warning(self):
+        async with _serve_asgi(_inventory().asgi_app()) as port:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                async with MCPClient(url=f"http://127.0.0.1:{port}/mcp") as client:
+                    result = await asyncio.wait_for(
+                        client.call_tool("check_stock", {"sku": "A"}), TIMEOUT
+                    )
+        assert '"in_stock": 42' in _text(result)
+        assert _sdk_transport_deprecations(caught) == []
+
+    async def test_bearer_token_provider_works_on_the_new_api(self):
+        jwt_auth = JWTAuth(secret="streamable-http-test-secret-32-bytes!")
+        server = MCPServer("inventory", require_auth=True)
+        server.add_middleware(AuthMiddleware(jwt_auth))
+
+        @server.tool()
+        async def whoami(ctx: RequestContext) -> str:
+            """The verified caller."""
+            return str(ctx.client_id)
+
+        asked: list[bool] = []
+
+        def provide(force_refresh: bool) -> str:
+            asked.append(force_refresh)
+            return jwt_auth.create_token({"sub": "agent-7"}, expires_in=300)
+
+        async with _serve_asgi(server.asgi_app()) as port:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                async with MCPClient(
+                    url=f"http://127.0.0.1:{port}/mcp", bearer_token_provider=provide
+                ) as client:
+                    result = await asyncio.wait_for(client.call_tool("whoami", {}), TIMEOUT)
+        assert _text(result) == "agent-7"
+        assert asked  # the token came from the provider, per request
+        assert _sdk_transport_deprecations(caught) == []
+
+    async def test_an_older_sdk_without_the_new_api_still_connects(self, monkeypatch):
+        """mcp >= 1.9 is supported; releases before ``streamable_http_client``
+        only have ``streamablehttp_client``."""
+        import types
+
+        import mcp.client
+        from mcp.client import streamable_http
+
+        used: list[str] = []
+
+        def old_api(**kwargs: Any) -> Any:
+            used.append(kwargs["url"])
+            return streamable_http.streamablehttp_client(**kwargs)
+
+        # What the client sees of an older SDK: only the old function.
+        monkeypatch.setattr(
+            mcp.client, "streamable_http", types.SimpleNamespace(streamablehttp_client=old_api)
+        )
+        async with _serve_asgi(_inventory().asgi_app()) as port:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                async with MCPClient(url=f"http://127.0.0.1:{port}/mcp") as client:
+                    result = await asyncio.wait_for(
+                        client.call_tool("check_stock", {"sku": "A"}), TIMEOUT
+                    )
+        assert '"in_stock": 42' in _text(result)
+        assert used == [f"http://127.0.0.1:{port}/mcp"]
+
+
+# =====================================================================
+# An explicit per-server credential wins over the agent identity
+# =====================================================================
+
+
+class TestExplicitCredentialWinsOverIdentity:
+    async def test_identity_agent_can_use_an_api_key_server(self):
+        """The identity's bearer used to be sent next to ``x-api-key``; the
+        gate checked the bearer first and answered 401."""
+        from _scripted_model import Scripted
+
+        from promptise import build_agent
+        from promptise.config import HTTPServerSpec
+        from promptise.identity import AgentIdentity, CallableTokenProvider
+
+        token = pyjwt.encode(
+            {"sub": "agent", "exp": int(time.time()) + 600}, "x" * 32, algorithm="HS256"
+        )
+        identity = AgentIdentity(
+            "agent", credential=CallableTokenProvider(token_fn=lambda a: token)
+        )
+        async with _serve_asgi(_inventory(require_auth=True).asgi_app()) as port:
+            agent = await build_agent(
+                model=Scripted(),
+                identity=identity,
+                servers={
+                    "keys": HTTPServerSpec(url=f"http://127.0.0.1:{port}/mcp", api_key=API_KEY)
+                },
+            )
+            try:
+                assert [t.name for t in agent.tools] == ["check_stock"]
+            finally:
+                await agent.shutdown()
+
+
+# =====================================================================
+# OAuth 2.0 token requests (RFC 6749) against the built-in endpoint
+# =====================================================================
+
+
+def _token_server() -> tuple[MCPServer, JWTAuth]:
+    jwt_auth = JWTAuth(secret="token-endpoint-http-secret-32-bytes")
+    server = MCPServer("billing", require_auth=True)
+    server.add_middleware(AuthMiddleware(jwt_auth))
+    server.enable_token_endpoint(
+        jwt_auth=jwt_auth, clients={"billing-agent": {"secret": "s3cret", "roles": ["billing"]}}
+    )
+
+    @server.tool()
+    async def whoami(ctx: RequestContext) -> str:
+        """The verified caller."""
+        return str(ctx.client_id)
+
+    return server, jwt_auth
+
+
+class TestTokenEndpointOverHttp:
+    async def test_standard_form_encoded_client_credentials_request(self):
+        server, jwt_auth = _token_server()
+        async with _serve_asgi(server.asgi_app()) as port:
+            async with httpx.AsyncClient(timeout=TIMEOUT) as http:
+                resp = await http.post(
+                    f"http://127.0.0.1:{port}/auth/token",
+                    data={
+                        "grant_type": "client_credentials",
+                        "client_id": "billing-agent",
+                        "client_secret": "s3cret",
+                    },
+                )
+                assert resp.status_code == 200, resp.text
+                assert resp.headers["cache-control"] == "no-store"
+                body = resp.json()
+                assert jwt_auth.verify_token(body["access_token"])
+                refreshed = await http.post(
+                    f"http://127.0.0.1:{port}/auth/token",
+                    data={"grant_type": "refresh_token", "refresh_token": body["refresh_token"]},
+                )
+                assert refreshed.status_code == 200, refreshed.text
+
+    async def test_http_basic_client_authentication(self):
+        server, jwt_auth = _token_server()
+        async with _serve_asgi(server.asgi_app()) as port:
+            async with httpx.AsyncClient(timeout=TIMEOUT) as http:
+                resp = await http.post(
+                    f"http://127.0.0.1:{port}/auth/token",
+                    data={"grant_type": "client_credentials"},
+                    auth=("billing-agent", "s3cret"),
+                )
+        assert resp.status_code == 200, resp.text
+        assert jwt_auth.verify_token(resp.json()["access_token"])
+
+    async def test_fetch_token_then_call_a_tool(self):
+        server, _ = _token_server()
+        async with _serve_asgi(server.asgi_app()) as port:
+            token = await MCPClient.fetch_token(
+                f"http://127.0.0.1:{port}/auth/token", "billing-agent", "s3cret"
+            )
+            async with MCPClient(url=f"http://127.0.0.1:{port}/mcp", bearer_token=token) as c:
+                result = await asyncio.wait_for(c.call_tool("whoami", {}), TIMEOUT)
+        assert _text(result) == "billing-agent"

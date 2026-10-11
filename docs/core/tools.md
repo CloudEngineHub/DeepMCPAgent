@@ -249,7 +249,8 @@ adapter = MCPToolAdapter(
 
 !!! warning
     Tool name collisions across servers are possible.  If two servers expose
-    a tool with the same name, the last-discovered server wins.  Use
+    a tool with the same name, the server listed last in `servers` wins:
+    the agent gets only that server's copy, and a warning is logged.  Use
     server-specific tool name prefixes on your MCP servers to avoid this.
 
 ## What's next

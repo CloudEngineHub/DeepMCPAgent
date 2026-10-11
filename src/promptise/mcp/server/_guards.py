@@ -263,3 +263,29 @@ class HasAllScopes(Guard):
             f"Requires all scopes [{', '.join(sorted(self._required))}], "
             f"client has [{actual}], missing [{missing_str}]"
         )
+
+
+#: Built-in guards that check who the caller is.  They can only pass once
+#: ``AuthMiddleware`` has identified the caller, which it does only for
+#: ``auth=True`` definitions.
+_IDENTITY_GUARDS: tuple[type, ...] = (
+    RequireAuth,
+    HasRole,
+    HasAllRoles,
+    RequireClientId,
+    RequireTenant,
+    HasTenant,
+    HasScope,
+    HasAllScopes,
+)
+
+
+def needs_identity(guards: list[object] | None) -> bool:
+    """Whether *guards* include a built-in guard that checks the caller's identity.
+
+    Registering a tool, resource or prompt with such a guard implies
+    ``auth=True`` (as ``roles=`` does): without it ``AuthMiddleware``
+    never identifies the caller and the guard denies every call, even one
+    with valid credentials.  Custom guards are not inspected.
+    """
+    return any(isinstance(g, _IDENTITY_GUARDS) for g in guards or ())

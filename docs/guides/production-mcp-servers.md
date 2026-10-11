@@ -175,7 +175,7 @@ server.enable_token_endpoint(
         "agent-viewer": {"secret": "viewer-secret", "roles": ["read"]},
     },
 )
-# POST /auth/token with {"client_id": "agent-prod", "client_secret": "agent-secret"}
+# POST /auth/token  grant_type=client_credentials&client_id=agent-prod&client_secret=agent-secret
 ```
 
 For production, use a real identity provider (Auth0, Keycloak, Okta).
