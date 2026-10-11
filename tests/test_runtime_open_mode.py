@@ -1555,3 +1555,248 @@ class TestSpawnProcessMetaTool:
         process._spawned_processes = ["child-1", "child-2"]
         status = process.status()
         assert status["spawned_process_count"] == 2
+
+
+# ===========================================================================
+# 1.3.3: create_tool honours `parameters`; max_rebuilds never stages a change
+# ===========================================================================
+
+
+def _stub_process(**open_mode) -> AgentProcess:
+    """An open-mode process whose agent build records what it was built with."""
+    process = AgentProcess(
+        "p",
+        ProcessConfig(
+            instructions="ORIGINAL",
+            execution_mode=ExecutionMode.OPEN,
+            open_mode=OpenModeConfig(**open_mode),
+        ),
+    )
+    builds: list[dict] = []
+
+    async def build() -> None:
+        snapshot = {
+            "instructions": process._dynamic_instructions or process.config.instructions,
+            "tools": [t.name for t in process._custom_tools],
+            "servers": sorted(process._dynamic_servers),
+        }
+        builds.append(snapshot)
+        agent = MagicMock()
+        agent.shutdown = AsyncMock()
+        agent.built_with = snapshot
+        process._agent = agent
+
+    process._build_agent = build  # type: ignore[method-assign]
+    process.builds = builds  # type: ignore[attr-defined]
+    return process
+
+
+class TestCreateToolParameters:
+    """create_tool used to ignore `parameters`: every tool took one `input` string."""
+
+    @pytest.mark.asyncio
+    async def test_declared_parameters_become_the_tool_arguments(self):
+        from promptise.runtime.meta_tools import create_meta_tools
+
+        process = _stub_process()
+        await process.start()
+        try:
+            create_tool = {t.name: t for t in create_meta_tools(process)}["create_tool"]
+            reply = await create_tool.ainvoke(
+                {
+                    "tool_name": "add",
+                    "tool_description": "add a and b",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"a": {"type": "integer"}, "b": {"type": "integer"}},
+                        "required": ["a", "b"],
+                    },
+                    "python_code": "def run(a, b):\n    return str(a + b)",
+                }
+            )
+            assert "created" in reply
+            tool = next(t for t in process._custom_tools if t.name == "add")
+            assert list(tool.args) == ["a", "b"]
+            assert await tool.ainvoke({"a": 2, "b": 3}) == "5"
+            # The schema the model is offered names the parameters.
+            schema = tool.tool_call_schema.model_json_schema()
+            assert set(schema["properties"]) == {"a", "b"}
+            assert schema["required"] == ["a", "b"]
+        finally:
+            await process.stop()
+
+    @pytest.mark.asyncio
+    async def test_arguments_are_validated_and_defaults_applied(self):
+        from promptise.runtime.meta_tools import _build_dynamic_tool
+        from promptise.tools import ToolArgumentError
+
+        tool = _build_dynamic_tool(
+            "scale",
+            "scale items",
+            "def run(items, factor, label='x'):\n"
+            "    return label + ':' + str([i['n'] * factor for i in items])",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "object", "properties": {"n": {"type": "integer"}}},
+                    },
+                    "factor": {"type": "integer", "default": 2},
+                    "label": {"type": "string"},
+                },
+                "required": ["items"],
+            },
+        )
+        # Nested objects arrive as dicts; the schema default fills `factor`;
+        # `label` (no schema default) is left to run()'s own default.
+        assert await tool.ainvoke({"items": [{"n": 1}, {"n": 3}]}) == "x:[2, 6]"
+        with pytest.raises(ToolArgumentError, match="factor"):
+            await tool.ainvoke({"items": [], "factor": "lots"})
+
+    @pytest.mark.asyncio
+    async def test_no_parameters_keeps_the_free_form_input(self):
+        from promptise.runtime.meta_tools import _build_dynamic_tool
+
+        for parameters in (None, {}, {"type": "object"}, {"type": "object", "properties": {}}):
+            tool = _build_dynamic_tool(
+                "echo", "echo", "def run(input=''):\n    return input", parameters=parameters
+            )
+            assert list(tool.args) == ["input"]
+            assert await tool.ainvoke({"input": "hi"}) == "hi"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "parameters",
+        [
+            {"a": {"type": "integer"}},  # properties without the object wrapper
+            {"type": "string"},
+            {"type": "object", "properties": {"class": {"type": "string"}}},
+            {"type": "object", "properties": {"a": {}}, "required": ["b"]},
+        ],
+    )
+    async def test_unusable_parameters_are_refused_and_nothing_is_staged(self, parameters):
+        from promptise.runtime.meta_tools import _create_tool
+
+        process = _stub_process()
+        reply = await _create_tool(
+            process,
+            tool_name="t",
+            tool_description="d",
+            parameters=parameters,
+            python_code="def run(**kw):\n    return 'x'",
+        )
+        assert reply.startswith("Error creating tool")
+        assert process._custom_tools == []
+        assert process.builds == []
+
+
+class TestMaxRebuildsNeverStages:
+    """A change refused by max_rebuilds used to be staged and applied on restart."""
+
+    @pytest.mark.asyncio
+    async def test_refused_instructions_do_not_apply_after_a_restart(self):
+        from promptise.runtime.meta_tools import _modify_instructions
+
+        process = _stub_process(max_rebuilds=1)
+        await process.start()
+        assert await _modify_instructions(process, "REWRITE_1") == "Rebuild successful"
+        refused = await _modify_instructions(process, "REWRITE_2")
+        assert refused.startswith("Error: max rebuilds (1) reached")
+        assert "not applied" in refused
+        assert process._dynamic_instructions == "REWRITE_1"
+
+        await process.stop()
+        await process.start()  # deploy, crash recovery, restart_policy
+        try:
+            assert process._agent.built_with["instructions"] == "REWRITE_1"
+            # The limit is per lifetime: the restart did not reset it.
+            assert process._rebuild_count == 1
+            again = await _modify_instructions(process, "REWRITE_3")
+            assert again.startswith("Error: max rebuilds")
+            assert process._dynamic_instructions == "REWRITE_1"
+        finally:
+            await process.stop()
+
+    @pytest.mark.asyncio
+    async def test_refused_tool_and_server_are_not_staged(self):
+        from promptise.runtime.meta_tools import _connect_mcp_server, _create_tool
+
+        process = _stub_process(max_rebuilds=0)
+        await process.start()
+        try:
+            tool_reply = await _create_tool(
+                process,
+                tool_name="greet",
+                tool_description="Say hello",
+                parameters={},
+                python_code="def run(**kwargs): return 'hello'",
+            )
+            server_reply = await _connect_mcp_server(
+                process, server_name="extra", url="http://127.0.0.1:1/mcp"
+            )
+        finally:
+            await process.stop()
+
+        assert tool_reply.startswith("Error: max rebuilds (0) reached")
+        assert "created" not in tool_reply
+        assert server_reply.startswith("Error: max rebuilds (0) reached")
+        assert "Connected" not in server_reply
+        assert process._custom_tools == []
+        assert process._dynamic_servers == {}
+
+        await process.start()
+        try:
+            assert process._agent.built_with == {
+                "instructions": "ORIGINAL",
+                "tools": [],
+                "servers": [],
+            }
+        finally:
+            await process.stop()
+
+    @pytest.mark.asyncio
+    async def test_a_failed_rebuild_undoes_the_change(self):
+        from promptise.runtime.meta_tools import _create_tool, _modify_instructions
+
+        process = _stub_process()
+        await process.start()
+        previous_agent = process._agent
+
+        async def failing_build() -> None:
+            raise RuntimeError("server unreachable")
+
+        process._build_agent = failing_build  # type: ignore[method-assign]
+        try:
+            with pytest.raises(RuntimeError, match="unreachable"):
+                await _modify_instructions(process, "NEW")
+            reply = await _create_tool(
+                process,
+                tool_name="greet",
+                tool_description="Say hello",
+                parameters={},
+                python_code="def run(**kwargs): return 'hello'",
+            )
+        finally:
+            process._agent = previous_agent
+            await process.stop()
+
+        assert reply.startswith("Error creating tool: server unreachable")
+        assert process._dynamic_instructions is None
+        assert process._custom_tools == []
+        assert process._rebuild_count == 0
+
+    @pytest.mark.asyncio
+    async def test_rollback_is_not_refused_by_the_limit(self):
+        from promptise.runtime.meta_tools import _modify_instructions
+
+        process = _stub_process(max_rebuilds=1)
+        await process.start()
+        try:
+            await _modify_instructions(process, "REWRITE_1")
+            assert await process.rollback() == "Rebuild successful"
+            assert process._agent.built_with["instructions"] == "ORIGINAL"
+            assert process._dynamic_instructions is None
+            assert process._rebuild_count == 2
+        finally:
+            await process.stop()

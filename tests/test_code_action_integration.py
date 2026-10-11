@@ -153,3 +153,139 @@ async def test_full_code_action_agent(docker_available, openai_available):
         assert "635000" in str(answer), f"got: {answer!r}"
     finally:
         await agent.shutdown()
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# 1.3.3 regressions — REAL Docker, canned model (no API key)
+# ──────────────────────────────────────────────────────────────────────────
+def _sandbox_factory():
+    from promptise.sandbox import NetworkMode, SandboxConfig, SandboxManager
+
+    manager = SandboxManager(SandboxConfig(network=NetworkMode.NONE, timeout=120))
+
+    async def factory():
+        return await manager.create_session()
+
+    return manager, factory
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_real_sandbox_failed_calls_are_capped(docker_available):
+    """A program looping a failing tool 120 times under max_tool_calls=10: the
+    tool runs 10 times, the program gets ToolBudgetExceeded, and the run fails
+    instead of answering 120."""
+    from promptise.engine import CodeActionNode
+    from promptise.engine.code_action import _ToolBudget
+    from promptise.engine.state import GraphState, NodeResult
+
+    executed = []
+
+    @tool("lookup")
+    def lookup(key: str) -> str:
+        """Look up a key."""
+        executed.append(key)
+        raise ValueError(f"no such key {key}")
+
+    program = (
+        "failed = 0\n"
+        "refused = None\n"
+        "for i in range(120):\n"
+        "    try:\n"
+        "        lookup(str(i))\n"
+        "    except ToolBudgetExceeded as exc:\n"
+        "        refused = i\n"
+        "        break\n"
+        "    except Exception:\n"
+        "        failed += 1\n"
+        "print('RESULT:', failed, refused)"
+    )
+    manager, factory = _sandbox_factory()
+    node = CodeActionNode(
+        "reason", tools=[lookup], sandbox_factory=factory, max_tool_calls=10, max_repairs=0
+    )
+    try:
+        budget = _ToolBudget(10)
+        cmd = await node._run_program(
+            program, {"lookup": lookup}, GraphState(messages=[]), {}, NodeResult(), budget
+        )
+        assert cmd.stdout.strip().endswith("RESULT: 10 10"), cmd.stdout + cmd.stderr
+        assert len(executed) == 10 and budget.exhausted
+
+        executed.clear()
+        result = await node.execute(
+            GraphState(messages=[HumanMessage(content="go")]),
+            {"_engine_model": _FixedModel(program)},
+        )
+    finally:
+        await manager.cleanup_all()
+
+    assert len(executed) == 10
+    assert result.output == ""
+    assert result.error and "max_tool_calls=10" in result.error
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_real_sandbox_mcp_json_results_arrive_as_data(docker_available):
+    from mcp.types import CallToolResult, TextContent
+    from pydantic import BaseModel
+
+    from promptise.engine import CodeActionNode
+    from promptise.engine.state import GraphState
+    from promptise.mcp.client._tool_adapter import _PromptiseMCPTool
+
+    class _Multi:
+        async def call_tool(self, name, arguments, **kwargs):
+            return CallToolResult(
+                content=[TextContent(type="text", text='["SO-9001", "SO-9002"]')],
+                isError=False,
+            )
+
+    class _Args(BaseModel):
+        month: str
+
+    list_orders = _PromptiseMCPTool(
+        name="list_orders",
+        description="List order ids for a month.",
+        args_schema=_Args,
+        tool_name="list_orders",
+        multi=_Multi(),  # type: ignore[arg-type]
+    )
+    program = "ids = list_orders('2026-09')\nprint('RESULT:', type(ids).__name__, len(ids), ids[0])"
+    manager, factory = _sandbox_factory()
+    node = CodeActionNode("reason", tools=[list_orders], sandbox_factory=factory)
+    try:
+        result = await node.execute(
+            GraphState(messages=[HumanMessage(content="go")]),
+            {"_engine_model": _FixedModel(program)},
+        )
+    finally:
+        await manager.cleanup_all()
+
+    assert result.error is None, result.error
+    assert result.output == "list 2 SO-9001"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_real_sandbox_cleanup_does_not_wait_for_a_graceful_stop(docker_available):
+    """Cleanup took the full 5 s docker-stop timeout (bash as PID 1 ignores
+    SIGTERM); a non-persistent session's container is now killed at once."""
+    import time
+
+    import docker
+
+    manager, factory = _sandbox_factory()
+    session = await factory()
+    container_id = session.container_id
+    try:
+        start = time.perf_counter()
+        await session.cleanup()
+        elapsed = time.perf_counter() - start
+    finally:
+        await manager.cleanup_all()
+
+    assert elapsed < 3, f"cleanup took {elapsed:.2f}s"
+    with pytest.raises(docker.errors.NotFound):
+        docker.from_env().containers.get(container_id)

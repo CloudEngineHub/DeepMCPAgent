@@ -105,7 +105,7 @@ async def test_sandbox_session_context_manager():
 
     # Mock backend
     backend = MagicMock()
-    backend.stop_container = AsyncMock()
+    backend.kill_container = AsyncMock()
     backend.remove_container = AsyncMock()
 
     # Mock config
@@ -117,8 +117,9 @@ async def test_sandbox_session_context_manager():
         assert session.container_id == "test-container"
         assert session._running is True
 
-    # After exit, cleanup should be called
-    backend.stop_container.assert_called_once_with("test-container")
+    # After exit, cleanup should be called: the container is removed at once,
+    # so it is killed rather than stopped gracefully (that waited 5 s).
+    backend.kill_container.assert_called_once_with("test-container")
     backend.remove_container.assert_called_once_with("test-container")
 
 
@@ -150,3 +151,47 @@ def test_network_mode_enum():
     assert NetworkMode.NONE.value == "none"
     assert NetworkMode.RESTRICTED.value == "restricted"
     assert NetworkMode.FULL.value == "full"
+
+
+@pytest.mark.asyncio
+async def test_docker_backend_kills_instead_of_waiting_for_a_graceful_stop():
+    """A sandbox's PID 1 is bash, which ignores SIGTERM, so ``docker stop``
+    always waited its 5 s timeout. Cleanup now kills the container."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from promptise.sandbox import DockerBackend, SandboxConfig
+    from promptise.sandbox.session import SandboxSession
+
+    container = MagicMock()
+    client = MagicMock()
+    client.containers.get.return_value = container
+    backend = DockerBackend(SandboxConfig())
+    backend._get_client = AsyncMock(return_value=client)  # type: ignore[method-assign]
+
+    session = SandboxSession("cid", backend, SandboxConfig())
+    await session.cleanup()
+
+    container.kill.assert_called_once_with()
+    container.stop.assert_not_called()
+    container.remove.assert_called_once_with(force=True)
+
+
+@pytest.mark.asyncio
+async def test_backend_kill_container_defaults_to_stop():
+    """A custom backend without kill_container still cleans up (via stop)."""
+    from unittest.mock import AsyncMock
+
+    from promptise.sandbox.backends import SandboxBackend
+
+    class Minimal(SandboxBackend):
+        create_container = AsyncMock()
+        execute_command = AsyncMock()
+        read_file = AsyncMock()
+        write_file = AsyncMock()
+        stop_container = AsyncMock()
+        remove_container = AsyncMock()
+        health_check = AsyncMock()
+
+    backend = Minimal(SandboxConfig())
+    await backend.kill_container("cid")
+    backend.stop_container.assert_awaited_once_with("cid")

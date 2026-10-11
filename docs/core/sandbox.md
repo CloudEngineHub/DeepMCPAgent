@@ -177,7 +177,7 @@ async with sandbox_session as session:
 | `write_file` | `write_file(path, content)` | Write a file into the writable workspace (or `/tmp`). Missing parent directories are created. |
 | `list_files` | `list_files(directory="/workspace") -> list[str]` | List files in a directory inside the sandbox. |
 | `install_package` | `install_package(package, tool="python") -> CommandResult` | Install a package using the specified ecosystem (`python`, `node`, `rust`, `go`). |
-| `cleanup` | `cleanup()` | Stop and remove the container. If `persistent=True`, the container keeps running for reuse. |
+| `cleanup` | `cleanup()` | Kill and remove the container (it is removed at once, so it gets no graceful-stop grace period). If `persistent=True`, the container keeps running for reuse. |
 
 `SandboxSession` also supports use as an async context manager, which calls `cleanup()` on exit.
 
@@ -286,6 +286,12 @@ assert result.exit_code == 1
 | `stop_container()` | Stop a running container. |
 | `remove_container()` | Remove a stopped container. |
 | `health_check()` | Return whether the backend is available and functional. |
+
+`kill_container()` (not abstract) stops a container without a grace period;
+`SandboxSession.cleanup()` uses it before removing a non-persistent container.
+The default calls `stop_container()`; `DockerBackend` sends `SIGKILL` (the
+container's `/bin/bash` ignores `SIGTERM`, so a graceful `docker stop` always
+waited out its timeout).
 
 `ensure_available()` (not abstract) raises with the actual reason the backend
 cannot run containers; `SandboxManager.create_session()` calls it, so a missing
