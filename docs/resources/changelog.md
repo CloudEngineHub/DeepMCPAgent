@@ -4,7 +4,7 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
-## v1.3.3 — unreleased
+## v1.3.3 — 2026-10-11
 
 ### Fixed
 - **The mission LLM judge always failed** -- `MissionTracker` built its judge with `build_agent()` without the required `servers` argument, so every evaluation raised `TypeError` before any model call and was recorded as `achieved=False, confidence=0.5, reasoning="Evaluation failed: build_agent() missing 1 required keyword-only argument: 'servers'"`. With the default `confidence_threshold` (0.7) the mission went to `paused` after its first evaluation, evaluations stopped, and `auto_complete` could never trigger. The judge is now built with no servers and evaluates the evidence; it is shut down after each evaluation. `MissionTracker.evaluate()` also accepts a chat model instance as `model`.
