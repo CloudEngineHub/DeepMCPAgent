@@ -55,9 +55,9 @@ Instead of an ever-growing transcript, the node builds a compact ledger from the
 - **One line per `tool(args) = result`, last value wins.** Identical `(tool, args)` pairs collapse automatically, so a **deduplicated tool ledger** never lists the same fact twice.
 - **The ledger sits last, right before the model's turn** — the most salient position — so the model consults it instead of re-calling a tool.
 - **The most recent exchange stays in-flow**, so the model keeps continuity and doesn't lose its place.
-- **Repeated calls are cache-served.** If the model does re-request an identical `(tool, args)`, it gets the cached result instead of re-executing the tool.
+- **A repeated call still runs.** If the model does re-request an identical `(tool, args)`, the tool runs again, so a status it polls is current. For lookups whose result cannot change, `ContextCompaction(reuse_results=[...])` answers the repeat from the earlier result instead.
 
-That combination is what flattens the curve: the transcript stops growing, duplicate calls stop firing, and the model spends its attention on the facts rather than on its own history.
+That combination is what flattens the curve: the transcript stops growing, the model stops re-asking for facts it can see, and it spends its attention on the facts rather than on its own history.
 
 ## Runnable: switch a runaway loop to the ledger
 
@@ -126,7 +126,7 @@ The good news is you rarely have to make this call by hand: `"auto"` keeps the f
 
 ### Why does my LLM agent keep making repeated tool calls?
 
-Because a naive loop replays the whole transcript every turn, and once it is long enough the model can no longer clearly see a result it already fetched — so it fetches it again. It is a context-visibility failure, not a reasoning failure. A deduplicated facts ledger fixes it by putting each gathered fact in one salient place and serving identical calls from cache.
+Because a naive loop replays the whole transcript every turn, and once it is long enough the model can no longer clearly see a result it already fetched — so it fetches it again. It is a context-visibility failure, not a reasoning failure. A deduplicated facts ledger fixes it by putting each gathered fact in one salient place, where the model sees it instead of fetching it again.
 
 ### Do I have to change patterns to avoid context window overflow?
 

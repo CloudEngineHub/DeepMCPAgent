@@ -33,6 +33,7 @@ from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import ToolMessage
 from langchain_core.outputs import LLMResult
 
+from .engine.nodes import REUSED_TOOL_METADATA_KEY
 from .observability_config import ObserveLevel
 
 
@@ -90,6 +91,9 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
         self._llm_starts: dict[UUID, float] = {}
         self._tool_starts: dict[UUID, float] = {}
         self._tool_names: dict[UUID, str] = {}
+        # Tool runs answered from an earlier result instead of the tool
+        # (the engine's ContextCompaction reuse_results).
+        self._reused_tools: set[UUID] = set()
         self._chain_starts: dict[UUID, float] = {}
 
         # --- Cumulative session accounting ---
@@ -359,7 +363,13 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
             metadata["arguments"] = self._truncate(input_str)
         else:
             metadata["arguments_length"] = len(input_str)
-        self._record("tool.call", details=f"Calling tool: {tool_name}", metadata=metadata)
+        details = f"Calling tool: {tool_name}"
+        if (kwargs.get("metadata") or {}).get(REUSED_TOOL_METADATA_KEY):
+            # Answered from an earlier result of the same call: not run.
+            self._reused_tools.add(run_id)
+            metadata["reused"] = True
+            details = f"Reusing an earlier result for tool: {tool_name}"
+        self._record("tool.call", details=details, metadata=metadata)
 
     def on_tool_end(
         self,
@@ -400,15 +410,18 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
             metadata["latency_ms"] = round(duration * 1000, 1)
         if tool_name != "unknown":
             metadata["tool_name"] = tool_name
+        reused = run_id in self._reused_tools
+        self._reused_tools.discard(run_id)
+        if reused:
+            metadata["reused"] = True
 
-        self._record(
-            "tool.result",
-            details=f"Tool reported an error: {tool_name}"
-            if failed
-            else f"Tool completed: {tool_name}",
-            duration=duration,
-            metadata=metadata,
-        )
+        if failed:
+            details = f"Tool reported an error: {tool_name}"
+        elif reused:
+            details = f"Tool result reused: {tool_name}"
+        else:
+            details = f"Tool completed: {tool_name}"
+        self._record("tool.result", details=details, duration=duration, metadata=metadata)
 
     def on_tool_error(
         self,
@@ -419,6 +432,7 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
     ) -> None:
         start = self._tool_starts.pop(run_id, None)
         duration = time.perf_counter() - start if start else None
+        self._reused_tools.discard(run_id)
         self.error_count += 1
         run = self._current_run()
         if run is not None:

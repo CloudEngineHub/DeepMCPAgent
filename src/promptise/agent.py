@@ -1403,6 +1403,7 @@ class PromptiseAgent:
                             duration_ms=round(duration_ms, 1),
                             success=success,
                             tool_index=idx,
+                            reused=bool(data.get("reused")),
                         )
                         _all_tool_calls.append(
                             {"name": tool_name, "summary": summary, "success": success}
@@ -2844,6 +2845,22 @@ class _TracedTool(WrappingTool):
         return result
 
 
+class _ReusedToolReporter:
+    """Engine hook: reports a call answered from an earlier result
+    (``ContextCompaction(reuse_results=...)``) to ``trace_tools`` /
+    ``observer``.  Such a call never reaches the tool or its tracing wrapper,
+    so without this it would be invisible."""
+
+    def __init__(self, report: Callable[[str, dict[str, Any], str], None]) -> None:
+        self._report = report
+
+    async def on_tool_reused(
+        self, tool_name: str, args: dict[str, Any], result: str, state: Any
+    ) -> None:
+        with contextlib.suppress(Exception):
+            self._report(tool_name, plain_arguments(args), result)
+
+
 def identity_token_provider(
     identity: AgentIdentity | None, spec: HTTPServerSpec, *, owner: str = "Agent"
 ) -> Callable[[bool], str] | None:
@@ -3036,7 +3053,9 @@ async def build_agent(
             going out unauthenticated. The identity is exposed as
             :attr:`PromptiseAgent.identity`.
         trace_tools: Print each tool invocation and result to stdout. Covers
-            MCP tools, cross-agent tools, sandbox tools and ``extra_tools``.
+            MCP tools, cross-agent tools, sandbox tools and ``extra_tools``,
+            and calls answered from an earlier result
+            (``ContextCompaction(reuse_results=...)``), marked as reused.
         cross_agents: Optional mapping of peer name → CrossAgent.  Each
             peer is exposed as an ``ask_agent_<name>`` tool.
         include_broadcast: Also add a ``broadcast_to_agents`` tool that asks
@@ -3140,7 +3159,9 @@ async def build_agent(
             transcript.  An ``int``: compact after that many tool results.
             Applies to nodes with ``context_scope="auto"`` (the default
             ReAct pattern) and the threshold-free settings of ``"ledger"``
-            nodes; a node's own ``compaction=`` wins.
+            nodes; a node's own ``compaction=`` wins.  Compaction never
+            skips a tool call: a repeated call runs the tool, unless its
+            tool is opted in with ``ContextCompaction(reuse_results=...)``.
         approval: Human-in-the-loop approval.  An
             :class:`~promptise.approval.ApprovalPolicy` gates the agent's
             own tool calls that match its patterns.  Whatever is given —
@@ -3310,6 +3331,39 @@ async def build_agent(
         if on_tool_progress is not None:
             return on_tool_progress(name, progress, total, message)
         return None
+
+    def _reused(name: str, args: dict[str, Any], result: str) -> None:
+        # A call answered from an earlier result (ContextCompaction
+        # reuse_results): reported like a call, marked as reused.
+        if trace_tools:
+            print(
+                f"↺ Reusing an earlier result for tool: {name} with {args} "
+                "(same call earlier in this run; the tool did not run)"
+            )
+            print(f"✔ Tool result from {name} (reused): {result}")
+        if _obs is not None:
+            from .observability import TimelineEventType, _truncate_for_metadata
+
+            _obs.record(
+                TimelineEventType.TOOL_CALL,
+                agent_id=_obs_aid,
+                details=f"Reusing an earlier result for tool: {name}",
+                metadata={
+                    "tool_name": name,
+                    "arguments": _truncate_for_metadata(str(args)),
+                    "reused": True,
+                },
+            )
+            _obs.record(
+                TimelineEventType.TOOL_RESULT,
+                agent_id=_obs_aid,
+                details=f"Tool result from: {name} (reused)",
+                metadata={
+                    "tool_name": name,
+                    "result_preview": _truncate_for_metadata(result),
+                    "reused": True,
+                },
+            )
 
     def _error(name: str, exc: Exception) -> None:
         if trace_tools:
@@ -3742,6 +3796,9 @@ async def build_agent(
                 # inject_tools nodes in a custom graph get these tools
                 tools=graph_tools,
                 compaction=_compaction,
+                # Calls answered from an earlier result never reach a tool
+                # wrapper; the engine reports them to trace_tools / observer.
+                hooks=[_ReusedToolReporter(_reused)] if _enable_callbacks else None,
             ),
         )
 

@@ -329,6 +329,26 @@ except GraphExecutionError as exc:
     print(exc.node_name, exc.__cause__)   # 'reason' AuthenticationError(...)
 ```
 
+An iteration limit that stops a run in the middle of a tool loop — the model
+asked for tools and the limit ended the run before it saw their results —
+raises `GraphIterationLimitError`, a `GraphExecutionError` with `limit` and
+`pending_tools` (the tools whose results the model never saw). The limit is
+the node's budget (`PromptNode(max_iterations=...)`, capped by the engine's
+`max_node_iterations`; 15 on the ReAct agent's `reason` node) or the engine's
+`max_iterations` for the whole run (`build_agent(max_agent_iterations=...)`).
+The last message of such a run is a tool result, not an answer, so it is never
+returned as one. A limit reached after the model answered, or one that routes
+to an `"error"` transition or `__error__` node, ends the run as before.
+
+```python
+from promptise.engine import GraphIterationLimitError
+
+try:
+    result = await agent.ainvoke({"messages": [HumanMessage(content="Wait for job 42")]})
+except GraphIterationLimitError as exc:
+    print(exc.node_name, exc.limit, exc.pending_tools)   # 'reason' 15 ['queue_status']
+```
+
 ## Performance
 
 The engine adds **<0.02ms overhead** per invocation (excluding LLM latency). Key optimizations:

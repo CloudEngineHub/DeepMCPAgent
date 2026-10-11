@@ -51,7 +51,7 @@ The file may hold the graph at the top level or under a `graph` key.
 | Instructions, transitions, `default_next`, `max_iterations`, metadata | Plain data |
 | Every node type's own settings — `input_keys`, `output_key`, `inherit_context_from`, `context_scope`, `temperature`, `on_pass`/`on_fail`, `max_subgoals`, … | Plain data |
 | Flags (including `inject_tools`, `is_entry`, `is_terminal`) | `flags: [inject_tools, ...]` |
-| `compaction` (a `ContextCompaction`, or `True`/`False`/an `int`) | Its fields, e.g. `compaction: {after_tool_results: 3}` (a custom `count_tokens` as an import reference) |
+| `compaction` (a `ContextCompaction`, or `True`/`False`/an `int`) | Its fields, e.g. `compaction: {after_tool_results: 3}` or `compaction: {reuse_results: [get_user]}` (a custom `count_tokens` as an import reference) |
 | Tools | Tool names, resolved from `tools=` on load |
 | `output_schema`, `preprocessor`, `postprocessor`, `transform`, `merge_fn`, `tool_selector`, a `LoopNode` condition | Import reference `"module:QualName"` |
 | `model_override` given as a string | The model id |
