@@ -33,13 +33,13 @@ To be fair, most mature frameworks ship *something* here. The differences are in
 
 The honest summary: trimming and summarizing are real, shipped features — trimming can evict a live fact, summarization costs a call, and truncation-based bounding keeps duplicates around. Promptise's edge is not "we have context control and they don't." It is that Promptise makes a **deduplicated, last-value-wins tool ledger a first-class, structural node primitive** — the default behaviour of a built-in pattern — rather than something you assemble yourself from hooks.
 
-## The facts ledger: last-value-wins, deduplicated, cache-served
+## The facts ledger: last-value-wins, deduplicated, no extra model call
 
 In the Promptise reasoning engine, an agent is a graph of `PromptNode`s, and every node takes a `context_scope` argument that controls what it sees on each LLM call. Set it to `"ledger"` and, instead of an ever-growing transcript, the node sees a compact ledger built from the tool results so far:
 
 - **One line per `tool(args) = result`, last value wins.** Duplicate `(tool, args)` calls collapse into a single line — the newest result. A fact you fetched at turn 3 is still there at turn 20, occupying one line, not scrolled off by a token counter.
 - **Placed last, where the model reads it most reliably.** The ledger sits right before the model's turn — the most salient position — so the model consults its gathered facts instead of re-calling a tool. The most recent exchange is kept in-flow so continuity isn't lost.
-- **Cache-served repeats.** A repeated `(tool, args)` call returns the cached result instead of re-executing the tool — no duplicate network round-trip, and crucially **no extra LLM call** to compress anything. The bounding is structural, not a second model pass.
+- **No extra LLM call.** Nothing is compressed by a model: the bounding is structural, not a second model pass. A call the model does repeat runs the tool again, so a value that changes (a job's status) is current; repeats of lookups whose result cannot change can be answered from the earlier result with `ContextCompaction(reuse_results=[...])`.
 
 That is the exact contrast with the two stock fixes. Trimming can evict the live fact; the ledger keeps it and evicts the *duplicate*. Summarization spends a model call to compress; the ledger spends nothing — it is a dictionary keyed by `(tool, args)`. The full mechanism, including how the most-recent turn is preserved, is documented in the [context lifecycle guide](../../guides/context-lifecycle.md).
 
@@ -112,7 +112,7 @@ One honest caveat: `context_scope="ledger"` is an **efficiency primitive**. On l
 
 ### Does the ledger cost an extra LLM call like summarization?
 
-No. Summarizing history compresses old turns with a second model round-trip on the critical path. The ledger is built mechanically from tool results — a dictionary keyed by `(tool, args)` — and repeated calls are cache-served, so there is no extra LLM call and no added latency. That is the core `context_scope` ledger vs summarization trade: same bounded transcript, one fewer model pass.
+No. Summarizing history compresses old turns with a second model round-trip on the critical path. The ledger is built mechanically from tool results — a dictionary keyed by `(tool, args)` — so there is no extra LLM call and no added latency. That is the core `context_scope` ledger vs summarization trade: same bounded transcript, one fewer model pass.
 
 ### Will switching to context_scope="ledger" change my existing agents?
 
@@ -120,7 +120,7 @@ Only where you opt in. A raw `PromptNode` defaults to `context_scope="full"`, so
 
 ### Does deduplication ever serve a stale value?
 
-The ledger is last-value-wins per `(tool, args)`: if a tool is called again with the *same* arguments, the newest result replaces the older line, so you always see the latest value for that exact call. Different arguments are different lines. Within-run cache-serving returns the most recent result for an identical call rather than re-executing it.
+No. The ledger is last-value-wins per `(tool, args)`: if a tool is called again with the *same* arguments, the tool runs and the newest result replaces the older line, so you always see the latest value for that exact call. Different arguments are different lines. Answering a repeated call from the earlier result instead of running the tool is an opt-in for lookups whose result cannot change (`ContextCompaction(reuse_results=[...])`), never for a status or anything else that changes.
 
 ## Next steps
 

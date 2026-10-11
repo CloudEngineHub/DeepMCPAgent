@@ -75,8 +75,11 @@ many facts then aggregating. A single tool-using node run with
 `context_scope="ledger"`: instead of feeding the model an ever-growing
 transcript of tool calls and results (where it loses track and re-queries the
 same facts), each turn it sees the task, its most recent exchange, and a
-compact **deduplicated "facts gathered" ledger**. Identical `(tool, args)`
-calls are also served from cache rather than re-executed.
+compact **deduplicated "facts gathered" ledger**. A call the model does
+repeat runs the tool again (its result may have changed); to answer repeats
+of lookups whose result cannot change from the earlier result, opt those
+tools in with `context_compaction=ContextCompaction(reuse_results=[...])`
+(see [Repeated calls run the tool](../guides/context-lifecycle.md#repeated-calls-run-the-tool)).
 
 ```mermaid
 graph LR

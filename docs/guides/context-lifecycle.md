@@ -83,10 +83,6 @@ call gets a bounded view instead of the transcript:
    model can call it again for the full text. Results already shown in the
    latest exchange are not repeated.
 
-In ledger mode a repeated `(tool, args)` call is **served from cache**
-instead of re-executing, so fetching a cut result in full again costs no tool
-call.
-
 !!! warning "No LLM summarization"
     Compaction is deterministic: it cuts and drops, it never asks a model to
     summarize, and it costs no extra calls. A fact in the part of an old result
@@ -94,6 +90,50 @@ call.
     tools return large results that must stay verbatim, raise
     `keep_result_chars`, return leaner results (a summary tool instead of a raw
     dump), or turn compaction off.
+
+### Repeated calls run the tool
+
+Compaction changes what the model *sees*, never what a tool call does. When
+the model calls a tool again with the same arguments, the tool runs again: a
+job's status, a health check or a queue length can change between two calls,
+so an agent that polls `queue_status(job_id)` sees the job complete. The
+ledger shows the model the facts it already has, each as it was when its call
+ran, so it has no reason to fetch a fact again unless the value can change.
+
+A model that keeps repeating a call is stopped by the node's iteration limit
+(`max_iterations`; 15 on the ReAct agent's `reason` node). A run stopped that
+way in the middle of a tool loop raises `GraphIterationLimitError` (a
+[`GraphExecutionError`](../core/engine.md#failures-reach-the-caller)); it never returns the last
+tool result as the answer.
+
+For tools whose result cannot change during a run, such as a lookup by id,
+you can have a repeated call answered from the earlier result instead of
+running the tool:
+
+```python
+from promptise.engine import ContextCompaction
+
+agent = await build_agent(
+    ...,
+    context_compaction=ContextCompaction(reuse_results=["get_employee", "lookup_*"]),
+)
+```
+
+`reuse_results` takes tool names (`*` wildcards allowed), or `True` for every
+tool; it is `False` by default. It applies once the node compacts, to a call
+with the same tool and arguments as an earlier **successful** call in the run,
+and returns that call's latest result. A failed call is never reused. A reused
+call is reported like any other, marked as reused: `trace_tools` prints
+`↺ Reusing an earlier result for tool: ...`, the `observer` timeline and
+`observe=True` record it with `reused: true` in the metadata, LangChain
+callbacks get its start and end with `metadata["promptise_reused"]`, engine
+hooks get `on_tool_reused`, and `astream_with_tools()` ends it with a
+`ToolEndEvent` whose `reused` is `True`.
+
+!!! warning "Only for results that cannot change"
+    Never list a status, health, queue or search tool. MCP's `idempotentHint`
+    says that repeating a call has no further side effects, not that it
+    returns the same result, so no tool annotation turns reuse on.
 
 ### Tune it, or turn it off
 
@@ -119,6 +159,7 @@ agent = await build_agent(
                                    # shrink the ledger until the view fits
         history_messages=6,        # earlier messages in the history note
         history_chars=400,         # characters per earlier message
+        reuse_results=False,       # see "Repeated calls run the tool"
     ),
 )
 ```
@@ -185,7 +226,8 @@ agent = await build_agent(
     agent_pattern="managed",
     instructions=(
         "Answer by calling tools. A ledger of facts you already gathered is "
-        "provided each turn — consult it and never re-fetch a fact you have."
+        "provided each turn — consult it and don't re-fetch a fact you have "
+        "unless it can change (a status, for example)."
     ),
     max_agent_iterations=30,          # deep chains make many calls
 )
@@ -242,6 +284,9 @@ the other's raw messages.
   `context_compaction`, or set it to `False`.
 - **Compaction never drops the question or your system messages**, and it
   never summarizes with a model: older results are cut, not rewritten.
+- **A repeated call runs the tool**, so a status the agent polls is current.
+  Answering repeats from the earlier result is an opt-in for lookups whose
+  result cannot change (`reuse_results`), and it is never silent.
 - **`verify` is the accuracy lever; `managed` is the efficiency lever.** Be
   honest about which problem you have — they solve different ones.
 

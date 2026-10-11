@@ -82,6 +82,61 @@ _FAILURE_CAUSE_ATTR = "_failure_cause"
 #: still execute against all candidates.
 TOOL_SELECTOR_KEY = "_tool_selector"
 
+#: Callback ``metadata`` key set to ``True`` on the ``on_tool_start`` of a call
+#: answered from an earlier result (``ContextCompaction(reuse_results=...)``)
+#: instead of running the tool.
+REUSED_TOOL_METADATA_KEY = "promptise_reused"
+
+
+async def _report_reused_call(
+    tool: BaseTool | None,
+    tool_name: str,
+    args: dict[str, Any],
+    result: str,
+    tool_call_id: str,
+    state: GraphState,
+    config: dict[str, Any],
+) -> None:
+    """Report a call answered from an earlier result, so it is not invisible.
+
+    Engine hooks get ``on_tool_reused(tool_name, args, result, state)`` (how
+    ``build_agent`` feeds ``trace_tools`` and ``observer``), and the run's
+    LangChain callbacks get the tool's start and end with
+    :data:`REUSED_TOOL_METADATA_KEY` in the metadata.  A reporting failure is
+    logged and never changes the call's result.
+    """
+    for hook in config.get("_engine_hooks", []):
+        report = getattr(hook, "on_tool_reused", None)
+        if report is None:
+            continue
+        try:
+            outcome = report(tool_name, args, result, state)
+            if asyncio.iscoroutine(outcome):
+                await outcome
+        except Exception as exc:
+            logger.warning("on_tool_reused hook %r failed: %s", type(hook).__name__, exc)
+    try:
+        from langchain_core.callbacks import AsyncCallbackManager
+
+        manager = AsyncCallbackManager.configure(
+            inheritable_callbacks=config.get("callbacks"),
+            inheritable_tags=config.get("tags"),
+            inheritable_metadata=config.get("metadata"),
+            local_metadata={REUSED_TOOL_METADATA_KEY: True},
+        )
+        run = await manager.on_tool_start(
+            {"name": tool_name, "description": getattr(tool, "description", "") or ""},
+            str(args),
+            inputs=args,
+            tool_call_id=tool_call_id,
+        )
+        await run.on_tool_end(
+            ToolMessage(content=result, tool_call_id=tool_call_id, name=tool_name),
+            name=tool_name,
+        )
+    except Exception as exc:
+        logger.debug("Could not report reused call to %r to callbacks: %s", tool_name, exc)
+
 
 def record_failure(result: NodeResult, exc: BaseException, error: str | None = None) -> None:
     """Record *exc* as the failure of *result*.
@@ -436,6 +491,33 @@ class PromptNode(BaseNode):
         ):
             return "ledger"
         return "full"
+
+    def _earlier_results(
+        self, tool_calls: list[Any], state: GraphState, config: dict[str, Any]
+    ) -> list[str | None]:
+        """For each tool call, the earlier result that answers it, or ``None``
+        when the tool must run (the default for every call).
+
+        A call is answered from an earlier result only when the node's
+        compaction settings opt its tool in (``reuse_results``), the node is
+        compacting (``"ledger"``), and an earlier successful call in this run
+        had the same tool and arguments; its latest result is used, as in
+        the ledger.
+        """
+        settings = self._compaction_settings(config)
+        if not settings.reuse_results or self._effective_context_scope(state, config) != "ledger":
+            return [None] * len(tool_calls)
+        found: list[str | None] = []
+        for tc in tool_calls:
+            name, args = tc.get("name", ""), tc.get("args", {})
+            result: str | None = None
+            if settings.reuses(name):
+                for obs in reversed(state.observations):
+                    if obs.get("tool") == name and obs.get("args") == args and obs.get("success"):
+                        result = str(obs.get("result", ""))
+                        break
+            found.append(result)
+        return found
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
         """Execute the full node pipeline:
@@ -815,34 +897,41 @@ class PromptNode(BaseNode):
                 tool_map = {t.name: t for t in (candidate_tools or active_tools)}
                 tool_start = time.perf_counter()
                 hooks = config.get("_engine_hooks", [])
+                # A repeated call runs the tool again: its result may have
+                # changed (a job's status, a health check).  Only tools opted
+                # in with ContextCompaction(reuse_results=...) are answered
+                # from an earlier result, and that is reported, never silent.
+                earlier = self._earlier_results(tool_calls, state, config)
 
-                async def _exec_one_tool(tc: dict) -> tuple[dict, str]:
-                    """Execute a single tool call. Returns (tc_record, content)."""
+                async def _exec_one_tool(tc: dict, reuse: str | None) -> tuple[dict, str]:
+                    """Execute a single tool call. Returns (tc_record, content).
+
+                    *reuse* is the earlier result that answers the call
+                    instead of the tool, or ``None`` to run the tool.
+                    """
                     tool_name = tc.get("name", "")
                     tool_args = tc.get("args", {})
 
-                    # Ledger mode: serve a previously-gathered fact from cache
-                    # instead of re-executing the same (tool, args). Deep tasks
-                    # otherwise re-fetch identical facts dozens of times.
-                    if self._effective_context_scope(state, config) == "ledger":
-                        # Latest result wins, as in the ledger.
-                        for obs in reversed(state.observations):
-                            if (
-                                obs.get("tool") == tool_name
-                                and obs.get("args") == tool_args
-                                and obs.get("success")
-                            ):
-                                cached = str(obs.get("result", ""))
-                                return (
-                                    {
-                                        "name": tool_name,
-                                        "args": tool_args,
-                                        "result": cached,
-                                        "success": True,
-                                        "cached": True,
-                                    },
-                                    cached,
-                                )
+                    if reuse is not None:
+                        await _report_reused_call(
+                            tool_map.get(tool_name),
+                            tool_name,
+                            tool_args,
+                            reuse,
+                            tc.get("id") or "",
+                            state,
+                            config,
+                        )
+                        return (
+                            {
+                                "name": tool_name,
+                                "args": tool_args,
+                                "result": reuse,
+                                "success": True,
+                                "reused": True,
+                            },
+                            reuse,
+                        )
 
                     # Pre-tool hooks
                     for hook in hooks:
@@ -902,11 +991,12 @@ class PromptNode(BaseNode):
 
                     return tc_record, content
 
-                async def _timed_tool(tc: dict) -> tuple[dict[str, Any], str, float]:
+                async def _timed_tool(index: int) -> tuple[dict[str, Any], str, float]:
                     """Run one tool call; never raises. Returns (record, content, ms)."""
+                    tc = tool_calls[index]
                     started = time.perf_counter()
                     try:
-                        tc_record, content = await _exec_one_tool(tc)
+                        tc_record, content = await _exec_one_tool(tc, earlier[index])
                     except Exception as exc:  # a hook failed
                         content = f"Error: {exc}"
                         tc_record = {
@@ -932,27 +1022,33 @@ class PromptNode(BaseNode):
                             event="on_tool_error", node_name=tc_record["name"], data=data
                         )
                     data["status"] = "success" if tc_record.get("success", True) else "error"
+                    if tc_record.get("reused"):
+                        data["reused"] = True
                     return NodeEvent(event="on_tool_end", node_name=tc_record["name"], data=data)
 
                 tool_run_ids = [str(uuid4()) for _ in tool_calls]
                 for index, tc in enumerate(tool_calls):
+                    start_data: dict[str, Any] = {
+                        "input": tc.get("args", {}),
+                        "run_id": tool_run_ids[index],
+                    }
+                    if earlier[index] is not None:
+                        start_data["reused"] = True
                     yield NodeEvent(
-                        event="on_tool_start",
-                        node_name=tc.get("name", ""),
-                        data={"input": tc.get("args", {}), "run_id": tool_run_ids[index]},
+                        event="on_tool_start", node_name=tc.get("name", ""), data=start_data
                     )
 
                 # Execute tools — parallel if 2+ calls (each end event is
                 # yielded as soon as that tool finishes), direct if only 1.
                 outcomes: list[tuple[dict[str, Any], str, float] | None] = [None] * len(tool_calls)
                 if len(tool_calls) == 1:
-                    outcome = await _timed_tool(tool_calls[0])
+                    outcome = await _timed_tool(0)
                     outcomes[0] = outcome
                     yield _tool_end_event(0, *outcome)
                 else:
                     tasks = {
-                        asyncio.ensure_future(_timed_tool(tc)): index
-                        for index, tc in enumerate(tool_calls)
+                        asyncio.ensure_future(_timed_tool(index)): index
+                        for index in range(len(tool_calls))
                     }
                     try:
                         pending = set(tasks)

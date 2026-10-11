@@ -36,7 +36,7 @@ Expected delivery: March 25.
 | Type | Class | When | Key Fields |
 |------|-------|------|-----------|
 | `tool_start` | `ToolStartEvent` | Tool begins executing | `tool_name`, `tool_display_name`, `arguments`, `tool_index` |
-| `tool_end` | `ToolEndEvent` | Tool finishes | `tool_name`, `tool_summary`, `duration_ms`, `success`, `tool_index` |
+| `tool_end` | `ToolEndEvent` | Tool finishes | `tool_name`, `tool_summary`, `duration_ms`, `success`, `tool_index`, `reused` |
 | `token` | `TokenEvent` | LLM generates a token | `text`, `cumulative_text` |
 | `done` | `DoneEvent` | Agent finished | `full_response`, `tool_calls`, `duration_ms`, `cache_hit` |
 | `error` | `ErrorEvent` | Something went wrong | `message`, `recoverable` |
@@ -71,6 +71,11 @@ view of that run, not a second one:
   raises ends with `success: false` and `tool_summary` `"Tool call failed"`
   (the exception text is not streamed). The model sees the error either way
   and answers from it.
+- **Reused results are `reused: true`.** Only for tools you opted in with
+  [`ContextCompaction(reuse_results=...)`](../guides/context-lifecycle.md#repeated-calls-run-the-tool):
+  a repeated call answered from the earlier result of the same call, without
+  running the tool, still streams its `tool_start` and `tool_end`, and the
+  `tool_end` has `reused: true`.
 
 `examples/mcp/stream_tool_calls.py` shows both against a real model:
 

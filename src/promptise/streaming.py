@@ -99,6 +99,9 @@ class ToolEndEvent(StreamEvent):
         success: ``False`` when the tool reported an error or raised.
         tool_index: 0-based index of this tool call; its ``tool_start``
             event has the same index.
+        reused: ``True`` when the call was answered from an earlier
+            result of the same call instead of running the tool (only for
+            tools opted in with ``ContextCompaction(reuse_results=...)``).
     """
 
     type: str = "tool_end"
@@ -107,6 +110,7 @@ class ToolEndEvent(StreamEvent):
     duration_ms: float = 0
     success: bool = True
     tool_index: int = 0
+    reused: bool = False
 
 
 @dataclass
