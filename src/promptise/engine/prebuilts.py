@@ -553,7 +553,10 @@ def build_managed_graph(
     (where it loses track and re-queries the same facts dozens of times), each
     turn it sees the task plus a compact, **deduplicated "facts gathered"
     ledger** built from the tool results so far. Context stays bounded and the
-    model stops re-looking-up what it already knows.
+    model stops re-looking-up what it already knows.  A call the model does
+    repeat runs the tool again (a status changes); to answer repeats of
+    lookups whose results cannot change from the earlier result, pass
+    ``build_agent(context_compaction=ContextCompaction(reuse_results=[...]))``.
 
     Use this for **deep multi-tool tasks** — traversing a database/graph,
     gathering many facts then aggregating. It cuts redundant tool calls and
@@ -578,7 +581,8 @@ def build_managed_graph(
                 f"{system_prompt}\n\n"
                 "Gather the facts you need with tools, then answer. A ledger of "
                 "facts you have already gathered is provided each turn — consult "
-                "it and never re-fetch a fact you already have."
+                "it and don't re-fetch a fact you already have, unless it is a "
+                "value that changes over time, such as a status."
             ).strip(),
             blocks=list(blocks) if blocks else [],
             tools=list(tools) if tools else [],

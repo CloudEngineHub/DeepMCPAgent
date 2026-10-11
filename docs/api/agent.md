@@ -68,6 +68,13 @@ Core agent creation, invocation, identity, conversations, and the full reasoning
       show_source: false
       heading_level: 4
 
+### GraphIterationLimitError
+
+::: promptise.engine.execution.GraphIterationLimitError
+    options:
+      show_source: false
+      heading_level: 4
+
 ### PromptGraph
 
 ::: promptise.engine.graph.PromptGraph

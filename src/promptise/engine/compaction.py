@@ -21,6 +21,12 @@ There is no LLM summarization: compaction is deterministic and costs no
 extra model calls.  Results that must stay verbatim need a higher
 ``keep_result_chars`` or ``context_compaction=False``.
 
+Compaction changes what the model *sees*, never what a tool call does: a
+call the model repeats runs the tool again, so a status or health check
+returns the current value.  ``reuse_results`` opts tools whose results do
+not change during a run into answering a repeated call from the earlier
+result instead.
+
 Example::
 
     from promptise import build_agent
@@ -34,6 +40,7 @@ Example::
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import logging
 import math
@@ -94,6 +101,16 @@ class ContextCompaction:
             in the history note.
         count_tokens: Token counter for ``max_tokens``.  Defaults to a
             4-characters-per-token estimate.
+        reuse_results: Answer a repeated call from an earlier result
+            instead of running the tool again.  ``False`` (the default):
+            every call runs.  ``True``: once a node compacts, a call with
+            the same tool and arguments as an earlier successful call in
+            the run gets that call's latest result back.  A list of tool
+            names (``*`` wildcards allowed) limits this to those tools.
+            Only for tools whose result cannot change during a run (a
+            lookup by id); never for status, health or queue checks.  A
+            reused call is reported like any other (``trace_tools``,
+            ``observer``, callbacks, stream events), marked as reused.
     """
 
     enabled: bool = True
@@ -103,6 +120,30 @@ class ContextCompaction:
     history_messages: int = 6
     history_chars: int = 400
     count_tokens: Callable[[str], int] | None = None
+    reuse_results: bool | tuple[str, ...] = False
+
+    def __post_init__(self) -> None:
+        reuse: Any = self.reuse_results
+        if isinstance(reuse, bool):
+            return
+        if isinstance(reuse, str) or not isinstance(reuse, Iterable):
+            raise TypeError(
+                "reuse_results must be True, False or a list of tool names, "
+                f"not {type(reuse).__name__}"
+            )
+        names = tuple(reuse)
+        if not all(isinstance(n, str) and n for n in names):
+            raise TypeError("reuse_results must list tool names as non-empty strings")
+        # Frozen dataclass: store the list as a tuple so settings stay hashable.
+        object.__setattr__(self, "reuse_results", names)
+
+    def reuses(self, tool_name: str) -> bool:
+        """Whether a repeated call to *tool_name* may be answered from an
+        earlier result (see ``reuse_results``)."""
+        reuse = self.reuse_results
+        if isinstance(reuse, bool):
+            return reuse
+        return any(fnmatch.fnmatchcase(tool_name, pattern) for pattern in reuse)
 
     @classmethod
     def coerce(cls, value: Any) -> ContextCompaction:
@@ -305,9 +346,11 @@ def _reference(e: _Entry) -> str:
 def _ledger_message(entries: Sequence[_Entry]) -> SystemMessage:
     return SystemMessage(
         content=(
-            f"{LEDGER_HEADER} by your earlier tool calls (do not call a tool "
-            "again for these unless you need a result marked as not shown in "
-            "full):\n" + "\n".join(f"- [{e.ref}] {e.call} = {e.shown}" for e in entries)
+            f"{LEDGER_HEADER} by your earlier tool calls, each as it was when "
+            "the call ran (do not call a tool again for these unless you need "
+            "a result marked as not shown in full, or the current value of "
+            "something that changes over time, such as a status):\n"
+            + "\n".join(f"- [{e.ref}] {e.call} = {e.shown}" for e in entries)
         )
     )
 

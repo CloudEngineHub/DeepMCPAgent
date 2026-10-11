@@ -18,7 +18,10 @@ CRITICAL node error, a RETRYABLE node out of attempts — raises
 returning the conversation as if it were an answer.  Node-level errors stay
 recorded in ``GraphState.node_history`` / ``ExecutionReport`` for hooks and
 observability; a graph that routes a failure to a handler node that
-succeeds is not a failed run.
+succeeds is not a failed run.  A run that an iteration limit stops in the
+middle of a tool loop, before the model saw its tool results, raises
+:class:`GraphIterationLimitError` instead of returning a tool result as the
+answer.
 
 Key features:
 - **Adaptive traversal**: nodes can modify the graph at runtime
@@ -41,7 +44,7 @@ from typing import Any
 from uuid import uuid4
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 from .base import BaseNode
 from .graph import PromptGraph
@@ -83,6 +86,52 @@ class GraphExecutionError(RuntimeError):
         self.report = report
 
 
+class GraphIterationLimitError(GraphExecutionError):
+    """A run hit an iteration limit in the middle of a tool loop.
+
+    The model asked for tools, the limit stopped the run before it saw their
+    results, so there is no answer: the last message is a tool result.
+    Raised instead of returning that tool result as if it were the agent's
+    answer.  A subclass of :class:`GraphExecutionError`.
+
+    Which limit: the node's own budget (``PromptNode(max_iterations=...)``,
+    capped by the engine's ``max_node_iterations``; the ReAct agent's
+    ``reason`` node has 15) or the engine's ``max_iterations`` for the whole
+    run (``build_agent(max_agent_iterations=...)``).
+
+    Attributes:
+        limit: The limit that was reached.
+        pending_tools: Names of the tools whose results the model never saw.
+    """
+
+    def __init__(
+        self,
+        graph_name: str,
+        node_name: str,
+        error: str,
+        *,
+        limit: int,
+        pending_tools: list[str],
+        report: ExecutionReport | None = None,
+    ) -> None:
+        super().__init__(graph_name, node_name, error, report=report)
+        self.limit = limit
+        self.pending_tools = pending_tools
+
+
+def _pending_tools(messages: list[Any]) -> list[str] | None:
+    """Tools whose results end *messages* unanswered, or ``None`` when the
+    conversation ends on an answer (anything but a tool exchange)."""
+    if not messages or not isinstance(messages[-1], (ToolMessage, AIMessage)):
+        return None
+    if isinstance(messages[-1], AIMessage) and not messages[-1].tool_calls:
+        return None
+    for message in reversed(messages):
+        if isinstance(message, AIMessage) and message.tool_calls:
+            return list(dict.fromkeys(str(tc.get("name", "?")) for tc in message.tool_calls))
+    return ["?"]
+
+
 class PromptGraphEngine:
     """Adaptive graph traversal engine.
 
@@ -99,7 +148,9 @@ class PromptGraphEngine:
             node's own ``max_iterations`` applies when it is lower. When a
             node has used its budget, the engine does not run it again: it
             follows the node's ``"error"`` transition, else an ``__error__``
-            node, else ends the run.
+            node, else ends the run.  A run that ends this way (or on
+            ``max_iterations``) in the middle of a tool loop raises
+            :class:`GraphIterationLimitError`: the model never answered.
         hooks: List of hook instances for interception.
         allow_self_modification: Allow the LLM to modify the graph
             via structured output ``_graph_action`` fields.
@@ -340,6 +391,8 @@ class PromptGraphEngine:
         # succeeded is recovery, not failure.
         last_failure: NodeResult | None = None
         redirects = 0
+        # Set when an iteration limit ended the run: (node, limit, what).
+        limit_stop: tuple[str, int, str] | None = None
 
         while state.current_node != "__end__":
             try:
@@ -356,10 +409,19 @@ class PromptGraphEngine:
 
             # ── Per-node budget ──
             if self._node_exhausted(node, state):
+                limit = self._node_limit(node, state)
+                stopped = (node.name, limit, f"reached its iteration limit ({limit})")
                 redirects += 1
                 if redirects > len(live_graph.nodes):
-                    break  # recovery routes lead only to exhausted nodes
-                state.current_node = self._handle_stuck_node(node, state, live_graph)
+                    limit_stop = stopped  # recovery routes lead only to exhausted nodes
+                    break
+                route = self._stuck_route(node, live_graph)
+                if route is None:
+                    # Nothing routes the node anywhere: the limit ends the run.
+                    logger.warning("Stuck node %r — forcing graph end", node.name)
+                    limit_stop = stopped
+                    route = "__end__"
+                state.current_node = route
                 continue
             state.visited.append(state.current_node)
 
@@ -510,7 +572,25 @@ class PromptGraphEngine:
                 logger.warning(
                     "Max iterations (%d) reached in graph %r", self.max_iterations, live_graph.name
                 )
+                if state.current_node != "__end__":
+                    limit_stop = (
+                        node.name,
+                        self.max_iterations,
+                        f"the run reached the engine's max_iterations ({self.max_iterations})",
+                    )
                 break
+
+        # A limit that stopped the run between a tool call and the model's
+        # next step leaves a tool result as the last message: no answer.
+        pending = _pending_tools(state.messages) if limit_stop is not None else None
+        limit_error: str | None = None
+        if limit_stop is not None and pending is not None:
+            what = ", ".join(pending)
+            limit_error = (
+                f"{limit_stop[2]} before the model gave an answer; the run stopped "
+                f"after a call to {what} whose result the model never saw"
+            )
+            logger.warning("Graph %r at node %r: %s", live_graph.name, limit_stop[0], limit_error)
 
         # ── Build report ──
         self._last_report = ExecutionReport(
@@ -522,8 +602,19 @@ class PromptGraphEngine:
             graph_mutations=mutations_count,
             guards_passed=sum(len(nr.guards_passed) for nr in state.node_history),
             guards_failed=sum(len(nr.guards_failed) for nr in state.node_history),
-            error=last_failure.error if last_failure is not None else None,
+            error=last_failure.error if last_failure is not None else limit_error,
         )
+
+        if last_failure is None and limit_stop is not None and limit_error is not None:
+            assert pending is not None
+            raise GraphIterationLimitError(
+                live_graph.name,
+                limit_stop[0],
+                limit_error,
+                limit=limit_stop[1],
+                pending_tools=pending,
+                report=self._last_report,
+            )
 
         if last_failure is not None:
             # The run ended on a failure nothing recovered from: surface it.
@@ -615,10 +706,10 @@ class PromptGraphEngine:
     # Error recovery
     # ──────────────────────────────────────────────────────────────────
 
-    def _node_exhausted(self, node: BaseNode, state: GraphState) -> bool:
-        """Whether *node* has used its execution budget for this run: the
-        lowest of its own ``max_iterations``, the engine's
-        ``max_node_iterations`` and a ``loop_until(max_iterations=...)``."""
+    def _node_limit(self, node: BaseNode, state: GraphState) -> int:
+        """*node*'s execution budget for this run: the lowest of its own
+        ``max_iterations``, the engine's ``max_node_iterations`` and a
+        ``loop_until(max_iterations=...)``."""
         limit = min(
             getattr(node, "max_iterations", self.max_node_iterations), self.max_node_iterations
         )
@@ -626,6 +717,12 @@ class PromptGraphEngine:
         loop = loop_limit(node.name) if loop_limit is not None else None
         if loop is not None:
             limit = min(limit, loop[0])
+        return int(limit)
+
+    def _node_exhausted(self, node: BaseNode, state: GraphState) -> bool:
+        """Whether *node* has used its execution budget for this run (see
+        :meth:`_node_limit`)."""
+        limit = self._node_limit(node, state)
         if state.node_iterations.get(node.name, 0) < limit:
             return False
         logger.warning(
@@ -643,12 +740,21 @@ class PromptGraphEngine:
         graph: PromptGraph,
     ) -> str:
         """Route away from a node that has used its iteration budget."""
+        route = self._stuck_route(node, graph)
+        if route is None:
+            logger.warning("Stuck node %r — forcing graph end", node.name)
+            return "__end__"
+        return route
+
+    def _stuck_route(self, node: BaseNode, graph: PromptGraph) -> str | None:
+        """Where the graph routes a node that has used its iteration budget,
+        or ``None`` when nothing does and the run is forced to end."""
         # A loop_until() loop exits to its exit node
         loop_limit = getattr(graph, "loop_limit", None)
         loop = loop_limit(node.name) if loop_limit is not None else None
         if loop is not None:
             logger.info("Loop node %r used its budget → exiting to %r", node.name, loop[1])
-            return loop[1]
+            return str(loop[1])
 
         # Try error transition
         if "error" in node.transitions:
@@ -659,10 +765,7 @@ class PromptGraphEngine:
         if graph.has_node("__error__"):
             logger.info("Stuck node %r → using __error__ handler", node.name)
             return "__error__"
-
-        # Force end
-        logger.warning("Stuck node %r — forcing graph end", node.name)
-        return "__end__"
+        return None
 
     # ──────────────────────────────────────────────────────────────────
     # LLM graph actions

@@ -94,7 +94,7 @@ This is where the Promptise default differs from a hand-rolled loop. The ReAct p
 
 - **Short tasks are unchanged.** While the tool loop is small, the node sees the full transcript — identical behavior to a plain ReAct loop.
 - **Deep loops switch to a facts ledger.** Once enough tool results have accumulated, the node automatically stops re-sending the raw transcript and instead sees the task, the most recent exchange, and a compact **deduplicated "facts gathered" ledger** — one line per `tool(args) = result`, last value wins, duplicates collapsed.
-- **Repeat calls are cache-served.** An identical `(tool, args)` call returns the cached result instead of re-executing, so the model cannot burn turns re-querying what it already looked up.
+- **Repeat calls still run.** An identical `(tool, args)` call runs the tool again, so a status the agent polls is current; the ledger is what keeps the model from re-querying what it already looked up, and the node's iteration limit stops a model that keeps repeating itself.
 
 The net effect is that context stays bounded and token-efficient on deep tasks while simple tasks pay nothing extra. If you want to force the bounded behavior for a known-deep task, the `managed` pattern pins the same ledger on every turn:
 
