@@ -576,13 +576,12 @@ class OrchestrationAPI:
             if not instructions:
                 return _error_response("MISSING_FIELD", "'instructions' is required", 422)
 
+            if not isinstance(instructions, str):
+                return _error_response("INVALID_CONFIG", "'instructions' must be a string", 422)
+
             process = self._get_process(name)
-            # Update config + dynamic instructions. The agent reads
-            # _dynamic_instructions on each invocation cycle (set during
-            # _build_agent and checked in _invoke_agent context injection).
-            process.config.instructions = instructions
-            if hasattr(process, "_dynamic_instructions"):
-                process._dynamic_instructions = instructions
+            # The next invocation rebuilds the agent with them first.
+            process.update_instructions(instructions)
 
             return _json_response(
                 {
@@ -1072,7 +1071,9 @@ class OrchestrationAPI:
                 return _json_response({"name": name, "entries": [], "journal_enabled": False})
             limit = min(int(request.query.get("limit", "50")), 500)
             entry_type = request.query.get("type")
-            entries = await journal.read(process.process_id) if hasattr(journal, "read") else []
+            # The process files its entries under its name (so they
+            # survive a restart, which gets a new process_id).
+            entries = await journal.read(process.name) if hasattr(journal, "read") else []
             if entry_type:
                 entries = [e for e in entries if getattr(e, "entry_type", "") == entry_type]
             entries = entries[-limit:]

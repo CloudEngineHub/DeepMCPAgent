@@ -428,3 +428,135 @@ class TestExports:
         assert InboxResponse is not None
         assert MessageType is not None
         assert InboxConfig is not None
+
+
+# ---------------------------------------------------------------------------
+# Journal and instructions endpoints against a running process
+# ---------------------------------------------------------------------------
+
+
+class _InstructedAgent:
+    """Stands in for build_agent(): replies with the instructions it was built with."""
+
+    def __init__(self, instructions: str) -> None:
+        self.instructions = instructions
+        self.shut_down = False
+
+    async def ainvoke(self, input: dict, config: object = None) -> dict:
+        return {"messages": [{"role": "assistant", "content": self.instructions}]}
+
+    async def shutdown(self) -> None:
+        self.shut_down = True
+
+
+async def _http(method: str, url: str, body: dict | None = None) -> tuple[int, dict]:
+    from aiohttp import ClientSession
+
+    async with ClientSession() as session:
+        async with session.request(method, url, json=body) as resp:
+            return resp.status, await resp.json(content_type=None)
+
+
+class TestJournalEndpoint:
+    async def test_reads_the_entries_filed_under_the_process_name(self, tmp_path) -> None:
+        from promptise.runtime import JournalConfig
+
+        runtime = AgentRuntime()
+        # A default process_id: a random UUID, not the name
+        process = await runtime.add_process(
+            "worker", ProcessConfig(journal=JournalConfig(level="full", path=str(tmp_path)))
+        )
+        assert process.process_id != "worker"
+
+        async def build() -> None:
+            process._agent = _InstructedAgent("x")
+
+        process._build_agent = build
+        await process.start()
+        api = OrchestrationAPI(runtime, host="127.0.0.1", port=0)
+        await api.start()
+        try:
+            status, body = await _http(
+                "GET", f"http://127.0.0.1:{api.port}/api/v1/processes/worker/journal"
+            )
+        finally:
+            await api.stop()
+            await runtime.stop_all()
+        assert status == 200
+        assert body["count"] >= 2
+        assert {e["entry_type"] for e in body["entries"]} == {"state_transition"}
+
+
+class TestUpdateInstructionsEndpoint:
+    async def test_next_invocation_uses_the_new_instructions(self, monkeypatch) -> None:
+        import promptise.agent
+        from promptise.runtime.triggers.base import TriggerEvent
+
+        built: list[_InstructedAgent] = []
+
+        async def fake_build_agent(**kwargs):
+            agent = _InstructedAgent(kwargs["instructions"])
+            built.append(agent)
+            return agent
+
+        monkeypatch.setattr(promptise.agent, "build_agent", fake_build_agent)
+
+        runtime = AgentRuntime()
+        process = await runtime.add_process("worker", ProcessConfig(instructions="Reply OLD."))
+        replies: list[str] = []
+        original = process._invoke_agent
+
+        async def record(event):
+            result = await original(event)
+            replies.append(result["messages"][-1]["content"])
+            return result
+
+        process._invoke_agent = record
+        await process.start()
+        api = OrchestrationAPI(runtime, host="127.0.0.1", port=0)
+        await api.start()
+
+        async def run_once() -> None:
+            count = len(replies)
+            await process.inject(TriggerEvent(trigger_id="t", trigger_type="manual", payload={}))
+            for _ in range(200):
+                if len(replies) > count:
+                    return
+                await asyncio.sleep(0.01)
+            raise AssertionError("the invocation did not run")
+
+        try:
+            await run_once()
+            status, body = await _http(
+                "PATCH",
+                f"http://127.0.0.1:{api.port}/api/v1/processes/worker/instructions",
+                {"instructions": "Reply PATCHED."},
+            )
+            assert status == 200
+            assert body["effective_from"] == "next_invocation"
+            await run_once()
+            await run_once()
+        finally:
+            await api.stop()
+            await runtime.stop_all()
+
+        assert replies == ["Reply OLD.", "Reply PATCHED.", "Reply PATCHED."]
+        assert process.config.instructions == "Reply PATCHED."
+        # Rebuilt once, without a restart; the replaced agent was shut down.
+        assert [a.instructions for a in built] == ["Reply OLD.", "Reply PATCHED."]
+        assert built[0].shut_down is True
+
+    async def test_rejects_non_string_instructions(self, runtime) -> None:
+        await runtime.add_process("worker", ProcessConfig(instructions="keep"))
+        api = OrchestrationAPI(runtime, host="127.0.0.1", port=0)
+        await api.start()
+        try:
+            status, _ = await _http(
+                "PATCH",
+                f"http://127.0.0.1:{api.port}/api/v1/processes/worker/instructions",
+                {"instructions": ["not", "a", "string"]},
+            )
+        finally:
+            await api.stop()
+        assert status == 422
+        assert runtime.get_process("worker").config.instructions == "keep"
