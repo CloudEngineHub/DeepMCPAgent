@@ -61,7 +61,15 @@ view of that run, not a second one:
   is in `cumulative_text`, but not in `full_response`.
 - **Tool calls run in parallel**, as in `ainvoke()`. When the model asks for
   several tools at once, every `tool_start` comes first, then each `tool_end`
-  as that call finishes — possibly out of order.
+  as that call finishes — possibly out of order. In a custom graph whose
+  calls a [`ToolNode`](engine-nodes.md#toolnode) runs, the calls of one turn
+  run one after another, so each `tool_end` comes before the next call's
+  `tool_start`.
+- **Every node's tool calls stream.** Calls a `ToolNode` runs stream exactly
+  like the ReAct agent's (`PromptNode`) calls, with the same fields, including
+  calls it answers from an earlier result and calls a
+  [`pre_tool` hook](engine-hooks.md#tool-hooks) blocked or that
+  `validate_inputs` rejected (both `success: false`).
 - **`tool_index` and `duration_ms` belong to the call.** A `tool_end` has the
   same `tool_index` as its `tool_start`, and `duration_ms` is how long that
   call ran.
@@ -72,10 +80,12 @@ view of that run, not a second one:
   (the exception text is not streamed). The model sees the error either way
   and answers from it.
 - **Reused results are `reused: true`.** Only for tools you opted in with
-  [`ContextCompaction(reuse_results=...)`](../guides/context-lifecycle.md#repeated-calls-run-the-tool):
-  a repeated call answered from the earlier result of the same call, without
-  running the tool, still streams its `tool_start` and `tool_end`, and the
-  `tool_end` has `reused: true`.
+  [`ContextCompaction(reuse_results=...)`](../guides/context-lifecycle.md#repeated-calls-run-the-tool),
+  and for a repeat of an identical call in one model turn of a
+  [`ToolNode(deduplicate=True)`](engine-nodes.md#toolnode): a repeated call
+  answered from the earlier result of the same call, without running the
+  tool, still streams its `tool_start` and `tool_end`, and the `tool_end` has
+  `reused: true`.
 
 `examples/mcp/stream_tool_calls.py` shows both against a real model:
 

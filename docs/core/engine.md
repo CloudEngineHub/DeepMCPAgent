@@ -332,7 +332,8 @@ except GraphExecutionError as exc:
 An iteration limit that stops a run in the middle of a tool loop — the model
 asked for tools and the limit ended the run before it saw their results —
 raises `GraphIterationLimitError`, a `GraphExecutionError` with `limit` and
-`pending_tools` (the tools whose results the model never saw). The limit is
+`pending_tools` (the tools whose results the model never saw, including calls
+a `ToolNode(tool_selector=...)` made without a model turn). The limit is
 the node's budget (`PromptNode(max_iterations=...)`, capped by the engine's
 `max_node_iterations`; 15 on the ReAct agent's `reason` node) or the engine's
 `max_iterations` for the whole run (`build_agent(max_agent_iterations=...)`).
