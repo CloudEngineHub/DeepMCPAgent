@@ -271,8 +271,20 @@ class TestReconnectAfterRestart:
         script.write_text(
             textwrap.dedent(
                 """
-                import sys
+                import os, sys, threading, time
                 from promptise.mcp.server import MCPServer
+
+                # Exit when the test process goes away (killed run), so the
+                # server never outlives it as an orphan.
+                if os.name == "posix":
+                    parent = os.getppid()
+
+                    def _watch_parent() -> None:
+                        while os.getppid() == parent:
+                            time.sleep(1)
+                        os._exit(0)
+
+                    threading.Thread(target=_watch_parent, daemon=True).start()
 
                 server = MCPServer("inventory")
 
