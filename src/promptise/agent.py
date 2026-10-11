@@ -3781,12 +3781,14 @@ async def build_agent(
                     search_tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
                 ),
                 "autonomous": lambda: PromptGraph.autonomous(
-                    tools=graph_tools, system_prompt=sys_prompt
+                    tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
                 ),
                 "deliberate": lambda: PromptGraph.deliberate(
-                    tools=graph_tools, system_prompt=sys_prompt
+                    tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
                 ),
-                "debate": lambda: PromptGraph.debate(system_prompt=sys_prompt),
+                "debate": lambda: PromptGraph.debate(
+                    tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
+                ),
             }
             # _check_agent_pattern() validated the name at the top of build_agent.
             graph = builders[_pattern]()
