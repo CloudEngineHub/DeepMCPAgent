@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -1185,6 +1186,256 @@ class TestToolNameCollisionWarning:
 
         # The last server wins
         assert multi._tool_to_server["do_stuff"] == "server2"
+
+
+class TestToolNameCollisionsListOneCopy:
+    """The warning says one version is used; the list must agree with it."""
+
+    @staticmethod
+    def _client(*names: str) -> MagicMock:
+        from unittest.mock import AsyncMock
+
+        from mcp.types import Tool
+
+        client = MagicMock(spec=MCPClient)
+        client.list_tools = AsyncMock(
+            return_value=[Tool(name=n, inputSchema={"type": "object"}) for n in names]
+        )
+        return client
+
+    async def test_list_has_one_tool_per_name_from_the_routed_server(self, caplog):
+        a, b, c = self._client("whoami", "a_only"), self._client("whoami"), self._client("whoami")
+        multi = MCPMultiClient({"dev": a, "oauth": b, "prod": c})
+        multi._connected = True
+        with caplog.at_level(logging.WARNING, logger="promptise.mcp.client"):
+            tools = await multi.list_tools()
+        assert sorted(t.name for t in tools) == ["a_only", "whoami"]
+        whoami = next(t for t in tools if t.name == "whoami")
+        assert whoami is c.list_tools.return_value[0]  # the copy call_tool reaches
+        assert multi.tool_to_server["whoami"] == "prod"
+        assert "is not listed" in caplog.text
+
+    async def test_a_reopened_earlier_server_does_not_take_over_a_name(self):
+        a, b = self._client("whoami"), self._client("whoami")
+        multi = MCPMultiClient({"dev": a, "prod": b})
+        multi._connected = True
+        await multi.list_tools()
+        await multi._refresh_server_tools("dev")  # dev's session was re-opened
+        assert multi.tool_to_server["whoami"] == "prod"
+
+    async def test_prompts_list_one_copy_per_name(self):
+        from unittest.mock import AsyncMock
+
+        from mcp.types import Prompt
+
+        a, b = MagicMock(spec=MCPClient), MagicMock(spec=MCPClient)
+        a.list_prompts = AsyncMock(return_value=[Prompt(name="triage")])
+        b.list_prompts = AsyncMock(return_value=[Prompt(name="triage")])
+        multi = MCPMultiClient({"a": a, "b": b})
+        multi._connected = True
+        prompts = await multi.list_prompts()
+        assert prompts == b.list_prompts.return_value
+        assert multi.prompt_to_server["triage"] == "b"
+
+
+async def _token_request(
+    config: Any, body: bytes, headers: list[tuple[bytes, bytes]] | None = None
+) -> tuple[int, dict[str, Any], dict[bytes, bytes]]:
+    """POST *body* to the built-in token endpoint; ``(status, json, headers)``."""
+    from promptise.mcp.server._token_endpoint import handle_token_request
+
+    scope = {"type": "http", "method": "POST", "path": "/auth/token", "headers": headers or []}
+    sent: dict[str, Any] = {}
+
+    async def receive() -> dict[str, Any]:
+        return {"body": body, "more_body": False}
+
+    async def send(message: dict[str, Any]) -> None:
+        if message["type"] == "http.response.start":
+            sent["status"] = message["status"]
+            sent["headers"] = {bytes(k): bytes(v) for k, v in message["headers"]}
+        else:
+            sent["body"] = message["body"]
+
+    await handle_token_request(scope, receive, send, config)
+    return sent["status"], json.loads(sent["body"]), sent["headers"]
+
+
+FORM = (b"content-type", b"application/x-www-form-urlencoded")
+
+
+class TestTokenEndpointRFC6749:
+    """The built-in endpoint speaks RFC 6749 and still accepts JSON."""
+
+    @staticmethod
+    def _config() -> Any:
+        from promptise.mcp.server import JWTAuth
+        from promptise.mcp.server._token_endpoint import TokenEndpointConfig
+
+        return TokenEndpointConfig(
+            jwt_auth=JWTAuth(secret="rfc6749-test-secret-at-least-32-b"),
+            clients={"agent-1": {"secret": "p@ss word&=", "roles": ["admin"]}},
+        )
+
+    async def test_form_encoded_client_credentials(self):
+        from urllib.parse import urlencode
+
+        config = self._config()
+        body = urlencode(
+            {
+                "grant_type": "client_credentials",
+                "client_id": "agent-1",
+                "client_secret": "p@ss word&=",
+            }
+        ).encode()
+        status, data, headers = await _token_request(config, body, [FORM])
+        assert status == 200, data
+        assert config.jwt_auth.verify_token(data["access_token"])
+        assert data["token_type"] == "bearer" and data["refresh_token"]
+        assert headers[b"cache-control"] == b"no-store"
+
+    async def test_form_encoded_refresh_token(self):
+        from urllib.parse import urlencode
+
+        config = self._config()
+        first = urlencode(
+            {
+                "grant_type": "client_credentials",
+                "client_id": "agent-1",
+                "client_secret": "p@ss word&=",
+            }
+        ).encode()
+        _, issued, _ = await _token_request(config, first, [FORM])
+        body = urlencode(
+            {"grant_type": "refresh_token", "refresh_token": issued["refresh_token"]}
+        ).encode()
+        status, data, _ = await _token_request(config, body, [FORM])
+        assert status == 200, data
+        assert data["access_token"] and data["refresh_token"] != issued["refresh_token"]
+
+    async def test_http_basic_client_authentication(self):
+        import base64
+        from urllib.parse import quote_plus
+
+        config = self._config()
+        creds = f"{quote_plus('agent-1')}:{quote_plus('p@ss word&=')}".encode()
+        basic = (b"authorization", b"Basic " + base64.b64encode(creds))
+        status, data, _ = await _token_request(
+            config, b"grant_type=client_credentials", [FORM, basic]
+        )
+        assert status == 200, data
+
+    async def test_basic_and_body_secret_together_is_invalid_request(self):
+        import base64
+
+        config = self._config()
+        basic = (b"authorization", b"Basic " + base64.b64encode(b"agent-1:p%40ss+word%26%3D"))
+        body = b"grant_type=client_credentials&client_secret=x"
+        status, data, _ = await _token_request(config, body, [FORM, basic])
+        assert status == 400 and data["error"] == "invalid_request"
+
+    async def test_form_requires_grant_type(self):
+        status, data, _ = await _token_request(
+            self._config(), b"client_id=agent-1&client_secret=x", [FORM]
+        )
+        assert status == 400
+        assert data["error"] == "invalid_request"
+        assert "grant_type" in data["error_description"]
+
+    async def test_repeated_parameter_is_invalid_request(self):
+        body = b"grant_type=client_credentials&client_id=agent-1&client_id=agent-2&client_secret=x"
+        status, data, _ = await _token_request(self._config(), body, [FORM])
+        assert status == 400 and "client_id" in data["error_description"]
+
+    async def test_wrong_secret_is_invalid_client_with_error_description(self):
+        body = b"grant_type=client_credentials&client_id=agent-1&client_secret=nope"
+        status, data, _ = await _token_request(self._config(), body, [FORM])
+        assert status == 401
+        assert data["error"] == "invalid_client"
+        assert data["error_description"] == data["message"]
+
+    async def test_json_body_still_accepted(self):
+        config = self._config()
+        body = json.dumps({"client_id": "agent-1", "client_secret": "p@ss word&="}).encode()
+        status, data, _ = await _token_request(
+            config, body, [(b"content-type", b"application/json")]
+        )
+        assert status == 200, data
+
+    async def test_non_object_json_is_invalid_request(self):
+        status, data, _ = await _token_request(self._config(), b"[1, 2]")
+        assert status == 400 and data["error"] == "invalid_request"
+
+
+class TestFetchToken:
+    """``MCPClient.fetch_token`` sends a standard client_credentials request."""
+
+    @staticmethod
+    def _patch_http(monkeypatch, handler):
+        import httpx
+
+        real = httpx.AsyncClient
+
+        class _Mocked(real):  # type: ignore[misc, valid-type]
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                kwargs["transport"] = httpx.MockTransport(handler)
+                super().__init__(*args, **kwargs)
+
+        monkeypatch.setattr(httpx, "AsyncClient", _Mocked)
+
+    async def test_sends_form_encoded_grant_to_an_rfc6749_endpoint(self, monkeypatch):
+        from urllib.parse import parse_qs
+
+        import httpx
+
+        seen: list[dict[str, Any]] = []
+
+        def strict_idp(request: httpx.Request) -> httpx.Response:
+            if request.headers.get("content-type") != "application/x-www-form-urlencoded":
+                return httpx.Response(400, json={"error": "invalid_request"})
+            form = {k: v[0] for k, v in parse_qs(request.content.decode()).items()}
+            seen.append(form)
+            if form.get("grant_type") != "client_credentials":
+                return httpx.Response(400, json={"error": "unsupported_grant_type"})
+            return httpx.Response(200, json={"access_token": "at-1", "token_type": "Bearer"})
+
+        self._patch_http(monkeypatch, strict_idp)
+        token = await MCPClient.fetch_token("https://idp.example/oauth/token", "agent-1", "s&cret")
+        assert token == "at-1"
+        assert seen == [
+            {"grant_type": "client_credentials", "client_id": "agent-1", "client_secret": "s&cret"}
+        ]
+
+    async def test_retries_as_json_for_a_json_only_endpoint(self, monkeypatch):
+        """A built-in endpoint from Promptise <= 1.3.2 reads JSON only."""
+        import httpx
+
+        def legacy(request: httpx.Request) -> httpx.Response:
+            try:
+                body = json.loads(request.content)
+            except ValueError:
+                return httpx.Response(
+                    400,
+                    json={
+                        "error": "invalid_request",
+                        "message": "Request body must be valid JSON.",
+                    },
+                )
+            assert body["client_id"] == "agent-1"
+            return httpx.Response(200, json={"access_token": "at-legacy"})
+
+        self._patch_http(monkeypatch, legacy)
+        assert await MCPClient.fetch_token("http://x/auth/token", "agent-1", "s") == "at-legacy"
+
+    async def test_rejection_is_an_mcp_client_error(self, monkeypatch):
+        import httpx
+
+        self._patch_http(
+            monkeypatch,
+            lambda request: httpx.Response(401, json={"error": "invalid_client"}),
+        )
+        with pytest.raises(MCPClientError, match="HTTP 401"):
+            await MCPClient.fetch_token("http://x/auth/token", "agent-1", "bad")
 
 
 class TestBearerTokenProvider:

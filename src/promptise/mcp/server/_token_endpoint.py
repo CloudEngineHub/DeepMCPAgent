@@ -33,9 +33,23 @@ Usage::
 
     server.run(transport="http")
 
-Clients obtain tokens via::
+Clients obtain tokens with a standard OAuth 2.0 (RFC 6749) form-encoded
+request::
 
     POST /auth/token
+    Content-Type: application/x-www-form-urlencoded
+
+    grant_type=client_credentials&client_id=agent-admin&client_secret=admin-pass
+
+The client may instead authenticate with HTTP Basic
+(``Authorization: Basic base64(client_id:client_secret)``, RFC 6749
+section 2.3.1).  A JSON body with the same fields is still accepted for
+backward compatibility (``grant_type`` defaults to ``client_credentials``
+there)::
+
+    POST /auth/token
+    Content-Type: application/json
+
     {"grant_type": "client_credentials", "client_id": "agent-admin", "client_secret": "admin-pass"}
 
     Response:
@@ -49,7 +63,9 @@ Clients obtain tokens via::
 Refresh tokens via::
 
     POST /auth/token
-    {"grant_type": "refresh_token", "refresh_token": "prf_..."}
+    Content-Type: application/x-www-form-urlencoded
+
+    grant_type=refresh_token&refresh_token=prf_...
 
     Response:
     {
@@ -74,6 +90,8 @@ Then connect with the token::
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 import hmac as _hmac
 import json
@@ -82,6 +100,7 @@ import secrets
 import threading
 import time
 from typing import Any
+from urllib.parse import parse_qs, unquote_plus
 
 logger = logging.getLogger("promptise.server")
 
@@ -208,6 +227,14 @@ async def handle_token_request(
     - ``refresh_token`` — exchange a valid refresh token for a new
       access token and a rotated refresh token.
 
+    The body is form-encoded (``application/x-www-form-urlencoded``, as
+    RFC 6749 specifies; ``grant_type`` is required) or, for backward
+    compatibility, a JSON object (``grant_type`` defaults to
+    ``client_credentials``).  Client credentials come from the body or from
+    an HTTP Basic ``Authorization`` header.  Errors follow RFC 6749
+    section 5.2 (``error`` + ``error_description``; ``message`` repeats the
+    description for older clients).
+
     This is a raw ASGI handler (not a Starlette endpoint) so it has
     zero additional dependencies beyond what we already use.
     """
@@ -219,13 +246,11 @@ async def handle_token_request(
 
     # Only POST allowed
     if method != "POST":
-        await _send_json(
+        await _send_error(
             send,
             405,
-            {
-                "error": "method_not_allowed",
-                "message": "Use POST to request a token.",
-            },
+            "method_not_allowed",
+            "Use POST to request a token.",
         )
         return
 
@@ -236,48 +261,85 @@ async def handle_token_request(
         message = await receive()
         body += message.get("body", b"")
         if len(body) > max_body_size:
-            await _send_json(
+            await _send_error(
                 send,
                 413,
-                {
-                    "error": "payload_too_large",
-                    "message": "Request body exceeds 64 KiB limit.",
-                },
+                "payload_too_large",
+                "Request body exceeds 64 KiB limit.",
             )
             return
         if not message.get("more_body", False):
             break
 
-    # Parse JSON body
-    try:
-        data = json.loads(body)
-    except (json.JSONDecodeError, ValueError):
-        await _send_json(
-            send,
-            400,
-            {
-                "error": "invalid_request",
-                "message": "Request body must be valid JSON.",
-            },
-        )
-        return
+    headers = _headers(scope)
+    content_type = headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    if content_type == "application/x-www-form-urlencoded":
+        # RFC 6749: form-encoded parameters, each at most once.
+        try:
+            fields = parse_qs(body.decode("utf-8"), keep_blank_values=True, strict_parsing=False)
+        except UnicodeDecodeError:
+            await _send_error(send, 400, "invalid_request", "Request body must be UTF-8.")
+            return
+        repeated = sorted(k for k, v in fields.items() if len(v) > 1)
+        if repeated:
+            await _send_error(
+                send,
+                400,
+                "invalid_request",
+                f"Parameters must not be repeated: {', '.join(repeated)}.",
+            )
+            return
+        data: dict[str, Any] = {k: v[0] for k, v in fields.items()}
+        # RFC 6749 requires grant_type; JSON requests keep their old default.
+        if "grant_type" not in data:
+            await _send_error(send, 400, "invalid_request", "'grant_type' is required.")
+            return
+    else:
+        # JSON body (the original format, kept for backward compatibility).
+        try:
+            parsed = json.loads(body)
+        except (json.JSONDecodeError, ValueError):
+            parsed = None
+        if not isinstance(parsed, dict):
+            await _send_error(
+                send,
+                400,
+                "invalid_request",
+                "Request body must be form-encoded "
+                "(Content-Type: application/x-www-form-urlencoded) or a JSON object.",
+            )
+            return
+        data = parsed
+        data.setdefault("grant_type", "client_credentials")
 
-    # Route by grant_type (default to client_credentials for backward compat)
-    grant_type = data.get("grant_type", "client_credentials")
+    # HTTP Basic client authentication (RFC 6749 section 2.3.1)
+    basic = _basic_credentials(headers.get("authorization", ""))
+    if basic is not None:
+        basic_id, basic_secret = basic
+        if ("client_id" in data and data["client_id"] != basic_id) or "client_secret" in data:
+            # RFC 6749 section 2.3: one authentication method per request.
+            await _send_error(
+                send,
+                400,
+                "invalid_request",
+                "Use either HTTP Basic or client_secret in the body, not both.",
+            )
+            return
+        data["client_id"] = basic_id
+        data["client_secret"] = basic_secret
+
+    grant_type = data.get("grant_type")
 
     if grant_type == "client_credentials":
         await _handle_client_credentials(send, data, config)
     elif grant_type == "refresh_token":
         await _handle_refresh_token(send, data, config)
     else:
-        await _send_json(
+        await _send_error(
             send,
             400,
-            {
-                "error": "unsupported_grant_type",
-                "message": f"Unsupported grant_type: {grant_type!r}. "
-                "Use 'client_credentials' or 'refresh_token'.",
-            },
+            "unsupported_grant_type",
+            f"Unsupported grant_type: {grant_type!r}. Use 'client_credentials' or 'refresh_token'.",
         )
 
 
@@ -295,14 +357,17 @@ async def _handle_client_credentials(
     client_id = data.get("client_id", "")
     client_secret = data.get("client_secret", "")
 
-    if not client_id or not client_secret:
-        await _send_json(
+    if (
+        not client_id
+        or not client_secret
+        or not isinstance(client_id, str)
+        or not isinstance(client_secret, str)
+    ):
+        await _send_error(
             send,
             400,
-            {
-                "error": "invalid_request",
-                "message": "Both 'client_id' and 'client_secret' are required.",
-            },
+            "invalid_request",
+            "Both 'client_id' and 'client_secret' are required.",
         )
         return
 
@@ -313,13 +378,11 @@ async def _handle_client_credentials(
         stored_secret.encode(), client_secret.encode()
     ):
         logger.warning("Token request rejected: invalid credentials for '%s'", client_id)
-        await _send_json(
+        await _send_error(
             send,
             401,
-            {
-                "error": "invalid_client",
-                "message": "Invalid client_id or client_secret.",
-            },
+            "invalid_client",
+            "Invalid client_id or client_secret.",
         )
         return
 
@@ -333,25 +396,21 @@ async def _handle_refresh_token(
 ) -> None:
     """Handle ``grant_type=refresh_token``."""
     if config.refresh_token_ttl <= 0:
-        await _send_json(
+        await _send_error(
             send,
             400,
-            {
-                "error": "invalid_request",
-                "message": "Refresh tokens are disabled on this server.",
-            },
+            "invalid_request",
+            "Refresh tokens are disabled on this server.",
         )
         return
 
     raw_refresh = data.get("refresh_token", "")
-    if not raw_refresh:
-        await _send_json(
+    if not raw_refresh or not isinstance(raw_refresh, str):
+        await _send_error(
             send,
             400,
-            {
-                "error": "invalid_request",
-                "message": "'refresh_token' is required.",
-            },
+            "invalid_request",
+            "'refresh_token' is required.",
         )
         return
 
@@ -359,13 +418,11 @@ async def _handle_refresh_token(
     client_id = config.refresh_store.consume(raw_refresh)
     if client_id is None:
         logger.warning("Refresh token rejected: invalid or expired")
-        await _send_json(
+        await _send_error(
             send,
             401,
-            {
-                "error": "invalid_grant",
-                "message": "Invalid or expired refresh token.",
-            },
+            "invalid_grant",
+            "Invalid or expired refresh token.",
         )
         return
 
@@ -377,13 +434,11 @@ async def _handle_refresh_token(
             "Refresh token rejected: client '%s' no longer registered",
             client_id,
         )
-        await _send_json(
+        await _send_error(
             send,
             401,
-            {
-                "error": "invalid_client",
-                "message": "Client is no longer registered.",
-            },
+            "invalid_client",
+            "Client is no longer registered.",
         )
         return
 
@@ -440,8 +495,52 @@ async def _issue_tokens(
 # ---------------------------------------------------------------------------
 
 
+def _headers(scope: Any) -> dict[str, str]:
+    """Request headers as a lower-cased ``{name: value}`` dict."""
+    out: dict[str, str] = {}
+    for name, value in scope.get("headers") or []:
+        key = name.decode("latin-1") if isinstance(name, bytes) else str(name)
+        val = value.decode("latin-1") if isinstance(value, bytes) else str(value)
+        out[key.lower()] = val
+    return out
+
+
+def _basic_credentials(authorization: str) -> tuple[str, str] | None:
+    """``(client_id, client_secret)`` from an HTTP Basic header, else ``None``.
+
+    RFC 6749 section 2.3.1: both parts are form-urlencoded before being
+    joined with ``:`` and base64-encoded.
+    """
+    scheme, _, encoded = authorization.partition(" ")
+    if scheme.lower() != "basic" or not encoded.strip():
+        return None
+    try:
+        decoded = base64.b64decode(encoded.strip(), validate=True).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError):
+        return None
+    client_id, sep, client_secret = decoded.partition(":")
+    if not sep:
+        return None
+    return unquote_plus(client_id), unquote_plus(client_secret)
+
+
+async def _send_error(send: Any, status: int, error: str, description: str) -> None:
+    """Send an OAuth 2.0 error response (RFC 6749 section 5.2).
+
+    ``error_description`` is the standard field; ``message`` carries the
+    same text for clients written against earlier versions.
+    """
+    await _send_json(
+        send, status, {"error": error, "error_description": description, "message": description}
+    )
+
+
 async def _send_json(send: Any, status: int, body: dict[str, Any]) -> None:
-    """Send a JSON HTTP response via raw ASGI."""
+    """Send a JSON HTTP response via raw ASGI.
+
+    Token responses carry credentials, so they are never cached
+    (RFC 6749 section 5.1).
+    """
     payload = json.dumps(body).encode()
     await send(
         {
@@ -450,6 +549,8 @@ async def _send_json(send: Any, status: int, body: dict[str, Any]) -> None:
             "headers": [
                 [b"content-type", b"application/json"],
                 [b"content-length", str(len(payload)).encode()],
+                [b"cache-control", b"no-store"],
+                [b"pragma", b"no-cache"],
             ],
         }
     )

@@ -11,6 +11,7 @@ Example::
 
 from __future__ import annotations
 
+import inspect
 import threading
 import time
 from collections.abc import Callable
@@ -149,6 +150,14 @@ class TokenBucketLimiter:
 class RateLimitMiddleware:
     """Middleware that enforces rate limits.
 
+    Buckets are per client (and per tenant) only when ``ctx.client_id`` is
+    set by the time this middleware runs, which takes an ``AuthMiddleware``
+    added **before** it and an authenticated tool (``auth=True``, or
+    ``MCPServer(require_auth=True)``).  Otherwise every caller shares one
+    ``"global"`` bucket; the server logs a warning at build time when an
+    ``AuthMiddleware`` is installed but cannot identify the caller for this
+    middleware.  Pass ``key_func`` to choose the key yourself.
+
     Args:
         limiter: A ``RateLimitStrategy`` implementation. If ``None``,
             a ``TokenBucketLimiter`` is created with the given params.
@@ -169,6 +178,16 @@ class RateLimitMiddleware:
         rate_per_minute: int = 60,
         burst: int | None = None,
     ) -> None:
+        consume = getattr(limiter, "consume", None)
+        if limiter is not None and (not callable(consume) or inspect.iscoroutinefunction(consume)):
+            # Fail here, not as an INTERNAL_ERROR on every call.
+            raise TypeError(
+                f"RateLimitMiddleware limiter {type(limiter).__name__} has no "
+                "synchronous consume(key) method. A limiter implements "
+                "consume(key: str) -> tuple[bool, float] (allowed, retry_after_seconds); "
+                "it receives only the key, so use key_func= to put what the "
+                "limiter needs (a plan, a tier) into the key."
+            )
         self._limiter = limiter or TokenBucketLimiter(rate_per_minute, burst)
         self._per_tool = per_tool
         self._key_func = key_func
@@ -193,6 +212,64 @@ class RateLimitMiddleware:
         if not allowed:
             raise RateLimitError(retry_after=retry_after)
         return await call_next(ctx)
+
+
+def shared_bucket_warnings(tool_defs: list[Any], middlewares: list[Any]) -> list[str]:
+    """Warnings for ``RateLimitMiddleware`` wirings that key every caller as ``"global"``.
+
+    With an ``AuthMiddleware`` installed, a server owner expects per-client
+    buckets.  They silently collapse into one shared bucket when the limiter
+    runs before ``AuthMiddleware`` (``ctx.client_id`` is not set yet), or
+    when the tool is not authenticated (``AuthMiddleware`` skips it).  A
+    limiter with a ``key_func`` (or a subclass with its own key) chose its
+    key on purpose and is not reported.
+    """
+    from ._auth import AuthMiddleware
+
+    before_auth: list[str] = []
+    unauthenticated: list[str] = []
+    for tdef in tool_defs:
+        chain = [*middlewares, *(getattr(tdef, "router_middleware", None) or [])]
+        auth_at = next((i for i, m in enumerate(chain) if isinstance(m, AuthMiddleware)), None)
+        if auth_at is None:
+            continue
+        for i, m in enumerate(chain):
+            if (
+                not isinstance(m, RateLimitMiddleware)
+                or m._key_func is not None
+                or type(m)._get_key is not RateLimitMiddleware._get_key
+            ):
+                continue
+            if i < auth_at:
+                before_auth.append(tdef.name)
+            elif not getattr(tdef, "auth", False):
+                unauthenticated.append(tdef.name)
+            break
+
+    def _names(names: list[str]) -> str:
+        shown = ", ".join(repr(n) for n in sorted(set(names))[:10])
+        extra = len(set(names)) - 10
+        return f"[{shown}{f', and {extra} more' if extra > 0 else ''}]"
+
+    warnings: list[str] = []
+    if before_auth:
+        warnings.append(
+            f"RateLimitMiddleware runs before AuthMiddleware for tools {_names(before_auth)}: "
+            "no caller is identified yet when it picks a bucket, so every caller "
+            "shares one 'global' bucket. Add AuthMiddleware first (middleware runs "
+            "in the order it was added), or pass key_func= to RateLimitMiddleware "
+            "if one shared bucket is intended."
+        )
+    if unauthenticated:
+        warnings.append(
+            f"RateLimitMiddleware cannot tell callers of tools {_names(unauthenticated)} "
+            "apart: they are not auth=True (and the server is not "
+            "require_auth=True), so AuthMiddleware does not identify the caller and "
+            "every caller shares one 'global' bucket. Mark them auth=True (or use "
+            "MCPServer(require_auth=True)) to rate-limit each client separately, or "
+            "pass key_func= to RateLimitMiddleware to choose the key yourself."
+        )
+    return warnings
 
 
 class DeclaredRateLimitMiddleware:

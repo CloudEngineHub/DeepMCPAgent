@@ -204,19 +204,21 @@ MCP is how AI agents discover and call tools. Without a production server SDK, e
 Your data team wants agents to query the analytics database directly. But not all agents should have the same access — the reporting agent can read, the admin agent can write, and no agent should run `DROP TABLE`.
 
 ```python
+import os
+
 from promptise.mcp.server import MCPServer, JWTAuth, HasRole, AuthMiddleware
 
-server = MCPServer(name="analytics-db", auth=JWTAuth(secret="${JWT_SECRET}"))
-server.add_middleware(AuthMiddleware())
+server = MCPServer(name="analytics-db")
+server.add_middleware(AuthMiddleware(JWTAuth(secret=os.environ["JWT_SECRET"])))
 
-@server.tool(guards=[HasRole("analyst")])
+@server.tool(auth=True, guards=[HasRole("analyst")])
 async def query_analytics(sql: str, limit: int = 100) -> list[dict]:
     """Run a read-only SQL query against the analytics database."""
     if any(kw in sql.upper() for kw in ["DROP", "DELETE", "UPDATE", "INSERT"]):
         raise ValueError("Only SELECT queries are allowed")
     return await db.fetch(f"{sql} LIMIT {limit}")
 
-@server.tool(guards=[HasRole("admin")])
+@server.tool(auth=True, guards=[HasRole("admin")])
 async def run_migration(migration_name: str) -> str:
     """Apply a named database migration."""
     return await migrations.apply(migration_name)
@@ -230,24 +232,30 @@ async def run_migration(migration_name: str) -> str:
 Your agent needs to process Stripe payments. Every charge must be logged with tamper-evident audit records for compliance. Rate limiting prevents runaway agents from charging thousands of times.
 
 ```python
+import os
+
+import stripe
 from promptise.mcp.server import (
     MCPServer, JWTAuth, AuthMiddleware, AuditMiddleware,
     RateLimitMiddleware, TimeoutMiddleware,
 )
 
-server = MCPServer(name="payments", auth=JWTAuth(secret="${JWT_SECRET}"))
-server.add_middleware(AuthMiddleware())
-server.add_middleware(AuditMiddleware(log_path="audit.jsonl", hmac_secret="${AUDIT_SECRET}"))  # HMAC-chained entries
-server.add_middleware(RateLimitMiddleware(requests_per_minute=10))
+# Keys come from the environment (or your secrets manager), never from the source
+server = MCPServer(name="payments", require_auth=True)  # every tool needs a verified caller
+# Middleware runs in the order added: audit first, so refused calls are recorded too
+server.add_middleware(AuditMiddleware(log_path="audit.jsonl", hmac_secret=os.environ["AUDIT_SECRET"]))  # HMAC-chained entries
+server.add_middleware(AuthMiddleware(JWTAuth(secret=os.environ["JWT_SECRET"])))
+server.add_middleware(RateLimitMiddleware(rate_per_minute=10))  # per client: auth runs first
 server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
 
-@server.tool()
+@server.tool(destructive_hint=True)
 async def charge_customer(customer_id: str, amount_cents: int, description: str) -> dict:
     """Charge a customer's default payment method via Stripe."""
-    return await stripe.charges.create(
+    charge = await stripe.Charge.create_async(
         customer=customer_id, amount=amount_cents,
         currency="usd", description=description,
     )
+    return {"id": charge.id, "status": charge.status}
 ```
 
 ---
@@ -309,11 +317,11 @@ provider.register(server)
 | What you want to do | How to do it |
 |---------------------|--------------|
 | Define a tool | `@server.tool()` |
-| Add JWT auth | `MCPServer(auth=JWTAuth(secret="..."))` |
-| Role-based access per tool | `@server.tool(guards=[HasRole("admin")])` |
-| Rate limit | `server.add_middleware(RateLimitMiddleware(...))` |
+| Add JWT auth | `server.add_middleware(AuthMiddleware(JWTAuth(secret=os.environ["JWT_SECRET"])))`, then `@server.tool(auth=True)` (or `MCPServer(require_auth=True)`) |
+| Role-based access per tool | `@server.tool(roles=["admin"])` |
+| Rate limit | `server.add_middleware(RateLimitMiddleware(rate_per_minute=60))`, after `AuthMiddleware` for per-client buckets |
 | Circuit breaker | `server.add_middleware(CircuitBreakerMiddleware(...))` |
-| Audit logging | `server.add_middleware(AuditMiddleware(log_path="audit.jsonl", hmac_secret="..."))`; check the file with `promptise audit verify audit.jsonl` |
+| Audit logging | `server.add_middleware(AuditMiddleware(log_path="audit.jsonl", hmac_secret=os.environ["AUDIT_SECRET"]))`; check the file with `promptise audit verify audit.jsonl` |
 | Group tools by namespace | `MCPRouter(prefix="billing")` |
 | Test without network | `TestClient(server)` |
 | Import from OpenAPI spec | `OpenAPIProvider("https://...").register(server)` |

@@ -214,19 +214,32 @@ The discovery document is fetched once (lazily, on the first verified call) and 
 
 ### Custom auth provider
 
-Implement the `AuthProvider` protocol for custom authentication (OAuth2 introspection, mTLS, etc.):
+Implement the `AuthProvider` protocol for custom authentication (OAuth2 introspection, mTLS, etc.): verify the credential, return the client id, and store the verified claims in `ctx.state["jwt_payload"]`. `AuthMiddleware` builds `ctx.client` from those claims exactly as it does for a JWT: `roles`, `scope`, the tenant claim, and `iss` / `aud` / `sub` / `iat` / `exp`.
 
 ```python
-from promptise.mcp.server import AuthProvider, RequestContext
+from collections.abc import Awaitable, Callable
+
+from promptise.mcp.server import AuthenticationError, RequestContext
+
 
 class OAuth2Introspection:
+    """Verify opaque tokens with your IdP's introspection endpoint (RFC 7662)."""
+
+    def __init__(self, introspect: Callable[[str], Awaitable[dict]]):
+        self._introspect = introspect  # e.g. a call to your IdP's /introspect
+
     async def authenticate(self, ctx: RequestContext) -> str:
         token = ctx.meta.get("authorization", "").removeprefix("Bearer ")
-        # Call your IdP's introspection endpoint
-        claims = await introspect_token(token)
-        ctx.state["jwt_payload"] = claims  # For role extraction
+        if not token:
+            raise AuthenticationError("Missing authentication token")
+        claims = await self._introspect(token)
+        if not claims.get("active"):
+            raise AuthenticationError("Token is not active")
+        ctx.state["jwt_payload"] = claims  # roles, scopes and tenant for ctx.client
         return claims["sub"]
 ```
+
+Install it like any provider: `server.add_middleware(AuthMiddleware(OAuth2Introspection(introspect)))`. A tool declared with `roles=["admin"]` then passes for a token whose claims include `"roles": ["admin"]`. Without the `jwt_payload` claims the caller is authenticated but has no roles or scopes.
 
 ## AuthMiddleware
 
@@ -244,7 +257,7 @@ When a tool has `auth=True`:
 2. On success, `ctx.client_id` is set and `ctx.client` is populated with a full `ClientContext` — identity, roles, scopes, JWT claims (`iss`, `aud`, `sub`, `iat`, `exp`), client IP address, and user-agent.
 3. On failure, an `AuthenticationError` is returned to the client.
 
-Tools without `auth=True` pass through the middleware without authentication checks.
+Tools without `auth=True` pass through the middleware without authentication checks. `roles=[...]` and the built-in identity guards (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`, `RequireClientId`, `RequireTenant`, `HasTenant`) imply `auth=True`, since they can only pass once the caller is identified. A custom guard does not: give its tool `auth=True` if the guard reads `ctx.client`.
 
 ### Identity is resolved per request
 
@@ -552,19 +565,24 @@ server.enable_token_endpoint(
 )
 ```
 
-Clients request tokens via HTTP POST:
+Clients request tokens with a standard OAuth 2.0 `client_credentials` request (RFC 6749, form-encoded):
 
 ```bash
 curl -X POST http://localhost:8080/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"client_id": "agent-admin", "client_secret": "admin-secret"}'
+  -d grant_type=client_credentials \
+  -d client_id=agent-admin \
+  -d client_secret=admin-secret
 ```
+
+The client can authenticate with HTTP Basic instead (`curl -u agent-admin:admin-secret -d grant_type=client_credentials ...`). Any OAuth 2.0 client library works, and so does `MCPClient.fetch_token()`. A JSON body (`{"client_id": ..., "client_secret": ...}`, where `grant_type` defaults to `client_credentials`) is still accepted for older clients.
 
 Response:
 
 ```json
-{"access_token": "eyJhbGciOiJIUzI1NiIs...", "token_type": "bearer", "expires_in": 86400}
+{"access_token": "eyJhbGciOiJIUzI1NiIs...", "refresh_token": "prf_...", "token_type": "bearer", "expires_in": 86400}
 ```
+
+Exchange the refresh token for a new pair with `grant_type=refresh_token&refresh_token=prf_...`; each refresh token works once. Errors use the OAuth 2.0 shape: `{"error": "invalid_client", "error_description": "..."}`.
 
 !!! warning "Not for production"
     The built-in token endpoint is a convenience for development. In production, use a proper Identity Provider (Auth0, Keycloak, Okta) and pass tokens to clients via `bearer_token`.

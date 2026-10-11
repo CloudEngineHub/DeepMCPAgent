@@ -103,8 +103,9 @@ class HTTPServerSpec(_BaseServer):
     auth: str | None = None
 
     # Resource audience this server expects. When an agent identity is
-    # attached and no explicit bearer_token is set, build_agent presents a
-    # credential minted for this audience (per-resource identity).
+    # attached and the server has no credential of its own (bearer_token,
+    # api_key, or an Authorization / x-api-key header), build_agent presents
+    # a credential minted for this audience (per-resource identity).
     audience: str | None = Field(
         default=None,
         description="Resource audience this server expects. When an agent "

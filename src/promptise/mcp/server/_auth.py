@@ -48,7 +48,15 @@ OnAuthenticateHook = Callable[[ClientContext, RequestContext], Awaitable[None] |
 
 @runtime_checkable
 class AuthProvider(Protocol):
-    """Protocol for authentication providers."""
+    """Protocol for authentication providers.
+
+    A custom provider verifies the request's credential (``ctx.meta`` holds
+    the request headers) and returns the client id.  To give the caller
+    roles, scopes and a tenant, store the verified claims as a dict in
+    ``ctx.state["jwt_payload"]``: ``AuthMiddleware`` builds ``ctx.client``
+    from them as it does for a JWT (``roles``, ``scope``, the tenant claim,
+    ``iss`` / ``aud`` / ``sub`` / ``iat`` / ``exp``).
+    """
 
     async def authenticate(self, ctx: RequestContext) -> str:
         """Authenticate the request.
@@ -1054,8 +1062,10 @@ class AuthMiddleware:
         client_id = await self._provider.authenticate(ctx)
         ctx.client_id = client_id
 
-        # Build structured ClientContext
-        jwt_payload = ctx.state.get("_jwt_payload", {})
+        # Build structured ClientContext.  Built-in providers store the
+        # verified claims under "_jwt_payload"; a custom provider stores
+        # them under the public key "jwt_payload" (see AuthProvider).
+        jwt_payload = ctx.state.get("_jwt_payload") or ctx.state.get("jwt_payload") or {}
         existing_roles = ctx.state.get("roles", set())
 
         if jwt_payload:

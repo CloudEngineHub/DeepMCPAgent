@@ -355,3 +355,118 @@ class TestDeclaredRateLimitEnforcement:
         assert await mw2(_ctx(None), _next) == "ok"
         with pytest.raises(RateLimitError):
             await mw2(_ctx(None), _next)
+
+
+# =====================================================================
+# Per-client limits that silently share one "global" bucket
+# =====================================================================
+
+_KEYS = {"k-a": "client-a", "k-b": "client-b"}
+_WARN_LOGGER = "promptise.server"
+
+
+def _catalog(*, auth_first: bool = True, tool_auth: bool = True, **limiter_kwargs):
+    from promptise.mcp.server import APIKeyAuth, AuthMiddleware, MCPServer
+
+    server = MCPServer("catalog")
+    auth = AuthMiddleware(APIKeyAuth(keys=_KEYS))
+    limiter = RateLimitMiddleware(TokenBucketLimiter(rate_per_minute=60, burst=3), **limiter_kwargs)
+    for mw in (auth, limiter) if auth_first else (limiter, auth):
+        server.add_middleware(mw)
+
+    @server.tool(auth=tool_auth)
+    async def get_stock(sku: str) -> dict:
+        """Units on hand."""
+        return {"sku": sku}
+
+    return server
+
+
+async def _codes(server, *keys: str) -> list[str]:
+    import json
+
+    from promptise.mcp.server import TestClient
+
+    client = TestClient(server)
+    out = []
+    for key in keys:
+        text = (await client.call_tool("get_stock", {"sku": "S"}, headers={"x-api-key": key}))[
+            0
+        ].text
+        out.append(json.loads(text).get("error", {}).get("code", "ok"))
+    return out
+
+
+def _shared_bucket_warnings(caplog) -> list[str]:
+    return [r.getMessage() for r in caplog.records if "'global' bucket" in r.getMessage()]
+
+
+class TestSharedGlobalBucketWarning:
+    async def test_correct_wiring_keeps_clients_apart_and_does_not_warn(self, caplog):
+        with caplog.at_level("WARNING", logger=_WARN_LOGGER):
+            codes = await _codes(_catalog(), "k-a", "k-a", "k-a", "k-b")
+        assert codes == ["ok", "ok", "ok", "ok"]
+        assert _shared_bucket_warnings(caplog) == []
+
+    async def test_limiter_before_auth_warns(self, caplog):
+        with caplog.at_level("WARNING", logger=_WARN_LOGGER):
+            codes = await _codes(_catalog(auth_first=False), "k-a", "k-a", "k-a", "k-b")
+        assert codes[-1] == "RATE_LIMIT_EXCEEDED"  # the documented consequence
+        (message,) = _shared_bucket_warnings(caplog)  # once, not per call
+        assert "runs before AuthMiddleware" in message and "'get_stock'" in message
+
+    async def test_unauthenticated_tool_warns(self, caplog):
+        with caplog.at_level("WARNING", logger=_WARN_LOGGER):
+            codes = await _codes(_catalog(tool_auth=False), "k-a", "k-a", "k-a", "k-b")
+        assert codes[-1] == "RATE_LIMIT_EXCEEDED"
+        (message,) = _shared_bucket_warnings(caplog)
+        assert "not auth=True" in message and "'get_stock'" in message
+
+    def test_live_build_warns_too(self, caplog):
+        with caplog.at_level("WARNING", logger=_WARN_LOGGER):
+            _catalog(auth_first=False).asgi_app()
+        assert len(_shared_bucket_warnings(caplog)) == 1
+
+    async def test_key_func_is_a_deliberate_choice(self, caplog):
+        with caplog.at_level("WARNING", logger=_WARN_LOGGER):
+            await _codes(_catalog(auth_first=False, key_func=lambda ctx: "all"), "k-a")
+        assert _shared_bucket_warnings(caplog) == []
+
+    async def test_no_auth_middleware_no_warning(self, caplog):
+        from promptise.mcp.server import MCPServer, TestClient
+
+        server = MCPServer("open")
+        server.add_middleware(RateLimitMiddleware(TokenBucketLimiter(rate_per_minute=60)))
+
+        @server.tool()
+        async def ping() -> str:
+            return "pong"
+
+        with caplog.at_level("WARNING", logger=_WARN_LOGGER):
+            await TestClient(server).call_tool("ping", {})
+        assert _shared_bucket_warnings(caplog) == []
+
+
+class TestLimiterContract:
+    def test_limiter_without_consume_fails_at_construction(self):
+        class Tiered:
+            async def check(self, key, ctx):  # the shape the docs used to show
+                return True, 0.0
+
+        with pytest.raises(TypeError, match=r"consume\(key"):
+            RateLimitMiddleware(Tiered())
+
+    def test_async_consume_fails_at_construction(self):
+        class AsyncLimiter:
+            async def consume(self, key):
+                return True, 0.0
+
+        with pytest.raises(TypeError, match="synchronous consume"):
+            RateLimitMiddleware(AsyncLimiter())
+
+    def test_custom_sync_limiter_is_accepted(self):
+        class Always:
+            def consume(self, key):
+                return True, 0.0
+
+        RateLimitMiddleware(Always())

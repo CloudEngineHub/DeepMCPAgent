@@ -18,6 +18,7 @@ from collections.abc import Callable
 from typing import Any, get_origin, get_type_hints
 
 from ._context import _wants_request_context
+from ._guards import needs_identity
 from ._types import PromptDef, ResourceDef, ToolDef
 from ._validation import build_input_model
 
@@ -257,7 +258,9 @@ def build_tool_def(
         handler=func,
         input_schema=schema,
         tags=tags or [],
-        auth=auth,
+        # An identity guard (RequireAuth, HasRole, HasScope, ...) can only
+        # pass after authentication, so it implies auth=True like roles= does.
+        auth=auth or bool(roles) or needs_identity(guards),
         rate_limit=rate_limit,
         timeout=timeout,
         guards=guards or [],
@@ -329,7 +332,8 @@ def build_resource_def(
     """Build a ``ResourceDef`` from a decorated function.
 
     ``roles=`` adds a ``HasRole`` guard and forces ``auth=True`` (roles are
-    only known after authentication).  ``mime_type=None`` infers the type
+    only known after authentication); so does a built-in identity guard in
+    ``guards=`` (``RequireAuth``, ``HasScope``, ...).  ``mime_type=None`` infers the type
     from the return annotation (see :func:`_infer_mime_type`).
 
     For a template, every ``{placeholder}`` must name a handler parameter,
@@ -364,7 +368,7 @@ def build_resource_def(
         mime_type=mime_type or _infer_mime_type(func),
         is_template=is_template,
         tags=list(tags or []),
-        auth=auth or bool(roles),
+        auth=auth or bool(roles) or needs_identity(guards),
         rate_limit=rate_limit,
         timeout=timeout,
         guards=_guards_for(guards, roles),
@@ -427,7 +431,7 @@ def build_prompt_def(
         handler=func,
         arguments=arguments,
         tags=list(tags or []),
-        auth=auth or bool(roles),
+        auth=auth or bool(roles) or needs_identity(guards),
         rate_limit=rate_limit,
         timeout=timeout,
         guards=_guards_for(guards, roles),

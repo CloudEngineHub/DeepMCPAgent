@@ -320,7 +320,7 @@ The key must be one you keep: `hmac_secret=` or `PROMPTISE_AUDIT_SECRET`. A sign
 
 **Crashes.** Each entry is written with a single append, in chain order. If the process dies during a write, the last line is left incomplete. On the next start, the server closes that line and continues the chain from the entry before it, and the verifier reports the fragment as a warning, not as tampering. If the chain advanced but the write failed (a full disk, for example), the entry is not recorded: the error is logged and the chain stays where it was, so the file never shows a gap.
 
-**Key rotation.** Start a new log file with the new key. If you keep the same file, the server warns at startup and continues the chain, and you verify the file with both keys (`verify_audit_log(path, [new_key, old_key])`, or `--key-env` twice).
+**Key rotation.** Start a new log file with the new key. If you keep the same file, the chain continues, and you verify the file with both keys (`verify_audit_log(path, [new_key, old_key])`, or `--key-env` twice). The server warns that the last entry was not signed with the current key ("key rotated?") when it first reads the file's tail, which is on the first audited call after startup, not at startup itself.
 
 **Rotating the file.** If a log rotator moves the file while the server runs, the next file continues the chain. Verify the files together, oldest first: `verify_audit_log([rotated, current], key)`.
 

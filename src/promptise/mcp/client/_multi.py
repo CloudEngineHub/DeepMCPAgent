@@ -47,7 +47,9 @@ class MCPMultiClient:
     Tools are tracked per-server so ``call_tool`` routes to the correct one.
 
     **Tool name collisions**: If two servers expose a tool with the same
-    name, the last-discovered server wins and a warning is logged.
+    name, the server that comes last in ``clients`` wins: ``list_tools``
+    returns only its copy, ``call_tool`` routes to it, and a warning names
+    both servers.  The other copies are not reachable through this client.
     Consider using server-specific prefixes on your MCP servers to avoid
     collisions.
 
@@ -183,14 +185,17 @@ class MCPMultiClient:
         """Discover tools from all connected servers.
 
         Returns:
-            Combined list of tools from all servers.  The
-            ``_tool_to_server`` mapping is updated so ``call_tool``
+            Combined list of tools from all servers, one per name.  When
+            two servers expose a tool with the same name, only the copy
+            from the server that comes last in ``clients`` is returned,
+            and ``call_tool`` routes that name to it (a warning is logged).
+            The ``_tool_to_server`` mapping is updated so ``call_tool``
             routes correctly.
         """
         if not self._connected:
             raise MCPClientError("Not connected. Use 'async with multi:'")
 
-        all_tools: list[Tool] = []
+        by_name: dict[str, Tool] = {}
         self._tool_to_server.clear()
 
         for server_name, client in self._clients.items():
@@ -200,16 +205,20 @@ class MCPMultiClient:
                     prev = self._tool_to_server[tool.name]
                     logger.warning(
                         "Tool name collision: '%s' exists on servers '%s' "
-                        "and '%s'. The version from '%s' will be used.",
+                        "and '%s'. The version from '%s' will be used; the one "
+                        "from '%s' is not listed.",
                         tool.name,
                         prev,
                         server_name,
                         server_name,
+                        prev,
                     )
+                    # Drop the earlier copy so the list matches the routing.
+                    del by_name[tool.name]
                 self._tool_to_server[tool.name] = server_name
-                all_tools.append(tool)
+                by_name[tool.name] = tool
 
-        return all_tools
+        return list(by_name.values())
 
     async def call_tool(
         self,
@@ -279,7 +288,14 @@ class MCPMultiClient:
         for tool_name, owner in list(self._tool_to_server.items()):
             if owner == server_name:
                 del self._tool_to_server[tool_name]
+        # Collisions resolve as in list_tools: a server later in ``clients``
+        # keeps a name it owns.
+        order = list(self._clients)
+        rank = order.index(server_name)
         for tool in tools:
+            current = self._tool_to_server.get(tool.name)
+            if current is not None and order.index(current) > rank:
+                continue
             self._tool_to_server[tool.name] = server_name
         logger.info(
             "Server '%s' opened a new session; %d tool(s) re-discovered", server_name, len(tools)
@@ -481,11 +497,12 @@ class MCPMultiClient:
         """Discover prompts from every connected server.
 
         A server that does not serve prompts is skipped.  If two servers
-        serve a prompt with the same name, the last one wins (a warning is
-        logged) — pass ``server=`` to :meth:`get_prompt` to pick one.
+        serve a prompt with the same name, the last one wins: only its copy
+        is listed (a warning is logged) — pass ``server=`` to
+        :meth:`get_prompt` to pick another.
         """
         self._require_connected()
-        found: list[Prompt] = []
+        found: dict[str, Prompt] = {}
         self._prompt_to_server.clear()
         for server_name, client in self._clients.items():
             try:
@@ -503,10 +520,11 @@ class MCPMultiClient:
                         server_name,
                         server_name,
                     )
+                    del found[prompt.name]  # list only the copy get_prompt uses
                 self._prompt_to_server[prompt.name] = server_name
-                found.append(prompt)
+                found[prompt.name] = prompt
         self._prompts_discovered = True
-        return found
+        return list(found.values())
 
     @property
     def prompt_to_server(self) -> dict[str, str]:

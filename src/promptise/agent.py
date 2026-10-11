@@ -2868,9 +2868,11 @@ def identity_token_provider(
     """The ``bearer_token_provider`` presenting *identity* to an MCP server.
 
     Returns ``None`` when there is nothing to present: no identity, a local
-    (non-verifiable) one, or a server with a bearer of its own
-    (``spec.bearer_token`` or an ``Authorization`` header in
-    ``spec.headers``), which always wins.
+    (non-verifiable) one, or a server with a credential of its own, which
+    always wins: ``spec.bearer_token``, ``spec.api_key``, or an
+    ``Authorization`` / ``x-api-key`` header in ``spec.headers``.  (Sending
+    the identity's bearer next to an API key would make the server check
+    the bearer first and answer ``401``.)
 
     The provider asks the identity for a credential scoped to the server's
     ``audience`` on every request, so a renewed credential replaces an
@@ -2888,7 +2890,11 @@ def identity_token_provider(
     """
     if identity is None or not identity.is_verifiable:
         return None
-    if spec.bearer_token or any(k.lower() == "authorization" for k in (spec.headers or {})):
+    if (
+        spec.bearer_token
+        or spec.api_key
+        or any(k.lower() in ("authorization", "x-api-key") for k in (spec.headers or {}))
+    ):
         return None
     audience = spec.audience
     failing = False
