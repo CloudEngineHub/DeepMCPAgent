@@ -122,8 +122,9 @@ The first match wins; if none match, `auto()` raises
 
 A verifiable identity is presented to MCP servers as a bearer credential
 **automatically**: when you pass `identity=` to `build_agent`, every MCP
-server that has no bearer of its own receives the agent's credential as
-its `bearer_token` (an explicit per-server bearer always wins). The
+server that has no credential of its own receives the agent's credential as
+its `bearer_token` (an explicit per-server `bearer_token`, `api_key`, or
+`Authorization` / `x-api-key` header always wins). The
 credential is requested per request, not once at build time: it is renewed
 before it expires (the session is reopened with it), refreshed once when a
 server answers `401`, and a request for which no credential can be acquired

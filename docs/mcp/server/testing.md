@@ -122,37 +122,56 @@ flag.
 
 ### Testing with authentication
 
-Pass a `meta` dict to simulate authenticated requests:
+Pass a `meta` dict (the request headers) to simulate authenticated requests:
 
 ```python
-from promptise.mcp.server import MCPServer, AuthMiddleware, JWTAuth, RequireAuth
+import pytest
+from promptise.mcp.server import AuthMiddleware, JWTAuth, MCPServer
 from promptise.mcp.server.testing import TestClient
 
 server = MCPServer(name="secure")
 
-jwt_auth = JWTAuth(secret="test-secret", algorithm="HS256")
+jwt_auth = JWTAuth(secret="test-secret-at-least-32-bytes-long")  # HS256
 server.add_middleware(AuthMiddleware(jwt_auth))
 
-@server.tool(guards=[RequireAuth()])
+@server.tool(auth=True)
 async def secret_data() -> str:
     """Return sensitive data."""
     return "top-secret-info"
 
+@server.tool(roles=["admin"])  # roles= implies auth=True
+async def admin_report() -> str:
+    """Admins only."""
+    return "admin-report"
+
+@pytest.mark.asyncio
 async def test_unauthenticated():
     client = TestClient(server)
     result = await client.call_tool("secret_data", {})
-    error_text = result[0].text
-    assert "ACCESS_DENIED" in error_text
+    assert "AUTHENTICATION_ERROR" in result[0].text
 
+@pytest.mark.asyncio
 async def test_authenticated():
-    # Generate a test token
-    import jwt as pyjwt
-    token = pyjwt.encode({"sub": "test-user"}, "test-secret", algorithm="HS256")
-
+    # create_token signs with the server's secret and sets "exp",
+    # which JWTAuth requires on every token.
+    token = jwt_auth.create_token({"sub": "test-user"}, expires_in=300)
     client = TestClient(server, meta={"authorization": f"Bearer {token}"})
     result = await client.call_tool("secret_data", {})
     assert result[0].text == "top-secret-info"
+
+@pytest.mark.asyncio
+async def test_wrong_role():
+    token = jwt_auth.create_token({"sub": "viewer", "roles": ["viewer"]}, expires_in=300)
+    client = TestClient(server, meta={"authorization": f"Bearer {token}"})
+    result = await client.call_tool("admin_report", {})
+    assert "ACCESS_DENIED" in result[0].text
 ```
+
+`AuthMiddleware` authenticates only tools that need it: `auth=True`,
+`roles=[...]`, a built-in identity guard such as `guards=[RequireAuth()]` or
+`guards=[HasScope("write")]`, or every tool on `MCPServer(require_auth=True)`.
+A token made by hand (for example with PyJWT) must carry an `exp` claim, or
+`JWTAuth` rejects it.
 
 ### Testing with middleware
 

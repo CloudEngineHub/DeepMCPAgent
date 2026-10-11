@@ -75,7 +75,7 @@ async with MCPClient(
 - When it returns a token other than the one the session was opened with, the client opens a new session for the next call; calls still running on the old session finish there and are never re-sent.
 - If it raises, the call fails with `MCPCredentialError` and nothing is sent -- never a request without the credential.
 
-`build_agent(identity=...)` wires this up for every HTTP/SSE server without a `bearer_token` of its own, scoped to the server's `audience`. A caller token forwarded with `call_tool(..., bearer_token=...)` (see [Calling a tool as a specific user](#calling-a-tool-as-a-specific-user)) takes precedence: the per-caller session presents the caller's token, not the provider's.
+`build_agent(identity=...)` wires this up for every HTTP/SSE server without a credential of its own (`bearer_token`, `api_key`, or an `Authorization` / `x-api-key` header), scoped to the server's `audience`. A caller token forwarded with `call_tool(..., bearer_token=...)` (see [Calling a tool as a specific user](#calling-a-tool-as-a-specific-user)) takes precedence: the per-caller session presents the caller's token, not the provider's.
 
 ### API key authentication
 
@@ -168,7 +168,7 @@ async with MCPClient(url="http://localhost:8080/mcp", bearer_token=token) as cli
     tools = await client.list_tools()
 ```
 
-`fetch_token` sends a POST with `{"client_id": ..., "client_secret": ...}` and returns the `access_token` string from the JSON response.
+`fetch_token` sends a standard OAuth 2.0 `client_credentials` request (RFC 6749: a form-encoded POST with `grant_type`, `client_id` and `client_secret`) and returns the `access_token` string from the JSON response. It works against the built-in endpoint and any token endpoint that accepts client credentials in the request body; against a built-in endpoint from Promptise 1.3.2 or earlier, which reads JSON only, it retries once as JSON.
 
 !!! warning "Production token acquisition"
     `fetch_token` is a convenience for development when the server has a built-in token endpoint. In production, obtain tokens from your Identity Provider (Auth0, Keycloak, Okta) and pass them via `bearer_token`.
@@ -338,7 +338,7 @@ you manage sessions yourself.
 
 ### Tool name collisions
 
-If two servers expose a tool with the same name, the last-discovered server wins and a warning is logged. Use server-specific prefixes on your MCP servers to avoid collisions.
+If two servers expose a tool with the same name, the server listed last wins: `list_tools()` returns only its copy, `call_tool()` routes the name to it, and a warning names both servers. The other copy is not reachable through `MCPMultiClient` (or an agent built on it), so use server-specific prefixes on your MCP servers to avoid collisions.
 
 ### Error handling
 

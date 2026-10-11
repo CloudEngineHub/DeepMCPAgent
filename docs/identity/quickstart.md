@@ -114,8 +114,9 @@ agent = await build_agent(
 )
 ```
 
-To override for a specific server, set its `bearer_token` explicitly —
-an explicit per-server token always wins. You can also present the
+To override for a specific server, set its `bearer_token` (or `api_key`)
+explicitly — an explicit per-server credential always wins, so one agent can
+use identity-authenticated servers and API-key servers side by side. You can also present the
 credential by hand anywhere with `identity.get_credential()` /
 `identity.auth_header()`.
 

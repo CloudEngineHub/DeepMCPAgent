@@ -120,7 +120,8 @@ agent = await build_agent(
 ```
 
 Leave `audience` unset to use the identity provider's default audience. An
-explicit `bearer_token` always wins and ignores `audience`. See
+explicit `bearer_token` or `api_key` always wins (the identity is not
+presented to that server) and ignores `audience`. See
 [Per-resource credentials](../identity/architecture.md#per-resource-credentials)
 for which providers can re-mint per audience.
 

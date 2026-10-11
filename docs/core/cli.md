@@ -384,8 +384,8 @@ promptise audit verify audit.jsonl --anchor <last_hash> --json
 | `FILES...` | -- | One or more log files, verified as one chain in order |
 | `--key-env VAR` | `PROMPTISE_AUDIT_SECRET` | Environment variable holding the key. Repeatable: each entry must verify with one of the keys |
 | `--anchor HASH` | -- | An entry `hmac` recorded earlier (the `last_hash` a previous run printed). Fails if it is no longer in the log |
-| `--strict` | off | Also fail on warnings: a truncated last line, a crash fragment, a chain reset |
-| `--json` | off | Print the report (`AuditVerification.to_dict()`) as JSON |
+| `--strict` | off | Also fail on warnings: a truncated last line, a crash fragment, a chain reset. The summary then reads `FAILED ... warnings fail the check under --strict` |
+| `--json` | off | Print the report (`AuditVerification.to_dict()`) as JSON, plus `strict` and `passed` (the exit code's verdict: `ok` is the chain alone, `passed` also counts warnings under `--strict`) |
 
 The key is read only from the environment, never from the command line, and is never printed. A last line cut off by a crash (no trailing newline) is a warning, not tampering. On success, the command prints the entry count, the restarts the chain continued across, and `last_hash`.
 

@@ -143,10 +143,16 @@ enough to decide without grepping logs.
 ## Audit visibility
 
 Approval outcomes flow through the standard pipeline: a denial surfaces as
-a structured `APPROVAL_DENIED` error (recorded by `AuditMiddleware` like
-any error outcome, with the approval request id in details), and grants
-proceed to the normal audited tool call. The gate also logs every
-requested/granted/denied decision with request ids.
+a structured `APPROVAL_DENIED` error, and grants proceed to the normal
+audited tool call. With `AuditMiddleware` installed before the gate, a
+denial is recorded like any error outcome: `"status": "error"` and
+`"error": "ApprovalDeniedError: Approval denied for tool 'issue_refund'"`
+(plus the reviewer's reason, when one was given). The approval request id
+and reviewer id are in the error's `details`, which the **client** receives;
+they are not written to the audit entry. To correlate the two, use the
+gate's own log lines (logger `promptise.server`), which record every
+requested/granted/denied decision with its `request_id`, tool, client and
+reviewer.
 
 ## Combining with tenancy
 
