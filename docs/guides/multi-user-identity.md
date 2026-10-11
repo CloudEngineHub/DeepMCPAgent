@@ -95,6 +95,10 @@ after five idle minutes.
 - A server whose spec sets `forward_caller_token=False` always gets the
   spec's credential. Use it for third-party servers that must not receive
   your users' tokens.
+- A server configured with an API key (`api_key=` or an `x-api-key`
+  header) keeps getting the key and never the user's token, unless its
+  spec sets `forward_caller_token=True`; then both are sent and the server
+  decides which counts (a Promptise server checks the bearer first).
 - stdio servers have no request headers and never receive the token; the
   agent logs a warning the first time it cannot send one. A stdio tool runs
   with the agent's own privileges for every caller.

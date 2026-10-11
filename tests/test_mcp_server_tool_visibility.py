@@ -150,8 +150,8 @@ class TestHideUnauthorizedTools:
 
 
 class TestOverHTTP:
-    async def test_live_tools_list_is_filtered_per_request(self, monkeypatch):
-        from test_caller_token_forwarding import _serve
+    async def test_live_tools_list_is_filtered_per_request(self):
+        from _live_server import serve_mcp
 
         from promptise.mcp.client import MCPClient
 
@@ -160,7 +160,8 @@ class TestOverHTTP:
             async with MCPClient(url=url, bearer_token=token) as client:
                 return sorted(t.name for t in await client.list_tools())
 
-        async with _serve(_server(), monkeypatch) as url:
+        async with serve_mcp(_server()) as port:
+            url = f"http://127.0.0.1:{port}/mcp"
             acme = await names(url, sub="alice", org="acme")
             globex = await names(url, sub="bob", org="globex")
 

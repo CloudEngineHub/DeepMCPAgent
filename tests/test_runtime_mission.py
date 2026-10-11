@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from contextlib import nullcontext
 from typing import Any
 
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
@@ -501,3 +502,84 @@ class TestMaxInvocations:
             assert process._mission.state == MissionState.ACTIVE
         finally:
             await process.stop()
+
+
+# ---------------------------------------------------------------------------
+# MissionConfig.on_complete — deprecated: it was never read
+# ---------------------------------------------------------------------------
+
+
+class TestOnCompleteDeprecated:
+    def test_default_config_does_not_warn(self) -> None:
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            MissionConfig(enabled=True, objective="o", success_criteria="c")
+
+    def test_setting_it_warns_that_it_is_ignored(self) -> None:
+        import pytest
+
+        for value in ("stop", "continue", "suspend"):
+            with pytest.warns(FutureWarning, match="on_complete is ignored.*auto_complete"):
+                MissionConfig(enabled=True, objective="o", on_complete=value)
+
+    async def _completed_process(self, **mission: Any) -> Any:
+        import pytest
+
+        from promptise.runtime.config import ProcessConfig
+        from promptise.runtime.triggers.base import TriggerEvent
+
+        expected = pytest.warns(FutureWarning) if "on_complete" in mission else nullcontext()
+        with expected:
+            config = MissionConfig(enabled=True, objective="o", success_criteria="c", **mission)
+        process, agent = await _process_with_stub(ProcessConfig(mission=config))
+        await process.start()
+        tracker = process._mission
+
+        async def achieved(evidence: Any, model: Any) -> MissionEvaluation:
+            tracker.complete()
+            return MissionEvaluation(
+                achieved=True, confidence=0.95, reasoning="done", progress_summary="done"
+            )
+
+        tracker.evaluate = achieved  # the judge, without a model call
+        await process.inject(TriggerEvent(trigger_id="t", trigger_type="manual", payload={}))
+        for _ in range(100):
+            if agent.calls and tracker.state == MissionState.COMPLETED:
+                break
+            await asyncio.sleep(0.02)
+        await asyncio.sleep(0.1)  # let the post-invoke step finish
+        return process
+
+    async def test_continue_does_not_keep_the_process_running(self) -> None:
+        """What happens on completion is auto_complete's call alone."""
+        from promptise.runtime.lifecycle import ProcessState
+
+        process = await self._completed_process(on_complete="continue")
+        try:
+            assert process.state == ProcessState.STOPPED
+        finally:
+            await process.stop()
+
+    async def test_auto_complete_false_keeps_the_process_running(self) -> None:
+        from promptise.runtime.lifecycle import ProcessState
+
+        process = await self._completed_process(auto_complete=False)
+        try:
+            assert process.state == ProcessState.RUNNING
+        finally:
+            await process.stop()
+
+
+def test_on_complete_round_trip_does_not_warn() -> None:
+    """A dumped config (API, journal, distributed runtime) is re-validated."""
+    import warnings
+
+    from promptise.runtime.config import ProcessConfig
+
+    config = ProcessConfig(mission=MissionConfig(enabled=True, objective="o"))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        ProcessConfig.model_validate(config.model_dump())
+        ProcessConfig.model_validate_json(config.model_dump_json())

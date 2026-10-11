@@ -310,7 +310,7 @@ result = await agent.ainvoke(input, caller=caller)
 | Field | Agent side | MCP server side |
 |-------|-----------|-----------------|
 | `user_id` | Scopes memory search, conversation history, semantic cache to this user | Not sent (stays on agent) |
-| `bearer_token` | Sent as `Authorization: Bearer <token>` on this invocation's tool calls to every HTTP/SSE MCP server (unless its spec sets `forward_caller_token=False`), over a session opened for this token | Validated by `AuthMiddleware`, extracted into `ClientContext` with roles/scopes/claims |
+| `bearer_token` | Sent as `Authorization: Bearer <token>` on this invocation's tool calls to every HTTP/SSE MCP server (unless its spec sets `forward_caller_token=False`, or has an API key and does not set `forward_caller_token=True`), over a session opened for this token | Validated by `AuthMiddleware`, extracted into `ClientContext` with roles/scopes/claims |
 | `roles` | Available for agent-side logic via `get_current_caller()` | Not sent — server extracts roles from the JWT |
 | `scopes` | Available for agent-side logic | Not sent — server extracts scopes from the JWT |
 | `metadata` | Custom data available to guardrails, hooks, events | Not sent |

@@ -64,16 +64,29 @@ class HTTPServerSpec(_BaseServer):
         api_key: Pre-shared API key.  When set, an ``x-api-key``
             header is created automatically.  Use this for simple
             secret-based auth when JWT is overkill.
-        forward_caller_token: When ``True`` (default) and an invocation
-            carries a :class:`~promptise.CallerContext` with a
-            ``bearer_token``, this server's tools are called with
+        forward_caller_token: Whether an invocation's caller token
+            reaches this server.  When it does and the invocation carries
+            a :class:`~promptise.CallerContext` with a ``bearer_token``,
+            this server's tools are called with
             ``Authorization: Bearer <caller token>`` over a session
             opened for that caller, so the server sees the user, not
-            whoever built the agent.  ``bearer_token`` (or the agent
-            identity) is still used for tool discovery and for calls
-            without a caller token.  Set ``False`` for a third-party
+            whoever built the agent.  The caller's token replaces
+            ``bearer_token`` (and any ``Authorization`` header), which,
+            like the agent identity, is still used for tool discovery and
+            for calls without a caller token.
+
+            ``None`` (default): forward, unless the server is configured
+            with an API key (``api_key`` or an ``x-api-key`` header).  An
+            API key is the server's explicit credential and wins: the
+            caller's bearer would be sent *next to* it, and a gate that
+            checks the bearer first (a Promptise server does) rejects the
+            call with ``401``.  ``True``: always forward, also to an API-key
+            server; the key is still sent, so the server receives both and
+            decides which one counts (a Promptise server checks the bearer
+            first).  ``False``: never forward; use it for a third-party
             server that must not receive your users' tokens, or one that
-            should always see the agent's own credential.
+            should always see the agent's own credential.  See
+            :attr:`forwards_caller_token` for the resolved value.
 
     Example — Bearer token::
 
@@ -128,14 +141,34 @@ class HTTPServerSpec(_BaseServer):
     )
 
     # Per-invocation identity: send the invoking user's token, not the agent's.
-    forward_caller_token: bool = Field(
-        default=True,
+    forward_caller_token: bool | None = Field(
+        default=None,
         description="When an invocation carries a CallerContext with a "
         "bearer_token, call this server's tools with that token (one session "
-        "per caller) instead of bearer_token / the agent identity. Set False "
+        "per caller) instead of bearer_token / the agent identity. None "
+        "(default) forwards unless the server has an API key (api_key or an "
+        "x-api-key header), which then wins. True always forwards (the key is "
+        "still sent next to the caller's bearer). False never forwards: use it "
         "for servers outside your trust boundary, or whose credential is the "
         "agent's own rather than the user's.",
     )
+
+    @property
+    def has_api_key(self) -> bool:
+        """Whether an API key is configured (``api_key`` or an ``x-api-key`` header)."""
+        return bool(self.api_key) or any(k.lower() == "x-api-key" for k in (self.headers or {}))
+
+    @property
+    def forwards_caller_token(self) -> bool:
+        """Whether tool calls send the invoking caller's bearer token here.
+
+        ``forward_caller_token`` when it is set; otherwise ``True`` unless
+        the server has an API key (:attr:`has_api_key`), which then wins
+        over the caller's token.
+        """
+        if self.forward_caller_token is not None:
+            return self.forward_caller_token
+        return not self.has_api_key
 
     @field_validator("auth")
     @classmethod

@@ -33,10 +33,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import jwt as pyjwt
 import pytest
-import uvicorn
+from _live_server import serve_mcp
 from cryptography.hazmat.primitives.asymmetric import rsa
 from langchain_core.messages import AIMessage, ToolMessage
-from sse_starlette.sse import AppStatus
 
 from promptise.agent import build_agent
 from promptise.config import HTTPServerSpec
@@ -231,43 +230,10 @@ class _RecordingTransport:
 
 
 @asynccontextmanager
-async def _serve(
-    server: MCPServer, monkeypatch: pytest.MonkeyPatch, *, port: int = 0
-) -> AsyncIterator[str]:
-    """Run *server* over Streamable HTTP and yield its ``/mcp`` URL."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    task = asyncio.ensure_future(server.run_async(transport="http", host="127.0.0.1", port=port))
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 5
-        port = instances[0].servers[0].sockets[0].getsockname()[1]
-        yield f"http://127.0.0.1:{port}/mcp"
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
-        # A uvicorn server stopped while an SSE stream is open sets
-        # sse-starlette's process-wide ``AppStatus.should_exit``; every later
-        # SSE response (the next server's ``initialize``) would then close at
-        # once and leave the client waiting. A real restart is a new process.
-        AppStatus.should_exit = False
+async def _serve(server: MCPServer, *, port: int = 0) -> AsyncIterator[str]:
+    """Run *server* over Streamable HTTP on a free loopback port; yield its ``/mcp`` URL."""
+    async with serve_mcp(server, port=port) as bound:
+        yield f"http://127.0.0.1:{bound}/mcp"
 
 
 @pytest.fixture
@@ -317,7 +283,7 @@ class TestAgentIdentityRefresh:
     ):
         caplog.set_level(logging.DEBUG)
         server, _ = _support_server(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             model = _scripted_model(
                 _call_whoami("c1"),
                 AIMessage(content="first done"),
@@ -373,7 +339,7 @@ class TestAgentIdentityRefresh:
         idp.ttl = 3600  # the identity has no reason to refresh on its own
         server, auth = _support_server(idp, revocable=True)
         identity = _identity(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             client = MCPClient(
                 url=url,
                 bearer_token_provider=lambda force: identity.get_credential(
@@ -400,7 +366,7 @@ class TestAgentIdentityRefresh:
         idp.ttl = 3600
         server, auth = _support_server(idp, revocable=True)
         identity = _identity(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             client = MCPClient(
                 url=url,
                 bearer_token_provider=lambda force: identity.get_credential(
@@ -439,7 +405,7 @@ class TestFailClosed:
         caplog.set_level(logging.DEBUG)
         server, _ = _support_server(idp)
         identity = _identity(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             sent = _RecordingTransport(monkeypatch)
             client = MCPClient(
                 url=url,
@@ -474,7 +440,7 @@ class TestFailClosed:
         idp.ttl = 3600
         server, auth = _support_server(idp, revocable=True)
         identity = _identity(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             sent = _RecordingTransport(monkeypatch)
             client = MCPClient(
                 url=url,
@@ -509,7 +475,7 @@ class TestRenewalWithCallInFlight:
         HOLD.reset()
         server, _ = _support_server(idp)
         identity = _identity(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             client = MCPClient(
                 url=url,
                 bearer_token_provider=lambda force: identity.get_credential(
@@ -550,7 +516,7 @@ class TestSessionsAndCallerTokens:
         new session is opened with a freshly acquired credential."""
         identity = _identity(idp)
         server, _ = _support_server(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             client = MCPClient(
                 url=url,
                 bearer_token_provider=lambda force: identity.get_credential(
@@ -562,7 +528,7 @@ class TestSessionsAndCallerTokens:
         try:
             await asyncio.sleep(TTL + 1.2)
             restarted, _ = _support_server(idp)
-            async with _serve(restarted, monkeypatch, port=_port(url)):
+            async with _serve(restarted, port=_port(url)):
                 second = _whoami(await asyncio.wait_for(client.call_tool("whoami", {}), FAIL_FAST))
             assert second["client_id"] == "support-bot"
             assert second["jti"] != first["jti"]
@@ -578,7 +544,7 @@ class TestSessionsAndCallerTokens:
         idp.ttl = 3600
         identity = _identity(idp)
         server, _ = _support_server(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             base = MCPClient(
                 url=url,
                 bearer_token_provider=lambda force: identity.get_credential(
@@ -618,7 +584,7 @@ class TestStaticTokenExpiry:
     async def test_call_after_expiry_fails_fast_with_a_clear_error(self, idp, monkeypatch):
         server, _ = _support_server(idp)
         token = idp.mint()
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             async with MCPClient(url=url, bearer_token=token) as client:
                 await asyncio.wait_for(client.call_tool("whoami", {}), FAIL_FAST)
                 await _wait_until_expired(token)
@@ -643,7 +609,7 @@ class TestStaticTokenExpiry:
     async def test_multi_client_names_the_server_and_keeps_the_route(self, idp, monkeypatch):
         server, _ = _support_server(idp)
         token = idp.mint()
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             multi = MCPMultiClient({"support": MCPClient(url=url, bearer_token=token)})
             async with multi:
                 await multi.list_tools()
@@ -666,7 +632,7 @@ class TestKeyRotation:
         is accepted at once — no wait for a cache expiry or cooldown."""
         idp.ttl = 3600
         server, _ = _support_server(idp)
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             async with MCPClient(url=url, bearer_token=idp.mint()) as client:
                 await asyncio.wait_for(client.call_tool("whoami", {}), FAIL_FAST)
             assert idp.jwks_fetches == 1
