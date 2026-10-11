@@ -116,6 +116,31 @@ async def _report_reused_call(
                 await outcome
         except Exception as exc:
             logger.warning("on_tool_reused hook %r failed: %s", type(hook).__name__, exc)
+    await _report_to_callbacks(
+        tool,
+        tool_name,
+        args,
+        tool_call_id,
+        config,
+        output=ToolMessage(content=result, tool_call_id=tool_call_id, name=tool_name),
+        metadata={REUSED_TOOL_METADATA_KEY: True},
+    )
+
+
+async def _report_to_callbacks(
+    tool: BaseTool | None,
+    tool_name: str,
+    args: Any,
+    tool_call_id: str,
+    config: dict[str, Any],
+    *,
+    output: Any = None,
+    error: BaseException | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    """Give the run's LangChain callbacks the start and end (or *error*) of a
+    call the tool itself never saw, as the tool would have reported it.
+    A reporting failure is logged and never changes the call's result."""
     try:
         from langchain_core.callbacks import AsyncCallbackManager
 
@@ -123,20 +148,262 @@ async def _report_reused_call(
             inheritable_callbacks=config.get("callbacks"),
             inheritable_tags=config.get("tags"),
             inheritable_metadata=config.get("metadata"),
-            local_metadata={REUSED_TOOL_METADATA_KEY: True},
+            local_metadata=metadata,
         )
         run = await manager.on_tool_start(
             {"name": tool_name, "description": getattr(tool, "description", "") or ""},
             str(args),
-            inputs=args,
+            inputs=args if isinstance(args, dict) else None,
             tool_call_id=tool_call_id,
         )
-        await run.on_tool_end(
-            ToolMessage(content=result, tool_call_id=tool_call_id, name=tool_name),
-            name=tool_name,
-        )
+        if error is not None:
+            await run.on_tool_error(error, name=tool_name)
+        else:
+            await run.on_tool_end(output, name=tool_name)
     except Exception as exc:
-        logger.debug("Could not report reused call to %r to callbacks: %s", tool_name, exc)
+        logger.debug("Could not report a call to %r to callbacks: %s", tool_name, exc)
+
+
+# ---------------------------------------------------------------------------
+# Running one tool call — shared by PromptNode and ToolNode
+# ---------------------------------------------------------------------------
+
+
+def _checks_own_arguments(tool: BaseTool) -> bool:
+    """Whether *tool* is a Promptise MCP tool, bare or behind Promptise's
+    wrappers (approval gate, guardrail scanning, tool tracing).
+
+    Since 1.3.1 such a tool checks its own arguments the way
+    :func:`_checked_arguments` does, answers invalid ones with the same
+    ``ToolArgumentError``, and reports the rejected call through its own
+    trace hooks (``trace_tools``, ``observer``), which a check before the
+    call would bypass.
+    """
+    from promptise.mcp.client._tool_adapter import _PromptiseMCPTool
+    from promptise.tools import WrappingTool
+
+    inner: Any = tool
+    for _ in range(8):  # wrappers nest a few levels deep at most
+        if not isinstance(inner, WrappingTool):
+            break
+        inner = getattr(inner, "_inner", None)
+    return isinstance(inner, _PromptiseMCPTool)
+
+
+def _checked_arguments(tool: BaseTool, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
+    """*args* checked against *tool*'s parameter schema, as the tool gets them.
+
+    The schema is the one the model is offered (``tool.tool_call_schema``:
+    the tool's ``args_schema`` without injected arguments).  As for MCP tools
+    since 1.3.1, an explicit ``null`` for an optional parameter that cannot
+    be null counts as not given and is dropped.  Not checked here: a tool
+    whose schema is a JSON-schema dict rather than a pydantic model (it
+    validates its own input when it runs), and an MCP tool, which checks its
+    arguments itself with the same result (:func:`_checks_own_arguments`).
+
+    Raises:
+        ToolArgumentError: The arguments do not match the schema; its
+            message lists each problem by argument path for the model.
+    """
+    from promptise.tools import drop_disallowed_nulls, parse_tool_arguments
+
+    if _checks_own_arguments(tool):
+        return args
+    try:
+        schema = tool.tool_call_schema
+    except Exception as exc:
+        logger.debug("No argument schema for tool %r, not validating: %s", tool_name, exc)
+        return args
+    if not (isinstance(schema, type) and issubclass(schema, PydanticBaseModel)):
+        return args
+    parse_tool_arguments(tool_name, schema, args)
+    return drop_disallowed_nulls(schema, args, tool_name=tool_name)
+
+
+async def _invoke_tool(
+    tool: BaseTool,
+    tool_name: str,
+    args: dict[str, Any],
+    tool_call_id: str,
+    config: dict[str, Any],
+) -> tuple[str, bool, bool]:
+    """Invoke *tool* as a tool call.  Returns ``(content, success, raised)``.
+
+    Invoked as a tool call, a tool answers with a ``ToolMessage`` whose status
+    says whether it failed (a tool that handles its ``ToolException``).  A
+    tool that reports an error by raising ``ToolException`` -- an MCP error
+    result raises ``MCPToolError``, invalid arguments ``ToolArgumentError`` --
+    answers with the server's own text (its error envelope, with the error's
+    code), so the model can correct the call.  Any other exception is a tool
+    that raised (``raised`` is ``True``).
+    """
+    try:
+        output = await tool.ainvoke(
+            {"type": "tool_call", "name": tool_name, "args": args, "id": tool_call_id},
+            config=cast("RunnableConfig | None", config),
+        )
+    except ToolException as exc:
+        text = getattr(exc, "text", None)
+        return (text if isinstance(text, str) and text else str(exc)), False, False
+    except Exception as exc:
+        return f"Error: {type(exc).__name__}: {exc}", False, True
+    failed = False
+    if isinstance(output, ToolMessage):
+        failed = output.status == "error"
+        output = output.content
+    if output is None:
+        content = ""
+    elif isinstance(output, str):
+        content = output
+    else:
+        content = str(output)
+    return content, not failed, False
+
+
+async def _call_tool(
+    tool: BaseTool | None,
+    tool_name: str,
+    tool_args: dict[str, Any],
+    tool_call_id: str,
+    state: GraphState,
+    config: dict[str, Any],
+    *,
+    validate: bool = False,
+    max_result_chars: int | None = None,
+) -> tuple[dict[str, Any], str]:
+    """Run one tool call the way every built-in node runs one.
+
+    1. The engine hooks' ``pre_tool(tool_name, args, state)``, in order: each
+       returns the arguments to use (it may change them).  A hook that raises
+       blocks the call: the exception propagates (see :func:`_run_tool_call`)
+       and neither the tool nor ``post_tool`` runs.
+    2. With *validate*, the arguments are checked against the tool's
+       parameter schema (:func:`_checked_arguments`).  Invalid arguments are
+       the call's error result (``ToolArgumentError``'s message, which tells
+       the model what to correct); the tool does not run, and the run's
+       callbacks get the call's start and error.
+    3. The tool, invoked as a tool call (:func:`_invoke_tool`).  A successful
+       result is cut to *max_result_chars* when given.
+    4. The engine hooks' ``post_tool(tool_name, result, args, state)``, in
+       order: each returns the result to use.
+
+    Returns ``(record, content)``: the ``NodeResult.tool_calls`` record
+    (``name``, ``args``, ``result``, ``success``, and ``raised`` when the tool
+    raised) and the content of the call's ``ToolMessage``.
+    """
+    hooks = config.get("_engine_hooks", [])
+    for hook in hooks:
+        if hasattr(hook, "pre_tool"):
+            tool_args = await hook.pre_tool(tool_name, tool_args, state)
+
+    record: dict[str, Any] = {"name": tool_name, "args": tool_args}
+    if tool is None:
+        content = f"Error: Unknown tool '{tool_name}'"
+        record.update(result=content, success=False)
+    else:
+        from promptise.tools import ToolArgumentError
+
+        call_args = tool_args
+        rejected: ToolArgumentError | None = None
+        if validate:
+            try:
+                call_args = _checked_arguments(tool, tool_name, tool_args)
+            except ToolArgumentError as exc:
+                rejected = exc
+        if rejected is not None:
+            await _report_to_callbacks(
+                tool, tool_name, tool_args, tool_call_id, config, error=rejected
+            )
+            content = rejected.text
+            record.update(result=content, success=False)
+        else:
+            content, success, raised = await _invoke_tool(
+                tool, tool_name, call_args, tool_call_id, config
+            )
+            if success and max_result_chars is not None:
+                content = content[:max_result_chars]
+            record.update(result=content, success=success)
+            if raised:
+                record["raised"] = True
+
+    for hook in hooks:
+        if hasattr(hook, "post_tool"):
+            content = await hook.post_tool(tool_name, content, tool_args, state)
+    return record, content
+
+
+async def _run_tool_call(
+    tool: BaseTool | None,
+    tool_name: str,
+    tool_args: dict[str, Any],
+    tool_call_id: str,
+    state: GraphState,
+    config: dict[str, Any],
+    *,
+    validate: bool = False,
+    max_result_chars: int | None = None,
+) -> tuple[dict[str, Any], str, float]:
+    """:func:`_call_tool`, timed; never raises.
+
+    Returns ``(record, content, duration_ms)``.  A hook that raised (a
+    ``pre_tool`` hook blocking the call, or a failing ``post_tool`` hook) makes
+    the call a failed one whose result is ``"Error: <exception message>"``,
+    reported like a tool that raised.
+    """
+    started = time.perf_counter()
+    try:
+        record, content = await _call_tool(
+            tool,
+            tool_name,
+            tool_args,
+            tool_call_id,
+            state,
+            config,
+            validate=validate,
+            max_result_chars=max_result_chars,
+        )
+    except Exception as exc:  # a hook raised
+        content = f"Error: {exc}"
+        record = {
+            "name": tool_name,
+            "args": tool_args,
+            "result": content,
+            "success": False,
+            "raised": True,
+        }
+    return record, content, (time.perf_counter() - started) * 1000
+
+
+def _tool_start_event(tool_name: str, args: Any, run_id: str, *, reused: bool = False) -> NodeEvent:
+    """The ``on_tool_start`` stream event of one tool call."""
+    data: dict[str, Any] = {"input": args, "run_id": run_id}
+    if reused:
+        data["reused"] = True
+    return NodeEvent(event="on_tool_start", node_name=tool_name, data=data)
+
+
+def _tool_end_event(record: dict[str, Any], content: str, ms: float, run_id: str) -> NodeEvent:
+    """The stream event that ends one tool call: ``on_tool_error`` when the
+    tool (or a hook) raised, else ``on_tool_end`` with ``status``
+    (``"success"`` / ``"error"``) and ``reused`` for a reused result."""
+    data: dict[str, Any] = {"output": content, "run_id": run_id, "duration_ms": ms}
+    if record.get("raised"):
+        data["error"] = content
+        return NodeEvent(event="on_tool_error", node_name=record["name"], data=data)
+    data["status"] = "success" if record.get("success", True) else "error"
+    if record.get("reused"):
+        data["reused"] = True
+    return NodeEvent(event="on_tool_end", node_name=record["name"], data=data)
+
+
+def _tool_message(record: dict[str, Any], content: str, tool_call_id: str) -> ToolMessage:
+    """The ``ToolMessage`` that answers one tool call."""
+    return ToolMessage(
+        content=content,
+        tool_call_id=tool_call_id,
+        name=record["name"],
+        status="success" if record.get("success", True) else "error",
+    )
 
 
 def record_failure(result: NodeResult, exc: BaseException, error: str | None = None) -> None:
@@ -897,146 +1164,58 @@ class PromptNode(BaseNode):
                 # a tool the selector left out this step is still callable.
                 tool_map = {t.name: t for t in (candidate_tools or active_tools)}
                 tool_start = time.perf_counter()
-                hooks = config.get("_engine_hooks", [])
                 # A repeated call runs the tool again: its result may have
                 # changed (a job's status, a health check).  Only tools opted
                 # in with ContextCompaction(reuse_results=...) are answered
                 # from an earlier result, and that is reported, never silent.
                 earlier = self._earlier_results(tool_calls, state, config)
+                call_ids = [tc.get("id") or str(uuid4()) for tc in tool_calls]
 
-                async def _exec_one_tool(tc: dict, reuse: str | None) -> tuple[dict, str]:
-                    """Execute a single tool call. Returns (tc_record, content).
+                async def _timed_tool(index: int) -> tuple[dict[str, Any], str, float]:
+                    """Run one tool call; never raises. Returns (record, content, ms).
 
-                    *reuse* is the earlier result that answers the call
-                    instead of the tool, or ``None`` to run the tool.
+                    ``earlier[index]`` is the earlier result that answers the
+                    call instead of the tool, or ``None`` to run the tool.
                     """
+                    tc = tool_calls[index]
                     tool_name = tc.get("name", "")
                     tool_args = tc.get("args", {})
-
-                    if reuse is not None:
-                        await _report_reused_call(
+                    reuse = earlier[index]
+                    if reuse is None:
+                        return await _run_tool_call(
                             tool_map.get(tool_name),
                             tool_name,
                             tool_args,
-                            reuse,
-                            tc.get("id") or "",
+                            call_ids[index],
                             state,
                             config,
                         )
-                        return (
-                            {
-                                "name": tool_name,
-                                "args": tool_args,
-                                "result": reuse,
-                                "success": True,
-                                "reused": True,
-                            },
-                            reuse,
-                        )
-
-                    # Pre-tool hooks
-                    for hook in hooks:
-                        if hasattr(hook, "pre_tool"):
-                            tool_args = await hook.pre_tool(tool_name, tool_args, state)
-
-                    tc_record: dict[str, Any] = {"name": tool_name, "args": tool_args}
-
-                    if tool_name not in tool_map:
-                        content = f"Error: Unknown tool '{tool_name}'"
-                        tc_record["result"] = content
-                        tc_record["success"] = False
-                    else:
-                        try:
-                            # Invoked as a tool call, a tool answers with a
-                            # ToolMessage whose status says whether it failed
-                            # (a tool that handles its ToolException).
-                            tool_output = await tool_map[tool_name].ainvoke(
-                                {
-                                    "type": "tool_call",
-                                    "name": tool_name,
-                                    "args": tool_args,
-                                    "id": tc.get("id") or str(uuid4()),
-                                },
-                                config=cast("RunnableConfig | None", config),
-                            )
-                            failed = False
-                            if isinstance(tool_output, ToolMessage):
-                                failed = tool_output.status == "error"
-                                tool_output = tool_output.content
-                            if tool_output is None:
-                                content = ""
-                            elif isinstance(tool_output, str):
-                                content = tool_output
-                            else:
-                                content = str(tool_output)
-                            tc_record["result"] = content
-                            tc_record["success"] = not failed
-                        except ToolException as exc:
-                            # The tool ran and reported an error -- an MCP
-                            # error result raises MCPToolError.  The model
-                            # sees the server's own text (its error envelope).
-                            text = getattr(exc, "text", None)
-                            content = text if isinstance(text, str) and text else str(exc)
-                            tc_record["result"] = content
-                            tc_record["success"] = False
-                        except Exception as exc:
-                            content = f"Error: {type(exc).__name__}: {exc}"
-                            tc_record["result"] = content
-                            tc_record["success"] = False
-                            tc_record["raised"] = True
-
-                    # Post-tool hooks
-                    for hook in hooks:
-                        if hasattr(hook, "post_tool"):
-                            content = await hook.post_tool(tool_name, content, tool_args, state)
-
-                    return tc_record, content
-
-                async def _timed_tool(index: int) -> tuple[dict[str, Any], str, float]:
-                    """Run one tool call; never raises. Returns (record, content, ms)."""
-                    tc = tool_calls[index]
                     started = time.perf_counter()
-                    try:
-                        tc_record, content = await _exec_one_tool(tc, earlier[index])
-                    except Exception as exc:  # a hook failed
-                        content = f"Error: {exc}"
-                        tc_record = {
-                            "name": tc.get("name", ""),
-                            "args": tc.get("args", {}),
-                            "result": content,
-                            "success": False,
-                            "raised": True,
-                        }
-                    return tc_record, content, (time.perf_counter() - started) * 1000
-
-                def _tool_end_event(
-                    index: int, tc_record: dict[str, Any], content: str, ms: float
-                ) -> NodeEvent:
-                    data: dict[str, Any] = {
-                        "output": content,
-                        "run_id": tool_run_ids[index],
-                        "duration_ms": ms,
+                    await _report_reused_call(
+                        tool_map.get(tool_name),
+                        tool_name,
+                        tool_args,
+                        reuse,
+                        call_ids[index],
+                        state,
+                        config,
+                    )
+                    tc_record = {
+                        "name": tool_name,
+                        "args": tool_args,
+                        "result": reuse,
+                        "success": True,
+                        "reused": True,
                     }
-                    if tc_record.get("raised"):
-                        data["error"] = content
-                        return NodeEvent(
-                            event="on_tool_error", node_name=tc_record["name"], data=data
-                        )
-                    data["status"] = "success" if tc_record.get("success", True) else "error"
-                    if tc_record.get("reused"):
-                        data["reused"] = True
-                    return NodeEvent(event="on_tool_end", node_name=tc_record["name"], data=data)
+                    return tc_record, reuse, (time.perf_counter() - started) * 1000
 
                 tool_run_ids = [str(uuid4()) for _ in tool_calls]
                 for index, tc in enumerate(tool_calls):
-                    start_data: dict[str, Any] = {
-                        "input": tc.get("args", {}),
-                        "run_id": tool_run_ids[index],
-                    }
-                    if earlier[index] is not None:
-                        start_data["reused"] = True
-                    yield NodeEvent(
-                        event="on_tool_start", node_name=tc.get("name", ""), data=start_data
+                    yield _tool_start_event(
+                        tc.get("name", ""),
+                        tc.get("args", {}),
+                        tool_run_ids[index],
+                        reused=earlier[index] is not None,
                     )
 
                 # Execute tools — parallel if 2+ calls (each end event is
@@ -1045,7 +1224,7 @@ class PromptNode(BaseNode):
                 if len(tool_calls) == 1:
                     outcome = await _timed_tool(0)
                     outcomes[0] = outcome
-                    yield _tool_end_event(0, *outcome)
+                    yield _tool_end_event(*outcome, tool_run_ids[0])
                 else:
                     tasks = {
                         asyncio.ensure_future(_timed_tool(index)): index
@@ -1061,7 +1240,7 @@ class PromptNode(BaseNode):
                                 index = tasks[task]
                                 outcome = task.result()
                                 outcomes[index] = outcome
-                                yield _tool_end_event(index, *outcome)
+                                yield _tool_end_event(*outcome, tool_run_ids[index])
                     finally:
                         # A consumer that stops reading must not leave tools running.
                         for task in tasks:
@@ -1072,17 +1251,11 @@ class PromptNode(BaseNode):
                     assert maybe_outcome is not None
                     tc_record, content, _ms = maybe_outcome
                     tc_record.pop("raised", None)
-                    tc = tool_calls[i]
-                    tool_id = tc.get("id") or str(uuid4())
 
                     if not tc_record.get("success", True):
                         result.tool_calls_failed += 1
 
-                    tool_msg = ToolMessage(
-                        content=content,
-                        tool_call_id=tool_id,
-                        status="success" if tc_record.get("success", True) else "error",
-                    )
+                    tool_msg = _tool_message(tc_record, content, call_ids[i])
                     state.messages.append(tool_msg)
                     result.messages_added.append(tool_msg)
                     result.tool_calls.append(tc_record)
@@ -1226,21 +1399,42 @@ class ToolNode(BaseNode):
     executes tools directly based on state context.  Useful when tool
     selection is deterministic rather than LLM-driven.
 
+    A call runs as it would in a :class:`PromptNode`: the engine hooks'
+    ``pre_tool`` (may change the arguments, or block the call by raising)
+    and ``post_tool`` (may change the result) run around it, the tool is
+    invoked as a tool call (an MCP tool error reaches the model as the
+    server's error envelope, flagged ``status="error"``), and
+    :meth:`stream` yields ``on_tool_start`` / ``on_tool_end`` (or
+    ``on_tool_error``) for each call, so ``astream_events()`` and
+    ``astream_with_tools()`` show it.  The node runs one turn's calls one
+    after another, in order.
+
     Args:
         tools: Available tools for this node.
-        validate_inputs: Validate tool arguments against schema.
+        validate_inputs: Check each call's arguments against the tool's
+            parameter schema before calling it (after ``pre_tool`` hooks).
+            Invalid arguments do not reach the tool: the call's
+            ``ToolMessage`` is an error (``status="error"``) listing each
+            problem by argument path (``promptise.tools.ToolArgumentError``'s
+            message) so the model can correct the call, and callbacks get
+            ``on_tool_error``.  As for MCP tools, an explicit ``null`` for an
+            optional parameter that cannot be null counts as not given.  An
+            MCP tool checks its own arguments the same way, so the node
+            leaves the check to it.  With ``False``, the arguments go to the
+            tool as they are.
         deduplicate: Run identical (tool, args) calls of one model turn
             once.  Each repeat in that turn still gets its own
             ``ToolMessage`` with the first call's result, and is reported
             as reused (``trace_tools``, ``observer``, callbacks, engine
-            hooks' ``on_tool_reused``, ``"reused": True`` in
-            ``NodeResult.tool_calls``).  A call in a later model turn, a
-            later pass of a ``tool_selector``, or another run runs the
-            tool again, so a status check gets the current value.  A failed
-            call is never reused.  The record lives in the run, never on
-            the node, so sequential and concurrent runs of a graph do not
-            affect each other.
-        max_result_chars: Cap tool result size.
+            hooks' ``on_tool_reused`` instead of ``pre_tool`` /
+            ``post_tool``, ``"reused": True`` in ``NodeResult.tool_calls``
+            and stream events).  A call in a later model turn, a later pass
+            of a ``tool_selector``, or another run runs the tool again, so a
+            status check gets the current value.  A failed call is never
+            reused.  The record lives in the run, never on the node, so
+            sequential and concurrent runs of a graph do not affect each
+            other.
+        max_result_chars: Cap the size of a successful tool result.
         tool_selector: Optional callable that selects which tool
             to call based on state.  If ``None``, runs the tool calls
             of the most recent AI message that has tool calls.
@@ -1266,25 +1460,59 @@ class ToolNode(BaseNode):
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
         """Execute tools from state or selector."""
-        start = time.perf_counter()
         result = NodeResult(node_name=self.name, node_type="tool", iteration=state.iteration)
-        tool_map = {t.name: t for t in self.tools}
+        async for _event in self._pipeline(state, config, result):
+            pass
+        return result
 
-        # Determine what to call
-        calls: list[tuple[str, dict[str, Any], str]]
+    async def stream(self, state: GraphState, config: dict[str, Any]) -> AsyncIterator[NodeEvent]:
+        """Run the :meth:`execute` pipeline, yielding each call's events.
+
+        Each call yields ``on_tool_start`` and then ``on_tool_end``
+        (``data["status"]`` is ``"error"`` when the tool reported an error,
+        ``data["reused"]`` is ``True`` for a repeat answered from the turn's
+        earlier result) or ``on_tool_error`` (the tool or a hook raised),
+        with the call's ``run_id`` and ``duration_ms`` -- the events a
+        :class:`PromptNode` yields for its tool calls.  The last event is
+        ``on_node_end`` with the :class:`NodeResult` under
+        ``data["result"]``.  A subclass that overrides :meth:`execute` but
+        not this method streams through :meth:`BaseNode.stream`.
+        """
+        if type(self).execute is not ToolNode.execute:
+            async for event in super().stream(state, config):
+                yield event
+            return
+
+        yield NodeEvent(event="on_node_start", node_name=self.name)
+        result = NodeResult(node_name=self.name, node_type="tool", iteration=state.iteration)
+        async for event in self._pipeline(state, config, result):
+            yield event
+        yield NodeEvent(event="on_node_end", node_name=self.name, data={"result": result})
+
+    def _calls(self, state: GraphState) -> list[tuple[str, dict[str, Any], str]]:
+        """``(tool_name, args, tool_call_id)`` of each call to run."""
         if self.tool_selector:
             tool_name, tool_args = self.tool_selector(state)
-            calls = [(tool_name, tool_args, str(uuid4()))]
-        else:
-            # Extract from the last AI message's tool_calls
-            calls = []
-            for msg in reversed(state.messages):
-                if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
-                    for tc in msg.tool_calls:
-                        calls.append(
-                            (tc["name"], tc.get("args", {}) or {}, tc.get("id") or str(uuid4()))
-                        )
-                    break
+            return [(tool_name, tool_args, str(uuid4()))]
+        # The tool calls of the last AI message that has some
+        for msg in reversed(state.messages):
+            if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
+                return [
+                    (tc["name"], tc.get("args", {}) or {}, tc.get("id") or str(uuid4()))
+                    for tc in msg.tool_calls
+                ]
+        return []
+
+    async def _pipeline(
+        self, state: GraphState, config: dict[str, Any], result: NodeResult
+    ) -> AsyncIterator[NodeEvent]:
+        """The node behind :meth:`execute` and :meth:`stream`.
+
+        Fills *result* in place and yields each call's tool events.
+        """
+        start = time.perf_counter()
+        tool_map = {t.name: t for t in self.tools}
+        calls = self._calls(state)
 
         # Deduplication is per model turn of this run.  Nodes are shared by
         # every run of the graph (sequential and concurrent), so nothing about
@@ -1297,10 +1525,8 @@ class ToolNode(BaseNode):
         )
         turn_results: dict[str, str] = {}  # (tool, args) -> first successful result
 
+        tool_start = time.perf_counter()
         for tool_name, tool_args, tool_id in calls:
-            tc_record: dict[str, Any] = {"name": tool_name, "args": tool_args}
-            fingerprint = _call_fingerprint(tool_name, tool_args) if self.deduplicate else ""
-
             if tool_id in answered:
                 # The graph reached this node again before the model's next
                 # turn: the call already ran in this run and has its result.
@@ -1315,37 +1541,50 @@ class ToolNode(BaseNode):
                 result.tool_calls_deduplicated += 1
                 continue
 
+            fingerprint = _call_fingerprint(tool_name, tool_args) if self.deduplicate else ""
             earlier = turn_results.get(fingerprint) if self.deduplicate else None
+            run_id = str(uuid4())
+            yield _tool_start_event(tool_name, tool_args, run_id, reused=earlier is not None)
+
+            tc_record: dict[str, Any]
             if earlier is not None:
                 # The same call earlier in this turn: answer it with that
-                # result, so its tool_call_id has one, and report it as reused.
+                # result, so its tool_call_id has one, and report it as reused
+                # (on_tool_reused instead of pre_tool / post_tool).
+                started = time.perf_counter()
                 await _report_reused_call(
                     tool_map.get(tool_name), tool_name, tool_args, earlier, tool_id, state, config
                 )
                 content = earlier
-                tc_record.update(result=content, success=True, reused=True)
+                tc_record = {
+                    "name": tool_name,
+                    "args": tool_args,
+                    "result": content,
+                    "success": True,
+                    "reused": True,
+                }
+                ms = (time.perf_counter() - started) * 1000
                 result.tool_calls_deduplicated += 1
-            elif tool_name not in tool_map:
-                content = f"Error: Unknown tool '{tool_name}'"
-                tc_record["result"] = content
-                tc_record["success"] = False
             else:
-                try:
-                    tool_result = await tool_map[tool_name].ainvoke(
-                        tool_args, config=cast("RunnableConfig | None", config)
-                    )
-                    content = str(tool_result)[: self.max_result_chars] if tool_result else ""
-                    tc_record["result"] = content
-                    tc_record["success"] = True
-                except Exception as exc:
-                    content = f"Error: {type(exc).__name__}: {exc}"
-                    tc_record["result"] = content
-                    tc_record["success"] = False
-                    result.tool_calls_failed += 1
+                tc_record, content, ms = await _run_tool_call(
+                    tool_map.get(tool_name),
+                    tool_name,
+                    tool_args,
+                    tool_id,
+                    state,
+                    config,
+                    validate=self.validate_inputs,
+                    max_result_chars=self.max_result_chars,
+                )
                 if self.deduplicate and tc_record["success"]:
                     turn_results.setdefault(fingerprint, content)
 
-            tool_msg = ToolMessage(content=content, tool_call_id=tool_id)
+            end_event = _tool_end_event(tc_record, content, ms, run_id)
+            tc_record.pop("raised", None)
+            if not tc_record.get("success", True):
+                result.tool_calls_failed += 1
+
+            tool_msg = _tool_message(tc_record, content, tool_id)
             state.messages.append(tool_msg)
             result.messages_added.append(tool_msg)
             result.tool_calls.append(tc_record)
@@ -1353,12 +1592,14 @@ class ToolNode(BaseNode):
             state.add_observation(
                 tool_name=tool_name,
                 result=content[:500],
-                args=tool_args,
+                args=tc_record.get("args", {}),
                 success=tc_record.get("success", False),
             )
+            yield end_event
 
+        if calls:
+            result.tool_duration_ms = (time.perf_counter() - tool_start) * 1000
         result.duration_ms = (time.perf_counter() - start) * 1000
-        return result
 
 
 # ---------------------------------------------------------------------------
