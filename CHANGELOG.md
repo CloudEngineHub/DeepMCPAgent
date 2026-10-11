@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.1 — unreleased
+## 1.3.1 — 2026-10-11
 
 ### Fixed
 - **MCP tools sent `null` for every optional parameter the model left out** -- LangChain's tool input parsing (langchain-core 1.x) fills in every field with a default, and the agent's tool schema gives an optional parameter without a schema default the default `None`, so the MCP tool sent `{"limit": null, ...}` for each one. A server that validates its input rejected the call (`Input validation error: None is not of type 'integer'`): every MCPcast-generated server, and any tool whose schema has an optional, non-nullable parameter. Only the arguments the model gave are sent now, at every level of nesting, and the server applies its own defaults. An explicit `null` is sent only where the schema allows null; a `null` for an optional parameter that cannot be null counts as not given (logged at debug level). The same applies to MCPcast's readiness run.
