@@ -31,7 +31,7 @@ from pydantic import BaseModel, Field
 from .base import BaseNode
 from .code_action import CodeActionNode
 from .graph import PromptGraph
-from .nodes import GuardNode, PromptNode
+from .nodes import PromptNode
 
 
 def build_react_graph(
@@ -161,7 +161,8 @@ def build_peoatr_graph(
     """
     from .reasoning_nodes import PlanNode, ReflectNode, SynthesizeNode, ThinkNode
 
-    graph = PromptGraph(name="peoatr")
+    # Static: passed to build_agent as a graph, it must not run as a node pool.
+    graph = PromptGraph(name="peoatr", mode="static")
     base_blocks = list(blocks) if blocks else []
     prefix = f"{system_prompt}\n\n" if system_prompt else ""
 
@@ -257,6 +258,19 @@ def build_peoatr_graph(
     return graph
 
 
+class ResearchVerdict(BaseModel):
+    """Structured output of the research ``verify`` stage."""
+
+    passes: bool = Field(
+        description="true only when every claim in the findings is backed by a tool "
+        "result, nothing contradicts the sources, and the question is fully covered"
+    )
+    issues: list[str] = Field(
+        description="Each unsupported, contradicted or missing point, with what to look "
+        "up to fix it; empty when the findings pass"
+    )
+
+
 def build_research_graph(
     search_tools: list[BaseTool] | None = None,
     synthesis_tools: list[BaseTool] | None = None,
@@ -264,52 +278,89 @@ def build_research_graph(
     *,
     blocks: list[Any] | None = None,
     verify: bool = True,
+    max_search_steps: int = 12,
+    max_verify_rounds: int = 2,
 ) -> PromptGraph:
     """Build a Search → Verify → Synthesize research pipeline.
 
     Three-stage pattern for research tasks:
-    1. Search: use search tools to gather information
-    2. Verify: cross-check findings (optional)
-    3. Synthesize: combine findings into a final answer
+
+    1. Search: use search tools to gather information, then summarize the
+       findings
+    2. Verify: a model checks the findings against the tool results gathered
+       (structured :class:`ResearchVerdict`). A failed check sends the run
+       back to search with the issues; verify runs at most
+       *max_verify_rounds* times, then the run moves on to synthesize.
+    3. Synthesize: write the final answer from the findings
+
+    Every stage has an iteration budget; a search that exhausts its budget
+    hands over to synthesize, so the run always ends with a written answer.
 
     Args:
         search_tools: Tools for the search stage.
         synthesis_tools: Optional tools for the synthesis stage.
         system_prompt: Base system prompt.
         blocks: Optional PromptBlocks shared across stages.
-        verify: Whether to include a verification stage.
+        verify: Whether to include the verification stage.
+        max_search_steps: Budget for the search stage across the run — each
+            model call (every tool-loop round) counts.
+        max_verify_rounds: How many times verify may run.
 
     Returns:
         A ``PromptGraph`` with search → verify → synthesize nodes.
     """
-    graph = PromptGraph(name="research")
+    from .reasoning_nodes import ValidateNode
+
+    graph = PromptGraph(name="research", mode="static")
     base_blocks = list(blocks) if blocks else []
+    prefix = f"{system_prompt}\n\n" if system_prompt else ""
+    after_search = "verify" if verify else "synthesize"
 
     # Search
     graph.add_node(
         PromptNode(
             "search",
             instructions=(
-                f"{system_prompt}\n\n"
+                f"{prefix}"
                 "Search for relevant information using available tools. "
-                "Be thorough — gather from multiple sources when possible."
+                "Be thorough — gather from multiple sources when possible. "
+                "If a verification lists issues, fix them: look up what is missing "
+                "or unsupported. When you have what you need, reply with a summary "
+                "of your findings, without a tool call."
             ),
             blocks=base_blocks,
             tools=list(search_tools) if search_tools else [],
-            default_next="verify" if verify else "synthesize",
-            max_iterations=5,
+            tool_choice="auto",
+            input_keys=["verification"] if verify else None,
+            default_next=after_search,
+            # Exhausted: answer from what was found.
+            transitions={"error": "synthesize"},
+            max_iterations=max_search_steps,
         )
     )
 
-    # Verify (optional)
+    # Verify (optional): a model judgement with a structured verdict.
     if verify:
         graph.add_node(
-            GuardNode(
+            ValidateNode(
                 "verify",
-                instructions="Cross-check the findings for consistency.",
-                guards=[],  # User can add custom guards
+                instructions=(
+                    "You are a fact checker. The latest reply holds research findings. "
+                    "Check them against the tool results in this conversation:\n"
+                    "1. Every claim must be backed by a tool result.\n"
+                    "2. Nothing may contradict the tool results or another claim.\n"
+                    "3. Everything the user's question asks for must be covered.\n"
+                    "Set passes to true only if all three hold. List each problem in "
+                    "issues, with what to look up to fix it."
+                ),
+                output_schema=ResearchVerdict,
+                output_key="verification",
                 on_pass="synthesize",
                 on_fail="search",
+                default_next="synthesize",
+                # Exhausted: answer from the findings as they are.
+                transitions={"error": "synthesize"},
+                max_iterations=max_verify_rounds,
             )
         )
 
@@ -318,12 +369,15 @@ def build_research_graph(
         PromptNode(
             "synthesize",
             instructions=(
-                f"{system_prompt}\n\n"
+                f"{prefix}"
                 "Synthesize all gathered information into a clear, "
-                "comprehensive answer. Cite sources where possible."
+                "comprehensive answer to the user's question. Use only facts from "
+                "the tool results, cite sources where possible, and say what could "
+                "not be determined."
             ),
             blocks=base_blocks,
             tools=list(synthesis_tools) if synthesis_tools else [],
+            tool_choice="auto",
             default_next="__end__",
         )
     )
@@ -338,53 +392,83 @@ def build_autonomous_graph(
     *,
     tools: list[BaseTool] | None = None,
     max_steps: int = 15,
+    blocks: list[Any] | None = None,
+    max_tool_rounds: int = 10,
 ) -> PromptGraph:
     """Build an autonomous agent that composes its own reasoning path.
 
     The agent receives a pool of configured nodes and dynamically
     decides which to execute at each step.  If no node_pool is provided,
-    a default set is created from the tools.
+    a default pool is created: ``reason`` (with the tools), ``analyze``
+    and ``synthesize`` (writes the final answer and ends the run).
+
+    A chosen step with tools runs its whole tool loop (several model calls
+    and tool calls) before the agent picks again.  When the agent finishes
+    without running ``synthesize``, it runs before the run ends, so the reply
+    is always a written answer.
 
     Args:
         node_pool: Pre-configured nodes the agent can choose from.
         system_prompt: Base instructions for the autonomous planner.
-        tools: Tools to create default nodes from (if no pool given).
+        tools: Tools for the default ``reason`` node (if no pool given).
         max_steps: Maximum reasoning steps.
+        blocks: Optional PromptBlocks for the default nodes.
+        max_tool_rounds: Model calls per ``reason`` step in the default pool.
 
     Returns:
         A ``PromptGraph`` with a single ``AutonomousNode``.
     """
-    from .nodes import AutonomousNode, PromptNode
+    from .nodes import AutonomousNode
+    from .reasoning_nodes import SynthesizeNode
 
-    # If no pool provided, create default nodes from tools
-    if not node_pool and tools:
+    prefix = f"{system_prompt}\n\n" if system_prompt else ""
+    base_blocks = list(blocks) if blocks else []
+    if not node_pool:
         node_pool = [
             PromptNode(
                 "reason",
-                instructions=system_prompt or "Reason about the task and use tools as needed.",
-                tools=list(tools),
+                description="Gather facts with the tools; may make several tool calls",
+                instructions=(
+                    f"{prefix}"
+                    "Work on the task with your tools. Make as many tool calls as you "
+                    "need. When you have what you need, reply with a short summary of "
+                    "what you found, without a tool call."
+                ),
+                blocks=base_blocks,
+                tools=list(tools) if tools else [],
                 tool_choice="auto",
+                max_iterations=max_tool_rounds,
             ),
             PromptNode(
                 "analyze",
-                instructions="Analyze the results gathered so far. Identify gaps.",
-                tools=None,
+                description="Analyze the results gathered so far and identify gaps",
+                instructions=f"{prefix}Analyze the results gathered so far. Identify gaps.",
+                blocks=base_blocks,
             ),
-            PromptNode(
+            SynthesizeNode(
                 "synthesize",
-                instructions="Synthesize all findings into a final, comprehensive answer.",
-                tools=None,
+                description="Write the final answer to the user and finish",
+                instructions=(
+                    f"{prefix}"
+                    "Write the final answer to the user's question from the results "
+                    "gathered. Use only facts from the tool results; say what could "
+                    "not be determined."
+                ),
+                blocks=base_blocks,
+                is_terminal=True,
             ),
         ]
 
-    graph = PromptGraph(name="autonomous")
+    graph = PromptGraph(name="autonomous", mode="static")
     graph.add_node(
         AutonomousNode(
             "agent",
-            node_pool=node_pool or [],
+            node_pool=node_pool,
             planner_instructions=system_prompt
             or "You are an autonomous agent. Select the best reasoning step for the current task.",
             max_steps=max_steps,
+            terminal_nodes=[n.name for n in node_pool if getattr(n, "is_terminal", False)],
+            default_next="__end__",
         )
     )
     graph.set_entry("agent")
@@ -394,65 +478,214 @@ def build_autonomous_graph(
 def build_deliberate_graph(
     tools: list[BaseTool] | None = None,
     system_prompt: str = "",
+    *,
+    blocks: list[Any] | None = None,
+    max_act_steps: int = 12,
     **kwargs: Any,
 ) -> PromptGraph:
-    """Build a deliberate reasoning graph: Think → Plan → Act → Observe → Reflect.
+    """Build a deliberate reasoning graph: Think → Plan → Act → Observe → Reflect → Answer.
 
     Slower but higher quality. The agent thinks before acting, observes
-    results carefully, and reflects before continuing.
+    results carefully, and reflects before continuing. Plan and reflect
+    produce structured output (:class:`PeoatrPlan`,
+    :class:`PeoatrReflection`), so the plan's quality gate and reflect's
+    ``continue`` / ``replan`` / ``answer`` route always reach the engine.
+    Every stage has an iteration budget and the run ends at ``answer``,
+    which writes the reply.
+
+    Args:
+        tools: Tools for the act stage.
+        system_prompt: Base system prompt prepended to all stages.
+        blocks: Optional PromptBlocks shared across all stages.
+        max_act_steps: Budget for the act stage across the run — each model
+            call (every tool-loop round) counts.
+
+    Returns:
+        A ``PromptGraph`` with think → plan → act → observe → reflect → answer.
     """
-    from .reasoning_nodes import ObserveNode, PlanNode, ReflectNode, ThinkNode
+    from .reasoning_nodes import ObserveNode, PlanNode, ReflectNode, SynthesizeNode, ThinkNode
 
     graph = PromptGraph(name="deliberate", mode="static")
+    base_blocks = list(blocks) if blocks else []
+    prefix = f"{system_prompt}\n\n" if system_prompt else ""
 
-    graph.add_node(ThinkNode("think", is_entry=True))
-    graph.add_node(PlanNode("plan"))
+    graph.add_node(ThinkNode("think", blocks=base_blocks, is_entry=True, default_next="plan"))
+    graph.add_node(
+        PlanNode(
+            "plan",
+            blocks=base_blocks,
+            output_schema=PeoatrPlan,
+            default_next="act",
+            # Exhausted (three weak plans): act on the latest plan anyway.
+            transitions={"error": "act"},
+            max_iterations=3,
+        )
+    )
     graph.add_node(
         PromptNode(
             "act",
+            instructions=(
+                f"{prefix}"
+                "Execute the plan with your tools. When the active subgoal is done, "
+                "reply with a short summary of what you found, without a tool call."
+            ),
+            blocks=base_blocks,
             tools=list(tools) if tools else [],
-            instructions=system_prompt or "Execute the plan.",
+            tool_choice="auto",
             inject_tools=True,
+            default_next="observe",
+            transitions={"error": "answer"},
+            max_iterations=max_act_steps,
         )
     )
-    graph.add_node(ObserveNode("observe"))
+    graph.add_node(ObserveNode("observe", blocks=base_blocks, default_next="reflect"))
     graph.add_node(
         ReflectNode(
-            "reflect", transitions={"answer": "__end__", "continue": "act", "replan": "plan"}
+            "reflect",
+            blocks=base_blocks,
+            output_schema=PeoatrReflection,
+            transitions={
+                "answer": "answer",
+                "continue": "act",
+                "replan": "plan",
+                "error": "answer",
+            },
+            default_next="answer",
+            max_iterations=4,
+        )
+    )
+    graph.add_node(
+        SynthesizeNode(
+            "answer",
+            instructions=(
+                f"{prefix}"
+                "Write the final answer to the user's question from the results "
+                "gathered. Use only facts from the tool results; say what could not "
+                "be determined."
+            ),
+            blocks=base_blocks,
+            default_next="__end__",
         )
     )
 
-    graph.sequential("think", "plan", "act", "observe", "reflect")
     graph.set_entry("think")
     return graph
+
+
+class DebateCritique(BaseModel):
+    """Structured output of the debate ``critic`` stage."""
+
+    weaknesses: list[str] = Field(description="Errors, gaps and unsupported claims in the answer")
+    improvements: list[str] = Field(description="A specific fix for each weakness")
+    severity: float = Field(
+        description="0.0 = the answer is right and complete, 1.0 = it is wrong; "
+        "above 0.3 the answer goes back for revision"
+    )
+
+
+class DebateVerdict(BaseModel):
+    """Structured output of the debate ``judge`` stage."""
+
+    passes: bool = Field(
+        description="true when the answer is correct, complete and supported by the tool results"
+    )
+    issues: list[str] = Field(description="What is still wrong or missing; empty when it passes")
 
 
 def build_debate_graph(
     system_prompt: str = "",
     *,
-    max_rounds: int = 5,
+    tools: list[BaseTool] | None = None,
+    blocks: list[Any] | None = None,
+    max_rounds: int = 3,
+    max_proposer_steps: int = 12,
     **kwargs: Any,
 ) -> PromptGraph:
-    """Build a debate graph: Proposer → Critic → Judge.
+    """Build a debate graph: Proposer ↔ Critic → Judge → Answer.
 
-    Two adversarial nodes alternate until consensus.
+    The proposer answers (with tools), the critic challenges the answer and
+    sends it back for revision when its severity is above 0.3, the judge
+    renders a verdict (a failed verdict also sends it back), and ``answer``
+    writes the reply. Critic and judge produce structured output
+    (:class:`DebateCritique`, :class:`DebateVerdict`), so their routing
+    always reaches the engine, and every stage has a budget, so the run
+    always ends with a written answer.
+
+    Args:
+        system_prompt: Base system prompt prepended to the proposer and answer.
+        tools: Tools the proposer can call.
+        blocks: Optional PromptBlocks shared across stages.
+        max_rounds: How many times the critic and the judge may each run.
+        max_proposer_steps: Budget for the proposer across the run — each
+            model call (every tool-loop round) counts.
+
+    Returns:
+        A ``PromptGraph`` with proposer → critic → judge → answer nodes.
     """
-    from .reasoning_nodes import CritiqueNode, ValidateNode
+    from .reasoning_nodes import CritiqueNode, SynthesizeNode, ValidateNode
 
     graph = PromptGraph(name="debate", mode="static")
+    base_blocks = list(blocks) if blocks else []
+    prefix = f"{system_prompt}\n\n" if system_prompt else ""
 
     graph.add_node(
         PromptNode(
             "proposer",
-            instructions=system_prompt or "Propose an answer.",
+            instructions=(
+                f"{prefix}"
+                "Propose an answer to the user's question. Use your tools to check "
+                "facts. If a critique or verdict is shown, fix every issue it lists — "
+                "check it with the tools — and give the revised answer."
+            ),
+            blocks=base_blocks,
+            tools=list(tools) if tools else [],
+            tool_choice="auto",
+            input_keys=["critique", "verdict"],
             is_entry=True,
+            default_next="critic",
+            transitions={"error": "answer"},
+            max_iterations=max_proposer_steps,
+        )
+    )
+    graph.add_node(
+        CritiqueNode(
+            "critic",
+            blocks=base_blocks,
+            severity_threshold=0.3,
+            output_schema=DebateCritique,
+            transitions={"revise": "proposer", "error": "judge"},
+            default_next="judge",
             max_iterations=max_rounds,
         )
     )
-    graph.add_node(CritiqueNode("critic", severity_threshold=0.3))
-    graph.add_node(ValidateNode("judge", on_pass="__end__", on_fail="proposer"))
+    graph.add_node(
+        ValidateNode(
+            "judge",
+            blocks=base_blocks,
+            output_schema=DebateVerdict,
+            output_key="verdict",
+            on_pass="answer",
+            on_fail="proposer",
+            default_next="answer",
+            transitions={"error": "answer"},
+            max_iterations=max_rounds,
+        )
+    )
+    graph.add_node(
+        SynthesizeNode(
+            "answer",
+            instructions=(
+                f"{prefix}"
+                "Write the final answer to the user's question: the latest proposal, "
+                "corrected for any issue the critique or verdict still lists. Use only "
+                "facts from the tool results; say what could not be determined."
+            ),
+            blocks=base_blocks,
+            input_keys=["critique", "verdict"],
+            default_next="__end__",
+        )
+    )
 
-    graph.sequential("proposer", "critic", "judge")
     graph.set_entry("proposer")
     return graph
 

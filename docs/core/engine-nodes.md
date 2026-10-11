@@ -621,7 +621,10 @@ AutonomousNode("agent",
 | `allow_repeat` | `bool` | `True` | Allow the agent to pick the same node multiple times |
 | `max_steps` | `int` | `15` | Maximum autonomous steps |
 | `entry_node` | `str \| None` | `None` | Force a specific first node |
-| `terminal_nodes` | `list[str]` | `None` | Nodes that can end the autonomous loop |
+| `terminal_nodes` | `list[str]` | `None` | Nodes that end the autonomous loop once they succeed |
+| `answer_node` | `str \| None` | `None` | Node that writes the final answer when the agent finishes without a terminal node having run last. Defaults to the first terminal node; with none, the node asks the model for the final answer itself |
+
+A chosen node runs its whole tool loop (re-run while its model keeps calling tools, up to its `max_iterations`) before the agent picks again. The routing call's prompt and JSON reply never enter `state.messages`; a tool name given as the next step runs the pool node that has that tool. The run always ends with a written answer.
 
 ---
 
