@@ -327,3 +327,41 @@ async def test_bridge_ignores_unsafe_request_id():
     # No response was written for the unsafe id, and no tool was invoked.
     assert not any(k.startswith("/workspace/_rpc/resp_") for k in session.fs)
     assert result.tool_calls == []
+
+
+@pytest.mark.asyncio
+async def test_post_tool_hook_gets_the_result_and_can_rewrite_it():
+    """post_tool(tool_name, result, args, state): the program sees what it returns."""
+
+    @tool
+    def lookup(customer_id: str) -> dict:
+        """Look up a customer."""
+        return {"id": customer_id, "email": "alice@example.com"}
+
+    from promptise.engine.state import NodeResult
+
+    seen: dict = {}
+
+    class Redact:
+        async def post_tool(self, tool_name, result, args, state):
+            seen.update(tool_name=tool_name, result=result, args=args)
+            return result.replace("alice@example.com", "[EMAIL]")
+
+    node = CodeActionNode("reason", sandbox_factory=_factory(FakeSession([])))
+    result = NodeResult()
+    state = GraphState(messages=[])
+    out = await node._invoke_tool(
+        {"lookup": lookup},
+        state,
+        {"_engine_hooks": [Redact()]},
+        "lookup",
+        {"customer_id": "c1"},
+        result,
+    )
+
+    assert seen["tool_name"] == "lookup"
+    assert seen["args"] == {"customer_id": "c1"}
+    assert json.loads(seen["result"]) == {"id": "c1", "email": "alice@example.com"}
+    assert out == {"result": {"id": "c1", "email": "[EMAIL]"}}
+    assert "alice@example.com" not in result.tool_calls[0]["result"]
+    assert "alice@example.com" not in state.observations[-1]["result"]
