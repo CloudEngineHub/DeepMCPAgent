@@ -322,3 +322,171 @@ class TestAgentProcessBuildFailure:
             with pytest.raises(RuntimeError, match="no API key"):
                 await process.start()
             assert process.state == ProcessState.FAILED
+
+
+# =========================================================================
+# The process owns its MCP client: stop, restart and hot reload close it
+# =========================================================================
+
+_TINY_SERVER = """
+import os, sys
+from mcp.server.fastmcp import FastMCP
+
+with open(sys.argv[1], "a") as f:
+    f.write(f"{os.getpid()}\\n")
+
+mcp = FastMCP("tiny")
+
+
+@mcp.tool()
+def ping() -> str:
+    \"\"\"Ping.\"\"\"
+    return "pong"
+
+
+mcp.run()
+"""
+
+
+def _alive(pid: int) -> bool:
+    import os
+
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+async def _wait_dead(pids: list[int], timeout: float = 10.0) -> list[int]:
+    """The PIDs still alive after *timeout* seconds."""
+    for _ in range(int(timeout / 0.1)):
+        alive = [pid for pid in pids if _alive(pid)]
+        if not alive:
+            return []
+        await asyncio.sleep(0.1)
+    return [pid for pid in pids if _alive(pid)]
+
+
+class _ToolAgent:
+    """Stands in for build_agent(): keeps the tools it was built with."""
+
+    def __init__(self, tools: list) -> None:
+        self.tools = tools
+        self.on_invoke = None
+
+    async def ainvoke(self, input, config=None):
+        if self.on_invoke is not None:
+            await self.on_invoke(self)
+        return {"messages": [{"role": "assistant", "content": "ok"}]}
+
+    async def shutdown(self) -> None:
+        pass
+
+    async def ping(self) -> str:
+        tool = next(t for t in self.tools if t.name.endswith("ping"))
+        return str(await tool.ainvoke({}))
+
+
+class TestMCPClientLifecycle:
+    @pytest.fixture
+    def server(self, tmp_path, monkeypatch):
+        import sys
+
+        import promptise.agent
+        from promptise.config import StdioServerSpec
+
+        script = tmp_path / "tiny_server.py"
+        script.write_text(_TINY_SERVER)
+        pid_file = tmp_path / "pids"
+        agents: list[_ToolAgent] = []
+
+        async def fake_build_agent(**kwargs):
+            agent = _ToolAgent(list(kwargs.get("extra_tools") or []))
+            agents.append(agent)
+            return agent
+
+        monkeypatch.setattr(promptise.agent, "build_agent", fake_build_agent)
+
+        def pids() -> list[int]:
+            if not pid_file.exists():
+                return []
+            return [int(line) for line in pid_file.read_text().split()]
+
+        spec = StdioServerSpec(command=sys.executable, args=[str(script), str(pid_file)])
+        return {"tiny": spec}, pids, agents
+
+    async def test_stop_closes_the_server(self, server) -> None:
+        servers, pids, _ = server
+        process = AgentProcess("leak", ProcessConfig(servers=servers))
+        try:
+            for cycle in range(1, 3):
+                await process.start()
+                assert len(pids()) == cycle
+                await process.stop()
+                assert await _wait_dead(pids()) == []
+        finally:
+            await process.stop()
+
+    async def test_restart_closes_the_previous_server(self, server) -> None:
+        servers, pids, _ = server
+        process = AgentProcess("leak", ProcessConfig(servers=servers))
+        await process.start()
+        try:
+            await process._restart(reason="test", counts=False)
+            assert process.state == ProcessState.RUNNING
+            first, second = pids()
+            assert await _wait_dead([first]) == []
+            assert _alive(second)
+        finally:
+            await process.stop()
+        assert await _wait_dead(pids()) == []
+
+    async def test_hot_reload_closes_the_previous_server(self, server) -> None:
+        from promptise.runtime.config import ExecutionMode
+
+        servers, pids, agents = server
+        process = AgentProcess(
+            "leak", ProcessConfig(servers=servers, execution_mode=ExecutionMode.OPEN)
+        )
+        await process.start()
+        try:
+            assert await process._hot_reload(reason="test") == "Rebuild successful"
+            first, second = pids()
+            assert await _wait_dead([first]) == []
+            assert _alive(second)
+            assert await agents[-1].ping() == "pong"
+        finally:
+            await process.stop()
+        assert await _wait_dead(pids()) == []
+
+    async def test_reload_during_a_run_keeps_its_tools_until_it_ends(self, server) -> None:
+        from promptise.runtime.config import ExecutionMode
+
+        servers, pids, agents = server
+        process = AgentProcess(
+            "leak", ProcessConfig(servers=servers, execution_mode=ExecutionMode.OPEN)
+        )
+        results: list[str] = []
+
+        async def reload_then_call(agent: _ToolAgent) -> None:
+            # What an open-mode agent does: a meta-tool reloads it mid-run,
+            # and the run goes on with the tools it already has.
+            await process._hot_reload(reason="agent asked")
+            results.append(await agent.ping())
+            results.append(str(_alive(pids()[0])))
+
+        await process.start()
+        try:
+            agents[0].on_invoke = reload_then_call
+            await process.inject(TriggerEvent(trigger_id="t", trigger_type="manual", payload={}))
+            for _ in range(200):
+                if process.status()["invocation_count"] == 1:
+                    break
+                await asyncio.sleep(0.05)
+            assert results == ["pong", "True"]
+            # Once the run is over, the replaced client is closed.
+            assert await _wait_dead([pids()[0]]) == []
+        finally:
+            await process.stop()
+        assert await _wait_dead(pids()) == []

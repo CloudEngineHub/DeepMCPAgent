@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
+from datetime import timedelta
+from typing import Any
 
 import pytest
 
@@ -295,3 +298,125 @@ class TestSerialization:
         restored = HealthMonitor.from_dict(data, cfg)
         restored_status = restored.health_status()
         assert isinstance(restored_status, dict)
+
+
+# ---------------------------------------------------------------------------
+# on_anomaly in AgentProcess: every anomaly of a run is acted on, once
+# ---------------------------------------------------------------------------
+
+
+class _StuckAgent:
+    """Records ``stuck_threshold`` identical tool calls, like a stuck model.
+
+    ``age`` back-dates the anomaly (the run went on that long after it was
+    detected); ``fail`` makes the run raise afterwards, as a stuck loop
+    does when it hits its iteration limit.
+    """
+
+    def __init__(self, process: Any, *, age: float = 0.0, fail: bool = False) -> None:
+        self.process = process
+        self.age = age
+        self.fail = fail
+        self.stuck = True
+        self.calls = 0
+
+    async def ainvoke(self, input: Any, config: Any = None) -> dict[str, Any]:
+        self.calls += 1
+        health = self.process._health
+        if self.stuck:
+            for _ in range(3):
+                await health.record_tool_call("list_overdue", {})
+            if self.age and health.latest_anomaly is not None:
+                health.latest_anomaly.timestamp -= timedelta(seconds=self.age)
+        if self.fail:
+            raise RuntimeError("Graph iteration limit reached")
+        return {"messages": [{"role": "assistant", "content": "Billing API unavailable."}]}
+
+    async def shutdown(self) -> None:
+        pass
+
+
+async def _health_process(
+    on_anomaly: str, **agent_kwargs: Any
+) -> tuple[Any, _StuckAgent, list[Any]]:
+    from promptise import CallbackSink, EventNotifier
+    from promptise.runtime.config import ProcessConfig
+    from promptise.runtime.process import AgentProcess
+
+    seen: list[Any] = []
+    process = AgentProcess(
+        "h",
+        ProcessConfig(health=HealthConfig(enabled=True, on_anomaly=on_anomaly, cooldown=0)),
+        event_notifier=EventNotifier(sinks=[CallbackSink(seen.append)]),
+    )
+    agent = _StuckAgent(process, **agent_kwargs)
+
+    async def build() -> None:
+        process._agent = agent
+
+    process._build_agent = build  # type: ignore[method-assign]
+    await process.start()
+    return process, agent, seen
+
+
+async def _run_once(process: Any, agent: _StuckAgent) -> None:
+    from promptise.runtime.triggers.base import TriggerEvent
+
+    before = agent.calls
+    await process.inject(TriggerEvent(trigger_id="t", trigger_type="manual", payload={}))
+    for _ in range(200):
+        if agent.calls > before:
+            break
+        await asyncio.sleep(0.01)
+    await asyncio.sleep(0.2)  # let the post-run handling finish
+
+
+class TestOnAnomalyInProcess:
+    async def test_pause_applies_however_long_the_run_went_on(self) -> None:
+        from promptise.runtime.lifecycle import ProcessState
+
+        # The run kept working for a minute after the third identical call.
+        process, agent, seen = await _health_process("pause", age=60)
+        try:
+            await _run_once(process, agent)
+            assert process.state == ProcessState.SUSPENDED
+        finally:
+            await process.stop()
+        anomalies = [e for e in seen if e.event_type == "health.anomaly"]
+        assert [e.data["anomaly_type"] for e in anomalies] == ["stuck"]
+
+    async def test_pause_applies_when_the_run_raises(self) -> None:
+        from promptise.runtime.lifecycle import ProcessState
+
+        process, agent, seen = await _health_process("pause", fail=True)
+        try:
+            await _run_once(process, agent)
+            assert process.state == ProcessState.SUSPENDED
+        finally:
+            await process.stop()
+        assert [e.event_type for e in seen].count("health.anomaly") == 1
+
+    async def test_an_anomaly_is_acted_on_once(self) -> None:
+        from promptise.runtime.lifecycle import ProcessState
+
+        process, agent, seen = await _health_process("pause")
+        try:
+            await _run_once(process, agent)
+            assert process.state == ProcessState.SUSPENDED
+            await process.resume()
+            agent.stuck = False  # the next run is healthy
+            await _run_once(process, agent)
+            # The earlier anomaly does not pause the process again.
+            assert process.state == ProcessState.RUNNING
+        finally:
+            await process.stop()
+        assert [e.event_type for e in seen].count("health.anomaly") == 1
+
+    async def test_take_new_anomalies_returns_each_once(self) -> None:
+        monitor = HealthMonitor(HealthConfig(enabled=True, cooldown=0), process_id="p")
+        for _ in range(3):
+            await monitor.record_tool_call("search", {"q": "x"})
+        first = monitor.take_new_anomalies()
+        assert [a.anomaly_type for a in first] == [AnomalyType.STUCK]
+        assert monitor.take_new_anomalies() == []
+        assert len(monitor.anomalies) == 1

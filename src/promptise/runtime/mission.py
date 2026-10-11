@@ -32,6 +32,7 @@ Example::
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import time
@@ -42,6 +43,8 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from promptise.types import ModelLike
+
     from .config import MissionConfig
     from .journal import JournalProvider
 
@@ -178,7 +181,7 @@ class MissionTracker:
     async def evaluate(
         self,
         evidence: MissionEvidence,
-        model: str,
+        model: ModelLike,
     ) -> MissionEvaluation:
         """Run a mission evaluation.
 
@@ -191,7 +194,8 @@ class MissionTracker:
 
         Args:
             evidence: Evidence bundle with conversation, state, tool log.
-            model: Fallback model ID if ``eval_model`` is not set.
+            model: Fallback model (an ID such as ``"openai:gpt-5-mini"`` or
+                a chat model instance) if ``eval_model`` is not set.
 
         Returns:
             The evaluation result.
@@ -363,10 +367,10 @@ class MissionTracker:
     async def _do_evaluate(
         self,
         evidence: MissionEvidence,
-        model: str,
+        model: ModelLike,
     ) -> MissionEvaluation:
         """Perform the actual evaluation LLM call."""
-        eval_model = self._config.eval_model or model
+        eval_model: ModelLike = self._config.eval_model or model
         if not eval_model:
             eval_model = "openai:gpt-5-mini"
 
@@ -407,13 +411,19 @@ class MissionTracker:
         try:
             from promptise import build_agent
 
+            # The judge reads the evidence only: no MCP servers, no tools.
             eval_agent = await build_agent(
+                servers={},
                 model=eval_model,
                 instructions=system_prompt,
             )
-            result = await eval_agent.ainvoke(
-                {"messages": [{"role": "user", "content": evidence_text}]}
-            )
+            try:
+                result = await eval_agent.ainvoke(
+                    {"messages": [{"role": "user", "content": evidence_text}]}
+                )
+            finally:
+                with contextlib.suppress(Exception):
+                    await eval_agent.shutdown()
 
             text = ""
             if isinstance(result, dict):
