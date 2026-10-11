@@ -185,15 +185,15 @@ class TestPrebuiltPatterns:
     def test_deliberate_graph(self):
         g = build_deliberate_graph()
         assert g.entry is not None
-        assert len(g.nodes) == 5
-        for name in ["think", "plan", "act", "observe", "reflect"]:
+        assert len(g.nodes) == 6
+        for name in ["think", "plan", "act", "observe", "reflect", "answer"]:
             assert name in g.nodes, f"Missing node: {name}"
 
     def test_debate_graph(self):
         g = build_debate_graph()
         assert g.entry is not None
-        assert len(g.nodes) == 3
-        for name in ["proposer", "critic", "judge"]:
+        assert len(g.nodes) == 4
+        for name in ["proposer", "critic", "judge", "answer"]:
             assert name in g.nodes, f"Missing node: {name}"
 
     def test_pipeline_graph(self):

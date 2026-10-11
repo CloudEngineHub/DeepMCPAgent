@@ -12,6 +12,8 @@ Every Promptise agent is powered by a Reasoning Graph. By default, `build_agent(
 
 You can replace the default with any of the 9 built-in pattern names, a prebuilt graph such as `PromptGraph.pipeline(...)`, or a graph of your own. An unknown pattern name raises `ValueError` listing the valid names.
 
+Every built-in pattern's reply is a written answer. The multi-stage patterns end at a stage that writes it (`answer` in PEOATR, deliberate and debate; `synthesize` in research and autonomous), never at a verdict, a reflection or a routing step, and every stage that routes uses structured output so its decision reaches the engine.
+
 ```mermaid
 graph TD
     BA[build_agent] -->|'react'| R1[ReAct]
@@ -67,8 +69,8 @@ agent = await build_agent(..., agent_pattern="code-action") # Writes ONE sandbox
 agent = await build_agent(..., agent_pattern="peoatr")      # Plan → Act → Think → Reflect → Answer
 agent = await build_agent(..., agent_pattern="research")    # Search → Verify → Synthesize
 agent = await build_agent(..., agent_pattern="autonomous")  # Agent builds own path
-agent = await build_agent(..., agent_pattern="deliberate")  # Think → Plan → Act → Observe → Reflect
-agent = await build_agent(..., agent_pattern="debate")      # Proposer ↔ Critic → Judge
+agent = await build_agent(..., agent_pattern="deliberate")  # Think → Plan → Act → Observe → Reflect → Answer
+agent = await build_agent(..., agent_pattern="debate")      # Proposer ↔ Critic → Judge → Answer
 
 # Prebuilt graphs that take your nodes
 steps = PromptGraph.pipeline(PromptNode("extract"), PromptNode("analyze"), PromptNode("report"))
@@ -186,43 +188,49 @@ plan ──→ act ──→ think ──→ reflect ──→ answer ──→ 
 
 ### Research
 
-Three-stage pipeline: Search gathers information, Verify cross-checks for accuracy, Synthesize produces the final output. Verification loops back to search if quality is low.
+Three-stage pipeline: Search gathers information with the tools and summarizes its findings, Verify checks them, Synthesize writes the answer. Verify is a model judgement with a structured verdict (`ResearchVerdict`): every claim must be backed by a tool result, nothing may contradict the sources, and the question must be fully covered. A failed check sends the run back to search with the issues it found; verify runs at most `max_verify_rounds` times (default 2), then the run goes on to synthesize, so it always ends with a written answer.
 
 ```
-search ──→ verify ──→ synthesize
-              ↓ (fail)
-           search
+search ──→ verify ──→ synthesize ──→ done
+   ↑          │
+   └──────────┘ (fail, at most max_verify_rounds checks)
 ```
 
 **Best for:** Fact-checking, research reports, tasks requiring verified information.
 
 ### Autonomous
 
-The agent receives a pool of reasoning nodes and dynamically decides which to execute at each step. No static edges — the LLM builds its own execution path.
+The agent receives a pool of reasoning nodes and dynamically decides which to execute at each step. No static edges — the LLM builds its own execution path. The default pool is `reason` (the agent's tools), `analyze` and `synthesize` (writes the answer and finishes).
+
+A chosen step runs its whole tool loop, so one `reason` step can make several tool calls and read their results before the agent picks again. The agent's step choice (the step menu and its JSON reply) never enters the conversation, a tool name given as the next step runs the step that has that tool, and when the agent finishes without running `synthesize`, it runs before the run ends — the reply is always a written answer.
 
 ```
-[think, plan, search, analyze, synthesize] → Agent chooses → Agent chooses → ...
+[reason, analyze, synthesize] → Agent chooses → Agent chooses → ... → synthesize
 ```
 
 **Best for:** Open-ended tasks, exploration, tasks where the optimal reasoning path isn't known ahead of time.
 
 ### Deliberate
 
-Five-stage deep reasoning: Think before acting, plan the approach, act with tools, observe results carefully, then reflect. Slower but produces higher-quality results.
+Deep reasoning: Think before acting, plan the approach, act with tools, observe results carefully, reflect, then answer. Plan and reflect use structured output, so reflect's `continue` / `replan` / `answer` decision always routes; every stage has a budget, and the `answer` stage writes the reply. Slower and more expensive than ReAct.
 
 ```
-think ──→ plan ──→ act ──→ observe ──→ reflect ──→ (continue/replan/answer)
+think ──→ plan ──→ act ──→ observe ──→ reflect ──→ answer ──→ done
+            ↑       ↑                     │
+            │       └─────────────────────┤ (continue)
+            └─────────────────────────────┘ (replan)
 ```
 
 **Best for:** High-stakes decisions, complex analysis, tasks where accuracy matters more than speed.
 
 ### Debate
 
-Adversarial two-agent debate. A proposer generates an answer, a critic challenges it, and they alternate until a judge renders the final verdict.
+Adversarial debate. A proposer answers with the agent's tools, a critic challenges the answer and sends it back for revision while its severity is above 0.3, a judge renders a verdict (a failed verdict also sends it back), and an `answer` stage writes the reply. Critic and judge use structured output, so their decisions always route; each runs at most `max_rounds` times (default 3).
 
 ```
 proposer ──→ critic ──→ (severity high) ──→ proposer
-                    ──→ (severity low)  ──→ judge ──→ done
+                    ──→ (severity low)  ──→ judge ──→ (fail) ──→ proposer
+                                                  ──→ (pass) ──→ answer ──→ done
 ```
 
 **Best for:** Controversial topics, decision-making, generating robust arguments.

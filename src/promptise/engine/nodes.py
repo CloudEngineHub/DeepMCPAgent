@@ -2183,7 +2183,23 @@ class AutonomousNode(BaseNode):
         allow_repeat: Whether the agent can re-use the same
             node multiple times.
         max_steps: Maximum nodes the agent can execute per run.
+        entry_node: Pool node to run first, before the agent chooses.
+        terminal_nodes: Pool nodes that end the run once they succeed.
+        answer_node: Pool node that writes the final answer when the agent
+            finishes without a terminal node having run last.  Defaults to
+            the first terminal node; with no terminal node, the node asks
+            the model for the final answer itself.
+
+    A chosen step runs its whole tool loop — the node is re-run while its
+    model keeps calling tools, up to the node's ``max_iterations`` — before
+    the agent chooses again.  The routing exchange (the step menu and the
+    model's JSON choice) is never added to the conversation, and the run
+    always ends with a written answer.  A tool name given as the next step
+    runs the pool node that has that tool.
     """
+
+    #: Choices that finish the run.
+    _DONE = frozenset({"__done__", "__end__", "done", "finish"})
 
     def __init__(
         self,
@@ -2195,6 +2211,7 @@ class AutonomousNode(BaseNode):
         max_steps: int = 15,
         entry_node: str | None = None,
         terminal_nodes: list[str] | None = None,
+        answer_node: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(name, **kwargs)
@@ -2204,140 +2221,258 @@ class AutonomousNode(BaseNode):
         self.max_steps = max_steps
         self.entry_node = entry_node
         self.terminal_nodes = list(terminal_nodes) if terminal_nodes else []
+        self.answer_node = answer_node
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
         """Autonomously select and execute nodes from the pool."""
-        start = time.perf_counter()
         result = NodeResult(node_name=self.name, node_type="autonomous", iteration=state.iteration)
+        async for _event in self._pipeline(state, config, result, stream=False):
+            pass
+        return result
+
+    async def stream(self, state: GraphState, config: dict[str, Any]) -> AsyncIterator[NodeEvent]:
+        """Run the :meth:`execute` pipeline, relaying the chosen steps' events
+        (model chunks and tool events).  The routing calls are not streamed."""
+        if type(self).execute is not AutonomousNode.execute:
+            async for event in super().stream(state, config):
+                yield event
+            return
+
+        yield NodeEvent(event="on_node_start", node_name=self.name)
+        result = NodeResult(node_name=self.name, node_type="autonomous", iteration=state.iteration)
+        async for event in self._pipeline(state, config, result, stream=True):
+            yield event
+        yield NodeEvent(event="on_node_end", node_name=self.name, data={"result": result})
+
+    def _step_tools(self, node: BaseNode, config: dict[str, Any]) -> list[str]:
+        """Names of the tools *node* can call in this run."""
+        if isinstance(node, PromptNode):
+            return [t.name for t in node._candidate_tools(config)]
+        return [t.name for t in getattr(node, "tools", None) or []]
+
+    def _catalog(self, config: dict[str, Any]) -> str:
+        """The step menu shown to the routing call."""
+        lines = ["Available reasoning steps:"]
+        for nname, nobj in self.node_pool.items():
+            desc = nobj.description or (nobj.instructions or "").strip() or "(no description)"
+            if len(desc) > 200:
+                desc = desc[:197] + "..."
+            tool_names = self._step_tools(nobj, config)
+            tools_info = f" [calls tools: {', '.join(tool_names)}]" if tool_names else ""
+            terminal_mark = (
+                " [TERMINAL — writes the final answer and finishes]"
+                if nname in self.terminal_nodes
+                else ""
+            )
+            lines.append(f"  - {nname}: {desc}{tools_info}{terminal_mark}")
+        return "\n".join(lines)
+
+    def _resolve_choice(self, chosen: str, config: dict[str, Any]) -> str | None:
+        """The pool node to run for *chosen*: the node of that name, or the
+        node that has a tool of that name (models sometimes name the tool
+        they want instead of the step); ``None`` when neither exists."""
+        if chosen in self.node_pool:
+            return chosen
+        for nname, nobj in self.node_pool.items():
+            if chosen in self._step_tools(nobj, config):
+                logger.info(
+                    "Autonomous: %r is a tool of step %r — running that step", chosen, nname
+                )
+                return nname
+        return None
+
+    def _final_answer_node(self) -> BaseNode:
+        """The node that writes the final answer when the agent finishes
+        without a terminal node having run last."""
+        name = self.answer_node or (self.terminal_nodes[0] if self.terminal_nodes else None)
+        if name and name in self.node_pool:
+            return self.node_pool[name]
+        return PromptNode(
+            f"{self.name}_answer",
+            instructions=(
+                "Write the final answer to the user's question from the work so far. "
+                "Use only facts from the tool results; say what could not be determined."
+            ),
+            default_next="__end__",
+        )
+
+    async def _run_step(
+        self,
+        node: BaseNode,
+        state: GraphState,
+        config: dict[str, Any],
+        result: NodeResult,
+        outcome: list[NodeResult],
+        *,
+        stream: bool,
+    ) -> AsyncIterator[NodeEvent]:
+        """Run *node* to the end of its tool loop.
+
+        Re-runs the node while its model keeps calling tools (up to the
+        node's ``max_iterations``), so a tool step can make several calls
+        and its model sees their results.  Adds each run's tool calls and
+        tokens to *result* and appends the last run's result to *outcome*.
+        """
+        limit = max(1, int(getattr(node, "max_iterations", 10) or 1))
+        for round_index in range(limit):
+            child: NodeResult | None = None
+            if stream:
+                async for event in node.stream(state, config):
+                    if event.event == "on_node_end" and isinstance(
+                        event.data.get("result"), NodeResult
+                    ):
+                        child = event.data["result"]
+                    elif event.event not in ("on_node_start", "on_node_end"):
+                        yield event
+            else:
+                child = await node.execute(state, config)
+            if child is None:
+                child = NodeResult(node_name=node.name, error="step ended without a result")
+            result.tool_calls.extend(child.tool_calls)
+            result.total_tokens += child.total_tokens
+            if (
+                child.error
+                or not (child.tool_calls and child.transition_reason == "tool_calls_present")
+                or round_index == limit - 1
+            ):
+                outcome.append(child)
+                return
+
+    async def _pipeline(
+        self,
+        state: GraphState,
+        config: dict[str, Any],
+        result: NodeResult,
+        *,
+        stream: bool,
+    ) -> AsyncIterator[NodeEvent]:
+        """The node pipeline behind :meth:`execute` and :meth:`stream`;
+        fills *result* in place."""
+        start = time.perf_counter()
 
         model: BaseChatModel | None = config.get("_engine_model")
         if model is None:
             result.error = "No model available"
-            return result
+            return
 
         if not self.node_pool:
             result.error = "No nodes in the pool"
-            return result
+            return
 
-        # Build the capability catalog for the LLM
-        catalog_lines = ["Available reasoning steps:"]
-        for nname, nobj in self.node_pool.items():
-            ntype = type(nobj).__name__
-            desc = nobj.instructions or nobj.description or "(no description)"
-            has_tools = bool(getattr(nobj, "tools", None) or getattr(nobj, "inject_tools", False))
-            tools_info = ""
-            if has_tools:
-                tool_names = [t.name for t in getattr(nobj, "tools", []) or []]
-                if getattr(nobj, "inject_tools", False):
-                    tools_info = " [has tools: runtime-injected]"
-                elif tool_names:
-                    tools_info = f" [tools: {', '.join(tool_names)}]"
-            terminal_mark = " [TERMINAL — can finish here]" if nname in self.terminal_nodes else ""
-            catalog_lines.append(f"  - {nname} ({ntype}): {desc}{tools_info}{terminal_mark}")
-
-        catalog = "\n".join(catalog_lines)
+        catalog = self._catalog(config)
+        names = ", ".join(json.dumps(n) for n in self.node_pool)
         used_nodes: list[str] = []
+        # Feedback for the next routing call only (never the conversation).
+        notes: list[str] = []
+        # Whether the last step was a terminal node that succeeded.
+        finished = False
+
+        async def run(chosen_name: str) -> AsyncIterator[NodeEvent]:
+            nonlocal finished
+            outcome: list[NodeResult] = []
+            used_nodes.append(chosen_name)
+            try:
+                async for event in self._run_step(
+                    self.node_pool[chosen_name], state, config, result, outcome, stream=stream
+                ):
+                    yield event
+            except Exception as exc:
+                logger.warning("Autonomous step %r failed: %s", chosen_name, exc)
+                notes.append(f"Step '{chosen_name}' failed: {exc}")
+                return
+            child = outcome[-1] if outcome else None
+            if child is not None and child.error:
+                notes.append(f"Step '{chosen_name}' failed: {child.error}")
+            finished = chosen_name in self.terminal_nodes and child is not None and not child.error
 
         # If entry_node is set, execute it first
         if self.entry_node and self.entry_node in self.node_pool:
-            entry = self.node_pool[self.entry_node]
             logger.info("Autonomous: starting with entry node %r", self.entry_node)
-            used_nodes.append(self.entry_node)
-            try:
-                child_result = await entry.execute(state, config)
-                result.tool_calls.extend(child_result.tool_calls)
-                result.total_tokens += child_result.total_tokens
-                # If entry is terminal and completed, we're done
-                if self.entry_node in self.terminal_nodes and not child_result.error:
-                    result.output = {"steps": used_nodes, "total": len(used_nodes)}
-                    result.duration_ms = (time.perf_counter() - start) * 1000
-                    return result
-            except Exception as exc:
-                state.messages.append(SystemMessage(content=f"Entry node failed: {exc}"))
+            async for event in run(self.entry_node):
+                yield event
 
-        for step_idx in range(self.max_steps):
-            # Ask the LLM which node to execute next
+        step_idx = 0
+        while not finished and step_idx < self.max_steps:
+            # Ask the LLM which node to execute next.  The prompt and the
+            # model's JSON choice stay out of state.messages: they are
+            # routing, not conversation, and must never become the reply.
             routing_prompt = (
                 f"{self.planner_instructions}\n\n"
                 f"{catalog}\n\n"
                 f"Steps completed: {used_nodes if used_nodes else '(none)'}\n"
-                f"Step {step_idx + 1}/{self.max_steps}\n\n"
+                f"Step {step_idx + 1}/{self.max_steps}\n"
+                + ("".join(f"\nNote: {note}" for note in notes) + "\n" if notes else "")
+                + "\nChoose the next step. next_node must be one of "
+                f"{names} — a step name, not a tool name: a step calls its own "
+                'tools. Choose "__done__" when the work is complete; the final '
+                "answer is written after you finish.\n"
                 "Respond with ONLY a JSON object:\n"
-                '{"next_node": "<node_name>", "reason": "<brief reason>"}\n'
-                "To finish and give final answer: "
-                '{"next_node": "__done__", "reason": "<summary>"}'
+                '{"next_node": "<step name>", "reason": "<brief reason>"}'
             )
-
-            state.messages.append(SystemMessage(content=routing_prompt))
+            notes = []
+            step_idx += 1
 
             try:
                 response = await model.ainvoke(
-                    state.messages, config=cast("RunnableConfig | None", config)
+                    [*state.messages, SystemMessage(content=routing_prompt)],
+                    config=cast("RunnableConfig | None", config),
                 )
-                state.messages.append(response)
-                _raw_content = response.content if hasattr(response, "content") else str(response)
-                raw = _raw_content if isinstance(_raw_content, str) else str(_raw_content or "")
-
-                # Extract JSON from response (handles nested braces)
-                choice = self._extract_json(raw)
-                if choice is None:
-                    choice = {"next_node": "__done__", "reason": "unparseable"}
-
             except Exception as exc:
-                record_failure(result, exc, f"Routing failed at step {step_idx}: {exc}")
+                record_failure(result, exc, f"Routing failed at step {step_idx - 1}: {exc}")
+                break
+            prompt_tokens, completion_tokens = token_usage(response)
+            result.total_tokens += prompt_tokens + completion_tokens
+            _raw_content = response.content if hasattr(response, "content") else str(response)
+            raw = _raw_content if isinstance(_raw_content, str) else str(_raw_content or "")
+
+            # Extract JSON from response (handles nested braces)
+            choice = self._extract_json(raw)
+            if choice is None:
+                result.transition_reason = "Agent finished: unparseable routing reply"
                 break
 
-            chosen_name = choice.get("next_node", "__done__")
+            chosen = str(choice.get("next_node", "__done__"))
             reason = choice.get("reason", "")
 
             # Finished?
-            if chosen_name == "__done__":
+            if chosen in self._DONE:
                 result.transition_reason = f"Agent finished: {reason}"
                 break
 
-            # Validate
-            if chosen_name not in self.node_pool:
-                state.messages.append(
-                    SystemMessage(
-                        content=(
-                            f"'{chosen_name}' is not available. "
-                            f"Choose from: {list(self.node_pool.keys())}"
-                        )
-                    )
-                )
+            chosen_name = self._resolve_choice(chosen, config)
+            if chosen_name is None:
+                notes.append(f"'{chosen}' is not a step. Choose one of: {names}.")
                 continue
 
             if not self.allow_repeat and chosen_name in used_nodes:
-                state.messages.append(
-                    SystemMessage(content=f"'{chosen_name}' already used. Choose another.")
-                )
+                notes.append(f"'{chosen_name}' was already used. Choose another step.")
                 continue
 
-            # Execute the chosen node
-            logger.info(
-                "Autonomous step %d: executing %r (%s)",
-                step_idx + 1,
-                chosen_name,
-                reason,
-            )
-            chosen_node = self.node_pool[chosen_name]
-            used_nodes.append(chosen_name)
+            logger.info("Autonomous step %d: executing %r (%s)", step_idx, chosen_name, reason)
+            async for event in run(chosen_name):
+                yield event
+            if finished:
+                result.transition_reason = f"Terminal node '{chosen_name}' completed"
 
-            try:
-                child_result = await chosen_node.execute(state, config)
-                result.tool_calls.extend(child_result.tool_calls)
-                result.total_tokens += child_result.total_tokens
-
-                # If this was a terminal node and it succeeded, we're done
-                if chosen_name in self.terminal_nodes and not child_result.error:
-                    result.transition_reason = f"Terminal node '{chosen_name}' completed"
-                    break
-            except Exception as exc:
-                state.messages.append(SystemMessage(content=f"Step '{chosen_name}' failed: {exc}"))
+        # The run ends with a written answer: when no terminal node ran last,
+        # the answer node writes it (unless it just ran).
+        if not result.error and not finished:
+            answer = self._final_answer_node()
+            if not used_nodes or used_nodes[-1] != answer.name:
+                outcome: list[NodeResult] = []
+                used_nodes.append(answer.name)
+                async for event in self._run_step(
+                    answer, state, config, result, outcome, stream=stream
+                ):
+                    yield event
+                if outcome and outcome[-1].error:
+                    result.error = outcome[-1].error
+                    cause = failure_cause(outcome[-1])
+                    if cause is not None:
+                        setattr(result, _FAILURE_CAUSE_ATTR, cause)
 
         result.output = {"steps": used_nodes, "total": len(used_nodes)}
         result.duration_ms = (time.perf_counter() - start) * 1000
-        return result
 
     @staticmethod
     def _extract_json(text: str) -> dict | None:

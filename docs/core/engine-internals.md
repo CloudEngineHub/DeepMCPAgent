@@ -136,25 +136,30 @@ sequenceDiagram
         LLM-->>A: {"next_node": "act", "reason": "Need to search for data"}
 
         alt next_node == "__done__" or terminal node succeeded
-            A-->>E: Return final result
-        else Valid node selected
-            A->>P: Execute chosen node (e.g. "act")
+            A->>A: Leave the loop
+        else Valid node (or a tool of one) selected
+            A->>P: Execute chosen node until its tool loop ends
             P-->>A: NodeResult with output
-            A->>A: Append result to state, continue loop
+            A->>A: Continue loop
         else Invalid node name
-            A->>A: Log warning, ask LLM again
+            A->>A: Tell the next routing call, ask LLM again
         end
     end
+
+    opt No terminal node ran last
+        A->>P: Run the answer node (first terminal node)
+    end
+    A-->>E: Return final result
 ```
 
 In autonomous mode, the `AutonomousNode` wraps the pool and orchestrates:
 
-1. Builds a routing prompt listing all available nodes with descriptions
-2. Asks the LLM which node to run next
+1. Builds a routing prompt listing all available nodes with descriptions and their tools
+2. Asks the LLM which node to run next — the prompt and reply are sent for that call only, never added to `state.messages`
 3. Extracts JSON from the response (balanced brace parser for nested objects)
-4. Executes the chosen node
-5. Records result in state
-6. Loops back to step 2 until the LLM chooses `__done__` or a terminal node succeeds
+4. Executes the chosen node, re-running it while its model keeps calling tools (a tool name runs the node that has the tool)
+5. Loops back to step 2 until the LLM chooses `__done__` or a terminal node succeeds
+6. When no terminal node ran last, runs the answer node, so the run ends with a written answer
 
 The developer controls the pool composition — what nodes are available. The LLM controls the path — which nodes to use and in what order.
 
