@@ -115,10 +115,12 @@ Promptise makes the capability first-class instead. The MCP Server SDK is the au
 Because the tool is shared across Claude Desktop, Cursor, ChatGPT, and your agents, the server is where you enforce policy once for all of them. Add JWT or API-key auth at the transport, attach per-tool guards and rate limits, and turn on the dashboard — the same `@server.tool()` you already wrote now runs behind production controls without touching any client. The [production features guide](../../mcp/server/production-features.md) walks through auth middleware, per-tool roles, circuit breakers, metrics, and audit logging on exactly this kind of server.
 
 ```python
+import os
+
 from promptise.mcp.server import MCPServer, AuthMiddleware, JWTAuth
 
 server = MCPServer(name="invoice-tools", version="1.0.0")
-server.add_middleware(AuthMiddleware(JWTAuth(secret="${JWT_SECRET}")))
+server.add_middleware(AuthMiddleware(JWTAuth(secret=os.environ["JWT_SECRET"])))
 
 # ... your @server.tool() definitions stay exactly as before ...
 

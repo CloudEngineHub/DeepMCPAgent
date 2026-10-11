@@ -23,7 +23,7 @@ from contextlib import asynccontextmanager
 from unittest.mock import MagicMock, patch
 
 import pytest
-import uvicorn
+from _live_server import serve_mcp
 
 from promptise import MCPConnectionRejectedError
 from promptise.agent import build_agent
@@ -51,36 +51,10 @@ def _orders_server() -> MCPServer:
 
 
 @asynccontextmanager
-async def _serve(server: MCPServer, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[str]:
-    """Run *server* over Streamable HTTP and yield its ``/mcp`` URL."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    task = asyncio.ensure_future(server.run_async(transport="http", host="127.0.0.1", port=0))
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()  # surfaces a startup failure
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 5
-        port = instances[0].servers[0].sockets[0].getsockname()[1]
+async def _serve(server: MCPServer) -> AsyncIterator[str]:
+    """Run *server* over Streamable HTTP on a free loopback port; yield its ``/mcp`` URL."""
+    async with serve_mcp(server) as port:
         yield f"http://127.0.0.1:{port}/mcp"
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
 
 
 async def _assert_caller_task_healthy() -> None:
@@ -104,7 +78,7 @@ async def _connect(client: MCPClient | MCPMultiClient) -> None:
 
 class TestMCPClientRejected:
     async def test_missing_credentials_raise_typed_401(self, monkeypatch):
-        async with _serve(_orders_server(), monkeypatch) as url:
+        async with _serve(_orders_server()) as url:
             with pytest.raises(MCPConnectionRejectedError) as info:
                 await asyncio.wait_for(_connect(MCPClient(url=url, api_key=None)), FAIL_FAST)
             await _assert_caller_task_healthy()
@@ -120,14 +94,14 @@ class TestMCPClientRejected:
         )
 
     async def test_wrong_api_key_raises_typed_401(self, monkeypatch):
-        async with _serve(_orders_server(), monkeypatch) as url:
+        async with _serve(_orders_server()) as url:
             with pytest.raises(MCPConnectionRejectedError, match="401 Unauthorized"):
                 client = MCPClient(url=url, api_key="not-the-key")
                 await asyncio.wait_for(_connect(client), FAIL_FAST)
             await _assert_caller_task_healthy()
 
     async def test_valid_key_connects_and_closes_from_another_task(self, monkeypatch):
-        async with _serve(_orders_server(), monkeypatch) as url:
+        async with _serve(_orders_server()) as url:
             client = MCPClient(url=url, api_key=API_KEY)
             await asyncio.wait_for(client.__aenter__(), FAIL_FAST)
             tools = await asyncio.wait_for(client.list_tools(), FAIL_FAST)
@@ -159,7 +133,7 @@ class TestMCPClientRejected:
 
 class TestNamedServerRejected:
     async def test_multi_client_names_the_server(self, monkeypatch):
-        async with _serve(_orders_server(), monkeypatch) as url:
+        async with _serve(_orders_server()) as url:
             multi = MCPMultiClient({"orders": MCPClient(url=url)})
             with pytest.raises(MCPConnectionRejectedError) as info:
                 await asyncio.wait_for(_connect(multi), FAIL_FAST)
@@ -172,7 +146,7 @@ class TestNamedServerRejected:
         )
 
     async def test_build_agent_fails_fast_with_clear_error(self, monkeypatch):
-        async with _serve(_orders_server(), monkeypatch) as url:
+        async with _serve(_orders_server()) as url:
             with (
                 patch("promptise.agent._normalize_model", return_value=MagicMock()),
                 pytest.raises(MCPConnectionRejectedError) as info,

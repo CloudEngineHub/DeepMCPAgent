@@ -205,6 +205,9 @@ Two things to check:
   MCP server) or is not meant for it. stdio servers have no request
   headers, never receive the token, and log a warning the first time a
   caller token cannot be sent to them.
+- **A server with an API key** (`api_key=` or an `x-api-key` header) keeps
+  the key and does not receive the user's token unless its spec sets
+  `forward_caller_token=True`.
 
 !!! note "Memory providers see composite ids"
     With a tenant present, providers store owner ids like

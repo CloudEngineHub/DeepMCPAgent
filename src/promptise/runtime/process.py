@@ -151,7 +151,8 @@ def _resolve_server_specs(
     pass through unchanged. Dict entries are normalized, carrying through
     **every** supported field so a dict-based config behaves identically to
     passing the spec object directly — an HTTP dict keeps ``headers``,
-    ``auth``, ``bearer_token``, ``api_key`` and ``audience``; a stdio dict
+    ``auth``, ``bearer_token``, ``api_key``, ``audience`` and
+    ``forward_caller_token``; a stdio dict
     keeps ``args``, ``env``, ``cwd`` and ``keep_alive``. Unrecognized entries
     (neither a spec object nor a dict with a ``url``/``command``) are skipped.
 
@@ -1200,13 +1201,14 @@ class AgentProcess:
                 await multi.__aenter__()
                 mcp_multi = multi
                 # Same per-caller token forwarding as build_agent(): servers
-                # that opt out keep the spec's credential for every call.
+                # that opt out, or have an API key, keep the spec's
+                # credential for every call.
                 mcp_adapter = MCPToolAdapter(
                     multi,
                     forward_caller_token=[
                         sname
                         for sname, spec in resolved.items()
-                        if not isinstance(spec, HTTPServerSpec) or spec.forward_caller_token
+                        if not isinstance(spec, HTTPServerSpec) or spec.forwards_caller_token
                     ],
                 )
                 mcp_tools = await mcp_adapter.as_langchain_tools()

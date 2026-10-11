@@ -20,7 +20,7 @@ from contextlib import asynccontextmanager
 
 import anyio
 import pytest
-import uvicorn
+from _live_server import serve_mcp
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.types import CancelledNotification, CancelledNotificationParams, ClientNotification
@@ -39,36 +39,10 @@ TIMEOUT = 5.0
 
 
 @asynccontextmanager
-async def _serve(server: MCPServer, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[str]:
-    """Run *server* over Streamable HTTP and yield its ``/mcp`` URL."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    task = asyncio.ensure_future(server.run_async(transport="http", host="127.0.0.1", port=0))
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()  # surfaces a startup failure
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 5
-        port = instances[0].servers[0].sockets[0].getsockname()[1]
+async def _serve(server: MCPServer) -> AsyncIterator[str]:
+    """Run *server* over Streamable HTTP on a free loopback port; yield its ``/mcp`` URL."""
+    async with serve_mcp(server) as port:
         yield f"http://127.0.0.1:{port}/mcp"
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
 
 
 # =====================================================================
@@ -94,7 +68,7 @@ class TestBackgroundTasksAfterResponse:
             bg.add(send_receipt, order_id)
             return {"order_id": order_id, "status": "placed"}
 
-        async with _serve(server, monkeypatch) as url, MCPClient(url=url) as client:
+        async with _serve(server) as url, MCPClient(url=url) as client:
             # Before the fix this deadlocked: the response waited for the
             # receipt, which waits for the response to arrive.
             result = await asyncio.wait_for(
@@ -253,7 +227,7 @@ class TestCancellationOverHTTP:
             return {"stopped_by": "token"}
 
         async with (
-            _serve(server, monkeypatch) as url,
+            _serve(server) as url,
             streamablehttp_client(url) as (read, write, _),
             ClientSession(read, write) as session,
         ):

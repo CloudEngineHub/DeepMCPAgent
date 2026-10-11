@@ -82,7 +82,9 @@ the bearer token of the `CallerContext` active when the tool runs (inside
 `agent.ainvoke(..., caller=...)`), over a session opened for that token:
 `True` for every server, a collection of server names for only those, or
 `False` (the default) for none. `build_agent()` turns it on for every
-server whose spec does not set `forward_caller_token=False`. See
+server whose spec forwards caller tokens (`HTTPServerSpec.forwards_caller_token`:
+not `forward_caller_token=False`, and no API key unless
+`forward_caller_token=True`). See
 [Calling a tool as a specific user](index.md#calling-a-tool-as-a-specific-user).
 
 ### Getting LangChain tools

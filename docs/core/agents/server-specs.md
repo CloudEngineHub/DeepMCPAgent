@@ -121,7 +121,7 @@ spec = HTTPServerSpec(
 | `bearer_token` | `str \| None` | `None` | Pre-issued Bearer token. Automatically injected as `Authorization: Bearer <token>`. |
 | `api_key` | `str \| None` | `None` | Pre-shared API key. Automatically injected as `x-api-key: <key>`. |
 | `audience` | `str \| None` | `None` | Resource audience this server expects; with an agent identity and no `bearer_token`, a credential for this audience is presented. |
-| `forward_caller_token` | `bool` | `True` | When an invocation's `CallerContext` has a `bearer_token`, call this server's tools with that token (one MCP session per caller) instead of `bearer_token` / the agent identity. Set `False` for servers that must not receive your users' tokens. See [Per-user tokens](#per-user-tokens). |
+| `forward_caller_token` | `bool \| None` | `None` | When an invocation's `CallerContext` has a `bearer_token`, call this server's tools with that token (one MCP session per caller) instead of `bearer_token` / the agent identity. `None`: forward, unless the server has an API key (`api_key` or an `x-api-key` header), which wins. `True`: always forward. `False`: never; use it for servers that must not receive your users' tokens. See [Per-user tokens](#per-user-tokens). |
 | `auth` | `str \| None` | `None` | Legacy auth hint (kept for backward compatibility). |
 
 ### Per-user tokens
@@ -153,9 +153,26 @@ Each distinct caller token gets its own MCP session, opened on first use,
 reused by that caller's later calls, and closed after five idle minutes;
 concurrent invocations never share a session or a header. The forwarded
 token replaces any `Authorization` header from `bearer_token` or
-`headers`; other headers, including `x-api-key`, are kept. Invocations
-without a caller token use the spec's credentials. `StdioServerSpec`
-servers have no request headers and never receive a caller token.
+`headers`. Invocations without a caller token use the spec's credentials.
+`StdioServerSpec` servers have no request headers and never receive a
+caller token.
+
+**Which credential a server sees on a tool call:**
+
+| Spec | Caller has a token | Caller has no token |
+|---|---|---|
+| `forward_caller_token=False` | spec credential | spec credential |
+| `api_key` / `x-api-key` header, `forward_caller_token` unset | spec credential (the API key wins) | spec credential |
+| `bearer_token`, an `Authorization` header, or nothing | caller's token | spec credential / agent identity |
+| `api_key` and `forward_caller_token=True` | caller's token **and** the API key | spec credential |
+
+An API key is an explicit credential for that server, so by default it
+wins: the caller's bearer is not sent. (It cannot replace the key: it
+would travel next to it, and a gate that checks the bearer first, as a
+Promptise server's does, answers `401`.) Set `forward_caller_token=True`
+only when the server is meant to authenticate your users: both headers
+are then sent and the server decides which one counts. A Promptise server
+checks the bearer first, so the user's token must be valid there.
 
 ### Transport Protocols
 

@@ -32,7 +32,7 @@ from typing import Annotated, Any, Literal
 
 import httpx
 import pytest
-import uvicorn
+from _live_server import serve_mcp
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
@@ -61,36 +61,10 @@ TIMEOUT = 15.0
 
 
 @asynccontextmanager
-async def _serve(server: MCPServer, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[str]:
-    """Run *server* over Streamable HTTP and yield its ``/mcp`` URL."""
-    instances: list[uvicorn.Server] = []
-
-    class _Recording(uvicorn.Server):
-        def __init__(self, config: uvicorn.Config) -> None:
-            super().__init__(config)
-            instances.append(self)
-
-    monkeypatch.setattr(uvicorn, "Server", _Recording)
-    task = asyncio.ensure_future(server.run_async(transport="http", host="127.0.0.1", port=0))
-    try:
-        for _ in range(400):
-            if task.done():
-                task.result()
-            if instances and instances[0].started:
-                break
-            await asyncio.sleep(0.025)
-        else:
-            raise RuntimeError("server did not start")
-        instances[0].config.timeout_graceful_shutdown = 5
-        port = instances[0].servers[0].sockets[0].getsockname()[1]
+async def _serve(server: MCPServer) -> AsyncIterator[str]:
+    """Run *server* over Streamable HTTP on a free loopback port; yield its ``/mcp`` URL."""
+    async with serve_mcp(server) as port:
         yield f"http://127.0.0.1:{port}/mcp"
-    finally:
-        if instances:
-            instances[0].should_exit = True
-        try:
-            await asyncio.wait_for(task, 15)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            task.cancel()
 
 
 class _ScriptedModel(BaseChatModel):
@@ -218,7 +192,7 @@ class TestOptionalArgumentsAreNotSent:
     async def test_omitted_optional_parameters_are_left_out(self, monkeypatch, sent):
         server, received = _shop()
         model = _ScriptedModel(_calls(("search_orders", {"query": "lamps"})))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model)
         assert sent == [("search_orders", {"query": "lamps"})]
         # The server applied its own defaults.
@@ -237,7 +211,7 @@ class TestOptionalArgumentsAreNotSent:
             _calls(("search_orders", {"query": "lamps", "limit": None, "status": None}))
         )
         with caplog.at_level("DEBUG", logger="promptise.tools"):
-            async with _serve(server, monkeypatch) as url:
+            async with _serve(server) as url:
                 await _run(url, model)
         assert sent == [("search_orders", {"query": "lamps"})]
         assert received[0][1]["limit"] == 10
@@ -248,7 +222,7 @@ class TestOptionalArgumentsAreNotSent:
     async def test_null_for_a_nullable_parameter_is_sent(self, monkeypatch, sent):
         server, _ = _shop()
         model = _ScriptedModel(_calls(("search_orders", {"query": "lamps", "region": None})))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model)
         assert sent == [("search_orders", {"query": "lamps", "region": None})]
 
@@ -260,7 +234,7 @@ class TestOptionalArgumentsAreNotSent:
             "ship_to": {"city": "Bern"},
         }
         model = _ScriptedModel(_calls(("create_order", args)))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model)
         [(name, arguments)] = sent
         assert name == "create_order"
@@ -282,7 +256,7 @@ class TestInvalidArgumentsReachTheModel:
                 ("search_orders", {"query": "lamps", "limit": 5}),
             )
         )
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model, trace_tools=True)
         # The invalid call was never sent; the corrected one was.
         assert sent == [("search_orders", {"query": "lamps", "limit": 5})]
@@ -299,7 +273,7 @@ class TestInvalidArgumentsReachTheModel:
     async def test_a_null_for_a_required_parameter_is_reported(self, monkeypatch, sent):
         server, _ = _shop()
         model = _ScriptedModel(_calls(("search_orders", {"query": None})))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model)
         assert sent == []
         [result] = model.tool_results()
@@ -310,7 +284,7 @@ class TestInvalidArgumentsReachTheModel:
         events: list[AgentEvent] = []
         notifier = EventNotifier(sinks=[CallbackSink(events.append, events=["tool.error"])])
         model = _ScriptedModel(_calls(("search_orders", {"query": "x", "limit": "lots"})))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model, events=notifier)
             for _ in range(100):
                 if events:
@@ -333,7 +307,7 @@ class TestDownstreamSeesPlainData:
         server, _ = _shop()
         collector = ObservabilityCollector("t")
         model = _ScriptedModel(_calls(("create_order", self.ARGS)))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model, trace_tools=True, observer=collector)
         out = capsys.readouterr().out
         assert "Args_" not in out
@@ -353,7 +327,7 @@ class TestDownstreamSeesPlainData:
         events: list[AgentEvent] = []
         notifier = EventNotifier(sinks=[CallbackSink(events.append, events=["approval.requested"])])
         model = _ScriptedModel(_calls(("create_order", self.ARGS)))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(
                 url,
                 model,
@@ -393,7 +367,7 @@ class TestDownstreamSeesPlainData:
             fallback=fallback,
         )
         model = _ScriptedModel(_calls(("create_order", self.ARGS)))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model, approval=ApprovalPolicy(tools=["*"], handler=classifier))
         assert fallback_requests == []
         assert sent == [] and received == []
@@ -411,7 +385,7 @@ class TestDownstreamSeesPlainData:
         model = _ScriptedModel(
             _calls(("search_orders", {"query": "lamps", "limit": None, "region": None}))
         )
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(url, model, approval=ApprovalPolicy(tools=["*"], handler=handler))
         assert requests[0].arguments == {"query": "lamps", "region": None}
         assert sent == [("search_orders", {"query": "lamps", "region": None})]
@@ -427,7 +401,7 @@ class TestDownstreamSeesPlainData:
             return True
 
         model = _ScriptedModel(_calls(("search_orders", {"query": "x", "limit": "lots"})))
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             await _run(
                 url,
                 model,
@@ -590,7 +564,7 @@ class TestMCPcastServer:
         )
         async with httpx.AsyncClient(transport=httpx.MockTransport(upstream.handler)) as http:
             server = _petstore(tmp_path, http)
-            async with _serve(server, monkeypatch) as url:
+            async with _serve(server) as url:
                 await _run(url, model, approval=ApprovalPolicy(tools=["add_*"], handler=handler))
         results = model.tool_results()
         assert [r.status for r in results] == ["success"] * 3, [r.content for r in results]
@@ -862,7 +836,7 @@ class TestOptimizedToolSchemas:
         self, level, monkeypatch, sent
     ):
         server, received = _travel()
-        async with _serve(server, monkeypatch) as url:
+        async with _serve(server) as url:
             plain_model, plain_sent, _ = await self._offered_and_sent(url, sent)
             received.clear()
             model, optimized_sent, requests = await self._offered_and_sent(

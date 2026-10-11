@@ -206,13 +206,17 @@ config = servers_to_mcp_config(servers)
 ## Tips and gotchas
 
 !!! tip
-    Use environment variables in your server URLs and tokens with the
-    [Environment Resolver](env-resolver.md) to keep secrets out of source code:
+    Read server URLs and tokens from the environment to keep secrets out of
+    source code. `HTTPServerSpec` takes its values as given: a `"${VAR}"`
+    string is **not** expanded here (only `.superagent` files and the
+    [Environment Resolver](env-resolver.md) expand it).
 
     ```python
+    import os
+
     HTTPServerSpec(
-        url="${MCP_SERVER_URL}",
-        bearer_token="${MCP_TOKEN}",
+        url=os.environ["MCP_SERVER_URL"],
+        bearer_token=os.environ["MCP_TOKEN"],
     )
     ```
 
