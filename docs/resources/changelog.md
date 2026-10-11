@@ -4,7 +4,7 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
-## v1.3.2 — unreleased
+## v1.3.2 — 2026-10-11
 
 ### Fixed
 - **Code-action: `post_tool` hooks got their arguments swapped and could not rewrite results** -- `CodeActionNode` called `post_tool(name, args, result, state)` instead of the documented `post_tool(tool_name, result, args, state)` and ignored what the hook returned, so a hook that redacts or truncates tool results had no effect on code-action agents. The hook now gets the documented arguments, and a returned string replaces the result the generated program receives and the run records.
