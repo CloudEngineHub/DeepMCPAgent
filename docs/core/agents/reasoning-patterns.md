@@ -120,8 +120,11 @@ A single tool-using node run with `context_scope="ledger"` for **long tool
 chains**. Instead of feeding the model an ever-growing transcript of tool calls
 and results — where it loses track and re-queries the same facts repeatedly —
 each turn it sees the task plus a compact, **deduplicated "facts gathered"
-ledger**. Context stays bounded and identical `(tool, args)` calls are served
-from cache instead of re-executed.
+ledger**. Context stays bounded, and the model consults the ledger instead of
+re-querying facts it has. A call it does repeat runs the tool again; to answer
+repeated lookups from the earlier result, opt those tools in with
+`ContextCompaction(reuse_results=[...])` (see
+[Repeated calls run the tool](../../guides/context-lifecycle.md#repeated-calls-run-the-tool)).
 
 ```
 reason ──→ (tool) ──→ reason + facts-ledger ──→ (tool) ──→ ... ──→ answer

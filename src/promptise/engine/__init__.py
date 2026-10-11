@@ -18,7 +18,7 @@ from . import prebuilts as _prebuilts  # noqa: F401
 from .base import BaseNode, NodeProtocol, node
 from .code_action import CodeActionConfig, CodeActionNode
 from .compaction import ContextCompaction
-from .execution import GraphExecutionError, PromptGraphEngine
+from .execution import GraphExecutionError, GraphIterationLimitError, PromptGraphEngine
 from .graph import Edge, EdgeCondition, PromptGraph
 from .hooks import BudgetHook, CycleDetectionHook, Hook, LoggingHook, MetricsHook, TimingHook
 from .nodes import (
@@ -96,6 +96,7 @@ __all__ = [
     "GraphMutation",
     "ExecutionReport",
     "GraphExecutionError",
+    "GraphIterationLimitError",
     "NodeFlag",
     # Hooks
     "Hook",

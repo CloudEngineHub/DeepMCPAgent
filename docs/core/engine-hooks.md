@@ -24,6 +24,12 @@ class MyHook:
         """Called after each tool call. Can modify result string."""
         return result
 
+    async def on_tool_reused(self, tool_name: str, args: dict, result: str, state: GraphState) -> None:
+        """Called instead of pre_tool/post_tool when a call is answered from an
+        earlier result without running the tool (only for tools opted in with
+        ContextCompaction(reuse_results=...))."""
+        pass
+
     async def on_error(self, node: BaseNode, error: Exception, state: GraphState) -> None:
         """Called when a node raises an exception."""
         pass

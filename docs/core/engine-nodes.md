@@ -302,7 +302,7 @@ PromptNode("analyze",
 | `include_reflections` | `bool` | `True` | Auto-inject past learnings from `state.reflections` |
 | `transitions` | `dict[str, str]` | `None` | Map output keys to next-node names (e.g. `{"proceed": "act"}`) |
 | `default_next` | `str` | `None` | Fallback node if no transition matches |
-| `max_iterations` | `int` | `10` | Max times this node can execute in one graph run; each tool-loop round counts. The engine's `max_node_iterations` (25) caps it. Once used up, the node is not run again: the engine follows its `"error"` transition, else an `__error__` node, else ends the run |
+| `max_iterations` | `int` | `10` | Max times this node can execute in one graph run; each tool-loop round counts. The engine's `max_node_iterations` (25) caps it. Once used up, the node is not run again: the engine follows its `"error"` transition, else an `__error__` node, else ends the run. A run ended this way in the middle of a tool loop (the model never saw its last tool results) raises `GraphIterationLimitError` |
 | `flags` | `set[NodeFlag]` | `None` | Typed flags controlling engine behavior |
 | `is_entry` | `bool` | `False` | Shorthand for adding `NodeFlag.ENTRY` |
 | `is_terminal` | `bool` | `False` | Shorthand for adding `NodeFlag.TERMINAL` |
@@ -369,9 +369,9 @@ PromptNode("reason", inject_tools=True, context_scope="ledger")
 - The ledger is built from the tool calls in the transcript older than the latest exchange — one line per `tool(args) = result`, **last value wins** per `(tool, args)` so duplicates collapse. Results longer than `keep_result_chars` (2,000) are cut to an excerpt that names the call; results shown in the latest exchange are not repeated.
 - It is placed **last**, immediately before the model's turn, where it is most salient — so the model consults it instead of re-calling a tool.
 - The most recent assistant turn and its tool results (a whole parallel batch) are kept *in-flow* so the model doesn't lose continuity and loop.
-- Tool execution is **cache-served**: if the node requests a `(tool, args)` pair already present in `state.observations`, the cached result is returned instead of re-executing — deep tasks otherwise re-fetch identical facts repeatedly.
+- Tool execution is unchanged: a repeated `(tool, args)` call **runs the tool again**, because its result may have changed (a job's status, a health check). The ledger, not a cache, is what keeps the model from re-fetching facts it already has. For tools whose result cannot change during a run, `ContextCompaction(reuse_results=[...])` answers a repeated call from the latest earlier **successful** result instead of running the tool; such a call is reported to `trace_tools`, the `observer`, callbacks, hooks (`on_tool_reused`) and stream events, marked as reused, and has `"reused": True` in `NodeResult.tool_calls`. See [Repeated calls run the tool](../guides/context-lifecycle.md#repeated-calls-run-the-tool).
 
-This is the mechanism behind the [`managed` prebuilt pattern](engine-prebuilts.md#managed-context-managed-tool-loop). It is an **efficiency primitive** — it bounds token growth and removes redundant tool calls without changing the answer the model produces.
+This is the mechanism behind the [`managed` prebuilt pattern](engine-prebuilts.md#managed-context-managed-tool-loop). It is an **efficiency primitive** — it bounds token growth and steers the model away from redundant tool calls without changing the answer the model produces.
 
 ### ToolNode
 

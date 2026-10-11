@@ -10,8 +10,8 @@ Demonstrates the two context-managed built-in patterns:
 - ``agent_pattern="managed"`` — a tool loop with **context lifecycle
   management** (``context_scope="ledger"``). On a deep multi-tool task the
   model would normally re-query the same facts as its transcript grows; the
-  managed pattern keeps a compact, deduplicated "facts gathered" ledger and
-  serves identical ``(tool, args)`` calls from cache, so context stays bounded.
+  managed pattern keeps a compact, deduplicated "facts gathered" ledger, so
+  context stays bounded and the model stops re-querying facts it has.
   It is an efficiency primitive — fewer redundant calls at equal accuracy.
 
 Both use a real LLM via ``build_agent`` — no mocks.

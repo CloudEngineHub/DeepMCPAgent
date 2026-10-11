@@ -505,7 +505,11 @@ def _compaction_to_config(value: Any, where: str) -> dict[str, Any]:
         v = getattr(value, f.name)
         if v == f.default:
             continue
-        config[f.name] = _ref_of(v, f"{where}.{f.name}") if f.name == "count_tokens" else v
+        if f.name == "count_tokens":
+            v = _ref_of(v, f"{where}.{f.name}")
+        elif isinstance(v, tuple):  # reuse_results tool names: YAML has lists
+            v = list(v)
+        config[f.name] = v
     return config
 
 

@@ -77,7 +77,7 @@ agent = await build_agent(
 | `servers` | `Mapping[str, ServerSpec]` | **required** | Named MCP server connections. See [Server Configuration](server-specs.md). |
 | `model` | `str \| BaseChatModel \| Runnable` | **required** | LangChain model string (e.g. `"openai:gpt-5-mini"`), a chat model instance, or any Runnable. |
 | `instructions` | `str \| Prompt \| PromptSuite \| None` | Built-in prompt | System prompt. Accepts a plain string, a `Prompt`, or a `PromptSuite`. |
-| `trace_tools` | `bool` | `False` | Print each tool invocation and result to stdout. Covers MCP, cross-agent, sandbox and `extra_tools` tools. |
+| `trace_tools` | `bool` | `False` | Print each tool invocation and result to stdout. Covers MCP, cross-agent, sandbox and `extra_tools` tools, and calls answered from an earlier result (`ContextCompaction(reuse_results=...)`), printed as reused. |
 | `observe` | `bool \| ObservabilityConfig \| None` | `None` | Enable observability. Pass `True` for defaults or an `ObservabilityConfig` for full control. |
 | `memory` | `MemoryProvider \| dict \| None` | `None` | Memory backend. Automatically searches and injects relevant context before each invocation. |
 | `memory_auto_store` | `bool` | `False` | When `True`, automatically stores each user/assistant exchange in memory. |
