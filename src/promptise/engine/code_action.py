@@ -368,12 +368,20 @@ class CodeActionNode(BaseNode):
             except (TypeError, ValueError):
                 value = str(output)
             text = value if isinstance(value, str) else json.dumps(value, default=str)
+            # post_tool(tool_name, result, args, state) may rewrite the result
+            # (redaction, truncation); the program and the record get that.
+            for hook in hooks:
+                if hasattr(hook, "post_tool"):
+                    rewritten = await hook.post_tool(name, text, args, state)
+                    if isinstance(rewritten, str) and rewritten != text:
+                        text = rewritten
+                        try:
+                            value = json.loads(rewritten)
+                        except ValueError:
+                            value = rewritten
             obs = {"tool": name, "args": args, "result": text, "success": True}
             state.observations.append(obs)
             result.tool_calls.append({"name": name, "args": args, "result": text})
-            for hook in hooks:
-                if hasattr(hook, "post_tool"):
-                    await hook.post_tool(name, args, text, state)
             return {"result": value}
         except Exception as exc:  # noqa: BLE001 — surface error to the program
             result.tool_calls_failed += 1
