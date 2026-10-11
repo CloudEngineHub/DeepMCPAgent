@@ -115,7 +115,7 @@ class CallerSessionPool:
         """Close idle-expired sessions, then the oldest idle ones over the cap."""
         now = time.monotonic()
         for key, entry in list(self._entries.items()):
-            if entry.refs == 0 and now - entry.last_used > self._idle_timeout:
+            if entry.refs == 0 and now - entry.last_used >= self._idle_timeout:
                 del self._entries[key]
                 self._close_later(entry)
         if len(self._entries) <= self._max_sessions:
