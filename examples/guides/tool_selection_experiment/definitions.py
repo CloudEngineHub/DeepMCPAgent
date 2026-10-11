@@ -4,6 +4,7 @@ An offline estimate with tiktoken, which langchain-openai brings; no model is ca
 
     python definitions.py
 """
+
 import asyncio
 import json
 import sys
@@ -29,7 +30,9 @@ async def main():
         try:
             tools = agent.tools
             suspend = next(t for t in tools if t.name == "suspend_user")
-            print(f"--- optimize_tools={level!r}: {len(tools)} tools, {definition_tokens(tools)} tokens")
+            print(
+                f"--- optimize_tools={level!r}: {len(tools)} tools, {definition_tokens(tools)} tokens"
+            )
             print(json.dumps(convert_to_openai_tool(suspend)["function"]))
         finally:
             await agent.shutdown()

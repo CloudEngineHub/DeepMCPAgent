@@ -20,8 +20,14 @@ def make_tool(server, name: str, description: str, params: dict[str, str]):
     for p, d in params.items():
         optional = d.startswith("Optional")
         annotation = Annotated[str | None if optional else str, Field(description=d)]
-        parameters.append(inspect.Parameter(p, inspect.Parameter.KEYWORD_ONLY, annotation=annotation,
-                                            default=None if optional else inspect.Parameter.empty))
+        parameters.append(
+            inspect.Parameter(
+                p,
+                inspect.Parameter.KEYWORD_ONLY,
+                annotation=annotation,
+                default=None if optional else inspect.Parameter.empty,
+            )
+        )
         annotations[p] = annotation
     handler.__signature__ = inspect.Signature(parameters)
     handler.__annotations__ = annotations
@@ -34,14 +40,29 @@ def add_tools(server, resources: dict, actions: dict):
     for res, (plural, example, what, fields) in resources.items():
         noun = res.replace("_", " ")
         id_param = {f"{res}_id": f'The {noun} ID, for example "{example}".'}
-        make_tool(server, f"list_{res}s",
-                  f"List {plural} in the organization, newest first. A {noun} is {what}. "
-                  f"Returns IDs you can pass to get_{res}.",
-                  {"filter": "Optional text to filter by.", "limit": "Optional maximum number of results."})
+        make_tool(
+            server,
+            f"list_{res}s",
+            f"List {plural} in the organization, newest first. A {noun} is {what}. "
+            f"Returns IDs you can pass to get_{res}.",
+            {
+                "filter": "Optional text to filter by.",
+                "limit": "Optional maximum number of results.",
+            },
+        )
         make_tool(server, f"get_{res}", f"Get one {noun} by ID, with all its fields.", id_param)
         make_tool(server, f"create_{res}", f"Create a {noun}.", dict(fields))
-        make_tool(server, f"update_{res}", f"Change fields of an existing {noun}.",
-                  {**id_param, **{k: "Optional " + v for k, v in fields.items()}})
-        make_tool(server, f"delete_{res}", f"Delete a {noun} permanently. This cannot be undone.", id_param)
+        make_tool(
+            server,
+            f"update_{res}",
+            f"Change fields of an existing {noun}.",
+            {**id_param, **{k: "Optional " + v for k, v in fields.items()}},
+        )
+        make_tool(
+            server,
+            f"delete_{res}",
+            f"Delete a {noun} permanently. This cannot be undone.",
+            id_param,
+        )
     for name, (description, params) in actions.items():
         make_tool(server, name, description, params)

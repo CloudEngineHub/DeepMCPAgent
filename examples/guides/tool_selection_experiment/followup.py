@@ -40,13 +40,25 @@ async def main():
     try:
         direct = FirstCallTools()
         await agent.ainvoke(
-            {"messages": [{"role": "user", "content": "The last deploy of prj_web_shop broke checkout. "
-                                                      "Put production back the way it was."}]},
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "The last deploy of prj_web_shop broke checkout. "
+                        "Put production back the way it was.",
+                    }
+                ]
+            },
             config={"callbacks": [direct]},
         )
 
-        history = [{"role": "user", "content": "The last deploy of prj_web_shop broke checkout. "
-                                               "What can we do? Don't change anything yet."}]
+        history = [
+            {
+                "role": "user",
+                "content": "The last deploy of prj_web_shop broke checkout. "
+                "What can we do? Don't change anything yet.",
+            }
+        ]
         first = await agent.ainvoke({"messages": history})
         history.append({"role": "assistant", "content": first["messages"][-1].content})
         history.append({"role": "user", "content": "Yes, go ahead."})

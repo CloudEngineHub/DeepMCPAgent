@@ -23,15 +23,16 @@ import sys
 import time
 
 from langchain_core.callbacks import AsyncCallbackHandler
+from tasks import TASKS
 
 from promptise import OptimizationLevel, ToolOptimizationConfig, build_agent
 from promptise.config import StdioServerSpec
 from promptise.engine import GraphIterationLimitError
 
-from tasks import TASKS
-
 MODEL = "openai:gpt-5-mini"
-INSTRUCTIONS = "You are an admin assistant for the Acme platform. Do what the user asks with your tools."
+INSTRUCTIONS = (
+    "You are an admin assistant for the Acme platform. Do what the user asks with your tools."
+)
 
 SETTINGS = {
     "all tools": None,
@@ -52,7 +53,9 @@ class ModelCalls(AsyncCallbackHandler):
 
     async def on_chat_model_start(self, serialized, messages, **kwargs):
         tools = (kwargs.get("invocation_params") or {}).get("tools") or []
-        self.calls.append({"tools": [t["function"]["name"] for t in tools], "start": time.perf_counter()})
+        self.calls.append(
+            {"tools": [t["function"]["name"] for t in tools], "start": time.perf_counter()}
+        )
 
     async def on_llm_end(self, response, **kwargs):
         call = self.calls[-1]
@@ -103,7 +106,9 @@ def show(row: dict) -> None:
         return
     offered = row["calls"][0]["tools"]
     print(f"[{row['setting']}] task {row['task']}, expected {row['expected']}", flush=True)
-    print(f"  offered: {offered if len(offered) <= 12 else str(len(offered)) + ' tools'}", flush=True)
+    print(
+        f"  offered: {offered if len(offered) <= 12 else str(len(offered)) + ' tools'}", flush=True
+    )
     print(f"  called:  {row['called']}", flush=True)
     if "iteration_limit" in row:
         print(f"  stopped: GraphIterationLimitError: {short(row['iteration_limit'])}", flush=True)
@@ -119,7 +124,10 @@ async def main(args):
     try:
         for name in names:
             agents[name] = await build_agent(
-                model=MODEL, servers=servers, instructions=INSTRUCTIONS, optimize_tools=SETTINGS[name]
+                model=MODEL,
+                servers=servers,
+                instructions=INSTRUCTIONS,
+                optimize_tools=SETTINGS[name],
             )
         with open(args.out, "a") as log:
             for rep in range(args.reps):
@@ -138,7 +146,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--reps", type=int, default=3, help="how often each task runs per setting")
     parser.add_argument("--server", default="platform_server.py", help="the MCP server to measure")
-    parser.add_argument("--settings", nargs="+", choices=list(SETTINGS), help="settings to run (default: all)")
+    parser.add_argument(
+        "--settings", nargs="+", choices=list(SETTINGS), help="settings to run (default: all)"
+    )
     parser.add_argument("--tasks", nargs="+", type=int, help="task numbers, 1-based (default: all)")
     parser.add_argument("--out", default="runs.jsonl", help="JSON lines file to append to")
     asyncio.run(main(parser.parse_args()))

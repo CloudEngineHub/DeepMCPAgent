@@ -6,23 +6,31 @@ No model is called. BAAI/bge-small-en-v1.5 is downloaded from Hugging Face on fi
 
     python retrieval_check.py
 """
+
 import asyncio
 import sys
+
+from tasks import TASKS
 
 from promptise import OptimizationLevel, ToolOptimizationConfig, build_agent
 from promptise.config import StdioServerSpec
 from promptise.tool_optimization import ToolIndex
 
-from tasks import TASKS
-
 SERVERS = {"platform": StdioServerSpec(command=sys.executable, args=["platform_server.py"])}
 
 SETUPS = {
-    "semantic preset": (ToolOptimizationConfig(level=OptimizationLevel.SEMANTIC), "all-MiniLM-L6-v2"),
-    "full descriptions": (ToolOptimizationConfig(level=OptimizationLevel.SEMANTIC, max_description_length=400),
-                          "all-MiniLM-L6-v2"),
-    "full descriptions, bge-small": (ToolOptimizationConfig(level=OptimizationLevel.SEMANTIC, max_description_length=400),
-                                     "BAAI/bge-small-en-v1.5"),
+    "semantic preset": (
+        ToolOptimizationConfig(level=OptimizationLevel.SEMANTIC),
+        "all-MiniLM-L6-v2",
+    ),
+    "full descriptions": (
+        ToolOptimizationConfig(level=OptimizationLevel.SEMANTIC, max_description_length=400),
+        "all-MiniLM-L6-v2",
+    ),
+    "full descriptions, bge-small": (
+        ToolOptimizationConfig(level=OptimizationLevel.SEMANTIC, max_description_length=400),
+        "BAAI/bge-small-en-v1.5",
+    ),
 }
 
 
@@ -37,7 +45,9 @@ async def main():
                 names = [t.name for t in index.select(text, top_k=8)]
                 if expected not in names:
                     misses.append(f"{expected} (got {', '.join(names[:3])}, ...)")
-            print(f"{label}: right tool in the top 8 for {len(TASKS) - len(misses)}/{len(TASKS)} tasks")
+            print(
+                f"{label}: right tool in the top 8 for {len(TASKS) - len(misses)}/{len(TASKS)} tasks"
+            )
             for miss in misses:
                 print("  missed", miss)
         finally:
