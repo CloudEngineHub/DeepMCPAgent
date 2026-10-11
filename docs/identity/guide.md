@@ -167,9 +167,12 @@ agent = await build_agent(
 )
 ```
 
-When you pass `identity=`, every server that has no `bearer_token` of its
+When you pass `identity=`, every server that has no credential of its
 own receives the agent's credential automatically, scoped to its
-`audience`. An explicit per-server `bearer_token` always wins.
+`audience`. An explicit per-server credential always wins: `bearer_token`,
+`api_key`, or an `Authorization` / `x-api-key` header in `headers`. A
+server configured with `api_key=` therefore gets only its key, never the
+identity's bearer next to it.
 
 How `audience` is honoured depends on the provider — *active* providers
 (Entra IMDS, AWS STS, GCP metadata, SPIFFE SDK) re-mint per audience;

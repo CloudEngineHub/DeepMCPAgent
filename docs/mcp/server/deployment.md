@@ -287,8 +287,7 @@ server.run(transport="http", host="127.0.0.1", port=8080)
 ```bash
 # Get a token
 curl -X POST http://localhost:8080/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"client_id": "my-agent", "client_secret": "agent-secret"}'
+  -d grant_type=client_credentials -d client_id=my-agent -d client_secret=agent-secret
 
 # Use the token
 curl http://localhost:8080/mcp \

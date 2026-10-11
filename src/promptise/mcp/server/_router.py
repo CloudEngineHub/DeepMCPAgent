@@ -25,6 +25,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from ._decorators import _excluded_params, build_prompt_def, build_resource_def, build_tool_def
+from ._guards import needs_identity
 from ._registry import PromptRegistry, ResourceRegistry, ToolRegistry
 from ._validation import build_input_model
 
@@ -344,6 +345,8 @@ def _merge_router(
         if hasattr(server, "_require_auth") and server._require_auth:
             merged_auth = True
         merged_guards = combined_guards + list(tdef.guards)
+        # A router-level identity guard needs authentication too.
+        merged_auth = merged_auth or needs_identity(merged_guards)
 
         # replace() copies EVERY field and overrides only what the merge
         # changes — so a newly added ToolDef field (e.g. requires_approval)
@@ -369,11 +372,12 @@ def _merge_router(
         merged_auth = router.config.auth if router.config.auth is not None else definition.auth
         if getattr(server, "_require_auth", False):
             merged_auth = True
+        merged_guards = combined_guards + list(definition.guards)
         return replace(
             definition,
             tags=combined_tags + list(definition.tags),
-            auth=merged_auth,
-            guards=combined_guards + list(definition.guards),
+            auth=merged_auth or needs_identity(merged_guards),
+            guards=merged_guards,
             router_middleware=combined_middleware + list(definition.router_middleware),
             roles=list(definition.roles),
         )

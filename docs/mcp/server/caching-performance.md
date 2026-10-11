@@ -256,6 +256,19 @@ server.add_middleware(RateLimitMiddleware(
 ))
 ```
 
+!!! warning "Per client needs authentication first"
+    Buckets are per client (and per tenant) only when `ctx.client_id` is set
+    by the time the limiter runs. That takes an `AuthMiddleware` added
+    **before** `RateLimitMiddleware` (middleware runs in the order it is
+    added) and an authenticated tool: `auth=True`, `roles=[...]`, or
+    `MCPServer(require_auth=True)`. Otherwise every caller shares one
+    `"global"` bucket, and one runaway client throttles everyone. When an
+    `AuthMiddleware` is installed but cannot identify the caller for the
+    limiter (it runs after the limiter, or the tool is not authenticated),
+    the server logs a warning at startup naming the affected tools. Pass
+    `key_func=` to choose the key yourself when one shared bucket is what
+    you want.
+
 ### Per-tool rate limits
 
 Different tools have different cost profiles. Limit expensive tools more aggressively:
@@ -310,8 +323,17 @@ suggestion such as "Wait 2 seconds before retrying." (rounded up, never
 ### Tiered rate limiting
 
 Real-world pattern: free agents get lower limits than premium agents.
+`RateLimitMiddleware` hands the limiter only the bucket key (it calls
+`limiter.consume(key)`), so a `key_func` puts the tier into the key and the
+limiter picks the bucket size from it:
 
 ```python
+from promptise.mcp.server import (
+    APIKeyAuth, AuthMiddleware, MCPServer, RateLimitMiddleware,
+    RequestContext, TokenBucketLimiter,
+)
+
+
 class TieredLimiter:
     """Different rates for free vs premium agents."""
 
@@ -319,11 +341,35 @@ class TieredLimiter:
         self._free = TokenBucketLimiter(rate_per_minute=10, burst=3)
         self._premium = TokenBucketLimiter(rate_per_minute=1000, burst=50)
 
-    async def check(self, key: str, ctx) -> tuple[bool, float]:
-        roles = ctx.state.get("roles", set())
-        limiter = self._premium if "premium" in roles else self._free
+    def consume(self, key: str) -> tuple[bool, float]:
+        tier, _, _client = key.partition("|")
+        limiter = self._premium if tier == "premium" else self._free
         return limiter.consume(key)
+
+
+def tier_key(ctx: RequestContext) -> str:
+    """One bucket per client, sized by its tier."""
+    tier = "premium" if ctx.client and ctx.client.has_role("premium") else "free"
+    return f"{tier}|{ctx.client_id}"
+
+
+server = MCPServer(name="api", require_auth=True)  # every tool identifies its caller
+server.add_middleware(AuthMiddleware(APIKeyAuth(keys={
+    "sk-free": {"client_id": "free-bot", "roles": []},
+    "sk-premium": {"client_id": "premium-bot", "roles": ["premium"]},
+})))
+server.add_middleware(RateLimitMiddleware(TieredLimiter(), key_func=tier_key))
+
+
+@server.tool()
+async def search(query: str) -> str:
+    """Search the catalog."""
+    return f"results for {query}"
 ```
+
+The free client gets 3 calls in a burst, the premium client 50. A limiter
+must implement a synchronous `consume(key) -> (allowed, retry_after_seconds)`;
+`RateLimitMiddleware` raises `TypeError` at construction for one that does not.
 
 ---
 
@@ -445,7 +491,7 @@ cache = InMemoryCache(max_size=1000)
 
 # Middleware stack (outermost → innermost)
 server.add_middleware(LoggingMiddleware())                         # Log all calls
-server.add_middleware(RateLimitMiddleware(TokenBucketLimiter(120)))  # 120/min/client
+server.add_middleware(RateLimitMiddleware(TokenBucketLimiter(120)))  # 120/min, one bucket (no auth here)
 server.add_middleware(TimeoutMiddleware(default_timeout=30.0))      # 30s default
 server.add_middleware(ConcurrencyLimiter(max_concurrent=100))       # 100 total
 

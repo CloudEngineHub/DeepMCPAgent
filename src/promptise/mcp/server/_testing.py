@@ -137,6 +137,10 @@ class TestClient:
         # Auth/tenant invariant parity with the live build path
         if getattr(self._server, "_require_auth", False):
             self._server._apply_require_tenant()
+        # Same build-time warning as the live server (logged once per message)
+        warn_shared = getattr(self._server, "_warn_shared_rate_limit_buckets", None)
+        if warn_shared is not None:
+            warn_shared()
 
         tdef = self._server._tool_registry.get(name)
 
