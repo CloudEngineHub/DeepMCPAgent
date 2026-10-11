@@ -49,8 +49,9 @@ class Hook(Protocol):
         self, tool_name: str, args: dict, result: str, state: GraphState
     ) -> None:
         """Called instead of ``pre_tool`` / ``post_tool`` when a call is answered
-        from an earlier result without running the tool (only for tools opted
-        in with ``ContextCompaction(reuse_results=...)``)."""
+        from an earlier result without running the tool (tools opted in with
+        ``ContextCompaction(reuse_results=...)``, and a repeat of an identical
+        call in one model turn of a ``ToolNode(deduplicate=True)``)."""
         ...
 
     async def on_error(self, node: BaseNode, error: Exception, state: GraphState) -> str | None:

@@ -392,9 +392,28 @@ ToolNode("search",
 | `name` | `str` | *required* | Node identifier |
 | `tools` | `list[BaseTool]` | `None` | Available tools |
 | `validate_inputs` | `bool` | `True` | Validate tool arguments before calling |
-| `deduplicate` | `bool` | `True` | Skip duplicate tool calls with same args |
+| `deduplicate` | `bool` | `True` | Run identical `(tool, args)` calls of one model turn once (see below) |
 | `max_result_chars` | `int` | `4000` | Truncate tool results to this length |
-| `tool_selector` | `Callable` | `None` | Custom function `(state) -> (tool_name, args)` to pick which tool to call |
+| `tool_selector` | `Callable` | `None` | Custom function `(state) -> (tool_name, args)` to pick which tool to call. Without one, the node runs the tool calls of the most recent assistant message that has tool calls |
+
+**What `deduplicate=True` covers.** Only the calls of **one model turn** (the
+tool calls of one assistant message). When the model asks for the same tool
+with the same arguments twice in one turn, the tool runs once and each repeat
+gets its own `ToolMessage` with that result, so every `tool_call_id` has a
+result. The repeat is reported as reused, like a call answered by
+[`ContextCompaction(reuse_results=...)`](../guides/context-lifecycle.md#repeated-calls-run-the-tool):
+`trace_tools` prints `↺ Reusing an earlier result for tool: ...`, the
+`observer` records it with `reused: true`, LangChain callbacks get its start and
+end with `metadata["promptise_reused"]`, engine hooks get `on_tool_reused`, and
+`NodeResult.tool_calls` has it with `"reused": True` (`tool_calls_deduplicated`
+counts it). A failed call is never reused.
+
+A call in a **later** model turn, a later pass of a `tool_selector`, or another
+run always runs the tool, so a status or health check returns the current
+value. The record of a turn's calls belongs to the run, not to the node: runs
+of the same graph, one after another or concurrent, never see each other's
+calls. If the graph reaches the node again before the model's next turn, calls
+that already have a result are not run again.
 
 ### RouterNode
 
