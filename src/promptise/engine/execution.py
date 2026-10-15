@@ -49,6 +49,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
 from .base import BaseNode
+from .code_action import CallBudgetFailure
 from .graph import PromptGraph
 from .hooks import BudgetHook
 from .nodes import failure_cause, record_failure
@@ -165,6 +166,39 @@ class GraphBudgetExceededError(GraphStoppedError):
     :class:`GraphExecutionError`); ``reason`` says which budget and by how
     much.
     """
+
+
+class CodeActionBudgetError(GraphExecutionError):
+    """A code-action run could not do the whole job within ``max_tool_calls``.
+
+    Raised when the last program the model wrote reached the per-program
+    tool-call cap, or when, after a program reached it, the model answered
+    that the job cannot be done in fewer calls.  The run has no answer: a
+    partial result computed from part of the data is never returned.
+
+    A subclass of :class:`GraphExecutionError`, so existing
+    ``except GraphExecutionError`` handlers still catch it.  Raise
+    ``max_tool_calls`` (``CodeActionConfig(max_tool_calls=...)``), or give
+    the agent a tool that returns many records per call.
+
+    Attributes:
+        max_tool_calls: The per-program cap the run hit.
+        attempts: How many programs the model wrote.
+    """
+
+    def __init__(
+        self,
+        graph_name: str,
+        node_name: str,
+        error: str,
+        *,
+        max_tool_calls: int,
+        attempts: int,
+        report: ExecutionReport | None = None,
+    ) -> None:
+        super().__init__(graph_name, node_name, error, report=report)
+        self.max_tool_calls = max_tool_calls
+        self.attempts = attempts
 
 
 def _pending_tools(messages: list[Any]) -> list[str] | None:
@@ -740,12 +774,22 @@ class PromptGraphEngine:
             # Returning the messages here would hand the caller its own
             # question back as the "answer"; a stream must not end as a
             # silent stop either (consumers have seen on_node_error).
+            cause = failure_cause(last_failure)
+            if isinstance(cause, CallBudgetFailure):
+                raise CodeActionBudgetError(
+                    live_graph.name,
+                    last_failure.node_name,
+                    last_failure.error or "unknown error",
+                    max_tool_calls=cause.max_tool_calls,
+                    attempts=cause.attempts,
+                    report=self._last_report,
+                ) from cause
             raise GraphExecutionError(
                 live_graph.name,
                 last_failure.node_name,
                 last_failure.error or "unknown error",
                 report=self._last_report,
-            ) from failure_cause(last_failure)
+            ) from cause
 
     # ──────────────────────────────────────────────────────────────────
     # Transition resolution

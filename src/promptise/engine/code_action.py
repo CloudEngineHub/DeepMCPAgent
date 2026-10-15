@@ -22,6 +22,14 @@ validates every bridge request id to keep file I/O inside the RPC directory.
 A program that reaches the cap gets ``ToolBudgetExceeded`` for each further
 call, and its output is never taken as the answer.
 
+The model is told the cap exists but not its value, and is told never to skip
+or truncate records to stay under it: a job that needs more calls must fail,
+not be answered from part of the data. After a program reaches the cap, the
+repair asks for a program that does the WHOLE job in fewer calls, or for the
+model to say it cannot (``CANNOT_FINISH_WITHIN_CALL_CAP``). A run that cannot
+finish within the cap raises
+:class:`~promptise.engine.execution.CodeActionBudgetError`.
+
 The bridge is a filesystem rendezvous over the sandbox's writable ``/workspace``
 tmpfs: the in-container program writes a request file and blocks; a concurrent
 host loop services it by running the real tool and writing the response file.
@@ -44,7 +52,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field
 
 from .base import BaseNode
-from .nodes import TOOL_SELECTOR_KEY, token_usage
+from .nodes import TOOL_SELECTOR_KEY, record_failure, token_usage
 from .state import GraphState, NodeResult
 
 logger = logging.getLogger("promptise.engine.code_action")
@@ -97,6 +105,36 @@ def _call(_tool, _args):
 """
 
 
+# The line a model answers with, after a program reached the tool-call cap,
+# when the whole job cannot be done in fewer calls. The node then fails the run
+# (CodeActionBudgetError) instead of accepting a program over part of the data.
+BUDGET_GIVE_UP = "CANNOT_FINISH_WITHIN_CALL_CAP"
+
+
+class CallBudgetFailure(RuntimeError):
+    """A code-action node's failure to do the job within ``max_tool_calls``.
+
+    Recorded as the cause of the node's failure; the engine raises it as
+    :class:`~promptise.engine.execution.CodeActionBudgetError` (chained to
+    this exception).
+
+    Attributes:
+        max_tool_calls: The per-program cap.
+        attempts: How many programs the model wrote.
+    """
+
+    def __init__(self, message: str, *, max_tool_calls: int, attempts: int) -> None:
+        super().__init__(message)
+        self.max_tool_calls = max_tool_calls
+        self.attempts = attempts
+
+
+def _gives_up(text: str) -> bool:
+    """Whether a model reply is the :data:`BUDGET_GIVE_UP` line (alone on a
+    line, optionally inside a code fence)."""
+    return any(line.strip().strip("`").strip() == BUDGET_GIVE_UP for line in text.splitlines())
+
+
 @dataclass
 class _ToolBudget:
     """The tool calls one program run has made against ``max_tool_calls``.
@@ -132,7 +170,10 @@ class CodeActionConfig(BaseModel):
             run makes at most ``(max_repairs + 1) * max_tool_calls`` calls.
             A program that reaches the cap gets ``ToolBudgetExceeded`` for
             each further call, and its output is never taken as the answer.
-            ``0`` disables the cap (not advised).
+            The model is not told the value, and is told never to skip
+            records to stay under it. A run that cannot do the whole job
+            within the cap raises ``CodeActionBudgetError`` (a
+            ``GraphExecutionError``). ``0`` disables the cap (not advised).
     """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -350,10 +391,15 @@ class CodeActionNode(BaseNode):
             hook blocked. Once reached, further calls raise
             ``ToolBudgetExceeded`` in the program instead of executing, a
             warning is logged, and the program's output is discarded: the
-            model is asked for a program that needs fewer calls, or, with no
-            repairs left, the node fails (``GraphExecutionError``). A
-            hook-independent safety bound so a generated program cannot loop
-            a tool unbounded. Set ``0`` to disable (not advised).
+            model is asked for a program that does the whole job in fewer
+            calls (never one over part of the data), or to reply
+            ``CANNOT_FINISH_WITHIN_CALL_CAP``. That reply, or a budget hit
+            with no repairs left, fails the node, and the engine raises
+            ``CodeActionBudgetError`` (a ``GraphExecutionError``). The prompt
+            says the cap exists but not its value, so the model cannot fit
+            the data to it. A hook-independent safety bound so a generated
+            program cannot loop a tool unbounded. Set ``0`` to disable (not
+            advised).
     """
 
     def __init__(
@@ -405,9 +451,18 @@ class CodeActionNode(BaseNode):
             "- Do the work in Python — loops, sums, filtering, etc.\n"
             f"- Print the final answer on the last line as: {self.result_marker} <answer>\n"
             + (
-                f"- The program may make at most {self.max_tool_calls} function calls in "
-                "total. A call beyond that raises ToolBudgetExceeded and the program's "
-                "answer is discarded, so plan the calls you need.\n"
+                # The cap's value is deliberately not stated: told "at most N
+                # calls", models count their own calls and stop early, or slice
+                # the data to fit, and the partial result becomes the answer.
+                "- Use ALL the data the question needs. Never skip, sample or "
+                "truncate records, and never count your own function calls or stop "
+                "early to stay under a limit.\n"
+                "- Each program has a safety cap on function calls. If the work needs "
+                "more calls than that, the call over the cap raises ToolBudgetExceeded: "
+                "do not catch it, let it raise. The run then ends with an error, which "
+                "is correct; an answer computed from part of the data is wrong. Avoid "
+                "needless calls (prefer a function that returns many records over one "
+                "call per record, and never fetch the same data twice).\n"
                 if self.max_tool_calls
                 else ""
             )
@@ -427,11 +482,12 @@ class CodeActionNode(BaseNode):
 
     # ── tool bridge ──────────────────────────────────────────────────────────
     def _budget_message(self, name: str) -> str:
-        limit = self.max_tool_calls
+        """The error the program gets for a refused call. It does not state
+        the cap's value: a repair told the number fits the data to it."""
         return (
-            f"tool-call budget exhausted: this program already made {limit} tool "
-            f"call(s) (max_tool_calls={limit}), so the call to {name!r} was refused and "
-            "every further call will be; the program's output will be discarded"
+            "tool-call budget exhausted: this program reached the cap on function "
+            f"calls per program, so the call to {name!r} was refused and every "
+            "further call will be; the program's output will be discarded"
         )
 
     async def _invoke_tool(
@@ -458,10 +514,17 @@ class CodeActionNode(BaseNode):
         # Every call counts, whether it succeeds or not.
         if budget.limit and budget.used >= budget.limit:
             budget.refused += 1
-            message = self._budget_message(name)
             if budget.refused == 1:
-                logger.warning("code-action node %r: %s", self.name, message)
-            return {"error": message, "budget_exceeded": True}
+                logger.warning(
+                    "code-action node %r: tool-call budget exhausted: the program "
+                    "already made %d tool call(s) (max_tool_calls=%d); the call to %r "
+                    "was refused and the program's output will be discarded",
+                    self.name,
+                    budget.limit,
+                    budget.limit,
+                    name,
+                )
+            return {"error": self._budget_message(name), "budget_exceeded": True}
         budget.used += 1
 
         hooks = config.get("_engine_hooks", [])
@@ -609,7 +672,11 @@ class CodeActionNode(BaseNode):
         # 1. Generate the program (1 LLM turn; +1 per repair).
         code = ""
         failure = ""
+        budget_failure = False  # the last attempt failed on the tool-call cap
+        budget_hits = 0
+        attempts = 0
         for attempt in range(self.max_repairs + 1):
+            attempts = attempt + 1
             llm_start = time.perf_counter()
             try:
                 response = await model.ainvoke(messages, config=config)
@@ -624,11 +691,30 @@ class CodeActionNode(BaseNode):
             raw = response.content if isinstance(response.content, str) else str(response.content)
             code = extract_code(raw)
 
+            # After a budget hit the model may answer that the whole job cannot
+            # be done in fewer calls: that ends the run with an error.
+            if budget_failure and _gives_up(raw):
+                failure = (
+                    "the job needs more tool calls than the per-program budget "
+                    f"(max_tool_calls={self.max_tool_calls}) allows: a program reached "
+                    "it, and the model reported that the whole job cannot be done in "
+                    "fewer calls"
+                )
+                break
+
             # 2. Run it in the sandbox (bridging tool calls back to the host).
             # Each program gets its own tool-call budget.
             budget = _ToolBudget(self.max_tool_calls)
             run = await self._run_program(code, tool_map, state, config, result, budget)
             if run.success and not budget.exhausted:
+                if budget_hits:
+                    logger.warning(
+                        "code-action node %r: the answer comes from a program written "
+                        "after %d earlier program(s) reached max_tool_calls=%d",
+                        self.name,
+                        budget_hits,
+                        self.max_tool_calls,
+                    )
                 answer = parse_result(run.stdout, self.result_marker)
                 result.total_tokens = result.prompt_tokens + result.completion_tokens
                 result.raw_output = answer
@@ -643,19 +729,28 @@ class CodeActionNode(BaseNode):
             # 3. Repair: feed the failure back and try again. A program that
             # reached the tool-call budget is a failure even if it caught the
             # error and printed something: its output is incomplete.
+            budget_failure = budget.exhausted
             if budget.exhausted:
+                budget_hits += 1
                 failure = (
                     "the program reached the tool-call budget (max_tool_calls="
                     f"{self.max_tool_calls}) and its further calls were refused, so its "
                     "output was discarded"
                 )
                 feedback = (
-                    f"Your program tried to make more than {self.max_tool_calls} function "
-                    f"calls. Each program may make at most {self.max_tool_calls}; calls "
-                    "beyond that raise ToolBudgetExceeded, so its output was incomplete "
-                    f"and was discarded. Write a program that needs at most "
-                    f"{self.max_tool_calls} calls (the new program gets a fresh budget) "
-                    "and output only the program."
+                    "Your program reached the cap on function calls per program (calls "
+                    "over it raise ToolBudgetExceeded), so it could not finish and its "
+                    "output was discarded.\n\n"
+                    "Write a new program that does the WHOLE job with fewer calls (it "
+                    "gets a fresh budget): use a function that returns many records at "
+                    "once if there is one, never fetch the same data twice, and reuse "
+                    "values you already have. Do NOT skip, sample or truncate records, "
+                    "and do not count calls or stop early: a program that answers from "
+                    "part of the data gives a wrong answer.\n\n"
+                    "If the whole job cannot be done with fewer calls, do not write a "
+                    "program; reply with exactly this line and nothing else:\n"
+                    f"{BUDGET_GIVE_UP}\n\n"
+                    "Otherwise output only the program."
                 )
                 if run.stderr.strip():
                     feedback += f"\n\nIts error output:\n\n{run.stderr[-800:]}"
@@ -672,11 +767,18 @@ class CodeActionNode(BaseNode):
             if attempt < self.max_repairs:
                 messages = messages + [AIMessage(content=raw), HumanMessage(content=feedback)]
 
-        # All attempts failed.
+        # All attempts failed (or the model reported the job cannot fit).
         result.total_tokens = result.prompt_tokens + result.completion_tokens
-        result.error = (
-            f"program failed after {self.max_repairs + 1} attempt(s); last attempt: {failure}"
-        )
+        error = f"program failed after {attempts} attempt(s); last attempt: {failure}"
+        if budget_failure:
+            # The engine raises this as CodeActionBudgetError.
+            record_failure(
+                result,
+                CallBudgetFailure(error, max_tool_calls=self.max_tool_calls, attempts=attempts),
+                error,
+            )
+        else:
+            result.error = error
         result.raw_output = code
         result.output = ""
         result.duration_ms = (time.perf_counter() - start) * 1000

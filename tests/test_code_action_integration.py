@@ -227,6 +227,61 @@ async def test_real_sandbox_failed_calls_are_capped(docker_available):
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+async def test_real_sandbox_job_over_the_cap_raises_instead_of_answering(docker_available):
+    """1.3.5: a job that needs more calls than max_tool_calls ends with
+    CodeActionBudgetError. The real in-sandbox ToolBudgetExceeded traceback
+    fed back to the model does not give the cap's value, so a repair cannot
+    slice the data to fit it."""
+    from promptise.engine import CodeActionBudgetError, PromptGraph, PromptGraphEngine
+    from promptise.engine.code_action import BUDGET_GIVE_UP
+
+    executed = []
+
+    @tool("get_order")
+    def get_order(order_id: str) -> dict:
+        """Return one order by id."""
+        executed.append(order_id)
+        return {"id": order_id, "total": 10}
+
+    program = (
+        "total = 0\n"
+        "for i in range(30):\n"
+        "    total += get_order(str(i))['total']\n"
+        "print('RESULT:', total)"
+    )
+
+    class _Scripted:
+        def __init__(self):
+            self.prompts = []
+
+        async def ainvoke(self, messages, config=None):
+            self.prompts.append(messages)
+            if len(self.prompts) == 1:
+                return AIMessage(content=f"```python\n{program}\n```")
+            return AIMessage(content=BUDGET_GIVE_UP)
+
+    manager, factory = _sandbox_factory()
+    model = _Scripted()
+    graph = PromptGraph.code_action(
+        tools=[get_order], sandbox_factory=factory, max_tool_calls=17, max_repairs=1
+    )
+    engine = PromptGraphEngine(graph=graph, model=model)
+    try:
+        with pytest.raises(CodeActionBudgetError) as info:
+            await engine.ainvoke({"messages": [{"role": "user", "content": "sum all orders"}]})
+    finally:
+        await manager.cleanup_all()
+
+    assert len(executed) == 17
+    assert info.value.max_tool_calls == 17 and info.value.attempts == 2
+    feedback = model.prompts[1][-1].content
+    assert "ToolBudgetExceeded" in feedback  # the real traceback reached the model
+    assert "17" not in feedback
+    assert "17" not in model.prompts[0][0].content
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_real_sandbox_mcp_json_results_arrive_as_data(docker_available):
     from mcp.types import CallToolResult, TextContent
     from pydantic import BaseModel

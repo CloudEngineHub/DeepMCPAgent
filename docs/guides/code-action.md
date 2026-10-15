@@ -149,7 +149,8 @@ bounded number of fixes (`max_repairs`, default 1) before giving up. This
 recovers the common "off-by-one in the parsing" class of errors without an
 unbounded loop. A program that reaches the tool-call budget is a failure too
 (below). When no repair is left, the node fails and the run raises
-`GraphExecutionError`; `ExecutionReport.error` says why the last program failed.
+`GraphExecutionError` (`CodeActionBudgetError` when the budget was the reason);
+`ExecutionReport.error` says why the last program failed.
 
 ## The tool-call budget
 
@@ -163,12 +164,45 @@ unbounded loop. A program that reaches the tool-call budget is a failure too
   does every later call. The node logs a warning, and the program's output is
   **discarded**, even if the program caught the error and printed an answer:
   it is incomplete.
-- **Repairs get a fresh budget.** The model is told the program tried to make
-  more than `max_tool_calls` calls and asked for one that needs fewer; that
-  program gets its own `max_tool_calls`. A run therefore makes at most
-  `(max_repairs + 1) × max_tool_calls` calls. With no repair left, the run fails
-  (`GraphExecutionError`, and `ExecutionReport.error` names `max_tool_calls`).
-- The prompt tells the model the limit, so it can plan for it.
+- **The model is never asked to fit the data to the cap.** The prompt says each
+  program has a cap on function calls, but not its value, and tells the model to
+  use all the data the question needs: never skip, sample or truncate records,
+  never count its own calls or stop early, and let `ToolBudgetExceeded` raise.
+  (Told "at most N calls", models wrote `if calls >= N: break` or
+  `orders[:N-1]`, and the partial result came back as the answer.) The error a
+  refused call raises in the program does not give the value either.
+- **A repair must do the whole job.** After a program reaches the cap, the model
+  is asked for a program that does the **whole** job with fewer calls (a tool
+  that returns many records at once, no repeated fetches), never one over part
+  of the data, or to reply `CANNOT_FINISH_WITHIN_CALL_CAP` if it can't. The
+  repaired program gets its own `max_tool_calls`, so a run makes at most
+  `(max_repairs + 1) × max_tool_calls` calls. When an answer comes from a
+  program written after a budget hit, a warning is logged on
+  `promptise.engine.code_action`.
+- **A job that doesn't fit fails.** If the model replies
+  `CANNOT_FINISH_WITHIN_CALL_CAP`, or the last program also reaches the cap,
+  the run raises `CodeActionBudgetError` (a `GraphExecutionError`, so existing
+  handlers still catch it) with `max_tool_calls`, `attempts` and the `report`;
+  `ExecutionReport.error` names `max_tool_calls`. Raise `max_tool_calls`, or
+  give the agent a tool that returns many records per call.
+
+```python
+from promptise.engine import CodeActionBudgetError
+
+try:
+    result = await agent.ainvoke({"messages": [{"role": "user", "content": question}]})
+except CodeActionBudgetError as exc:
+    print(f"needs more than {exc.max_tool_calls} tool calls per program")
+```
+
+!!! note "What Promptise can and can't check"
+    Promptise sees every call a program makes, so a program that reaches the
+    cap is always caught, even if it catches the error. It cannot see whether a
+    program that finished *within* the cap read all the data: a model that
+    ignores the instructions and slices the data itself still returns a
+    partial answer. Hiding the cap's value and forbidding truncation makes that
+    unlikely (it removes the number a model would fit to); set
+    `max_tool_calls` well above the calls the job needs.
 
 `ExecutionReport.tool_calls` (`agent.last_report` / `engine.last_report`) counts
 the calls the programs made, failed ones included; refused calls never ran and
