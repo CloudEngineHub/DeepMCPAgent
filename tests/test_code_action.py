@@ -458,7 +458,9 @@ async def test_failed_calls_count_against_max_tool_calls():
     assert len(executed) == 3  # the 4th..10th calls never reached the tool
     assert all("ValueError" in r["error"] for r in responses[:3])
     assert all(r.get("budget_exceeded") for r in responses[3:])
-    assert "max_tool_calls=3" in responses[3]["error"]
+    # The program is told the cap was reached, not its value (1.3.5).
+    assert "budget exhausted" in responses[3]["error"]
+    assert "3" not in responses[3]["error"]
     assert result.tool_calls_failed == 3
 
 
@@ -507,37 +509,6 @@ async def test_a_program_that_reaches_the_budget_is_repaired_with_a_fresh_budget
 
 
 @pytest.mark.asyncio
-async def test_the_repair_prompt_names_the_budget():
-    seen_prompts = []
-
-    class RecordingModel(FakeModel):
-        async def ainvoke(self, messages, config=None):
-            seen_prompts.append(messages)
-            return await super().ainvoke(messages, config)
-
-    @tool
-    def price(sku: str) -> int:
-        """Get a price."""
-        return 10
-
-    session = BridgingSession([_calls_then_print(5), _calls_then_print(2)])
-    model = RecordingModel(["```python\nA\n```", "```python\nB\n```"])
-    node = CodeActionNode(
-        "reason", tools=[price], sandbox_factory=_factory(session), max_tool_calls=2
-    )
-    result = await node.execute(
-        GraphState(messages=[HumanMessage(content="go")]), {"_engine_model": model}
-    )
-
-    assert result.output == "20"
-    system = seen_prompts[0][0].content
-    assert "at most 2 function calls" in system and "ToolBudgetExceeded" in system
-    feedback = seen_prompts[1][-1].content
-    assert "more than 2 function calls" in feedback
-    assert "ToolBudgetExceeded" in feedback and "fresh budget" in feedback
-
-
-@pytest.mark.asyncio
 async def test_budget_exhausted_with_no_repairs_left_fails_the_run():
     """An engine run whose last program reached the budget raises; it is never
     reported as a successful answer."""
@@ -554,9 +525,15 @@ async def test_budget_exhausted_with_no_repairs_left_fails_the_run():
     )
     engine = PromptGraphEngine(graph=graph, model=FakeModel(["```python\nloop\n```"]))
 
-    with pytest.raises(GraphExecutionError, match="max_tool_calls=2"):
+    with pytest.raises(GraphExecutionError, match="max_tool_calls=2") as info:
         await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
     assert engine.last_report.error and "tool-call budget" in engine.last_report.error
+    # 1.3.5: a dedicated subclass, so callers can tell "needs a bigger budget"
+    # from a crash.
+    from promptise.engine import CodeActionBudgetError
+
+    assert isinstance(info.value, CodeActionBudgetError)
+    assert info.value.max_tool_calls == 2 and info.value.attempts == 1
 
 
 @pytest.mark.asyncio
@@ -724,3 +701,193 @@ async def test_python_tool_string_results_are_not_parsed():
         {"code": code}, GraphState(messages=[]), {}, "code", {}, NodeResult()
     )
     assert resp == {"result": "007"}
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# 1.3.5: a job that needs more calls than max_tool_calls fails; it is never
+# answered from part of the data
+# ──────────────────────────────────────────────────────────────────────────
+class RecordingModel(FakeModel):
+    """A FakeModel that keeps every message list it was sent."""
+
+    def __init__(self, responses):
+        super().__init__(responses)
+        self.prompts = []
+
+    async def ainvoke(self, messages, config=None):
+        self.prompts.append(messages)
+        return await super().ainvoke(messages, config)
+
+
+@tool
+def price(sku: str) -> int:
+    """Get a price."""
+    return 10
+
+
+def _engine(programs, responses, **graph_kwargs):
+    from promptise.engine import PromptGraphEngine
+
+    session = BridgingSession(programs)
+    graph = PromptGraph.code_action(
+        tools=[price], sandbox_factory=_factory(session), **graph_kwargs
+    )
+    model = RecordingModel(responses)
+    return PromptGraphEngine(graph=graph, model=model), model, session
+
+
+def test_the_system_prompt_does_not_invite_fitting_the_data_to_the_cap():
+    """1.3.4 said "may make at most N function calls ... so plan the calls you
+    need": models wrote their own counter (`if calls >= 50: break`) or sliced
+    the data (`orders[:49]`), and the partial result was the answer."""
+    node = CodeActionNode("reason", max_tool_calls=37)
+    system = node._build_prompt("q", [price])[0].content
+
+    assert "37" not in system  # the value is not given, so it cannot be fitted to
+    assert "at most" not in system and "plan the calls" not in system
+    assert "Never skip, sample or truncate records" in system
+    assert "never count your own function calls" in system
+    assert "ToolBudgetExceeded" in system and "let it raise" in system
+
+
+def test_without_a_cap_the_prompt_does_not_mention_one():
+    system = CodeActionNode("reason", max_tool_calls=0)._build_prompt("q", [price])[0].content
+    assert "ToolBudgetExceeded" not in system and "cap" not in system
+
+
+@pytest.mark.asyncio
+async def test_the_repair_after_a_budget_hit_asks_for_the_whole_job():
+    """1.3.4 asked for "a program that needs at most N calls", and the model
+    wrote one that read only the first N records."""
+    from promptise.engine.code_action import BUDGET_GIVE_UP
+
+    engine, model, _ = _engine(
+        [_calls_then_print(40, catch=False), _calls_then_print(3)],
+        ["```python\nA\n```", "```python\nB\n```"],
+        max_tool_calls=37,
+    )
+    out = await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+
+    assert out["messages"][-1].content == "30"
+    feedback = model.prompts[1][-1].content
+    assert "WHOLE job with fewer calls" in feedback
+    assert "Do NOT skip, sample or truncate records" in feedback
+    assert BUDGET_GIVE_UP in feedback
+    assert "at most" not in feedback
+    # Neither the message nor the program's own error output (fed back too)
+    # gives the cap's value.
+    assert "37" not in feedback
+    assert "ToolBudgetExceeded" in feedback
+
+
+@pytest.mark.asyncio
+async def test_a_model_that_cannot_fit_the_job_ends_the_run_with_an_error():
+    from promptise.engine import CodeActionBudgetError, GraphExecutionError
+    from promptise.engine.code_action import BUDGET_GIVE_UP, CallBudgetFailure
+
+    engine, model, session = _engine(
+        [_calls_then_print(5)],  # catches the budget error and prints a partial sum
+        ["```python\nA\n```", BUDGET_GIVE_UP],
+        max_tool_calls=2,
+        max_repairs=2,
+    )
+    with pytest.raises(CodeActionBudgetError, match="max_tool_calls=2") as info:
+        await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+
+    err = info.value
+    assert isinstance(err, GraphExecutionError)  # old handlers still catch it
+    assert isinstance(err.__cause__, CallBudgetFailure)
+    assert err.max_tool_calls == 2 and err.attempts == 2
+    assert "cannot be done in fewer calls" in err.error
+    assert model.calls == 2  # no further repair after the model gave up
+    assert session.programs == []  # the give-up reply was not run as a program
+    assert len([c for c in session.execs if c.startswith("python3")]) == 1
+
+
+@pytest.mark.asyncio
+async def test_the_give_up_line_inside_a_fence_is_recognised():
+    from promptise.engine import CodeActionBudgetError
+    from promptise.engine.code_action import BUDGET_GIVE_UP
+
+    engine, model, _ = _engine(
+        [_calls_then_print(5, catch=False)],
+        ["```python\nA\n```", f"```\n{BUDGET_GIVE_UP}\n```"],
+        max_tool_calls=2,
+    )
+    with pytest.raises(CodeActionBudgetError):
+        await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+    assert model.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_every_program_over_the_cap_ends_with_a_budget_error():
+    from promptise.engine import CodeActionBudgetError
+
+    engine, model, _ = _engine(
+        [_calls_then_print(9), _calls_then_print(9), _calls_then_print(9)],
+        ["```python\nA\n```", "```python\nB\n```", "```python\nC\n```"],
+        max_tool_calls=4,
+        max_repairs=2,
+    )
+    with pytest.raises(CodeActionBudgetError) as info:
+        await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+    assert info.value.attempts == 3 and model.calls == 3
+    assert engine.last_report.error and "max_tool_calls=4" in engine.last_report.error
+
+
+@pytest.mark.asyncio
+async def test_a_crash_is_still_a_plain_execution_error():
+    from promptise.engine import CodeActionBudgetError, GraphExecutionError
+
+    async def crash(call):
+        raise ZeroDivisionError("boom")
+
+    engine, _, _ = _engine([crash], ["```python\nA\n```"], max_repairs=0)
+    with pytest.raises(GraphExecutionError, match="ZeroDivisionError") as info:
+        await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+    assert not isinstance(info.value, CodeActionBudgetError)
+
+
+@pytest.mark.asyncio
+async def test_the_give_up_line_is_only_honoured_after_a_budget_hit():
+    """Before any program reached the cap, the line is just a broken program
+    (it crashes and is repaired like any other)."""
+    from promptise.engine.code_action import BUDGET_GIVE_UP
+
+    async def name_error(call):
+        raise NameError(f"name {BUDGET_GIVE_UP!r} is not defined")
+
+    engine, model, _ = _engine(
+        [name_error, _calls_then_print(2)],
+        [BUDGET_GIVE_UP, "```python\nB\n```"],
+        max_tool_calls=5,
+    )
+    out = await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+    assert out["messages"][-1].content == "20" and model.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_a_program_within_the_cap_answers_normally(caplog):
+    engine, model, _ = _engine([_calls_then_print(4)], ["```python\nA\n```"], max_tool_calls=4)
+    with caplog.at_level("WARNING", logger="promptise.engine.code_action"):
+        out = await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+
+    assert out["messages"][-1].content == "40"
+    assert model.calls == 1
+    assert engine.last_report.error is None and engine.last_report.tool_calls == 4
+    assert not caplog.records
+
+
+@pytest.mark.asyncio
+async def test_an_answer_after_a_budget_hit_is_logged(caplog):
+    engine, _, _ = _engine(
+        [_calls_then_print(9), _calls_then_print(2)],
+        ["```python\nA\n```", "```python\nB\n```"],
+        max_tool_calls=4,
+    )
+    with caplog.at_level("WARNING", logger="promptise.engine.code_action"):
+        await engine.ainvoke({"messages": [{"role": "user", "content": "go"}]})
+    assert any(
+        "after 1 earlier program(s) reached max_tool_calls=4" in r.getMessage()
+        for r in caplog.records
+    )

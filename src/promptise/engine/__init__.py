@@ -19,6 +19,7 @@ from .base import BaseNode, NodeProtocol, node
 from .code_action import CodeActionConfig, CodeActionNode
 from .compaction import ContextCompaction
 from .execution import (
+    CodeActionBudgetError,
     GraphBudgetExceededError,
     GraphExecutionError,
     GraphIterationLimitError,
@@ -105,6 +106,7 @@ __all__ = [
     "GraphIterationLimitError",
     "GraphStoppedError",
     "GraphBudgetExceededError",
+    "CodeActionBudgetError",
     "NodeFlag",
     # Hooks
     "Hook",

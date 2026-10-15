@@ -89,6 +89,13 @@ Core agent creation, invocation, identity, conversations, and the full reasoning
       show_source: false
       heading_level: 4
 
+### CodeActionBudgetError
+
+::: promptise.engine.execution.CodeActionBudgetError
+    options:
+      show_source: false
+      heading_level: 4
+
 ### PromptGraph
 
 ::: promptise.engine.graph.PromptGraph
