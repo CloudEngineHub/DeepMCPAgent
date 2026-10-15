@@ -85,13 +85,14 @@ async def word_count(text: str) -> int:
     """Count the words in a block of text."""
     return len(text.split())
 
-# Save the block above as tools.py, then run the agent below.
+# Save this whole file as tools.py and run `python tools.py`: the agent
+# starts the same file again with --serve, which runs the tool server.
 
 async def main():
     agent = await build_agent(
         model="openai:gpt-5-mini",
         servers={
-            "tools": StdioServerSpec(command=sys.executable, args=["tools.py"]),
+            "tools": StdioServerSpec(command=sys.executable, args=["tools.py", "--serve"]),
         },
         instructions="You are a research assistant. Use tools when they help.",
     )
@@ -103,7 +104,11 @@ async def main():
 
     await agent.shutdown()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    if "--serve" in sys.argv:
+        server.run(transport="stdio")   # started by the agent: be the server
+    else:
+        asyncio.run(main())
 ```
 
 Notice what you did *not* write: no tool schema, no JSON parsing, no dispatch table. You pointed `build_agent()` at a server, and it discovered `get_stock_price` and `word_count`, converted their type hints into typed tools, and started calling them when the query warranted. This is the core of building a **Python agent with tools** the maintainable way — adding a tool is one decorated function, not a schema-and-dispatch chore. If you want the mechanics of the tool-calling loop itself, the companion post [Tool Calling in Python: Connect an LLM to Tools](tool-calling-in-python.md) goes deeper.

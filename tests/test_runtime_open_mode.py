@@ -469,6 +469,35 @@ class TestCreateToolTool:
         assert len(process._custom_tools) == 1
 
     @pytest.mark.asyncio
+    async def test_result_and_description_say_the_tool_is_for_the_next_run(self):
+        """The run that creates a tool keeps its old tool list; the model is
+        told so instead of looking for the tool and re-creating it."""
+        from promptise.runtime.meta_tools import _create_tool, create_meta_tools
+
+        process = AgentProcess(
+            name="test",
+            config=ProcessConfig(execution_mode=ExecutionMode.OPEN),
+        )
+        process._build_agent = AsyncMock()
+        process._agent = MagicMock()
+        process._agent.shutdown = AsyncMock()
+
+        result = await _create_tool(
+            process,
+            tool_name="greet",
+            tool_description="Say hello",
+            parameters={},
+            python_code="def run(input): return 'hello'",
+        )
+        assert result.startswith("Tool 'greet' created.")
+        assert "next run, not in this one" in result
+
+        tools = {t.name: t for t in create_meta_tools(process)}
+        assert "next run" in tools["create_tool"].description
+        assert "run(**kwargs)" not in tools["create_tool"].description
+        assert "next run" in tools["connect_mcp_server"].description
+
+    @pytest.mark.asyncio
     async def test_rejects_at_max_tools(self):
         from promptise.runtime.meta_tools import _create_tool
 
@@ -557,6 +586,22 @@ class TestConnectMCPServerTool:
         )
         assert "Error" in result
         assert "already connected" in result
+
+    @pytest.mark.asyncio
+    async def test_result_says_the_tools_are_for_the_next_run(self):
+        from promptise.runtime.meta_tools import _connect_mcp_server
+
+        process = AgentProcess(
+            name="test",
+            config=ProcessConfig(execution_mode=ExecutionMode.OPEN),
+        )
+        process._hot_reload = AsyncMock(return_value="Rebuild successful")
+
+        result = await _connect_mcp_server(
+            process, server_name="extra", url="http://127.0.0.1:1/mcp"
+        )
+        assert result.startswith("Connected to MCP server 'extra'")
+        assert "next run, not in this one" in result
 
 
 class TestAddRemoveTriggerTool:
@@ -863,6 +908,37 @@ class TestSandboxExecution:
         result = await tool.ainvoke({})
         assert "ok" in result
         assert "true" in result.lower()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "code, error",
+        [
+            ("def run(**kwargs): return open('/etc/hosts').read()", "name 'open' is not defined"),
+            ("import os\ndef run(**kwargs): return os.getcwd()", "Import of 'os' is not allowed"),
+            (
+                "from decimal import Decimal\ndef run(**kwargs): return str(Decimal(1))",
+                "Import of 'decimal' is not allowed",
+            ),
+        ],
+    )
+    async def test_no_sandbox_is_not_full_builtins(self, code, error):
+        """docs/runtime/meta-tools.md: sandbox_custom_tools=False keeps the
+        restricted builtins and only allows an import allowlist (the docs
+        used to say "full Python builtins")."""
+        from promptise.runtime.meta_tools import _build_dynamic_tool
+
+        tool = _build_dynamic_tool(
+            name="probe", description="probe", python_code=code, sandbox=False
+        )
+        assert error in await tool.ainvoke({})
+
+    def test_docs_describe_sandbox_false_as_it_behaves(self):
+        from pathlib import Path
+
+        page = Path(__file__).resolve().parent.parent / "docs/runtime/meta-tools.md"
+        text = page.read_text(encoding="utf-8")
+        assert "the code runs with full Python builtins" not in text
+        assert "**same restricted builtins**" in text
 
     @pytest.mark.asyncio
     async def test_sandbox_blocks_exec(self):

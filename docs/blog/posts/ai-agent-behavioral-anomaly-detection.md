@@ -35,7 +35,7 @@ Promptise Foundry's runtime ships a `HealthMonitor` with four detectors. Each on
 
 The **stuck versus loop** distinction is the one people conflate. Stuck detection fingerprints `(tool_name, hash(arguments))` and fires only when the last `stuck_threshold` calls are byte-identical — a hard freeze. Loop detection is broader: it scans the recent window for any repeating pattern of length two or more, so `search → read → search → read` trips it even though no two *consecutive* calls match. They catch structurally different failures; keep both on. Agent empty response detection is deliberately trivial — it counts consecutive replies whose stripped length is at or below `empty_max_chars` (default 10) — and error rate monitoring rounds out the set so that "the agent is misbehaving" has a concrete, testable definition instead of a vibe.
 
-Two properties make this safe to leave on in production. **Detection is free**: every check is a comparison over a `deque`, so it adds no token spend and no measurable latency at the exact moment things are already going wrong. And every anomaly type has its own `cooldown` (default 300 seconds), so once a `LOOP` fires the monitor stays quiet on loops until the cooldown elapses — a genuinely stuck agent produces one alert per type, not a thousand.
+Two properties make this safe to leave on in production. **Detection is free**: every check is a comparison over a `deque`, so it adds no token spend and no measurable latency at the exact moment things are already going wrong. And every anomaly has a `cooldown` (default 300 seconds), so once a `LOOP` fires the monitor stays quiet on that loop until the cooldown elapses — a genuinely stuck agent produces one alert per problem, not a thousand, while a different stuck call or loop is still reported at once.
 
 ## Diagnose it in code: which loop do you actually have?
 
@@ -132,7 +132,7 @@ config = ProcessConfig(
         empty_threshold=3,
         error_rate_threshold=0.5,   # 50%+ failures in the window
         on_anomaly="escalate",      # "log", "pause", or "escalate"
-        cooldown=300,               # one alert per anomaly type per 5 min
+        cooldown=300,               # one alert per anomaly per 5 min
         escalation=EscalationTarget(
             webhook_url="https://hooks.slack.com/services/XXX",
             event_type="agent.health.anomaly",
@@ -182,7 +182,7 @@ No. All four detectors are pure pattern matching over a bounded history of tool 
 
 ### Won't a wedged agent flood me with alerts?
 
-No — every anomaly type has its own `cooldown` (default 300 seconds). Once a `LOOP` fires, the monitor suppresses further loop anomalies until the cooldown elapses, so a stuck agent produces one alert per type, not a stream. Tune the window with the `cooldown` field.
+No — every anomaly has a `cooldown` (default 300 seconds). Once a `LOOP` fires, the monitor suppresses that same loop until the cooldown elapses, so a stuck agent produces one alert per problem, not a stream; a different stuck call or loop is a new anomaly and is reported at once. Tune the window with the `cooldown` field.
 
 ### Can `on_anomaly` stop the process outright?
 

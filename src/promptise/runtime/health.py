@@ -62,7 +62,16 @@ class HealthMonitor:
     """Lightweight behavioral health analysis.
 
     All detection methods are pure logic — no I/O, no LLM calls.
-    Anomalies respect a configurable cooldown to avoid spam.
+    The same anomaly is reported at most once per ``cooldown`` seconds, to
+    avoid spam.  "The same" means the same kind *and* the same evidence:
+    the same repeated call (stuck), the same repeating sequence (loop), or
+    the same signal (empty responses, error rate).  A different stuck call
+    or loop is a new anomaly and is reported at once.
+
+    To use the monitor as an in-run guard that acts on *every* repeat (a
+    ``pre_tool`` hook that blocks the call while the agent is stuck), set
+    ``cooldown=0``: :meth:`record_tool_call` then returns the anomaly on
+    each call that continues it.
 
     Args:
         config: Health monitoring configuration.
@@ -82,7 +91,8 @@ class HealthMonitor:
         self._tool_history: deque[tuple[str, str]] = deque(maxlen=max_window)
         self._response_lengths: deque[int] = deque(maxlen=max_window)
         self._error_window: deque[bool] = deque(maxlen=config.error_window)
-        self._last_anomaly_time: dict[AnomalyType, float] = {}
+        # Last report time per anomaly key (see _cooldown_key).
+        self._last_anomaly_time: dict[tuple[Any, ...], float] = {}
         self._anomalies: list[Anomaly] = []
         self._anomaly_count: dict[AnomalyType, int] = dict.fromkeys(AnomalyType, 0)
         # Set when an anomaly fires; cleared by the next clean success.
@@ -142,7 +152,7 @@ class HealthMonitor:
 
         # Run detectors
         anomaly = self._detect_stuck() or self._detect_loop()
-        if anomaly and self._is_cooled_down(anomaly.anomaly_type):
+        if anomaly and self._is_cooled_down(anomaly):
             self._register_anomaly(anomaly)
             return anomaly
         return None
@@ -155,7 +165,7 @@ class HealthMonitor:
         """
         self._response_lengths.append(len(content.strip()))
         anomaly = self._detect_empty()
-        if anomaly and self._is_cooled_down(anomaly.anomaly_type):
+        if anomaly and self._is_cooled_down(anomaly):
             self._register_anomaly(anomaly)
             return anomaly
         return None
@@ -178,7 +188,7 @@ class HealthMonitor:
         """Record a failed invocation and check error rate."""
         self._error_window.append(True)
         anomaly = self._detect_error_rate()
-        if anomaly and self._is_cooled_down(anomaly.anomaly_type):
+        if anomaly and self._is_cooled_down(anomaly):
             self._register_anomaly(anomaly)
             return anomaly
         return None
@@ -307,11 +317,7 @@ class HealthMonitor:
         return {
             "is_healthy": len(self._anomalies) == 0
             or (
-                time.monotonic()
-                - max(
-                    (self._last_anomaly_time.get(t, 0.0) for t in AnomalyType),
-                    default=0.0,
-                )
+                time.monotonic() - max(self._last_anomaly_time.values(), default=0.0)
                 > self._config.cooldown
             ),
             "anomaly_count": sum(self._anomaly_count.values()),
@@ -366,9 +372,29 @@ class HealthMonitor:
         # (detecting identical repeated tool calls). Not security-sensitive.
         return hashlib.md5(raw.encode(), usedforsecurity=False).hexdigest()[:12]
 
-    def _is_cooled_down(self, anomaly_type: AnomalyType) -> bool:
-        """Check if enough time has passed since the last anomaly of this type."""
-        last_time = self._last_anomaly_time.get(anomaly_type)
+    def _cooldown_key(self, anomaly: Anomaly) -> tuple[Any, ...]:
+        """What makes two anomalies "the same" for the cooldown.
+
+        Stuck: the repeated call (tool and arguments).  Loop: the repeating
+        sequence, whichever call it is caught at (``A, B`` and ``B, A`` are
+        one loop).  Empty responses and error rate: the kind alone.  Before
+        1.3.4 the key was the kind alone, so a stuck call silenced every
+        other stuck call for ``cooldown`` seconds (300 by default), in the
+        same run and in the next ones.
+        """
+        if anomaly.anomaly_type is AnomalyType.STUCK and self._tool_history:
+            return (anomaly.anomaly_type, self._tool_history[-1])
+        if anomaly.anomaly_type is AnomalyType.LOOP and self._tool_history:
+            length = int(anomaly.details.get("pattern_length", 0))
+            pattern = list(self._tool_history)[-length:] if length else []
+            if pattern:
+                rotations = [tuple(pattern[i:] + pattern[:i]) for i in range(len(pattern))]
+                return (anomaly.anomaly_type, min(rotations))
+        return (anomaly.anomaly_type,)
+
+    def _is_cooled_down(self, anomaly: Anomaly) -> bool:
+        """Whether the same anomaly was last reported ``cooldown`` seconds ago or more."""
+        last_time = self._last_anomaly_time.get(self._cooldown_key(anomaly))
         if last_time is None:
             return True
         return (time.monotonic() - last_time) >= self._config.cooldown
@@ -378,7 +404,7 @@ class HealthMonitor:
         self._anomalies.append(anomaly)
         self._new_anomalies.append(anomaly)
         self._anomaly_count[anomaly.anomaly_type] += 1
-        self._last_anomaly_time[anomaly.anomaly_type] = time.monotonic()
+        self._last_anomaly_time[self._cooldown_key(anomaly)] = time.monotonic()
         self._unrecovered = True
         logger.warning(
             "Behavioral anomaly detected: %s — %s",

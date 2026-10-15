@@ -43,7 +43,7 @@ Open mode exposes 14 meta-tools, each gated by a permission flag in `OpenModeCon
 
 Every safeguard lives on `OpenModeConfig` and is enforced by the process before any modification lands. The ones that matter most:
 
-- **Mandatory sandbox for agent-written code.** `sandbox_custom_tools=True` is the default. Code the agent writes through `create_tool` runs with a restricted set of builtins — `len`, `range`, `sorted`, `sum` and friends are allowed, but `open`, `exec`, `eval`, `__import__`, file I/O, and all network access are blocked. An agent cannot write a tool that reads your filesystem or phones home. Setting it to `False` runs code with full builtins and is only for trusted, reviewed environments.
+- **Mandatory sandbox for agent-written code.** `sandbox_custom_tools=True` is the default. Code the agent writes through `create_tool` runs with a restricted set of builtins — `len`, `range`, `sorted`, `sum` and friends are allowed, but `open`, `exec`, `eval`, `__import__`, file I/O, and all network access are blocked. An agent cannot write a tool that reads your filesystem or phones home. Setting it to `False` keeps the same restricted builtins and only allows imports from a small standard-library allowlist (`json`, `math`, `re`, `datetime` and a few more); file and network access stay blocked either way.
 - **MCP URL whitelist.** `allowed_mcp_urls` restricts `connect_mcp_server`. Leave it empty and the agent can connect anywhere; set it to a list and any URL outside that list is rejected. In production, whitelist explicitly.
 - **Hard caps on growth.** `max_custom_tools` (default 20), `max_dynamic_triggers` (default 10), `max_instruction_length` (default 10,000 characters), and `max_spawned_processes` (default 3) bound how far the agent can expand. Exceeding a cap returns an error to the agent instead of mutating it.
 - **Rebuild ceiling.** Each self-modification triggers a hot-reload that reconnects servers and re-initializes tools. `max_rebuilds` caps how many times that can happen per lifetime, so a confused agent can't thrash your infrastructure in a loop.
@@ -110,7 +110,7 @@ async def main():
 asyncio.run(main())
 ```
 
-The agent reads the task, notices it has no arithmetic tool, calls `create_tool` with a `run(**kwargs) -> str` function, and the process hot-reloads with the new tool available. Because `sandbox_custom_tools=True`, that code can't import anything or touch the disk — it can only compute. The `status()` snapshot shows a non-zero rebuild count, your evidence that the agent genuinely rewrote itself rather than just answering.
+The agent reads the task, notices it has no arithmetic tool, calls `create_tool` with a `run` function, and the process hot-reloads; the new tool is callable from the agent's next run (the run that created it keeps the tools it started with, and `create_tool`'s answer tells the model so). Because `sandbox_custom_tools=True`, that code can't import anything or touch the disk — it can only compute. The `status()` snapshot shows a non-zero rebuild count, your evidence that the agent genuinely rewrote itself rather than just answering.
 
 ## Ship it as a `.agent` manifest
 
@@ -145,7 +145,7 @@ Open mode is a real capability, not a default. Skip it when:
 
 - **The workload is fixed.** If an agent's tools and prompt are known up front and stable, strict mode is simpler, faster (no rebuild latency), and easier to audit. Most production agents should stay strict.
 - **You can't tolerate non-determinism.** A self-modifying agent's tool set changes at runtime, which makes reproducing a past run harder. For regulated or high-stakes flows, prefer explicit, version-controlled tools and a [human-in-the-loop approval gate](../../runtime/manifests.md) over letting the agent decide.
-- **You'd disable the sandbox.** If your use case needs agent-written code to do file or network I/O, that's a signal to provide those capabilities as reviewed MCP tools instead of turning off `sandbox_custom_tools`. Reaching for `sandbox_custom_tools=False` is a red flag, not a shortcut.
+- **You'd disable the sandbox.** If your use case needs agent-written code to do file or network I/O, provide those capabilities as reviewed MCP tools. `sandbox_custom_tools=False` will not help: it only allows a few more standard-library imports, never `open` or network access.
 
 The honest framing: open mode shines for genuinely adaptive agents — long-running research, monitoring, or operations agents that hit tasks you couldn't fully enumerate up front. If you can enumerate them, don't use it. For keeping such agents alive and supervised over days, see [How to Build a Long-Running AI Agent](long-running-ai-agent.md).
 

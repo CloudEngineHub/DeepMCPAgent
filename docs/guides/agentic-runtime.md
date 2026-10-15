@@ -306,7 +306,7 @@ config = ProcessConfig(
         empty_max_chars=10,        # Below 10 chars = trivial response
         error_rate_threshold=0.5,  # 50%+ error rate = anomaly
         on_anomaly="pause",        # "log", "pause", or "escalate"
-        cooldown=300,              # 5 min between same anomaly type
+        cooldown=300,              # 5 min before the same anomaly is reported again
         escalation=EscalationTarget(
             webhook_url="https://hooks.slack.com/services/...",
         ),

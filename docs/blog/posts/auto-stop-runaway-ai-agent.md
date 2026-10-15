@@ -128,7 +128,7 @@ config = ProcessConfig(
         empty_threshold=3,          # 3 blank responses in a row = anomaly
         error_rate_threshold=0.5,   # half the window failing = anomaly
         on_anomaly="escalate",      # "log" | "pause" | "escalate"
-        cooldown=300,               # 5 min between repeats of the same type
+        cooldown=300,               # 5 min before the same anomaly repeats
         escalation=EscalationTarget(
             webhook_url="https://hooks.slack.com/services/XXX",
             event_type="agent.health.anomaly",
