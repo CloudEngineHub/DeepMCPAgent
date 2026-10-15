@@ -108,7 +108,7 @@ def verify(
         count = len(report.warnings)
         _console.print(
             f"[red]FAILED[/red] {summary}: no tampering found, but {count} "
-            f"warning{'s' if count != 1 else ''} fail the check under --strict."
+            f"{'warning fails' if count == 1 else 'warnings fail'} the check under --strict."
         )
     elif report.ok:
         state = "intact" if report.continuous else "intact, but not one continuous chain"

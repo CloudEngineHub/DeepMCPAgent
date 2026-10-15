@@ -399,7 +399,7 @@ class TestCli:
         assert result.exit_code == 1
         assert "OK" not in result.output and "intact." not in result.output
         assert "FAILED" in result.output and "--strict" in result.output
-        assert "1 warning fail" in result.output
+        assert "1 warning fails the check under --strict." in " ".join(result.output.split())
 
     def test_strict_json_says_whether_the_check_passed(self, log: Path) -> None:
         log.write_text(log.read_text() + '{"timestamp": 17')
