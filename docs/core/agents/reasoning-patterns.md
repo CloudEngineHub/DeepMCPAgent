@@ -136,9 +136,10 @@ reason ──→ (tool) ──→ reason + facts-ledger ──→ (tool) ──�
 many facts then aggregating.
 
 !!! note "Honest scope"
-    `managed` is an **efficiency primitive**: on long tool chains it cuts
-    redundant tool calls and bounds token growth at **equal** accuracy — it does
-    not by itself make the model answer more correctly. See
+    `managed` is an **efficiency primitive**: on long tool chains it bounds
+    token growth; whether it also cuts tool calls depends on the model (see
+    [the note on `managed`](../engine-prebuilts.md#managed-context-managed-tool-loop)).
+    It does not by itself make the model answer more correctly. See
     [Context scope](../engine-nodes.md#context-scope) for the mechanism.
 
 ### Code-Action

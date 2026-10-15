@@ -212,6 +212,28 @@ optimize_tools=ToolOptimizationConfig(
 
 ---
 
+## The tool summary in the system prompt
+
+The model always receives each offered tool as a tool definition (name, description and parameter schema), which is what the savings above measure. Promptise can also list the tools in the system prompt, in an "Available tools" block. It repeats the definitions, so it is off by default since 1.3.4 (before that, every node with tools added the `"full"` block):
+
+```python
+agent = await build_agent(
+    servers=servers,
+    model="openai:gpt-5-mini",
+    tool_summary="names",   # "off" (default), "names" or "full"
+)
+```
+
+| `tool_summary` | What the system prompt gets | Tokens on the 40-tool test server |
+|---|---|---|
+| `"off"` (default) | Nothing | 0 |
+| `"names"` | `Available tools: hr_list_employees, hr_get_employee, ...` | 178 |
+| `"full"` | One line per tool: `- hr_get_employee(employee_id: string*): Get detailed...` (parameters, `*` = required, and the first 120 characters of the description) | 997 |
+
+Measured with `tiktoken`'s `o200k_base` encoding on the first request of a `build_agent` run against the 40 tools of `tests/_e2e_40tool_server.py` (one-line descriptions): the tool definitions are 3,043 tokens, so `"full"` adds a third on top of them. With longer descriptions the block costs more (about 40 tokens a tool on a 48-tool server). The summary lists the tools offered on that call, so with semantic selection it shrinks with the selection. Turn it on only if a model picks tools or parameters better with it. In a custom graph, `PromptNode(tool_summary=...)` sets it per node and `PromptGraphEngine(tool_summary=...)` for every node that sets none.
+
+---
+
 ## Combining with Other Features
 
 Tool optimization composes with all other agent features:

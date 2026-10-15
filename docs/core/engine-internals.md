@@ -383,7 +383,7 @@ All hooks are wrapped in try/except — a failing hook never crashes the graph. 
 ```mermaid
 graph TD
     subgraph "Iteration Guards"
-        S1["max_iterations (default 50)"] --> |exceeded| S1R["Force graph end"]
+        S1["max_iterations (default 50)"] --> |"reached: that many node executions"| S1R["Force graph end"]
         S2["node budget: min(node.max_iterations, max_node_iterations)"] --> |"used up — node not run again"| S2R["_handle_stuck_node()"]
         S2R --> |"error transition exists"| S2A["Follow error edge"]
         S2R --> |"__error__ node exists"| S2B["Go to error handler"]
@@ -391,7 +391,7 @@ graph TD
     end
 
     subgraph "Budget & Health"
-        S3["BudgetHook.max_tokens"] --> |exceeded| S3R["Set current_node = __end__"]
+        S3["BudgetHook.max_tokens"] --> |exceeded| S3R["Set current_node = __end__; GraphBudgetExceededError if no answer"]
         S4["CycleDetectionHook"] --> |"pattern repeats N times"| S4R["Force __end__"]
         S5["TimingHook"] --> |"node exceeds budget"| S5R["Set error on result"]
     end

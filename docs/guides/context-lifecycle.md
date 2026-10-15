@@ -79,9 +79,14 @@ call gets a bounded view instead of the transcript:
    batch is kept whole.
 5. **A ledger of older results**, last: one line per earlier `tool(args)`,
    **last value wins** per `(tool, args)`. A result longer than 2,000
-   characters is cut to its first 2,000 with a note naming the call, so the
-   model can call it again for the full text. Results already shown in the
-   latest exchange are not repeated.
+   characters is cut to its first 2,000 with a note that says how much was
+   cut and that the model may call the tool once more for the rest. A call
+   the model made more than once is shown in full from then on, so a result
+   it fetched again for its full text is not cut again (with `max_tokens`,
+   such results are the last to shrink). Results already shown in the
+   latest exchange are not repeated. The ledger's header tells the model to
+   use these facts and call again only for a cut result or when it is waiting
+   for something to change, such as a job's status.
 
 !!! warning "No LLM summarization"
     Compaction is deterministic: it cuts and drops, it never asks a model to
@@ -227,7 +232,7 @@ agent = await build_agent(
     instructions=(
         "Answer by calling tools. A ledger of facts you already gathered is "
         "provided each turn — consult it and don't re-fetch a fact you have "
-        "unless it can change (a status, for example)."
+        "unless you are waiting for it to change (a job's status, for example)."
     ),
     max_agent_iterations=30,          # deep chains make many calls
 )

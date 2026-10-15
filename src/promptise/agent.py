@@ -3023,6 +3023,7 @@ async def build_agent(
     graph_blocks: list[Any] | None = None,
     node_pool: list[Any] | None = None,
     max_agent_iterations: int = 25,
+    tool_summary: str = "off",
     code_action: Any | None = None,
     expose_resources: bool = False,
     expose_prompts: bool = False,
@@ -3193,6 +3194,23 @@ async def build_agent(
             ``scan_tool_results=True``, every tool is wrapped so its result
             is scanned before the model reads it.
 
+        max_agent_iterations: The most node executions one run may make
+            (the engine's ``max_iterations``).  With the default ReAct
+            graph each execution of the ``reason`` node is one model call
+            plus the tool calls it asks for, so ``N`` allows at most ``N``
+            model calls; the ``reason`` node's own limit of 15 applies when
+            ``N`` is higher.  Other patterns count each node execution
+            (planner, tools, reflection...).  A run that reaches the limit
+            after the model asked for tools, before it saw their results,
+            raises :class:`~promptise.engine.GraphIterationLimitError`.
+            Defaults to ``25``.
+        tool_summary: Whether the agent's system prompt also lists the
+            offered tools in an "Available tools" block, on top of the tool
+            definitions the provider receives: ``"off"`` (default),
+            ``"names"`` (one line of names) or ``"full"`` (parameters and
+            the first 120 characters of each description; the behaviour
+            before 1.3.4: 25 to 40 tokens a tool).  Nodes of a custom
+            graph that set ``PromptNode(tool_summary=...)`` keep theirs.
         code_action: Options for ``agent_pattern="code-action"``: a
             :class:`~promptise.engine.CodeActionConfig` or a dict with
             ``exec_timeout`` (seconds the program may run, default 120),
@@ -3807,6 +3825,7 @@ async def build_agent(
                 graph=graph,
                 model=cast(BaseChatModel, chat),
                 max_iterations=max_agent_iterations,
+                tool_summary=tool_summary,
                 # inject_tools nodes in a custom graph get these tools
                 tools=graph_tools,
                 compaction=_compaction,
