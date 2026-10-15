@@ -2986,7 +2986,7 @@ def _check_agent_pattern(agent_pattern: Any) -> None:
 
 async def build_agent(
     *,
-    servers: Mapping[str, ServerSpec],
+    servers: Mapping[str, ServerSpec] | None = None,
     model: ModelLike,
     instructions: str | Any | None = None,
     identity: AgentIdentity | None = None,
@@ -3037,6 +3037,9 @@ async def build_agent(
 
     Args:
         servers: Mapping of server name to spec (HTTP/SSE recommended).
+            Optional: leave it out (or pass ``{}``) for an agent with no
+            MCP tools, e.g. one that only uses ``extra_tools`` or just the
+            model and its instructions.
         model: REQUIRED. A LangChain chat model instance, a provider id
             string such as ``"openai:gpt-5-mini"`` or ``"azure:my-deployment"``
             (see :mod:`promptise.models` for every provider and alias), or a
@@ -3712,7 +3715,19 @@ async def build_agent(
         ]
 
     if not tools:
-        print("[promptise] No tools discovered from MCP servers; agent will run without tools.")
+        # A library never writes to stdout: the notice used to be a bare
+        # print, which landed in the application's output (and in a stdio
+        # MCP server's protocol stream) on every build -- e.g. once per
+        # mission evaluation, whose judge is built without servers.  An
+        # agent built without servers has no tools by design; configured
+        # servers that yield none is worth a warning.
+        if servers:
+            logger.warning(
+                "No tools discovered from MCP servers %s; agent will run without tools.",
+                ", ".join(sorted(servers)),
+            )
+        else:
+            logger.debug("Agent built without servers or tools.")
 
     chat: Runnable[Any, Any] = _normalize_model(model)
 

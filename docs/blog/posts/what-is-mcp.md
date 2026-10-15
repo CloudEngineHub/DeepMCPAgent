@@ -81,7 +81,7 @@ async def main():
     agent = await build_agent(
         model="openai:gpt-5-mini",
         servers={
-            "orders": StdioServerSpec(command=sys.executable, args=["tools.py"]),
+            "orders": StdioServerSpec(command=sys.executable, args=["tools.py", "--serve"]),
         },
         instructions="You help customers with order questions.",
     )
@@ -112,7 +112,7 @@ from promptise.config import HTTPServerSpec
 agent = await build_agent(
     model="openai:gpt-5-mini",
     servers={
-        "orders": StdioServerSpec(command=sys.executable, args=["tools.py"]),
+        "orders": StdioServerSpec(command=sys.executable, args=["tools.py", "--serve"]),
         "billing": HTTPServerSpec(
             url="https://mcp.internal.example.com/mcp",
             bearer_token="...",

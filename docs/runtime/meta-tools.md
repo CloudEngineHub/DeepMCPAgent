@@ -105,6 +105,12 @@ create_tool(
 
 The number of custom tools is capped by `OpenModeConfig.max_custom_tools` (default: 20). Duplicate names are rejected. After creation, a hot-reload is triggered.
 
+**The new tool is callable from the agent's next run, not in the run that creates it** (see [Hot-Reload](#hot-reload): the current invocation keeps the tools it started with). The tool's description and its result say so, so the model finishes the current task without it instead of looking for it or creating it again:
+
+```text
+Tool 'add' created. You can call it from your next run, not in this one: this run keeps the tools it started with, so finish the current task without it.
+```
+
 ### Sandbox execution
 
 When `sandbox_custom_tools=True` (the default), agent-written code runs with restricted builtins:
@@ -112,7 +118,9 @@ When `sandbox_custom_tools=True` (the default), agent-written code runs with res
 - **Allowed**: `len`, `range`, `str`, `int`, `float`, `list`, `dict`, `set`, `sorted`, `enumerate`, `zip`, `map`, `filter`, `max`, `min`, `sum`, `print`, `round`, `abs`, `bool`, `type`, `isinstance`, common exceptions, and other safe builtins.
 - **Blocked**: `open`, `exec`, `eval`, `__import__`, file I/O, network access, and all module imports.
 
-When `sandbox_custom_tools=False`, the code runs with full Python builtins. This is only recommended for trusted environments.
+When `sandbox_custom_tools=False`, the code runs with the **same restricted builtins** (no `open`, `exec`, `eval`, file I/O or network access), but may import a fixed allowlist of standard-library modules: `base64`, `collections`, `copy`, `datetime`, `functools`, `hashlib`, `itertools`, `json`, `math`, `re`, `string`, `urllib.parse`, `uuid`. Any other import (`os`, `decimal`, ...) fails with `Import of '...' is not allowed`, and each call logs a warning. There is no setting that gives agent-written code full Python builtins; give the agent such capabilities as reviewed MCP tools.
+
+Restricted builtins are defense in depth, not a security boundary: Python's object model can reach other functions through attribute access. For untrusted code, use the Docker [sandbox](../core/sandbox.md).
 
 ---
 
@@ -128,7 +136,7 @@ Connects to an additional MCP server at runtime to gain access to its tools.
 | `url` | `str` | required | URL of the MCP server |
 | `transport` | `str` | `"streamable-http"` | Transport type |
 
-If `OpenModeConfig.allowed_mcp_urls` is set (non-empty list), only URLs in that whitelist are accepted. After connecting, a hot-reload rebuilds the agent with the new tools.
+If `OpenModeConfig.allowed_mcp_urls` is set (non-empty list), only URLs in that whitelist are accepted. After connecting, a hot-reload rebuilds the agent with the new tools. As with `create_tool`, the server's tools are callable from the next run, not in the run that connects it, and the result says so.
 
 ---
 
@@ -299,7 +307,7 @@ tools = create_meta_tools(process)
     Whitelisting MCP server URLs prevents the agent from connecting to untrusted endpoints. An empty list means any URL is allowed.
 
 !!! warning "Sandbox limitations"
-    Sandboxed tools cannot import any modules, read/write files, or make network calls. If the agent needs these capabilities, either provide them through MCP servers or set `sandbox_custom_tools=False` (with appropriate security review).
+    Sandboxed tools cannot import any modules, read/write files, or make network calls. `sandbox_custom_tools=False` only adds imports from a small standard-library allowlist (`json`, `math`, `re`, `datetime`, ...); files and network stay out of reach. If the agent needs those, provide them through MCP servers.
 
 !!! warning "Hot-reload cost"
     Each hot-reload rebuilds the agent graph, which involves reconnecting MCP servers and re-initializing tools. Frequent modifications can add latency. Use `max_rebuilds` to cap this.

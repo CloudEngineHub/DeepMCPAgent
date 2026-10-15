@@ -72,7 +72,7 @@ async def main():
     agent = await build_agent(
         model="openai:gpt-5-mini",
         servers={
-            "tools": StdioServerSpec(command=sys.executable, args=["tools.py"]),
+            "tools": StdioServerSpec(command=sys.executable, args=["tools.py", "--serve"]),
         },
         instructions="You are a helpful assistant with access to tools.",
     )
