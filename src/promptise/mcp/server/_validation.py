@@ -389,30 +389,100 @@ def validate_arguments(
         # as-is.
         return {field_name: getattr(instance, field_name) for field_name in model.model_fields}
     except PydanticValidationError as exc:
-        field_errors: dict[str, str] = {}
-        messages: list[str] = []
-        error_types: set[str] = set()
-        for err in exc.errors():
-            loc = ".".join(str(p) for p in err["loc"])
-            msg = err["msg"]
-            field_errors[loc] = msg
-            messages.append(f"{loc}: {msg}")
-            error_types.add(err.get("type", ""))
+        raise _bounded_validation_error(exc) from exc
 
-        # Generate specific suggestion based on error types
-        if "missing" in error_types:
-            suggestion = (
-                "Required fields are missing. Check that all required parameters are provided."
-            )
-        elif error_types & {"string_type", "int_type", "float_type", "bool_type", "type_error"}:
-            suggestion = "Parameter type mismatch. Check that values match the expected types in the tool schema."
-        elif "value_error" in error_types or "assertion_error" in error_types:
-            suggestion = "Parameter value out of range or failed a constraint check."
-        else:
-            suggestion = "Check the parameter types and constraints in the tool description."
 
-        raise ValidationError(
-            f"Invalid input: {'; '.join(messages)}",
-            field_errors=field_errors,
-            suggestion=suggestion,
-        ) from exc
+# ------------------------------------------------------------------
+# Bounded error envelope
+# ------------------------------------------------------------------
+
+#: Upper bound on the ``message`` of a ``VALIDATION_ERROR`` (characters).
+MAX_VALIDATION_MESSAGE_CHARS = 1000
+#: At most this many entries in ``details.field_errors``.
+MAX_FIELD_ERRORS = 20
+_MAX_LOC_CHARS = 120
+_MAX_MSG_CHARS = 200
+
+
+def _clip(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
+def _bounded_validation_error(exc: PydanticValidationError) -> ValidationError:
+    """A ``ValidationError`` whose size does not depend on the input.
+
+    Pydantic's messages name the constraint, not the value, but a caller
+    can still make the envelope arbitrarily large with many invalid items
+    or with huge keys (they become ``loc``).  Field paths and messages are
+    clipped, at most :data:`MAX_FIELD_ERRORS` are listed (the rest are
+    counted in ``details.omitted_errors``) and the message is capped at
+    :data:`MAX_VALIDATION_MESSAGE_CHARS`.  The rejected input itself is
+    never included.
+    """
+    field_errors: dict[str, str] = {}
+    messages: list[str] = []
+    error_types: set[str] = set()
+    total = exc.error_count()
+    for err in exc.errors(include_url=False, include_input=False, include_context=False):
+        error_types.add(err.get("type", ""))
+        if len(field_errors) >= MAX_FIELD_ERRORS:
+            continue
+        loc = _clip(".".join(str(p) for p in err["loc"]), _MAX_LOC_CHARS)
+        msg = _clip(str(err["msg"]), _MAX_MSG_CHARS)
+        field_errors[loc] = msg
+        messages.append(f"{loc}: {msg}")
+    omitted = total - len(field_errors)
+
+    # Generate specific suggestion based on error types
+    if "missing" in error_types:
+        suggestion = "Required fields are missing. Check that all required parameters are provided."
+    elif error_types & {"string_type", "int_type", "float_type", "bool_type", "type_error"}:
+        suggestion = "Parameter type mismatch. Check that values match the expected types in the tool schema."
+    elif "value_error" in error_types or "assertion_error" in error_types:
+        suggestion = "Parameter value out of range or failed a constraint check."
+    else:
+        suggestion = "Check the parameter types and constraints in the tool description."
+
+    message = "Invalid input: " + "; ".join(messages)
+    if omitted:
+        message += f" (and {omitted} more error{'s' if omitted != 1 else ''})"
+    error = ValidationError(
+        _clip(message, MAX_VALIDATION_MESSAGE_CHARS),
+        field_errors=field_errors,
+        suggestion=suggestion,
+    )
+    if omitted:
+        error.details["omitted_errors"] = omitted
+    return error
+
+
+# ------------------------------------------------------------------
+# Validation inside the request pipeline
+# ------------------------------------------------------------------
+
+#: ``ctx.state`` key holding the ``ValidationError`` of a call whose
+#: arguments were rejected.  Middleware that acts on the arguments before
+#: calling the next layer (cache lookup, approval request) checks it.
+PENDING_VALIDATION_ERROR = "_validation_error"
+
+
+def defer_validation_error(ctx: Any, exc: ValidationError) -> Any:
+    """Record *exc* on *ctx* and return a handler that raises it.
+
+    The server runs this handler through the full middleware chain in
+    place of the tool, so a schema-invalid call is authenticated, rate
+    limited and audited like any other before the caller receives the
+    ``VALIDATION_ERROR`` envelope.  The handler takes no arguments: the
+    rejected input never reaches dependency injection or middleware.
+    """
+    ctx.state[PENDING_VALIDATION_ERROR] = exc
+
+    async def _reject_invalid_input() -> Any:
+        raise exc
+
+    return _reject_invalid_input
+
+
+def validation_pending(ctx: Any) -> bool:
+    """Whether the call's arguments were rejected (see :func:`defer_validation_error`)."""
+    return ctx is not None and ctx.state.get(PENDING_VALIDATION_ERROR) is not None
