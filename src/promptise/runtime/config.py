@@ -514,7 +514,9 @@ class HealthConfig(BaseModel):
         error_window: Sliding window for error rate.
         error_rate_threshold: Error rate above this triggers anomaly.
         on_anomaly: Action when anomaly is detected.
-        cooldown: Seconds between same anomaly type.
+        cooldown: Seconds before the same anomaly (same kind and same
+            evidence: the same stuck call or loop) is reported again. Set
+            0 to report every repeat, e.g. for an in-run guard.
         escalation: Escalation target for anomalies.
     """
 

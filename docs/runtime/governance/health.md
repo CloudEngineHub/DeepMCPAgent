@@ -23,7 +23,7 @@ config = ProcessConfig(
         empty_max_chars=10,      # Below 10 chars = trivial response
         error_rate_threshold=0.5, # 50%+ error rate = anomaly
         on_anomaly="escalate",   # "log", "pause" or "escalate"
-        cooldown=300,            # 5 min between same anomaly type
+        cooldown=300,            # 5 min before the same anomaly is reported again
         escalation=EscalationTarget(
             webhook_url="https://hooks.slack.com/...",
         ),
@@ -79,6 +79,61 @@ Sliding window error rate over the last `error_window` invocations. An invocatio
 
 The action runs when the invocation that produced the anomaly ends, whether the run succeeded or raised (a stuck tool loop often ends in `GraphIterationLimitError`), and however long the run went on after the anomaly was detected. An anomaly from a failed run that is only detected once the failure is recorded (`high_error_rate`) is acted on right then. Each anomaly is acted on once: a later healthy run does not pause the process again for it. Every new anomaly also emits a `health.anomaly` event (`process_name`, `anomaly_type`, `details`).
 
+## Cooldown
+
+`cooldown` (default 300 s) stops the same anomaly from being reported over
+and over, so a stuck agent does not send an escalation per call. "The same"
+means the same kind **and** the same evidence:
+
+| Anomaly | Same anomaly when |
+|---------|-------------------|
+| `STUCK` | the same tool with the same arguments |
+| `LOOP` | the same repeating sequence, whichever call it is caught at (`A, B` and `B, A` are one loop) |
+| `EMPTY_RESPONSE`, `HIGH_ERROR_RATE` | always (one signal per process) |
+
+A different stuck call or a different loop is a new anomaly and is reported
+at once, also within the cooldown and in the same run. The cooldown carries
+over between invocations: a scheduled agent that gets stuck on the same call
+in every run reports it once per `cooldown`.
+
+## As an in-run guard
+
+`HealthMonitor` also works on its own, outside `AgentProcess`, as a guard
+inside a run: a `pre_tool` [engine hook](../../core/engine-hooks.md) records
+every call and blocks the one that keeps the agent stuck. Set `cooldown=0`
+for this. With the default cooldown, `record_tool_call()` returns the anomaly
+only the first time, so the guard would block the third identical call and
+let every later one through.
+
+```python
+from promptise.runtime import HealthConfig, HealthMonitor
+
+
+class LoopGuard:
+    """Blocks a tool call while the agent is repeating itself."""
+
+    def __init__(self) -> None:
+        # cooldown=0: report every call that continues the anomaly
+        self.monitor = HealthMonitor(
+            HealthConfig(enabled=True, stuck_threshold=3, cooldown=0),
+            process_id="my-agent",
+        )
+
+    async def pre_tool(self, tool_name, args, state):
+        anomaly = await self.monitor.record_tool_call(tool_name, args)
+        if anomaly:
+            raise RuntimeError(
+                f"{anomaly.description}. The result will not change in this run: "
+                "stop calling it and continue with what you have."
+            )
+        return args
+```
+
+Pass it in `hooks=[LoopGuard()]` of a `PromptGraphEngine`. The error goes back
+to the model as the tool's result. Use one guard per run, or call
+`monitor.begin_invocation()` at the start of each run, because stuck and loop
+detection look at the calls of one run.
+
 A suspended process keeps queueing its trigger events; `resume()` (or `POST /api/v1/processes/{name}/resume`) lets it continue. To stop a process outright on a hard limit, use the [Autonomy Budget](budget.md) with `on_exceeded="stop"`.
 
 ## API reference
@@ -95,14 +150,14 @@ A suspended process keeps queueing its trigger events; `resume()` (or `POST /api
 | `empty_max_chars` | `int` | `10` | Max chars for a "trivial" response |
 | `error_rate_threshold` | `float` | `0.5` | Error rate to trigger |
 | `on_anomaly` | `str` | `"log"` | Action when anomaly detected |
-| `cooldown` | `float` | `300` | Seconds between same anomaly type |
+| `cooldown` | `float` | `300` | Seconds before the same anomaly (same kind and evidence) is reported again; `0` reports every repeat (in-run guards) |
 | `escalation` | `EscalationTarget \| None` | `None` | Where to notify |
 
 ### `HealthMonitor`
 
 | Method | Description |
 |--------|-------------|
-| `.record_tool_call(tool_name, args)` | Record a call, return anomaly if detected |
+| `.record_tool_call(tool_name, args)` | Record a call; return the anomaly it completes, unless the same anomaly was reported less than `cooldown` seconds ago |
 | `.record_response(text)` | Record the agent's final reply for empty detection (not tool results) |
 | `.record_success()` | Record a successful invocation; returns `True` once, on the first success after an anomaly |
 | `.begin_invocation()` | Start a new invocation: clears the tool history used by stuck/loop detection (the runtime calls it) |
