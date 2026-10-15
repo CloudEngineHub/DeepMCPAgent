@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 from datetime import timedelta
 from typing import Any
 
@@ -199,41 +198,71 @@ class TestErrorRateTracking:
 
 
 class TestCooldown:
-    @pytest.mark.asyncio
-    async def test_same_anomaly_suppressed_within_cooldown(self):
-        cfg = HealthConfig(stuck_threshold=3, cooldown=60.0)
-        monitor = HealthMonitor(cfg, process_id="test")
+    """``cooldown`` silences the *same* anomaly, not every anomaly of its kind."""
 
-        # First trigger
-        for _ in range(3):
-            await monitor.record_tool_call("hammer", {})
-
-        # Simulate recent anomaly
-        monitor._last_anomaly_time[AnomalyType.STUCK] = time.monotonic()
-
-        # Reset call history to trigger stuck again
-        monitor._tool_calls = []
-        results = []
-        for _ in range(3):
-            results.append(await monitor.record_tool_call("hammer", {}))
-
-        # Should be suppressed — all None
-        assert all(r is None for r in results)
+    @staticmethod
+    async def _calls(monitor: HealthMonitor, *calls: tuple[str, dict[str, Any]]) -> list[Any]:
+        return [await monitor.record_tool_call(name, args) for name, args in calls]
 
     @pytest.mark.asyncio
-    async def test_anomaly_fires_after_cooldown_expires(self):
-        cfg = HealthConfig(stuck_threshold=3, cooldown=0.0, loop_min_repeats=100)
-        monitor = HealthMonitor(cfg, process_id="test")
+    async def test_same_stuck_call_reported_once_within_cooldown(self):
+        monitor = HealthMonitor(
+            HealthConfig(stuck_threshold=3, cooldown=60.0, loop_min_repeats=100), process_id="t"
+        )
+        results = await self._calls(monitor, *[("hammer", {})] * 8)
+        assert [r is not None for r in results] == [False, False, True] + [False] * 5
+        assert len(monitor.anomalies) == 1
 
-        # Simulate cooldown already expired
-        monitor._last_anomaly_time[AnomalyType.STUCK] = time.monotonic() - 100
+    @pytest.mark.asyncio
+    async def test_a_different_stuck_call_is_a_new_anomaly(self):
+        """Before 1.3.4 the first stuck call silenced every other one for 300 s."""
+        monitor = HealthMonitor(HealthConfig(stuck_threshold=3, loop_min_repeats=100), "t")
+        await self._calls(monitor, *[("get_stock", {"sku": "A"})] * 3)
+        results = await self._calls(monitor, *[("get_stock", {"sku": "B"})] * 3)
+        assert results[-1] is not None
+        assert results[-1].anomaly_type == AnomalyType.STUCK
+        assert len(monitor.anomalies) == 2
+        assert len(monitor.take_new_anomalies()) == 2
 
-        results = []
-        for _ in range(3):
-            results.append(await monitor.record_tool_call("hammer", {}))
+    @pytest.mark.asyncio
+    async def test_same_call_stuck_again_in_the_next_run_stays_silenced(self):
+        monitor = HealthMonitor(HealthConfig(stuck_threshold=3, loop_min_repeats=100), "t")
+        await self._calls(monitor, *[("poll", {"id": 1})] * 3)
+        monitor.begin_invocation()
+        results = await self._calls(monitor, *[("poll", {"id": 1})] * 3)
+        assert results == [None, None, None]
+        monitor.begin_invocation()
+        results = await self._calls(monitor, *[("poll", {"id": 2})] * 3)
+        assert results[-1] is not None
 
-        # At least one should fire
-        assert any(r is not None for r in results)
+    @pytest.mark.asyncio
+    async def test_a_loop_is_one_anomaly_whichever_call_it_is_caught_at(self):
+        monitor = HealthMonitor(HealthConfig(loop_window=20, loop_min_repeats=2), "t")
+        a, b = ("search", {"q": "x"}), ("read", {"id": 1})
+        await self._calls(monitor, *[a, b] * 6)
+        assert [x.anomaly_type for x in monitor.anomalies] == [AnomalyType.LOOP]
+        # A different loop is reported.
+        c, d = ("list", {}), ("open", {"n": 2})
+        await self._calls(monitor, *[c, d] * 3)
+        assert len(monitor.anomalies) == 2
+
+    @pytest.mark.asyncio
+    async def test_cooldown_zero_reports_every_repeat_for_an_in_run_guard(self):
+        monitor = HealthMonitor(
+            HealthConfig(stuck_threshold=3, cooldown=0, loop_min_repeats=100), process_id="t"
+        )
+        results = await self._calls(monitor, *[("hammer", {})] * 6)
+        assert [r is not None for r in results] == [False, False, True, True, True, True]
+
+    @pytest.mark.asyncio
+    async def test_anomaly_fires_again_after_cooldown_expires(self):
+        monitor = HealthMonitor(
+            HealthConfig(stuck_threshold=3, cooldown=60.0, loop_min_repeats=100), process_id="t"
+        )
+        await self._calls(monitor, *[("hammer", {})] * 3)
+        for key in monitor._last_anomaly_time:
+            monitor._last_anomaly_time[key] -= 61
+        assert await monitor.record_tool_call("hammer", {}) is not None
 
 
 # ---------------------------------------------------------------------------
@@ -420,3 +449,79 @@ class TestOnAnomalyInProcess:
         assert [a.anomaly_type for a in first] == [AnomalyType.STUCK]
         assert monitor.take_new_anomalies() == []
         assert len(monitor.anomalies) == 1
+
+
+# ---------------------------------------------------------------------------
+# The docs' in-run guard (docs/runtime/governance/health.md)
+# ---------------------------------------------------------------------------
+
+
+class _AlwaysPoll:
+    """A scripted chat model that polls the same job until it has 6 results."""
+
+    @staticmethod
+    def make() -> Any:
+        from langchain_core.language_models.chat_models import BaseChatModel
+        from langchain_core.messages import AIMessage, ToolMessage
+        from langchain_core.outputs import ChatGeneration, ChatResult
+
+        class Model(BaseChatModel):
+            @property
+            def _llm_type(self) -> str:
+                return "always-poll"
+
+            def bind_tools(self, tools: Any, **kwargs: Any) -> Model:  # type: ignore[override]
+                return self
+
+            def _generate(self, messages: Any, stop: Any = None, **kw: Any) -> ChatResult:
+                raise NotImplementedError
+
+            async def _agenerate(
+                self, messages: Any, stop: Any = None, run_manager: Any = None, **kw: Any
+            ) -> ChatResult:
+                done = sum(isinstance(m, ToolMessage) for m in messages)
+                if done >= 6:
+                    message = AIMessage(content="gave up")
+                else:
+                    call = {"name": "poll", "args": {"job": "J1"}, "id": f"c{done}"}
+                    message = AIMessage(content="", tool_calls=[call])
+                return ChatResult(generations=[ChatGeneration(message=message)])
+
+        return Model()
+
+
+@pytest.mark.asyncio
+async def test_docs_in_run_guard_blocks_every_repeat():
+    import re
+    from pathlib import Path
+
+    from langchain_core.messages import HumanMessage, ToolMessage
+    from langchain_core.tools import tool
+
+    from promptise.engine import PromptGraph, PromptGraphEngine, PromptNode
+
+    page = Path(__file__).resolve().parent.parent / "docs/runtime/governance/health.md"
+    section = page.read_text(encoding="utf-8").split("## As an in-run guard", 1)[1]
+    code = re.search(r"```python\n(.*?)```", section, re.DOTALL).group(1)
+    ns: dict[str, Any] = {}
+    exec(compile(code, "<health.md>", "exec"), ns)
+
+    runs: list[str] = []
+
+    @tool
+    def poll(job: str) -> str:
+        """Poll a job."""
+        runs.append(job)
+        return "processing"
+
+    graph = PromptGraph(name="g")
+    graph.add_node(PromptNode("work", tools=[poll], max_iterations=10, default_next="__end__"))
+    graph.set_entry("work")
+    engine = PromptGraphEngine(graph=graph, model=_AlwaysPoll.make(), hooks=[ns["LoopGuard"]()])
+    result = await engine.ainvoke({"messages": [HumanMessage(content="go")]})
+
+    results = [m.content for m in result["messages"] if isinstance(m, ToolMessage)]
+    assert len(results) == 6
+    # Calls 3-6 continue the stuck anomaly: each is blocked, none runs.
+    assert len(runs) == 2
+    assert all("stuck" in r and "stop calling it" in r for r in results[2:])
