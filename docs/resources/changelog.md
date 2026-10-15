@@ -4,6 +4,25 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
+## v1.3.4 — unreleased
+
+### Fixed
+- **The Quick Start's first agent raised `TypeError`** -- "Your First Agent" calls `build_agent(model=..., instructions=...)`, but `servers` was a required keyword, so the first example a new user ran failed with `build_agent() missing 1 required keyword-only argument: 'servers'`. `servers` is now optional (see Changed).
+- **The Quick Start's "Add Tools" example never started its tool server** -- the agent launched `tools.py` without `--serve`, so the child process ran the agent again (which launched another `tools.py`, and so on) instead of serving its tools, and the MCP handshake never happened. The example now passes `args=["tools.py", "--serve"]`. The same example in the blog posts "What is MCP", "Build an AI agent with Promptise" and "How to build an AI agent in Python" is fixed too (the last one also never called `server.run()`). Every `python` block on the Quick Start page now runs in the test suite with a scripted model, the stdio example against its real server.
+- **Health: one anomaly silenced every other anomaly of its kind for 5 minutes** -- `HealthConfig.cooldown` (300 s by default) was kept per anomaly type, so once the agent was reported stuck on one call, getting stuck on a different call (in the same run or in the next runs) was not reported: no anomaly, no `health.anomaly` event, no `on_anomaly` action. The cooldown now applies to the same anomaly only: the same stuck call (tool and arguments), the same loop (whichever call of the cycle it is caught at), or the same empty-response / error-rate signal. The health docs now explain the cooldown and how to use `HealthMonitor` as an in-run guard in a `pre_tool` hook (`cooldown=0`, so every repeat is reported).
+- **The mission judge printed "No tools discovered" on every evaluation** -- `build_agent()` printed `[promptise] No tools discovered from MCP servers; agent will run without tools.` to stdout whenever an agent had no tools, and the mission judge is built without tools, so a process with a mission wrote that line into the application's output once per evaluation. See Changed.
+- **`promptise audit verify --strict` summary grammar** -- with one warning it read "1 warning fail the check"; it now reads "1 warning fails the check under --strict".
+- **Open mode: the model was not told that a tool it creates is usable only from its next run** -- the run that calls `create_tool` keeps the agent and tool list it started with, but `create_tool` answered `Tool 'x' created. Rebuild successful` and its description said nothing about when the tool appears, so models kept looking for the tool and creating it again. See Changed.
+- **Docs: `sandbox_custom_tools=False` does not give agent-written code full Python builtins** -- docs/runtime/meta-tools.md said it did. The code runs with the same restricted builtins (no `open`, `exec`, `eval`) and may additionally import a fixed standard-library allowlist (`json`, `math`, `re`, `datetime`, ...); the docs and the `_build_dynamic_tool` docstring now say so.
+
+### Changed
+- **`build_agent(servers=...)` is optional** -- it defaults to `None`, the same as `servers={}`: an agent with no MCP tools (just the model, or `extra_tools`).
+- **`build_agent()` no longer prints to stdout when an agent has no tools** -- with no servers configured nothing is reported (a `DEBUG` log record on `promptise.agent`); when servers are configured but none of them offers a tool, a `WARNING` naming the servers is logged on `promptise.agent` instead of the old `print`.
+- **Health cooldown is per anomaly, not per anomaly type** -- see Fixed. A process whose agent gets stuck on several different calls now reports each (one `health.anomaly` event each, and the `on_anomaly` action for the run), where it reported only the first within `cooldown`. Repeats of the same anomaly are still reported once per `cooldown`, also across runs.
+- **Open mode: `create_tool` and `connect_mcp_server` tell the model the change applies from its next run** -- `create_tool` now answers `Tool 'x' created. You can call it from your next run, not in this one: this run keeps the tools it started with, so finish the current task without it.` (it was `Tool 'x' created. Rebuild successful`), and `connect_mcp_server` answers `Connected to MCP server 'x' at <url>. Its tools are available from your next run, not in this one: ...` (it ended with `Rebuild successful`). Both tool descriptions say the same, and `create_tool`'s description no longer says `run(**kwargs) -> str` (declared parameters are passed to `run` as keyword arguments).
+
+---
+
 ## v1.3.3 — 2026-10-11
 
 ### Fixed
