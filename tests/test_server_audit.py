@@ -230,3 +230,132 @@ class TestAuditLogFile:
         assert mw.verify_chain()
         mw.entries[1]["status"] = "error"
         assert not mw.verify_chain()
+
+
+# ---------------------------------------------------------------------------
+# Error codes: a guard denial is not a failed login
+# ---------------------------------------------------------------------------
+
+_ERR_SECRET = "audit-error-code-test-secret-32-bytes"
+_ERR_KEY = "audit-error-code-hmac-key-0123456789"
+
+
+def _orders_server(audit: AuditMiddleware) -> tuple[Any, Any]:
+    from promptise.mcp.server import AuthMiddleware, JWTAuth, MCPServer, RateLimitMiddleware
+
+    server = MCPServer("orders")
+    jwt_auth = JWTAuth(secret=_ERR_SECRET)
+    # Audit outermost, so it sees what AuthMiddleware rejects too. Burst 3:
+    # alice's third allowed call is her last.
+    server.add_middleware(audit)
+    server.add_middleware(AuthMiddleware(jwt_auth))
+    server.add_middleware(RateLimitMiddleware(rate_per_minute=1, burst=3))
+
+    @server.tool(roles=["manager"])
+    async def refund_order(order_id: str) -> str:
+        return f"refunded {order_id}"
+
+    @server.tool(auth=True)
+    async def lookup(order_id: int) -> str:
+        return f"order {order_id}"
+
+    return server, jwt_auth
+
+
+class TestAuditErrorCode:
+    async def test_entries_carry_the_code_the_client_received(self, tmp_path: Any) -> None:
+        from promptise.mcp.server import TestClient, verify_audit_log
+
+        log = tmp_path / "audit.jsonl"
+        audit = AuditMiddleware(log_path=str(log), hmac_secret=_ERR_KEY)
+        server, jwt_auth = _orders_server(audit)
+        alice = jwt_auth.create_token({"sub": "alice", "roles": ["support"]})
+
+        def client(token: str | None) -> Any:
+            meta = {"authorization": f"Bearer {token}"} if token else {}
+            return TestClient(server, meta=meta)
+
+        denied = await client(alice).call_tool("refund_order", {"order_id": "A1"})
+        assert "ACCESS_DENIED" in denied[0].text
+        await client("not-a-jwt").call_tool("refund_order", {"order_id": "A1"})
+        await client(alice).call_tool("lookup", {"order_id": "not-an-int"})
+        await client(alice).call_tool("lookup", {"order_id": 1})
+        await client(alice).call_tool("lookup", {"order_id": 2})
+
+        entries = [json.loads(line) for line in log.read_text().splitlines()]
+        assert [(e["tool"], e["status"], e.get("error_code")) for e in entries] == [
+            ("refund_order", "error", "ACCESS_DENIED"),
+            ("refund_order", "error", "AUTHENTICATION_ERROR"),
+            ("lookup", "error", "VALIDATION_ERROR"),
+            ("lookup", "ok", None),
+            ("lookup", "error", "RATE_LIMIT_EXCEEDED"),
+        ]
+        # The class name stays in ``error`` (unchanged format).
+        assert entries[0]["error"].startswith("AuthenticationError: ")
+        # error_code is inside the HMAC chain, and the file verifies.
+        assert verify_audit_log(log, _ERR_KEY).ok
+        tampered = dict(entries[0], error_code="AUTHENTICATION_ERROR")
+        lines = log.read_text().splitlines()
+        lines[0] = json.dumps(tampered)
+        log.write_text("\n".join(lines) + "\n")
+        assert not verify_audit_log(log, _ERR_KEY).ok
+
+    async def test_no_code_for_exceptions_that_are_not_mcp_errors(self) -> None:
+        mw = AuditMiddleware(signed=False)
+        ctx = RequestContext(server_name="s", tool_name="t")
+
+        async def boom(c: RequestContext) -> str:
+            raise RuntimeError("bug")
+
+        with pytest.raises(RuntimeError):
+            await mw(ctx, boom)
+        entry = mw.entries[-1]
+        assert entry["error"] == "RuntimeError: bug"
+        assert "error_code" not in entry
+
+    async def test_old_entries_without_error_code_still_verify(self, tmp_path: Any) -> None:
+        """A 1.3.4 log (errors without ``error_code``) verifies, and a
+        1.3.5 server continues its chain."""
+        from promptise.mcp.server import verify_audit_log
+        from promptise.mcp.server._audit import GENESIS_HASH, canonical_entry, entry_mac
+
+        log = tmp_path / "audit.jsonl"
+        prev = GENESIS_HASH
+        old_lines = []
+        for seq, (status, error) in enumerate(
+            [("ok", None), ("error", "AuthenticationError: Requires any of roles [manager]")]
+        ):
+            entry: dict[str, Any] = {
+                "timestamp": 1.0 + seq,
+                "tool": "refund_order",
+                "client_id": "alice",
+                "request_id": f"r{seq}",
+                "status": status,
+                "duration_s": 0.001,
+            }
+            if error:
+                entry["error"] = error
+            entry = canonical_entry(entry)
+            entry["seq"] = seq
+            entry["prev_hash"] = prev
+            entry["hmac"] = entry_mac(_ERR_KEY.encode(), entry)
+            prev = entry["hmac"]
+            old_lines.append(json.dumps(entry))
+        log.write_text("\n".join(old_lines) + "\n")
+        assert verify_audit_log(log, _ERR_KEY).ok
+
+        audit = AuditMiddleware(log_path=str(log), hmac_secret=_ERR_KEY)
+        ctx = RequestContext(server_name="s", tool_name="refund_order")
+
+        async def deny(c: RequestContext) -> str:
+            from promptise.mcp.server import AuthenticationError
+
+            raise AuthenticationError("denied", code="ACCESS_DENIED")
+
+        with pytest.raises(Exception):
+            await audit(ctx, deny)
+        lines = log.read_text().splitlines()
+        assert len(lines) == 3
+        assert json.loads(lines[2])["error_code"] == "ACCESS_DENIED"
+        report = verify_audit_log(log, _ERR_KEY)
+        assert report.ok, report.first_problem
