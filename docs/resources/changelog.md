@@ -4,6 +4,19 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
+## v1.3.4 — unreleased
+
+### Fixed
+- **Schema-invalid tool calls skipped the server pipeline over HTTP and stdio, and echoed the whole input** -- the MCP SDK (1.10+) validated a call's arguments against the tool's `inputSchema` before Promptise saw the call, so an invalid call was never authenticated, rate limited or audited, and came back as plain text, `Input validation error: <jsonschema message>`, quoting the offending value in full (a 1 MB string against `max_length=10` produced a 1 MB error). The SDK's check is now off; the server validates every call itself, inside its pipeline, on every transport and in `TestClient`, and the error is the structured `VALIDATION_ERROR` envelope.
+- **`VALIDATION_ERROR` envelopes could grow with the input** -- one entry per invalid item, so a list of 50,000 bad values produced a 9 MB error. The envelope now lists at most 20 field errors (`details.omitted_errors` counts the rest), clips field paths and messages, and caps the message at 1,000 characters; it never includes the rejected value.
+- **Redacting credentials corrupted JSON** -- the connection-string patterns (`postgres://`, `mysql://`, `mongodb://`, `redis://`) and the `password=` / `secret=` patterns ran to the next whitespace, so on a JSON tool result they swallowed the closing quote, brace and comma: `{"config": {"db": "postgres://..."}, "region": "eu"}` became `{"config": {"db": "[POSTGRES_CONNECTION] "region": "eu"}`. Those patterns now stop at quotes and backslashes (URLs also at `<>{}`), and when the scanned text is a JSON document a redaction replaces text inside a string value only: the result parses to the same structure, JSON encoded inside a string stays valid, escape sequences are never split, and a number that has to be redacted becomes a quoted label.
+- **mcp 2.x clients logged a 31-error WARNING on every connection to a Promptise server** -- an mcp 2.x client (current Pydantic AI, OpenAI Agents SDK) opens with `server/discover`, which the 1.x SDK failed to validate, logging `Failed to validate request: 31 validation errors for ClientRequest` (94 lines) before answering `-32602`. The server now answers a request for any method it does not implement with `-32601 Method not found` and logs it at DEBUG; the client falls back to `initialize` as before. A notification of an unknown method is ignored. Works with every supported `mcp` version (`>=1.9,<2`).
+
+### Changed
+- **Input validation runs inside the middleware chain** -- a call whose arguments fail validation now goes through the server's middleware (authentication, rate limiting, audit, in your order) and the tool's guards before it gets its `VALIDATION_ERROR`, on the live transports and in `TestClient`. An unauthenticated caller now gets `AUTHENTICATION_ERROR` rather than a schema error, invalid calls count against rate limits, and `AuditMiddleware` records them (`status: "error"`, no `args`). Middleware sees `ctx.state["_tool_arguments"] == {}` for such a call; the handler, dependency injection, `CacheMiddleware` and `ApprovalGateMiddleware` never see the rejected input (no cache lookup, no approval request). Resource templates and prompts follow the same order.
+
+---
+
 ## v1.3.3 — 2026-10-11
 
 ### Fixed

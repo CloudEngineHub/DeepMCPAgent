@@ -54,12 +54,12 @@ from mcp.types import (
 from ._context import RequestContext, _current_context, clear_context, set_context
 from ._decorators import build_prompt_def, build_resource_def, build_tool_def
 from ._di import DependencyResolver
-from ._errors import MCPError
+from ._errors import MCPError, ValidationError
 from ._lifecycle import LifecycleManager
 from ._middleware import compile_middleware_chain, with_tool_timeout
 from ._registry import PromptRegistry, ResourceRegistry, ToolRegistry
 from ._transport import TransportType, run_transport
-from ._validation import build_input_model, validate_arguments
+from ._validation import build_input_model, defer_validation_error, validate_arguments
 
 logger = logging.getLogger("promptise.server")
 
@@ -84,6 +84,131 @@ class _LowLevelServer(LowLevelServer):  # type: ignore[type-arg]
                 prompts_changed=True, resources_changed=True, tools_changed=True
             )
         return super().create_initialization_options(notification_options, *args, **kwargs)
+
+    async def run(
+        self,
+        read_stream: Any,
+        write_stream: Any,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """Run the session, answering requests for unknown methods ourselves.
+
+        A JSON-RPC request whose method this SDK does not know (an mcp 2.x
+        client opens with ``server/discover``) would fail the SDK's request
+        validation, which logs a ``WARNING`` with one line per request type
+        (31 validation errors) and answers ``-32602 Invalid params``.  It
+        gets ``-32601 Method not found`` instead, the JSON-RPC answer for
+        an unknown method, logged at DEBUG; the 2.x client then falls back
+        to ``initialize`` as before.  A notification of an unknown method
+        is dropped, as JSON-RPC prescribes.  Every other message passes
+        through untouched.
+        """
+        if _CLIENT_REQUEST_METHODS is None:  # SDK layout not recognised
+            await super().run(read_stream, write_stream, *args, **kwargs)
+            return
+
+        import anyio
+
+        send, receive = anyio.create_memory_object_stream[Any](0)
+
+        async def pump() -> None:
+            async with read_stream, send:
+                try:
+                    async for message in read_stream:
+                        reply = _unknown_method_reply(message)
+                        if reply is _DROP:
+                            continue
+                        if reply is not None:
+                            await write_stream.send(reply)
+                            continue
+                        await send.send(message)
+                except (anyio.ClosedResourceError, anyio.BrokenResourceError):
+                    pass  # the session ended; the server is shutting down
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(pump)
+            try:
+                await super().run(receive, write_stream, *args, **kwargs)
+            finally:
+                tg.cancel_scope.cancel()
+
+
+def _literal_methods(root_model: Any) -> frozenset[str] | None:
+    """The ``method`` literals of a ``mcp.types`` request/notification union."""
+    from typing import get_args
+
+    try:
+        union = root_model.model_fields["root"].annotation
+        methods = {
+            method
+            for member in get_args(union)
+            for method in get_args(member.model_fields["method"].annotation)
+        }
+    except Exception:  # pragma: no cover - unexpected SDK layout
+        return None
+    return frozenset(methods) or None
+
+
+def _client_methods() -> tuple[frozenset[str] | None, frozenset[str] | None]:
+    from mcp import types as mcp_types
+
+    return (
+        _literal_methods(mcp_types.ClientRequest),
+        _literal_methods(mcp_types.ClientNotification),
+    )
+
+
+_CLIENT_REQUEST_METHODS, _CLIENT_NOTIFICATION_METHODS = _client_methods()
+_DROP = object()
+
+
+def _unknown_method_reply(message: Any) -> Any:
+    """A ``-32601`` reply for a request of an unknown method, ``_DROP`` or ``None``.
+
+    ``None`` means "pass the message on to the SDK" (anything known, any
+    response, anything not shaped like a JSON-RPC message).
+    """
+    from mcp.types import (
+        METHOD_NOT_FOUND,
+        ErrorData,
+        JSONRPCError,
+        JSONRPCMessage,
+        JSONRPCNotification,
+        JSONRPCRequest,
+    )
+
+    root = getattr(getattr(message, "message", None), "root", None)
+    if isinstance(root, JSONRPCRequest):
+        if _CLIENT_REQUEST_METHODS is None or root.method in _CLIENT_REQUEST_METHODS:
+            return None
+        logger.debug("Answering request for unknown method %r with -32601", root.method)
+        error = JSONRPCError(
+            jsonrpc="2.0",
+            id=root.id,
+            error=ErrorData(code=METHOD_NOT_FOUND, message="Method not found", data=root.method),
+        )
+        return type(message)(message=JSONRPCMessage(error))
+    if isinstance(root, JSONRPCNotification):
+        if _CLIENT_NOTIFICATION_METHODS is None or root.method in _CLIENT_NOTIFICATION_METHODS:
+            return None
+        logger.debug("Ignoring notification of unknown method %r", root.method)
+        return _DROP
+    return None
+
+
+# The MCP SDK (1.10+) validates tool arguments against ``inputSchema`` with
+# jsonschema before calling our handler. A call rejected there never reaches
+# Promptise's pipeline (no auth, rate limit or audit) and gets a plain-text
+# error that quotes the offending value in full. Promptise validates every
+# call itself, inside the pipeline, with a bounded VALIDATION_ERROR envelope,
+# so the SDK's check is turned off where the SDK offers the switch (1.9.x
+# has neither the check nor the switch).
+_SDK_CALL_TOOL_OPTIONS: dict[str, Any] = (
+    {"validate_input": False}
+    if "validate_input" in inspect.signature(LowLevelServer.call_tool).parameters
+    else {}
+)
 
 
 class _ToolErrorResult(Exception):
@@ -1304,7 +1429,7 @@ class MCPServer:
                 )
             return tools
 
-        @ll.call_tool()
+        @ll.call_tool(**_SDK_CALL_TOOL_OPTIONS)
         async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[Any]:
             note_session(ll)
             tdef = tool_reg.get(name)
@@ -1359,10 +1484,20 @@ class MCPServer:
 
             di_resolver = DependencyResolver()
             try:
-                # Validate input
+                # Validate input. A rejected call is not answered here: it
+                # runs through the middleware chain like any other (auth,
+                # rate limiting, audit), with a handler that raises the
+                # bounded VALIDATION_ERROR. The SDK's own jsonschema check
+                # is off (see _register_tool_handlers), so this is the only
+                # input validation on every transport.
+                handler = tdef.handler
                 model = input_models.get(name)
                 if model is not None:
-                    arguments = validate_arguments(model, arguments)
+                    try:
+                        arguments = validate_arguments(model, arguments)
+                    except ValidationError as invalid:
+                        arguments = {}
+                        handler = defer_validation_error(ctx, invalid)
 
                 # Snapshot the validated user arguments for middleware that
                 # needs them (approval gate) — before DI injects framework
@@ -1370,7 +1505,7 @@ class MCPServer:
                 ctx.state["_tool_arguments"] = dict(arguments)
 
                 # Resolve dependency injection
-                arguments = await di_resolver.resolve(tdef.handler, arguments)
+                arguments = await di_resolver.resolve(handler, arguments)
 
                 # Inject RequestContext into a ``ctx: RequestContext`` param, so
                 # the documented parameter pattern works on the live transports
@@ -1378,7 +1513,7 @@ class MCPServer:
                 # client injected it — a test/prod divergence).
                 from ._context import inject_context
 
-                arguments = inject_context(tdef.handler, arguments, ctx)
+                arguments = inject_context(handler, arguments, ctx)
 
                 # Detect injectable types in resolved args and bind them
                 from ._background import BackgroundTasks as _BG
@@ -1447,13 +1582,13 @@ class MCPServer:
 
                 # Wrap handler with guard checks (guards run after
                 # middleware so auth middleware can populate roles first)
-                effective_handler = tdef.handler
+                effective_handler = handler
                 if tdef.guards:
                     from ._testing import check_guards
 
                     _guards = tdef.guards
                     _ctx = ctx
-                    _real = tdef.handler
+                    _real = handler
 
                     async def _guarded(**kw: Any) -> Any:
                         await check_guards(_guards, _ctx)
