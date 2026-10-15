@@ -23,6 +23,8 @@ Example::
 from __future__ import annotations
 
 import asyncio
+import bisect
+import json
 import logging
 import re
 import time
@@ -961,11 +963,19 @@ _pii(
     group="mac_address",
 )
 
+
+# Open-ended tails ("everything up to the next space") stop at quotes and
+# backslashes too, so a match inside a quoted value — JSON, a Python repr,
+# KEY="value" — never swallows the closing quote and the punctuation after
+# it.  A URL cannot contain <, >, { or } either.
+_VALUE_TAIL = r"""[^\s"'`\\]"""
+_URL_TAIL = r"""[^\s"'`\\<>{}]"""
+
 # ── Usernames / Passwords (contextual) ──
 _pii(
     "password_field",
     "password",
-    r"(?i)(?:password|passwd|pwd)\s*[:=]\s*\S{4,}",
+    r"(?i)(?:password|passwd|pwd)\s*[:=]\s*" + _VALUE_TAIL + "{4,}",
     Severity.CRITICAL,
     "Password in plaintext (contextual)",
     group="password",
@@ -973,7 +983,7 @@ _pii(
 _pii(
     "secret_field",
     "secret",
-    r"(?i)(?:secret|private[_\-]?key|api[_\-]?secret)\s*[:=]\s*\S{8,}",
+    r"(?i)(?:secret|private[_\-]?key|api[_\-]?secret)\s*[:=]\s*" + _VALUE_TAIL + "{8,}",
     Severity.CRITICAL,
     "Secret/private key in plaintext (contextual)",
     group="secret",
@@ -1327,7 +1337,7 @@ _cred(
 _cred(
     "pg_conn",
     "postgres_connection",
-    r"(?i)postgres(?:ql)?://[^\s]{10,}",
+    r"(?i)postgres(?:ql)?://" + _URL_TAIL + "{10,}",
     Severity.CRITICAL,
     "PostgreSQL connection string",
     group="database_url",
@@ -1335,7 +1345,7 @@ _cred(
 _cred(
     "mysql_conn",
     "mysql_connection",
-    r"(?i)mysql://[^\s]{10,}",
+    r"(?i)mysql://" + _URL_TAIL + "{10,}",
     Severity.CRITICAL,
     "MySQL connection string",
     group="database_url",
@@ -1343,7 +1353,7 @@ _cred(
 _cred(
     "mongo_conn",
     "mongodb_connection",
-    r"mongodb(?:\+srv)?://[^\s]{10,}",
+    r"mongodb(?:\+srv)?://" + _URL_TAIL + "{10,}",
     Severity.CRITICAL,
     "MongoDB connection string",
     group="database_url",
@@ -1351,7 +1361,7 @@ _cred(
 _cred(
     "redis_conn",
     "redis_connection",
-    r"redis://[^\s]{10,}",
+    r"redis://" + _URL_TAIL + "{10,}",
     Severity.HIGH,
     "Redis connection string",
     group="database_url",
@@ -3159,10 +3169,151 @@ class PromptiseSecurityScanner:
                 groups[-1] = (start, max(end, f.end), best)
             else:
                 groups.append((f.start, f.end, f))
+        pieces: list[tuple[int, int, str]] = [
+            (start, end, f"[{best.category.upper()}]") for start, end, best in groups
+        ]
+        layout = _json_layout(text)
+        if layout is not None:
+            pieces = _json_safe_pieces(text, pieces, layout)
         result = text
-        for start, end, best in reversed(groups):
-            result = result[:start] + f"[{best.category.upper()}]" + result[end:]
+        for start, end, label in reversed(pieces):
+            result = result[:start] + label + result[end:]
         return result
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Structure-preserving redaction of JSON text
+# ═══════════════════════════════════════════════════════════════════════
+
+# Escapes that end a redaction inside a JSON string: an escaped quote or
+# backslash is the structure of JSON nested in the string, and the others
+# decode to whitespace, where a token ends anyway.
+_JSON_BOUNDARY_ESCAPES = frozenset('"\\nrtbf')
+
+
+@dataclass
+class _JSONLayout:
+    """Where a JSON document's strings and numbers are, as text offsets."""
+
+    # (content start, closing quote) of every string literal, in order
+    strings: list[tuple[int, int]]
+    # (start, end) of every escape sequence inside the strings, in order
+    escapes: list[tuple[int, int]]
+    # (start, end) of every number token, in order
+    numbers: list[tuple[int, int]]
+
+
+def _json_layout(text: str) -> _JSONLayout | None:
+    """The layout of *text* if it is a JSON object, array or string, else ``None``."""
+    head = text.lstrip()[:1]
+    if head not in ("{", "[", '"'):
+        return None
+    try:
+        json.loads(text)
+    except ValueError:
+        return None
+    strings: list[tuple[int, int]] = []
+    escapes: list[tuple[int, int]] = []
+    numbers: list[tuple[int, int]] = []
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == '"':
+            j = i + 1
+            while text[j] != '"':
+                if text[j] == "\\":
+                    width = 6 if text[j + 1] == "u" else 2
+                    escapes.append((j, j + width))
+                    j += width
+                else:
+                    j += 1
+            strings.append((i + 1, j))
+            i = j + 1
+        elif c == "-" or c.isdigit():
+            j = i + 1
+            while j < n and text[j] in "+-.eE0123456789":
+                j += 1
+            numbers.append((i, j))
+            i = j
+        else:
+            i += 1
+    return _JSONLayout(strings, escapes, numbers)
+
+
+def _containing(spans: list[tuple[int, int]], pos: int) -> tuple[int, int] | None:
+    """The span of *spans* (sorted, disjoint) with ``start <= pos < end``."""
+    k = bisect.bisect_right(spans, (pos, float("inf"))) - 1
+    if k >= 0 and spans[k][0] <= pos < spans[k][1]:
+        return spans[k]
+    return None
+
+
+def _overlapping(spans: list[tuple[int, int]], start: int, end: int) -> list[tuple[int, int]]:
+    k = max(bisect.bisect_right(spans, (start, float("inf"))) - 1, 0)
+    out = []
+    while k < len(spans) and spans[k][0] < end:
+        if spans[k][1] > start:
+            out.append(spans[k])
+        k += 1
+    return out
+
+
+def _align_to_escapes(
+    text: str, layout: _JSONLayout, start: int, end: int, *, clip: bool
+) -> tuple[int, int]:
+    """Move *start*/*end* off the middle of escape sequences.
+
+    With *clip*, the span also ends before the first boundary escape after
+    its start (see ``_JSON_BOUNDARY_ESCAPES``).
+    """
+    inside = _containing(layout.escapes, start)
+    if inside is not None and inside[0] < start:
+        start = inside[0]
+    for es, ee in _overlapping(layout.escapes, start, end):
+        if clip and es > start and text[es + 1] in _JSON_BOUNDARY_ESCAPES:
+            return start, es
+        if es < end < ee:
+            end = ee
+    return start, end
+
+
+def _json_safe_pieces(
+    text: str, pieces: list[tuple[int, int, str]], layout: _JSONLayout
+) -> list[tuple[int, int, str]]:
+    """Rewrite redaction spans on a JSON document so it stays valid JSON.
+
+    * A span that starts inside a string value is clipped to that string
+      and ends before an escaped quote, backslash or whitespace escape (so
+      JSON encoded inside the string stays valid too); escape sequences
+      are never split.
+    * A span that starts outside a string (a custom rule matching
+      ``"key": "value"``) is split into the string contents it covers.
+    * A number it touches is replaced whole, by a quoted label.
+    """
+    out: list[tuple[int, int, str]] = []
+    for start, end, label in pieces:
+        literal = _containing(layout.strings, start)
+        if literal is not None:
+            s, e = _align_to_escapes(text, layout, start, min(end, literal[1]), clip=True)
+            if e > s:
+                out.append((s, e, label))
+            continue
+        for ls, le in _overlapping(layout.strings, start, end):
+            s, e = _align_to_escapes(text, layout, max(start, ls), min(end, le), clip=False)
+            if e > s:
+                out.append((s, e, label))
+        for ns, ne in _overlapping(layout.numbers, start, end):
+            out.append((ns, ne, json.dumps(label)))
+    # A whole-number replacement can cover a neighbouring span: keep the first.
+    out.sort()
+    merged: list[tuple[int, int, str]] = []
+    for piece in out:
+        if merged and piece[0] < merged[-1][1]:
+            prev = merged[-1]
+            merged[-1] = (prev[0], max(prev[1], piece[1]), prev[2])
+        else:
+            merged.append(piece)
+    return merged
 
 
 # ═══════════════════════════════════════════════════════════════════════

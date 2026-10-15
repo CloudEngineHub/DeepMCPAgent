@@ -50,6 +50,7 @@ from promptise.approval import (
 
 from ._context import RequestContext
 from ._errors import ApprovalDeniedError
+from ._validation import validation_pending
 
 logger = logging.getLogger("promptise.server.approval")
 
@@ -174,6 +175,11 @@ class ApprovalGateMiddleware:
     async def __call__(self, ctx: RequestContext, call_next: Callable[..., Any]) -> Any:
         tool_def = ctx.state.get("tool_def")
         if not getattr(tool_def, "requires_approval", False):
+            return await call_next(ctx)
+        if validation_pending(ctx):
+            # The arguments were rejected: the call ends in its
+            # VALIDATION_ERROR (after the tool's guards), so there is
+            # nothing for a reviewer to approve.
             return await call_next(ctx)
 
         # Evaluate the tool's own guards BEFORE requesting approval. Guards

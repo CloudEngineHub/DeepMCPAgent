@@ -35,9 +35,9 @@ from pydantic import BaseModel
 
 from ._context import RequestContext, clear_context, inject_context, set_context
 from ._di import DependencyResolver
-from ._errors import MCPError, PromptError, ResourceError
+from ._errors import MCPError, PromptError, ResourceError, ValidationError
 from ._middleware import compile_middleware_chain
-from ._validation import _preparse_json_strings, validate_arguments
+from ._validation import _preparse_json_strings, defer_validation_error, validate_arguments
 
 #: ``MCPError.code`` values for an unknown resource URI / prompt name.
 RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND"
@@ -149,25 +149,31 @@ async def _run(
 
     di_resolver = DependencyResolver()
     try:
+        handler = definition.handler
         model = definition.input_model
         if model is not None:
             # MCP carries template parameters and prompt arguments as
             # strings: coerce them to the handler's type hints ("3" → 3,
-            # '["a", "b"]' → a list).
-            arguments = validate_arguments(model, _preparse_json_strings(arguments, model))
+            # '["a", "b"]' → a list). Rejected arguments end in a
+            # VALIDATION_ERROR raised inside the middleware chain, after
+            # authentication, as for tools.
+            try:
+                arguments = validate_arguments(model, _preparse_json_strings(arguments, model))
+            except ValidationError as invalid:
+                arguments = {}
+                handler = defer_validation_error(ctx, invalid)
         ctx.state["_tool_arguments"] = dict(arguments)
 
-        arguments = await di_resolver.resolve(definition.handler, arguments)
-        arguments = inject_context(definition.handler, arguments, ctx)
+        arguments = await di_resolver.resolve(handler, arguments)
+        arguments = inject_context(handler, arguments, ctx)
 
         # Guards run inside the chain, after AuthMiddleware has populated
         # the client's roles — the same order as for tools.
-        handler = definition.handler
         if definition.guards:
             from ._testing import check_guards
 
             guards = definition.guards
-            real = definition.handler
+            real = handler
 
             async def _guarded(**kw: Any) -> Any:
                 await check_guards(guards, ctx)

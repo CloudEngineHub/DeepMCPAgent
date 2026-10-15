@@ -629,6 +629,7 @@ agent = await build_agent(servers={...}, model="openai:gpt-5-mini", guardrails=s
 
 - Every enabled head runs on the result, the injection model included.
 - PII and credentials get their configured action (as on output), so a secret a tool returns is redacted before the model or `result["messages"]` holds it.
+- Redaction keeps the result's structure. When the text is a JSON document, a label replaces text inside a string value only, never the quotes, escapes or punctuation around it: `{"db": "postgres://app:pw@db:5432/orders", "region": "eu"}` becomes `{"db": "[POSTGRES_CONNECTION]", "region": "eu"}`, JSON encoded inside a string stays valid, and a number that has to go becomes a quoted label. In any other text, the open-ended patterns (connection strings, `password=` / `secret=` values) stop at quotes and backslashes, so a Python repr or `KEY="value"` keeps its quotes too.
 - A blocked result is replaced with a short `[Tool result withheld by guardrails: ...]` notice the model can see; the raw result is dropped. A `guardrail.blocked` event is emitted with `direction="tool"`.
 
 It is off by default because it adds a model pass to every tool call. A custom guard that sets `scan_tool_results = True` must implement `async check_tool_result(tool_name, result) -> str`.
