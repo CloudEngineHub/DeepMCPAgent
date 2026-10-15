@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.5 — unreleased
+## 1.3.5 — 2026-10-15
 
 ### Fixed
 - **Code-action: a `max_tool_calls` too small for the job gave a wrong answer, not an error** -- the prompt said "the program may make at most N function calls ... so plan the calls you need", so models counted their own calls and stopped early (`if calls >= 50: break`, `orders = orders[:49]`): the program never reached the cap, exited cleanly, and its partial result was the answer (3 of 46 benchmark programs did this at the default budget). And after a program did reach the cap, the repair asked for "a program that needs at most N calls", so the model wrote one that read only the first N records, which succeeded (5 of 5 runs of the guide's `max_tool_calls=20` demo answered wrong, none raised). The prompt now says each program has a call cap but not its value, and tells the model never to skip, sample or truncate records, never to count its calls, and to let `ToolBudgetExceeded` raise; the error a refused call raises in the program no longer gives the value either. The repair after a budget hit asks for a program that does the whole job with fewer calls (batch tools, no repeated fetches) or the reply `CANNOT_FINISH_WITHIN_CALL_CAP`. That reply, or a budget hit with no repair left, raises the new `CodeActionBudgetError` (see Changed). An answer from a program written after a budget hit is logged at WARNING. Promptise still cannot tell whether a program that stays within the cap read all the data; the guide says so.
