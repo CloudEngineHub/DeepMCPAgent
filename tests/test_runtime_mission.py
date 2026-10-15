@@ -412,6 +412,20 @@ class TestLLMJudge:
         assert tracker.state == MissionState.ACTIVE
         assert tracker.should_evaluate() is False  # no invocation counted yet
 
+    async def test_judge_writes_nothing_to_stdout(self, capsys) -> None:
+        """The judge has no tools by design; building it must not print a
+        "No tools discovered" notice into the application's output."""
+        tracker = MissionTracker(
+            MissionConfig(enabled=True, objective="Say done.", success_criteria="Said done."),
+            process_id="p",
+        )
+        for _ in range(2):
+            await tracker.evaluate(
+                MissionEvidence(conversation=[{"role": "assistant", "content": "working"}]),
+                _judge({"achieved": False, "confidence": 0.9, "reasoning": "Not yet."}),
+            )
+        assert capsys.readouterr().out == ""
+
 
 class _StubAgent:
     def __init__(self) -> None:

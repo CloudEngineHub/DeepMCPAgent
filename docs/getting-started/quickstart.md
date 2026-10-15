@@ -138,7 +138,8 @@ async def calculate(expression: str) -> str:
     """Evaluate a math expression."""
     return str(eval(expression))  # noqa: S307
 
-# Save as tools.py, then:
+# Save this whole file as tools.py and run `python tools.py`: the agent
+# starts the same file again with --serve, which runs the tool server.
 
 async def main():
     agent = await build_agent(
@@ -146,7 +147,7 @@ async def main():
         servers={
             "tools": StdioServerSpec(
                 command=sys.executable,
-                args=["tools.py"],
+                args=["tools.py", "--serve"],  # this same file, in server mode
             ),
         },
         instructions="You are a helpful assistant with access to tools.",
@@ -161,7 +162,8 @@ async def main():
     await agent.shutdown()
 
 if __name__ == "__main__":
-    # If run directly, start the MCP server
+    # Started by the agent with --serve: be the MCP server.
+    # Started by you: run the agent.
     if "--serve" in sys.argv:
         server.run(transport="stdio")
     else:
