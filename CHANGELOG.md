@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.3.4 — unreleased
+
+### Fixed
+- **`max_agent_iterations=N` ran N+1 model calls** -- the engine counted a node execution after running it and stopped only once the count passed the limit, so `build_agent(max_agent_iterations=N)` (the engine's `max_iterations`) allowed N+1 node executions: N+1 model calls and N+1 rounds of tool calls in the default ReAct graph. `N` now allows exactly `N` node executions, which in the ReAct graph is `N` model calls. The `build_agent` docstring and the engine docs say what is counted.
+- **`BudgetHook` stopped a run silently and returned a raw tool result as the answer** -- when the budget ran out in the middle of a tool loop, `ainvoke()` returned normally with the last tool result as the last message and `last_report.error` unset. Such a run now raises `GraphBudgetExceededError` (a new `GraphStoppedError`, itself a `GraphExecutionError`) with `reason` (`"Token budget exceeded: 5078/5000 tokens"`), `stopped_by`, `pending_tools` and the report, like `GraphIterationLimitError` for iteration limits. Any hook that ends a run the same way (`CycleDetectionHook`, a custom hook) raises `GraphStoppedError`. A budget reached on the node that answered still returns the answer.
+- **One `BudgetHook` capped an engine's lifetime, not a run** -- `tokens_used` was never reset, so after the first run hit the cap every later run on the same engine stopped after its first node. The hook now counts the run's own tokens (`GraphState.total_tokens`), so every run, concurrent ones included, gets the whole budget; `tokens_used` / `cost_used` report the latest run.
+- **Context compaction could make a model re-read the same results until its budget ran out** -- a result longer than `keep_result_chars` was cut in the ledger with a note telling the model to call the tool again for the full text, and the re-read was cut again as soon as the next exchange started, so a model that re-read cut results one at a time could never have them all in full (reproduced with a scripted model: the default ReAct agent looped to its iteration limit). A call the model made more than once is now shown in full in the ledger (and shrunk last under `max_tokens`), and the excerpt says how much was cut and that a re-read is kept in full.
+
+### Changed
+- **The "Available tools" block is no longer added to the system prompt by default** -- every `PromptNode` with tools appended a summary of them (parameters and the first 120 characters of each description) to its system prompt, on top of the tool definitions the provider already receives. On the 40-tool test server that is 997 tokens on every model call (a third on top of the 3,043 tokens of tool definitions); a 48-tool guide run measured 1,882 of a 6,843-token first request. New `tool_summary` option on `build_agent`, `PromptGraphEngine` and `PromptNode`: `"off"` (the default), `"names"` (one line of names, 178 tokens on the same server) or `"full"` (the previous block). Set `tool_summary="full"` to keep the 1.3.3 prompt. A string default now renders quoted (`cursor: string=""`, was `cursor: string=`).
+- **The compaction ledger no longer invites re-reading "something that changes over time"** -- its header now tells the model to use the listed facts and call again only for the rest of a cut result or when it is waiting for something to change, such as a job's status. The `managed` pattern's instructions say the same. Repeated calls still run the tool, so polling works as before.
+- **`max_agent_iterations` / `PromptGraphEngine(max_iterations=...)` allow one node execution fewer than in 1.3.3** (see Fixed): an agent that needed exactly N+1 steps under a limit of N now raises `GraphIterationLimitError`; raise the limit by one to keep the old allowance.
+- **A `BudgetHook` (or other hook) that stops a run mid tool loop raises** instead of returning (see Fixed). Catch `GraphBudgetExceededError` / `GraphStoppedError`.
+
+### Documentation
+- `docs/core/engine-prebuilts.md`, `reasoning-patterns.md`, `engine-nodes.md`: the ledger "cuts redundant tool calls at equal accuracy" claim is now conditional on the model, with the guide's measurements (gpt-4.1-mini re-read records under 1.3.3 compaction; gpt-5-mini did not).
+- `docs/core/tool-optimization.md`: new "The tool summary in the system prompt" section with token measurements.
+- `docs/core/engine-hooks.md`: `BudgetHook` is per run, may overshoot by one node, and raises `GraphBudgetExceededError` mid tool loop.
+
 ## 1.3.3 — 2026-10-11
 
 ### Fixed

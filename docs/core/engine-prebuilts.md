@@ -105,10 +105,17 @@ The underlying primitive is [`PromptNode(context_scope="ledger")`](engine-nodes.
 which any custom graph can use on a long-running tool node.
 
 !!! note "What it does, honestly"
-    On deep tool chains a *naive* ReAct loop re-queries the same facts many
-    times as its transcript grows — dozens of redundant calls for a handful of
-    distinct facts. The ledger **bounds context and cuts redundant tool calls**
-    at **equal accuracy** — a real cost/latency win on long chains. It is an
+    The ledger **bounds context** on long tool chains: the request stops
+    growing with every tool result. Whether it also cuts tool calls depends
+    on the model. Models that re-query facts buried in a long transcript make
+    fewer calls with it; others re-read facts the ledger lists. In one audit
+    (30 records of about 2,400 characters each), gpt-5-mini made no extra
+    calls with compaction, while gpt-4.1-mini on 1.3.3 re-read the same
+    records until its token budget ran out (136 calls against 31 without
+    compaction). 1.3.4 keeps a result the model fetched again in full and
+    stops inviting re-reads of values that "change over time", which removes
+    the re-read loop compaction itself caused, but measure your own model
+    with `ContextCompaction(enabled=False)` as the baseline. It is an
     **efficiency** primitive: it does not by itself make the model's final
     answer more correct.
 

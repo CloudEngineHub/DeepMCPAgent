@@ -642,7 +642,7 @@ print(f"Tools available: {[t.name for t in agent.tools]}")
 agent = await build_agent(
     model="openai:gpt-5-mini",
     servers=my_servers,
-    max_agent_iterations=25,   # Limit total reasoning steps
+    max_agent_iterations=25,   # At most 25 model calls (ReAct): raises GraphIterationLimitError mid tool loop
     max_invocation_time=120.0, # Hard timeout per invocation, in seconds
 )
 ```

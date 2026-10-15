@@ -174,7 +174,8 @@ class TestInjectTools:
 
         assert discovered  # the server's tools were discovered
         assert sorted(model.calls[0]["tools"]) == discovered  # ...and bound for the node
-        assert "Available tools:" in _system_text(model.calls[0]["messages"])
+        # The tools reach the model as definitions; no summary in the prompt.
+        assert "Available tools" not in _system_text(model.calls[0]["messages"])
 
     @pytest.mark.asyncio
     async def test_engine_tools_param_feeds_inject_tools_nodes_only(self):

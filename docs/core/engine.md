@@ -341,6 +341,19 @@ The last message of such a run is a tool result, not an answer, so it is never
 returned as one. A limit reached after the model answered, or one that routes
 to an `"error"` transition or `__error__` node, ends the run as before.
 
+Both limits count node executions, and a limit of N allows exactly N. In the
+ReAct graph `build_agent` uses by default, one execution of `reason` is one
+model call plus the tool calls that call asked for, so
+`max_agent_iterations=N` allows at most N model calls (and the reason node's
+own budget of 15 applies when N is higher). If the Nth model call asks for
+tools, they run, the run stops before the model sees their results, and it
+raises `GraphIterationLimitError`. In a graph with separate nodes (a `ToolNode`,
+a planner, a reflection step) every node execution counts.
+
+A hook that ends a run in the middle of a tool loop raises
+`GraphStoppedError` for the same reason — `GraphBudgetExceededError` when it is
+a [`BudgetHook`](engine-hooks.md#budgethook) that the run went over.
+
 ```python
 from promptise.engine import GraphIterationLimitError
 

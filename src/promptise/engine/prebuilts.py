@@ -814,8 +814,8 @@ def build_managed_graph(
                 f"{system_prompt}\n\n"
                 "Gather the facts you need with tools, then answer. A ledger of "
                 "facts you have already gathered is provided each turn — consult "
-                "it and don't re-fetch a fact you already have, unless it is a "
-                "value that changes over time, such as a status."
+                "it and don't re-fetch a fact you already have, unless the task "
+                "is to wait for it to change, such as a job's status you are polling."
             ).strip(),
             blocks=list(blocks) if blocks else [],
             tools=list(tools) if tools else [],

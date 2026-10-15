@@ -185,24 +185,39 @@ hook.reset()  # Clear for next run
 
 ### BudgetHook
 
-Enforces a total token and/or cost budget across the entire graph run. When exceeded, forces the graph to end immediately.
+Enforces a token and/or cost budget for each graph run. After every node it adds the node's tokens to the run's total; when the run goes over `max_tokens` or `max_cost_usd`, the hook ends the run and writes the reason (`"Token budget exceeded: 5078/5000 tokens"`) to that node's `NodeResult.error`. The check runs after a node, so a run can go over the budget by up to one node's tokens.
+
+The budget is per run: the total comes from the run's own state, so one hook on an engine caps every run separately (concurrent runs included) and never carries tokens over to the next run.
+
+How the run ends depends on where the budget ran out:
+
+- **In the middle of a tool loop** (the model asked for tools and has not seen their results): there is no answer, so the engine raises `GraphBudgetExceededError` instead of returning the last tool result. It is a `GraphStoppedError` and a `GraphExecutionError`, with `reason`, `stopped_by` (`"BudgetHook"`), `pending_tools` and `report`. `engine.last_report.error` holds the same message.
+- **On the node that answered**: the run returns that answer as usual.
 
 ```python
+from promptise.engine import BudgetHook, GraphBudgetExceededError, PromptGraphEngine
+
 hook = BudgetHook(
     max_tokens=50000,
     max_cost_usd=0.50,
     cost_per_1k_tokens=0.002,
 )
 engine = PromptGraphEngine(graph=graph, model=model, hooks=[hook])
-await engine.ainvoke({"messages": [...]})
+try:
+    result = await engine.ainvoke({"messages": [...]})
+except GraphBudgetExceededError as exc:
+    print(exc.reason)          # Token budget exceeded: 50412/50000 tokens
+    print(exc.pending_tools)   # ['search']
 
 print(f"Tokens used: {hook.tokens_used}")
 print(f"Cost: ${hook.cost_used:.4f}")
 ```
 
+Any hook that ends a run the same way (`state.current_node = "__end__"`, e.g. `CycleDetectionHook`) in the middle of a tool loop raises `GraphStoppedError`; `reason` is the `NodeResult.error` the hook wrote, if any.
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `max_tokens` | `int \| None` | `None` | Maximum total tokens across all nodes |
+| `max_tokens` | `int \| None` | `None` | Maximum tokens per run, summed over all nodes |
 | `max_cost_usd` | `float \| None` | `None` | Maximum estimated cost (USD) |
 | `cost_per_1k_tokens` | `float` | `0.002` | Cost per 1,000 tokens for estimation |
 
@@ -210,8 +225,8 @@ print(f"Cost: ${hook.cost_used:.4f}")
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `tokens_used` | `int` | Total tokens consumed |
-| `cost_used` | `float` | Estimated cost (USD) |
+| `tokens_used` | `int` | Tokens of the latest run |
+| `cost_used` | `float` | Estimated cost (USD) of the latest run |
 
 ## Custom Hook Examples
 

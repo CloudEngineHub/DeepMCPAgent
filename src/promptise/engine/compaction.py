@@ -13,9 +13,11 @@ with a bounded view once the loop gets long:
   results, so it sees the outcome of its last action in flow.
 - **Ledger of older results:** one entry per earlier tool call (deduplicated,
   last result wins).  A result longer than ``keep_result_chars`` is cut to an
-  excerpt that names the call, so the model can call it again for the full
-  text.  When a token budget is set, the oldest entries shrink to a bare
-  reference until the view fits.
+  excerpt that says how much was cut and names the call, so the model can
+  call it again for the full text; a call the model made more than once is
+  shown in full, so a re-read is not cut again.  When a token budget is set,
+  the oldest entries shrink to a bare reference until the view fits
+  (repeated calls last).
 
 There is no LLM summarization: compaction is deterministic and costs no
 extra model calls.  Results that must stay verbatim need a higher
@@ -44,6 +46,7 @@ import fnmatch
 import json
 import logging
 import math
+from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, replace
 from typing import Any
@@ -94,7 +97,9 @@ class ContextCompaction:
             view fits.  ``None`` means no token budget.  ``build_agent``
             sets it from a ``ContextEngine``'s budget.
         keep_result_chars: Older tool results longer than this are cut to
-            an excerpt of this many characters in the ledger.
+            an excerpt of this many characters in the ledger, unless the
+            model made the same call more than once (then it is shown in
+            full).
         history_messages: How many earlier conversation messages the
             history note keeps.
         history_chars: Each earlier message is cut to this many characters
@@ -301,27 +306,45 @@ class _Entry:
     tool: str
     result: str
     shown: str
+    # The model made this call more than once: kept in full, shrunk last.
+    repeated: bool = False
 
 
-def _ledger_entries(older: Sequence[Any], settings: ContextCompaction) -> list[_Entry]:
-    """One entry per earlier tool call, deduplicated by (tool, args)."""
+def _ledger_entries(
+    older: Sequence[Any], settings: ContextCompaction, latest_calls: Iterable[str] = ()
+) -> list[_Entry]:
+    """One entry per earlier tool call, deduplicated by (tool, args).
+
+    A call the model made more than once (in *older* or again in the latest
+    exchange, *latest_calls*) is shown in full: the excerpt told it to call
+    again for the full text, and cutting the re-read again would only send it
+    back for another.
+    """
     calls: dict[str, tuple[str, str]] = {}
     for m in older:
         if isinstance(m, AIMessage):
             for tc in m.tool_calls:
-                args = json.dumps(tc.get("args", {}), sort_keys=True, default=str)
-                calls[str(tc.get("id"))] = (str(tc.get("name", "?")), f"{tc.get('name')}({args})")
+                calls[str(tc.get("id"))] = (str(tc.get("name", "?")), _call_key(tc))
+    seen = Counter(latest_calls)
     entries: dict[str, _Entry] = {}
     for m in older:
         if not isinstance(m, ToolMessage):
             continue
         tool, call = calls.get(str(m.tool_call_id), ("?", f"tool call {m.tool_call_id}"))
         result = m.content if isinstance(m.content, str) else str(m.content)
+        seen[call] += 1
         entries.pop(call, None)  # last result wins, listed in call order
-        entries[call] = _Entry(0, call, tool, result, _excerpt(tool, result, settings))
+        entries[call] = _Entry(0, call, tool, result, "")
     for i, e in enumerate(entries.values(), 1):
         e.ref = i
+        e.repeated = seen[e.call] > 1
+        e.shown = e.result if e.repeated else _excerpt(e.tool, e.result, settings)
     return list(entries.values())
+
+
+def _call_key(tc: Any) -> str:
+    args = json.dumps(tc.get("args", {}), sort_keys=True, default=str)
+    return f"{tc.get('name')}({args})"
 
 
 def _excerpt(tool: str, result: str, settings: ContextCompaction) -> str:
@@ -329,10 +352,10 @@ def _excerpt(tool: str, result: str, settings: ContextCompaction) -> str:
     if len(result) <= limit:
         return result
     return (
-        f"{result[:limit].rstrip()} … [shortened: {len(result) - limit:,} of "
-        f"{len(result):,} characters not shown; call {tool} with the same "
-        "arguments to see the full result (several in one step if you need them "
-        "together)]"
+        f"{result[:limit].rstrip()} … [shortened: the first {limit:,} of "
+        f"{len(result):,} characters are shown above. Only if you need the rest, "
+        f"call {tool} once more with the same arguments (several in one step if "
+        "you need them together); a result you fetch again is kept in full]"
     )
 
 
@@ -347,9 +370,10 @@ def _ledger_message(entries: Sequence[_Entry]) -> SystemMessage:
     return SystemMessage(
         content=(
             f"{LEDGER_HEADER} by your earlier tool calls, each as it was when "
-            "the call ran (do not call a tool again for these unless you need "
-            "a result marked as not shown in full, or the current value of "
-            "something that changes over time, such as a status):\n"
+            "the call ran. Use these facts; do not call a tool again for them. "
+            "Call again only for the rest of a result marked as shortened or "
+            "not shown, or when the task is to wait for something to change, "
+            "such as a job's status you are polling:\n"
             + "\n".join(f"- [{e.ref}] {e.call} = {e.shown}" for e in entries)
         )
     )
@@ -398,14 +422,16 @@ def build_compacted_view(
 
     last = _last_exchange(run)
     last_ids = {id(m) for m in last}
-    entries = _ledger_entries([m for m in run if id(m) not in last_ids], settings)
+    latest_calls = [_call_key(tc) for m in last if isinstance(m, AIMessage) for tc in m.tool_calls]
+    entries = _ledger_entries([m for m in run if id(m) not in last_ids], settings, latest_calls)
     if not entries:
         return view + last
 
     compacted = view + last + [_ledger_message(entries)]
     if settings.max_tokens is not None:
-        # Over budget: shrink the oldest entries to references until it fits.
-        for e in entries:
+        # Over budget: shrink the oldest entries to references until it
+        # fits, results the model fetched more than once last.
+        for e in [e for e in entries if not e.repeated] + [e for e in entries if e.repeated]:
             if settings.tokens(compacted) <= settings.max_tokens:
                 break
             e.shown = _reference(e)
