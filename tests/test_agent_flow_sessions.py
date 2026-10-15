@@ -356,7 +356,9 @@ class TestFirstMessage:
 class TestSingleSystemMessage:
     async def test_flow_and_instructions_merge_into_one_system_message(self):
         model = _model()
-        agent = await _agent(model, instructions="Use the tools to look up orders.")
+        agent = await _agent(
+            model, instructions="Use the tools to look up orders.", tool_summary="full"
+        )
         try:
             await agent.ainvoke({"messages": [_user("Hi.")]})
             systems = _systems(model.calls[-1])
@@ -372,13 +374,13 @@ class TestSingleSystemMessage:
     @pytest.mark.parametrize("instructions", [None, ""])
     async def test_no_default_prompt_when_flow_provides_it(self, instructions):
         model = _model()
-        agent = await _agent(model, instructions=instructions)
+        agent = await _agent(model, instructions=instructions, tool_summary="names")
         try:
             await agent.ainvoke({"messages": [_user("Hi.")]})
             systems = _systems(model.calls[-1])
             assert len(systems) == 1
             assert "capable deep agent" not in systems[0]
-            assert "Available tools:" in systems[0]
+            assert "Available tools: get_order" in systems[0]
         finally:
             await agent.shutdown()
 

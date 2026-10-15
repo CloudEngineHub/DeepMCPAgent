@@ -75,6 +75,20 @@ Core agent creation, invocation, identity, conversations, and the full reasoning
       show_source: false
       heading_level: 4
 
+### GraphStoppedError
+
+::: promptise.engine.execution.GraphStoppedError
+    options:
+      show_source: false
+      heading_level: 4
+
+### GraphBudgetExceededError
+
+::: promptise.engine.execution.GraphBudgetExceededError
+    options:
+      show_source: false
+      heading_level: 4
+
 ### PromptGraph
 
 ::: promptise.engine.graph.PromptGraph

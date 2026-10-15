@@ -237,9 +237,25 @@ class MetricsHook:
 
 
 class BudgetHook:
-    """Enforces a total token and/or cost budget across the graph run.
+    """Enforces a token and/or cost budget for each graph run.
 
-    Stops the graph when budget is exceeded.
+    After every node, the hook adds the node's tokens to the run's total
+    (``GraphState.total_tokens``, so the budget is per run: one hook on an
+    engine caps every run separately, also concurrent ones).  When the run
+    goes over ``max_tokens`` or ``max_cost_usd``, the hook ends the run
+    (``state.current_node = "__end__"``) and writes the reason to the node's
+    ``NodeResult.error``.
+
+    A run the budget stops after the model asked for tools, before it saw
+    their results, has no answer: the engine raises
+    :class:`~promptise.engine.GraphBudgetExceededError` instead of returning
+    the last tool result.  A run whose model answered on the node that went
+    over budget returns that answer.
+
+    Attributes:
+        tokens_used: Tokens of the latest run (as of its last node).
+        cost_used: Estimated cost of the latest run, from ``tokens_used``
+            and ``cost_per_1k_tokens``.
     """
 
     def __init__(
@@ -260,18 +276,22 @@ class BudgetHook:
         return state
 
     async def post_node(self, node: BaseNode, result: NodeResult, state: GraphState) -> NodeResult:
-        """Track tokens and enforce budget."""
-        self.tokens_used += result.total_tokens
-        self.cost_used = (self.tokens_used / 1000) * self.cost_per_1k_tokens
+        """Track the run's tokens and enforce the budget."""
+        # The engine adds this node's tokens to state.total_tokens after the
+        # post-node hooks, so the run's total so far is that plus this node.
+        tokens = state.total_tokens + result.total_tokens
+        cost = (tokens / 1000) * self.cost_per_1k_tokens
+        self.tokens_used = tokens
+        self.cost_used = cost
 
-        if self.max_tokens and self.tokens_used > self.max_tokens:
-            logger.warning("Token budget exceeded: %d > %d", self.tokens_used, self.max_tokens)
+        if self.max_tokens and tokens > self.max_tokens:
+            logger.warning("Token budget exceeded: %d > %d", tokens, self.max_tokens)
             state.current_node = "__end__"
-            result.error = f"Token budget exceeded: {self.tokens_used}/{self.max_tokens}"
+            result.error = f"Token budget exceeded: {tokens}/{self.max_tokens} tokens"
 
-        if self.max_cost_usd and self.cost_used > self.max_cost_usd:
-            logger.warning("Cost budget exceeded: $%.4f > $%.4f", self.cost_used, self.max_cost_usd)
+        if self.max_cost_usd and cost > self.max_cost_usd:
+            logger.warning("Cost budget exceeded: $%.4f > $%.4f", cost, self.max_cost_usd)
             state.current_node = "__end__"
-            result.error = f"Cost budget exceeded: ${self.cost_used:.4f}/${self.max_cost_usd:.4f}"
+            result.error = f"Cost budget exceeded: ${cost:.4f}/${self.max_cost_usd:.4f}"
 
         return result

@@ -232,7 +232,7 @@ async def test_old_results_are_cut_to_an_excerpt_with_a_reference() -> None:
     final = model.seen[-1]
     ledger = next(m for m in final if LEDGER_HEADER in str(m.content))
     assert 'log_summary({"service": "auth"})' in str(ledger.content)
-    assert "call log_summary with the same arguments" in str(ledger.content)
+    assert "call log_summary once more with the same arguments" in str(ledger.content)
     # Older results show 2000 of their 6000+ characters.
     assert PADDING not in str(ledger.content)
     # Only the latest exchange is verbatim.

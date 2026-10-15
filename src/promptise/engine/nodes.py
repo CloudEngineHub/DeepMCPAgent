@@ -463,6 +463,55 @@ def _is_raw_structured(response: Any) -> bool:
 # ---------------------------------------------------------------------------
 
 
+TOOL_SUMMARY_MODES = ("off", "names", "full")
+
+
+def _check_tool_summary(mode: str | None) -> str | None:
+    if mode is not None and mode not in TOOL_SUMMARY_MODES:
+        raise ValueError(f"tool_summary must be one of {TOOL_SUMMARY_MODES} or None, not {mode!r}")
+    return mode
+
+
+def _tool_params(tool: Any) -> str:
+    """``(name: type=default*, ...)`` for a tool's arguments (``*`` = required)."""
+    args_schema = getattr(tool, "args_schema", None)
+    if not args_schema:
+        return ""
+    try:
+        if isinstance(args_schema, dict):
+            schema = args_schema
+        elif hasattr(args_schema, "model_json_schema"):
+            schema = args_schema.model_json_schema()
+        else:
+            schema = {}
+        props = schema.get("properties", {})
+        required = set(schema.get("required", []))
+        parts = []
+        for pname, pinfo in props.items():
+            ptype = pinfo.get("type", "any")
+            req = "*" if pname in required else ""
+            default = pinfo.get("default")
+            d = f"={json.dumps(default, default=str)}" if default is not None else ""
+            parts.append(f"{pname}: {ptype}{d}{req}")
+        return f"({', '.join(parts)})" if parts else ""
+    except Exception as exc:
+        logger.debug("Schema extraction failed for tool %s: %s", getattr(tool, "name", "?"), exc)
+        return "(...)"
+
+
+def _tool_summary(tools: list[Any], mode: str) -> str:
+    """The "Available tools" block for *mode* (``""`` when ``"off"``)."""
+    if mode == "names":
+        return "Available tools: " + ", ".join(t.name for t in tools)
+    if mode == "full":
+        lines = ["Available tools:"]
+        for t in tools:
+            desc = getattr(t, "description", "") or ""
+            lines.append(f"  - {t.name}{_tool_params(t)}: {desc[:120]}")
+        return "\n".join(lines)
+    return ""
+
+
 class PromptNode(BaseNode):
     """A complete reasoning unit in the graph.
 
@@ -496,6 +545,13 @@ class PromptNode(BaseNode):
             tools from ``build_agent(servers=...)`` without hardcoding
             them.  The injected tools merge with any tools already
             set on the node (no duplicates).
+        tool_summary: An "Available tools" block in the system prompt, on
+            top of the tool definitions the model receives anyway:
+            ``"off"`` (none), ``"names"`` (one line of tool names) or
+            ``"full"`` (each tool's parameters and the first 120
+            characters of its description).  ``None`` (default) uses the
+            engine's setting (``PromptGraphEngine(tool_summary=...)`` /
+            ``build_agent(tool_summary=...)``), which defaults to ``"off"``.
 
         output_schema: Pydantic model for structured output.
         guards: Guards that validate the output before proceeding.
@@ -550,6 +606,7 @@ class PromptNode(BaseNode):
         tools: list[BaseTool] | None = None,
         tool_choice: str = "auto",
         inject_tools: bool = False,
+        tool_summary: str | None = None,
         # Output
         output_schema: type | None = None,
         guards: list[Any] | None = None,
@@ -584,6 +641,7 @@ class PromptNode(BaseNode):
 
         self.tools = list(tools) if tools else []
         self.tool_choice = tool_choice
+        self.tool_summary = _check_tool_summary(tool_summary)
         # inject_tools maps to NodeFlag.INJECT_TOOLS
         if inject_tools:
             self.flags.add(NodeFlag.INJECT_TOOLS)
@@ -629,6 +687,12 @@ class PromptNode(BaseNode):
         self.include_observations = include_observations
         self.include_plan = include_plan
         self.include_reflections = include_reflections
+
+    def _tool_summary_mode(self, config: dict[str, Any] | None) -> str:
+        """The node's ``tool_summary``, else the engine's, else ``"off"``."""
+        if self.tool_summary is not None:
+            return self.tool_summary
+        return str((config or {}).get("_engine_tool_summary") or "off")
 
     @property
     def inject_tools(self) -> bool:
@@ -884,46 +948,16 @@ class PromptNode(BaseNode):
         if self.instructions:
             system_parts.append(self.instructions)
 
-        # Auto-inject tool schemas into the prompt so the LLM knows exact
-        # parameter names, types, and descriptions — without this, the LLM
-        # has to guess from tool names alone, which causes wrong parameters.
-        # This is a major tool-accuracy improvement.
+        # The offered tools reach the model as tool definitions (bind_tools).
+        # An optional summary of them in the system prompt (tool_summary)
+        # repeats what those definitions say; off unless asked for.
         _has_tools = bool(self.tools or self.inject_tools)
         candidate_tools = self._candidate_tools(config) if _has_tools else []
         offered_tools = self._offered_tools(candidate_tools, state, config)
-        if _has_tools:
-            if offered_tools:
-                schema_lines = ["Available tools:"]
-                for t in offered_tools:
-                    desc = getattr(t, "description", "") or ""
-                    # Extract parameter info from schema
-                    params = ""
-                    args_schema = getattr(t, "args_schema", None)
-                    if args_schema:
-                        try:
-                            schema = (
-                                args_schema.model_json_schema()
-                                if hasattr(args_schema, "model_json_schema")
-                                else {}
-                            )
-                            props = schema.get("properties", {})
-                            required = set(schema.get("required", []))
-                            parts = []
-                            for pname, pinfo in props.items():
-                                ptype = pinfo.get("type", "any")
-                                req = "*" if pname in required else ""
-                                default = pinfo.get("default")
-                                d = f"={default}" if default is not None else ""
-                                parts.append(f"{pname}: {ptype}{d}{req}")
-                            if parts:
-                                params = f"({', '.join(parts)})"
-                        except Exception as _schema_exc:
-                            logger.debug(
-                                "Schema extraction failed for tool %s: %s", t.name, _schema_exc
-                            )
-                            params = "(...)"  # Show generic hint
-                    schema_lines.append(f"  - {t.name}{params}: {desc[:120]}")
-                system_parts.append("\n".join(schema_lines))
+        if offered_tools:
+            summary = _tool_summary(offered_tools, self._tool_summary_mode(config))
+            if summary:
+                system_parts.append(summary)
 
         # Inject input_keys from state.context
         if self.input_keys:
