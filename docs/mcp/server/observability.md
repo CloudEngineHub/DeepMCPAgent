@@ -310,6 +310,30 @@ Each entry in `audit.jsonl`:
 
 When the caller authenticated with a JWT (e.g. [`JwksAuth`](auth-security.md#jwksauth) for an agent presenting an [IdP identity](../../identity/overview.md)), the entry carries an `identity` block with the verified `subject` / `issuer` / `audience` / `roles` — inside the HMAC chain, so *which agent did what* is both attributable and tamper-evident. Only these descriptors are recorded; the token and full claim set are never written to the log.
 
+### Errors and denials
+
+A failed call has `"status": "error"`, an `error` field (`"ClassName: message"`) and, when the call raised an `MCPError`, an `error_code` field holding the code the client received:
+
+```json
+{"tool": "refund_order", "client_id": "alice", "status": "error",
+ "error": "AuthenticationError: Requires any of roles [manager], but client has [support]",
+ "error_code": "ACCESS_DENIED",
+ "identity": {"subject": "alice", "roles": ["support"]}, "...": "..."}
+```
+
+| `error_code` | Meaning |
+|---|---|
+| `ACCESS_DENIED` | The caller is authenticated but a role, scope or guard denied the call |
+| `AUTHENTICATION_ERROR` | A missing or rejected credential (reached `AuthMiddleware`, see below) |
+| `VALIDATION_ERROR` | The arguments did not match the tool's schema |
+| `RATE_LIMIT_EXCEEDED` | The rate limiter rejected the call |
+| `TOOL_ERROR`, your own codes | A `ToolError` or other `MCPError` raised by the tool |
+
+Count failed logins and permission denials with `error_code`, not with the class name: guard denials are raised as `AuthenticationError` with `code="ACCESS_DENIED"`, so `error.startswith("AuthenticationError")` matches both. An exception that is not an `MCPError` (a bug in the tool, or one an [exception handler](resilience-patterns.md#exception-handlers) maps later) has no `error_code`; its class is in `error`. Entries written before 1.3.5 have no `error_code` and still verify: the HMAC covers whatever fields an entry has.
+
+!!! note "Rejected tokens with `require_auth=True` are not in the audit log"
+    With `MCPServer(require_auth=True)` on an HTTP transport, the HTTP gate checks the `Authorization` / `x-api-key` header before the request reaches the MCP layer, and answers a missing or invalid credential with `401`. `AuditMiddleware` runs inside the MCP layer, so it never sees those requests: they are only in your HTTP server's access log (uvicorn's, or your reverse proxy's). This is by design: an unauthenticated request never gets as far as a tool call. Keep the access log if you need to count failed logins. Credentials that reach `AuthMiddleware` (without `require_auth`, or on stdio) and fail there are audited with `error_code: "AUTHENTICATION_ERROR"` when `AuditMiddleware` is added before `AuthMiddleware`.
+
 ### HMAC chain integrity
 
 Each entry's `hmac` is an HMAC-SHA256, under your key, over the entry's fields including `prev_hash` — the previous entry's `hmac` (64 zeros for the first entry) — and `seq`, the entry's position in the chain. Editing, deleting, inserting or reordering entries breaks the chain, and without the key nobody can sign a replacement.

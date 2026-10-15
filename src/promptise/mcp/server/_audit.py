@@ -35,6 +35,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ._context import RequestContext
+from ._errors import MCPError
 
 logger = logging.getLogger("promptise.server")
 
@@ -108,6 +109,20 @@ class AuditMiddleware:
     file's last entry and is marked ``"resumed": true``.  Run one writer
     per file: two processes appending to the same file fork the chain.
 
+    A failed call has ``"status": "error"``, ``error`` (``"ClassName:
+    message"``) and, when it raised an :class:`MCPError`, ``error_code``:
+    the code the client received (``ACCESS_DENIED`` for a role/scope/guard
+    denial, ``AUTHENTICATION_ERROR`` for a missing or rejected credential,
+    ``VALIDATION_ERROR``, ``RATE_LIMIT_EXCEEDED``, ...).  Filter on
+    ``error_code``, not the class name: guard denials are raised as
+    ``AuthenticationError`` too.  Entries written before 1.3.5 have no
+    ``error_code`` and still verify.
+
+    The middleware only sees requests that reach the MCP layer.  With
+    ``require_auth=True`` on an HTTP transport, a request whose token
+    fails verification is rejected with ``401`` before that, so it is in
+    the HTTP server's access log, not in this audit log.
+
     Args:
         log_path: File path for audit log (JSONL format).  If ``None``,
             entries are only kept in memory and emitted via Python logging.
@@ -177,6 +192,7 @@ class AuditMiddleware:
     async def __call__(self, ctx: RequestContext, call_next: Callable[..., Any]) -> Any:
         start = time.perf_counter()
         error: str | None = None
+        error_code: str | None = None
         result: Any = None
 
         try:
@@ -184,6 +200,12 @@ class AuditMiddleware:
             return result
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
+            # The structured code the client receives (ACCESS_DENIED for a
+            # guard denial, AUTHENTICATION_ERROR for a rejected credential,
+            # ...). The class name alone cannot tell those apart: guard
+            # denials are AuthenticationError with code="ACCESS_DENIED".
+            if isinstance(exc, MCPError):
+                error_code = exc.code
             raise
         finally:
             # Build, sign and write under one lock: the file holds entries in
@@ -197,7 +219,7 @@ class AuditMiddleware:
                         await loop.run_in_executor(None, self._resume_from_file)
                     except OSError as exc:
                         logger.error("Audit log %s unreadable: %s", self._log_path, exc)
-                entry = self._build_entry(ctx, start, error, result)
+                entry = self._build_entry(ctx, start, error, result, error_code)
                 written = True
                 if self._log_path:
                     line = json.dumps(entry) + "\n"
@@ -313,6 +335,7 @@ class AuditMiddleware:
         start: float,
         error: str | None,
         result: Any,
+        error_code: str | None = None,
     ) -> dict[str, Any]:
         duration = time.perf_counter() - start
         entry: dict[str, Any] = {
@@ -333,6 +356,8 @@ class AuditMiddleware:
 
         if error:
             entry["error"] = error
+            if error_code:
+                entry["error_code"] = error_code
 
         if self._include_args:
             # The validated arguments the caller sent (set by the server
