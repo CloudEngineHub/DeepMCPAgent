@@ -150,7 +150,15 @@ def test_quickstart_block_runs(index, fake_model, tmp_path, capsys):
     )
     result = eval(compiled, ns)  # noqa: S307 - the docs' own code
     if asyncio.iscoroutine(result):
-        asyncio.run(result)
+        # A fragment with top-level ``await`` leaves its agent open; close it
+        # in the same event loop.
+        async def run_and_close() -> None:
+            await result
+            agent = ns.get("agent")
+            if agent is not None:
+                await agent.shutdown()
+
+        asyncio.run(run_and_close())
 
     assert fake_model, f"block under {heading!r} never built an agent"
     if heading == "Add Tools (2 minutes)":
