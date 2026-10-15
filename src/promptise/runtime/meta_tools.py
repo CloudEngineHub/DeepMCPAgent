@@ -243,6 +243,12 @@ async def _modify_instructions(process: Any, new_instructions: str) -> str:
     return result
 
 
+_NEXT_RUN_NOTE = (
+    "You can call it from your next run, not in this one: this run keeps the "
+    "tools it started with, so finish the current task without it."
+)
+
+
 async def _create_tool(
     process: Any,
     tool_name: str,
@@ -286,7 +292,10 @@ async def _create_tool(
         return f"Error creating tool: {exc}"
     if result.startswith("Error"):
         return result
-    return f"Tool '{tool_name}' created. {result}"
+    # The run that created the tool keeps the agent (and tool list) it
+    # started with; the rebuilt agent serves the next invocation.  Say so,
+    # or the model keeps looking for the tool and re-creating it.
+    return f"Tool '{tool_name}' created. {_NEXT_RUN_NOTE}"
 
 
 async def _connect_mcp_server(
@@ -337,7 +346,10 @@ async def _connect_mcp_server(
         return f"Error connecting to MCP server: {exc}"
     if result.startswith("Error"):
         return result
-    return f"Connected to MCP server '{server_name}' at {url}. {result}"
+    return (
+        f"Connected to MCP server '{server_name}' at {url}. Its tools are available "
+        "from your next run, not in this one: this run keeps the tools it started with."
+    )
 
 
 async def _add_trigger(
@@ -839,7 +851,11 @@ def _build_dynamic_tool(
 
     When ``sandbox=True``, the code runs with restricted builtins:
     no file I/O, no imports, no ``exec``/``eval``, no ``open``.
-    When ``sandbox=False``, the code runs with full Python builtins.
+    When ``sandbox=False``, the code runs with the same restricted builtins
+    but may import a fixed allowlist of standard-library modules (``json``,
+    ``math``, ``re``, ``datetime``, ``collections``, ``itertools``,
+    ``functools``, ``string``, ``hashlib``, ``base64``, ``urllib.parse``,
+    ``uuid``, ``copy``); it is never given full builtins.
 
     .. warning::
 
@@ -987,9 +1003,11 @@ def create_meta_tools(
             StructuredTool(
                 name="create_tool",
                 description=(
-                    "Define a new Python tool. Provide name, description, "
-                    "parameters (JSON schema), and Python code defining "
-                    "a 'run(**kwargs) -> str' function."
+                    "Define a new Python tool for your future runs. Provide a name, "
+                    "a description, parameters (JSON schema) and Python code defining "
+                    "a 'run' function that takes the declared parameters as keyword "
+                    "arguments and returns a string. The tool can be called from your "
+                    "next run on, not in the run that creates it."
                 ),
                 args_schema=CreateToolArgs,
                 coroutine=lambda **kw: _create_tool(process, **kw),
@@ -1002,7 +1020,9 @@ def create_meta_tools(
             StructuredTool(
                 name="connect_mcp_server",
                 description=(
-                    "Connect to an additional MCP server at runtime to gain access to its tools."
+                    "Connect to an additional MCP server to gain access to its tools. "
+                    "Its tools can be called from your next run on, not in the run "
+                    "that connects it."
                 ),
                 args_schema=ConnectMCPServerArgs,
                 coroutine=lambda **kw: _connect_mcp_server(process, **kw),
