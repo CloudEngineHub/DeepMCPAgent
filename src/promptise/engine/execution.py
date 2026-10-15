@@ -21,7 +21,9 @@ observability; a graph that routes a failure to a handler node that
 succeeds is not a failed run.  A run that an iteration limit stops in the
 middle of a tool loop, before the model saw its tool results, raises
 :class:`GraphIterationLimitError` instead of returning a tool result as the
-answer.
+answer.  A hook that ends the run there (``BudgetHook`` when the run goes
+over its budget, ``CycleDetectionHook``) raises :class:`GraphStoppedError`
+(:class:`GraphBudgetExceededError` for a budget) for the same reason.
 
 Key features:
 - **Adaptive traversal**: nodes can modify the graph at runtime
@@ -48,6 +50,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 
 from .base import BaseNode
 from .graph import PromptGraph
+from .hooks import BudgetHook
 from .nodes import failure_cause, record_failure
 from .state import ExecutionReport, GraphMutation, GraphState, NodeEvent, NodeFlag, NodeResult
 
@@ -119,6 +122,51 @@ class GraphIterationLimitError(GraphExecutionError):
         self.pending_tools = pending_tools
 
 
+class GraphStoppedError(GraphExecutionError):
+    """A hook ended a run in the middle of a tool loop.
+
+    A hook ends a run by setting ``state.current_node = "__end__"``
+    (:class:`~promptise.engine.hooks.CycleDetectionHook`, or a custom hook).
+    When that happens after the model asked for tools and before it saw their
+    results, there is no answer: the last message is a tool result.  Raised
+    instead of returning that tool result as the agent's answer, like
+    :class:`GraphIterationLimitError`.  A hook stop after the model answered
+    returns the answer as usual.
+
+    Attributes:
+        reason: Why the run stopped (the hook's ``NodeResult.error`` when it
+            set one, e.g. ``"Token budget exceeded: 5078/5000 tokens"``).
+        stopped_by: Class name of the hook that ended the run.
+        pending_tools: Names of the tools whose results the model never saw.
+    """
+
+    def __init__(
+        self,
+        graph_name: str,
+        node_name: str,
+        error: str,
+        *,
+        reason: str,
+        stopped_by: str,
+        pending_tools: list[str],
+        report: ExecutionReport | None = None,
+    ) -> None:
+        super().__init__(graph_name, node_name, error, report=report)
+        self.reason = reason
+        self.stopped_by = stopped_by
+        self.pending_tools = pending_tools
+
+
+class GraphBudgetExceededError(GraphStoppedError):
+    """A :class:`~promptise.engine.hooks.BudgetHook` stopped a run over its
+    token or cost budget before the model gave an answer.
+
+    A subclass of :class:`GraphStoppedError` (and so of
+    :class:`GraphExecutionError`); ``reason`` says which budget and by how
+    much.
+    """
+
+
 def _pending_tools(messages: list[Any]) -> list[str] | None:
     """Tools whose results end *messages* unanswered, or ``None`` when the
     conversation ends on an answer (anything but a tool exchange).
@@ -161,7 +209,8 @@ class PromptGraphEngine:
     Args:
         graph: The graph to traverse.
         model: LangChain ``BaseChatModel`` for LLM calls.
-        max_iterations: Maximum total node executions per run.
+        max_iterations: Maximum node executions per run: ``N`` allows
+            exactly ``N`` (in the ReAct graph, ``N`` model calls).
         max_node_iterations: Engine-wide ceiling on how many times a single
             node can execute in one run (each tool-loop round counts). A
             node's own ``max_iterations`` applies when it is lower. When a
@@ -180,6 +229,11 @@ class PromptGraphEngine:
         compaction: :class:`~promptise.engine.compaction.ContextCompaction`
             settings for nodes that compact (``context_scope="auto"`` /
             ``"ledger"``) and set none of their own.
+        tool_summary: The "Available tools" block that ``PromptNode`` nodes with
+            tools add to their system prompt when they set no
+            ``tool_summary`` of their own: ``"off"`` (``None``, the
+            default), ``"names"`` or ``"full"``.  The model receives the
+            tool definitions either way.
     """
 
     def __init__(
@@ -195,7 +249,11 @@ class PromptGraphEngine:
         lightweight_model: BaseChatModel | None = None,
         tools: list[Any] | None = None,
         compaction: Any | None = None,
+        tool_summary: str | None = None,
     ) -> None:
+        from .nodes import _check_tool_summary
+
+        self.tool_summary = _check_tool_summary(tool_summary)
         self.graph = graph
         self.tools = list(tools) if tools else []
         self.compaction = compaction
@@ -287,6 +345,8 @@ class PromptGraphEngine:
         config["_engine_hooks"] = self.hooks
         if self.compaction is not None and "_engine_compaction" not in config:
             config["_engine_compaction"] = self.compaction
+        if self.tool_summary is not None and "_engine_tool_summary" not in config:
+            config["_engine_tool_summary"] = self.tool_summary
 
         # Collect all tools from all nodes for runtime injection
         if "_engine_tools" not in config:
@@ -412,6 +472,9 @@ class PromptGraphEngine:
         redirects = 0
         # Set when an iteration limit ended the run: (node, limit, what).
         limit_stop: tuple[str, int, str] | None = None
+        # Set when a hook ended the run: (node, hook class name, reason, budget?).
+        hook_stop: tuple[str, str, str, bool] | None = None
+        stopping_hook: Any = None
 
         while state.current_node != "__end__":
             try:
@@ -462,6 +525,8 @@ class PromptGraphEngine:
                         state = await hook.pre_node(node, state)
                     except Exception as exc:
                         logger.warning("pre_node hook %r failed: %s", type(hook).__name__, exc)
+                    if stopping_hook is None and state.current_node == "__end__":
+                        stopping_hook = hook
 
             # ── Pre-execute flag processing ──
             node_start = time.perf_counter()
@@ -545,12 +610,15 @@ class PromptGraphEngine:
                 mutations_count += 1
 
             # ── Post-node hooks ──
+            error_before_hooks = result.error
             for hook in self.hooks:
                 if hasattr(hook, "post_node"):
                     try:
                         result = await hook.post_node(node, result, state)
                     except Exception as exc:
                         logger.warning("post_node hook %r failed: %s", type(hook).__name__, exc)
+                    if stopping_hook is None and state.current_node == "__end__":
+                        stopping_hook = hook
 
             # ── Update state ──
             state.record_node_timing(node.name, result.duration_ms)
@@ -579,6 +647,14 @@ class PromptGraphEngine:
             # ── Resolve next node ──
             # If a hook forced __end__ (e.g. BudgetHook), respect it
             if state.current_node == "__end__":
+                hook_name = type(stopping_hook).__name__ if stopping_hook else "a hook"
+                hook_error = result.error if result.error != error_before_hooks else None
+                hook_stop = (
+                    node.name,
+                    hook_name,
+                    hook_error or f"{hook_name} ended the run",
+                    isinstance(stopping_hook, BudgetHook),
+                )
                 break
             next_node = self._resolve_transition(node, result, state, live_graph)
             state.current_node = next_node
@@ -587,7 +663,9 @@ class PromptGraphEngine:
             state.iteration += 1
             state.increment_node_iteration(node.name)
 
-            if state.iteration > self.max_iterations:
+            # max_iterations counts node executions: the run stops once it
+            # has made that many (in the ReAct graph, that many model calls).
+            if state.iteration >= self.max_iterations:
                 logger.warning(
                     "Max iterations (%d) reached in graph %r", self.max_iterations, live_graph.name
                 )
@@ -599,9 +677,11 @@ class PromptGraphEngine:
                     )
                 break
 
-        # A limit that stopped the run between a tool call and the model's
-        # next step leaves a tool result as the last message: no answer.
-        pending = _pending_tools(state.messages) if limit_stop is not None else None
+        # A limit (or a hook) that stopped the run between a tool call and
+        # the model's next step leaves a tool result as the last message: no
+        # answer.
+        run_stopped = limit_stop is not None or hook_stop is not None
+        pending = _pending_tools(state.messages) if run_stopped else None
         limit_error: str | None = None
         if limit_stop is not None and pending is not None:
             what = ", ".join(pending)
@@ -610,6 +690,13 @@ class PromptGraphEngine:
                 f"after a call to {what} whose result the model never saw"
             )
             logger.warning("Graph %r at node %r: %s", live_graph.name, limit_stop[0], limit_error)
+        elif hook_stop is not None and pending is not None:
+            what = ", ".join(pending)
+            limit_error = (
+                f"{hook_stop[2]}; {hook_stop[1]} stopped the run before the model gave "
+                f"an answer, after a call to {what} whose result the model never saw"
+            )
+            logger.warning("Graph %r at node %r: %s", live_graph.name, hook_stop[0], limit_error)
 
         # ── Build report ──
         self._last_report = ExecutionReport(
@@ -623,6 +710,19 @@ class PromptGraphEngine:
             guards_failed=sum(len(nr.guards_failed) for nr in state.node_history),
             error=last_failure.error if last_failure is not None else limit_error,
         )
+
+        if last_failure is None and hook_stop is not None and limit_error is not None:
+            assert pending is not None
+            error_cls = GraphBudgetExceededError if hook_stop[3] else GraphStoppedError
+            raise error_cls(
+                live_graph.name,
+                hook_stop[0],
+                limit_error,
+                reason=hook_stop[2],
+                stopped_by=hook_stop[1],
+                pending_tools=pending,
+                report=self._last_report,
+            )
 
         if last_failure is None and limit_stop is not None and limit_error is not None:
             assert pending is not None

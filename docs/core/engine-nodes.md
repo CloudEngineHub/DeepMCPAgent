@@ -283,6 +283,7 @@ PromptNode("analyze",
 | `tools` | `list[BaseTool]` | `None` | LangChain tools bound to the model for this node |
 | `tool_choice` | `str` | `"auto"` | Tool calling mode (`"auto"`, `"required"`, `"none"`) |
 | `inject_tools` | `bool` | `False` | If True, receives the tools `build_agent()` discovered (or `PromptGraphEngine(tools=...)`) at runtime, merged with `tools` |
+| `tool_summary` | `str` | `None` | An "Available tools" block in the system prompt, on top of the tool definitions the model receives anyway: `"off"`, `"names"` (one line of names) or `"full"` (parameters and the first 120 characters of each description). `None` uses the engine's setting (`PromptGraphEngine(tool_summary=...)` / `build_agent(tool_summary=...)`), which is `"off"` — see [The tool summary](tool-optimization.md#the-tool-summary-in-the-system-prompt) |
 | `output_schema` | `type` | `None` | Pydantic model or `TypedDict` for structured output via `with_structured_output()`. The output is stored as a plain dict (a Pydantic model is dumped), so transitions, edge conditions, `route` and `output_key` read it the same way |
 | `guards` | `list[Any]` | `None` | Output guards (ContentFilterGuard, SchemaStrictGuard, etc.) |
 | `model_override` | `Any` | `None` | Per-node model — a `BaseChatModel` instance or string like `"openai:gpt-4o-mini"` |
@@ -366,12 +367,12 @@ PromptNode("reason", inject_tools=True, context_scope="ledger")
 **How `"ledger"` works:**
 
 - The input's system messages (yours and runtime-injected ones such as `[Context State]`) and the **current** user question are always sent. Dict messages (`{"role": "user", ...}`) are converted to LangChain messages first, so every input form works; with chat history, the question is the *last* user message and earlier turns become a short note.
-- The ledger is built from the tool calls in the transcript older than the latest exchange — one line per `tool(args) = result`, **last value wins** per `(tool, args)` so duplicates collapse. Results longer than `keep_result_chars` (2,000) are cut to an excerpt that names the call; results shown in the latest exchange are not repeated.
+- The ledger is built from the tool calls in the transcript older than the latest exchange — one line per `tool(args) = result`, **last value wins** per `(tool, args)` so duplicates collapse. Results longer than `keep_result_chars` (2,000) are cut to an excerpt that says how much was cut and names the call; a call the model made more than once is shown in full (it fetched it again for the full text), and is the last to shrink under `max_tokens`; results shown in the latest exchange are not repeated.
 - It is placed **last**, immediately before the model's turn, where it is most salient — so the model consults it instead of re-calling a tool.
 - The most recent assistant turn and its tool results (a whole parallel batch) are kept *in-flow* so the model doesn't lose continuity and loop.
 - Tool execution is unchanged: a repeated `(tool, args)` call **runs the tool again**, because its result may have changed (a job's status, a health check). The ledger, not a cache, is what keeps the model from re-fetching facts it already has. For tools whose result cannot change during a run, `ContextCompaction(reuse_results=[...])` answers a repeated call from the latest earlier **successful** result instead of running the tool; such a call is reported to `trace_tools`, the `observer`, callbacks, hooks (`on_tool_reused`) and stream events, marked as reused, and has `"reused": True` in `NodeResult.tool_calls`. See [Repeated calls run the tool](../guides/context-lifecycle.md#repeated-calls-run-the-tool).
 
-This is the mechanism behind the [`managed` prebuilt pattern](engine-prebuilts.md#managed-context-managed-tool-loop). It is an **efficiency primitive** — it bounds token growth and steers the model away from redundant tool calls without changing the answer the model produces.
+This is the mechanism behind the [`managed` prebuilt pattern](engine-prebuilts.md#managed-context-managed-tool-loop). It is an **efficiency primitive** — it bounds token growth and tells the model not to re-fetch what it has; how many calls that saves depends on the model (see [the note on `managed`](engine-prebuilts.md#managed-context-managed-tool-loop)).
 
 ### ToolNode
 

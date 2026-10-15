@@ -91,6 +91,7 @@ _PROMPT_FIELDS = (
     _Field("perspective", _UNSUPPORTED),
     _Field("tools", _TOOLS),
     _Field("tool_choice", _DATA),
+    _Field("tool_summary", _DATA),
     _Field("output_schema", _REF),
     _Field("guards", _UNSUPPORTED),
     _Field("model_override", _MODEL),
