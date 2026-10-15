@@ -166,9 +166,14 @@ PromptGraph.code_action(
 `max_tool_calls`, failed ones included. Once a program reaches it, each further
 call raises `ToolBudgetExceeded` in the program without running the tool, a
 warning is logged, and the program's output is discarded (it is incomplete,
-even if the program caught the error). A repair gets a fresh budget, so a run
-makes at most `(max_repairs + 1) × max_tool_calls` calls; with no repair left
-the node fails and the run raises `GraphExecutionError`. MCP tool results that
+even if the program caught the error). The prompt says the cap exists but not
+its value, and forbids skipping or truncating records to stay under it. After a
+budget hit the repair asks for a program that does the whole job in fewer calls
+(it gets a fresh budget, so a run makes at most `(max_repairs + 1) ×
+max_tool_calls` calls), or for the reply `CANNOT_FINISH_WITHIN_CALL_CAP`. That
+reply, or a budget hit with no repair left, fails the node, and the run raises
+`CodeActionBudgetError` (a `GraphExecutionError`) rather than answering from
+part of the data. MCP tool results that
 are JSON text reach the program decoded (lists, dicts, numbers), and an MCP
 tool error raises in the program. `ExecutionReport.tool_calls` counts the
 programs' calls. See [Code-Action](../guides/code-action.md#the-tool-call-budget).

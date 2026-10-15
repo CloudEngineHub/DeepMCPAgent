@@ -82,7 +82,7 @@ agent = await build_agent(
 | `memory` | `MemoryProvider \| dict \| None` | `None` | Memory backend. Automatically searches and injects relevant context before each invocation. |
 | `memory_auto_store` | `bool` | `False` | When `True`, automatically stores each user/assistant exchange in memory. |
 | `sandbox` | `bool \| dict \| SandboxConfig \| None` | `None` | Enable sandboxed code execution. `True` uses defaults; a dict provides custom config (unknown keys raise; the network is `"none"` unless set). Raises if the sandbox cannot be started. See [Sandbox](../sandbox.md). |
-| `code_action` | `dict \| CodeActionConfig \| None` | `None` | Only with `agent_pattern="code-action"`: `exec_timeout` (default 120), `max_repairs` (default 1), `max_tool_calls` (default 50, the cap on each program's tool calls, failed ones included; a program that reaches it fails, and a repaired program gets a fresh budget). |
+| `code_action` | `dict \| CodeActionConfig \| None` | `None` | Only with `agent_pattern="code-action"`: `exec_timeout` (default 120), `max_repairs` (default 1), `max_tool_calls` (default 50, the cap on each program's tool calls, failed ones included; a program that reaches it fails, and a repaired program gets a fresh budget; a job that cannot fit raises `CodeActionBudgetError`). |
 | `observer` | `Any \| None` | `None` | Pass an existing `ObservabilityCollector` to reuse across multiple agents. Mutually exclusive with `observe`. |
 | `observer_agent_id` | `str \| None` | `None` | Agent identifier for the shared observer's timeline entries. |
 | `cross_agents` | `Mapping[str, CrossAgent] \| None` | `None` | Peer agents exposed as `ask_agent_<name>` tools. See [Cross-Agent Delegation](cross-agent.md). |
