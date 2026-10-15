@@ -29,6 +29,8 @@ from collections import OrderedDict
 from collections.abc import Awaitable, Callable
 from typing import Any, Literal, Protocol, runtime_checkable
 
+from ._validation import validation_pending
+
 logger = logging.getLogger("promptise.server")
 
 
@@ -427,7 +429,9 @@ class CacheMiddleware:
         call_next: Callable[..., Any],
     ) -> Any:
         tool_def = ctx.state.get("tool_def")
-        if not _cacheable(tool_def):
+        if not _cacheable(tool_def) or validation_pending(ctx):
+            # A call whose arguments were rejected is never served from (or
+            # stored in) the cache: it goes on to its VALIDATION_ERROR.
             return await call_next(ctx)
         guards = getattr(tool_def, "guards", None)
         if getattr(tool_def, "auth", False) and not _is_authenticated(ctx):

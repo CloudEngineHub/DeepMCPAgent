@@ -243,6 +243,13 @@ AuthMiddleware  ->  LoggingMiddleware  ->  TimeoutMiddleware  ->  handler
      <-                  <-                    <-                  <-
 ```
 
+A call whose arguments fail the tool's input model goes through the same chain:
+middleware sees it (authentication, rate limiting and audit count it like any
+other call), and the `VALIDATION_ERROR` is raised where the handler would run.
+`ctx.state["_tool_arguments"]` is `{}` for such a call, so middleware never sees
+the rejected input. The error envelope is bounded: it names the failing fields
+and constraints, never the value.
+
 ### Router-level middleware
 
 Routers can carry their own middleware that runs **after** server-level middleware:

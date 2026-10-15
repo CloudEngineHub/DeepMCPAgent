@@ -44,9 +44,9 @@ from mcp.types import (
 
 from ._context import RequestContext, clear_context, set_context
 from ._di import DependencyResolver
-from ._errors import AuthenticationError, MCPError
+from ._errors import AuthenticationError, MCPError, ValidationError
 from ._middleware import MiddlewareChain
-from ._validation import validate_arguments
+from ._validation import defer_validation_error, validate_arguments
 
 logger = logging.getLogger("promptise.server.testing")
 
@@ -201,20 +201,27 @@ class TestClient:
 
         di_resolver = DependencyResolver()
         try:
-            # 1) Validate input
+            # 1) Validate input. A rejected call still runs through the
+            #    middleware chain (auth, rate limit, audit) with a handler
+            #    that raises the VALIDATION_ERROR — same as the live server.
+            handler = tdef.handler
             model = self._server._input_models.get(name)
             if model is not None:
-                arguments = validate_arguments(model, arguments)
+                try:
+                    arguments = validate_arguments(model, arguments)
+                except ValidationError as invalid:
+                    arguments = {}
+                    handler = defer_validation_error(ctx, invalid)
 
             # Snapshot validated user args for middleware (approval gate),
             # before DI injects framework objects — parity with the live path
             ctx.state["_tool_arguments"] = dict(arguments)
 
             # 2) Resolve dependency injection
-            arguments = await di_resolver.resolve(tdef.handler, arguments)
+            arguments = await di_resolver.resolve(handler, arguments)
 
             # 2b) Auto-inject RequestContext-typed params
-            arguments = _inject_context(tdef.handler, arguments, ctx)
+            arguments = _inject_context(handler, arguments, ctx)
 
             # 2c) Detect BackgroundTasks in resolved args → store in ctx
             from ._background import BackgroundTasks
@@ -244,11 +251,11 @@ class TestClient:
 
             # 4) Wrap handler with guard checks (guards run after
             #    middleware so auth middleware can populate roles first)
-            effective_handler = tdef.handler
+            effective_handler = handler
             if tdef.guards:
                 _guards = tdef.guards
                 _ctx = ctx
-                _real = tdef.handler
+                _real = handler
 
                 async def _guarded(**kw: Any) -> Any:
                     await check_guards(_guards, _ctx)

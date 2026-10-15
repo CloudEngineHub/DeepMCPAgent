@@ -36,7 +36,15 @@ The `TestClient` replicates the exact same call pipeline as the real MCP
 transport.  Every tool call goes through:
 
 1. **Input validation** -- arguments are validated against the tool's Pydantic
-   input model.
+   input model. A call whose arguments are rejected is not answered at this
+   point: it still runs through the middleware chain (authentication, rate
+   limiting, audit, in your middleware order) and its guards, and then fails
+   with a `VALIDATION_ERROR`. The handler, dependency injection and approval
+   requests never see the rejected input, and the error names the failing
+   fields and constraints without echoing the value, with at most 20 field
+   errors and a message capped at 1,000 characters. The live transports work
+   the same way: the MCP SDK's own `inputSchema` check is turned off so that
+   an invalid call cannot bypass the pipeline.
 2. **Dependency injection** -- `Depends(...)` parameters are resolved.
 3. **Context injection** -- parameters typed as `RequestContext` receive the
    current request context.

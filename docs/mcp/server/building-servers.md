@@ -433,6 +433,8 @@ HTTP and SSE bind `127.0.0.1` unless you pass `host`, and also serve `GET /healt
 
 For async code, use `await server.run_async(...)` instead.
 
+A Promptise server runs on the 1.x MCP SDK and serves clients of both SDK generations. Clients built on mcp 2.x (current Pydantic AI and OpenAI Agents SDK releases, for example) open each connection with `server/discover`; the server answers `-32601 Method not found`, and the client falls back to the `initialize` handshake. Any request for a method the server does not implement gets the same answer, without a log warning, and a notification of an unknown method is ignored.
+
 ## Complete Example
 
 A full server with Pydantic validation, lifecycle hooks, and HTTP transport:
