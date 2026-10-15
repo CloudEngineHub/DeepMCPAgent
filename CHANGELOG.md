@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.4 — unreleased
+## 1.3.4 — 2026-10-15
 
 ### Fixed
 - **`max_agent_iterations=N` ran N+1 model calls** -- the engine counted a node execution after running it and stopped only once the count passed the limit, so `build_agent(max_agent_iterations=N)` (the engine's `max_iterations`) allowed N+1 node executions: N+1 model calls and N+1 rounds of tool calls in the default ReAct graph. `N` now allows exactly `N` node executions, which in the ReAct graph is `N` model calls. The `build_agent` docstring and the engine docs say what is counted.
