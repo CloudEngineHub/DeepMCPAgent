@@ -21810,7 +21810,11 @@ non-loopback bind, or an empty <code>allowed_hosts</code> list.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Access control guards (checked before handler).</p>
+                <p>Access control guards (checked before handler).  A
+built-in identity guard (<code>RequireAuth</code>, <code>HasRole</code>,
+<code>HasScope</code>, <code>RequireClientId</code>, tenant guards) implies
+<code>auth=True</code>: it can only pass once the caller is
+authenticated.</p>
               </div>
             </td>
             <td>
@@ -21826,7 +21830,8 @@ non-loopback bind, or an empty <code>allowed_hosts</code> list.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Required roles shorthand (creates <code>HasRole</code> guard).</p>
+                <p>Required roles shorthand (creates <code>HasRole</code> guard;
+implies <code>auth=True</code>).</p>
               </div>
             </td>
             <td>
@@ -24538,6 +24543,12 @@ includes roles.</p>
 
 
         <p>Protocol for authentication providers.</p>
+<p>A custom provider verifies the request's credential (<code>ctx.meta</code> holds
+the request headers) and returns the client id.  To give the caller
+roles, scopes and a tenant, store the verified claims as a dict in
+<code>ctx.state["jwt_payload"]</code>: <code>AuthMiddleware</code> builds <code>ctx.client</code>
+from them as it does for a JWT (<code>roles</code>, <code>scope</code>, the tenant claim,
+<code>iss</code> / <code>aud</code> / <code>sub</code> / <code>iat</code> / <code>exp</code>).</p>
 
 
 
@@ -26019,6 +26030,13 @@ back to <em>default_timeout</em>.</p>
 
 
         <p>Middleware that enforces rate limits.</p>
+<p>Buckets are per client (and per tenant) only when <code>ctx.client_id</code> is
+set by the time this middleware runs, which takes an <code>AuthMiddleware</code>
+added <strong>before</strong> it and an authenticated tool (<code>auth=True</code>, or
+<code>MCPServer(require_auth=True)</code>).  Otherwise every caller shares one
+<code>"global"</code> bucket; the server logs a warning at build time when an
+<code>AuthMiddleware</code> is installed but cannot identify the caller for this
+middleware.  Pass <code>key_func</code> to choose the key yourself.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -26636,6 +26654,18 @@ first entry) and <code>hmac</code>.  When <code>log_path</code> already holds en
 the first entry this instance writes continues the chain from the
 file's last entry and is marked <code>"resumed": true</code>.  Run one writer
 per file: two processes appending to the same file fork the chain.</p>
+<p>A failed call has <code>"status": "error"</code>, <code>error</code> (<code>"ClassName:
+message"</code>) and, when it raised an :class:<code>MCPError</code>, <code>error_code</code>:
+the code the client received (<code>ACCESS_DENIED</code> for a role/scope/guard
+denial, <code>AUTHENTICATION_ERROR</code> for a missing or rejected credential,
+<code>VALIDATION_ERROR</code>, <code>RATE_LIMIT_EXCEEDED</code>, ...).  Filter on
+<code>error_code</code>, not the class name: guard denials are raised as
+<code>AuthenticationError</code> too.  Entries written before 1.3.5 have no
+<code>error_code</code> and still verify.</p>
+<p>The middleware only sees requests that reach the MCP layer.  With
+<code>require_auth=True</code> on an HTTP transport, a request whose token
+fails verification is rejected with <code>401</code> before that, so it is in
+the HTTP server's access log, not in this audit log.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -27953,7 +27983,8 @@ if not provided.</p>
 - <code>mcp_tool_calls_total</code> — Counter of tool calls (labels: tool, status)
 - <code>mcp_tool_duration_seconds</code> — Histogram of call duration (labels: tool)
 - <code>mcp_tool_in_flight</code> — Gauge of in-flight calls (labels: tool)</p>
-<p>Raises <code>ImportError</code> if <code>prometheus-client</code> is not installed.</p>
+<p>Raises <code>ImportError</code> if <code>prometheus-client</code> is not installed
+(<code>pip install "promptise[all]"</code>).</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -28093,7 +28124,9 @@ default global registry if not provided.</p>
 <p>Creates a span for each tool call with attributes for tool name,
 request ID, client ID, and error status.  Also records a histogram
 metric for tool call duration.</p>
-<p>Raises <code>ImportError</code> if <code>opentelemetry-api</code> is not installed.</p>
+<p>Raises <code>ImportError</code> if <code>opentelemetry-api</code> is not installed
+(<code>pip install "promptise[all]"</code>).  It takes no endpoint: configure
+the exporter on the tracer / meter provider.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>

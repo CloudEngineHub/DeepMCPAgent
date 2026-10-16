@@ -1462,6 +1462,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-tool-call-budget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The tool-call budget
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9329,6 +9340,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-tool-call-budget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The tool-call budget
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9514,6 +9536,14 @@ dicts, numbers — that the program can use directly:</p>
 <code>dict</code> arrives in the program as a <code>dict</code> (not a stringified blob). Prose-string
 tools still work — the model is told to parse them — but structured returns are
 more reliable.</p>
+<p><strong>MCP tools</strong> (<code>servers=...</code>) answer with the text of the server's result, and a
+server sends lists and dicts as JSON text. The bridge decodes it: when an MCP
+tool's text result is valid JSON, the program gets the data (<code>list_orders("2026-09")</code>
+returns a <code>list</code>, a number returns an <code>int</code> or <code>float</code>); any other text arrives
+as a <code>str</code>. A tool error (an MCP error result, or a Promptise
+<code>{"error": {"code": ..., "message": ...}}</code> envelope) raises in the program, with
+the server's code and message (<code>RuntimeError: MCPToolError: NOT_FOUND: ...</code>).
+Python tools are not decoded: a <code>str</code> they return stays a <code>str</code>.</p>
 <h2 id="the-security-model">The security model<a class="headerlink" href="#the-security-model" title="Link to this section">&para;</a></h2>
 <p>The model writes code, so the code runs <strong>contained</strong>:</p>
 <ul>
@@ -9530,8 +9560,8 @@ more reliable.</p>
   the agent under the <strong>Agent Runtime</strong>, its governance hooks (budget / health /
   audit) apply to each bridged call. <em>Without</em> the runtime, a plain agent has no
   budget hook attached — so code-action enforces its <strong>own</strong> hard, hook-independent
-  <strong><code>max_tool_calls</code></strong> cap per run (default 50) so a generated program can never
-  loop a tool unbounded.</li>
+  <strong><code>max_tool_calls</code></strong> cap on each program (default 50) so a generated program can
+  never loop a tool unbounded (see <a href="#the-tool-call-budget">The tool-call budget</a>).</li>
 </ul>
 <div class="admonition warning">
 <p class="admonition-title">Honest enterprise note</p>
@@ -9571,39 +9601,99 @@ sandbox can stay fully network-isolated.</p>
 <p>If the program crashes, code-action feeds the <strong>stderr</strong> back to the model for a
 bounded number of fixes (<code>max_repairs</code>, default 1) before giving up. This
 recovers the common "off-by-one in the parsing" class of errors without an
-unbounded loop.</p>
+unbounded loop. A program that reaches the tool-call budget is a failure too
+(below). When no repair is left, the node fails and the run raises
+<code>GraphExecutionError</code> (<code>CodeActionBudgetError</code> when the budget was the reason);
+<code>ExecutionReport.error</code> says why the last program failed.</p>
+<h2 id="the-tool-call-budget">The tool-call budget<a class="headerlink" href="#the-tool-call-budget" title="Link to this section">&para;</a></h2>
+<p><code>max_tool_calls</code> (default 50) caps the tool calls of <strong>each program</strong>:</p>
+<ul>
+<li><strong>Every call counts</strong>: successful ones, failed ones (a tool that raised, an MCP
+  error), calls to an unknown tool, and calls a <code>pre_tool</code> hook blocked.</li>
+<li><strong>Reaching it is an error, never a quiet result.</strong> Once a program has made
+  <code>max_tool_calls</code> calls, its next call raises <code>ToolBudgetExceeded</code> (a
+  <code>RuntimeError</code>, importable in the program) without running the tool, and so
+  does every later call. The node logs a warning, and the program's output is
+  <strong>discarded</strong>, even if the program caught the error and printed an answer:
+  it is incomplete.</li>
+<li><strong>The model is never asked to fit the data to the cap.</strong> The prompt says each
+  program has a cap on function calls, but not its value, and tells the model to
+  use all the data the question needs: never skip, sample or truncate records,
+  never count its own calls or stop early, and let <code>ToolBudgetExceeded</code> raise.
+  (Told "at most N calls", models wrote <code>if calls &gt;= N: break</code> or
+  <code>orders[:N-1]</code>, and the partial result came back as the answer.) The error a
+  refused call raises in the program does not give the value either.</li>
+<li><strong>A repair must do the whole job.</strong> After a program reaches the cap, the model
+  is asked for a program that does the <strong>whole</strong> job with fewer calls (a tool
+  that returns many records at once, no repeated fetches), never one over part
+  of the data, or to reply <code>CANNOT_FINISH_WITHIN_CALL_CAP</code> if it can't. The
+  repaired program gets its own <code>max_tool_calls</code>, so a run makes at most
+  <code>(max_repairs + 1) × max_tool_calls</code> calls. When an answer comes from a
+  program written after a budget hit, a warning is logged on
+  <code>promptise.engine.code_action</code>.</li>
+<li><strong>A job that doesn't fit fails.</strong> If the model replies
+  <code>CANNOT_FINISH_WITHIN_CALL_CAP</code>, or the last program also reaches the cap,
+  the run raises <code>CodeActionBudgetError</code> (a <code>GraphExecutionError</code>, so existing
+  handlers still catch it) with <code>max_tool_calls</code>, <code>attempts</code> and the <code>report</code>;
+  <code>ExecutionReport.error</code> names <code>max_tool_calls</code>. Raise <code>max_tool_calls</code>, or
+  give the agent a tool that returns many records per call.</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">CodeActionBudgetError</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">question</span><span class="p">}]})</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">except</span> <span class="n">CodeActionBudgetError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"needs more than </span><span class="si">{</span><span class="n">exc</span><span class="o">.</span><span class="n">max_tool_calls</span><span class="si">}</span><span class="s2"> tool calls per program"</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">What Promptise can and can't check</p>
+<p>Promptise sees every call a program makes, so a program that reaches the
+cap is always caught, even if it catches the error. It cannot see whether a
+program that finished <em>within</em> the cap read all the data: a model that
+ignores the instructions and slices the data itself still returns a
+partial answer. Hiding the cap's value and forbidding truncation makes that
+unlikely (it removes the number a model would fit to); set
+<code>max_tool_calls</code> well above the calls the job needs.</p>
+</div>
+<p><code>ExecutionReport.tool_calls</code> (<code>agent.last_report</code> / <code>engine.last_report</code>) counts
+the calls the programs made, failed ones included; refused calls never ran and
+are not counted.</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Link to this section">&para;</a></h2>
 <p>From <code>build_agent</code>, pass <code>code_action=</code> (a dict or a
 <code>promptise.engine.CodeActionConfig</code>; unknown keys are rejected):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">my_servers</span><span class="p">,</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">agent_pattern</span><span class="o">=</span><span class="s2">"code-action"</span><span class="p">,</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">code_action</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="s2">"exec_timeout"</span><span class="p">:</span> <span class="mi">60</span><span class="p">,</span>    <span class="c1"># seconds the program may run (default 120)</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="s2">"max_repairs"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>      <span class="c1"># stderr-driven self-repair attempts (default 1)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="s2">"max_tool_calls"</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>  <span class="c1"># hard per-run cap on bridged tool calls (default 50)</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="p">},</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">sandbox</span><span class="o">=</span><span class="p">{</span><span class="s2">"memory_limit"</span><span class="p">:</span> <span class="s2">"1G"</span><span class="p">},</span>  <span class="c1"># optional; network stays "none"</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">my_servers</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">agent_pattern</span><span class="o">=</span><span class="s2">"code-action"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">code_action</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="s2">"exec_timeout"</span><span class="p">:</span> <span class="mi">60</span><span class="p">,</span>    <span class="c1"># seconds the program may run (default 120)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="s2">"max_repairs"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>      <span class="c1"># self-repair attempts after a failed program (default 1)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="s2">"max_tool_calls"</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>  <span class="c1"># hard cap on each program's bridged tool calls (default 50)</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="p">},</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">sandbox</span><span class="o">=</span><span class="p">{</span><span class="s2">"memory_limit"</span><span class="p">:</span> <span class="s2">"1G"</span><span class="p">},</span>  <span class="c1"># optional; network stays "none"</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>For a custom graph, use the factory directly:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">PromptGraph</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">PromptGraph</span><span class="o">.</span><span class="n">code_action</span><span class="p">(</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">tools</span><span class="o">=</span><span class="n">my_tools</span><span class="p">,</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">system_prompt</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">sandbox_factory</span><span class="o">=...</span><span class="p">,</span>   <span class="c1"># injected by build_agent; supply your own for custom graphs</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">max_repairs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>         <span class="c1"># stderr-driven self-repair attempts</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">exec_timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>      <span class="c1"># seconds the program may run inside the sandbox</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">PromptGraph</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">PromptGraph</span><span class="o">.</span><span class="n">code_action</span><span class="p">(</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">tools</span><span class="o">=</span><span class="n">my_tools</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">system_prompt</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">sandbox_factory</span><span class="o">=...</span><span class="p">,</span>   <span class="c1"># injected by build_agent; supply your own for custom graphs</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">max_repairs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>         <span class="c1"># self-repair attempts after a failed program</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">exec_timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>      <span class="c1"># seconds the program may run inside the sandbox</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">max_tool_calls</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>     <span class="c1"># hard cap on each program's bridged tool calls</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="honest-limits">Honest limits<a class="headerlink" href="#honest-limits" title="Link to this section">&para;</a></h2>
 <ul>
 <li><strong>Needs Docker.</strong> <code>build_agent(agent_pattern="code-action")</code> raises a clear
   error if a sandbox can't be initialized — there is no silent fallback, because
   running model-written code outside a sandbox would be unsafe.</li>
-<li><strong>Latency floor.</strong> Each run spins a fresh container (~1–2s). The token and
+<li><strong>Latency floor.</strong> Each program runs in a fresh container: starting it,
+  running the program and removing it takes about 1 s on a warm Docker host,
+  plus the program's own time (each repair adds another container, and
+  <code>build_agent</code> starts one once to check the sandbox works). The token and
   accuracy wins dominate on real aggregation tasks, but for a one-shot lookup a
   plain <code>react</code> call is snappier.</li>
 <li><strong>Not magic on reasoning.</strong> Code-action makes the <em>computation</em> exact; it does
@@ -9639,7 +9729,7 @@ unbounded loop.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:47:11 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 15, 2026 17:43:35 UTC">2026-10-15</span>
   </span>
 
     
