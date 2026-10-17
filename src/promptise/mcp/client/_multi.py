@@ -151,12 +151,24 @@ class MCPMultiClient:
         return self
 
     async def __aexit__(self, *exc: Any) -> None:
-        """Disconnect from all servers."""
+        """Disconnect from all servers.
+
+        Every client is closed even when closing another one fails or the
+        caller is cancelled meanwhile; the cancellation is re-raised once
+        they all are.
+        """
         errors: list[str] = []
+        # A CancelledError (or KeyboardInterrupt) is re-raised once every
+        # client is closed, so no server outlives the multi-client.
+        # Swallowing it would leave the cancelled task running, and whoever
+        # cancelled it (AgentProcess.stop()) waiting for it forever.
+        interrupted: BaseException | None = None
         try:
             await self._caller_sessions.aclose()
-        except BaseException as e:
+        except Exception as e:
             errors.append(f"per-caller sessions: {e}")
+        except BaseException as e:
+            interrupted = e
         # A fresh pool, so the multi-client can be entered again.
         self._caller_sessions = CallerSessionPool(
             max_sessions=self._max_caller_sessions,
@@ -165,11 +177,10 @@ class MCPMultiClient:
         for name, client in self._clients.items():
             try:
                 await client.__aexit__(*exc)
-            except BaseException as e:
-                # Catch BaseException (not just Exception) so that
-                # asyncio.CancelledError during session teardown
-                # doesn't propagate and kill the cleanup loop.
+            except Exception as e:
                 errors.append(f"{name}: {e}")
+            except BaseException as e:
+                interrupted = interrupted or e
         self._connected = False
         self._tool_to_server.clear()
         self._forget_resources()
@@ -180,6 +191,8 @@ class MCPMultiClient:
                 "Errors during MCPMultiClient shutdown: %s",
                 "; ".join(errors),
             )
+        if interrupted is not None:
+            raise interrupted
 
     async def list_tools(self) -> list[Tool]:
         """Discover tools from all connected servers.

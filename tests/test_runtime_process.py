@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -329,7 +330,7 @@ class TestAgentProcessBuildFailure:
 # =========================================================================
 
 _TINY_SERVER = """
-import os, sys
+import os, sys, time
 from mcp.server.fastmcp import FastMCP
 
 with open(sys.argv[1], "a") as f:
@@ -345,6 +346,12 @@ def ping() -> str:
 
 
 mcp.run()
+if len(sys.argv) > 2:
+    # A slow shutdown: record that it began (the client closed stdin),
+    # then take a second to exit.
+    with open(sys.argv[2], "a") as f:
+        f.write(f"{os.getpid()}\\n")
+    time.sleep(1)
 """
 
 
@@ -506,4 +513,56 @@ class TestMCPClientLifecycle:
             assert await _wait_dead([pids()[0]]) == []
         finally:
             await process.stop()
+        assert await _wait_dead(pids()) == []
+
+    async def test_stop_while_the_replaced_server_closes(self, server, tmp_path) -> None:
+        """stop() returns when it cancels a worker still closing a replaced server.
+
+        After a run that reloaded the agent, its worker closes the replaced
+        MCP client.  stop() cancelled the worker there, the multi-client
+        swallowed the CancelledError, and the worker went back to waiting
+        for events while stop() waited for it to end: a hang until CI's
+        6-hour job timeout.
+        """
+        from promptise.runtime.config import ExecutionMode
+
+        servers, pids, agents = server
+        closing = tmp_path / "closing"
+        spec = servers["tiny"]
+        slow = spec.model_copy(update={"args": [*spec.args, str(closing)]})
+        process = AgentProcess(
+            "leak", ProcessConfig(servers={"tiny": slow}, execution_mode=ExecutionMode.OPEN)
+        )
+
+        async def reload(agent: _ToolAgent) -> None:
+            await process._hot_reload(reason="agent asked")
+
+        await process.start()
+        stopping: asyncio.Task[None] | None = None
+        try:
+            agents[0].on_invoke = reload
+            await process.inject(TriggerEvent(trigger_id="t", trigger_type="manual", payload={}))
+            # The replaced server has begun its one-second shutdown, so the
+            # worker is waiting for its client to close.
+            for _ in range(200):
+                if closing.exists():
+                    break
+                await asyncio.sleep(0.05)
+            assert closing.exists()
+            stopping = asyncio.create_task(process.stop())
+            # Not wait_for(): cancelling stop() on timeout cancels the stuck
+            # worker again, which ends it and hides the hang.
+            done, _ = await asyncio.wait({stopping}, timeout=15)
+            assert done, "stop() is still waiting for the worker it cancelled"
+            await stopping
+            assert process.state == ProcessState.STOPPED
+        finally:
+            if stopping is None:
+                await process.stop()
+            elif not stopping.done():
+                # Another stop() would wait for this one's lock; cancelling
+                # this one cancels the stuck worker again, which ends it.
+                stopping.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await stopping
         assert await _wait_dead(pids()) == []

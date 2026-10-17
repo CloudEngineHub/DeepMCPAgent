@@ -146,6 +146,35 @@ class TestMCPMultiClient:
         multi = MCPMultiClient({"a": c1})
         assert multi.tool_to_server == {}
 
+    async def test_cancelled_exit_closes_every_client_then_reraises(self):
+        """A close cancelled midway still closes the rest, then re-raises.
+
+        Swallowing the CancelledError kept the cancelled task running:
+        AgentProcess.stop() then waited forever for a worker it cancelled
+        while that worker closed a replaced client.
+        """
+        import asyncio
+        from unittest.mock import AsyncMock
+
+        entered = asyncio.Event()
+
+        async def slow_exit(*exc: Any) -> None:
+            entered.set()
+            await asyncio.Event().wait()
+
+        slow = MagicMock(spec=MCPClient)
+        slow.__aexit__ = AsyncMock(side_effect=slow_exit)
+        other = MagicMock(spec=MCPClient)
+        other.__aexit__ = AsyncMock(return_value=None)
+        multi = MCPMultiClient({"slow": slow, "other": other})
+
+        closing = asyncio.create_task(multi.__aexit__(None, None, None))
+        await entered.wait()
+        closing.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await closing
+        other.__aexit__.assert_awaited_once()
+
 
 # =====================================================================
 # HTTPServerSpec with bearer_token
