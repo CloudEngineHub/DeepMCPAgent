@@ -316,11 +316,16 @@ class AuditMiddleware:
         """Append one line to the audit log file (runs in executor).
 
         One ``O_APPEND`` write per entry, so concurrent appenders never land
-        inside each other's line.
+        inside each other's line.  A new file is created owner-only
+        (``0o600``): audit entries name clients and tools and must not be
+        world-readable.  An existing file keeps the permissions it has, so an
+        operator who widened them on purpose (e.g. ``0o640`` for a log group)
+        is not overridden.  On Windows only the read-only bit of the mode is
+        honoured, so the call behaves as before there.
         """
         assert self._log_path is not None
         data = line.encode()
-        fd = os.open(self._log_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+        fd = os.open(self._log_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
         try:
             view = memoryview(data)
             while view:

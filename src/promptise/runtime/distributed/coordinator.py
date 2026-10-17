@@ -207,7 +207,7 @@ class RuntimeCoordinator:
             try:
                 await self._health_task
             except asyncio.CancelledError:
-                pass
+                pass  # expected: the task was just cancelled
             self._health_task = None
         logger.info("Coordinator: health monitor stopped")
 

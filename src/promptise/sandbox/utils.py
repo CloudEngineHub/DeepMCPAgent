@@ -188,7 +188,7 @@ class SandboxContainerManager:
                 cpu_percent = (cpu_delta / system_delta) * cpu_count * 100.0
                 return f"{cpu_percent:.2f}%"
         except (KeyError, ZeroDivisionError):
-            pass
+            pass  # incomplete stats (container just started): report 0%
         return "0.00%"
 
     def _format_memory(self, stats: dict) -> str:

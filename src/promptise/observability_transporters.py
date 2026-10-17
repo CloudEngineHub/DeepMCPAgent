@@ -566,7 +566,7 @@ class ConsoleTransporter(BaseTransporter):
             self._console = Console(stderr=True)
             self._has_rich = True
         except ImportError:
-            pass
+            pass  # rich is optional: plain output is used without it
 
     def on_event(self, entry: Any) -> None:
         if not self.live:

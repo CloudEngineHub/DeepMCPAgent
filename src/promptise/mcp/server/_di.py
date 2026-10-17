@@ -85,7 +85,7 @@ class DependencyResolver:
                     try:
                         await gen.__anext__()
                     except StopAsyncIteration:
-                        pass
+                        pass  # the generator finished its teardown, as expected
                 elif isinstance(gen, Generator):
                     try:
                         next(gen)

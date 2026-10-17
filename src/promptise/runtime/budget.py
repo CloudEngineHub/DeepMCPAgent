@@ -471,4 +471,6 @@ class BudgetEnforcer:
             try:
                 await process.suspend()
             except Exception:
-                pass
+                logger.warning(
+                    "Budget: suspending the process after escalation failed", exc_info=True
+                )

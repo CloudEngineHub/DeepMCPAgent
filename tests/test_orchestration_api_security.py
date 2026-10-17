@@ -4,6 +4,7 @@ auth on every route and JSON-object bodies."""
 from __future__ import annotations
 
 import asyncio
+import json
 
 import pytest
 from aiohttp import ClientSession
@@ -360,3 +361,57 @@ class TestPatchValidation:
             await api.stop()
         assert status == 404
         assert resp["error"]["code"] == "PROCESS_NOT_FOUND"
+
+
+class TestNoExceptionTextInResponses:
+    """Exception text stays in the server log (CodeQL py/stack-trace-exposure)."""
+
+    async def test_lifecycle_failure_returns_generic_message_and_logs_details(
+        self, runtime, monkeypatch, caplog
+    ) -> None:
+        async def boom(name: str) -> None:
+            raise RuntimeError("cannot open /srv/agents/.env: key=sk-live-hunter2")
+
+        monkeypatch.setattr(runtime, "start_process", boom)
+        api, base = await _serve(runtime)
+        try:
+            with caplog.at_level("ERROR", logger="promptise.runtime.api"):
+                status, resp = await _call("POST", base + "/api/v1/processes/worker/start")
+        finally:
+            await api.stop()
+        assert status == 500
+        err = resp["error"]
+        assert err["code"] == "START_FAILED"
+        assert "hunter2" not in json.dumps(resp) and "/srv" not in json.dumps(resp)
+        assert err["message"] == "Process 'worker' failed to start"
+        error_id = err["error_id"]
+        assert error_id
+        [record] = [r for r in caplog.records if error_id in r.getMessage()]
+        assert record.exc_info is not None
+        assert "hunter2" in str(record.exc_info[1])
+
+    async def test_invalid_trigger_config_still_names_the_field(self, runtime) -> None:
+        api, base = await _serve(runtime)
+        try:
+            status, resp = await _call(
+                "POST",
+                base + "/api/v1/processes/worker/triggers",
+                data=b'{"type": "cron", "cron_expression": 5}',
+            )
+        finally:
+            await api.stop()
+        assert status == 422
+        assert resp["error"]["code"] == "INVALID_CONFIG"
+        assert "cron_expression" in resp["error"]["message"]
+        assert "error_id" not in resp["error"]
+
+    async def test_duplicate_deploy_is_process_exists(self, runtime) -> None:
+        api, base = await _serve(runtime)
+        try:
+            status, resp = await _call(
+                "POST", base + "/api/v1/processes", data=b'{"name": "worker", "config": {}}'
+            )
+        finally:
+            await api.stop()
+        assert status == 409
+        assert resp["error"]["code"] == "PROCESS_EXISTS"

@@ -80,7 +80,7 @@ def _emit(text: str) -> None:
     except UnicodeEncodeError:
         text = text.translate(_ASCII_BOX).encode(encoding, errors="replace").decode(encoding)
     except LookupError:
-        pass
+        pass  # unknown encoding name: print as-is and let the stream decide
     print(text, file=stream)
 
 

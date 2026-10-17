@@ -152,7 +152,7 @@ def _parse_output(raw: str, return_type: type | None) -> Any:
             parsed = json.loads(_extract_json(raw))
             return cast(type[BaseModel], return_type).model_validate(parsed)
     except ImportError:
-        pass
+        pass  # pydantic unavailable: handled by the generic parsing below
 
     # Check for dataclass
     if is_dataclass(return_type) and isinstance(return_type, type):
@@ -182,7 +182,7 @@ def _build_schema_instructions(return_type: type | None) -> str:
             schema_lines.append(f"```json\n{json.dumps(schema, indent=2)}\n```")
             return "\n".join(schema_lines)
     except ImportError:
-        pass
+        pass  # pydantic unavailable: handled by the generic schema below
 
     # Dataclass
     if is_dataclass(return_type) and isinstance(return_type, type):

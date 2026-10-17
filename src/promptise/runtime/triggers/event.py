@@ -100,7 +100,7 @@ class EventTrigger:
                 )
             )
         except asyncio.QueueFull:
-            pass
+            pass  # the queue is full, so no consumer is blocked waiting on it
         logger.info("EventTrigger %s stopped", self.trigger_id)
 
     def drain_pending(self) -> list[TriggerEvent]:
@@ -201,7 +201,7 @@ class MessageTrigger:
                 )
             )
         except asyncio.QueueFull:
-            pass
+            pass  # the queue is full, so no consumer is blocked waiting on it
         logger.info("MessageTrigger %s stopped", self.trigger_id)
 
     def drain_pending(self) -> list[TriggerEvent]:

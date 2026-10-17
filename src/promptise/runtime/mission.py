@@ -709,4 +709,5 @@ class MissionTracker:
             )
             await self._journal.append(entry)
         except Exception:
-            pass
+            # The journal is a record, not part of the evaluation: keep going.
+            logger.debug("Mission: journaling the evaluation failed", exc_info=True)

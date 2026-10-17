@@ -162,7 +162,7 @@ class InMemoryCache:
             try:
                 await self._cleanup_task
             except asyncio.CancelledError:
-                pass
+                pass  # expected: the task was just cancelled
             self._cleanup_task = None
 
 

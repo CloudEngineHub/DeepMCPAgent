@@ -1354,7 +1354,8 @@ class PromptNode(BaseNode):
                 if parsed != result.raw_output:
                     result.output = parsed
             except Exception:
-                pass
+                # Unparseable output is kept as the raw text.
+                logger.debug("Node %s: strategy.parse failed", self.name, exc_info=True)
 
         # ── 8. Run postprocessor ──
         if self.postprocessor:
@@ -1687,7 +1688,8 @@ class RouterNode(BaseNode):
                 if rendered:
                     context_parts.append(rendered)
             except Exception:
-                pass
+                # One broken context block must not fail the node.
+                logger.debug("Node %s: context block render failed", self.name, exc_info=True)
 
         context_parts.append(
             f"Choose ONE of these routes: {route_names}\n"

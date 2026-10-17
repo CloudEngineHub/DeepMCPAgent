@@ -585,7 +585,7 @@ class RedisCacheBackend:
                 try:
                     await self._redis.aclose()
                 except Exception:
-                    pass
+                    pass  # the connection is already broken; it is replaced below
                 self._redis = None
 
         try:
@@ -1276,7 +1276,8 @@ class SemanticCache:
                     {"user_id": user_id, "entries_removed": count},
                 )
             except Exception:
-                pass
+                # A failing notifier must not undo the purge it reports on.
+                logger.debug("cache.purged notification failed", exc_info=True)
         return count
 
     async def stats(self) -> CacheStats:

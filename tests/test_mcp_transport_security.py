@@ -433,6 +433,16 @@ class TestSessionPrincipal:
         assert "secret" not in bearer.username  # a fingerprint, not the credential
         assert bearer.username == session_principal("bearer", "secret").username
 
+    def test_fingerprint_is_keyed_not_a_plain_hash(self):
+        # A bare SHA-256 of an API key lets anyone who sees the fingerprint
+        # (a log line) test guesses offline (CodeQL py/weak-sensitive-data-hashing).
+        import hashlib
+
+        principal = session_principal("api-key", "short-key")
+        plain = hashlib.sha256(b"short-key").hexdigest()
+        assert plain not in principal.username
+        assert principal.username == session_principal("api-key", "short-key").username
+
     def test_direct_handler_invocation_keeps_the_contextvar_fallback(self):
         """Outside a transport (stdio, direct calls in tests) the contextvar bridge is the
         source of truth and is left untouched."""

@@ -478,7 +478,7 @@ CREATE TABLE IF NOT EXISTS {prefix}sessions (
     session_id   TEXT PRIMARY KEY,
     user_id      TEXT,
     title        TEXT,
-    metadata     JSONB NOT NULL DEFAULT '{}',
+    metadata     JSONB NOT NULL DEFAULT '{{}}',
     message_count INTEGER NOT NULL DEFAULT 0,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()

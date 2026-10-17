@@ -9,6 +9,8 @@ leaking the token or the full claim set.
 from __future__ import annotations
 
 import json
+import os
+import stat
 from typing import Any
 
 import pytest
@@ -207,6 +209,31 @@ class TestAuditLogFile:
         assert _links(entries)
         assert [e["seq"] for e in entries] == [0, 1, 2, 3]
         assert entries[2].get("resumed") is True
+
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+    async def test_new_log_file_is_owner_only(self, tmp_path: Any) -> None:
+        # The file was created 0o644: every local user could read who called
+        # which tool (CodeQL py/overly-permissive-file).
+        path = tmp_path / "audit.jsonl"
+        old_umask = os.umask(0o022)
+        try:
+            mw = AuditMiddleware(log_path=str(path), hmac_secret=_KEY)
+            await _audit(mw, RequestContext(server_name="s", tool_name="t", client_id="c"))
+        finally:
+            os.umask(old_umask)
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+    async def test_existing_log_file_keeps_its_permissions(self, tmp_path: Any) -> None:
+        # Appending and resuming must not reset a mode the operator chose.
+        path = tmp_path / "audit.jsonl"
+        mw = AuditMiddleware(log_path=str(path), hmac_secret=_KEY)
+        await _audit(mw, RequestContext(server_name="s", tool_name="t", client_id="c"))
+        path.chmod(0o640)
+        mw = AuditMiddleware(log_path=str(path), hmac_secret=_KEY)
+        await _audit(mw, RequestContext(server_name="s", tool_name="t", client_id="c"))
+        assert stat.S_IMODE(path.stat().st_mode) == 0o640
+        assert len(_file_entries(path)) == 2
 
     def test_signed_file_log_requires_a_key(
         self, tmp_path: Any, monkeypatch: pytest.MonkeyPatch

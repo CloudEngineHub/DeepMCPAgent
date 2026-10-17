@@ -739,6 +739,10 @@ def _dynamic_args_schema(name: str, parameters: dict[str, Any] | None) -> type[B
     return _jsonschema_to_pydantic(parameters, model_name=f"Args_{name}")
 
 
+#: The ``StructuredTool`` subclass built (once) by :func:`_dynamic_tool_class`.
+_DYNAMIC_TOOL_CLASS: type[Any] | None = None
+
+
 def _dynamic_tool_class() -> type[Any]:
     """A ``StructuredTool`` that passes ``run`` exactly the arguments given.
 
@@ -776,9 +780,6 @@ def _dynamic_tool_class() -> type[Any]:
 
     _DYNAMIC_TOOL_CLASS = _DynamicTool
     return _DynamicTool
-
-
-_DYNAMIC_TOOL_CLASS: type[Any] | None = None
 
 
 def _make_sandbox_globals() -> dict[str, Any]:

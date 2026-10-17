@@ -155,7 +155,7 @@ def _file_snapshot(dirs: list[str]) -> dict[str, float]:
             try:
                 snapshot[str(path)] = path.stat().st_mtime
             except (OSError, PermissionError):
-                pass
+                pass  # vanished or unreadable file: not part of the snapshot
     return snapshot
 
 

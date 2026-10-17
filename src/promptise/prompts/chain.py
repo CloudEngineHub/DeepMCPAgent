@@ -188,21 +188,22 @@ class _Retry:
         max_retries: int = 3,
         backoff: float = 1.0,
     ) -> None:
+        if max_retries < 0:
+            raise ValueError(f"max_retries must be >= 0, got {max_retries}")
         self._target = target
         self._max_retries = max_retries
         self._backoff = backoff
 
     async def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        last_exc: Exception | None = None
-        for attempt in range(self._max_retries + 1):
+        attempt = 0
+        while True:
             try:
                 return await self._target(*args, **kwargs)
-            except Exception as exc:
-                last_exc = exc
-                if attempt < self._max_retries:
-                    wait = self._backoff * (2**attempt)
-                    await asyncio.sleep(wait)
-        raise last_exc  # type: ignore[misc]
+            except Exception:
+                if attempt >= self._max_retries:
+                    raise
+            await asyncio.sleep(self._backoff * (2**attempt))
+            attempt += 1
 
     def __repr__(self) -> str:
         return f"<Retry {self._target.name} max={self._max_retries} backoff={self._backoff}>"
@@ -235,16 +236,18 @@ class _Fallback:
     """Try prompts in order until one succeeds."""
 
     def __init__(self, prompts: list[Prompt]) -> None:
+        if not prompts:
+            raise ValueError("fallback needs at least one prompt")
         self._prompts = prompts
 
     async def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        last_exc: Exception | None = None
-        for p in self._prompts:
+        *alternatives, last = self._prompts
+        for p in alternatives:
             try:
                 return await p(*args, **kwargs)
-            except Exception as exc:
-                last_exc = exc
-        raise last_exc  # type: ignore[misc]
+            except Exception:
+                continue  # try the next prompt; the last one's error propagates
+        return await last(*args, **kwargs)
 
     def __repr__(self) -> str:
         names = " | ".join(p.name for p in self._prompts)

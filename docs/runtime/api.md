@@ -653,6 +653,20 @@ The codes come from `promptise.runtime.api.ERROR_CODES` (`code -> (status, meani
 
 `HTTP_ERROR` has no fixed status (its `ERROR_CODES` status is `None`): it carries the status of the underlying HTTP error. An `INTERNAL_ERROR` message is generic; the details go to the server log.
 
+When an error is caused by an exception inside the runtime (a failed deploy, start, stop, restart, suspend, resume or secret rotation, an inbox refusal, a rewind that failed, an unexpected error), the response never carries the exception's text, which can hold file paths, internal state or secret values. It carries a fixed `message` and an `error_id`, and the exception with its traceback is logged on `promptise.runtime.api` under the same id (`ERROR` for a `5xx`, `WARNING` otherwise). `OrchestrationAPIError.error_id` holds it on the client side:
+
+```json
+{
+    "error": {
+        "code": "START_FAILED",
+        "message": "Process 'worker' failed to start",
+        "error_id": "3f9c0a1b2d4e"
+    }
+}
+```
+
+Validation errors (`INVALID_CONFIG` from a config pydantic rejects) still list each offending field and what was expected of it.
+
 ---
 
 ## Security

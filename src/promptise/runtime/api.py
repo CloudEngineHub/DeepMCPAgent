@@ -94,6 +94,7 @@ import math
 import re
 import time
 import types
+import uuid
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from datetime import datetime
 from pathlib import Path
@@ -102,6 +103,7 @@ from typing import Any, Union, get_args, get_origin
 from aiohttp import web
 from pydantic import BaseModel, ValidationError
 
+from .._logsafe import log_safe
 from ._deploy_policy import DeployPolicy, default_data_dir, env_references_in, path_problem
 from ._http_guard import bearer_token_matches, is_loopback, loopback_request_problem
 from .triggers.base import config_trigger_ids
@@ -307,20 +309,55 @@ def _mask_custom_config(value: Any) -> Any:
     return value
 
 
-def _failure_text(exc: BaseException) -> str:
-    """An exception for an API error message; a secret that couldn't be
-    resolved gives a generic text (no hint whether a variable exists)."""
+def _failure_response(
+    code: str, message: str, exc: BaseException, status: int = 500
+) -> web.Response:
+    """An error response for a failure whose details must stay server-side.
+
+    Exception text can carry file paths, internal state or secret values
+    (a failed secret rotation, a provider error), so it is never sent to
+    the client.  The client gets *message* and an ``error_id``; the
+    exception, with its traceback, is logged on ``promptise.runtime.api``
+    under the same id so an operator can find it (``ERROR`` for a ``5xx``,
+    ``WARNING`` otherwise).
+    """
+    error_id = uuid.uuid4().hex[:12]
+    logger.log(
+        logging.ERROR if status >= 500 else logging.WARNING,
+        "OrchestrationAPI: %s: %s (error_id=%s)",
+        code,
+        log_safe(message, 500),
+        error_id,
+        exc_info=exc,
+    )
+    return _json_response(
+        {"error": {"code": code, "message": message, "error_id": error_id}},
+        status=status,
+    )
+
+
+def _secret_unresolved(exc: BaseException) -> bool:
+    """Whether *exc*, or an exception it was raised from, is a secret that
+    couldn't be resolved."""
     from .secrets import SecretResolutionError
 
     cause: BaseException | None = exc
     while cause is not None:
         if isinstance(cause, SecretResolutionError):
-            return (
-                f"secret '{cause.secret_name}' could not be resolved (details are in the "
-                "server log)"
-            )
+            return True
         cause = cause.__cause__ or cause.__context__
-    return str(exc)
+    return False
+
+
+def _entry_not_found(target: str, exc: BaseException) -> web.Response:
+    """``404 ENTRY_NOT_FOUND`` for a rewind target the journal doesn't hold."""
+    return _failure_response(
+        "ENTRY_NOT_FOUND",
+        f"Journal entry {target!r} not found in the process's journal (entry IDs are in "
+        "GET .../journal)",
+        exc,
+        404,
+    )
 
 
 def _not_found(name: str) -> web.Response:
@@ -346,7 +383,12 @@ async def _maybe_await(value: Any) -> Any:
 
 
 async def _inbox_add(inbox: Any, message: Any) -> tuple[str, web.Response | None]:
-    """Add *message* to *inbox*; map the inbox's refusals to API errors."""
+    """Add *message* to *inbox*; map the inbox's refusals to API errors.
+
+    The answers are written here from the message and the inbox settings,
+    not from the exception (whose text the inbox writes for its own log);
+    the exception is logged under the answer's ``error_id``.
+    """
     from . import inbox as inbox_module
 
     try:
@@ -356,22 +398,70 @@ async def _inbox_add(inbox: Any, message: Any) -> tuple[str, web.Response | None
         full = getattr(inbox_module, "InboxFullError", ())
         invalid = getattr(inbox_module, "InvalidInboxMessage", ())
         if rejected and isinstance(exc, rejected):
-            return "", _error_response("MESSAGE_REJECTED", str(exc), 422)
+            return "", _failure_response("MESSAGE_REJECTED", _MESSAGE_REJECTED_TEXT, exc, 422)
         if full and isinstance(exc, full):
-            return "", _error_response("INBOX_FULL", str(exc), 409)
+            limit = getattr(inbox, "_max_messages", None)
+            size = f" ({limit} messages)" if isinstance(limit, int) else ""
+            return "", _failure_response(
+                "INBOX_FULL",
+                f"The inbox is full{size} and nothing in it can be evicted for a "
+                f"{message.priority!r} message; send it with a higher priority or wait "
+                "for the agent to consume messages",
+                exc,
+                409,
+            )
         if invalid and isinstance(exc, invalid):
-            return "", _error_response("INVALID_FIELD", str(exc), 422)
-        return "", _error_response("RATE_LIMITED", str(exc), 429)
-
-
-def _validation_detail(exc: Exception) -> str:
-    """Field-level messages of a pydantic error (``str(exc)`` otherwise)."""
-    if isinstance(exc, ValidationError):
-        return "; ".join(
-            f"{'.'.join(str(p) for p in err['loc']) or 'body'}: {err['msg']}"
-            for err in exc.errors()
+            return "", _failure_response(
+                "INVALID_FIELD",
+                "Invalid message: 'content' must be a non-empty string, 'message_type' one "
+                f"of {_MESSAGE_TYPES} and 'priority' one of {_PRIORITIES}",
+                exc,
+                422,
+            )
+        return "", _failure_response(
+            "RATE_LIMITED",
+            f"Rate limit exceeded: sender {message.sender_id!r} sent more messages in the "
+            "last hour than the inbox's rate_limit_per_sender allows",
+            exc,
+            429,
         )
-    return str(exc)
+
+
+_MESSAGE_REJECTED_TEXT = (
+    "Message refused: the inbox's guardrail scanner flagged its content (the finding "
+    "categories are in the server log under the error_id)"
+)
+_MESSAGE_TYPES = "directive, context, question, correction"
+_PRIORITIES = "low, normal, high, critical"
+
+
+def _validation_detail(exc: BaseException) -> str | None:
+    """Field-level messages of a pydantic ``ValidationError``, else ``None``.
+
+    These name the offending field and say what was expected of the
+    client's own input, so they are safe and useful to return.  Any other
+    exception's text is not (see :func:`_failure_response`).
+    """
+    if not isinstance(exc, ValidationError):
+        return None
+    return "; ".join(
+        f"{'.'.join(str(p) for p in err['loc']) or 'body'}: {err['msg']}" for err in exc.errors()
+    )
+
+
+def _invalid_config(prefix: str, exc: BaseException) -> web.Response:
+    """``422 INVALID_CONFIG`` for a config that failed to build.
+
+    A pydantic error lists each field and what was expected; any other
+    error gets a fixed message and an ``error_id`` (its text stays in the
+    server log).
+    """
+    detail = _validation_detail(exc)
+    if detail is None:
+        return _failure_response(
+            "INVALID_CONFIG", f"{prefix} (details are in the server log)", exc, 422
+        )
+    return _error_response("INVALID_CONFIG", f"{prefix}: {detail}", 422)
 
 
 def _unknown_fields(
@@ -427,9 +517,7 @@ def _apply_patch(section: BaseModel, body: dict[str, Any]) -> web.Response | Non
     try:
         validated = model_cls.model_validate_json(json.dumps(merged), strict=True)
     except ValidationError as exc:
-        return _error_response(
-            "INVALID_CONFIG", f"Config validation failed: {_validation_detail(exc)}", 422
-        )
+        return _invalid_config("Config validation failed", exc)
     for key in body:
         setattr(section, key, getattr(validated, key))
     return None
@@ -576,9 +664,9 @@ class OrchestrationAPI:
                 code = "MISDIRECTED_REQUEST" if status == 421 else "CROSS_ORIGIN_REFUSED"
                 logger.warning(
                     "OrchestrationAPI: refused %s %s from %s (%d %s)",
-                    request.method,
-                    request.path,
-                    request.remote,
+                    log_safe(request.method),
+                    log_safe(request.path),
+                    log_safe(request.remote),
                     status,
                     code,
                 )
@@ -586,9 +674,9 @@ class OrchestrationAPI:
         if request.path not in _PUBLIC_PATHS and not self._check_auth(request):
             logger.warning(
                 "OrchestrationAPI: refused %s %s from %s (401 UNAUTHORIZED)",
-                request.method,
-                request.path,
-                request.remote,
+                log_safe(request.method),
+                log_safe(request.path),
+                log_safe(request.remote),
             )
             return _error_response("UNAUTHORIZED", "Invalid or missing auth token", 401)
         if request.method in _BODY_METHODS and request.can_read_body:
@@ -624,12 +712,12 @@ class OrchestrationAPI:
             return _http_error_response(exc)
         except asyncio.CancelledError:
             raise
-        except Exception:
-            logger.exception(
-                "OrchestrationAPI: unexpected error in %s %s", request.method, request.path
-            )
-            return _error_response(
-                "INTERNAL_ERROR", "Internal server error (details are in the server log)", 500
+        except Exception as exc:
+            return _failure_response(
+                "INTERNAL_ERROR",
+                f"Internal server error in {request.method} {request.path} (details are in "
+                "the server log)",
+                exc,
             )
 
     async def _audit(self, request: web.Request, status: int) -> None:
@@ -645,11 +733,11 @@ class OrchestrationAPI:
         process_name = params.get("name") or request.get(_AUDIT_PROCESS)
         logger.info(
             "OrchestrationAPI: %s %s %s -> %d (client %s)",
-            request.method,
-            canonical,
-            params or "",
+            log_safe(request.method),
+            log_safe(canonical),
+            log_safe(params or "", 500),
             status,
-            request.remote,
+            log_safe(request.remote),
         )
         if status >= 400 or not process_name:
             return
@@ -919,9 +1007,7 @@ class OrchestrationAPI:
 
             config = ProcessConfig(**config_data)
         except (ValidationError, ValueError, TypeError) as exc:
-            return _error_response(
-                "INVALID_CONFIG", f"Config validation failed: {_validation_detail(exc)}", 422
-            )
+            return _invalid_config("Config validation failed", exc)
         refused = self._refuse_commands(config) or self._refuse_paths(config)
         if refused is not None:
             return refused
@@ -935,22 +1021,24 @@ class OrchestrationAPI:
         except RuntimeBaseError as exc:
             if name in self._runtime.processes:  # lost a race with another deploy
                 return _error_response("PROCESS_EXISTS", f"Process '{name}' already exists", 409)
-            return _error_response("DEPLOY_FAILED", str(exc), 422)
+            return _failure_response(
+                "DEPLOY_FAILED", f"Could not create the process '{name}'", exc, 422
+            )
         except (ValueError, TypeError, ImportError) as exc:
-            return _error_response("DEPLOY_FAILED", f"Could not create the process: {exc}", 422)
+            return _failure_response(
+                "DEPLOY_FAILED", f"Could not create the process '{name}'", exc, 422
+            )
         request[_AUDIT_PROCESS] = name
 
         if start:
             try:
                 await self._runtime.start_process(name)
             except Exception as exc:
-                logger.warning(
-                    "OrchestrationAPI: deployed %r but start failed", name, exc_info=True
-                )
-                return _error_response(
+                return _failure_response(
                     "START_FAILED",
-                    f"Process '{name}' was deployed but failed to start: {_failure_text(exc)}",
-                    500,
+                    f"Process '{name}' was deployed but failed to start"
+                    + ("; a secret could not be resolved" if _secret_unresolved(exc) else ""),
+                    exc,
                 )
 
         return _json_response(
@@ -980,7 +1068,10 @@ class OrchestrationAPI:
         if not refused:
             return None
         found = ", ".join(f"{path} (${{{var}}})" for path, var in refused[:10])
-        logger.warning("OrchestrationAPI: refused a request with environment references: %s", found)
+        logger.warning(
+            "OrchestrationAPI: refused a request with environment references: %s",
+            log_safe(found, 1000),
+        )
         return _error_response(
             "ENV_REFERENCES_NOT_ALLOWED",
             "This request references environment variables of the runtime's host ("
@@ -996,7 +1087,7 @@ class OrchestrationAPI:
     def _path_refusal(self, problems: list[str]) -> web.Response | None:
         if not problems:
             return None
-        logger.warning("OrchestrationAPI: refused paths: %s", "; ".join(problems))
+        logger.warning("OrchestrationAPI: refused paths: %s", log_safe("; ".join(problems), 1000))
         return _error_response(
             "PATH_NOT_ALLOWED",
             "; ".join(problems)
@@ -1042,7 +1133,8 @@ class OrchestrationAPI:
         if not features:
             return None
         logger.warning(
-            "OrchestrationAPI: refused a deploy that runs host commands: %s", ", ".join(features)
+            "OrchestrationAPI: refused a deploy that runs host commands: %s",
+            log_safe(", ".join(features), 1000),
         )
         return _error_response(
             "COMMANDS_NOT_ALLOWED",
@@ -1087,7 +1179,8 @@ class OrchestrationAPI:
             await getattr(self._runtime, f"{action}_process")(name)
             process = self._get_process(name)
         except Exception as exc:
-            return _error_response(code, _failure_text(exc), 500)
+            reason = "; a secret could not be resolved" if _secret_unresolved(exc) else ""
+            return _failure_response(code, f"Process '{name}' failed to {action}{reason}", exc)
         return _json_response({"name": name, "state": _state_value(process)})
 
     async def _handle_start(self, request: web.Request) -> web.Response:
@@ -1214,14 +1307,15 @@ class OrchestrationAPI:
                     await _maybe_await(apply(section))
                 except Exception:
                     logger.warning(
-                        "OrchestrationAPI: could not re-apply the previous %s config of %r",
-                        section,
-                        name,
+                        "OrchestrationAPI: could not re-apply the previous %s config of %s",
+                        log_safe(section),
+                        log_safe(name),
                         exc_info=True,
                     )
-                return _error_response(
+                return _failure_response(
                     "INVALID_CONFIG",
-                    f"The process can't apply this {section} config (nothing changed): {exc}",
+                    f"The process can't apply this {section} config (nothing changed)",
+                    exc,
                     422,
                 )
             result.update(effective_from=live_effect, live=True)
@@ -1397,9 +1491,14 @@ class OrchestrationAPI:
         except asyncio.TimeoutError:
             return _json_response({"question_id": msg_id, "status": "timeout", "response": None})
         except InboxMessageRejected as exc:  # removed by a later scan
-            return _error_response("MESSAGE_REJECTED", str(exc), 422)
-        except InboxQuestionRemoved as exc:  # DELETE /inbox while waiting
-            return _error_response("QUESTION_REMOVED", f"{exc} (question {msg_id})", 410)
+            return _failure_response("MESSAGE_REJECTED", _MESSAGE_REJECTED_TEXT, exc, 422)
+        except InboxQuestionRemoved:  # DELETE /inbox while waiting
+            return _error_response(
+                "QUESTION_REMOVED",
+                f"The question {msg_id} was removed from the inbox (the inbox was cleared) "
+                "before it was answered",
+                410,
+            )
         except InboxFullError:  # evicted to make room for another message
             return _error_response(
                 "QUESTION_REMOVED",
@@ -1619,9 +1718,7 @@ class OrchestrationAPI:
         try:
             tc = TriggerConfig(**body)
         except (ValidationError, ValueError, TypeError) as exc:
-            return _error_response(
-                "INVALID_CONFIG", f"Invalid trigger config: {_validation_detail(exc)}", 422
-            )
+            return _invalid_config("Invalid trigger config", exc)
         refused = self._path_refusal(self._trigger_path_problems([tc], ""))
         if refused is not None:
             return refused
@@ -1640,7 +1737,9 @@ class OrchestrationAPI:
             try:
                 returned = await _maybe_await(add(tc))
             except ValueError as exc:
-                return _error_response("INVALID_CONFIG", f"Invalid trigger config: {exc}", 422)
+                return _failure_response(
+                    "INVALID_CONFIG", "The process refused the trigger config", exc, 422
+                )
             if isinstance(returned, str):
                 trigger_id = returned
             # add_trigger waits for a start in progress: judge by the state now.
@@ -1712,7 +1811,7 @@ class OrchestrationAPI:
                 f"Trigger ID '{trigger_id}' is position-based and deprecated; use the stable "
                 f"ID '{stable_id}' from GET /triggers"
             )
-            logger.warning("OrchestrationAPI: %s", message)
+            logger.warning("OrchestrationAPI: %s", log_safe(message, 500))
             result["warning"] = message
         if callable(remove):
             await _maybe_await(remove(stable_id))
@@ -1836,16 +1935,27 @@ class OrchestrationAPI:
                 f"Process '{name}' has no secret named '{secret_name}'",
                 404,
             )
-        except Exception:
-            # Never echo the exception: it could quote the value.
+        except Exception as exc:
+            # Never log or echo the exception: it could quote the value.
+            # The log line carries an error_id (the client gets it too)
+            # and the exception type, not the secret's name or value; the
+            # audit log records the route with the name.
+            error_id = uuid.uuid4().hex[:12]
             logger.warning(
-                "OrchestrationAPI: rotating secret %r of %r failed",
-                secret_name,
-                name,
-                exc_info=False,
+                "OrchestrationAPI: rotating a secret of process %s failed: %s (error_id=%s)",
+                log_safe(name),
+                type(exc).__name__,
+                error_id,
             )
-            return _error_response(
-                "ROTATION_FAILED", f"Rotating secret '{secret_name}' failed", 400
+            return _json_response(
+                {
+                    "error": {
+                        "code": "ROTATION_FAILED",
+                        "message": f"Rotating secret '{secret_name}' failed",
+                        "error_id": error_id,
+                    }
+                },
+                status=400,
             )
         info = next(
             (m for m in self._secret_metadata(secrets) if m.get("name") == secret_name), None
@@ -1977,7 +2087,7 @@ class OrchestrationAPI:
         try:
             plan = await process.rewind_plan(target, mode)
         except ValueError as exc:
-            return _error_response("ENTRY_NOT_FOUND", str(exc), 404)
+            return _entry_not_found(target, exc)
         return _json_response({"name": name, "plan": plan.to_dict()})
 
     async def _handle_rewind(self, request: web.Request) -> web.Response:
@@ -2011,9 +2121,15 @@ class OrchestrationAPI:
         try:
             result = await process.rewind(target, mode, actor=actor)
         except ValueError as exc:
-            return _error_response("ENTRY_NOT_FOUND", str(exc), 404)
+            return _entry_not_found(target, exc)
         except TimeoutError as exc:
-            return _error_response("REWIND_BUSY", str(exc), 409)
+            return _failure_response(
+                "REWIND_BUSY",
+                f"Process '{name}' still had a run in flight; nothing was rewound (retry when "
+                "the run has finished)",
+                exc,
+                409,
+            )
         plan = result.plan
         return _json_response(
             {
@@ -2225,7 +2341,12 @@ class OrchestrationAPI:
         try:
             await process.suspend()
         except Exception as exc:
-            return _error_response("SUSPEND_FAILED", f"Suspend failed: {exc}", 400)
+            return _failure_response(
+                "SUSPEND_FAILED",
+                f"Process '{name}' can't be suspended in state '{_state_value(process)}'",
+                exc,
+                400,
+            )
         return _json_response({"name": name, "suspended": True, "state": _state_value(process)})
 
     async def _handle_resume(self, request: web.Request) -> web.Response:
@@ -2241,5 +2362,10 @@ class OrchestrationAPI:
         try:
             await process.resume()
         except Exception as exc:
-            return _error_response("RESUME_FAILED", f"Resume failed: {exc}", 400)
+            return _failure_response(
+                "RESUME_FAILED",
+                f"Process '{name}' can't be resumed in state '{_state_value(process)}'",
+                exc,
+                400,
+            )
         return _json_response({"name": name, "resumed": True, "state": _state_value(process)})

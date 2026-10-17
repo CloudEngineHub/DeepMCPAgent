@@ -576,7 +576,8 @@ class FallbackChain(BaseChatModel):
             try:
                 self.on_fallback(model_id, self._model_ids[index + 1], exc)
             except Exception:
-                pass
+                # A broken on_fallback hook must not stop the fallback itself.
+                logger.debug("on_fallback callback raised", exc_info=True)
 
     def _all_failed(self, errors: list[tuple[str, Exception]]) -> RuntimeError:
         """The error raised when no model could answer, chained to the last failure."""
@@ -667,7 +668,7 @@ async def _aclose_quietly(stream: AsyncIterator[Any]) -> None:
         try:
             await aclose()
         except Exception:
-            pass
+            pass  # best-effort close of a stream that already failed or was abandoned
 
 
 async def _ainvoke_as_result(

@@ -2725,8 +2725,10 @@ def _render_env_example(plan: MCPcastPlan) -> str:
             "# then fill in the shape below. build_server() refuses to start with no key,",
             "# with a <placeholder> key or with a key from the documentation (sk-acme,",
             "# sk-reviewer): those are public.",
-            '#   MCPCAST_CLIENT_KEYS={"sk-<generated>": {"client_id": "acme-agent", '
-            '"tenant_id": "acme", "roles": []}}',
+            (  # one line, split for length
+                '#   MCPCAST_CLIENT_KEYS={"sk-<generated>": {"client_id": "acme-agent", '
+                '"tenant_id": "acme", "roles": []}}'
+            ),
             "MCPCAST_CLIENT_KEYS=",
             f"# Each tenant's upstream credential (JSON object: tenant -> {where} value).",
             "# Read on every call — rotate without a restart.",

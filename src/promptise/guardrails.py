@@ -2517,15 +2517,9 @@ class PromptiseSecurityScanner:
                 isinstance(d, ContentSafetyDetector) for d in detectors
             )
             self.detect_ner = any(isinstance(d, NERDetector) for d in detectors)
-            # If ContentSafetyDetector is present, it replaces basic toxicity
-            self.detect_toxicity = (
-                (
-                    not self.detect_content_safety
-                    and any(isinstance(d, InjectionDetector) for d in detectors)
-                )
-                if False
-                else False
-            )  # disabled when composable API used
+            # The composable API has no basic toxicity check: content safety
+            # comes from an explicit ContentSafetyDetector instead.
+            self.detect_toxicity = False
 
             # Store detector instances for scan methods
             self._content_safety_det: ContentSafetyDetector | None = next(

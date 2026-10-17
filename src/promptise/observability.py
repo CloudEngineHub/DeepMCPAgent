@@ -761,7 +761,7 @@ class ObservabilityCollector:
                     try:
                         resolved.add(TimelineEventType(et))
                     except ValueError:
-                        pass
+                        pass  # unknown event type name: matches nothing
             entries = [e for e in entries if e.event_type in resolved]
 
         if agent_ids is not None:

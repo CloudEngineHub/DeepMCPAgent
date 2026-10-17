@@ -989,7 +989,7 @@ def emit_event(
 
         caller = get_current_caller()
     except Exception:
-        pass
+        pass  # no caller context (or the agent module unavailable): the event has no caller
 
     if user_id is None and caller is not None:
         user_id = getattr(caller, "user_id", None)

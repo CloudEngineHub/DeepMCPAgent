@@ -318,7 +318,7 @@ def tool_summary(result: str | None, max_length: int = 120) -> str:
         elif isinstance(data, list):
             return f"Found {len(data)} result(s)"
     except (json.JSONDecodeError, TypeError):
-        pass
+        pass  # not JSON: summarised as plain text below
 
     # Plain text truncation
     result = result.strip()

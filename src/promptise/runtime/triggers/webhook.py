@@ -66,6 +66,7 @@ from typing import Any, Literal
 
 from aiohttp import web
 
+from ..._logsafe import log_safe
 from .._http_guard import is_loopback, loopback_request_problem
 from ..config import SIGNATURE_HEADERS
 from .base import TriggerEvent, drain_queue
@@ -217,7 +218,7 @@ class WebhookTrigger:
         try:
             self._queue.put_nowait(sentinel)
         except asyncio.QueueFull:
-            pass
+            pass  # the queue is full, so no consumer is blocked waiting on it
 
         if self._runner:
             await self._runner.cleanup()
@@ -332,13 +333,13 @@ class WebhookTrigger:
         if size is None:  # chunked: no Content-Length, stopped at the limit
             logger.warning(
                 "WebhookTrigger: rejected request from %s (chunked body over the %d-byte limit)",
-                request.remote,
+                log_safe(request.remote),
                 self._max_body_bytes,
             )
         else:
             logger.warning(
                 "WebhookTrigger: rejected request from %s (body %d bytes, limit %d)",
-                request.remote,
+                log_safe(request.remote),
                 size,
                 self._max_body_bytes,
             )
@@ -363,7 +364,7 @@ class WebhookTrigger:
         replay_key: str | None = None
         try:
             if not self._source_allowed(request.remote):
-                logger.warning("WebhookTrigger: rejected request from %s", request.remote)
+                logger.warning("WebhookTrigger: rejected request from %s", log_safe(request.remote))
                 return web.json_response(
                     {"status": "error", "message": "Source not allowed"}, status=403
                 )
@@ -377,9 +378,9 @@ class WebhookTrigger:
                     status, message = problem
                     logger.warning(
                         "WebhookTrigger: rejected request from %s (%d %s)",
-                        request.remote,
+                        log_safe(request.remote),
                         status,
-                        message,
+                        log_safe(message),
                     )
                     return web.json_response({"status": "error", "message": message}, status=status)
 
@@ -399,7 +400,9 @@ class WebhookTrigger:
                 problem, replay_key = self._signature_error(request.headers, raw_body)
                 if problem is not None:
                     logger.warning(
-                        "WebhookTrigger: rejected request from %s (%s)", request.remote, problem
+                        "WebhookTrigger: rejected request from %s (%s)",
+                        log_safe(request.remote),
+                        log_safe(problem),
                     )
                     return web.json_response(
                         {"status": "error", "message": "Missing or invalid signature"},

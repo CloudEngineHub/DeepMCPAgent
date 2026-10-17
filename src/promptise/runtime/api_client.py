@@ -32,13 +32,10 @@ subclass of ``httpx.HTTPStatusError`` that carries the server's error
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 from urllib.parse import quote
 
 import httpx
-
-logger = logging.getLogger("promptise.runtime.api_client")
 
 __all__ = ["OrchestrationAPIError", "OrchestrationClient"]
 
@@ -54,22 +51,30 @@ class OrchestrationAPIError(httpx.HTTPStatusError):
         code: The API's error code (``"PROCESS_NOT_FOUND"``, ...), or
             ``None`` when the body was not an API error object.
         error_message: The API's error message (or the raw body).
+        error_id: The id under which the server logged the failure's
+            details (``500`` and other failures whose cause stays
+            server-side), or ``None``.
     """
 
     def __init__(self, response: httpx.Response) -> None:
         code: str | None = None
+        error_id: str | None = None
         message = response.text
         try:
             error = response.json().get("error")
             if isinstance(error, dict):
                 code = error.get("code")
                 message = error.get("message", message)
+                error_id = error.get("error_id")
         except (ValueError, AttributeError):
-            pass
+            pass  # not a JSON error object: keep the raw body as the message
         self.status_code = response.status_code
         self.code = code
         self.error_message = message
+        self.error_id = error_id
         label = f"{response.status_code} {code}" if code else str(response.status_code)
+        if error_id:
+            message = f"{message} [error_id={error_id}]"
         super().__init__(
             f"{label}: {message} ({response.request.method} {response.request.url.path})",
             request=response.request,

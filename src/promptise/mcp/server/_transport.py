@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import hmac
 import ipaddress
 import json as _json
 import logging
+import secrets
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -266,6 +268,13 @@ class CORSConfig:
 # =====================================================================
 
 
+# Per-process key for credential fingerprints.  Sessions live in this
+# process's memory, so the fingerprint only has to be stable here; keying it
+# means a fingerprint that leaks (a log line, a debug dump) cannot be used to
+# test guesses of a low-entropy API key offline.
+_PRINCIPAL_KEY = secrets.token_bytes(32)
+
+
 def session_principal(scheme: str, credential: str) -> Any:
     """The transport-level principal a verified *credential* represents.
 
@@ -276,7 +285,10 @@ def session_principal(scheme: str, credential: str) -> Any:
     if the session did not exist, so a leaked ``mcp-session-id`` cannot be
     ridden by another caller.  The principal is a fingerprint of the
     credential bytes (never the credential itself) prefixed with its
-    scheme, so a bearer token and an API key can never collide.
+    scheme, so a bearer token and an API key can never collide.  The
+    fingerprint is an HMAC-SHA256 under a random per-process key, so it is
+    stable for the life of the process (as long as the sessions it guards)
+    but reveals nothing about the credential outside it.
 
     Args:
         scheme: ``"bearer"`` or ``"api-key"``.
@@ -285,7 +297,7 @@ def session_principal(scheme: str, credential: str) -> Any:
     from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
     from mcp.server.auth.provider import AccessToken
 
-    fingerprint = hashlib.sha256(credential.encode("utf-8")).hexdigest()
+    fingerprint = hmac.new(_PRINCIPAL_KEY, credential.encode("utf-8"), hashlib.sha256).hexdigest()
     return AuthenticatedUser(
         AccessToken(token=credential, client_id=f"{scheme}:{fingerprint}", scopes=[])
     )

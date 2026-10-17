@@ -164,11 +164,12 @@ class _FunctionalNode(BaseNode):
         func: Any,
         **kwargs: Any,
     ) -> None:
+        # Inherit the docstring's first line as description when neither a
+        # description nor instructions (BaseNode's fallback) is given.
+        if not (kwargs.get("description") or kwargs.get("instructions")) and func.__doc__:
+            kwargs["description"] = func.__doc__.strip().split("\n")[0]
         super().__init__(name, **kwargs)
         self._func = func
-        # Inherit docstring as description
-        if not self.description and func.__doc__:
-            self.description = func.__doc__.strip().split("\n")[0]
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
         """Call the wrapped function."""

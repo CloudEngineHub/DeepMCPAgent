@@ -197,7 +197,7 @@ def _excluded_params(func: Callable[..., Any]) -> set[str]:
     try:
         hints = get_type_hints(func)
     except Exception:
-        pass
+        pass  # unresolvable annotations: fall back to the raw signature annotations
 
     for name, param in sig.parameters.items():
         if name == "self":

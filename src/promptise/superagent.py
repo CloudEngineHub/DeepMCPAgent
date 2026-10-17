@@ -994,7 +994,7 @@ async def _build_team(
             try:
                 await peer.shutdown()
             except Exception:
-                pass
+                pass  # best-effort cleanup; the build error re-raised below is what matters
         raise
     agent._owned_agents.extend(built)
     return agent

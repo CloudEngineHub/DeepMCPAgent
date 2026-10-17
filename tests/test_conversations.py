@@ -500,6 +500,27 @@ class TestTablePrefixValidation:
 class TestPostgresConversationStoreUnit:
     """Unit tests for PostgresConversationStore (no real database)."""
 
+    async def test_migration_sql_renders(self) -> None:
+        # The sessions DDL had an unescaped DEFAULT '{}', so str.format()
+        # raised IndexError and the first use of the store always failed.
+        from unittest.mock import AsyncMock, MagicMock
+
+        conn = MagicMock()
+        conn.execute = AsyncMock()
+        acquire = MagicMock()
+        acquire.__aenter__ = AsyncMock(return_value=conn)
+        acquire.__aexit__ = AsyncMock(return_value=False)
+        store = PostgresConversationStore("postgresql://localhost/test", table_prefix="app_")
+        store._pool = MagicMock()
+        store._pool.acquire.return_value = acquire
+        await store._migrate()
+        statements = [c.args[0] for c in conn.execute.await_args_list]
+        assert len(statements) == 4
+        assert "CREATE TABLE IF NOT EXISTS app_sessions" in statements[0]
+        assert "DEFAULT '{}'" in statements[0]
+        assert "DEFAULT '{}'" in statements[1]
+        assert all("{prefix}" not in s for s in statements)
+
     def test_constructor(self) -> None:
         store = PostgresConversationStore(
             "postgresql://localhost/test",

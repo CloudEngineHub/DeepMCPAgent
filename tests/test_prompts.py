@@ -1234,6 +1234,36 @@ class TestChainOperators:
         f = fallback(primary, backup)
         assert len(f._prompts) == 2
 
+    def test_retry_rejects_negative_max_retries(self):
+        # max_retries=-1 ran zero attempts and then raised None, which
+        # surfaced as "TypeError: exceptions must derive from BaseException".
+        from promptise.prompts.chain import retry
+
+        with pytest.raises(ValueError, match="max_retries"):
+            retry(AsyncMock(), max_retries=-1)
+
+    async def test_retry_reraises_the_last_error_after_all_attempts(self):
+        from promptise.prompts.chain import retry
+
+        target = AsyncMock(side_effect=[RuntimeError("1"), RuntimeError("2"), "ok"])
+        assert await retry(target, max_retries=2, backoff=0)("x") == "ok"
+        target = AsyncMock(side_effect=[RuntimeError("1"), RuntimeError("last")])
+        with pytest.raises(RuntimeError, match="last"):
+            await retry(target, max_retries=1, backoff=0)("x")
+        assert target.await_count == 2
+
+    async def test_fallback_order_and_errors(self):
+        from promptise.prompts.chain import _Fallback, fallback
+
+        with pytest.raises(ValueError, match="at least one"):
+            _Fallback([])
+        bad = AsyncMock(side_effect=RuntimeError("primary down"))
+        good = AsyncMock(return_value="backup")
+        assert await fallback(bad, good)("x") == "backup"
+        worse = AsyncMock(side_effect=KeyError("backup down"))
+        with pytest.raises(KeyError, match="backup down"):
+            await fallback(bad, worse)("x")
+
 
 # ---------------------------------------------------------------------------
 # Registry tests

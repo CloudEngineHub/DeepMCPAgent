@@ -256,6 +256,6 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
                 if isinstance(parsed, dict):
                     return parsed
             except (json.JSONDecodeError, TypeError):
-                pass
+                pass  # not JSON: returned as raw below
             return {"raw": input_str}
         return {}

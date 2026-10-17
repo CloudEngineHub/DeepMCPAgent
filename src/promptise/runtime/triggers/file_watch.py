@@ -233,7 +233,7 @@ class FileWatchTrigger:
             try:
                 await self._poll_task
             except asyncio.CancelledError:
-                pass
+                pass  # expected: the task was just cancelled
             self._poll_task = None
 
         for handle in self._pending_handles.values():
@@ -262,7 +262,7 @@ class FileWatchTrigger:
         try:
             self._queue.put_nowait(sentinel)
         except asyncio.QueueFull:
-            pass
+            pass  # the queue is full, so no consumer is blocked waiting on it
 
         logger.info("FileWatchTrigger stopped")
 
@@ -481,7 +481,7 @@ class FileWatchTrigger:
                             st = os.stat(fp)
                             result[fp] = (st.st_mtime_ns, st.st_size)
                         except OSError:
-                            pass
+                            pass  # removed between listing and stat: not in this snapshot
             else:
                 for item in self._watch_path.iterdir():
                     try:
@@ -489,9 +489,9 @@ class FileWatchTrigger:
                             st = item.stat()
                             result[str(item)] = (st.st_mtime_ns, st.st_size)
                     except OSError:
-                        pass
+                        pass  # removed between listing and stat: not in this snapshot
         except OSError:
-            pass
+            pass  # watch path missing or unreadable: an empty snapshot
         return result
 
     async def _poll_loop(self) -> None:
@@ -506,7 +506,7 @@ class FileWatchTrigger:
                     # If stop_event was set, exit
                     break
                 except asyncio.TimeoutError:
-                    pass
+                    pass  # poll interval elapsed without a stop: poll again
 
                 new_mtimes = self._scan_files()
                 new_files = set(new_mtimes.keys())

@@ -64,17 +64,21 @@ dropping it into an existing ``ApprovalPolicy`` is a one-line change::
 from __future__ import annotations
 
 import dataclasses
-import json
 import logging
 import re
 import threading
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
-from fnmatch import fnmatch
 from typing import Any, Literal
 
-from .approval import ApprovalDecision, ApprovalHandler, ApprovalRequest
+from ._approval_types import (
+    ApprovalDecision,
+    ApprovalHandler,
+    ApprovalRequest,
+    ApprovalRule,
+    ClassifierDecisionTrace,
+)
 
 logger = logging.getLogger("promptise.approval.classifier")
 
@@ -175,70 +179,6 @@ def _name_words(tool_name: str) -> list[str]:
     return [word.lower() for word in _NAME_WORD.findall(tool_name)]
 
 
-def _arguments_json(arguments: Any) -> str:
-    """The text ``ApprovalRule.argument_contains`` is matched against."""
-    return json.dumps(arguments, sort_keys=True, default=str, ensure_ascii=False)
-
-
-@dataclass
-class ApprovalRule:
-    """A single deny, ask or allow rule for the classifier.
-
-    A rule matches a request if **all** of its non-empty filters
-    match. Empty filters are wildcards.
-
-    Attributes:
-        tool: Glob pattern matched against ``request.tool_name``.
-            Empty string disables this filter.
-        argument_contains: Substring that must appear in the arguments
-            serialized as JSON with sorted keys —
-            ``json.dumps(arguments, sort_keys=True, ensure_ascii=False)``,
-            so ``'"force": true'`` (not ``"'force': True"``).  Matching is
-            case-sensitive.  Useful for blocking ``rm -rf /``-style
-            commands. Empty string disables this filter.
-        user: Optional user identifier (from ``CallerContext``)
-            this rule applies to. Empty matches any user.
-        predicate: Optional async callable
-            ``(request) -> bool`` for custom logic. Empty disables.
-            A predicate that raises counts as no match (logged).
-        reason: Human-readable reason recorded with the decision.
-
-    The filters see the call's real arguments: the classifier hands
-    rules a request whose ``arguments`` are ``raw_arguments`` when the
-    agent's gate set them, so redaction for the reviewer
-    (``ApprovalPolicy(redact_sensitive=True)``) doesn't hide an email
-    address from ``argument_contains="@competitor.example"``.
-    """
-
-    tool: str = ""
-    argument_contains: str = ""
-    user: str = ""
-    predicate: Callable[[ApprovalRequest], Awaitable[bool]] | None = None
-    reason: str = ""
-
-    async def matches(self, request: ApprovalRequest) -> bool:
-        """Return True if this rule applies to ``request``."""
-        if self.tool and not fnmatch(request.tool_name, self.tool):
-            return False
-        if self.user and request.caller_user_id != self.user:
-            return False
-        if self.argument_contains:
-            try:
-                blob = _arguments_json(request.arguments)
-            except Exception:  # noqa: BLE001
-                blob = ""
-            if self.argument_contains not in blob:
-                return False
-        if self.predicate is not None:
-            try:
-                if not await self.predicate(request):
-                    return False
-            except Exception:  # noqa: BLE001
-                logger.exception("approval rule predicate raised; treating as no-match")
-                return False
-        return True
-
-
 #: Async callable that returns ``("allow" | "deny" | "escalate", reason)``
 #: for a given approval request. Used by the classifier as step 5 of the
 #: decision hierarchy. Designed to be implemented by an LLM call, but
@@ -269,38 +209,6 @@ class ClassifierStats:
     fallback_denies: int = 0
     errors: int = 0
     last_updated: float = field(default_factory=time.time)
-
-
-@dataclass
-class ClassifierDecisionTrace:
-    """Diagnostic record of which layer decided a request.
-
-    Attached to every decision the classifier returns as
-    ``ApprovalDecision.trace``, so audit code can read it from the
-    decision itself — concurrent requests can't overwrite it.
-
-    Attributes:
-        layer: The layer that decided.  ``"ask_rule"``,
-            ``"llm_escalate_then_fallback"``, ``"fallback"`` and
-            ``"error"`` mean the fallback handler made the decision.
-        rule_reason: The matched rule's ``reason``, or the LLM
-            classifier's reason.
-        matched_rule: The rule that matched, for rule layers.
-    """
-
-    layer: Literal[
-        "deny_rule",
-        "ask_rule",
-        "allow_rule",
-        "read_only",
-        "llm_allow",
-        "llm_deny",
-        "llm_escalate_then_fallback",
-        "fallback",
-        "error",
-    ]
-    rule_reason: str = ""
-    matched_rule: ApprovalRule | None = None
 
 
 class AutoApprovalClassifier:

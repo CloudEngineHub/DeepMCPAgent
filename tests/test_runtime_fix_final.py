@@ -878,7 +878,9 @@ class TestPatchRollback:
         finally:
             await api.stop()
         assert status == 422 and body["error"]["code"] == "INVALID_CONFIG"
-        assert "unlucky" in body["error"]["message"]
+        # The exception's text stays in the server log (under the error_id).
+        assert "budget config (nothing changed)" in body["error"]["message"]
+        assert "unlucky" not in body["error"]["message"] and body["error"]["error_id"]
         assert process.config.budget.max_tool_calls_per_run == 5
         assert applied == [7, 5]
 
