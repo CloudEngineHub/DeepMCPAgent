@@ -11,6 +11,9 @@ jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    # A job takes up to ~25 minutes. pytest-timeout fails a hung test after 5;
+    # this catches a hang outside any test (collection, teardown, exit).
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:

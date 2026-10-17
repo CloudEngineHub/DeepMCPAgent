@@ -36,8 +36,57 @@ load_dotenv()
 
 
 import sys  # noqa: E402
+from typing import Any  # noqa: E402
 
 import pytest  # noqa: E402
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Add the pending asyncio tasks to pytest-timeout's dump of a hung test.
+
+    A thread dump of a hung async test only shows the event loop waiting in
+    ``select()``; the tasks' await chains show what it waits for.
+    """
+    timeout = config.pluginmanager.get_plugin("timeout")
+    dump_stacks = getattr(timeout, "dump_stacks", None)
+    if dump_stacks is None or getattr(dump_stacks, "with_asyncio_tasks", False):
+        return
+
+    def dump_stacks_and_tasks(terminal: Any) -> None:
+        dump_stacks(terminal)
+        _dump_asyncio_tasks(terminal)
+
+    dump_stacks_and_tasks.with_asyncio_tasks = True  # type: ignore[attr-defined]
+    timeout.dump_stacks = dump_stacks_and_tasks
+
+
+def _dump_asyncio_tasks(terminal: Any) -> None:
+    """Write where each task of every running event loop is suspended."""
+    import asyncio
+    import gc
+    import traceback
+
+    for loop in [o for o in gc.get_objects() if isinstance(o, asyncio.AbstractEventLoop)]:
+        if not loop.is_running():
+            continue
+        try:
+            tasks = asyncio.all_tasks(loop)
+        except RuntimeError:  # the loop changed its task set meanwhile
+            continue
+        for task in tasks:
+            frames = []
+            awaiting = task.get_coro()
+            # Follow the await chain down to the future it waits for.
+            while awaiting is not None:
+                frame = getattr(awaiting, "cr_frame", None) or getattr(awaiting, "gi_frame", None)
+                if frame is None:
+                    break
+                frames.append((frame, frame.f_lineno))
+                awaiting = getattr(awaiting, "cr_await", None) or getattr(
+                    awaiting, "gi_yieldfrom", None
+                )
+            terminal.sep("~", title=f"asyncio task {task.get_name()}")
+            terminal.write("".join(traceback.StackSummary.extract(frames).format()))
 
 
 @pytest.fixture(autouse=True)

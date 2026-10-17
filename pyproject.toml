@@ -136,6 +136,7 @@ dev = [
   "pytest>=8.4",
   "pytest-asyncio>=1.1",
   "pytest-cov>=6.0",
+  "pytest-timeout>=2.3",
   # The sample apps in examples/mcp/mcpcast_wizard_lab and mcpcast_fastapi_app
   # are FastAPI apps (uvicorn is a core dependency already).
   "fastapi>=0.115",
@@ -263,6 +264,12 @@ markers = [
   "integration: tests requiring external services (Docker, live APIs)",
 ]
 addopts = "-m 'not integration'"
+# A hung test fails after five minutes instead of running into CI's 6-hour job
+# timeout, and dumps every thread's stack and every pending asyncio task's
+# (see tests/conftest.py). "thread" works on Windows and inside an event loop;
+# it ends the whole run, so the dump is the end of the log.
+timeout = 300
+timeout_method = "thread"
 
 [tool.setuptools_scm]
 version_scheme = "guess-next-dev"
