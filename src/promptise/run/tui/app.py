@@ -153,8 +153,11 @@ class RunTUI(App[int]):
 
     @property
     def active_tab(self) -> str:
-        """The id of the visible tab."""
-        return self.query_one("#tabs", TabbedContent).active
+        """The id of the visible tab ("" while the screen is not mounted, e.g. during shutdown)."""
+        try:
+            return self.query_one("#tabs", TabbedContent).active
+        except NoMatches:
+            return ""
 
     def _active_pane(self) -> Pane | None:
         try:

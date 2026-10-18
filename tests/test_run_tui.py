@@ -1056,3 +1056,15 @@ async def test_untrusted_text_is_never_markup() -> None:
         await settle(pilot)
         assert app.is_running
         assert not any(c.get("cmd") == "approval" for c in fake.sent)
+
+
+async def test_tick_during_shutdown_does_not_raise() -> None:
+    """The once-a-second tick can fire while the screen is being torn down."""
+    fake = FakeRunSource()
+    app = RunTUI(fake)
+    async with app.run_test(size=SIZE) as pilot:
+        await settle(pilot)
+        tabs = app.query_one("#tabs")
+        await tabs.remove()
+        assert app.active_tab == ""
+        app._tick()  # no NoMatches

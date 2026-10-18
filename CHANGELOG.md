@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.3 — unreleased
+
+### Fixed
+
+- `promptise run --tui` no longer shows a `NoMatches` traceback when it is closed at the moment its once-a-second status refresh runs.
+
 ## 1.4.2 — 2026-10-18
 
 ### Fixed
