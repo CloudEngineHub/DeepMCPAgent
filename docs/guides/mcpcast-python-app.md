@@ -832,3 +832,7 @@ the same directory.
   generated ones
 - **[Examples gallery](../resources/examples.md)** — every runnable example,
   including this one
+
+!!! tip "Learn the concept"
+
+    - [FastAPI MCP Server: Turn Your FastAPI App into MCP Tools](https://www.promptise.com/guides/view/fastapi-mcp-server) -- Turning a FastAPI app into agent tools: auth, names, descriptions and gated writes.

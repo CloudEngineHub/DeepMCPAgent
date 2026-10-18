@@ -711,3 +711,8 @@ listening).
 - [Custom Reasoning Patterns](reasoning-patterns.md) — per-node models
 - [CLI reference](../cli.md#promptise-models-model-providers) — `promptise models`
 - [API reference: models](../../api/models.md) — `Model`, `resolve_model`, `check_model`, `PROVIDERS`
+
+!!! tip "Learn the concept"
+
+    - [Best LLM for AI Agents: Test and Switch Models in Python](https://www.promptise.com/guides/view/best-llm-for-ai-agents) -- Compare models on your own tool calls before you choose one.
+    - [LLM Routing: When to Use a Small vs Large Model](https://www.promptise.com/guides/view/advance-query-routing-when-to-use-a-small-vs-large-model) -- When a small model is enough and when to route to a large one.

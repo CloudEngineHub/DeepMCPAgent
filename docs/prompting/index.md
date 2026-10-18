@@ -254,3 +254,8 @@ result = await evaluate.with_strategy(chain_of_thought).with_perspective(analyst
 - [Layer 2: ConversationFlow](flows.md) -- Evolve prompts across conversation turns
 - [Strategies](strategies.md) -- Prompt strategies and composition patterns
 - [Guards & Validation](guards.md) -- Input validation and safety guards
+
+!!! tip "Learn the concept"
+
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- Build agent prompts from reusable blocks and test them like code.
+    - [Prompts as Interfaces: Design Prompts Like API Contracts](https://www.promptise.com/guides/view/prompts-as-interfaces-not-commands) -- Design prompts like API contracts.

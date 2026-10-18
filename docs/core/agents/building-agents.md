@@ -503,3 +503,9 @@ See the full [Agent Runtime](../../runtime/index.md) docs for architecture, stat
 - [Behavioral Health](../../runtime/governance/health.md) -- detect stuck loops and anomalies.
 - [Mission Model](../../runtime/governance/mission.md) -- mission-oriented execution.
 - [Journal and Recovery](../../runtime/journal/index.md) -- crash recovery via replay.
+
+!!! tip "Learn the concept"
+
+    - [How to Build an AI Agent in Python (2026 Guide)](https://www.promptise.com/guides/view/how-to-build-ai-agent-python) -- How the agent loop, MCP tools and limits fit together.
+    - [What Is an Agent Harness? Parts and How to Build One](https://www.promptise.com/guides/view/agent-harness-python) -- The parts of an agent harness and why each exists.
+    - [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop) -- How agent loops get stuck and how to stop them.

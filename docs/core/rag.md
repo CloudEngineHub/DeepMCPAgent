@@ -440,3 +440,9 @@ See `tests/test_rag.py` in the repo for the full test suite.
 - [Memory](memory.md) — auto-injected context from conversation history
 - [Tool Optimization](tool-optimization.md) — semantic tool selection for agents with large tool sets
 - [Building Agents](agents/building-agents.md) — full `build_agent()` reference
+
+!!! tip "Learn the concept"
+
+    - [Agentic RAG in Python: Give Your AI Agent a Search Tool](https://www.promptise.com/guides/view/agentic-rag-ai-agent-python) -- Give an agent a search tool, cite sources and say "I don't know".
+    - [RAG for Beginners: Build a Tiny RAG Pipeline in Python](https://www.promptise.com/guides/view/rag-zero-to-one-tiny-corpus) -- How retrieval-augmented generation works, on a tiny corpus.
+    - [RAG Security: Stop Poisoned Documents and Prompt Injection](https://www.promptise.com/guides/view/managing-context-and-retrieval-safely-the-rag-security-path) -- Stop poisoned documents from injecting instructions.

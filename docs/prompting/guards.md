@@ -205,3 +205,8 @@ except GuardError as e:
 - [Strategies](strategies.md) -- Control how the agent reasons
 - [Context System](context.md) -- Inject dynamic information into prompts
 - [PromptBuilder](builder.md) -- Fluent API for runtime prompt construction
+
+!!! tip "Learn the concept"
+
+    - [Structured Outputs: Get Reliable JSON from an LLM](https://www.promptise.com/guides/view/structured-outputs-without-tears) -- Get reliable JSON from an LLM.
+    - [LLM Output Validation: Check Responses Before You Use Them](https://www.promptise.com/guides/view/output-verification-trusting-what-comes-back) -- Check responses before you use them.

@@ -565,3 +565,7 @@ health.register_resources(server)
 - [Caching & Performance](caching-performance.md) -- Cache, rate limit, concurrency control
 - [Observability & Monitoring](observability.md) -- Metrics, tracing, Prometheus, logging
 - [Advanced Patterns](advanced-patterns.md) -- Composition, versioning, transforms, OpenAPI
+
+!!! tip "Learn the concept"
+
+    - [MCP Server Caching, Timeouts and Circuit Breakers in Python](https://www.promptise.com/guides/view/mcp-server-caching-circuit-breaker) -- Retries with backoff and circuit breakers for a flaky upstream API.

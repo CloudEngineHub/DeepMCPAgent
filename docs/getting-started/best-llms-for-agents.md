@@ -420,3 +420,8 @@ Run this with your real MCP servers. The model that uses fewer tool calls and pr
 - [Gemini API Pricing 2026](https://ai.google.dev/gemini-api/docs/pricing)
 - [Qwen 3.5 vs Llama vs Mistral 2026](https://www.aimagicx.com/blog/qwen-3-5-vs-llama-vs-mistral-china-open-source-ai-2026)
 - [Open-Source AI Landscape April 2026](https://www.digitalapplied.com/blog/open-source-ai-landscape-april-2026-gemma-qwen-llama)
+
+!!! tip "Learn the concept"
+
+    - [Best LLM for AI Agents: Test and Switch Models in Python](https://www.promptise.com/guides/view/best-llm-for-ai-agents) -- Pick a model with a tool-calling eval instead of a leaderboard.
+    - [LLM Routing: When to Use a Small vs Large Model](https://www.promptise.com/guides/view/advance-query-routing-when-to-use-a-small-vs-large-model) -- Route each request to the cheapest model that can handle it.

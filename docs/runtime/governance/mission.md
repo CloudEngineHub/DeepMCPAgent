@@ -140,3 +140,7 @@ Returned by `.evaluate()`:
 | `reasoning` | `str` | Why the evaluator made this judgment |
 | `progress_summary` | `str` | Current progress description |
 | `invocation_number` | `int` | Which invocation this evaluation covers |
+
+!!! tip "Learn the concept"
+
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- Missions, budgets and recovery tested on real runs.

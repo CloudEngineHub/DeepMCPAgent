@@ -205,3 +205,7 @@ await trigger.stop()
 - [Triggers Overview](index.md) -- all trigger types and the base protocol
 - [Event and Webhook Triggers](event-webhook.md) -- event-driven activation
 - [File Watch Trigger](file-watch.md) -- filesystem change detection
+
+!!! tip "Learn the concept"
+
+    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- Scheduled agents alongside webhook and file triggers.

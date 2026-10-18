@@ -353,3 +353,8 @@ result = await agent.ainvoke(
 - [Secure Multi-Tenant Platform](secure-multi-tenant-platform.md) — one server, many customer orgs, provably isolated
 - [MCP Authentication](../mcp/server/auth-security.md) — JWT, OAuth, API key auth deep dive
 - [CallerContext API](../api/agent.md#callercontext) — API reference
+
+!!! tip "Learn the concept"
+
+    - [Build an Authenticated MCP Server for Your AI Agent (Python)](https://www.promptise.com/guides/view/authenticated-mcp-server-ai-agent) -- How a user's identity travels from the agent to the MCP server.
+    - [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth) -- API keys, JWTs and OAuth on one server, with roles and scopes.

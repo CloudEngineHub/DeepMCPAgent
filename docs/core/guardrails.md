@@ -658,3 +658,9 @@ Use these names with `PIIDetector(exclude={"blood_type"})` or `CredentialDetecto
 - [Memory](memory.md) — memory content is sanitized separately via `sanitize_memory_content()`
 - [Observability](observability.md) — track guardrail violations in agent traces
 - [Tool Optimization](tool-optimization.md) — reduce token costs with semantic tool selection
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Guardrails in Python: Block Injection, Redact PII](https://www.promptise.com/guides/view/ai-agent-guardrails-python) -- Block injection, redact PII and leaked keys, and test what slips through.
+    - [AI Agent Prompt Injection: How to Defend Against It](https://www.promptise.com/guides/view/ai-agent-prompt-injection-defense) -- How indirect injection reaches agents through tool results.
+    - [Topic hub: Guardrails and security](https://www.promptise.com/guides/topics/guardrails-security) -- Every guide on guardrails, sandboxing and LLM security.

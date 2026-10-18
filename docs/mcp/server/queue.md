@@ -424,3 +424,7 @@ To test ownership, give each client its own credentials: `TestClient(server, met
 ## Complete Example
 
 See `examples/mcp/queue_server.py` in the repository for a full runnable example with progress reporting and cancellation support.
+
+!!! tip "Learn the concept"
+
+    - [MCP Long-Running Tasks: Background Jobs in Python](https://www.promptise.com/guides/view/mcp-long-running-tasks-background-jobs) -- Submit, poll, retry and cancel slow tools as background jobs.

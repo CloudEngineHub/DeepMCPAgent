@@ -105,3 +105,7 @@ Access is logged. The agent never sees secrets in its system prompt — it must 
 | `.revoke_all()` | Overwrite and remove all secrets |
 | `.sanitize_text(text)` | Replace secret values with `[REDACTED]` |
 | `.active_secrets` | List of non-expired secret names |
+
+!!! tip "Learn the concept"
+
+    - [Secrets in Prompts: System Prompt Leakage and Safe Patterns](https://www.promptise.com/guides/view/secrets-in-prompts-the-silent-killer) -- Why secrets in prompts leak and safer patterns.

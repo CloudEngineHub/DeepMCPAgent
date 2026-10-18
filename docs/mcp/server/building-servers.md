@@ -512,3 +512,8 @@ if __name__ == "__main__":
 - [Production Features](production-features.md) -- Add caching, rate limiting, health checks, and metrics
 - [Testing](testing.md) -- Test servers in-process with `TestClient`
 - [Step-by-Step Guide](../../guides/production-mcp-servers.md) -- Build a complete server incrementally
+
+!!! tip "Learn the concept"
+
+    - [Build a Production MCP Server in Python (Step by Step)](https://www.promptise.com/guides/view/build-production-mcp-server-python) -- Build a server that real agents can use, step by step.
+    - [MCP Tools vs Resources vs Prompts (With Python Examples)](https://www.promptise.com/guides/view/mcp-tools-vs-resources-vs-prompts) -- When to expose a tool, a resource or a prompt.

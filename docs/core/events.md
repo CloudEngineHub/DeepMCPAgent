@@ -407,3 +407,7 @@ emit_event(
 - [Observability](observability.md) -- detailed execution traces (events are high-level alerts, observability is full traces)
 - [Approval](approval.md) -- human-in-the-loop approval that emits `approval.*` events
 - [Guardrails](guardrails.md) -- security scanning that emits `guardrail.*` events
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Notifications: Webhook and Slack Alerts in Python](https://www.promptise.com/guides/view/ai-agent-notifications-webhook-slack) -- Alerts for failed tools, guardrail hits, budgets and approvals.

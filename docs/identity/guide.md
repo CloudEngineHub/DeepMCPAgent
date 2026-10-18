@@ -336,3 +336,8 @@ are handled for you:
   configuration for Entra, AWS, GCP, SPIFFE, and generic OIDC.
 - [MCP server auth](../mcp/server/auth-security.md) — the full server-side
   verification and authorization surface.
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication) -- Short-lived JWTs from your IdP, verified with JWKS, end to end.
+    - [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth) -- How the MCP server side validates tokens, roles and scopes.

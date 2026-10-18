@@ -372,3 +372,8 @@ successful = {k: v for k, v in answers.items() if v is not None}
 | **EventBus** | Loose coupling — agents react to events without knowing who produces them |
 | **Shared Context** | Agents need to read/write a common state object |
 | **External Orchestration** | Complex DAG workflows, human-in-the-loop approval chains, or task decomposition beyond what EventBus provides |
+
+!!! tip "Learn the concept"
+
+    - [Build a Multi-Agent System in Python (and When Not To)](https://www.promptise.com/guides/view/multi-agent-system-python) -- A coordinator with specialist agents, and what it really costs.
+    - [LLM Agent Orchestration Patterns: Supervisor, Handoff](https://www.promptise.com/guides/view/llm-agent-orchestration) -- Supervisor, routing and handoff patterns, and when each fits.

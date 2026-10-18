@@ -145,6 +145,9 @@ nav:
           - "Lab: Data Analysis Agent": guides/lab-data-analysis.md
           - "Lab: Code Review Agent": guides/lab-code-review.md
           - "Lab: Pipeline Observer Agent": guides/lab-pipeline-observer.md
+      - Learn on promptise.com:
+          - Concept Guides: https://www.promptise.com/guides
+          - "Learning Path: Agentic Engineering": https://www.promptise.com/learning-paths/agentic-engineering-promptise-foundry
 
   - MCPcast:
       - End to End: mcpcast/index.md

@@ -298,3 +298,8 @@ Every step is opt-in. Features you don't enable have zero overhead.
 | Build a customer support agent | [Lab: Customer Support](../guides/lab-customer-support.md) |
 | Build a data analysis agent | [Lab: Data Analysis](../guides/lab-data-analysis.md) |
 | Build a code review agent | [Lab: Code Review](../guides/lab-code-review.md) |
+
+!!! tip "Learn the concept"
+
+    - [How to Build an AI Agent in Python (2026 Guide)](https://www.promptise.com/guides/view/how-to-build-ai-agent-python) -- How an agent's tool loop works, built step by step in Python.
+    - [Topic hub: Building AI agents in Python](https://www.promptise.com/guides/topics/ai-agents-python) -- Every guide on agent loops, harnesses, system prompts and models.

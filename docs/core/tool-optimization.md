@@ -294,3 +294,7 @@ Yes. Tool optimization modifies the tool definitions before they reach LangChain
 - [Building Agents](agents/building-agents.md) — the `build_agent()` function and all its parameters
 - [Memory](memory.md) — persistent memory with vector search
 - [Observability](observability.md) — track token usage and see exactly what the LLM receives
+
+!!! tip "Learn the concept"
+
+    - [Too Many MCP Tools? LLM Tool Selection, Measured](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection) -- What 122 tools do to accuracy, tokens and latency, and how selection fixes it.

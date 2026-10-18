@@ -175,3 +175,7 @@ A suspended process keeps queueing its trigger events; `resume()` (or `POST /api
 | `LOOP` | Repeating pattern in tool call sequence |
 | `EMPTY_RESPONSE` | Consecutive trivial responses |
 | `HIGH_ERROR_RATE` | Error rate above threshold |
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop) -- How agent loops get stuck and how to stop them.

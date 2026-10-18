@@ -914,3 +914,8 @@ request (four-eyes). Full guide:
 - [Building AI Agents](building-agents.md) — the core agent that powers every process
 - [Building Production MCP Servers](production-mcp-servers.md) — the tool servers your agents connect to
 - [Building Agentic Runtime Systems](agentic-runtime.md) — autonomous agents with triggers, governance, distributed coordination
+
+!!! tip "Learn the concept"
+
+    - [Multi-Tenant AI Agents: Keep Each Customer's Data Apart](https://www.promptise.com/guides/view/multi-tenant-ai-agent) -- Per-user tokens, tenant-scoped tools and isolated sessions.
+    - [Build an Authenticated MCP Server for Your AI Agent (Python)](https://www.promptise.com/guides/view/authenticated-mcp-server-ai-agent) -- An agent that acts for each user against a JWT-protected MCP server.

@@ -489,3 +489,8 @@ graph.always("write", "review")
 graph.set_entry("plan")
 agent = await build_agent(..., agent_pattern=graph)
 ```
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- How the prebuilt patterns compare on accuracy and cost.
+    - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- Plan, act, verify, reflect, explained on one task.

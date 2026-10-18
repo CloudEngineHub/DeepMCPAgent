@@ -296,3 +296,7 @@ return the error text to the model instead of raising.
 - [MCP Client](index.md) -- the `MCPClient` and `MCPMultiClient` that power the adapter
 - [Tools & Schema Helpers](../../core/tools.md) -- the schema conversion logic shared with the legacy loader
 - [Building Agents](../../core/agents/building-agents.md) -- use adapted tools with `build_agent`
+
+!!! tip "Learn the concept"
+
+    - [How LLM Tool Calling Works: The Model Never Runs Tools](https://www.promptise.com/guides/view/llm-as-a-tool-orchestrator) -- How tool calling works: the model never runs the tool.

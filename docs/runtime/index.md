@@ -291,3 +291,8 @@ Each layer is optional. Use Layer 1 alone for simple chatbots, add Layer 2 for a
 **Build something real:**
 
 - [Building Agentic Runtime Systems](../guides/agentic-runtime.md) -- Step-by-step guide from single agent to distributed deployment
+
+!!! tip "Learn the concept"
+
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- What an agent runtime adds: budgets, restarts and crash recovery.
+    - [Topic hub: Runtime, triggers and deployment](https://www.promptise.com/guides/topics/runtime-deployment) -- Every guide on triggers, durable runs and deployment.

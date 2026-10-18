@@ -194,3 +194,7 @@ recovered = await engine.recover("new-process")
 - [Journal Backends](backends.md) -- `FileJournal` and `InMemoryJournal`
 - [Lifecycle](../lifecycle.md) -- the state machine that produces `state_transition` entries
 - [Context](../context.md) -- the state layer that produces `context_update` entries
+
+!!! tip "Learn the concept"
+
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Resume from the last step after a crash, with idempotency keys.

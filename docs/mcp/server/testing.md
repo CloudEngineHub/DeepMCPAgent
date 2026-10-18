@@ -381,3 +381,7 @@ async def test_payroll_needs_admin():
 - [Caching & Performance](caching-performance.md) — test caching and rate limiting behavior
 - [Deployment](deployment.md) — deploy your tested server to production
 - [MCP Client](../client/index.md) — connect to a real running server
+
+!!! tip "Learn the concept"
+
+    - [Testing MCP Servers in Python: pytest Without a Live Server](https://www.promptise.com/guides/view/test-mcp-server-python) -- Test a server's auth, guards and job queue with pytest, plus CI.

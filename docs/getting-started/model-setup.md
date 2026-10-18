@@ -86,3 +86,7 @@ http://localhost:11434 — is Ollama running?` when it is down.
 - [**Agent → Models & Providers**](../core/agents/models.md) — the in-depth reference: every `Model` word, [Azure AI Foundry](../core/agents/models.md#azure-ai-foundry), [every provider](../core/agents/models.md#every-provider), [custom and self-hosted endpoints](../core/agents/models.md#custom-self-hosted-and-inference-endpoints), failover, per-node models, troubleshooting
 - [Configuration & Secrets](configuration.md) — where keys live and the precedence between `.env`, environment, code and config files
 - [Quick Start](quickstart.md) — your first agent
+
+!!! tip "Learn the concept"
+
+    - [Best LLM for AI Agents: Test and Switch Models in Python](https://www.promptise.com/guides/view/best-llm-for-ai-agents) -- Test models on your own tool calls, then switch providers in one line.

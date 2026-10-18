@@ -307,3 +307,8 @@ result = await configured("Evaluate quarterly performance data")
 - [Guards](guards.md) -- Input/output validation
 - [Context System](context.md) -- Dynamic context injection
 - [PromptBuilder](builder.md) -- Fluent API for runtime prompt construction
+
+!!! tip "Learn the concept"
+
+    - [Chain-of-Thought Prompting for Beginners: Step by Step](https://www.promptise.com/guides/view/step-by-step-reasoning-chain-of-thought-lite) -- What chain-of-thought does and when it helps.
+    - [Self-Consistency and Least-to-Most Prompting: When They Help](https://www.promptise.com/guides/view/chain-of-thought-evolved-self-consistency-and-least-to-most) -- Self-consistency and least-to-most, and when they pay off.

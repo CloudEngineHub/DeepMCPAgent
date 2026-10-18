@@ -512,3 +512,7 @@ agent = await build_superagent("agent.superagent")
 - [Building Agents](building-agents.md) -- the `build_agent()` function that SuperAgent files feed into.
 - [Server Configuration](server-specs.md) -- details on `StdioServerSpec` and `HTTPServerSpec`.
 - [Cross-Agent Delegation](cross-agent.md) -- runtime behavior of the delegation tools generated from cross-agent references.
+
+!!! tip "Learn the concept"
+
+    - [AI Agent YAML: Define and Run an Agent From a Config File](https://www.promptise.com/guides/view/ai-agent-yaml-config-file) -- Define, validate and review an agent as a config file.

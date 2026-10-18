@@ -358,3 +358,7 @@ except RuntimeError:
 | `agent.list_sessions()` | List sessions with pagination and user filtering |
 | `agent.delete_session()` | Delete a session with ownership check |
 | `agent.update_session()` | Update session metadata with ownership check |
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Memory in Python: Short-Term and Long-Term](https://www.promptise.com/guides/view/ai-agent-memory-python) -- How session history differs from long-term memory.

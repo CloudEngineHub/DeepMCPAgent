@@ -257,3 +257,7 @@ The checkpoint is stored separately from the regular journal entries (as a dedic
 - [Replay Engine](replay.md) -- crash recovery from journal entries
 - [Configuration](../configuration.md) -- `JournalConfig` reference
 - [CLI Commands](../cli.md) -- `promptise runtime logs` command
+
+!!! tip "Learn the concept"
+
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Journal progress and resume so side effects never run twice.

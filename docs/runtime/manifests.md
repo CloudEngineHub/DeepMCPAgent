@@ -342,3 +342,7 @@ Available templates: `basic`, `cron`, `webhook`, `full`.
 - [Agent Processes](processes.md) -- `ProcessConfig` fields and trigger types in detail
 - [Runtime Manager](runtime-manager.md) -- multi-process management with `AgentRuntime`
 - [CLI Reference](../core/cli.md) -- full CLI command reference
+
+!!! tip "Learn the concept"
+
+    - [AI Agent YAML: Define and Run an Agent From a Config File](https://www.promptise.com/guides/view/ai-agent-yaml-config-file) -- Keep an agent's definition in a reviewed config file.

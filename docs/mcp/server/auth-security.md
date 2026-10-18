@@ -720,3 +720,8 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
 - [Deployment](deployment.md) — HTTP transport, CORS, transport-level auth, Docker
 - [Testing](testing.md) — Test authenticated endpoints with `TestClient`
 - [Client Guide](../client/index.md) — Connect to your server with authentication
+
+!!! tip "Learn the concept"
+
+    - [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth) -- API keys, JWTs and OAuth with JWKS, roles and scopes.
+    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices) -- A checklist for securing an MCP server.

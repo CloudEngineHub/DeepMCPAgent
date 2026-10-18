@@ -265,3 +265,7 @@ You can also use the classifier on an MCP server, as the handler of `ApprovalGat
 - [Approval (HITL)](approval.md) — the underlying approval system
 - [Runtime Hooks](../runtime/hooks.md) — react to PERMISSION_REQUEST / PERMISSION_DENIED events
 - [Guardrails](guardrails.md) — input/output security scanning
+
+!!! tip "Learn the concept"
+
+    - [Approval Fatigue: Auto-Approve Safe AI Agent Actions](https://www.promptise.com/guides/view/ai-agent-approval-fatigue) -- Auto-approve routine calls, send only risky ones to a human.

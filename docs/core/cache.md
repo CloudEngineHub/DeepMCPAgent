@@ -344,3 +344,7 @@ A cache failure (Redis unreachable, embedding API down) never fails the request:
 - [Guardrails](guardrails.md) — output guardrails always run on cached responses
 - [Tool Optimization](tool-optimization.md) — shares the same embedding model
 - [Building Agents](agents/building-agents.md) — the `cache` parameter on `build_agent()`
+
+!!! tip "Learn the concept"
+
+    - [LLM Semantic Cache and Model Fallback in Python](https://www.promptise.com/guides/view/llm-semantic-cache-fallback-python) -- How a semantic cache cuts LLM cost, with real hit rates.

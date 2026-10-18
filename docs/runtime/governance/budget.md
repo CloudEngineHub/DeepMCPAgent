@@ -322,3 +322,8 @@ The agent can call `search` as many times as the cost budget allows, but it can 
 | Method | Description |
 |--------|-------------|
 | `.handle_violation(violation, process)` | Execute the configured enforcement action (pause, stop, or escalate). |
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Cost Control: Budgets That Stop Runaway Spend](https://www.promptise.com/guides/view/ai-agent-cost-control-budget) -- Budgets that refuse tool calls before runaway spend.
+    - [Topic hub: Cost control and rate limits](https://www.promptise.com/guides/topics/cost-control) -- Every guide on cost control and rate limits.

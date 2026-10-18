@@ -294,3 +294,8 @@ server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
 - [Client Guide](client/index.md) -- connect to MCP servers with authentication
 - [API Reference: Server](../api/mcp-server.md) -- auto-generated API docs for every server class
 - [API Reference: Client](../api/mcp-client.md) -- auto-generated API docs for every client class
+
+!!! tip "Learn the concept"
+
+    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol) -- How MCP works: hosts, clients, servers, tools and transports.
+    - [Topic hub: Tools and the Model Context Protocol (MCP)](https://www.promptise.com/guides/topics/tools-and-mcp) -- Every guide on building, connecting, securing and testing MCP servers.

@@ -728,3 +728,8 @@ if __name__ == "__main__":
 - [Building Production MCP Servers](production-mcp-servers.md) -- Build the tool servers your agents connect to
 - [Building AI Agents](building-agents.md) -- The core agent that powers every process
 - [Prompt Engineering](prompt-engineering.md) -- Build reliable, testable system prompts
+
+!!! tip "Learn the concept"
+
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- Budgets, crash recovery and missions for agents that run on their own.
+    - [Topic hub: Runtime, triggers and deployment](https://www.promptise.com/guides/topics/runtime-deployment) -- Every guide on triggers, durable runs and deployment.

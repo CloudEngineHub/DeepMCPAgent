@@ -367,3 +367,7 @@ How restarts behave:
 - [Behavioral Health](governance/health.md) -- detect stuck loops and anomalies
 - [Mission Model](governance/mission.md) -- mission-oriented execution with LLM-as-judge
 - [Secret Scoping](governance/secrets.md) -- per-process encrypted secrets
+
+!!! tip "Learn the concept"
+
+    - [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production) -- Run an agent as a long-lived process with state between runs.

@@ -135,3 +135,7 @@ asyncio.run(main())
 - [Building Agents](agents/building-agents.md) -- pass `system_prompt` to `build_agent`
 - [Callback Handler](callback-handler.md) -- observe how the agent uses the prompt
 - [Tools & Schema Helpers](tools.md) -- the tools the prompt tells the agent to inspect
+
+!!! tip "Learn the concept"
+
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- What belongs in an agent's system prompt and how to test it.

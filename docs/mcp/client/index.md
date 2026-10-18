@@ -604,3 +604,8 @@ asyncio.run(main())
 - [Step-by-Step Guide](../../guides/production-mcp-servers.md) -- Build the server your client connects to
 - [Server Fundamentals](../server/building-servers.md) -- Full reference for tools, resources, and config
 - [Auth & Security](../server/auth-security.md) -- Set up JWT auth on the server side
+
+!!! tip "Learn the concept"
+
+    - [How to Connect MCP Servers to Your AI Agent in Python](https://www.promptise.com/guides/view/connect-mcp-servers-to-ai-agent-python) -- Connect local and remote MCP servers to an agent.
+    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse) -- How each transport looks on the wire.

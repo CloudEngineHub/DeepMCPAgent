@@ -177,3 +177,7 @@ pending call belongs to.
 - [Agent-side Approval (HITL)](../../core/approval.md) — `ApprovalPolicy`, webhook/queue handlers, auto-classification
 - [Multi-Tenancy](multi-tenancy.md) — tenant identity the gate records
 - [Authentication & Security](auth-security.md) — the identity the gate relies on
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Human in the Loop: Approve Tool Calls in Python](https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval) -- Why and when a human should approve a tool call.

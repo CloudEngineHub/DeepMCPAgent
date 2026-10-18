@@ -597,3 +597,8 @@ asyncio.run(main())
 - [Building AI Agents](building-agents.md) -- The agents that use your prompts
 - [Building Production MCP Servers](production-mcp-servers.md) -- The tools your agents call
 - [Building Agentic Runtime Systems](agentic-runtime.md) -- Autonomous agents with governance
+
+!!! tip "Learn the concept"
+
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- Build system prompts from reusable blocks and test them like code.
+    - [How to Test LLM Prompts and AI Agents in Python](https://www.promptise.com/guides/view/test-llm-prompts-ai-agents-python) -- Catch prompt regressions with pytest and an LLM judge.

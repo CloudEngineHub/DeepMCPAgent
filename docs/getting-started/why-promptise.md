@@ -125,3 +125,8 @@ That's the whole API for the simple case. From there:
 - [FAQ →](../faq.md)
 - [Building Production MCP Servers →](../guides/production-mcp-servers.md)
 - [Agent Runtime →](../runtime/index.md)
+
+!!! tip "Learn the concept"
+
+    - [Python AI Agent Frameworks Compared: Which to Choose (2026)](https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared) -- The same agent in Promptise, LangGraph, CrewAI and others, side by side.
+    - [Topic hub: Frameworks and comparisons](https://www.promptise.com/guides/topics/frameworks-comparisons) -- Framework comparisons and migration guides.

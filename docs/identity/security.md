@@ -106,3 +106,8 @@ In the spirit of honest production claims, here is exactly what is verified:
 The honest summary: the **library logic is thoroughly tested**; the **live cloud
 round-trip is confirmable in your own environment** via the gated integration
 tests rather than asserted blindly.
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication) -- Token refresh and the honest limits of agent identity.
+    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices) -- Token audience binding and per-tool scopes.

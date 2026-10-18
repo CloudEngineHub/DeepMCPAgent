@@ -414,3 +414,7 @@ asyncio.run(main())
 
 - [Strategies](strategies.md) -- Prompt strategies and composition patterns
 - [Layer 1: PromptBlocks](blocks.md) -- Composable prompt components reference
+
+!!! tip "Learn the concept"
+
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- Switching system prompts by conversation phase.

@@ -249,3 +249,8 @@ approval is ever created.
 - [Authentication & Security](../mcp/server/auth-security.md) — auth providers, guards, `on_authenticate`
 - [Multi-User Systems](multi-user-systems.md) — per-user (not just per-tenant) identity flow
 - [Deployment](../mcp/server/deployment.md) — serve it over HTTP with `promptise serve`
+
+!!! tip "Learn the concept"
+
+    - [Multi-Tenant AI Agents: Keep Each Customer's Data Apart](https://www.promptise.com/guides/view/multi-tenant-ai-agent) -- Proving one tenant can't read another's data.
+    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices) -- Audience binding, per-tool scopes, approval and signed audit logs.

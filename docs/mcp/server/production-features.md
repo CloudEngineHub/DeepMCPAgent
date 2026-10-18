@@ -125,3 +125,8 @@ Transport selection (stdio/HTTP/SSE), Host/Origin validation (`allowed_hosts` / 
 - [Caching & Performance](caching-performance.md) — start here for the most commonly needed production features
 - [Authentication & Security](auth-security.md) — if you haven't set up auth yet
 - [Testing](testing.md) — test your production server with `TestClient`
+
+!!! tip "Learn the concept"
+
+    - [LLM Tool Rate Limiting: Per-Client Limits for MCP Servers](https://www.promptise.com/guides/view/mcp-rate-limiting-per-client) -- Per-client and per-tool rate limits, and what the agent sees.
+    - [AI Agent Audit Logging: Tamper-Evident Logs in Python](https://www.promptise.com/guides/view/ai-agent-audit-log) -- Tamper-evident logs of every tool call.

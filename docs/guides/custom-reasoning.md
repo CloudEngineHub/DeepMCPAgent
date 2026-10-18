@@ -514,3 +514,8 @@ print(report.summary())  # path, tokens, tool calls, guards
 8. **Test incrementally** — Test each node in isolation, then the graph.
 9. **Use model_override for cost** — Cheap models for routing/classification, expensive for reasoning/synthesis.
 10. **Cap everything** — Observations (capped at 50), reflections (capped at 5), node iterations, total iterations.
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Nine reasoning patterns run on the same tasks: accuracy versus cost.
+    - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- A plan, act, verify, reflect graph compared with ReAct.

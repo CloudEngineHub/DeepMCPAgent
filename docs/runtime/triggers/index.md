@@ -523,3 +523,7 @@ process.clear_dead_letters()
 - [Event and Webhook Triggers](event-webhook.md) -- event-driven and HTTP-driven triggering
 - [File Watch Trigger](file-watch.md) -- filesystem change detection
 - [Configuration](../configuration.md) -- full `TriggerConfig` reference
+
+!!! tip "Learn the concept"
+
+    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- Run an agent on a webhook, a schedule or a new file, safely.

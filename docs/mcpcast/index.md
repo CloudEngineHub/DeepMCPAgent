@@ -684,3 +684,8 @@ the auth-mode ones).
 - [Recipes: Stripe, GitHub, Swagger 2, your app](../mcp/server/mcpcast-recipes.md) — what a 1,200-endpoint API looks like on the other side
 - [Lab: MCPcast Your SaaS API](../guides/lab-mcpcast-storefront.md) — multi-tenant, four-eyes approval, before/after readiness score
 - [API reference](../api/mcpcast.md) — `mcpcast()`, `curate()`, `MCPcastPlan`, `evaluate()`
+
+!!! tip "Learn the concept"
+
+    - [OpenAPI to MCP: Turn Any REST API into an MCP Server](https://www.promptise.com/guides/view/openapi-to-mcp-server-rest-api) -- The ideas behind turning a REST API into a safe MCP server.
+    - [Too Many MCP Tools? LLM Tool Selection, Measured](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection) -- Why fewer, better tools beat one tool per endpoint.

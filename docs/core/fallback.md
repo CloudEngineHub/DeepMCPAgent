@@ -153,3 +153,7 @@ agent = await build_agent(
 - [Events](events.md) — get notified when models fail or fallbacks activate
 - [Observability](observability.md) — track which model served each request
 - [Building Agents](agents/building-agents.md) — full `build_agent()` parameter reference
+
+!!! tip "Learn the concept"
+
+    - [LLM Semantic Cache and Model Fallback in Python](https://www.promptise.com/guides/view/llm-semantic-cache-fallback-python) -- Survive a provider outage with model fallback, with a simulated outage.

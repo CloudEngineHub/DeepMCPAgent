@@ -301,3 +301,7 @@ When `stop()` is called:
 - [Triggers Overview](index.md) -- all trigger types and the base protocol
 - [Cron Trigger](cron.md) -- time-based scheduling
 - [Event and Webhook Triggers](event-webhook.md) -- event-driven activation
+
+!!! tip "Learn the concept"
+
+    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- File-triggered agents alongside webhook and cron triggers.

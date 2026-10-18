@@ -534,3 +534,7 @@ metrics.register_resource(server)
 - [Caching & Performance](caching-performance.md) -- Cache, rate limit, concurrency control
 - [Resilience Patterns](resilience-patterns.md) -- Circuit breaker, health checks, webhooks
 - [Deployment](deployment.md) -- HTTP deployment, CORS, containers
+
+!!! tip "Learn the concept"
+
+    - [MCP Server Monitoring: Prometheus, OpenTelemetry and Logs](https://www.promptise.com/guides/view/mcp-server-monitoring-python) -- Metrics, logs, traces and alerts for slow, failing or abused tools.

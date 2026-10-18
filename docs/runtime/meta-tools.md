@@ -322,3 +322,7 @@ tools = create_meta_tools(process)
 - [Configuration](configuration.md) -- `ExecutionMode` and `OpenModeConfig` reference
 - [Context](context.md) -- the state and memory layer meta-tools interact with
 - [Triggers Overview](triggers/index.md) -- trigger types that can be added dynamically
+
+!!! tip "Learn the concept"
+
+    - [Self-Modifying AI Agent in Python: Open Mode & Limits](https://www.promptise.com/guides/view/self-modifying-ai-agent-open-mode) -- Meta-tools, hot reload and the limits that keep open mode bounded.

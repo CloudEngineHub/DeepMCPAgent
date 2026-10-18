@@ -271,3 +271,8 @@ Tools from all three servers are available to the agent as a flat list. If two s
 - [Building Agents](building-agents.md) -- full `build_agent()` parameter reference.
 - [SuperAgent Files](superagent-files.md) -- define server configs declaratively in YAML.
 - [Authentication & Security](../../mcp/server/auth-security.md) -- securing your MCP servers with JWT and API keys.
+
+!!! tip "Learn the concept"
+
+    - [How to Connect MCP Servers to Your AI Agent in Python](https://www.promptise.com/guides/view/connect-mcp-servers-to-ai-agent-python) -- Connect local and remote MCP servers to an agent, step by step.
+    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse) -- stdio vs Streamable HTTP vs SSE, and which to use where.

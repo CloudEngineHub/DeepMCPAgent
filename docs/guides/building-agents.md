@@ -688,3 +688,8 @@ agent.generate_report("guardrails-report.html")
 - [Building Production MCP Servers](production-mcp-servers.md) -- Build the tool servers your agents connect to
 - [Building Agentic Runtime Systems](agentic-runtime.md) -- Make agents autonomous with triggers and governance
 - [Prompt Engineering](prompt-engineering.md) -- Build reliable, testable system prompts
+
+!!! tip "Learn the concept"
+
+    - [How to Build an AI Agent in Python (2026 Guide)](https://www.promptise.com/guides/view/how-to-build-ai-agent-python) -- The concepts behind each step: tool loop, MCP tools, fallback, approvals and limits.
+    - [AI Agent Production Checklist: What to Check Before Launch](https://www.promptise.com/guides/view/ai-agent-production-checklist) -- What to check before an agent goes live.

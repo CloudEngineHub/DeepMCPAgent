@@ -188,3 +188,7 @@ not Promptise — makes it so.
 - [Quickstart](quickstart.md) — a traceable agent in five minutes.
 - [Architecture](architecture.md) — how identity is stamped and presented.
 - [Security](security.md) — the threat model and guarantees.
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication) -- Give an agent its own verifiable identity, checked by MCP servers.

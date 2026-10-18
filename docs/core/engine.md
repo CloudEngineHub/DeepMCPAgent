@@ -409,3 +409,8 @@ The LLM can modify the graph during execution — add nodes, skip to nodes, chan
 - [Skills Library](engine-skills.md) — 15 pre-configured node factories
 - [Serialization](engine-serialization.md) — YAML load/save
 - [Building Custom Reasoning](../guides/custom-reasoning.md) — Step-by-step guide
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Why a reasoning graph beats a single loop on some tasks, measured.
+    - [Topic hub: Agent reasoning patterns](https://www.promptise.com/guides/topics/reasoning-patterns) -- Every guide on agent reasoning patterns.

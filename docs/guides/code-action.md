@@ -263,3 +263,7 @@ PromptGraph.code_action(
 - [Prebuilt Patterns](../core/engine-prebuilts.md#code-action-one-sandboxed-program) — the factory
 - [Context Lifecycle Management](context-lifecycle.md) — the broader cost/rot story
 - [Sandbox](../core/sandbox.md) — the container security layers code-action runs on
+
+!!! tip "Learn the concept"
+
+    - [Code-Action Agents in Python: One Program vs 37 Tool Calls](https://www.promptise.com/guides/view/code-action-agent-python) -- One generated program versus dozens of tool calls, measured against ReAct.

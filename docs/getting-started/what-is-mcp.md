@@ -153,3 +153,9 @@ For everything else: MCP gives you a separation of concerns the LLM ecosystem ha
 ---
 
 **Next:** [Build your first agent in 5 minutes →](quickstart.md)
+
+!!! tip "Learn the concept"
+
+    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol) -- A developer's walk through hosts, clients, servers, tools and transports.
+    - [MCP Tools vs Resources vs Prompts (With Python Examples)](https://www.promptise.com/guides/view/mcp-tools-vs-resources-vs-prompts) -- When to expose a tool, a resource or a prompt.
+    - [Topic hub: Tools and the Model Context Protocol (MCP)](https://www.promptise.com/guides/topics/tools-and-mcp) -- Every guide on building, connecting, securing and testing MCP servers.

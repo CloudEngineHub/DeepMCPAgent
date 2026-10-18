@@ -328,3 +328,7 @@ Created by `build_agent()` when `adaptive` and `memory` are set, and available a
 - [Approval](approval.md) — denial reasons become corrections
 - [Guardrails](guardrails.md) — scans human corrections for injection
 - [Context Engine](context-engine.md) — the `strategies` layer
+
+!!! tip "Learn the concept"
+
+    - [Self-Improving AI Agent: Learn From Tool Failures in Python](https://www.promptise.com/guides/view/self-improving-ai-agent-python) -- Learning from failed tool calls without fine-tuning, and the risks.

@@ -321,3 +321,8 @@ tools = make_cross_agent_tools(
 - [SuperAgent Files](superagent-files.md) -- define cross-agent references declaratively in YAML and build the whole team with `build_superagent()`.
 - [Multi-Agent Coordination](../../guides/multi-agent-teams.md) -- delegation, shared MCP servers and the runtime together.
 - [Agent Runtime](../../runtime/index.md) -- long-running agents with triggers and lifecycle management.
+
+!!! tip "Learn the concept"
+
+    - [Build a Multi-Agent System in Python (and When Not To)](https://www.promptise.com/guides/view/multi-agent-system-python) -- When delegating to other agents pays off, and when it doesn't.
+    - [LLM Agent Orchestration Patterns: Supervisor, Handoff](https://www.promptise.com/guides/view/llm-agent-orchestration) -- Supervisor-worker and handoff patterns explained.

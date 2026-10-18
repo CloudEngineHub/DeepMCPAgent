@@ -282,3 +282,7 @@ result = await coordinator.inject_event_on_node(
 - [Discovery and Transport](discovery-transport.md) -- service discovery and HTTP transport API
 - [Configuration](../configuration.md) -- `DistributedConfig` reference
 - [Runtime Manager](../runtime-manager.md) -- the `AgentRuntime` that runs on each node
+
+!!! tip "Learn the concept"
+
+    - [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production) -- Operating long-running agents in production.

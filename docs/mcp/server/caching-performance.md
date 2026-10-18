@@ -536,3 +536,7 @@ async def search_products(query: str, category: str = "all") -> list[dict]:
 - [Observability & Monitoring](observability.md) -- Metrics, tracing, Prometheus, structured logging
 - [Resilience Patterns](resilience-patterns.md) -- Circuit breaker, health checks, background tasks
 - [Authentication & Security](auth-security.md) -- JWT, API keys, guards
+
+!!! tip "Learn the concept"
+
+    - [MCP Server Caching, Timeouts and Circuit Breakers in Python](https://www.promptise.com/guides/view/mcp-server-caching-circuit-breaker) -- Caching, timeouts and limits with before and after numbers.

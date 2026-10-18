@@ -271,3 +271,9 @@ class TestExpertiseAdaptation(PromptTestCase):
 - [Guards](guards.md) -- Input/output validation to test against
 - [Inspector](inspector.md) -- Trace prompt assembly for debugging
 - [Prompt Chaining](chaining.md) -- Compose prompts into pipelines
+
+!!! tip "Learn the concept"
+
+    - [How to Test LLM Prompts and AI Agents in Python](https://www.promptise.com/guides/view/test-llm-prompts-ai-agents-python) -- Unit test prompts with pytest and catch regressions in CI.
+    - [How to Evaluate AI Agents: Evals, LLM Judges and pass^k](https://www.promptise.com/guides/view/evaluate-ai-agents-python) -- Golden tasks, LLM judges and pass^k for agents.
+    - [Topic hub: Testing and evals](https://www.promptise.com/guides/topics/testing-evals) -- Every guide on testing and evals.

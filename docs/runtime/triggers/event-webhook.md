@@ -351,3 +351,7 @@ All implement the `BaseTrigger` protocol: `start()`, `stop()`, `wait_for_next()`
 - [Cron Trigger](cron.md) -- time-based scheduling
 - [File Watch Trigger](file-watch.md) -- filesystem monitoring
 - [Configuration](../configuration.md) -- full `TriggerConfig` reference
+
+!!! tip "Learn the concept"
+
+    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- Signed webhooks and prompt-injection tests for event-driven agents.

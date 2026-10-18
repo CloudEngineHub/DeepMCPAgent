@@ -340,3 +340,8 @@ class Disclaimer:
 
 - [Layer 2: ConversationFlow](flows.md) -- Evolve prompts across conversation turns
 - [Strategies](strategies.md) -- Prompt strategies and composition patterns
+
+!!! tip "Learn the concept"
+
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- Composing system prompts from reusable blocks.
+    - [Secure Prompt Design: Separate Instructions From Data](https://www.promptise.com/guides/view/structuring-prompts-for-safety-layers-that-hold) -- Separate instructions from data so injected text can't take over.

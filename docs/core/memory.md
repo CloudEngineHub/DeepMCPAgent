@@ -452,3 +452,8 @@ The injected memory block is wrapped in `<memory_context>` fences with explicit 
 - [Observability](observability.md) -- track token usage
 - [Context & State](../runtime/context.md) -- AgentContext and state management
 - [Conversation Management](../runtime/conversation.md) -- ConversationBuffer
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Memory in Python: Short-Term and Long-Term](https://www.promptise.com/guides/view/ai-agent-memory-python) -- Short-term history versus long-term facts, kept per user.
+    - [Topic hub: Memory, context and RAG](https://www.promptise.com/guides/topics/memory-context-rag) -- Every guide on memory, context management and RAG.

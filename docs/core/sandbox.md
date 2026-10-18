@@ -406,3 +406,7 @@ When `sandbox_custom_tools=True`, any Python tools the agent creates at runtime 
 - [Observability](observability.md) -- track token usage
 - [Memory](memory.md) -- persistent memory with vector search
 - [Meta-Tools](../runtime/meta-tools.md) -- open mode and agent-created tools
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Code Execution Sandbox: Run LLM Code Safely](https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python) -- Run model-written code in a container, try escapes and set limits.

@@ -302,3 +302,7 @@ the other's raw messages.
 - [Nodes reference: Context scope](../core/engine-nodes.md#context-scope) — the full mechanism
 - [Prebuilt Patterns](../core/engine-prebuilts.md) — `verify` and `managed` factories
 - [`examples/reasoning/verify_and_managed.py`](https://github.com/promptise-com/foundry/blob/main/examples/reasoning/verify_and_managed.py) — runnable demo
+
+!!! tip "Learn the concept"
+
+    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents) -- Keep what matters in long runs and trim the rest, with real token counts.

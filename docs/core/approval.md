@@ -873,3 +873,9 @@ Call it once per agent: the wrapped tools share their state (pending count, deni
 - [Semantic Cache](cache.md) -- reduce costs with response caching
 - [Conversations](conversations.md) -- multi-user session persistence
 - [Building Agents](agents/building-agents.md) -- full parameter reference
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Human in the Loop: Approve Tool Calls in Python](https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval) -- Make an agent ask a human before it refunds, emails or deletes.
+    - [Approval Fatigue: Auto-Approve Safe AI Agent Actions](https://www.promptise.com/guides/view/ai-agent-approval-fatigue) -- Keep reviewers from rubber-stamping every request.
+    - [Topic hub: Human approvals (human-in-the-loop)](https://www.promptise.com/guides/topics/human-in-the-loop) -- Every guide on human approvals.

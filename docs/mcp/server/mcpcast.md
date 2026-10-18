@@ -1077,3 +1077,7 @@ an API key in the environment.
 - [MCPcast API Reference](../../api/mcpcast.md) — every public class and function
 - [Make Your Python API MCP-Ready](../../guides/mcpcast-python-app.md) — generate from a running FastAPI / Django / Flask / Litestar app instead of a spec file
 - [Examples Gallery](../../resources/examples.md) — runnable examples
+
+!!! tip "Learn the concept"
+
+    - [OpenAPI to MCP: Turn Any REST API into an MCP Server](https://www.promptise.com/guides/view/openapi-to-mcp-server-rest-api) -- From an OpenAPI spec to a reviewed, tested MCP server.

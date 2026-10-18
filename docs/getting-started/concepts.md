@@ -231,3 +231,8 @@ All Promptise exceptions inherit from a common base for easy catching:
 - [Building Agents](../guides/building-agents.md) — step-by-step from simple to production
 - [Building MCP Servers](../guides/production-mcp-servers.md) — create tool APIs
 - [Building Runtime Systems](../guides/agentic-runtime.md) — deploy autonomous agents
+
+!!! tip "Learn the concept"
+
+    - [What Is an Agent Harness? Parts and How to Build One](https://www.promptise.com/guides/view/agent-harness-python) -- What surrounds the model: tool loop, context compaction, budgets and loop guards.
+    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol) -- Hosts, clients, servers and transports, the vocabulary behind MCP.

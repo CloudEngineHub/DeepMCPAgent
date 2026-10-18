@@ -408,3 +408,9 @@ When you pass `agent_pattern=` to `build_agent()`:
 - [Prebuilt Patterns](../engine-prebuilts.md) — Pattern factory functions
 - [Skills Library](../engine-skills.md) — 15 pre-configured node factories
 - [Building Custom Reasoning Guide](../../guides/custom-reasoning.md) — Step-by-step examples
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) -- Which reasoning patterns were right on real tasks, and at what cost.
+    - [ReAct Agent From Scratch in Python: The Reason-Act Loop](https://www.promptise.com/guides/view/build-reliable-reason-and-act-agent-loops-react-from-scratch) -- The Thought, Action, Observation loop built from scratch.
+    - [Plan-and-Execute Agents in Python: Beyond the ReAct Loop](https://www.promptise.com/guides/view/plan-and-execute-agent-python) -- When planning first beats a ReAct loop.

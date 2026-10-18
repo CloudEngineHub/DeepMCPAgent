@@ -638,3 +638,8 @@ Before deploying to production:
 - [Caching & Performance](caching-performance.md) — Cache, rate limit, concurrency
 - [Observability & Monitoring](observability.md) — Metrics, tracing, logging
 - [Resilience Patterns](resilience-patterns.md) — Circuit breakers, health checks
+
+!!! tip "Learn the concept"
+
+    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse) -- Serving MCP over HTTP in production: host checks, auth and scaling.
+    - [How to Deploy an AI Agent with Docker (2026 Guide)](https://www.promptise.com/guides/view/deploy-ai-agent-docker) -- Docker compose with an agent and an MCP server.

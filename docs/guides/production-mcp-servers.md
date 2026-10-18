@@ -591,3 +591,9 @@ server.run(transport="http", port=8080)
 - [Building Agentic Runtime Systems](agentic-runtime.md) -- Autonomous agents that consume your MCP servers
 - [Building AI Agents](building-agents.md) -- The core agent that connects to your tools
 - [Prompt Engineering](prompt-engineering.md) -- Build reliable, testable system prompts
+
+!!! tip "Learn the concept"
+
+    - [Build a Production MCP Server in Python (Step by Step)](https://www.promptise.com/guides/view/build-production-mcp-server-python) -- Typed tools, clear errors, roles, rate limits and audit logs explained.
+    - [Testing MCP Servers in Python: pytest Without a Live Server](https://www.promptise.com/guides/view/test-mcp-server-python) -- Test auth, guards and middleware without a running server.
+    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices) -- A security checklist to run before exposing a server.

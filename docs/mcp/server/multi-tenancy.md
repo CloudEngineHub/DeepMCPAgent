@@ -247,3 +247,7 @@ reply = await agent.chat("Which renewals are due?", session_id=sid, caller=calle
 - [Authentication & Security](auth-security.md) — auth providers, guards, `ClientContext`
 - [Multi-User Identity guide](../../guides/multi-user-identity.md) — end-to-end `CallerContext` flow
 - [Approval Gates](approval-gates.md) — server-side human-in-the-loop
+
+!!! tip "Learn the concept"
+
+    - [Multi-Tenant AI Agents: Keep Each Customer's Data Apart](https://www.promptise.com/guides/view/multi-tenant-ai-agent) -- Tenant-scoped tools and runs proving one tenant can't read another.

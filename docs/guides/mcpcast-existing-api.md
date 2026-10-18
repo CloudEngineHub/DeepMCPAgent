@@ -1363,3 +1363,7 @@ model calls, so keep it on the schedule that matches your budget.
   runs this end to end against the live Swagger Petstore
 - **[Building Production MCP Servers](production-mcp-servers.md)** — when the
   generated server needs hand-written tools alongside the generated ones
+
+!!! tip "Learn the concept"
+
+    - [OpenAPI to MCP: Turn Any REST API into an MCP Server](https://www.promptise.com/guides/view/openapi-to-mcp-server-rest-api) -- Why a small, read-only, approval-gated tool surface works better for agents.

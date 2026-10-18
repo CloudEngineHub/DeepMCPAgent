@@ -703,3 +703,7 @@ promptise agent config.superagent
 - [Agent Runtime Overview](../runtime/index.md) -- architecture and lifecycle concepts
 - [Agent Manifests](../runtime/manifests.md) -- `.agent` YAML format reference
 - [Observability](observability.md) -- `--observe` flag and observability
+
+!!! tip "Learn the concept"
+
+    - [How to Run, Debug and Deploy an AI Agent in Python](https://www.promptise.com/guides/view/run-debug-deploy-ai-agent-python) -- A walkthrough of running and debugging an agent from the terminal.

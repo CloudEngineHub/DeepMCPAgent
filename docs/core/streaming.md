@@ -368,3 +368,7 @@ async for chunk in agent.astream({"messages": [{"role": "user", "content": "Wher
 - [Events & Notifications](events.md) -- webhook alerts for invocation, tool, and guardrail events
 - [Guardrails](guardrails.md) -- security scanning that redacts tool arguments in the stream
 - [Observability](observability.md) -- detailed execution traces alongside streaming
+
+!!! tip "Learn the concept"
+
+    - [Streaming LLM Responses with FastAPI: Tokens and Tool Calls](https://www.promptise.com/guides/view/stream-llm-response-fastapi) -- Stream tool calls and the answer to a web page with Server-Sent Events.

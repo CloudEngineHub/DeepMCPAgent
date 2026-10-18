@@ -383,3 +383,9 @@ Entries without a caller (system events like `HEALTH_CHECK`) keep `user_id=None`
 
 - [CLI Reference](cli.md) -- `--observe` flag and CLI commands
 - [Memory](memory.md) -- persistent memory with vector search
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Observability: Trace Tool Calls, Tokens and Cost](https://www.promptise.com/guides/view/ai-agent-observability-trace-tool-calls) -- Use a trace to find the exact step that went wrong.
+    - [AI Agent Cost Tracking: Tokens and Cost per Run and User](https://www.promptise.com/guides/view/ai-agent-cost-tracking) -- Token usage and cost per call, run, user and agent.
+    - [Topic hub: Observability and debugging](https://www.promptise.com/guides/topics/observability-debugging) -- Every guide on tracing, debugging and evals.

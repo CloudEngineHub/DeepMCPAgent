@@ -271,3 +271,7 @@ engine.set_content("company_policy", "Never discuss competitor pricing.")
 - [Memory](memory.md) — the recall layer that feeds into the engine
 - [Adaptive Strategy](adaptive-strategy.md) — the strategies layer
 - [Observability](observability.md) — track context usage alongside token costs
+
+!!! tip "Learn the concept"
+
+    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents) -- Context window management for long agent runs, with real token counts.
