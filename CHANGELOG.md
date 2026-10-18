@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2 — unreleased
+
+### Fixed
+
+- `promptise run` no longer refuses a `promptise.toml` owned by root when it runs as another user, the usual case in a container image where `COPY` leaves files owned by root. Manifests owned by another non-root user, or writable by anyone, are still refused.
+
 ## 1.4.1 — 2026-10-18
 
 ### Fixed

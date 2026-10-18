@@ -283,20 +283,31 @@ def find_manifest(start: Path | None = None) -> Path | None:
 def _check_owner(path: Path) -> None:
     """Refuse a manifest someone else could have written.
 
-    The manifest decides what runs, with which environment.  As for ``.env``
-    files, one found above the working directory (``/tmp/promptise.toml`` on a
-    shared machine) must be a regular file owned by you that others cannot
-    write.
+    The manifest decides what runs, with which environment.  One found by
+    walking up from the working directory (``/tmp/promptise.toml`` on a shared
+    machine) must be a regular file that other users cannot write, owned by
+    you or by root.  Root-owned files are trusted because root can change
+    anything anyway; that is the usual case in a container image, where
+    ``COPY`` leaves files owned by root and the program runs as another user.
 
     Raises:
-        ManifestError: The file is someone else's or anyone can write it.
+        ManifestError: The file is another user's, or anyone can write it.
     """
-    from ..models import _unsafe_dotenv
+    import os
+    import stat
 
     try:
-        problem = _unsafe_dotenv(path, path.stat())
+        st = path.stat()
     except OSError as exc:
         raise ManifestError(path, [f"cannot read: {exc}"]) from exc
+    problem = None
+    if not stat.S_ISREG(st.st_mode):
+        problem = "not a regular file"
+    elif os.name == "posix":
+        if st.st_mode & stat.S_IWOTH:
+            problem = f"world-writable (mode {stat.S_IMODE(st.st_mode):o}): run chmod o-w {path}"
+        elif hasattr(os, "geteuid") and st.st_uid not in (os.geteuid(), 0):
+            problem = f"owned by uid {st.st_uid}, not by you (uid {os.geteuid()}) or root"
     if problem is not None:
         raise ManifestError(path, [f"refusing to use this manifest: {problem}"])
 

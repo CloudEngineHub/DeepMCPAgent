@@ -570,3 +570,28 @@ def test_openai_models_report_usage_when_streaming(monkeypatch: pytest.MonkeyPat
     assert _with_stream_usage(compatible) is compatible
     unset = ChatOpenAI(model="gpt-5-mini", api_key="sk-test", stream_usage=None)
     assert _with_stream_usage(unset).stream_usage is True
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX ownership")
+def test_a_root_owned_manifest_is_trusted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from promptise.run import manifest as m
+
+    path = _write(tmp_path / "promptise.toml", 'main = "x.py"\n')
+    real_uid = os.geteuid()
+    # As a non-root user reading a file root owns (a container image).
+    monkeypatch.setattr(os, "geteuid", lambda: real_uid + 1000 if real_uid else 1000)
+    st = path.stat()
+
+    class Fake:
+        st_mode = st.st_mode
+        st_uid = 0
+
+    monkeypatch.setattr(m.Path, "stat", lambda self, **kw: Fake())
+    m._check_owner(path)  # no error
+
+    class Other(Fake):
+        st_uid = 4242
+
+    monkeypatch.setattr(m.Path, "stat", lambda self, **kw: Other())
+    with pytest.raises(m.ManifestError, match="not by you"):
+        m._check_owner(path)
