@@ -124,3 +124,6 @@ RELEASE.md
 
 # Local scratch space (wizard trial runs etc.)
 .scratch/
+
+# Internal planning notes (never published)
+/content/
