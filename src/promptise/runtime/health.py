@@ -73,27 +73,36 @@ class HealthMonitor:
     ``cooldown=0``: :meth:`record_tool_call` then returns the anomaly on
     each call that continues it.
 
+    Window sizes follow the config: when ``error_window``, ``loop_window``,
+    ``stuck_threshold`` or ``empty_threshold`` change on the config object
+    the monitor reads (as ``PATCH /health`` does), the windows are resized
+    on the next recorded call, keeping the most recent data.  Call
+    :meth:`apply_config` to switch to a different :class:`HealthConfig`
+    object.
+
+    The anomaly history keeps the latest :attr:`MAX_ANOMALIES` anomalies;
+    the per-type counts in :meth:`health_status` count all of them.
+
     Args:
         config: Health monitoring configuration.
         process_id: Owning process ID.
     """
 
+    #: Most anomalies kept in :attr:`anomalies` (oldest dropped first).
+    MAX_ANOMALIES = 1000
+
     def __init__(self, config: HealthConfig, process_id: str) -> None:
         self._config = config
         self._process_id = process_id
 
-        max_window = max(
-            config.loop_window,
-            config.stuck_threshold * 2,
-            config.empty_threshold * 2,
-            config.error_window * 2,
-        )
-        self._tool_history: deque[tuple[str, str]] = deque(maxlen=max_window)
-        self._response_lengths: deque[int] = deque(maxlen=max_window)
-        self._error_window: deque[bool] = deque(maxlen=config.error_window)
+        self._tool_history: deque[tuple[str, str]] = deque()
+        self._response_lengths: deque[int] = deque()
+        self._error_window: deque[bool] = deque()
+        self._window_sizes: tuple[int, int] = (0, 0)
+        self._sync_windows()
         # Last report time per anomaly key (see _cooldown_key).
         self._last_anomaly_time: dict[tuple[Any, ...], float] = {}
-        self._anomalies: list[Anomaly] = []
+        self._anomalies: deque[Anomaly] = deque(maxlen=self.MAX_ANOMALIES)
         self._anomaly_count: dict[AnomalyType, int] = dict.fromkeys(AnomalyType, 0)
         # Set when an anomaly fires; cleared by the next clean success.
         self._unrecovered = False
@@ -105,8 +114,43 @@ class HealthMonitor:
     # ------------------------------------------------------------------
 
     @property
+    def config(self) -> HealthConfig:
+        """The configuration the monitor reads."""
+        return self._config
+
+    def apply_config(self, config: HealthConfig) -> None:
+        """Switch to *config*, resizing the windows and keeping the data.
+
+        The most recent tool calls, reply lengths and error flags are
+        kept (as many as fit the new windows), as are the anomaly history
+        and the cooldowns.  The new thresholds apply from the next
+        recorded call.
+        """
+        self._config = config
+        self._sync_windows()
+
+    def clear_anomalies(self) -> int:
+        """Forget detected anomalies and reset their cooldowns.
+
+        After a clear, the next occurrence of any anomaly is reported at
+        once (not only after ``cooldown``), counts start from zero and the
+        monitor reports healthy.  The tool-call, reply-length and error
+        windows are kept: they are evidence, not reports.
+
+        Returns:
+            The number of anomalies that were in the history.
+        """
+        cleared = len(self._anomalies)
+        self._anomalies.clear()
+        self._new_anomalies.clear()
+        self._last_anomaly_time.clear()
+        self._anomaly_count = dict.fromkeys(AnomalyType, 0)
+        self._unrecovered = False
+        return cleared
+
+    @property
     def anomalies(self) -> list[Anomaly]:
-        """All detected anomalies."""
+        """Detected anomalies, oldest first (the latest :attr:`MAX_ANOMALIES`)."""
         return list(self._anomalies)
 
     @property
@@ -143,10 +187,12 @@ class HealthMonitor:
         the error window do carry over: "three empty replies in a row"
         and "half the recent runs failed" are cross-run signals.
         """
+        self._sync_windows()
         self._tool_history.clear()
 
     async def record_tool_call(self, tool_name: str, args: dict[str, Any]) -> Anomaly | None:
         """Record a tool call and check for stuck/loop anomalies."""
+        self._sync_windows()
         args_hash = self._hash_args(args)
         self._tool_history.append((tool_name, args_hash))
 
@@ -162,7 +208,10 @@ class HealthMonitor:
 
         Pass the reply the agent gave at the end of an invocation, not
         tool results: a tool returning ``[]`` is not an empty response.
+        A reply of at most ``empty_max_chars`` characters (after
+        stripping whitespace) counts as empty.
         """
+        self._sync_windows()
         self._response_lengths.append(len(content.strip()))
         anomaly = self._detect_empty()
         if anomaly and self._is_cooled_down(anomaly):
@@ -176,6 +225,7 @@ class HealthMonitor:
         Returns:
             ``True`` if this success clears a previous anomaly (recovery).
         """
+        self._sync_windows()
         self._error_window.append(False)
         # Recovery: the first clean success after an anomaly (once, so
         # process.py emits a single health.recovered per incident).
@@ -186,6 +236,7 @@ class HealthMonitor:
 
     async def record_error(self) -> Anomaly | None:
         """Record a failed invocation and check error rate."""
+        self._sync_windows()
         self._error_window.append(True)
         anomaly = self._detect_error_rate()
         if anomaly and self._is_cooled_down(anomaly):
@@ -260,7 +311,7 @@ class HealthMonitor:
         return None
 
     def _detect_empty(self) -> Anomaly | None:
-        """Detect: N consecutive responses below the character threshold."""
+        """Detect: N consecutive replies of at most ``empty_max_chars`` characters."""
         threshold = self._config.empty_threshold
         max_chars = self._config.empty_max_chars
 
@@ -273,7 +324,7 @@ class HealthMonitor:
                 anomaly_type=AnomalyType.EMPTY_RESPONSE,
                 description=(
                     f"Agent producing empty responses: {threshold} consecutive "
-                    f"responses under {max_chars} characters"
+                    f"replies of at most {max_chars} characters"
                 ),
                 details={
                     "consecutive_count": threshold,
@@ -313,15 +364,20 @@ class HealthMonitor:
     # ------------------------------------------------------------------
 
     def health_status(self) -> dict[str, Any]:
-        """Return health summary for ``process.status()``."""
+        """Health summary (public API; JSON-safe).
+
+        Returns:
+            ``is_healthy`` (no anomaly reported within the last
+            ``cooldown`` seconds), ``anomaly_count`` (total reported since
+            the start or the last :meth:`clear_anomalies`),
+            ``anomalies_by_type`` and ``latest_anomaly`` (type, description,
+            ISO timestamp) or ``None``.
+        """
+        last = max(self._last_anomaly_time.values(), default=None)
         return {
-            "is_healthy": len(self._anomalies) == 0
-            or (
-                time.monotonic() - max(self._last_anomaly_time.values(), default=0.0)
-                > self._config.cooldown
-            ),
+            "is_healthy": last is None or (time.monotonic() - last) > self._config.cooldown,
             "anomaly_count": sum(self._anomaly_count.values()),
-            "anomalies_by_type": dict(self._anomaly_count),
+            "anomalies_by_type": {t.value: n for t, n in self._anomaly_count.items()},
             "latest_anomaly": (
                 {
                     "type": self._anomalies[-1].anomaly_type.value,
@@ -339,13 +395,15 @@ class HealthMonitor:
             "tool_history": list(self._tool_history),
             "response_lengths": list(self._response_lengths),
             "error_window": list(self._error_window),
-            "anomaly_count": dict(self._anomaly_count),
+            "anomaly_count": {t.value: n for t, n in self._anomaly_count.items()},
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], config: Any) -> HealthMonitor:
+    def from_dict(
+        cls, data: dict[str, Any], config: Any, *, process_id: str = "recovered"
+    ) -> HealthMonitor:
         """Reconstruct from a journal checkpoint."""
-        monitor = cls(config, process_id="recovered")
+        monitor = cls(config, process_id=process_id)
         for item in data.get("tool_history", []):
             if isinstance(item, (list, tuple)) and len(item) == 2:
                 monitor._tool_history.append((item[0], item[1]))
@@ -355,12 +413,30 @@ class HealthMonitor:
             monitor._error_window.append(bool(err))
         counts = data.get("anomaly_count", {})
         for t in AnomalyType:
-            monitor._anomaly_count[t] = counts.get(t.value, 0)
+            # Keys are type values; older checkpoints may hold "AnomalyType.X".
+            monitor._anomaly_count[t] = int(counts.get(t.value, counts.get(str(t), 0)) or 0)
         return monitor
 
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
+
+    def _sync_windows(self) -> None:
+        """Resize the windows when the config's sizes changed, keeping data."""
+        cfg = self._config
+        history = max(
+            cfg.loop_window,
+            cfg.stuck_threshold * 2,
+            cfg.empty_threshold * 2,
+            cfg.error_window * 2,
+        )
+        sizes = (history, cfg.error_window)
+        if sizes == self._window_sizes:
+            return
+        self._tool_history = deque(self._tool_history, maxlen=history)
+        self._response_lengths = deque(self._response_lengths, maxlen=history)
+        self._error_window = deque(self._error_window, maxlen=cfg.error_window)
+        self._window_sizes = sizes
 
     def _hash_args(self, args: dict[str, Any]) -> str:
         """Stable hash of tool arguments for comparison."""

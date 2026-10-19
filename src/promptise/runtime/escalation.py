@@ -36,26 +36,44 @@ async def escalate(
 ) -> None:
     """Fire an escalation notification.
 
-    Sends the payload to all configured targets.  Errors are logged
-    but never raised — escalation is fire-and-forget so it doesn't
-    disrupt agent execution.
+    Sends the payload to all configured targets.  Errors are logged as
+    warnings but never raised — escalation is fire-and-forget so it
+    doesn't disrupt agent execution.  A webhook that answers with an
+    HTTP error status counts as a failed delivery.  A target with nothing
+    to deliver to (no ``webhook_url``, and no ``event_type`` or no event
+    bus) is logged as a warning, since the notification goes nowhere.
 
     Args:
         target: Where to send the notification.
         payload: JSON-serialisable payload describing the escalation.
         event_bus: Optional EventBus for event-based escalation.
     """
+    delivered_somewhere = False
     if target.webhook_url:
+        delivered_somewhere = True
         try:
             await _fire_webhook(target.webhook_url, payload)
         except Exception as exc:
             logger.warning("Escalation webhook failed: %s", exc)
 
-    if target.event_type and event_bus is not None:
-        try:
-            await event_bus.emit(target.event_type, payload)
-        except Exception as exc:
-            logger.debug("Escalation event emission failed: %s", exc, exc_info=True)
+    if target.event_type:
+        if event_bus is None:
+            logger.warning(
+                "Escalation event %r not emitted: the process has no event bus",
+                target.event_type,
+            )
+        else:
+            delivered_somewhere = True
+            try:
+                await event_bus.emit(target.event_type, payload)
+            except Exception as exc:
+                logger.warning("Escalation event emission failed: %s", exc, exc_info=True)
+
+    if not delivered_somewhere:
+        logger.warning(
+            "Escalation (%s) has no target: set EscalationTarget.webhook_url or event_type",
+            payload.get("type", "unknown"),
+        )
 
 
 async def _fire_webhook(url: str, payload: dict[str, Any]) -> None:
@@ -86,7 +104,7 @@ async def _fire_webhook(url: str, payload: dict[str, Any]) -> None:
 
     try:
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
-            await client.post(
+            response = await client.post(
                 target.url,
                 json=payload,
                 headers={"Content-Type": "application/json", **target.headers},
@@ -94,4 +112,8 @@ async def _fire_webhook(url: str, payload: dict[str, Any]) -> None:
                 follow_redirects=False,
             )
     except Exception as exc:
-        logger.debug("Webhook delivery failed: %s", exc, exc_info=True)
+        logger.warning("Escalation webhook delivery failed: %s", exc, exc_info=True)
+        return
+    status = getattr(response, "status_code", None)
+    if isinstance(status, int) and status >= 300:
+        logger.warning("Escalation webhook answered HTTP %d; notification not delivered", status)

@@ -48,6 +48,10 @@ def host_name(host_header: str) -> str:
 def loopback_request_problem(host_header: str, origin: str | None) -> tuple[int, str] | None:
     """Check a request to a loopback-bound server.
 
+    A missing ``Host`` header counts as non-loopback (refused), and only
+    ``http``/``https`` origins on a loopback name (any port) pass; the
+    ``null`` origin of sandboxed frames and ``file://`` pages is refused.
+
     Returns:
         ``(status, message)`` when the request must be refused (``421``
         for a non-loopback ``Host``, ``403`` for a cross-site ``Origin``),
@@ -63,10 +67,11 @@ def loopback_request_problem(host_header: str, origin: str | None) -> tuple[int,
 def bearer_token_matches(authorization: str, token: str) -> bool:
     """Timing-safe check of an ``Authorization: Bearer <token>`` header.
 
+    The scheme name is case-insensitive (RFC 7235: ``bearer`` works too).
     Compares bytes, so a header with non-ASCII characters is a mismatch
     rather than a ``TypeError``.
     """
-    if not authorization.startswith("Bearer "):
+    if authorization[:7].lower() != "bearer ":
         return False
     return hmac.compare_digest(
         authorization[7:].encode("utf-8", "surrogateescape"), token.encode("utf-8")

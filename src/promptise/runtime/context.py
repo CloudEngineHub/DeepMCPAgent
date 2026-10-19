@@ -10,7 +10,12 @@ on every invocation.  It merges four concerns into one API:
 * **Files** — logical name → filesystem path mapping
 
 The context is serializable via :meth:`to_dict` / :meth:`from_dict` for
-checkpointing and distribution.
+checkpointing and distribution.  Every state write is also handed to the
+hooks registered with :meth:`AgentContext.add_update_hook`, so an owner
+can journal it as a ``context_update`` entry (the shape
+:class:`~promptise.runtime.journal.ReplayEngine` replays) and recover
+state written since the last checkpoint.  :func:`create_state_tools`
+builds the tool an agent uses to write its own state.
 
 Example::
 
@@ -28,10 +33,23 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import inspect
+import json
+import logging
 import os
 import time
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
+
+logger = logging.getLogger("promptise.runtime.context")
+
+#: Journal entry type for a state write (read by ``ReplayEngine``).
+CONTEXT_UPDATE_ENTRY_TYPE = "context_update"
+
+#: A state-write hook: called with the :class:`StateEntry` just recorded.
+#: It may return an awaitable, which is scheduled on the running loop.
+StateUpdateHook = Callable[["StateEntry"], "Awaitable[Any] | None"]
 
 
 def _snapshot(value: Any) -> Any:
@@ -68,7 +86,12 @@ class StateEntry:
     source: str = "system"
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to a JSON-compatible dict."""
+        """Serialize to a JSON-compatible dict.
+
+        This is also the ``data`` of a ``context_update`` journal entry:
+        :class:`~promptise.runtime.journal.ReplayEngine` reads its ``key``
+        and ``value``.
+        """
         return {
             "key": self.key,
             "value": self.value,
@@ -97,8 +120,14 @@ class AgentContext:
     * ``.env`` — filtered environment variables
     * ``.files`` — mounted file paths
 
+    Every successful write (:meth:`put`, :meth:`update`) is recorded in
+    the key's audit history and handed to the hooks registered with
+    :meth:`add_update_hook`.  :meth:`restore_state` loads recovered state
+    without firing them.
+
     Args:
-        writable_keys: Keys the agent is allowed to write to.  An empty
+        writable_keys: Keys that :meth:`put` and :meth:`update` may write
+            (agent, API and trigger writes alike).  ``None`` or an empty
             list means **all** keys are writable.
         memory_provider: Optional
             :class:`~promptise.memory.MemoryProvider` instance.
@@ -125,6 +154,8 @@ class AgentContext:
         self._state: dict[str, Any] = {}
         self._history: dict[str, list[StateEntry]] = {}
         self._lock = asyncio.Lock()
+        self._update_hooks: list[StateUpdateHook] = []
+        self._pending_hooks: set[asyncio.Future[Any]] = set()
 
         # Populate initial state
         for key, value in (initial_state or {}).items():
@@ -148,6 +179,19 @@ class AgentContext:
         """
         return self._state.get(key, default)
 
+    @property
+    def writable_keys(self) -> list[str] | None:
+        """The keys :meth:`put` may write (sorted), or ``None`` when all are."""
+        return sorted(self._writable_keys) if self._writable_keys is not None else None
+
+    def can_write(self, key: str) -> bool:
+        """Whether *key* may be written by :meth:`put` / :meth:`update`."""
+        return self._writable_keys is None or key in self._writable_keys
+
+    def denied_keys(self, keys: Iterable[str]) -> list[str]:
+        """The keys among *keys* that may not be written, in the given order."""
+        return [key for key in keys if not self.can_write(key)]
+
     def put(
         self,
         key: str,
@@ -157,20 +201,137 @@ class AgentContext:
     ) -> None:
         """Write a value to the state store.
 
+        The write is recorded in the key's audit history and handed to
+        the update hooks (see :meth:`add_update_hook`).
+
         Args:
             key: State key.
             value: Value to store.
-            source: Origin of the write.
+            source: Origin of the write (``"agent"``, ``"api"``,
+                ``"trigger"``, ...), kept in the audit history.
 
         Raises:
             KeyError: If *key* is not in the writable keys set (when
                 writable keys are configured).
         """
-        if self._writable_keys is not None and key not in self._writable_keys:
-            raise KeyError(f"Key {key!r} is not writable. Allowed: {sorted(self._writable_keys)}")
+        if not self.can_write(key):
+            raise KeyError(self._not_writable_message([key]))
+        self._fire_hooks([self._record(key, value, source)])
+
+    def update(self, values: Mapping[str, Any], *, source: str = "agent") -> list[str]:
+        """Write several keys at once, all or nothing.
+
+        Every key is checked before anything is written: if one is not
+        writable, none is.
+
+        Args:
+            values: Keys and the values to store.
+            source: Origin of the writes.
+
+        Returns:
+            The keys written, in the given order.
+
+        Raises:
+            KeyError: If any key is not writable (the message names all
+                of them).  Nothing is written.
+        """
+        denied = self.denied_keys(values)
+        if denied:
+            raise KeyError(self._not_writable_message(denied))
+        entries = [self._record(key, value, source) for key, value in values.items()]
+        self._fire_hooks(entries)
+        return [entry.key for entry in entries]
+
+    def restore_state(self, state: Mapping[str, Any], *, source: str = "recovery") -> None:
+        """Load recovered state (from a checkpoint or ``ReplayEngine``).
+
+        Bypasses :attr:`writable_keys` (the values were written legitimately
+        before) and does not fire the update hooks, so restored values are
+        not journaled a second time.  Each key gets a history entry with
+        *source*.
+        """
+        for key, value in state.items():
+            self._record(key, value, source)
+
+    def _record(self, key: str, value: Any, source: str) -> StateEntry:
         self._state[key] = value
         entry = StateEntry(key=key, value=_snapshot(value), source=source)
         self._history.setdefault(key, []).append(entry)
+        return entry
+
+    def _not_writable_message(self, keys: list[str]) -> str:
+        names = ", ".join(repr(k) for k in keys)
+        noun = "Key" if len(keys) == 1 else "Keys"
+        verb = "is" if len(keys) == 1 else "are"
+        return f"{noun} {names} {verb} not writable. Allowed: {self.writable_keys}"
+
+    # ------------------------------------------------------------------
+    # Update hooks (journaling)
+    # ------------------------------------------------------------------
+
+    def add_update_hook(self, hook: StateUpdateHook) -> Callable[[], None]:
+        """Call *hook* with the :class:`StateEntry` of every state write.
+
+        Meant for journaling: an owner registers a hook that appends a
+        ``context_update`` entry (:data:`CONTEXT_UPDATE_ENTRY_TYPE`) with
+        ``entry.to_dict()`` as its data, which ``ReplayEngine`` replays
+        after the last checkpoint.  The hook runs synchronously after the
+        write; if it returns an awaitable, that is scheduled on the running
+        event loop (await :meth:`flush_update_hooks` to wait for it).  A
+        hook that raises is logged and never fails the write.
+
+        Returns:
+            A function that removes the hook.
+        """
+        self._update_hooks.append(hook)
+
+        def remove() -> None:
+            if hook in self._update_hooks:
+                self._update_hooks.remove(hook)
+
+        return remove
+
+    async def flush_update_hooks(self) -> None:
+        """Wait for the awaitables returned by update hooks to finish."""
+        while self._pending_hooks:
+            await asyncio.gather(*list(self._pending_hooks), return_exceptions=True)
+
+    def _fire_hooks(self, entries: list[StateEntry]) -> None:
+        for entry in entries:
+            for hook in list(self._update_hooks):
+                try:
+                    result = hook(entry)
+                except Exception:
+                    logger.warning(
+                        "AgentContext: update hook failed for %r", entry.key, exc_info=True
+                    )
+                    continue
+                if inspect.isawaitable(result):
+                    self._schedule(result, entry.key)
+
+    def _schedule(self, awaitable: Awaitable[Any], key: str) -> None:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:  # put() called outside the event loop
+            if inspect.iscoroutine(awaitable):
+                awaitable.close()
+            logger.warning(
+                "AgentContext: async update hook for %r skipped (no running event loop)", key
+            )
+            return
+        future = asyncio.ensure_future(awaitable, loop=loop)
+        self._pending_hooks.add(future)
+
+        def done(fut: asyncio.Future[Any]) -> None:
+            self._pending_hooks.discard(fut)
+            if not fut.cancelled() and fut.exception() is not None:
+                logger.warning(
+                    "AgentContext: async update hook failed for %r",
+                    key,
+                    exc_info=fut.exception(),
+                )
+
+        future.add_done_callback(done)
 
     def state_snapshot(self) -> dict[str, Any]:
         """Return a shallow copy of the current state."""
@@ -335,3 +496,124 @@ class AgentContext:
             f"memory={'yes' if self._memory_provider else 'no'}, "
             f"mounts={len(self._file_mounts)})"
         )
+
+
+# ----------------------------------------------------------------------
+# Agent-facing state tool
+# ----------------------------------------------------------------------
+
+#: Name of the tool built by :func:`create_state_tools`.
+STATE_TOOL_NAME = "update_state"
+
+
+def create_state_tools(
+    context: AgentContext,
+    *,
+    source: str = "agent",
+    max_value_chars: int = 10_000,
+    max_keys: int = 100,
+) -> list[Any]:
+    """Build the tool an agent uses to write its own state.
+
+    Returns one LangChain ``StructuredTool``, ``update_state(key, value)``,
+    which writes through :meth:`AgentContext.put`, so it is limited to the
+    context's :attr:`~AgentContext.writable_keys` (offered to the model as
+    an enum when they are configured), recorded in the audit history with
+    *source*, and handed to the update hooks (journaled, when the owner
+    journals).  Refusals come back to the model as ``"Error: ..."`` text,
+    never as exceptions.
+
+    The state is injected into every later prompt, so values are kept
+    small: a value must be JSON-serializable and at most
+    *max_value_chars* characters as JSON, and a context without
+    ``writable_keys`` accepts at most *max_keys* keys in total.
+
+    Args:
+        context: The context the tool writes to.
+        source: Audit source recorded for the tool's writes.
+        max_value_chars: Largest value accepted (JSON length).
+        max_keys: Most keys the state may hold after a write that adds a
+            key (only checked when every key is writable).
+
+    Returns:
+        ``[update_state]``, ready to append to an agent's tools.
+
+    Raises:
+        ValueError: *max_value_chars* or *max_keys* is not positive.
+    """
+    from langchain_core.tools import StructuredTool
+    from pydantic import Field, create_model
+
+    if max_value_chars <= 0 or max_keys <= 0:
+        raise ValueError("create_state_tools: max_value_chars and max_keys must be positive")
+
+    allowed = context.writable_keys
+    # A Literal key type reaches the model as an enum (LangChain rebuilds
+    # the schema and drops json_schema_extra).
+    key_type: Any = Literal.__getitem__(tuple(allowed)) if allowed else str
+    key_help = (
+        f"State key to write. One of: {', '.join(allowed)}."
+        if allowed
+        else "State key to write (short snake_case name)."
+    )
+    args_schema = create_model(
+        "UpdateStateArgs",
+        key=(key_type, Field(..., description=key_help)),
+        value=(
+            Any,
+            Field(
+                ...,
+                description=(
+                    "Value to store: a string, number, boolean, list or object. "
+                    "It replaces the key's current value."
+                ),
+            ),
+        ),
+    )
+
+    async def update_state(key: str, value: Any) -> str:
+        if not context.can_write(key):
+            return f"Error: state key {key!r} is not writable. Writable keys: {', '.join(allowed or [])}"
+        try:
+            encoded = json.dumps(value)
+        except (TypeError, ValueError):
+            return "Error: the value must be JSON (string, number, boolean, list or object)"
+        if len(encoded) > max_value_chars:
+            return (
+                f"Error: the value is {len(encoded)} characters as JSON; "
+                f"the limit is {max_value_chars}. Store a shorter summary."
+            )
+        if (
+            allowed is None
+            and key not in context.state_keys()
+            and len(context.state_keys()) >= max_keys
+        ):
+            return f"Error: the state already holds {max_keys} keys; update an existing key instead"
+        try:
+            context.put(key, value, source=source)
+        except KeyError as exc:
+            return f"Error: {exc.args[0] if exc.args else exc}"
+        return f"Stored state key {key!r}."
+
+    description = (
+        "Save a value in your persistent state. The state survives between runs "
+        "and is shown to you at the start of every run as [Context State]. "
+        "Use it for progress markers, counters and short facts you need next time."
+    )
+    if allowed:
+        description += f" Writable keys: {', '.join(allowed)}."
+    tool = StructuredTool(
+        name=STATE_TOOL_NAME,
+        description=description,
+        args_schema=args_schema,
+        coroutine=update_state,
+        func=lambda **kw: "Error: update_state is async-only",
+        # A key outside the enum fails schema validation: answer the model
+        # with the allowed keys rather than raising.
+        handle_validation_error=lambda exc: (
+            "Error: invalid update_state arguments. "
+            + (f"Writable keys: {', '.join(allowed)}. " if allowed else "")
+            + "Pass a 'key' and a JSON 'value'."
+        ),
+    )
+    return [tool]

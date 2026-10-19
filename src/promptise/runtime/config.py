@@ -14,12 +14,29 @@ Two preset configurations are provided for common environments:
 from __future__ import annotations
 
 import ipaddress
+import re
 import warnings
 from collections.abc import Callable
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
+
+_ENV_REFERENCE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::-[^}]*)?\}")
+
+
+def is_env_reference(value: str) -> bool:
+    """Whether *value* contains an ``${VAR}`` / ``${VAR:-default}`` reference."""
+    return bool(_ENV_REFERENCE.search(value))
+
 
 # ---------------------------------------------------------------------------
 # Execution modes
@@ -105,6 +122,35 @@ class OpenModeConfig(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class _WarnOnUnknownKeys(BaseModel):
+    """Base for section configs: unknown keys warn instead of vanishing.
+
+    Before 1.4.4 these models dropped unknown keys without a word, so a
+    misspelt option (``error_windw``) silently kept its default.  They are
+    still ignored, for backward compatibility, but now emit a
+    ``FutureWarning`` naming them; a future release will reject them, as
+    :class:`ProcessConfig` and :class:`TriggerConfig` already do.  Manifests
+    and the orchestration API reject them today.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _warn_unknown_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            unknown = sorted(str(k) for k in data if k not in cls.model_fields)
+            if unknown:
+                warnings.warn(
+                    f"{cls.__name__}: unknown key(s) {unknown} are ignored; "
+                    f"valid keys are {sorted(cls.model_fields)}. Unknown keys will be "
+                    "rejected in a future release.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+        return data
+
+
 #: Filesystem events a ``file_watch`` trigger can react to.
 FILE_WATCH_EVENTS = ("created", "modified", "deleted", "moved")
 
@@ -152,12 +198,33 @@ class TriggerConfig(BaseModel):
             (``stripe``) signature, to stop replays.
         allowed_sources: Client IPs or CIDR ranges allowed to call the
             webhook (empty = any).  Others get 403.
+        webhook_max_body_bytes: Largest request body the webhook accepts,
+            in bytes (``webhook`` only, default 1 MiB).  Larger bodies get
+            ``413``.
         watch_path: Directory to watch (``file_watch`` only).
-        watch_patterns: Glob patterns (``file_watch`` only).
+        watch_patterns: Glob patterns (``file_watch`` only), matched
+            against the file name.
         watch_events: Filesystem events to react to (``file_watch`` only):
             any of ``created``, ``modified``, ``deleted``, ``moved``.
         watch_debounce_seconds: Window in which events for the same file
             are merged into one (``file_watch`` only).
+        watch_recursive: Also watch subdirectories (``file_watch`` only,
+            default ``True``).
+        watch_backend: How changes are detected (``file_watch`` only):
+            ``"auto"`` (native OS notifications through ``watchdog`` when
+            it is installed, otherwise polling), ``"watchdog"`` (fail if
+            it isn't installed) or ``"polling"`` (scan the directory every
+            ``watch_poll_interval`` seconds; use it for network shares and
+            bind mounts, where OS notifications are unreliable).
+        watch_poll_interval: Seconds between scans with the polling
+            backend (``file_watch`` only).
+        watch_max_pending_events: How many changed files the trigger holds
+            while the process is busy (``file_watch`` only).  Events wait
+            for the process instead of being dropped; changes to a file
+            that is already waiting are merged into its event.  Only when
+            this many *different* files are waiting is a new one dropped,
+            with an error log and a count in
+            ``FileWatchTrigger.dropped_events``.
         event_type: EventBus event type string (``event`` only).
         event_source: Optional source filter (``event`` only).
         topic: MessageBroker topic (``message`` only).
@@ -169,6 +236,10 @@ class TriggerConfig(BaseModel):
             :mod:`promptise.runtime.triggers.filters`) or a callable that
             takes the :class:`~promptise.runtime.triggers.base.TriggerEvent`
             and returns a bool.  Events that don't match are skipped.
+
+    Setting an option that belongs to another built-in trigger type (for
+    example ``watch_path`` on a ``cron`` trigger) is an error, since the
+    trigger would ignore it.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -203,6 +274,12 @@ class TriggerConfig(BaseModel):
         default_factory=list,
         description="Client IPs / CIDR ranges allowed to call the webhook (empty = any)",
     )
+    webhook_max_body_bytes: int = Field(
+        1024 * 1024,
+        ge=1,
+        le=1024 * 1024 * 1024,
+        description="Largest webhook request body in bytes (larger bodies get 413)",
+    )
 
     # -- File watch --
     watch_path: str | None = Field(None, description="Directory to watch for changes")
@@ -216,6 +293,19 @@ class TriggerConfig(BaseModel):
     )
     watch_debounce_seconds: float = Field(
         0.5, ge=0, description="Window in which events for one file are merged"
+    )
+    watch_recursive: bool = Field(True, description="Also watch subdirectories")
+    watch_backend: Literal["auto", "watchdog", "polling"] = Field(
+        "auto",
+        description="Change detection: auto (watchdog if installed), watchdog or polling",
+    )
+    watch_poll_interval: float = Field(
+        1.0, gt=0, le=3600, description="Seconds between scans with the polling backend"
+    )
+    watch_max_pending_events: int = Field(
+        10_000,
+        ge=1,
+        description="Changed files held while the process is busy before new ones are dropped",
     )
 
     # -- Event --
@@ -243,6 +333,7 @@ class TriggerConfig(BaseModel):
     @model_validator(mode="after")
     def _validate_trigger_fields(self) -> TriggerConfig:
         """Enforce type-specific required fields and validate values early."""
+        self._reject_options_of_other_types()
         if self.type == "cron":
             if not self.cron_expression:
                 raise ValueError("Cron trigger requires 'cron_expression'")
@@ -265,6 +356,14 @@ class TriggerConfig(BaseModel):
                 raise ValueError(
                     f"Unknown watch_events {unknown}; choose from {list(FILE_WATCH_EVENTS)}"
                 )
+            if self.watch_backend == "watchdog":
+                import importlib.util
+
+                if importlib.util.find_spec("watchdog") is None:
+                    raise ValueError(
+                        "watch_backend='watchdog' needs the 'watchdog' package "
+                        "(pip install watchdog); use 'auto' or 'polling' instead"
+                    )
         if self.type == "event" and not self.event_type:
             raise ValueError("Event trigger requires 'event_type'")
         if self.type == "message" and not self.topic:
@@ -295,10 +394,71 @@ class TriggerConfig(BaseModel):
             validate_filter_expression(self.filter_expression)
         return self
 
+    def _reject_options_of_other_types(self) -> None:
+        """Fail on options that the configured built-in type would ignore.
+
+        Only values that differ from the default count, so a config that
+        was dumped (all fields present) and loaded again still validates.
+        Custom trigger types receive the whole config and are not checked.
+        """
+        if self.type not in _TRIGGER_TYPE_FIELDS:
+            return
+        allowed = _TRIGGER_TYPE_FIELDS[self.type] | _COMMON_TRIGGER_FIELDS
+        ignored = []
+        for name in sorted(self.model_fields_set - allowed):
+            field_info = type(self).model_fields[name]
+            default = field_info.get_default(call_default_factory=True)
+            if getattr(self, name) != default:
+                ignored.append(name)
+        if ignored:
+            owners = sorted(
+                {t for t, fields in _TRIGGER_TYPE_FIELDS.items() for n in ignored if n in fields}
+            )
+            raise ValueError(
+                f"Option(s) {ignored} belong to {owners} triggers and would be ignored "
+                f"by a {self.type!r} trigger; remove them or change 'type'"
+            )
+
     @property
     def effective_signature_header(self) -> str:
         """The header the webhook reads the signature from."""
         return self.signature_header or SIGNATURE_HEADERS[self.signature_scheme]
+
+
+#: TriggerConfig fields each built-in trigger type reads.
+_TRIGGER_TYPE_FIELDS: dict[str, frozenset[str]] = {
+    "cron": frozenset({"cron_expression", "cron_timezone"}),
+    "webhook": frozenset(
+        {
+            "webhook_path",
+            "webhook_port",
+            "webhook_host",
+            "hmac_secret",
+            "signature_scheme",
+            "signature_header",
+            "signature_tolerance",
+            "allowed_sources",
+            "webhook_max_body_bytes",
+        }
+    ),
+    "file_watch": frozenset(
+        {
+            "watch_path",
+            "watch_patterns",
+            "watch_events",
+            "watch_debounce_seconds",
+            "watch_recursive",
+            "watch_backend",
+            "watch_poll_interval",
+            "watch_max_pending_events",
+        }
+    ),
+    "event": frozenset({"event_type", "event_source"}),
+    "message": frozenset({"topic"}),
+}
+
+#: TriggerConfig fields that apply to every trigger type.
+_COMMON_TRIGGER_FIELDS = frozenset({"type", "filter_expression", "custom_config"})
 
 
 class TriggerDeliveryConfig(BaseModel):
@@ -336,7 +496,7 @@ class TriggerDeliveryConfig(BaseModel):
     )
 
 
-class JournalConfig(BaseModel):
+class JournalConfig(_WarnOnUnknownKeys):
     """Journal (durable audit log) configuration.
 
     Attributes:
@@ -353,7 +513,7 @@ class JournalConfig(BaseModel):
     path: str = Field(".promptise/journal", description="Base directory for journal files")
 
 
-class ContextConfig(BaseModel):
+class ContextConfig(_WarnOnUnknownKeys):
     """AgentContext configuration.
 
     Attributes:
@@ -375,6 +535,8 @@ class ContextConfig(BaseModel):
         file_mounts: Mapping of logical name → filesystem path.
         env_prefix: Only expose environment variables with this prefix.
         initial_state: Pre-populated key-value state.
+
+    Unknown keys are ignored with a ``FutureWarning``.
     """
 
     writable_keys: list[str] = Field(
@@ -423,7 +585,7 @@ class ContextConfig(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class EscalationTarget(BaseModel):
+class EscalationTarget(_WarnOnUnknownKeys):
     """Where to send escalation notifications.
 
     Attributes:
@@ -434,8 +596,15 @@ class EscalationTarget(BaseModel):
     webhook_url: str | None = Field(None, description="Webhook endpoint URL")
     event_type: str | None = Field(None, description="EventBus event type")
 
+    @field_validator("webhook_url")
+    @classmethod
+    def _check_webhook_url(cls, v: str | None) -> str | None:
+        if v is not None and not v.lower().startswith(("http://", "https://")):
+            raise ValueError(f"webhook_url must be an http:// or https:// URL, got {v!r}")
+        return v
 
-class ToolCostAnnotation(BaseModel):
+
+class ToolCostAnnotation(_WarnOnUnknownKeys):
     """Cost and reversibility annotation for a tool.
 
     Attributes:
@@ -447,28 +616,72 @@ class ToolCostAnnotation(BaseModel):
     irreversible: bool = Field(False, description="Irreversible action flag")
 
 
-class SecretScopeConfig(BaseModel):
+class SecretScopeConfig(_WarnOnUnknownKeys):
     """Per-process secret scoping configuration.
 
     Attributes:
         enabled: Enable secret scoping for this process.
-        secrets: Secret name to value or ``${ENV_VAR}`` reference.
+        secrets: Secret name to value or environment reference.  A
+            reference (``${VAR}``, ``${VAR:-default}`` or text containing
+            them) is resolved from ``os.environ`` when the process starts,
+            not when the config is built, so the config holds no secret
+            value.  Values are stored as :class:`~pydantic.SecretStr`:
+            ``repr()`` and JSON dumps show ``**********`` for literal
+            values (references are shown as written).
         default_ttl: Default TTL in seconds (``None`` = no expiry).
-        ttls: Per-secret TTL overrides in seconds.
+        ttls: Per-secret TTL overrides in seconds.  Every name must be a
+            key of ``secrets``.
         revoke_on_stop: Zero-fill and remove all secrets on stop.
+
+    Unknown keys are ignored with a ``FutureWarning``.
     """
 
     enabled: bool = Field(False, description="Enable secret scoping")
-    secrets: dict[str, str] = Field(
+    secrets: dict[str, SecretStr] = Field(
         default_factory=dict, description="Secret name → value or ${ENV_VAR}"
     )
-    default_ttl: float | None = Field(None, description="Default TTL in seconds (None = no expiry)")
+    default_ttl: float | None = Field(
+        None, gt=0, description="Default TTL in seconds (None = no expiry)"
+    )
     ttls: dict[str, float] = Field(default_factory=dict, description="Per-secret TTL overrides")
     revoke_on_stop: bool = Field(True, description="Revoke all secrets on stop")
 
+    @field_validator("secrets")
+    @classmethod
+    def _reject_masked_secrets(cls, v: dict[str, SecretStr]) -> dict[str, SecretStr]:
+        for name, value in v.items():
+            if value.get_secret_value() == "**********":
+                raise ValueError(
+                    f"Secret {name!r} is the masked placeholder from a serialised config; "
+                    "pass the real value or an ${ENV_VAR} reference"
+                )
+        return v
 
-class BudgetConfig(BaseModel):
-    """Autonomy budget configuration.
+    @field_serializer("secrets", when_used="json")
+    def _dump_secrets(self, v: dict[str, SecretStr]) -> dict[str, str]:
+        # Environment references carry no secret, so they survive a dump;
+        # literal values are masked like any SecretStr.
+        return {
+            name: (raw if is_env_reference(raw) else "**********")
+            for name, raw in ((n, s.get_secret_value()) for n, s in v.items())
+        }
+
+    @model_validator(mode="after")
+    def _validate_ttls(self) -> SecretScopeConfig:
+        unknown = sorted(set(self.ttls) - set(self.secrets))
+        if unknown:
+            raise ValueError(
+                f"'ttls' names secrets that are not in 'secrets': {unknown}; "
+                f"configured secrets: {sorted(self.secrets)}"
+            )
+        bad = sorted(name for name, ttl in self.ttls.items() if ttl <= 0)
+        if bad:
+            raise ValueError(f"'ttls' must be positive numbers of seconds; check {bad}")
+        return self
+
+
+class BudgetConfig(_WarnOnUnknownKeys):
+    """Autonomy budget configuration (unknown keys warn and are ignored).
 
     Attributes:
         enabled: Enable budget tracking for this process.
@@ -501,23 +714,39 @@ class BudgetConfig(BaseModel):
     inject_remaining: bool = Field(True)
 
 
-class HealthConfig(BaseModel):
+class HealthConfig(_WarnOnUnknownKeys):
     """Behavioral health monitoring configuration.
 
     Attributes:
         enabled: Enable health monitoring for this process.
-        stuck_threshold: Same tool+args N times = stuck.
+        stuck_threshold: Same tool+args N times in a row = stuck.
         loop_window: Tool calls to examine for loop detection.
         loop_min_repeats: Min pattern repeats to trigger.
-        empty_threshold: N consecutive short responses = anomaly.
-        empty_max_chars: Below this = trivial response.
-        error_window: Sliding window for error rate.
-        error_rate_threshold: Error rate above this triggers anomaly.
-        on_anomaly: Action when anomaly is detected.
+        empty_threshold: N consecutive trivial final replies = anomaly.
+        empty_max_chars: A final reply of **at most** this many
+            characters (after stripping whitespace) is trivial.  With the
+            default 10, a 10-character reply counts as empty and an
+            11-character one doesn't; ``0`` counts only blank replies.
+        error_window: Number of recent invocations the error rate is
+            computed over.  The rate is checked once the window is full.
+        error_rate_threshold: An error rate at or above this (0–1) in a
+            full window is an anomaly.
+        on_anomaly: What the process does when a run produced an anomaly
+            (a ``health.anomaly`` event is emitted in every case):
+            ``"log"`` logs it; ``"pause"`` suspends the process;
+            ``"escalate"`` sends the escalation notification to
+            ``escalation`` (when set) and suspends the process;
+            ``"stop"`` stops the process.
         cooldown: Seconds before the same anomaly (same kind and same
             evidence: the same stuck call or loop) is reported again. Set
             0 to report every repeat, e.g. for an in-run guard.
+            :meth:`HealthMonitor.clear_anomalies` resets it.
         escalation: Escalation target for anomalies.
+
+    Window sizes can be changed on a running monitor (for example with
+    ``PATCH /api/v1/processes/{name}/health``); the monitor resizes its
+    windows and keeps the recorded data.  Unknown keys are ignored with a
+    ``FutureWarning``.
     """
 
     enabled: bool = Field(False, description="Enable health monitoring")
@@ -525,15 +754,15 @@ class HealthConfig(BaseModel):
     loop_window: int = Field(20, ge=4)
     loop_min_repeats: int = Field(2, ge=2)
     empty_threshold: int = Field(3, ge=2)
-    empty_max_chars: int = Field(10, ge=0)
+    empty_max_chars: int = Field(10, ge=0, description="Replies of at most this length are empty")
     error_window: int = Field(10, ge=2)
     error_rate_threshold: float = Field(0.5, gt=0, le=1.0)
-    on_anomaly: Literal["log", "pause", "escalate"] = Field("log")
+    on_anomaly: Literal["log", "pause", "escalate", "stop"] = Field("log")
     cooldown: float = Field(300.0, ge=0)
     escalation: EscalationTarget | None = Field(None)
 
 
-class MissionConfig(BaseModel):
+class MissionConfig(_WarnOnUnknownKeys):
     """Mission-oriented process configuration.
 
     Attributes:
@@ -552,6 +781,8 @@ class MissionConfig(BaseModel):
             happens on completion is decided by ``auto_complete`` alone.
             Setting it emits a ``FutureWarning``; it will be removed.
         escalation: Escalation target for low confidence.
+
+    Unknown keys are ignored with a ``FutureWarning``.
     """
 
     enabled: bool = Field(False, description="Enable mission tracking")
@@ -609,6 +840,15 @@ class InboxConfig(BaseModel):
     max_ttl: float = Field(86400, ge=0, description="Max TTL in seconds")
     rate_limit_per_sender: int = Field(20, gt=0, description="Max messages per sender per hour")
     scan_with_guardrails: bool = Field(True, description="Scan messages for injection")
+
+    @model_validator(mode="after")
+    def _validate_ttls(self) -> InboxConfig:
+        if self.max_ttl > 0 and self.default_ttl > self.max_ttl:
+            raise ValueError(
+                f"'default_ttl' ({self.default_ttl:g}s) is longer than 'max_ttl' "
+                f"({self.max_ttl:g}s); lower default_ttl or raise max_ttl"
+            )
+        return self
 
 
 class ProcessConfig(BaseModel):

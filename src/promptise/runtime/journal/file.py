@@ -7,8 +7,11 @@ Checkpoints are stored in a separate file:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -115,13 +118,30 @@ class FileJournal:
         return results
 
     async def checkpoint(self, process_id: str, state: dict[str, Any]) -> None:
-        """Store a checkpoint and record it in the journal."""
+        """Store a checkpoint and record it in the journal.
+
+        The checkpoint file is replaced atomically (written to a temporary
+        file, then renamed), so a crash mid-write leaves the previous
+        checkpoint intact instead of a truncated file.
+        """
         path = self._checkpoint_path(process_id)
+        tmp_name: str | None = None
         try:
-            with path.open("w", encoding="utf-8") as f:
+            fd, tmp_name = tempfile.mkstemp(
+                prefix=f".{path.name}.", suffix=".tmp", dir=str(self._base_path)
+            )
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(state, f, default=str, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_name, path)
+            tmp_name = None
         except OSError as exc:
             raise JournalError(f"Failed to write checkpoint: {exc}") from exc
+        finally:
+            if tmp_name is not None:
+                with contextlib.suppress(OSError):
+                    os.unlink(tmp_name)
 
         # Also append to journal
         await self.append(

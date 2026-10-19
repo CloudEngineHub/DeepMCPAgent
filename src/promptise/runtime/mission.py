@@ -112,6 +112,17 @@ class MissionTracker:
     Handles evaluation scheduling, LLM-as-judge calls, programmatic
     checks, timeout/limit checking, and context prompt generation.
 
+    ``completed`` and ``failed`` are final: a judge verdict that arrives
+    after the mission was failed (for example by ``POST /mission/fail``
+    while an evaluation was running) doesn't change it.  Only an
+    ``active`` mission can be paused; only a ``paused`` one resumed.
+
+    The tracker keeps the latest :attr:`MAX_EVALUATIONS` evaluations.  Its
+    state round-trips through :meth:`to_dict` and :meth:`restore` (or
+    :meth:`from_dict`), so a process can carry the mission across a
+    restart: invocation count, elapsed time, state, failure reason and
+    evaluation history.
+
     Args:
         config: Mission configuration.
         process_id: Owning process ID.
@@ -120,6 +131,9 @@ class MissionTracker:
             Return ``True`` for achieved, ``False`` for not achieved,
             ``None`` for inconclusive (fall through to LLM evaluator).
     """
+
+    #: Most evaluations kept in memory and in checkpoints (oldest dropped).
+    MAX_EVALUATIONS = 100
 
     def __init__(
         self,
@@ -135,9 +149,13 @@ class MissionTracker:
 
         self._state: MissionState = MissionState.ACTIVE
         self._evaluations: list[MissionEvaluation] = []
+        self._evaluation_total: int = 0
         self._invocation_count: int = 0
         self._started_at: float = time.monotonic()
+        self._failure_reason: str | None = None
+        self._failed_at: datetime | None = None
         self._eval_lock = asyncio.Lock()
+        self._pending_journal: set[asyncio.Task[Any]] = set()
 
     # ------------------------------------------------------------------
     # Properties
@@ -150,8 +168,52 @@ class MissionTracker:
 
     @property
     def evaluations(self) -> list[MissionEvaluation]:
-        """All evaluations performed so far."""
+        """Evaluations performed so far, oldest first (the latest :attr:`MAX_EVALUATIONS`)."""
         return list(self._evaluations)
+
+    @property
+    def evaluation_count(self) -> int:
+        """Total evaluations performed (including ones no longer kept)."""
+        return max(self._evaluation_total, len(self._evaluations))
+
+    @property
+    def failure_reason(self) -> str | None:
+        """Why the mission failed (``None`` unless it is ``failed``)."""
+        return self._failure_reason if self._state == MissionState.FAILED else None
+
+    def evaluation_history(self, limit: int = 10) -> list[MissionEvaluation]:
+        """The latest *limit* evaluations, oldest first."""
+        if limit <= 0:
+            return []
+        return list(self._evaluations[-limit:])
+
+    def history_summary(self, limit: int = 10) -> str:
+        """:meth:`context_summary` plus the latest *limit* evaluations.
+
+        What the ``check_mission`` meta-tool returns: one line per
+        evaluation with its invocation number, source, verdict, confidence
+        and reasoning (each reasoning cut at 200 characters).
+        """
+        lines = [self.context_summary()]
+        history = self.evaluation_history(limit)
+        if not history:
+            lines.append("Evaluation History: none yet")
+            return "\n".join(lines)
+        shown = len(history)
+        total = self.evaluation_count
+        header = (
+            f"Evaluation History (latest {shown} of {total}):"
+            if total > shown
+            else (f"Evaluation History ({total}):")
+        )
+        lines.append(header)
+        for ev in history:
+            verdict = "achieved" if ev.achieved else "not achieved"
+            lines.append(
+                f"- #{ev.invocation_number} [{ev.source}] {verdict}, "
+                f"confidence={ev.confidence:.2f}: {ev.reasoning[:200]}"
+            )
+        return "\n".join(lines)
 
     @property
     def invocation_count(self) -> int:
@@ -213,8 +275,9 @@ class MissionTracker:
                         invocation_number=self._invocation_count,
                         source="programmatic",
                     )
-                    self._evaluations.append(evaluation)
-                    self.complete()
+                    self._record_evaluation(evaluation)
+                    if self._state == MissionState.ACTIVE:
+                        self.complete()
                     await self._log_evaluation(evaluation)
                     return evaluation
                 elif result is False:
@@ -226,7 +289,7 @@ class MissionTracker:
                         invocation_number=self._invocation_count,
                         source="programmatic",
                     )
-                    self._evaluations.append(evaluation)
+                    self._record_evaluation(evaluation)
                     await self._log_evaluation(evaluation)
                     return evaluation
                 # None → fall through to LLM
@@ -259,13 +322,52 @@ class MissionTracker:
             return False
         return self._invocation_count >= self._config.max_invocations
 
-    def fail(self, reason: str) -> None:
-        """Transition mission to FAILED state."""
+    def fail(self, reason: str, *, source: str = "manual") -> dict[str, Any]:
+        """Transition mission to FAILED state and record why.
+
+        The reason is kept (:attr:`failure_reason`, :meth:`to_dict`, the
+        ``[Mission]`` prompt block) and journalled as a ``mission_failed``
+        entry.
+
+        Args:
+            reason: Why the mission failed.
+            source: Who failed it: ``"manual"`` (operator / API),
+                ``"timeout"``, ``"max_invocations"`` or another short tag.
+
+        Returns:
+            The payload for a ``mission.failed`` event: ``process_id``,
+            ``reason`` (the *source* tag, as the runtime's own
+            ``mission.failed`` events use it), ``message`` (*reason*),
+            ``objective``, ``invocation_count``, ``previous_state`` and
+            ``failed_at`` (ISO UTC).
+        """
+        previous = self._state
         self._state = MissionState.FAILED
+        self._failure_reason = reason
+        self._failed_at = datetime.now(timezone.utc)
         logger.warning("Mission failed for process %s: %s", self._process_id, reason)
+        data = {
+            "process_id": self._process_id,
+            "reason": source,
+            "message": reason,
+            "objective": self._config.objective,
+            "invocation_count": self._invocation_count,
+            "previous_state": previous.value,
+            "failed_at": self._failed_at.isoformat(),
+        }
+        self._journal_soon("mission_failed", data)
+        return data
 
     def pause(self) -> None:
-        """Transition mission to PAUSED state (awaiting human input)."""
+        """Transition an ACTIVE mission to PAUSED (awaiting human input).
+
+        Has no effect on a completed or failed mission.
+        """
+        if self._state != MissionState.ACTIVE:
+            logger.debug(
+                "Mission for process %s is %s; not pausing", self._process_id, self._state.value
+            )
+            return
         self._state = MissionState.PAUSED
         logger.info("Mission paused for process %s", self._process_id)
 
@@ -276,7 +378,16 @@ class MissionTracker:
             logger.info("Mission resumed for process %s", self._process_id)
 
     def complete(self) -> None:
-        """Transition mission to COMPLETED state."""
+        """Transition mission to COMPLETED state.
+
+        A failed mission stays failed.
+        """
+        if self._state == MissionState.FAILED:
+            logger.info(
+                "Mission for process %s already failed; not marking it completed",
+                self._process_id,
+            )
+            return
         self._state = MissionState.COMPLETED
         logger.info("Mission completed for process %s", self._process_id)
 
@@ -291,6 +402,8 @@ class MissionTracker:
             f"Success Criteria: {self._config.success_criteria}",
             f"Status: {self._state.value}",
         ]
+        if self.failure_reason:
+            lines.append(f"Failure Reason: {self.failure_reason[:200]}")
 
         progress_parts: list[str] = []
         progress_parts.append(f"{self._invocation_count} invocations")
@@ -316,11 +429,19 @@ class MissionTracker:
     # ------------------------------------------------------------------
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialise for journal checkpointing."""
+        """Serialise for journal checkpointing (JSON-safe).
+
+        Restore it with :meth:`restore` (into the process's own tracker)
+        or :meth:`from_dict`.
+        """
         return {
             "state": self._state.value,
             "invocation_count": self._invocation_count,
             "started_at_elapsed": time.monotonic() - self._started_at,
+            "failure_reason": self._failure_reason,
+            "failed_at": self._failed_at.isoformat() if self._failed_at else None,
+            "evaluation_count": self.evaluation_count,
+            "objective": self._config.objective,
             "evaluations": [
                 {
                     "achieved": e.achieved,
@@ -336,29 +457,68 @@ class MissionTracker:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], config: Any) -> MissionTracker:
-        """Reconstruct from a journal checkpoint."""
-        tracker = cls(config, process_id="recovered")
-        tracker._state = MissionState(data.get("state", "active"))
-        tracker._invocation_count = data.get("invocation_count", 0)
-        elapsed = data.get("started_at_elapsed", 0.0)
-        tracker._started_at = time.monotonic() - elapsed
-
-        for e_data in data.get("evaluations", []):
-            tracker._evaluations.append(
-                MissionEvaluation(
-                    achieved=e_data.get("achieved", False),
-                    confidence=e_data.get("confidence", 0.5),
-                    reasoning=e_data.get("reasoning", ""),
-                    progress_summary=e_data.get("progress_summary", ""),
-                    timestamp=datetime.fromisoformat(
-                        e_data.get("timestamp", datetime.now(timezone.utc).isoformat())
-                    ),
-                    invocation_number=e_data.get("invocation_number", 0),
-                    source=e_data.get("source", "llm"),
-                )
-            )
+    def from_dict(
+        cls,
+        data: dict[str, Any],
+        config: Any,
+        *,
+        process_id: str = "recovered",
+        journal: JournalProvider | None = None,
+        success_check: Callable[[MissionEvidence], bool | None] | None = None,
+    ) -> MissionTracker:
+        """Reconstruct from a journal checkpoint (see :meth:`restore`)."""
+        tracker = cls(config, process_id=process_id, journal=journal, success_check=success_check)
+        tracker.restore(data)
         return tracker
+
+    def restore(self, data: dict[str, Any]) -> None:
+        """Load a :meth:`to_dict` snapshot into this tracker.
+
+        Restores the state, invocation count, elapsed time (the timeout
+        clock continues where it stopped), failure reason and evaluation
+        history.  Configuration, journal and ``success_check`` stay the
+        tracker's own.  A snapshot taken for a different objective is
+        refused, since its progress doesn't apply.
+
+        Raises:
+            ValueError: *data* is malformed or for another objective.
+        """
+        objective = data.get("objective")
+        if objective is not None and objective != self._config.objective:
+            raise ValueError(
+                f"Mission snapshot is for objective {objective!r}, not "
+                f"{self._config.objective!r}; not restoring it"
+            )
+        try:
+            state = MissionState(data.get("state", "active"))
+            invocation_count = int(data.get("invocation_count", 0))
+            elapsed = float(data.get("started_at_elapsed", 0.0))
+            evaluations = [
+                MissionEvaluation(
+                    achieved=bool(e_data.get("achieved", False)),
+                    confidence=float(e_data.get("confidence", 0.5)),
+                    reasoning=str(e_data.get("reasoning", "")),
+                    progress_summary=str(e_data.get("progress_summary", "")),
+                    timestamp=datetime.fromisoformat(
+                        e_data.get("timestamp") or datetime.now(timezone.utc).isoformat()
+                    ),
+                    invocation_number=int(e_data.get("invocation_number", 0)),
+                    source=str(e_data.get("source", "llm")),
+                )
+                for e_data in data.get("evaluations", [])
+            ]
+            failed_at = data.get("failed_at")
+            failed_at_dt = datetime.fromisoformat(failed_at) if failed_at else None
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError(f"Malformed mission snapshot: {exc}") from exc
+
+        self._state = state
+        self._invocation_count = invocation_count
+        self._started_at = time.monotonic() - max(0.0, elapsed)
+        self._evaluations = evaluations[-self.MAX_EVALUATIONS :]
+        self._evaluation_total = max(int(data.get("evaluation_count", 0) or 0), len(evaluations))
+        self._failure_reason = data.get("failure_reason")
+        self._failed_at = failed_at_dt
 
     # ------------------------------------------------------------------
     # Internals
@@ -470,15 +630,46 @@ class MissionTracker:
                 source="llm",
             )
 
-        self._evaluations.append(evaluation)
+        self._record_evaluation(evaluation)
 
-        if evaluation.achieved:
-            self.complete()
-        elif evaluation.confidence < self._config.confidence_threshold:
-            self.pause()
+        # A verdict that arrives after the mission was failed, completed or
+        # paused (e.g. over the API during the judge call) doesn't change it.
+        if self._state == MissionState.ACTIVE:
+            if evaluation.achieved:
+                self.complete()
+            elif evaluation.confidence < self._config.confidence_threshold:
+                self.pause()
 
         await self._log_evaluation(evaluation)
         return evaluation
+
+    def _record_evaluation(self, evaluation: MissionEvaluation) -> None:
+        self._evaluation_total = max(self._evaluation_total, len(self._evaluations)) + 1
+        self._evaluations.append(evaluation)
+        del self._evaluations[: -self.MAX_EVALUATIONS]
+
+    def _journal_soon(self, entry_type: str, data: dict[str, Any]) -> None:
+        """Append a journal entry from sync code (best effort)."""
+        if self._journal is None:
+            return
+        try:
+            from .journal import JournalEntry
+
+            entry = JournalEntry(
+                entry_id="",
+                process_id=self._process_id,
+                timestamp=datetime.now(timezone.utc),
+                entry_type=entry_type,
+                data=dict(data),
+            )
+            loop = asyncio.get_running_loop()
+            task = loop.create_task(self._journal.append(entry))
+            self._pending_journal.add(task)
+            task.add_done_callback(self._pending_journal.discard)
+        except RuntimeError:
+            pass  # No event loop — skip
+        except Exception:
+            logger.debug("Mission journal entry failed", exc_info=True)
 
     async def _log_evaluation(self, evaluation: MissionEvaluation) -> None:
         """Record evaluation in the journal."""

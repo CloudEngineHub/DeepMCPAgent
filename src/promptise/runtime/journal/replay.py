@@ -28,6 +28,9 @@ class ReplayEngine:
         #     "context_state": {...},
         #     "lifecycle_state": "running",
         #     "last_entry_type": "invocation_result",
+        #     "entries_replayed": 3,
+        #     "mission": {...} or None,      # MissionTracker.to_dict()
+        #     "checkpoint": {...},           # the raw checkpoint (or {})
         # }
     """
 
@@ -46,7 +49,10 @@ class ReplayEngine:
 
         Returns:
             Dict with ``context_state``, ``lifecycle_state``,
-            ``last_entry_type``, and ``entries_replayed``.
+            ``last_entry_type``, ``entries_replayed``, ``mission`` (the
+            checkpointed :meth:`MissionTracker.to_dict` state, for
+            :meth:`MissionTracker.restore`, or ``None``) and
+            ``checkpoint`` (the raw last checkpoint, ``{}`` if none).
         """
         # 1. Get last checkpoint
         checkpoint = await self._journal.last_checkpoint(process_id)
@@ -107,4 +113,6 @@ class ReplayEngine:
             "lifecycle_state": lifecycle_state,
             "last_entry_type": last_entry_type,
             "entries_replayed": len(entries_to_replay),
+            "mission": (checkpoint or {}).get("mission"),
+            "checkpoint": dict(checkpoint or {}),
         }

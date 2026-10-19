@@ -189,6 +189,10 @@ class CheckBudgetArgs(BaseModel):
     pass
 
 
+#: Evaluations ``check_mission`` shows (the latest ones).
+_MISSION_HISTORY_LIMIT = 10
+
+
 class CheckMissionArgs(BaseModel):
     """Arguments for check_mission tool (none required)."""
 
@@ -590,10 +594,10 @@ async def _check_budget(process: Any) -> str:
 
 
 async def _check_mission(process: Any) -> str:
-    """Implementation for check_mission tool."""
+    """Implementation for check_mission tool: state plus the latest evaluations."""
     if process._mission is None:
         return "No mission configured."
-    return process._mission.context_summary()
+    return process._mission.history_summary(limit=_MISSION_HISTORY_LIMIT)
 
 
 async def _list_capabilities(process: Any) -> str:
@@ -1122,7 +1126,8 @@ def create_meta_tools(
                 name="get_secret",
                 description=(
                     "Retrieve a scoped secret by name. "
-                    "Returns the secret value. "
+                    "Returns the secret value: pass it only as an argument "
+                    "to the tool that needs it and never repeat it in a reply. "
                     "Access is logged in the audit trail."
                 ),
                 args_schema=GetSecretArgs,
@@ -1150,7 +1155,9 @@ def create_meta_tools(
                 name="check_mission",
                 description=(
                     "Check the current mission state: objective, "
-                    "success criteria, evaluation history, and progress."
+                    "success criteria, progress, and the latest "
+                    f"{_MISSION_HISTORY_LIMIT} evaluations (verdict, "
+                    "confidence and reasoning)."
                 ),
                 args_schema=CheckMissionArgs,
                 coroutine=lambda **kw: _check_mission(process),

@@ -1,7 +1,9 @@
 """File-watch trigger: fires when files change on the filesystem.
 
 Uses ``watchdog`` for native OS filesystem notifications when available,
-with a polling fallback when ``watchdog`` is not installed.
+with a polling fallback when ``watchdog`` is not installed.  Pass
+``backend="polling"`` to force polling (network shares, bind mounts) or
+``backend="watchdog"`` to require native notifications.
 
 ``watchdog`` is included in the base ``pip install promptise``.
 
@@ -36,6 +38,14 @@ for the same path inside the ``debounce_seconds`` window are merged into
 The merged ``event_type`` is then checked against ``events`` (the
 trigger's ``watch_events``), so ``events=["deleted"]`` never fires for a
 new or changed file.  ``event_types`` lists the raw events that were merged.
+
+Back-pressure: events are not dropped when the consumer is busy.  Once
+the trigger's queue is full, further changes wait in a per-file backlog
+(a second change to a file that is already waiting is merged into its
+event) and move to the queue as the consumer takes events.  Only when
+``max_pending_events`` different files are waiting is a new change
+dropped; drops are logged as errors and counted in
+:attr:`FileWatchTrigger.dropped_events`.
 """
 
 from __future__ import annotations
@@ -51,6 +61,12 @@ from .base import TriggerEvent
 
 #: Event types a :class:`FileWatchTrigger` can report.
 FILE_EVENT_TYPES = frozenset({"created", "modified", "deleted", "moved"})
+
+#: Change-detection backends a :class:`FileWatchTrigger` accepts.
+FILE_WATCH_BACKENDS = ("auto", "watchdog", "polling")
+
+#: Size of the trigger's event queue (the backlog holds the overflow).
+_QUEUE_SIZE = 1000
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +94,16 @@ class FileWatchTrigger:
         recursive: Watch subdirectories recursively.
         debounce_seconds: Window in which all events for one path are
             merged into a single trigger event.
-        poll_interval: Polling interval in seconds (used when watchdog
-            is not available).
+        poll_interval: Seconds between directory scans with the polling
+            backend.
+        backend: ``"auto"`` (watchdog when installed, else polling),
+            ``"watchdog"`` or ``"polling"``.
+        max_pending_events: Most files that can wait for the consumer
+            (queued plus backlog) before new changes are dropped.
+
+    Raises:
+        ValueError: An unknown event type or backend, ``backend="watchdog"``
+            without watchdog installed, or an out-of-range number.
     """
 
     def __init__(
@@ -90,6 +114,9 @@ class FileWatchTrigger:
         recursive: bool = True,
         debounce_seconds: float = 0.5,
         poll_interval: float = 1.0,
+        *,
+        backend: str = "auto",
+        max_pending_events: int = 10_000,
     ) -> None:
         self._watch_path = Path(watch_path)
         self._patterns = patterns or ["*"]
@@ -99,12 +126,33 @@ class FileWatchTrigger:
             raise ValueError(
                 f"Unknown file watch events {sorted(unknown)}; choose from {sorted(FILE_EVENT_TYPES)}"
             )
+        if backend not in FILE_WATCH_BACKENDS:
+            raise ValueError(
+                f"Unknown file watch backend {backend!r}; choose from {list(FILE_WATCH_BACKENDS)}"
+            )
+        if backend == "watchdog" and not HAS_WATCHDOG:
+            raise ValueError(
+                "backend='watchdog' needs the 'watchdog' package (pip install watchdog); "
+                "use 'auto' or 'polling' instead"
+            )
+        if poll_interval <= 0:
+            raise ValueError(f"poll_interval must be positive, got {poll_interval}")
+        if debounce_seconds < 0:
+            raise ValueError(f"debounce_seconds must be 0 or more, got {debounce_seconds}")
+        if max_pending_events < 1:
+            raise ValueError(f"max_pending_events must be at least 1, got {max_pending_events}")
         self._recursive = recursive
         self._debounce_seconds = debounce_seconds
         self._poll_interval = poll_interval
+        self._backend = backend
+        self._max_pending_events = max_pending_events
 
         self.trigger_id: str = f"file_watch-{watch_path}"
-        self._queue: asyncio.Queue[TriggerEvent] = asyncio.Queue(maxsize=1000)
+        self._queue: asyncio.Queue[TriggerEvent] = asyncio.Queue(maxsize=_QUEUE_SIZE)
+        # Changes whose debounce window closed while the queue was full:
+        # path -> raw event types, in arrival order (see _drain_backlog).
+        self._backlog: dict[str, list[str]] = {}
+        self._dropped_events = 0
         self._stopped = False
         self._stop_event = asyncio.Event()
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -114,7 +162,7 @@ class FileWatchTrigger:
 
         # Polling fallback state
         self._poll_task: asyncio.Task[None] | None = None
-        self._file_mtimes: dict[str, float] = {}
+        self._file_mtimes: dict[str, tuple[int, int]] = {}
         self._known_files: set[str] = set()
 
         # Debounce: raw event types per path, flushed after the window
@@ -132,21 +180,41 @@ class FileWatchTrigger:
             self._watch_path.mkdir(parents=True, exist_ok=True)
             logger.info("Created watch directory: %s", self._watch_path)
 
-        if HAS_WATCHDOG:
+        if self.backend == "watchdog":
             await self._start_watchdog()
         else:
-            logger.info(
-                "watchdog not installed, using polling fallback (interval=%.1fs)",
-                self._poll_interval,
-            )
+            if self._backend == "auto":
+                logger.info(
+                    "watchdog not installed, using polling fallback (interval=%.1fs)",
+                    self._poll_interval,
+                )
             await self._start_polling()
 
         logger.info(
-            "FileWatchTrigger started on %s (patterns=%s, events=%s)",
+            "FileWatchTrigger started on %s (patterns=%s, events=%s, backend=%s, recursive=%s)",
             self._watch_path,
             self._patterns,
             self._events,
+            self.backend,
+            self._recursive,
         )
+
+    @property
+    def backend(self) -> str:
+        """The backend in use: ``"watchdog"`` or ``"polling"``."""
+        if self._backend == "auto":
+            return "watchdog" if HAS_WATCHDOG else "polling"
+        return self._backend
+
+    @property
+    def dropped_events(self) -> int:
+        """Changes dropped because ``max_pending_events`` files were waiting."""
+        return self._dropped_events
+
+    @property
+    def pending_events(self) -> int:
+        """Events waiting for the consumer (queued plus backlog)."""
+        return self._queue.qsize() + len(self._backlog)
 
     async def stop(self) -> None:
         """Stop watching for file changes."""
@@ -170,6 +238,7 @@ class FileWatchTrigger:
             handle.cancel()
         self._pending_handles.clear()
         self._pending.clear()
+        self._backlog.clear()
 
         # Unblock waiters
         sentinel = TriggerEvent(
@@ -196,6 +265,8 @@ class FileWatchTrigger:
         """
         while True:
             event = await self._queue.get()
+            # Space was freed: move waiting changes into the queue.
+            self._drain_backlog()
             if event.metadata and event.metadata.get("_stop"):
                 if self._stopped:
                     raise asyncio.CancelledError("File watch trigger stopped")
@@ -251,17 +322,64 @@ class FileWatchTrigger:
         return "modified"
 
     def _flush(self, file_path: str) -> None:
-        """Close the debounce window for *file_path* and enqueue one event."""
+        """Close the debounce window for *file_path* and enqueue one event.
+
+        When the queue is full the change waits in the backlog instead
+        (merged with a change to the same file that is already waiting).
+        """
         self._pending_handles.pop(file_path, None)
         types = self._pending.pop(file_path, None)
         if not types or self._stopped:
             return
+        waiting = self._backlog.get(file_path)
+        if waiting is not None:
+            waiting.extend(t for t in types if t not in waiting)
+            return
+        if self._backlog or self._queue.full():
+            if self.pending_events >= self._max_pending_events:
+                self._drop(file_path)
+                return
+            self._backlog[file_path] = list(types)
+            return
+        if self._queue.qsize() >= self._max_pending_events:
+            self._drop(file_path)
+            return
+        event = self._build_event(file_path, types)
+        if event is not None:
+            self._queue.put_nowait(event)
+
+    def _drain_backlog(self) -> None:
+        """Move waiting changes into the queue while it has room (oldest first)."""
+        while self._backlog and not self._queue.full():
+            file_path = next(iter(self._backlog))
+            types = self._backlog.pop(file_path)
+            event = self._build_event(file_path, types)
+            if event is not None:
+                self._queue.put_nowait(event)
+
+    def _drop(self, file_path: str) -> None:
+        self._dropped_events += 1
+        if self._dropped_events == 1 or self._dropped_events % 100 == 0:
+            logger.error(
+                "FileWatchTrigger %s: %d files are waiting for the process "
+                "(max_pending_events=%d); dropped the change to %s "
+                "(%d dropped so far). Raise watch_max_pending_events or "
+                "process events faster.",
+                self.trigger_id,
+                self.pending_events,
+                self._max_pending_events,
+                file_path,
+                self._dropped_events,
+            )
+
+    def _build_event(self, file_path: str, types: list[str]) -> TriggerEvent | None:
+        """The trigger event for the merged *types*, or ``None`` if filtered out."""
         event_type = self._net_event_type(types, os.path.exists(file_path))
         if event_type is None or event_type not in self._events:
-            return
+            return None
 
         filename = os.path.basename(file_path)
-        trigger_event = TriggerEvent(
+        return TriggerEvent(
             trigger_id=self.trigger_id,
             trigger_type="file_watch",
             payload={
@@ -275,10 +393,6 @@ class FileWatchTrigger:
                 "patterns": self._patterns,
             },
         )
-        try:
-            self._queue.put_nowait(trigger_event)
-        except asyncio.QueueFull:
-            logger.warning("FileWatchTrigger: queue full, dropping event")
 
     # ------------------------------------------------------------------
     # Watchdog backend
@@ -331,25 +445,31 @@ class FileWatchTrigger:
             name=f"file-watch-poll-{self._watch_path}",
         )
 
-    def _scan_files(self) -> dict[str, float]:
-        """Scan the watched directory and return {path: mtime}."""
-        result: dict[str, float] = {}
+    def _scan_files(self) -> dict[str, tuple[int, int]]:
+        """Scan the watched directory and return ``{path: (mtime_ns, size)}``.
+
+        The size is compared too, so a rewrite within the file system's
+        timestamp resolution is still seen as a change.
+        """
+        result: dict[str, tuple[int, int]] = {}
         try:
             if self._recursive:
                 for root, _dirs, files in os.walk(self._watch_path):
                     for f in files:
                         fp = os.path.join(root, f)
                         try:
-                            result[fp] = os.path.getmtime(fp)
+                            st = os.stat(fp)
+                            result[fp] = (st.st_mtime_ns, st.st_size)
                         except OSError:
                             pass
             else:
                 for item in self._watch_path.iterdir():
-                    if item.is_file():
-                        try:
-                            result[str(item)] = item.stat().st_mtime
-                        except OSError:
-                            pass
+                    try:
+                        if item.is_file():
+                            st = item.stat()
+                            result[str(item)] = (st.st_mtime_ns, st.st_size)
+                    except OSError:
+                        pass
         except OSError:
             pass
         return result
@@ -381,7 +501,7 @@ class FileWatchTrigger:
 
                 # Detect modified files
                 for fp in new_files & self._known_files:
-                    if new_mtimes[fp] != self._file_mtimes.get(fp, 0):
+                    if new_mtimes[fp] != self._file_mtimes.get(fp):
                         self._emit_event(fp, "modified")
 
                 self._file_mtimes = new_mtimes
@@ -391,10 +511,10 @@ class FileWatchTrigger:
             return
 
     def __repr__(self) -> str:
-        backend = "watchdog" if HAS_WATCHDOG else "polling"
         return (
             f"FileWatchTrigger(path={str(self._watch_path)!r}, "
             f"patterns={self._patterns}, "
             f"events={sorted(self._events)}, "
-            f"backend={backend!r})"
+            f"backend={self.backend!r}, "
+            f"recursive={self._recursive})"
         )

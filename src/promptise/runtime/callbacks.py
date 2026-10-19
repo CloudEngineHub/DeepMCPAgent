@@ -22,6 +22,10 @@ logger = logging.getLogger("promptise.runtime.callbacks")
 if TYPE_CHECKING:
     from .budget import BudgetState, BudgetViolation
     from .health import HealthMonitor
+    from .secrets import SecretScope
+
+#: Tools whose results are secret values: never journalled, even redacted.
+_SECRET_TOOLS = frozenset({"get_secret"})
 
 try:
     from langchain_core.callbacks import AsyncCallbackHandler, BaseCallbackHandler
@@ -107,6 +111,13 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
     an empty list from a quiet queue is not an empty reply.  The process
     records the agent's final reply itself.
 
+    Journal entries never hold secret values: with a ``secrets`` scope,
+    tool arguments and results are passed through
+    :meth:`~promptise.runtime.secrets.SecretScope.sanitize` (current,
+    rotated and expired values become ``[REDACTED]``) before they are
+    recorded, and the result of ``get_secret`` is always recorded as
+    ``[REDACTED]``.
+
     Usage::
 
         handler = RuntimeCallbackHandler(budget=budget_state, health=monitor)
@@ -120,6 +131,8 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
         health: Optional behavioral health monitor.
         journal: Optional async callback ``(entry_type, data)`` that
             records ``tool_call`` / ``tool_result`` journal entries.
+        secrets: The process's secret scope, used to redact secret values
+            from journalled tool arguments and results.
     """
 
     def __init__(
@@ -127,10 +140,14 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
         budget: BudgetState | None = None,
         health: HealthMonitor | None = None,
         journal: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
+        secrets: SecretScope | None = None,
     ) -> None:
         self._budget = budget
         self._health = health
         self._journal = journal
+        self._secrets = secrets
+        # Tool name per LangChain run id, for on_tool_end (bounded).
+        self._tool_runs: dict[Any, str] = {}
         self.pending_violations: list[BudgetViolation] = []
         self.budget_guard: BudgetGuard | None = (
             BudgetGuard(budget, self.pending_violations) if budget is not None else None
@@ -147,6 +164,11 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
     async def on_tool_start(self, serialized: Any, input_str: str, **kwargs: Any) -> None:
         """Called when a tool is about to run (after the budget guard allowed it)."""
         tool_name = _tool_name(serialized)
+        run_id = kwargs.get("run_id")
+        if run_id is not None:
+            if len(self._tool_runs) >= 1000:
+                self._tool_runs.clear()
+            self._tool_runs[run_id] = tool_name
         # LangChain passes the parsed input as ``inputs``; ``input_str`` is
         # only a string rendering of it (not always JSON).
         inputs = kwargs.get("inputs")
@@ -154,7 +176,7 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
 
         if self._journal is not None:
             try:
-                await self._journal("tool_call", {"tool": tool_name, "args": args})
+                await self._journal("tool_call", {"tool": tool_name, "args": self._redact(args)})
             except Exception as exc:
                 logger.debug("Journal tool call recording failed: %s", exc)
 
@@ -166,12 +188,19 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
 
     async def on_tool_end(self, output: Any, **kwargs: Any) -> None:
         """Called when a tool finishes.  Journals the result (full level)."""
+        started_as = self._tool_runs.pop(kwargs.get("run_id"), None)
         if self._journal is not None:
             try:
                 # A tool invoked as a tool call returns a ToolMessage.
                 content = getattr(output, "content", output)
                 text = str(content) if content is not None else ""
-                name = kwargs.get("name") or getattr(output, "name", None) or ""
+                name = kwargs.get("name") or getattr(output, "name", None) or started_as or ""
+                if name in _SECRET_TOOLS or started_as in _SECRET_TOOLS:
+                    text = "[REDACTED]"
+                else:
+                    # Redact before truncating, so a value cut at the limit
+                    # can't leak its first part.
+                    text = self._redact(text)
                 await self._journal("tool_result", {"tool": name, "result": text[:2000]})
             except Exception as exc:
                 logger.debug("Journal tool result recording failed: %s", exc)
@@ -185,6 +214,12 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
                     self.pending_violations.append(violation)
             except Exception as exc:
                 logger.debug("Budget LLM turn recording failed: %s", exc)
+
+    def _redact(self, value: Any) -> Any:
+        """Redact secret values from *value* (no-op without a scope)."""
+        if self._secrets is None:
+            return value
+        return self._secrets.sanitize(value)
 
     @staticmethod
     def _parse_tool_args(input_str: Any) -> dict[str, Any]:

@@ -32,17 +32,37 @@ Security model:
 * ``PATCH`` on ``budget``, ``health`` and ``mission`` validates the patched
   section against its config model (limits, strict JSON types, no unknown
   fields) and answers ``422`` without changing anything when it fails.
+
+Errors are JSON objects ``{"error": {"code": ..., "message": ...}}``; the
+codes are listed in :data:`ERROR_CODES`.  An unexpected server error is
+``500 INTERNAL_ERROR`` with a generic message (the details go to the log).
+
+Audit: every mutating request (``POST``/``PATCH``/``PUT``/``DELETE``) is
+logged to the ``promptise.runtime.api`` logger with its method, route,
+path parameters, status and client address.  Successful ones are also
+written to the process's journal (when it has one) as an ``api_request``
+entry.  Request bodies are never logged (they can hold secret values and
+message text).
+
+Changes that the running process can't apply yet say so: config updates
+answer with ``effective_from`` and ``live`` (``False`` when the change
+only applies after a restart or a redeploy) instead of pretending to be
+live.
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import inspect
 import json
 import logging
+import math
 import re
 import time
 import types
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Iterable, Mapping
+from datetime import datetime
 from typing import Any, Union, get_args, get_origin
 
 from aiohttp import web
@@ -52,7 +72,7 @@ from ._http_guard import bearer_token_matches, is_loopback, loopback_request_pro
 
 logger = logging.getLogger("promptise.runtime.api")
 
-__all__ = ["OrchestrationAPI"]
+__all__ = ["ERROR_CODES", "OrchestrationAPI", "config_trigger_ids"]
 
 # Process name validation: alphanumeric + hyphens + underscores, max 64 chars
 _PROCESS_NAME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]{0,63}$")
@@ -62,6 +82,73 @@ _PUBLIC_PATHS = frozenset({"/api/v1/health"})
 
 #: Methods whose request body is checked to be a JSON object.
 _BODY_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+#: Methods that change something (audited).
+_MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+#: Request storage key: the process a deploy created (for the audit log).
+_AUDIT_PROCESS: Any = (
+    web.RequestKey("promptise_audit_process", str)
+    if hasattr(web, "RequestKey")
+    else "promptise_audit_process"
+)
+
+#: Every error code the API answers with: ``code -> (status, meaning)``.
+ERROR_CODES: dict[str, tuple[int, str]] = {
+    "INVALID_JSON": (400, "Request body is not a JSON object"),
+    "INBOX_DISABLED": (400, "Inbox operation on a process without an inbox"),
+    "SECRETS_DISABLED": (400, "Secret operation on a process without secret scoping"),
+    "MISSION_DISABLED": (400, "Mission operation on a process without a mission"),
+    "HEALTH_DISABLED": (400, "Health operation on a process without health monitoring"),
+    "SUSPEND_FAILED": (400, "The process can't be suspended in its current state"),
+    "RESUME_FAILED": (400, "The process can't be resumed in its current state"),
+    "ROTATION_FAILED": (400, "The secret could not be rotated"),
+    "UNAUTHORIZED": (401, "Missing or wrong bearer token"),
+    "WRITE_DENIED": (403, "Context key(s) not writable (nothing was written)"),
+    "CROSS_ORIGIN_REFUSED": (403, "Cross-site Origin on a loopback bind"),
+    "NOT_FOUND": (404, "No such route"),
+    "PROCESS_NOT_FOUND": (404, "Process name doesn't exist"),
+    "TRIGGER_NOT_FOUND": (404, "Trigger ID doesn't exist"),
+    "SECRET_NOT_FOUND": (404, "The process has no secret of that name"),
+    "METHOD_NOT_ALLOWED": (405, "The route doesn't accept this method"),
+    "PAYLOAD_TOO_LARGE": (413, "Request body over the server's size limit (1 MiB)"),
+    "HTTP_ERROR": (400, "Another HTTP error from the server; the status says which"),
+    "PROCESS_EXISTS": (409, "Deploy with a name that's already registered"),
+    "PROCESS_NOT_RUNNING": (409, "Message or question to a stopped or failed process"),
+    "TRIGGER_EXISTS": (409, "Adding a trigger identical to an existing one"),
+    "MISSION_STATE": (409, "Mission fail/pause/resume not valid in the mission's state"),
+    "MISDIRECTED_REQUEST": (421, "Non-loopback Host on a loopback bind (DNS rebinding)"),
+    "MISSING_FIELD": (422, "Required field missing from the request"),
+    "INVALID_NAME": (422, "Process name doesn't match ^[a-zA-Z][a-zA-Z0-9_-]{0,63}$"),
+    "INVALID_FIELD": (422, "A field has the wrong type or an out-of-range value"),
+    "INVALID_TYPE": (422, "Unknown message_type"),
+    "INVALID_CONFIG": (422, "Config fails validation (deploy, trigger, PATCH sections)"),
+    "UNKNOWN_FIELD": (422, "PATCH names a field the config model doesn't declare"),
+    "DEPLOY_FAILED": (422, "The process could not be created from a valid config"),
+    "MESSAGE_REJECTED": (422, "The inbox's guardrail scan flagged the message"),
+    "INBOX_FULL": (409, "The inbox is full and nothing can be evicted for the message"),
+    "RATE_LIMITED": (429, "Inbox rate limit exceeded"),
+    "INTERNAL_ERROR": (500, "Unexpected server error (details in the server log)"),
+    "START_FAILED": (500, "The process failed to start"),
+    "STOP_FAILED": (500, "The process failed to stop"),
+    "RESTART_FAILED": (500, "The process failed to restart"),
+}
+
+#: Process states in which triggers run and live changes take effect.
+_ACTIVE_STATES = frozenset({"starting", "running", "suspended", "awaiting"})
+
+#: States in which a process takes no messages (as ``process.send_message``).
+_CLOSED_STATES = frozenset({"stopped", "failed"})
+
+#: Inbox message priorities.
+_PRIORITIES = ("low", "normal", "high", "critical")
+
+#: Longest ``/ask`` long-poll, in seconds.
+_MAX_ASK_TIMEOUT = 3600.0
+
+#: Process attribute holding each governance subsystem (``None`` when the
+#: process was built without it).
+_SUBSYSTEMS = {"budget": "_budget", "health": "_health", "mission": "_mission"}
 
 
 def _json_dumps(obj: Any) -> str:
@@ -84,6 +171,65 @@ def _error_response(code: str, message: str, status: int = 400) -> web.Response:
         {"error": {"code": code, "message": message}},
         status=status,
     )
+
+
+def _http_error_response(exc: web.HTTPException) -> web.Response:
+    """An aiohttp HTTP error (unknown route, body too large...) as a JSON error."""
+    code = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED", 413: "PAYLOAD_TOO_LARGE"}.get(
+        exc.status, "HTTP_ERROR"
+    )
+    return _error_response(code, exc.reason, exc.status)
+
+
+def _not_found(name: str) -> web.Response:
+    return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+
+
+def _state_value(process: Any) -> str:
+    state = process.state
+    return state.value if hasattr(state, "value") else str(state)
+
+
+def _iso(value: Any) -> Any:
+    return value.isoformat() if isinstance(value, datetime) else value
+
+
+def _is_number(value: Any) -> bool:
+    """A finite JSON number (``bool`` is not one)."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+async def _maybe_await(value: Any) -> Any:
+    return await value if inspect.isawaitable(value) else value
+
+
+async def _inbox_add(inbox: Any, message: Any) -> tuple[str, web.Response | None]:
+    """Add *message* to *inbox*; map the inbox's refusals to API errors."""
+    from . import inbox as inbox_module
+
+    try:
+        return await inbox.add(message), None
+    except ValueError as exc:
+        rejected = getattr(inbox_module, "InboxMessageRejected", ())
+        full = getattr(inbox_module, "InboxFullError", ())
+        invalid = getattr(inbox_module, "InvalidInboxMessage", ())
+        if rejected and isinstance(exc, rejected):
+            return "", _error_response("MESSAGE_REJECTED", str(exc), 422)
+        if full and isinstance(exc, full):
+            return "", _error_response("INBOX_FULL", str(exc), 409)
+        if invalid and isinstance(exc, invalid):
+            return "", _error_response("INVALID_FIELD", str(exc), 422)
+        return "", _error_response("RATE_LIMITED", str(exc), 429)
+
+
+def _validation_detail(exc: Exception) -> str:
+    """Field-level messages of a pydantic error (``str(exc)`` otherwise)."""
+    if isinstance(exc, ValidationError):
+        return "; ".join(
+            f"{'.'.join(str(p) for p in err['loc']) or 'body'}: {err['msg']}"
+            for err in exc.errors()
+        )
+    return str(exc)
 
 
 def _unknown_fields(
@@ -139,13 +285,47 @@ def _apply_patch(section: BaseModel, body: dict[str, Any]) -> web.Response | Non
     try:
         validated = model_cls.model_validate_json(json.dumps(merged), strict=True)
     except ValidationError as exc:
-        detail = "; ".join(
-            f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in exc.errors()
+        return _error_response(
+            "INVALID_CONFIG", f"Config validation failed: {_validation_detail(exc)}", 422
         )
-        return _error_response("INVALID_CONFIG", f"Config validation failed: {detail}", 422)
     for key in body:
         setattr(section, key, getattr(validated, key))
     return None
+
+
+# ----------------------------------------------------------------------
+# Trigger IDs
+# ----------------------------------------------------------------------
+
+
+def _trigger_fingerprint(trigger_config: Any) -> str:
+    """A digest of a trigger config's content (secrets masked)."""
+    try:
+        data = trigger_config.model_dump(mode="json", exclude={"filter_expression"})
+        expr = getattr(trigger_config, "filter_expression", None)
+        data["filter_expression"] = expr if isinstance(expr, str) or expr is None else repr(expr)
+        text = json.dumps(data, sort_keys=True, default=str)
+    except Exception:
+        text = repr(trigger_config)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:10]
+
+
+def config_trigger_ids(triggers: Iterable[Any]) -> list[str]:
+    """Stable IDs for a process's config triggers, in list order.
+
+    An ID is ``<type>-<digest of the trigger's config>`` (secret values are
+    masked before hashing), so it does not depend on the trigger's
+    position: removing one trigger leaves the others' IDs unchanged, and
+    the IDs are the same after a restart.  Identical configs get ``-2``,
+    ``-3``... suffixes.
+    """
+    ids: list[str] = []
+    seen: dict[str, int] = {}
+    for tc in triggers:
+        base = f"{getattr(tc, 'type', 'trigger')}-{_trigger_fingerprint(tc)}"
+        seen[base] = seen.get(base, 0) + 1
+        ids.append(base if seen[base] == 1 else f"{base}-{seen[base]}")
+    return ids
 
 
 class OrchestrationAPI:
@@ -157,11 +337,12 @@ class OrchestrationAPI:
         port: Port to listen on (default ``9100``).
         auth_token: Bearer token required on every route except
             ``GET /api/v1/health``. **Required** when ``host`` is not a
-            loopback address.
+            loopback address.  ``"${VAR}"`` reads it from the environment.
 
     Raises:
-        ValueError: ``auth_token`` is empty, or ``host`` is not a loopback
-            address and there is no ``auth_token``.
+        ValueError: ``auth_token`` is empty, names an unset environment
+            variable, or ``host`` is not a loopback address and there is no
+            ``auth_token``.
     """
 
     def __init__(
@@ -224,7 +405,8 @@ class OrchestrationAPI:
         request: web.Request,
         handler: Callable[[web.Request], Awaitable[web.StreamResponse]],
     ) -> web.StreamResponse:
-        """Host/Origin checks (loopback binds), auth and JSON-object bodies."""
+        """Host/Origin checks (loopback binds), auth, JSON-object bodies,
+        JSON errors and the audit log."""
         if self._loopback:
             problem = loopback_request_problem(
                 request.headers.get("Host", ""), request.headers.get("Origin")
@@ -232,11 +414,28 @@ class OrchestrationAPI:
             if problem is not None:
                 status, message = problem
                 code = "MISDIRECTED_REQUEST" if status == 421 else "CROSS_ORIGIN_REFUSED"
+                logger.warning(
+                    "OrchestrationAPI: refused %s %s from %s (%d %s)",
+                    request.method,
+                    request.path,
+                    request.remote,
+                    status,
+                    code,
+                )
                 return _error_response(code, message, status)
         if request.path not in _PUBLIC_PATHS and not self._check_auth(request):
+            logger.warning(
+                "OrchestrationAPI: refused %s %s from %s (401 UNAUTHORIZED)",
+                request.method,
+                request.path,
+                request.remote,
+            )
             return _error_response("UNAUTHORIZED", "Invalid or missing auth token", 401)
         if request.method in _BODY_METHODS and request.can_read_body:
-            raw = await request.read()
+            try:
+                raw = await request.read()
+            except web.HTTPException as exc:  # 413: body over client_max_size
+                return _http_error_response(exc)
             if raw.strip():
                 try:
                     body = json.loads(raw)
@@ -246,7 +445,71 @@ class OrchestrationAPI:
                     return _error_response(
                         "INVALID_JSON", "Request body must be a JSON object", 400
                     )
-        return await handler(request)
+        response = await self._dispatch(request, handler)
+        if request.method in _MUTATING_METHODS:
+            await self._audit(request, response.status)
+        return response
+
+    async def _dispatch(
+        self,
+        request: web.Request,
+        handler: Callable[[web.Request], Awaitable[web.StreamResponse]],
+    ) -> web.StreamResponse:
+        """Run *handler*; turn HTTP errors and unexpected exceptions into JSON."""
+        try:
+            return await handler(request)
+        except web.HTTPException as exc:
+            if exc.status < 400:
+                raise
+            return _http_error_response(exc)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception(
+                "OrchestrationAPI: unexpected error in %s %s", request.method, request.path
+            )
+            return _error_response(
+                "INTERNAL_ERROR", "Internal server error (details are in the server log)", 500
+            )
+
+    async def _audit(self, request: web.Request, status: int) -> None:
+        """Log a mutating request; journal it on its process when it succeeded.
+
+        Records the method, route, path parameters (process, trigger and
+        secret *names*), status and client address.  Never the body.
+        """
+        info = request.match_info
+        route = getattr(getattr(info, "route", None), "resource", None)
+        canonical = getattr(route, "canonical", request.path)
+        params = dict(info)
+        process_name = params.get("name") or request.get(_AUDIT_PROCESS)
+        logger.info(
+            "OrchestrationAPI: %s %s %s -> %d (client %s)",
+            request.method,
+            canonical,
+            params or "",
+            status,
+            request.remote,
+        )
+        if status >= 400 or not process_name:
+            return
+        process = self._runtime.processes.get(process_name)
+        record = getattr(process, "_journal_record", None)
+        if record is None:
+            return
+        try:
+            await record(
+                "api_request",
+                {
+                    "method": request.method,
+                    "route": canonical,
+                    "params": params,
+                    "status": status,
+                    "client": request.remote,
+                },
+            )
+        except Exception:
+            logger.warning("OrchestrationAPI: could not journal an API request", exc_info=True)
 
     async def _json_body(self, request: web.Request) -> dict[str, Any]:
         """The request's JSON object body (``{}`` when the body is empty).
@@ -420,64 +683,75 @@ class OrchestrationAPI:
             status = self._runtime.process_status(name)
             return _json_response(status)
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
 
     async def _handle_deploy(self, request: web.Request) -> web.Response:
+        """Deploy a process: ``201``, ``409 PROCESS_EXISTS``, ``422`` for a
+        bad name or config, ``500 START_FAILED`` when ``start`` fails (the
+        process stays deployed)."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
 
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            return _error_response("INVALID_JSON", "Request body must be valid JSON", 400)
+        body = await self._json_body(request)
 
         name = body.get("name")
         if not name:
             return _error_response("MISSING_FIELD", "'name' is required", 422)
-        if not _PROCESS_NAME_RE.match(name):
+        if not isinstance(name, str) or not _PROCESS_NAME_RE.match(name):
             return _error_response(
                 "INVALID_NAME",
                 "Process name must be alphanumeric with hyphens/underscores, max 64 chars",
                 422,
             )
+        start = body.get("start", False)
+        if not isinstance(start, bool):
+            return _error_response("INVALID_FIELD", "'start' must be true or false", 422)
+        if name in self._runtime.processes:
+            return _error_response("PROCESS_EXISTS", f"Process '{name}' already exists", 409)
 
         config_data = body.get("config", {})
+        if not isinstance(config_data, dict):
+            return _error_response("INVALID_CONFIG", "'config' must be a JSON object", 422)
         try:
             from .config import ProcessConfig
 
             config = ProcessConfig(**config_data)
-        except Exception as exc:
-            # Extract field-level errors from Pydantic if available
-            detail = str(exc)
-            if hasattr(exc, "errors"):
-                try:
-                    field_errors = [
-                        f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors()
-                    ]
-                    detail = "; ".join(field_errors)
-                except Exception:
-                    pass
-            return _error_response("INVALID_CONFIG", f"Config validation failed: {detail}", 422)
+        except (ValidationError, ValueError, TypeError) as exc:
+            return _error_response(
+                "INVALID_CONFIG", f"Config validation failed: {_validation_detail(exc)}", 422
+            )
+
+        from .exceptions import RuntimeBaseError
 
         try:
             process = await self._runtime.add_process(name, config)
-        except Exception as exc:
-            return _error_response("DEPLOY_FAILED", str(exc), 409)
+        except RuntimeBaseError as exc:
+            if name in self._runtime.processes:  # lost a race with another deploy
+                return _error_response("PROCESS_EXISTS", f"Process '{name}' already exists", 409)
+            return _error_response("DEPLOY_FAILED", str(exc), 422)
+        except (ValueError, TypeError, ImportError) as exc:
+            return _error_response("DEPLOY_FAILED", f"Could not create the process: {exc}", 422)
+        request[_AUDIT_PROCESS] = name
 
-        if body.get("start", False):
+        if start:
             try:
                 await self._runtime.start_process(name)
             except Exception as exc:
-                return _error_response("START_FAILED", str(exc), 500)
+                logger.warning(
+                    "OrchestrationAPI: deployed %r but start failed", name, exc_info=True
+                )
+                return _error_response(
+                    "START_FAILED",
+                    f"Process '{name}' was deployed but failed to start: {exc}",
+                    500,
+                )
 
         return _json_response(
             {
                 "name": name,
                 "process_id": process.process_id,
-                "state": process.state.value
-                if hasattr(process.state, "value")
-                else str(process.state),
+                "state": _state_value(process),
                 "created_at": time.time(),
             },
             status=201,
@@ -492,7 +766,7 @@ class OrchestrationAPI:
             await self._runtime.remove_process(name)
             return web.Response(status=204)
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
 
     async def _handle_start(self, request: web.Request) -> web.Response:
         auth_err = self._require_auth(request)
@@ -502,16 +776,9 @@ class OrchestrationAPI:
         try:
             await self._runtime.start_process(name)
             process = self._get_process(name)
-            return _json_response(
-                {
-                    "name": name,
-                    "state": process.state.value
-                    if hasattr(process.state, "value")
-                    else str(process.state),
-                }
-            )
+            return _json_response({"name": name, "state": _state_value(process)})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
         except Exception as exc:
             return _error_response("START_FAILED", str(exc), 500)
 
@@ -523,16 +790,9 @@ class OrchestrationAPI:
         try:
             await self._runtime.stop_process(name)
             process = self._get_process(name)
-            return _json_response(
-                {
-                    "name": name,
-                    "state": process.state.value
-                    if hasattr(process.state, "value")
-                    else str(process.state),
-                }
-            )
+            return _json_response({"name": name, "state": _state_value(process)})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
         except Exception as exc:
             return _error_response("STOP_FAILED", str(exc), 500)
 
@@ -544,16 +804,9 @@ class OrchestrationAPI:
         try:
             await self._runtime.restart_process(name)
             process = self._get_process(name)
-            return _json_response(
-                {
-                    "name": name,
-                    "state": process.state.value
-                    if hasattr(process.state, "value")
-                    else str(process.state),
-                }
-            )
+            return _json_response({"name": name, "state": _state_value(process)})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
         except Exception as exc:
             return _error_response("RESTART_FAILED", str(exc), 500)
 
@@ -566,10 +819,7 @@ class OrchestrationAPI:
         if auth_err:
             return auth_err
         name = request.match_info["name"]
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            return _error_response("INVALID_JSON", "Request body must be valid JSON", 400)
+        body = await self._json_body(request)
 
         try:
             instructions = body.get("instructions")
@@ -591,207 +841,251 @@ class OrchestrationAPI:
                 }
             )
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
 
     async def _handle_update_budget(self, request: web.Request) -> web.Response:
-        auth_err = self._require_auth(request)
-        if auth_err:
-            return auth_err
-        name = request.match_info["name"]
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            return _error_response("INVALID_JSON", "Request body must be valid JSON", 400)
+        """Patch ``BudgetConfig``.
 
-        try:
-            process = self._get_process(name)
-            error = _apply_patch(process.config.budget, body)
-            if error is not None:
-                return error
-
-            return _json_response(
-                {
-                    "name": name,
-                    "budget_updated": True,
-                    "effective_from": "next_budget_check",
-                }
-            )
-        except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+        Limits are read from the config at every budget check, so a new
+        limit applies at the next check (the next tool call, LLM turn or
+        run start; ``effective_from: "next_budget_check"``), and usage
+        counted so far is kept.  See :meth:`_patch_section` for ``live``.
+        """
+        return await self._patch_section(request, "budget")
 
     async def _handle_update_health(self, request: web.Request) -> web.Response:
-        auth_err = self._require_auth(request)
-        if auth_err:
-            return auth_err
-        name = request.match_info["name"]
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            return _error_response("INVALID_JSON", "Request body must be valid JSON", 400)
-
-        try:
-            process = self._get_process(name)
-            error = _apply_patch(process.config.health, body)
-            if error is not None:
-                return error
-
-            return _json_response(
-                {
-                    "name": name,
-                    "health_updated": True,
-                    "effective_from": "immediate",
-                }
-            )
-        except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+        """Patch ``HealthConfig`` (thresholds apply to the next check)."""
+        return await self._patch_section(request, "health")
 
     async def _handle_update_mission(self, request: web.Request) -> web.Response:
+        """Patch ``MissionConfig`` (applies to the next evaluation and prompt)."""
+        return await self._patch_section(request, "mission")
+
+    async def _patch_section(self, request: web.Request, section: str) -> web.Response:
+        """Validate and apply a ``budget``/``health``/``mission`` patch.
+
+        The response says when the change applies:
+
+        * ``live: true`` with ``effective_from`` ``"next_budget_check"``
+          (budget) or ``"immediate"``: the running subsystem reads the new
+          values.
+        * ``live: false`` with ``effective_from: "redeploy"``: the process
+          has to apply the change itself and can't yet.  That is the case
+          for ``enabled`` when it differs from whether the process was
+          built with the subsystem (it is built once, at construction), and
+          for any change to a subsystem the process doesn't have.
+          ``pending_fields`` lists the fields and ``note`` says what to do.
+
+        The values are always stored in the process's config.  The running
+        subsystems read that same object, so on a built subsystem every
+        field, including the health window sizes, applies at its next
+        check.
+
+        When the process implements ``apply_governance_config(section)``,
+        it is called after the config changed and every change is live.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            return _error_response("INVALID_JSON", "Request body must be valid JSON", 400)
-
+        body = await self._json_body(request)
         try:
             process = self._get_process(name)
-            error = _apply_patch(process.config.mission, body)
-            if error is not None:
-                return error
-
-            return _json_response(
-                {
-                    "name": name,
-                    "mission_updated": True,
-                    "effective_from": "immediate",
-                }
-            )
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        if not body:
+            return _error_response(
+                "MISSING_FIELD", f"Send the {section} fields to change as a JSON object", 422
+            )
+
+        built = getattr(process, _SUBSYSTEMS[section], None) is not None
+        error = _apply_patch(getattr(process.config, section), body)
+        if error is not None:
+            return error
+
+        live_effect = "next_budget_check" if section == "budget" else "immediate"
+        result: dict[str, Any] = {"name": name, f"{section}_updated": True}
+        apply = getattr(process, "apply_governance_config", None)
+        if callable(apply):
+            await _maybe_await(apply(section))
+            result.update(effective_from=live_effect, live=True)
+            return _json_response(result)
+
+        enabled = getattr(process.config, section).enabled
+        if enabled != built:
+            note = (
+                f"The process was built {'without' if not built else 'with'} {section} "
+                f"and can't {'enable' if enabled else 'disable'} it while it exists. "
+                f"The config now has enabled={str(enabled).lower()}; redeploy the process "
+                "(DELETE it, then POST /api/v1/processes) to apply it."
+            )
+        elif not built:
+            note = (
+                f"{section} is disabled for this process: the values are stored in its "
+                "config and used once it is redeployed with enabled=true."
+            )
+        else:
+            result.update(effective_from=live_effect, live=True)
+            return _json_response(result)
+
+        result.update(effective_from="redeploy", live=False, pending_fields=sorted(body), note=note)
+        return _json_response(result)
 
     # ------------------------------------------------------------------
     # Human communication
     # ------------------------------------------------------------------
 
+    def _message_fields(
+        self, body: dict[str, Any], *, default_type: str
+    ) -> tuple[dict[str, Any], web.Response | None]:
+        """Validate the fields shared by ``/messages`` and ``/ask``."""
+        from .inbox import MessageType
+
+        content = body.get("content")
+        if not content:
+            return {}, _error_response("MISSING_FIELD", "'content' is required", 422)
+        if not isinstance(content, str):
+            return {}, _error_response("INVALID_FIELD", "'content' must be a string", 422)
+        msg_type = body.get("message_type", default_type)
+        try:
+            message_type = MessageType(msg_type)
+        except ValueError:
+            return {}, _error_response(
+                "INVALID_TYPE",
+                f"Invalid message_type: {msg_type!r}. Must be: directive, context, question, correction",
+                422,
+            )
+        priority = body.get("priority", "normal")
+        if priority not in _PRIORITIES:
+            return {}, _error_response(
+                "INVALID_FIELD", f"'priority' must be one of: {', '.join(_PRIORITIES)}", 422
+            )
+        sender_id = body.get("sender_id")
+        if sender_id is not None and not isinstance(sender_id, str):
+            return {}, _error_response("INVALID_FIELD", "'sender_id' must be a string", 422)
+        metadata = body.get("metadata", {})
+        if not isinstance(metadata, dict):
+            return {}, _error_response("INVALID_FIELD", "'metadata' must be a JSON object", 422)
+        return {
+            "content": content,
+            "message_type": message_type,
+            "priority": priority,
+            "sender_id": sender_id,
+            "metadata": metadata,
+        }, None
+
+    def _inbox_or_error(self, process: Any, action: str) -> tuple[Any, web.Response | None]:
+        """The process's inbox, or the error for a disabled inbox / closed process."""
+        inbox = getattr(process, "_inbox", None)
+        if inbox is None:
+            return None, _error_response(
+                "INBOX_DISABLED",
+                "Message inbox is not enabled for this process. Set inbox.enabled=true in config.",
+                400,
+            )
+        state = _state_value(process)
+        if state in _CLOSED_STATES:
+            return None, _error_response(
+                "PROCESS_NOT_RUNNING",
+                f"Cannot {action} process '{process.name}' in {state} state; start it first",
+                409,
+            )
+        return inbox, None
+
     async def _handle_send_message(self, request: web.Request) -> web.Response:
+        """Queue a message: ``201``, ``409`` for a stopped/failed process."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
+        body = await self._json_body(request)
         try:
-            body = await self._json_body(request)
             process = self._get_process(name)
-
-            if not hasattr(process, "_inbox") or process._inbox is None:
-                return _error_response(
-                    "INBOX_DISABLED",
-                    "Message inbox is not enabled for this process. Set inbox.enabled=true in config.",
-                    400,
-                )
-
-            from .inbox import InboxMessage, MessageType
-
-            content = body.get("content")
-            if not content:
-                return _error_response("MISSING_FIELD", "'content' is required", 422)
-
-            msg_type = body.get("message_type", "context")
-            try:
-                message_type = MessageType(msg_type)
-            except ValueError:
-                return _error_response(
-                    "INVALID_TYPE",
-                    f"Invalid message_type: {msg_type!r}. Must be: directive, context, question, correction",
-                    422,
-                )
-
-            ttl = body.get("ttl")
-            expires_at = None
-            if ttl and ttl > 0:
-                expires_at = time.time() + ttl
-
-            message = InboxMessage(
-                content=content,
-                message_type=message_type,
-                sender_id=body.get("sender_id"),
-                priority=body.get("priority", "normal"),
-                expires_at=expires_at,
-                metadata=body.get("metadata", {}),
-            )
-
-            try:
-                msg_id = await process._inbox.add(message)
-            except ValueError as exc:
-                return _error_response("RATE_LIMITED", str(exc), 429)
-
-            return _json_response(
-                {
-                    "message_id": msg_id,
-                    "status": "queued",
-                    "expires_at": message.expires_at,
-                },
-                status=201,
-            )
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        inbox, error = self._inbox_or_error(process, "send messages to")
+        if error is not None:
+            return error
+        fields, error = self._message_fields(body, default_type="context")
+        if error is not None:
+            return error
+
+        ttl = body.get("ttl")
+        if ttl is not None and (not _is_number(ttl) or ttl < 0):
+            return _error_response("INVALID_FIELD", "'ttl' must be a number of seconds >= 0", 422)
+        expires_at = time.time() + ttl if ttl else None
+
+        from .inbox import InboxMessage
+
+        message = InboxMessage(expires_at=expires_at, **fields)
+        msg_id, error = await _inbox_add(inbox, message)
+        if error is not None:
+            return error
+
+        return _json_response(
+            {
+                "message_id": msg_id,
+                "status": "queued",
+                "expires_at": message.expires_at,
+            },
+            status=201,
+        )
 
     async def _handle_ask(self, request: web.Request) -> web.Response:
+        """Ask a question and long-poll for the answer.
+
+        ``200`` with ``status: "answered"`` and the ``response`` text, or
+        ``status: "timeout"`` and ``response: null`` when the agent did not
+        answer within ``timeout`` seconds (default 120, at most 3600).
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
+        body = await self._json_body(request)
         try:
-            body = await self._json_body(request)
             process = self._get_process(name)
-
-            if not hasattr(process, "_inbox") or process._inbox is None:
-                return _error_response("INBOX_DISABLED", "Message inbox not enabled", 400)
-
-            from .inbox import InboxMessage, MessageType
-
-            content = body.get("content")
-            if not content:
-                return _error_response("MISSING_FIELD", "'content' is required", 422)
-
-            timeout = body.get("timeout", 120)
-
-            message = InboxMessage(
-                content=content,
-                message_type=MessageType.QUESTION,
-                sender_id=body.get("sender_id"),
-                priority=body.get("priority", "normal"),
-                expires_at=time.time() + timeout + 60,  # Extra buffer beyond poll timeout
+        except KeyError:
+            return _not_found(name)
+        inbox, error = self._inbox_or_error(process, "ask questions to")
+        if error is not None:
+            return error
+        body = {**body, "message_type": "question"}
+        fields, error = self._message_fields(body, default_type="question")
+        if error is not None:
+            return error
+        timeout = body.get("timeout", 120)
+        if not _is_number(timeout) or not 0 < timeout <= _MAX_ASK_TIMEOUT:
+            return _error_response(
+                "INVALID_FIELD",
+                f"'timeout' must be a number of seconds in (0, {_MAX_ASK_TIMEOUT:g}]",
+                422,
             )
 
-            try:
-                msg_id = await process._inbox.add(message)
-            except ValueError as exc:
-                return _error_response("RATE_LIMITED", str(exc), 429)
+        from .inbox import InboxMessage
 
-            # Long-poll: wait for the agent to respond
-            try:
-                response = await process._inbox.wait_for_response(msg_id, timeout=timeout)
-                return _json_response(
-                    {
-                        "question_id": msg_id,
-                        "status": "answered",
-                        "response": response.content,
-                        "answered_at": response.answered_at,
-                        "invocation_id": response.invocation_id,
-                    }
-                )
-            except asyncio.TimeoutError:
-                return _json_response(
-                    {
-                        "question_id": msg_id,
-                        "status": "timeout",
-                        "response": None,
-                    }
-                )
-        except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+        message = InboxMessage(
+            expires_at=time.time() + timeout + 60,  # Extra buffer beyond poll timeout
+            **fields,
+        )
+        msg_id, error = await _inbox_add(inbox, message)
+        if error is not None:
+            return error
+
+        # Long-poll: wait for the agent to respond
+        try:
+            response = await inbox.wait_for_response(msg_id, timeout=timeout)
+        except asyncio.TimeoutError:
+            return _json_response({"question_id": msg_id, "status": "timeout", "response": None})
+        return _json_response(
+            {
+                "question_id": msg_id,
+                "status": "answered",
+                "response": response.content,
+                "answered_at": response.answered_at,
+                "invocation_id": response.invocation_id,
+            }
+        )
 
     async def _handle_get_inbox(self, request: web.Request) -> web.Response:
         auth_err = self._require_auth(request)
@@ -800,14 +1094,19 @@ class OrchestrationAPI:
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            if not hasattr(process, "_inbox") or process._inbox is None:
+            if getattr(process, "_inbox", None) is None:
                 return _json_response(
-                    {"pending_messages": 0, "pending_questions": 0, "messages": []}
+                    {
+                        "enabled": False,
+                        "pending_messages": 0,
+                        "pending_questions": 0,
+                        "messages": [],
+                    }
                 )
             status = await process._inbox.status()
-            return _json_response(status)
+            return _json_response({"enabled": True, **status})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
 
     async def _handle_clear_inbox(self, request: web.Request) -> web.Response:
         auth_err = self._require_auth(request)
@@ -816,11 +1115,11 @@ class OrchestrationAPI:
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            if hasattr(process, "_inbox") and process._inbox is not None:
+            if getattr(process, "_inbox", None) is not None:
                 await process._inbox.clear()
             return web.Response(status=204)
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
 
     # ------------------------------------------------------------------
     # Observability
@@ -835,119 +1134,190 @@ class OrchestrationAPI:
             status = self._runtime.process_status(name)
             return _json_response(status)
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
 
     async def _handle_get_context(self, request: web.Request) -> web.Response:
+        """State and writable keys (``writable_keys: []`` with
+        ``all_keys_writable: true`` when every key is writable)."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            ctx = process.context
-            return _json_response(
-                {
-                    "state": ctx.state_snapshot() if hasattr(ctx, "state_snapshot") else {},
-                    "writable_keys": list(ctx._writable_keys)
-                    if hasattr(ctx, "_writable_keys") and ctx._writable_keys
-                    else [],
-                }
-            )
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        ctx = process.context
+        writable = ctx.writable_keys
+        return _json_response(
+            {
+                "state": ctx.state_snapshot(),
+                "writable_keys": writable or [],
+                "all_keys_writable": writable is None,
+            }
+        )
 
     async def _handle_update_context(self, request: web.Request) -> web.Response:
+        """Write context state, all keys or none.
+
+        Body: ``{"state": {key: value, ...}}``.  Every key is checked first;
+        if any is not writable the answer is ``403 WRITE_DENIED`` naming
+        them, and nothing is written.  Writes are recorded with source
+        ``"api"``.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            return _error_response("INVALID_JSON", "Request body must be valid JSON", 400)
+        body = await self._json_body(request)
         try:
             process = self._get_process(name)
-            ctx = process.context
-
-            state_updates = body.get("state", {})
-            updated_keys = []
-            for key, value in state_updates.items():
-                try:
-                    ctx.put(key, value, source="api")
-                    updated_keys.append(key)
-                except (ValueError, PermissionError, KeyError) as exc:
-                    return _error_response(
-                        "WRITE_DENIED",
-                        f"Cannot write key '{key}': {exc}",
-                        403,
-                    )
-
-            return _json_response(
-                {
-                    "name": name,
-                    "updated_keys": updated_keys,
-                }
-            )
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        unknown = sorted(set(body) - {"state"})
+        if unknown:
+            return _error_response(
+                "UNKNOWN_FIELD", f"Unknown field(s): {', '.join(unknown)}. Allowed: state", 422
+            )
+        state_updates = body.get("state")
+        if state_updates is None:
+            return _error_response("MISSING_FIELD", "'state' is required", 422)
+        if not isinstance(state_updates, dict):
+            return _error_response("INVALID_FIELD", "'state' must be a JSON object", 422)
+
+        ctx = process.context
+        denied = ctx.denied_keys(state_updates)
+        if denied:
+            return _error_response(
+                "WRITE_DENIED",
+                f"Not writable: {', '.join(denied)}. Allowed: {', '.join(ctx.writable_keys or [])}."
+                " Nothing was written.",
+                403,
+            )
+        updated_keys = ctx.update(state_updates, source="api")
+        return _json_response({"name": name, "updated_keys": updated_keys})
 
     # ------------------------------------------------------------------
     # Trigger management
     # ------------------------------------------------------------------
 
+    def _find_config_trigger(self, process: Any, trigger_id: str) -> tuple[int | None, bool]:
+        """Index of the config trigger with *trigger_id* (``(None, False)`` if none).
+
+        The second value is ``True`` when *trigger_id* used the deprecated,
+        position-based ``static_<n>`` form.
+        """
+        triggers = process.config.triggers
+        ids = config_trigger_ids(triggers)
+        if trigger_id in ids:
+            return ids.index(trigger_id), False
+        match = re.fullmatch(r"static_(\d+)", trigger_id)
+        if match and int(match.group(1)) < len(triggers):
+            return int(match.group(1)), True
+        return None, False
+
     async def _handle_list_triggers(self, request: web.Request) -> web.Response:
-        """List all triggers (static + dynamic) for a process."""
+        """List all triggers (config + agent-added) for a process.
+
+        Config triggers have stable IDs (see :func:`config_trigger_ids`);
+        secret fields are masked.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            triggers = []
-            for i, tc in enumerate(process.config.triggers):
-                triggers.append(
-                    {
-                        "id": f"static_{i}",
-                        "type": tc.type,
-                        "source": "config",
-                        "config": tc.model_dump()
-                        if hasattr(tc, "model_dump")
-                        else {"type": tc.type},
-                    }
-                )
-            for t in getattr(process, "_dynamic_triggers", []):
-                tid = getattr(t, "trigger_id", None) or str(id(t))
-                triggers.append({"id": tid, "type": type(t).__name__, "source": "dynamic"})
-            return _json_response({"name": name, "triggers": triggers, "count": len(triggers)})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        triggers: list[dict[str, Any]] = []
+        for tid, tc in zip(
+            config_trigger_ids(process.config.triggers), process.config.triggers, strict=True
+        ):
+            try:
+                config = tc.model_dump(mode="json", exclude={"filter_expression"})
+            except Exception:
+                config = {"type": tc.type}
+            triggers.append({"id": tid, "type": tc.type, "source": "config", "config": config})
+        for t in getattr(process, "_dynamic_triggers", []):
+            tid = getattr(t, "trigger_id", None) or str(id(t))
+            kind = getattr(t, "trigger_type", None) or type(t).__name__
+            triggers.append({"id": tid, "type": kind, "source": "dynamic"})
+        return _json_response({"name": name, "triggers": triggers, "count": len(triggers)})
 
     async def _handle_add_trigger(self, request: web.Request) -> web.Response:
-        """Add a trigger to a process (effective on next restart)."""
+        """Add a trigger to a process's config.
+
+        Answers ``201`` with the new ``trigger_id``, ``live`` and
+        ``effective_from``: ``"immediate"`` when the process starts the
+        trigger now (it implements ``add_trigger``), ``"restart"`` when a
+        running process only creates it on its next start, ``"next_start"``
+        for a process that isn't running.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            return _error_response("INVALID_JSON", "Request body must be valid JSON", 400)
+        body = await self._json_body(request)
         try:
             process = self._get_process(name)
-            if not body.get("type"):
-                return _error_response("MISSING_FIELD", "'type' is required", 422)
-            from .config import TriggerConfig
-
-            tc = TriggerConfig(**body)
-            process.config.triggers.append(tc)
-            return _json_response({"name": name, "trigger_added": True, "trigger_type": tc.type})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
-        except Exception as exc:
-            return _error_response("INVALID_CONFIG", f"Invalid trigger config: {exc}", 422)
+            return _not_found(name)
+        if not body.get("type"):
+            return _error_response("MISSING_FIELD", "'type' is required", 422)
+        from .config import TriggerConfig
+
+        try:
+            tc = TriggerConfig(**body)
+        except (ValidationError, ValueError, TypeError) as exc:
+            return _error_response(
+                "INVALID_CONFIG", f"Invalid trigger config: {_validation_detail(exc)}", 422
+            )
+        triggers = process.config.triggers
+        trigger_id = config_trigger_ids([tc])[0]
+        if trigger_id in config_trigger_ids(triggers):
+            return _error_response(
+                "TRIGGER_EXISTS",
+                f"An identical trigger is already configured (id '{trigger_id}')",
+                409,
+            )
+
+        state = _state_value(process)
+        add = getattr(process, "add_trigger", None)
+        if callable(add):
+            try:
+                returned = await _maybe_await(add(tc))
+            except ValueError as exc:
+                return _error_response("INVALID_CONFIG", f"Invalid trigger config: {exc}", 422)
+            if isinstance(returned, str):
+                trigger_id = returned
+            live = state in _ACTIVE_STATES
+            effective = "immediate" if live else "next_start"
+        else:
+            triggers.append(tc)
+            live = False
+            effective = "restart" if state in _ACTIVE_STATES else "next_start"
+        return _json_response(
+            {
+                "name": name,
+                "trigger_added": True,
+                "trigger_id": trigger_id,
+                "trigger_type": tc.type,
+                "live": live,
+                "effective_from": effective,
+            },
+            status=201,
+        )
 
     async def _handle_remove_trigger(self, request: web.Request) -> web.Response:
-        """Remove a trigger from a process."""
+        """Remove a trigger by ID.
+
+        An agent-added (dynamic) trigger is stopped at once.  A config
+        trigger is removed from the config; ``live`` says whether the
+        running trigger stopped too (the process implements
+        ``remove_trigger``) or keeps firing until the process restarts
+        (``effective_from: "restart"``).
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
@@ -955,88 +1325,177 @@ class OrchestrationAPI:
         trigger_id = request.match_info["trigger_id"]
         try:
             process = self._get_process(name)
-            # Dynamic triggers are a list, not a dict
-            dynamic = getattr(process, "_dynamic_triggers", [])
-            for i, t in enumerate(dynamic):
-                tid = getattr(t, "trigger_id", None) or str(id(t))
-                if tid == trigger_id:
+        except KeyError:
+            return _not_found(name)
+        state = _state_value(process)
+        remove = getattr(process, "remove_trigger", None)
+
+        dynamic = getattr(process, "_dynamic_triggers", [])
+        for i, t in enumerate(dynamic):
+            tid = getattr(t, "trigger_id", None) or str(id(t))
+            if tid == trigger_id:
+                if callable(remove):
+                    await _maybe_await(remove(trigger_id))
+                else:
                     removed = dynamic.pop(i)
                     if hasattr(removed, "stop"):
                         await removed.stop()
-                    return _json_response({"name": name, "trigger_removed": trigger_id})
-            if trigger_id.startswith("static_"):
-                try:
-                    idx = int(trigger_id.split("_")[1])
-                    if 0 <= idx < len(process.config.triggers):
-                        process.config.triggers.pop(idx)
-                        return _json_response({"name": name, "trigger_removed": trigger_id})
-                except (ValueError, IndexError):
-                    pass
+                return _json_response(
+                    {
+                        "name": name,
+                        "trigger_removed": trigger_id,
+                        "live": True,
+                        "effective_from": "immediate",
+                    }
+                )
+
+        index, legacy = self._find_config_trigger(process, trigger_id)
+        if index is None:
             return _error_response("TRIGGER_NOT_FOUND", f"Trigger '{trigger_id}' not found", 404)
-        except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+        stable_id = config_trigger_ids(process.config.triggers)[index]
+        result: dict[str, Any] = {"name": name, "trigger_removed": stable_id}
+        if legacy:
+            message = (
+                f"Trigger ID '{trigger_id}' is position-based and deprecated; use the stable "
+                f"ID '{stable_id}' from GET /triggers"
+            )
+            logger.warning("OrchestrationAPI: %s", message)
+            result["warning"] = message
+        if callable(remove):
+            await _maybe_await(remove(stable_id))
+            live = True
+            effective = "immediate" if state in _ACTIVE_STATES else "next_start"
+        else:
+            process.config.triggers.pop(index)
+            live = state not in _ACTIVE_STATES
+            effective = "restart" if state in _ACTIVE_STATES else "next_start"
+            if state in _ACTIVE_STATES:
+                result["note"] = (
+                    "Removed from the config; the running trigger keeps firing until the "
+                    "process restarts."
+                )
+        result.update(live=live, effective_from=effective)
+        return _json_response(result)
 
     # ------------------------------------------------------------------
     # Secret management
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _secret_metadata(secrets: Any) -> list[dict[str, Any]]:
+        """Metadata of every secret (never a value), with ``expires_at``.
+
+        Uses ``SecretScope.list_metadata()``; ``expires_at`` (Unix time) is
+        derived from its ``expires_in`` (seconds left, ``None`` for no
+        expiry).
+        """
+        describe = getattr(secrets, "list_metadata", None)
+        if callable(describe):
+            items = [dict(item) for item in describe()]
+        else:  # a scope without list_metadata(): names and expiry only
+            entries = getattr(secrets, "_secrets", {})
+            items = []
+            for sn in secrets.list_names():
+                expires = getattr(entries.get(sn), "expires_at", None)  # monotonic
+                items.append(
+                    {
+                        "name": sn,
+                        "active": True,
+                        "source": getattr(entries.get(sn), "source", None),
+                        "expires_in": None
+                        if expires is None
+                        else round(max(0.0, expires - time.monotonic()), 3),
+                    }
+                )
+        for item in items:
+            left = item.get("expires_in")
+            item["expires_at"] = time.time() + left if _is_number(left) else None
+        return items
+
     async def _handle_list_secrets(self, request: web.Request) -> web.Response:
-        """List secret names and TTL status (never values)."""
+        """List secret metadata (never values).
+
+        Per secret: ``name``, ``active``, ``source``, ``expires_in``
+        (seconds left) and ``expires_at`` (Unix time), both ``null`` for a
+        secret without a TTL, plus the scope's rotation and access counts.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            secrets = getattr(process, "_secrets", None)
-            if secrets is None:
-                return _json_response({"name": name, "secrets": [], "enabled": False})
-            names = secrets.list_names() if hasattr(secrets, "list_names") else []
-            info = []
-            for sn in names:
-                # SecretScope stores entries in _secrets dict, not _entries
-                entry = secrets._secrets.get(sn) if hasattr(secrets, "_secrets") else None
-                if entry:
-                    is_expired = (
-                        secrets._is_expired(entry) if hasattr(secrets, "_is_expired") else False
-                    )
-                    info.append(
-                        {
-                            "name": sn,
-                            "active": not is_expired,
-                        }
-                    )
-                else:
-                    info.append({"name": sn, "active": True})
-            return _json_response({"name": name, "secrets": info, "enabled": True})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        secrets = getattr(process, "_secrets", None)
+        if secrets is None:
+            return _json_response({"name": name, "secrets": [], "enabled": False})
+        info = self._secret_metadata(secrets)
+        return _json_response({"name": name, "secrets": info, "enabled": True})
 
     async def _handle_rotate_secret(self, request: web.Request) -> web.Response:
-        """Rotate a secret value (immediate effect)."""
+        """Rotate a secret value (immediate effect).
+
+        Body: ``{"value": "...", "ttl": <seconds, optional>}``.  ``ttl``
+        sets a new lifetime counted from now; without it the secret keeps
+        its expiry (an expired secret gets its configured TTL again).
+        ``404 SECRET_NOT_FOUND`` for a name the process has no secret for.
+        The answer carries the secret's new metadata, never its value.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
         secret_name = request.match_info["secret_name"]
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            return _error_response("INVALID_JSON", "Request body must be valid JSON", 400)
+        body = await self._json_body(request)
         try:
             process = self._get_process(name)
-            secrets = getattr(process, "_secrets", None)
-            if secrets is None:
-                return _error_response("SECRETS_DISABLED", "Secret scoping not enabled", 400)
-            new_value = body.get("value")
-            if not new_value:
-                return _error_response("MISSING_FIELD", "'value' is required", 422)
-            await secrets.rotate(secret_name, new_value)
-            return _json_response({"name": name, "secret_rotated": secret_name})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
-        except Exception as exc:
-            return _error_response("ROTATION_FAILED", f"Rotation failed: {exc}", 400)
+            return _not_found(name)
+        secrets = getattr(process, "_secrets", None)
+        if secrets is None:
+            return _error_response("SECRETS_DISABLED", "Secret scoping not enabled", 400)
+        new_value = body.get("value")
+        if not new_value:
+            return _error_response("MISSING_FIELD", "'value' is required", 422)
+        if not isinstance(new_value, str):
+            return _error_response("INVALID_FIELD", "'value' must be a string", 422)
+        kwargs: dict[str, Any] = {}
+        if "ttl" in body:
+            ttl = body["ttl"]
+            if not _is_number(ttl) or ttl <= 0:
+                return _error_response(
+                    "INVALID_FIELD", "'ttl' must be a number of seconds > 0", 422
+                )
+            kwargs["ttl"] = ttl
+        unknown = sorted(set(body) - {"value", "ttl"})
+        if unknown:
+            return _error_response(
+                "UNKNOWN_FIELD", f"Unknown field(s): {', '.join(unknown)}. Allowed: value, ttl", 422
+            )
+        try:
+            await secrets.rotate(secret_name, new_value, **kwargs)
+        except KeyError:
+            return _error_response(
+                "SECRET_NOT_FOUND",
+                f"Process '{name}' has no secret named '{secret_name}'",
+                404,
+            )
+        except Exception:
+            # Never echo the exception: it could quote the value.
+            logger.warning(
+                "OrchestrationAPI: rotating secret %r of %r failed",
+                secret_name,
+                name,
+                exc_info=False,
+            )
+            return _error_response(
+                "ROTATION_FAILED", f"Rotating secret '{secret_name}' failed", 400
+            )
+        info = next(
+            (m for m in self._secret_metadata(secrets) if m.get("name") == secret_name), None
+        )
+        return _json_response({"name": name, "secret_rotated": secret_name, "secret": info})
 
     async def _handle_revoke_secrets(self, request: web.Request) -> web.Response:
         """Revoke all secrets (zero-fill, immediate)."""
@@ -1052,43 +1511,49 @@ class OrchestrationAPI:
             await secrets.revoke_all()
             return _json_response({"name": name, "secrets_revoked": True})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
 
     # ------------------------------------------------------------------
     # Journal
     # ------------------------------------------------------------------
 
     async def _handle_get_journal(self, request: web.Request) -> web.Response:
-        """Read journal entries for a process."""
+        """Read the newest journal entries (``?limit=`` 1-500, default 50;
+        ``?type=`` filters by entry type)."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            journal = getattr(process, "_journal", None)
-            if journal is None:
-                return _json_response({"name": name, "entries": [], "journal_enabled": False})
-            limit = min(int(request.query.get("limit", "50")), 500)
-            entry_type = request.query.get("type")
-            # The process files its entries under its name (so they
-            # survive a restart, which gets a new process_id).
-            entries = await journal.read(process.name) if hasattr(journal, "read") else []
-            if entry_type:
-                entries = [e for e in entries if getattr(e, "entry_type", "") == entry_type]
-            entries = entries[-limit:]
-            serialized = []
-            for e in entries:
-                serialized.append(
-                    {
-                        "entry_type": getattr(e, "entry_type", "unknown"),
-                        "timestamp": getattr(e, "timestamp", 0),
-                        "data": getattr(e, "data", {}),
-                    }
-                )
-            return _json_response({"name": name, "entries": serialized, "count": len(serialized)})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        journal = getattr(process, "_journal", None)
+        if journal is None:
+            return _json_response({"name": name, "entries": [], "journal_enabled": False})
+        raw_limit = request.query.get("limit", "50")
+        try:
+            limit = int(raw_limit)
+        except ValueError:
+            limit = 0
+        if not 1 <= limit <= 500:
+            return _error_response("INVALID_FIELD", "'limit' must be an integer from 1 to 500", 422)
+        entry_type = request.query.get("type") or None
+        # The process files its entries under its name (so they
+        # survive a restart, which gets a new process_id).
+        entries = await journal.read(process.name, entry_type=entry_type)
+        if entry_type:
+            entries = [e for e in entries if getattr(e, "entry_type", "") == entry_type]
+        entries = entries[-limit:]
+        serialized = [
+            {
+                "entry_type": getattr(e, "entry_type", "unknown"),
+                "timestamp": _iso(getattr(e, "timestamp", 0)),
+                "data": getattr(e, "data", {}),
+            }
+            for e in entries
+        ]
+        return _json_response({"name": name, "entries": serialized, "count": len(serialized)})
 
     # ------------------------------------------------------------------
     # Mission control
@@ -1102,131 +1567,172 @@ class OrchestrationAPI:
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            mission = getattr(process, "_mission", None)
-            if mission is None:
-                return _json_response({"name": name, "mission_enabled": False})
-            state = {
-                "state": mission.state.value
-                if hasattr(mission.state, "value")
-                else str(mission.state),
-                "objective": getattr(getattr(mission, "_config", None), "objective", ""),
-                "invocation_count": getattr(mission, "invocation_count", 0),
-            }
-            evals = []
-            for ev in getattr(mission, "evaluations", []):
-                evals.append(
-                    {
-                        "achieved": getattr(ev, "achieved", False),
-                        "confidence": getattr(ev, "confidence", 0),
-                        "reasoning": getattr(ev, "reasoning", ""),
-                    }
-                )
-            state["evaluations"] = evals
-            return _json_response({"name": name, "mission_enabled": True, "mission": state})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        mission = getattr(process, "_mission", None)
+        if mission is None:
+            return _json_response({"name": name, "mission_enabled": False})
+        state = {
+            "state": _state_value(mission),
+            "objective": getattr(getattr(mission, "_config", None), "objective", ""),
+            "invocation_count": getattr(mission, "invocation_count", 0),
+            "evaluations": [
+                {
+                    "achieved": getattr(ev, "achieved", False),
+                    "confidence": getattr(ev, "confidence", 0),
+                    "reasoning": getattr(ev, "reasoning", ""),
+                    "progress_summary": getattr(ev, "progress_summary", ""),
+                    "invocation_number": getattr(ev, "invocation_number", None),
+                    "source": getattr(ev, "source", None),
+                    "timestamp": _iso(getattr(ev, "timestamp", None)),
+                }
+                for ev in getattr(mission, "evaluations", [])
+            ],
+        }
+        return _json_response({"name": name, "mission_enabled": True, "mission": state})
+
+    async def _mission_action(
+        self, request: web.Request, action: str, allowed: frozenset[str]
+    ) -> web.Response:
+        """Run ``fail``/``pause``/``resume`` on a mission in one of *allowed* states."""
+        auth_err = self._require_auth(request)
+        if auth_err:
+            return auth_err
+        name = request.match_info["name"]
+        body = await self._json_body(request)
+        try:
+            process = self._get_process(name)
+        except KeyError:
+            return _not_found(name)
+        mission = getattr(process, "_mission", None)
+        if mission is None:
+            return _error_response("MISSION_DISABLED", "Mission not configured", 400)
+        current = _state_value(mission)
+        if current not in allowed:
+            return _error_response(
+                "MISSION_STATE",
+                f"Cannot {action} a mission in state '{current}' "
+                f"(allowed in: {', '.join(sorted(allowed))})",
+                409,
+            )
+        if action == "fail":
+            reason = body.get("reason", "Manually failed via API")
+            if not isinstance(reason, str):
+                return _error_response("INVALID_FIELD", "'reason' must be a string", 422)
+            fail_mission = getattr(process, "fail_mission", None)
+            if callable(fail_mission):
+                await _maybe_await(fail_mission(reason))
+            else:
+                self._fail_mission_and_notify(process, mission, reason)
+            return _json_response({"name": name, "mission_failed": True, "reason": reason})
+        getattr(mission, action)()
+        return _json_response(
+            {"name": name, f"mission_{action}d": True, "state": _state_value(mission)}
+        )
+
+    @staticmethod
+    def _fail_mission_and_notify(process: Any, mission: Any, reason: str) -> None:
+        """Fail *mission* and emit ``mission.failed`` as the runtime does."""
+        try:
+            payload = mission.fail(reason, source="manual")
+        except TypeError:  # a tracker whose fail() takes only the reason
+            payload = mission.fail(reason)
+        notifier = getattr(process, "_event_notifier", None)
+        if notifier is None:
+            return
+        from promptise.events import emit_event
+
+        data: dict[str, Any] = {"process_name": process.name, "reason": "manual"}
+        if isinstance(payload, dict):
+            data["message"] = payload.get("message", reason)
+        else:
+            data["message"] = reason
+        metadata = getattr(process, "_event_metadata", None)
+        emit_event(
+            notifier,
+            "mission.failed",
+            "critical",
+            data,
+            agent_id=process.name,
+            metadata=metadata() if callable(metadata) else None,
+        )
 
     async def _handle_fail_mission(self, request: web.Request) -> web.Response:
-        """Manually fail a mission."""
-        auth_err = self._require_auth(request)
-        if auth_err:
-            return auth_err
-        name = request.match_info["name"]
-        try:
-            body = await self._json_body(request)
-        except Exception:
-            body = {}
-        try:
-            process = self._get_process(name)
-            mission = getattr(process, "_mission", None)
-            if mission is None:
-                return _error_response("MISSION_DISABLED", "Mission not configured", 400)
-            reason = body.get("reason", "Manually failed via API")
-            mission.fail(reason)
-            return _json_response({"name": name, "mission_failed": True, "reason": reason})
-        except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+        """Fail an active or paused mission (``409 MISSION_STATE`` otherwise).
+
+        The reason is stored with the mission and a ``mission.failed`` event
+        (``reason: "manual"``, ``message``: the given reason) is emitted
+        when the process has an event notifier.
+        """
+        return await self._mission_action(request, "fail", frozenset({"active", "paused"}))
 
     async def _handle_pause_mission(self, request: web.Request) -> web.Response:
-        """Pause mission evaluation."""
-        auth_err = self._require_auth(request)
-        if auth_err:
-            return auth_err
-        name = request.match_info["name"]
-        try:
-            process = self._get_process(name)
-            mission = getattr(process, "_mission", None)
-            if mission is None:
-                return _error_response("MISSION_DISABLED", "Mission not configured", 400)
-            if hasattr(mission, "pause"):
-                mission.pause()
-            return _json_response({"name": name, "mission_paused": True})
-        except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+        """Pause an active mission (``409 MISSION_STATE`` otherwise)."""
+        return await self._mission_action(request, "pause", frozenset({"active"}))
 
     async def _handle_resume_mission(self, request: web.Request) -> web.Response:
-        """Resume mission evaluation."""
-        auth_err = self._require_auth(request)
-        if auth_err:
-            return auth_err
-        name = request.match_info["name"]
-        try:
-            process = self._get_process(name)
-            mission = getattr(process, "_mission", None)
-            if mission is None:
-                return _error_response("MISSION_DISABLED", "Mission not configured", 400)
-            if hasattr(mission, "resume"):
-                mission.resume()
-            return _json_response({"name": name, "mission_resumed": True})
-        except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+        """Resume a paused mission (``409 MISSION_STATE`` otherwise)."""
+        return await self._mission_action(request, "resume", frozenset({"paused"}))
 
     # ------------------------------------------------------------------
     # Health details
     # ------------------------------------------------------------------
 
     async def _handle_get_anomalies(self, request: web.Request) -> web.Response:
-        """Get anomaly history for a process."""
+        """Get anomaly history for a process (type, description, time)."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            health = getattr(process, "_health", None)
-            if health is None:
-                return _json_response({"name": name, "health_enabled": False, "anomalies": []})
-            anomalies = []
-            for a in getattr(health, "anomalies", []):
-                anomalies.append(
-                    {
-                        "type": getattr(a, "anomaly_type", "unknown"),
-                        "description": getattr(a, "description", ""),
-                        "timestamp": getattr(a, "timestamp", 0),
-                    }
-                )
-            return _json_response({"name": name, "anomalies": anomalies, "count": len(anomalies)})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        health = getattr(process, "_health", None)
+        if health is None:
+            return _json_response({"name": name, "health_enabled": False, "anomalies": []})
+        anomalies = [
+            {
+                "type": getattr(a, "anomaly_type", "unknown"),
+                "description": getattr(a, "description", ""),
+                "timestamp": _iso(getattr(a, "timestamp", 0)),
+            }
+            for a in getattr(health, "anomalies", [])
+        ]
+        return _json_response(
+            {"name": name, "health_enabled": True, "anomalies": anomalies, "count": len(anomalies)}
+        )
 
     async def _handle_clear_anomalies(self, request: web.Request) -> web.Response:
-        """Clear anomaly history."""
+        """Clear anomaly history and cooldowns.
+
+        After clearing, a recurring anomaly is reported (and acted on) at
+        once instead of being held back by the previous one's cooldown.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            health = getattr(process, "_health", None)
-            if health is None:
-                return _error_response("HEALTH_DISABLED", "Health monitoring not configured", 400)
-            cleared = len(getattr(health, "anomalies", []))
-            if hasattr(health, "anomalies"):
-                # anomalies is a property that returns a copy — clear the internal list
-                health._anomalies.clear()
-            return _json_response({"name": name, "anomalies_cleared": cleared})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        health = getattr(process, "_health", None)
+        if health is None:
+            return _error_response("HEALTH_DISABLED", "Health monitoring not configured", 400)
+        cleared = len(getattr(health, "anomalies", []))
+        clear = getattr(health, "clear_anomalies", None)
+        if callable(clear):
+            clear()
+        else:
+            # anomalies is a property that returns a copy: clear the internals
+            for attr in ("_anomalies", "_new_anomalies", "_last_anomaly_time"):
+                store = getattr(health, attr, None)
+                if store is not None:
+                    store.clear()
+            if hasattr(health, "_unrecovered"):
+                health._unrecovered = False
+        return _json_response({"name": name, "anomalies_cleared": cleared})
 
     # ------------------------------------------------------------------
     # Process suspend/resume
@@ -1240,13 +1746,13 @@ class OrchestrationAPI:
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            if hasattr(process, "suspend"):
-                await process.suspend()
-            return _json_response({"name": name, "suspended": True})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        try:
+            await process.suspend()
         except Exception as exc:
             return _error_response("SUSPEND_FAILED", f"Suspend failed: {exc}", 400)
+        return _json_response({"name": name, "suspended": True, "state": _state_value(process)})
 
     async def _handle_resume(self, request: web.Request) -> web.Response:
         """Resume a suspended process."""
@@ -1256,10 +1762,10 @@ class OrchestrationAPI:
         name = request.match_info["name"]
         try:
             process = self._get_process(name)
-            if hasattr(process, "resume"):
-                await process.resume()
-            return _json_response({"name": name, "resumed": True})
         except KeyError:
-            return _error_response("PROCESS_NOT_FOUND", f"Process '{name}' not found", 404)
+            return _not_found(name)
+        try:
+            await process.resume()
         except Exception as exc:
             return _error_response("RESUME_FAILED", f"Resume failed: {exc}", 400)
+        return _json_response({"name": name, "resumed": True, "state": _state_value(process)})

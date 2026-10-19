@@ -8,7 +8,10 @@ Requests pass these checks in order:
 
 1. ``allowed_sources`` — client IP must be in one of the listed IPs/CIDR
    ranges (403 otherwise).
-2. Signature — when ``hmac_secret`` is set, the request must carry a valid
+2. Body size — a body larger than ``max_body_bytes`` (default 1 MiB) gets
+   ``413`` (checked against ``Content-Length`` before the body is read,
+   and while reading it).
+3. Signature — when ``hmac_secret`` is set, the request must carry a valid
    HMAC-SHA256 signature in the scheme's header (401 otherwise):
 
    * ``generic``: ``X-Webhook-Signature: sha256=<hex of HMAC(body)>``
@@ -16,13 +19,14 @@ Requests pass these checks in order:
    * ``stripe``:  ``Stripe-Signature: t=<unix ts>,v1=<hex of HMAC("<ts>.<body>")>``,
      with the timestamp no older than ``signature_tolerance`` seconds.
 
-3. Availability — when the owning process can't run events (failed,
+4. Availability — when the owning process can't run events (failed,
    stopping) or its queue is full, the webhook answers 503 with a
    ``Retry-After`` header so the sender retries later.
-4. ``event_filter`` — events that don't match get ``200 {"status": "ignored"}``
+5. ``event_filter`` — events that don't match get ``200 {"status": "ignored"}``
    and never reach the agent.
 
 Accepted events get ``202 {"status": "accepted", "event_id": ...}``.
+An unexpected error while handling a request gets ``500``.
 
 Uses ``aiohttp`` (ships with the base ``pip install promptise``).
 
@@ -65,6 +69,9 @@ logger = logging.getLogger(__name__)
 
 _REDACTED_HEADERS = ("authorization", "cookie", "set-cookie", "proxy-authorization")
 
+#: Default largest request body (1 MiB, aiohttp's own default).
+DEFAULT_MAX_BODY_BYTES = 1024 * 1024
+
 
 def _digest_equal(expected_hex: str, received: str) -> bool:
     """Timing-safe comparison that tolerates non-ASCII header values.
@@ -103,6 +110,11 @@ class WebhookTrigger:
             address, so behind a reverse proxy list the proxy.
         event_filter: Optional predicate; events it rejects are answered
             with ``200 {"status": "ignored"}`` and not queued.
+        max_body_bytes: Largest request body accepted, in bytes (default
+            1 MiB).  Larger requests get ``413`` and are not queued.
+
+    Raises:
+        ValueError: Unknown ``signature_scheme`` or ``max_body_bytes`` < 1.
     """
 
     def __init__(
@@ -117,9 +129,13 @@ class WebhookTrigger:
         signature_tolerance: int = 300,
         allowed_sources: list[str] | None = None,
         event_filter: Callable[[TriggerEvent], bool] | None = None,
+        max_body_bytes: int = DEFAULT_MAX_BODY_BYTES,
     ) -> None:
         if signature_scheme not in SIGNATURE_HEADERS:
             raise ValueError(f"Unknown signature_scheme {signature_scheme!r}")
+        if max_body_bytes < 1:
+            raise ValueError(f"max_body_bytes must be at least 1, got {max_body_bytes}")
+        self._max_body_bytes = max_body_bytes
         self._path = path
         self._port = port
         self._host = host
@@ -162,7 +178,7 @@ class WebhookTrigger:
     async def start(self) -> None:
         """Start the webhook HTTP server."""
         self._stopped = False
-        self._app = web.Application()
+        self._app = web.Application(client_max_size=self._max_body_bytes)
         self._app.router.add_post(self._path, self._handle_request)
 
         # Also add a health check endpoint
@@ -300,8 +316,24 @@ class WebhookTrigger:
     # Handlers
     # ------------------------------------------------------------------
 
+    def _too_large(self, request: web.Request, size: int | None) -> web.Response:
+        logger.warning(
+            "WebhookTrigger: rejected request from %s (body %s bytes, limit %d)",
+            request.remote,
+            size if size is not None else "over the limit,",
+            self._max_body_bytes,
+        )
+        return web.json_response(
+            {
+                "status": "error",
+                "message": f"Request body too large (limit {self._max_body_bytes} bytes)",
+            },
+            status=413,
+        )
+
     async def _handle_request(self, request: web.Request) -> web.Response:
         """Handle incoming POST request."""
+        replay_key: str | None = None
         try:
             if not self._source_allowed(request.remote):
                 logger.warning("WebhookTrigger: rejected request from %s", request.remote)
@@ -309,10 +341,18 @@ class WebhookTrigger:
                     {"status": "error", "message": "Source not allowed"}, status=403
                 )
 
-            raw_body = await request.read()
+            if request.content_length is not None and request.content_length > (
+                self._max_body_bytes
+            ):
+                return self._too_large(request, request.content_length)
+            try:
+                raw_body = await request.read()
+            except web.HTTPRequestEntityTooLarge:
+                # Chunked bodies have no Content-Length: aiohttp stops
+                # reading at client_max_size.
+                return self._too_large(request, None)
 
             # -- HMAC signature verification (if configured) --
-            replay_key: str | None = None
             if self._hmac_secret is not None:
                 problem, replay_key = self._signature_error(request.headers, raw_body)
                 if problem is not None:
@@ -389,6 +429,9 @@ class WebhookTrigger:
 
         except Exception:
             logger.exception("WebhookTrigger: error handling request")
+            if replay_key is not None:
+                # The event was not taken: let the sender's retry through.
+                self._seen_signatures.pop(replay_key, None)
             return web.json_response(
                 {"status": "error", "message": "internal error"},
                 status=500,
@@ -411,5 +454,6 @@ class WebhookTrigger:
         return (
             f"WebhookTrigger(path={self._path!r}, "
             f"port={self._port}, "
+            f"max_body_bytes={self._max_body_bytes}, "
             f"queue_size={self._queue.qsize()})"
         )

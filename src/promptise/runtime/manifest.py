@@ -34,11 +34,22 @@ Usage::
 
     manifest = load_manifest("agents/watcher.agent")
     config = manifest_to_process_config(manifest)
+
+Every key is checked: an unknown key anywhere in a section (``health:``,
+``context:``, ``memory:``, ``config:``, a server entry, ...) fails
+validation with the list of valid keys, instead of being dropped.
+
+``${VAR}`` references are resolved when the manifest is loaded, except in
+``secrets.secrets``: those stay references and are resolved when the
+process starts (see :class:`~promptise.runtime.secrets.SecretScope`), so
+the loaded config never holds a secret value.  A reference to an unset
+variable without a default still fails at load time.
 """
 
 from __future__ import annotations
 
 import logging
+import warnings
 from pathlib import Path
 from typing import Any, Literal
 
@@ -119,19 +130,164 @@ class AgentManifestSchema(BaseModel):
     context: dict[str, Any] | None = Field(
         None,
         description=(
-            "Context config overrides: writable_keys, file_mounts, "
-            "env_prefix, conversation_max_messages"
+            "ContextConfig fields (writable_keys, file_mounts, env_prefix, "
+            "conversation_max_messages, conversation_history, initial_state, "
+            "memory_*): any ContextConfig field"
         ),
     )
 
     @model_validator(mode="after")
     def _validate_manifest(self) -> AgentManifestSchema:
-        """Validate cross-field constraints."""
+        """Validate cross-field constraints and every section's keys."""
         # Validate trigger dicts have a 'type' field
         for i, trigger in enumerate(self.triggers):
             if "type" not in trigger:
                 raise ValueError(f"Trigger at index {i} is missing required 'type' field")
+        if self.execution_mode is not None:
+            valid_modes = [m.value for m in ExecutionMode]
+            if self.execution_mode not in valid_modes:
+                raise ValueError(
+                    f"execution_mode: {self.execution_mode!r} is not one of {valid_modes}"
+                )
+        if self.memory is not None:
+            unknown = sorted(set(self.memory) - set(_MEMORY_KEYS))
+            if unknown:
+                raise ValueError(
+                    f"memory: unknown key(s) {unknown}; valid keys are {sorted(_MEMORY_KEYS)}"
+                )
+        if self.context is not None:
+            _check_keys("context", self.context, ContextConfig)
+            if self.world and self.context.get("initial_state"):
+                raise ValueError(
+                    "Initial state is set twice, in 'world:' and in 'context: initial_state'; "
+                    "use one of them"
+                )
+            for key, field_name in _MEMORY_KEYS.items():
+                if self.memory and key in self.memory and field_name in self.context:
+                    raise ValueError(
+                        f"'memory: {key}' and 'context: {field_name}' set the same option; "
+                        "use one of them"
+                    )
+        for section, model_cls in (
+            ("journal", JournalConfig),
+            ("open_mode", OpenModeConfig),
+            ("secrets", SecretScopeConfig),
+            ("budget", BudgetConfig),
+            ("health", HealthConfig),
+            ("mission", MissionConfig),
+        ):
+            value = getattr(self, section)
+            if value is not None:
+                _check_keys(section, value, model_cls)
+        for name, spec in self.servers.items():
+            if isinstance(spec, dict):
+                _server_spec(name, spec)  # raises on a bad entry
+        self._check_config_overrides()
         return self
+
+    def _check_config_overrides(self) -> None:
+        """``config:`` may hold any ProcessConfig field, once."""
+        unknown = sorted(set(self.config) - set(ProcessConfig.model_fields))
+        if unknown:
+            raise ValueError(
+                f"config: unknown key(s) {unknown}; valid keys are "
+                f"{sorted(ProcessConfig.model_fields)}"
+            )
+        # Keys that also have a dedicated section: setting both would
+        # silently drop one of them.
+        dedicated = {
+            "model": "model" in self.model_fields_set,
+            "instructions": self.instructions is not None,
+            "identity": self.identity is not None,
+            "execution_mode": self.execution_mode is not None,
+            "open_mode": self.open_mode is not None,
+            "servers": bool(self.servers),
+            "triggers": bool(self.triggers),
+            "journal": self.journal is not None,
+            "context": bool(self.world) or self.memory is not None or self.context is not None,
+            "secrets": self.secrets is not None,
+            "budget": self.budget is not None,
+            "health": self.health is not None,
+            "mission": self.mission is not None,
+        }
+        clashes = sorted(k for k in self.config if dedicated.get(k))
+        if clashes:
+            raise ValueError(
+                f"config: {clashes} also set by the manifest's own section(s); "
+                "set each option in one place (the top-level section)"
+            )
+
+
+#: ``memory:`` keys and the ContextConfig field each one sets.
+_MEMORY_KEYS = {
+    "provider": "memory_provider",
+    "collection": "memory_collection",
+    "persist_directory": "memory_persist_directory",
+    "user_id": "memory_user_id",
+    "auto_store": "memory_auto_store",
+    "max": "memory_max",
+    "min_score": "memory_min_score",
+    "timeout": "memory_timeout",
+}
+
+_HTTP_TRANSPORTS = ("http", "streamable-http", "sse")
+
+
+def _check_keys(section: str, data: Any, model_cls: type[BaseModel]) -> None:
+    """Validate *data* against *model_cls*, rejecting unknown keys at any depth.
+
+    Section models warn on unknown keys (for backward compatibility in
+    Python code); in a manifest that warning becomes an error.
+    """
+    if not isinstance(data, dict):
+        raise ValueError(f"{section}: must be a mapping, got {type(data).__name__}")
+    unknown = sorted(set(data) - set(model_cls.model_fields))
+    if unknown:
+        raise ValueError(
+            f"{section}: unknown key(s) {unknown}; valid keys are {sorted(model_cls.model_fields)}"
+        )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", FutureWarning)
+        model_cls.model_validate(data)
+    for warning in caught:
+        text = str(warning.message)
+        if issubclass(warning.category, FutureWarning) and "unknown key(s)" in text:
+            detail = text.split(". Unknown keys will")[0].replace(" are ignored", "")
+            raise ValueError(f"{section}: {detail}")
+        # Anything else (e.g. a deprecation) is passed on.
+        warnings.warn_explicit(warning.message, warning.category, warning.filename, warning.lineno)
+
+
+def _server_spec(name: str, server_data: dict[str, Any]) -> HTTPServerSpec | StdioServerSpec:
+    """Build the spec for one ``servers:`` entry, passing every key on.
+
+    ``type`` names the transport (``http``, ``streamable-http``, ``sse``
+    or ``stdio``); an explicit ``transport`` wins.  Unknown keys fail.
+    """
+    data = dict(server_data)
+    kind = data.pop("type", None)
+    try:
+        if "url" in data or kind in _HTTP_TRANSPORTS:
+            if kind not in (None, *_HTTP_TRANSPORTS):
+                raise ValueError(f"type {kind!r} is not an HTTP transport {list(_HTTP_TRANSPORTS)}")
+            if kind is not None:
+                data.setdefault("transport", kind)
+            return HTTPServerSpec.model_validate(data)
+        if "command" in data:
+            if kind not in (None, "stdio"):
+                raise ValueError(f"type {kind!r} doesn't go with 'command' (use 'stdio')")
+            if data.get("transport") == "stdio":
+                data.pop("transport")
+            return StdioServerSpec.model_validate(data)
+    except ValidationError as exc:
+        detail = "; ".join(
+            f"{'.'.join(str(p) for p in err['loc']) or 'entry'}: {err['msg']}"
+            for err in exc.errors()
+        )
+        raise ValueError(f"servers.{name}: {detail}") from None
+    except ValueError as exc:
+        raise ValueError(f"servers.{name}: {exc}") from None
+    raise ValueError(f"servers.{name}: needs 'url' (an HTTP server) or 'command' (a stdio server)")
 
 
 def load_manifest(path: str | Path) -> AgentManifestSchema:
@@ -164,13 +320,30 @@ def load_manifest(path: str | Path) -> AgentManifestSchema:
     if not isinstance(data, dict):
         raise ManifestError(f"Manifest must be a YAML mapping, got {type(data).__name__}")
 
-    # Resolve environment variables if env_resolver is available
-    try:
-        from promptise.env_resolver import resolve_env_in_dict
+    # Resolve environment variables, except secret values: those stay
+    # ${VAR} references until the process starts (SecretScope resolves
+    # them), so the loaded config never holds a secret in plain text.
+    from promptise.env_resolver import (
+        ENV_VAR_PATTERN,
+        resolve_env_in_dict,
+        validate_all_env_vars_available,
+    )
+    from promptise.exceptions import EnvVarNotFoundError
 
-        data = resolve_env_in_dict(data)
-    except ImportError:
-        pass
+    secret_templates: dict[str, Any] | None = None
+    secrets_section = data.get("secrets")
+    if isinstance(secrets_section, dict) and isinstance(secrets_section.get("secrets"), dict):
+        secret_templates = secrets_section["secrets"]
+        for secret_name, template in secret_templates.items():
+            if isinstance(template, str) and ENV_VAR_PATTERN.search(template):
+                missing = validate_all_env_vars_available({"_": template})
+                if missing:
+                    raise EnvVarNotFoundError(missing[0], context=f"secrets.secrets.{secret_name}")
+        data = {**data, "secrets": {**secrets_section, "secrets": {}}}
+
+    data = resolve_env_in_dict(data)
+    if secret_templates is not None:
+        data["secrets"]["secrets"] = secret_templates
 
     try:
         return AgentManifestSchema.model_validate(data)
@@ -233,6 +406,10 @@ def manifest_to_process_config(
 
     Returns:
         A :class:`ProcessConfig` ready to pass to :class:`AgentProcess`.
+    Every section is passed on whole: each ``context:`` key sets the
+    ContextConfig field of the same name, ``world:`` sets
+    ``context.initial_state`` and ``memory:`` sets the ``memory_*``
+    fields.  Unknown keys were rejected when the manifest was validated.
     """
     # Parse triggers
     triggers: list[TriggerConfig] = []
@@ -247,28 +424,14 @@ def manifest_to_process_config(
     # Parse context
     context_kwargs: dict[str, Any] = {"initial_state": manifest.world}
     if manifest.memory:
-        provider_type = manifest.memory.get("provider")
-        if provider_type:
-            context_kwargs["memory_provider"] = provider_type
-        if "collection" in manifest.memory:
-            context_kwargs["memory_collection"] = manifest.memory["collection"]
-        if "persist_directory" in manifest.memory:
-            context_kwargs["memory_persist_directory"] = manifest.memory["persist_directory"]
-        if "user_id" in manifest.memory:
-            context_kwargs["memory_user_id"] = manifest.memory["user_id"]
-        if "auto_store" in manifest.memory:
-            context_kwargs["memory_auto_store"] = manifest.memory["auto_store"]
-        if "max" in manifest.memory:
-            context_kwargs["memory_max"] = manifest.memory["max"]
-        if "min_score" in manifest.memory:
-            context_kwargs["memory_min_score"] = manifest.memory["min_score"]
-        if "timeout" in manifest.memory:
-            context_kwargs["memory_timeout"] = manifest.memory["timeout"]
-    # Apply explicit context overrides from the 'context' block
+        for key, field_name in _MEMORY_KEYS.items():
+            if key in manifest.memory:
+                context_kwargs[field_name] = manifest.memory[key]
+    # Every ContextConfig field can be set in the 'context' block
     if manifest.context:
-        for key in ("writable_keys", "file_mounts", "env_prefix", "conversation_max_messages"):
-            if key in manifest.context:
-                context_kwargs[key] = manifest.context[key]
+        context_kwargs.update(manifest.context)
+        if not manifest.context.get("initial_state"):
+            context_kwargs["initial_state"] = manifest.world
 
     context = ContextConfig(**context_kwargs)
 
@@ -286,34 +449,7 @@ def manifest_to_process_config(
     servers: dict[str, HTTPServerSpec | StdioServerSpec | Any] = {}
     for server_name, server_data in manifest.servers.items():
         if isinstance(server_data, dict):
-            transport = server_data.get("type", server_data.get("transport", ""))
-            if transport in ("http", "streamable-http", "sse") or "url" in server_data:
-                spec_kwargs: dict[str, Any] = {"url": server_data["url"]}
-                if "transport" in server_data:
-                    spec_kwargs["transport"] = server_data["transport"]
-                elif "type" in server_data:
-                    spec_kwargs["transport"] = server_data["type"]
-                for opt in (
-                    "headers",
-                    "auth",
-                    "bearer_token",
-                    "api_key",
-                    "audience",
-                    "forward_caller_token",
-                ):
-                    if opt in server_data:
-                        spec_kwargs[opt] = server_data[opt]
-                servers[server_name] = HTTPServerSpec(**spec_kwargs)
-            elif "command" in server_data:
-                servers[server_name] = StdioServerSpec(
-                    command=server_data["command"],
-                    args=server_data.get("args", []),
-                    env=server_data.get("env", {}),
-                    cwd=server_data.get("cwd"),
-                    keep_alive=server_data.get("keep_alive", True),
-                )
-            else:
-                servers[server_name] = server_data
+            servers[server_name] = _server_spec(server_name, server_data)
         else:
             servers[server_name] = server_data
 

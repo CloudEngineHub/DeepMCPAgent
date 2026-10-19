@@ -21,19 +21,65 @@ Example::
         # Send a message to a running agent
         await client.send_message("monitor", "Ignore staging alerts for 1 hour")
 
-        # Ask a question and wait for the agent's answer
+        # Ask a question and wait for the agent's answer (None on timeout)
         answer = await client.ask("monitor", "What anomalies have you found?")
         print(answer)
+
+Errors: a ``4xx``/``5xx`` answer raises :class:`OrchestrationAPIError`, a
+subclass of ``httpx.HTTPStatusError`` that carries the server's error
+``code`` (``PROCESS_NOT_FOUND``, ``SECRET_NOT_FOUND``, ...) and message.
 """
 
 from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import quote
+
+import httpx
 
 logger = logging.getLogger("promptise.runtime.api_client")
 
-__all__ = ["OrchestrationClient"]
+__all__ = ["OrchestrationAPIError", "OrchestrationClient"]
+
+
+class OrchestrationAPIError(httpx.HTTPStatusError):
+    """An error answer from the Orchestration API.
+
+    Subclasses ``httpx.HTTPStatusError``, so code that catches that keeps
+    working.
+
+    Attributes:
+        status_code: HTTP status (``404``, ``409``, ...).
+        code: The API's error code (``"PROCESS_NOT_FOUND"``, ...), or
+            ``None`` when the body was not an API error object.
+        error_message: The API's error message (or the raw body).
+    """
+
+    def __init__(self, response: httpx.Response) -> None:
+        code: str | None = None
+        message = response.text
+        try:
+            error = response.json().get("error")
+            if isinstance(error, dict):
+                code = error.get("code")
+                message = error.get("message", message)
+        except (ValueError, AttributeError):
+            pass
+        self.status_code = response.status_code
+        self.code = code
+        self.error_message = message
+        label = f"{response.status_code} {code}" if code else str(response.status_code)
+        super().__init__(
+            f"{label}: {message} ({response.request.method} {response.request.url.path})",
+            request=response.request,
+            response=response,
+        )
+
+
+def _segment(value: str) -> str:
+    """Quote one URL path segment (names may hold any character)."""
+    return quote(str(value), safe="")
 
 
 class OrchestrationClient:
@@ -46,8 +92,16 @@ class OrchestrationClient:
     Args:
         base_url: Base URL of the Orchestration API
             (e.g. ``"http://localhost:9100"``).
-        token: Bearer token for authentication.
+        token: Bearer token for authentication (the server's
+            ``auth_token``).
+        auth_token: Alias of *token*, matching the server's argument name.
         timeout: Default request timeout in seconds.
+
+    Raises:
+        ValueError: *token* and *auth_token* are both given and differ.
+
+    Use it as an async context manager, or call :meth:`aclose` when done
+    (the connection pool is opened on first use).
 
     Example::
 
@@ -61,27 +115,27 @@ class OrchestrationClient:
         base_url: str,
         *,
         token: str | None = None,
+        auth_token: str | None = None,
         timeout: float = 30.0,
     ) -> None:
+        if token is not None and auth_token is not None and token != auth_token:
+            raise ValueError(
+                "OrchestrationClient: pass the bearer token as token= or auth_token=, not both"
+            )
         self._base = base_url.rstrip("/")
-        self._token = token
+        self._token = token if token is not None else auth_token
         self._timeout = timeout
-        self._client: Any = None
+        self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> OrchestrationClient:
-        import httpx
-
-        headers: dict[str, str] = {}
-        if self._token:
-            headers["Authorization"] = f"Bearer {self._token}"
-        self._client = httpx.AsyncClient(
-            base_url=self._base,
-            headers=headers,
-            timeout=self._timeout,
-        )
+        self._http()
         return self
 
     async def __aexit__(self, *exc: Any) -> None:
+        await self.aclose()
+
+    async def aclose(self) -> None:
+        """Close the HTTP connection pool."""
         if self._client is not None:
             await self._client.aclose()
             self._client = None
@@ -90,25 +144,63 @@ class OrchestrationClient:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    def _http(self) -> httpx.AsyncClient:
+        if self._client is None:
+            headers: dict[str, str] = {}
+            if self._token:
+                headers["Authorization"] = f"Bearer {self._token}"
+            self._client = httpx.AsyncClient(
+                base_url=self._base,
+                headers=headers,
+                timeout=self._timeout,
+            )
+        return self._client
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        body: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+        timeout: float | None = None,
+    ) -> dict[str, Any]:
+        """Send a request; return the JSON body (``{}`` for ``204 No Content``).
+
+        Raises:
+            OrchestrationAPIError: The server answered ``4xx``/``5xx``.
+        """
+        kwargs: dict[str, Any] = {}
+        if body is not None:
+            kwargs["json"] = body
+        if params:
+            kwargs["params"] = params
+        if timeout is not None:
+            kwargs["timeout"] = httpx.Timeout(timeout)
+        resp = await self._http().request(method, path, **kwargs)
+        if resp.is_error:
+            raise OrchestrationAPIError(resp)
+        if resp.status_code == 204 or not resp.content.strip():
+            return {}
+        data = resp.json()
+        return data if isinstance(data, dict) else {"data": data}
+
     async def _get(self, path: str, **params: Any) -> dict[str, Any]:
-        resp = await self._client.get(path, params=params or None)
-        resp.raise_for_status()
-        return resp.json()
+        return await self._request("GET", path, params=params or None)
 
     async def _post(self, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
-        resp = await self._client.post(path, json=body or {})
-        resp.raise_for_status()
-        return resp.json()
+        return await self._request("POST", path, body=body or {})
 
     async def _patch(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
-        resp = await self._client.patch(path, json=body)
-        resp.raise_for_status()
-        return resp.json()
+        return await self._request("PATCH", path, body=body)
 
     async def _delete(self, path: str) -> dict[str, Any]:
-        resp = await self._client.delete(path)
-        resp.raise_for_status()
-        return resp.json()
+        return await self._request("DELETE", path)
+
+    @staticmethod
+    def _proc(name: str, *rest: str) -> str:
+        """``/api/v1/processes/{name}/...`` with every segment quoted."""
+        return "/".join(["/api/v1/processes", _segment(name), *(_segment(r) for r in rest)])
 
     # ------------------------------------------------------------------
     # Health & runtime
@@ -141,7 +233,7 @@ class OrchestrationClient:
 
     async def get_process(self, name: str) -> dict[str, Any]:
         """Get detailed status for a single process."""
-        return await self._get(f"/api/v1/processes/{name}")
+        return await self._get(self._proc(name))
 
     async def deploy(
         self,
@@ -167,28 +259,32 @@ class OrchestrationClient:
         )
 
     async def remove_process(self, name: str) -> dict[str, Any]:
-        """Remove a process (stops it first if running)."""
-        return await self._delete(f"/api/v1/processes/{name}")
+        """Remove a process (stops it first if running).
+
+        Returns:
+            ``{}`` (the server answers ``204 No Content``).
+        """
+        return await self._delete(self._proc(name))
 
     async def start_process(self, name: str) -> dict[str, Any]:
         """Start a process."""
-        return await self._post(f"/api/v1/processes/{name}/start")
+        return await self._post(self._proc(name, "start"))
 
     async def stop_process(self, name: str) -> dict[str, Any]:
         """Stop a process."""
-        return await self._post(f"/api/v1/processes/{name}/stop")
+        return await self._post(self._proc(name, "stop"))
 
     async def restart_process(self, name: str) -> dict[str, Any]:
         """Restart a process (stop then start)."""
-        return await self._post(f"/api/v1/processes/{name}/restart")
+        return await self._post(self._proc(name, "restart"))
 
     async def suspend_process(self, name: str) -> dict[str, Any]:
         """Suspend a process (pause trigger processing)."""
-        return await self._post(f"/api/v1/processes/{name}/suspend")
+        return await self._post(self._proc(name, "suspend"))
 
     async def resume_process(self, name: str) -> dict[str, Any]:
         """Resume a suspended process."""
-        return await self._post(f"/api/v1/processes/{name}/resume")
+        return await self._post(self._proc(name, "resume"))
 
     # ------------------------------------------------------------------
     # Config updates
@@ -197,38 +293,62 @@ class OrchestrationClient:
     async def update_instructions(self, name: str, instructions: str) -> dict[str, Any]:
         """Update the system prompt (effective next invocation)."""
         return await self._patch(
-            f"/api/v1/processes/{name}/instructions",
+            self._proc(name, "instructions"),
             {"instructions": instructions},
         )
 
     async def update_budget(self, name: str, **fields: Any) -> dict[str, Any]:
-        """Update budget limits (effective immediately).
+        """Update budget limits.
+
+        New limits are read at the next budget check (the next tool call,
+        LLM turn or run start); usage counted so far is kept.  The
+        response's ``effective_from`` says when the change applies and
+        ``live`` whether the running process uses it (``False`` when it
+        only applies after a redeploy, e.g. ``enabled`` on a process that
+        was built without a budget).
 
         Example::
 
             await client.update_budget("monitor", max_cost_per_day=500.0)
         """
-        return await self._patch(f"/api/v1/processes/{name}/budget", fields)
+        return await self._patch(self._proc(name, "budget"), fields)
 
     async def update_health(self, name: str, **fields: Any) -> dict[str, Any]:
-        """Update health monitoring thresholds."""
-        return await self._patch(f"/api/v1/processes/{name}/health", fields)
+        """Update health monitoring thresholds.
+
+        See the response's ``effective_from`` and ``live`` fields, as for
+        :meth:`update_budget`.
+        """
+        return await self._patch(self._proc(name, "health"), fields)
 
     async def update_mission(self, name: str, **fields: Any) -> dict[str, Any]:
-        """Update mission configuration."""
-        return await self._patch(f"/api/v1/processes/{name}/mission", fields)
+        """Update mission configuration.
+
+        See the response's ``effective_from`` and ``live`` fields, as for
+        :meth:`update_budget`.
+        """
+        return await self._patch(self._proc(name, "mission"), fields)
 
     # ------------------------------------------------------------------
     # Triggers
     # ------------------------------------------------------------------
 
     async def list_triggers(self, name: str) -> list[dict[str, Any]]:
-        """List all triggers (static + dynamic) for a process."""
-        data = await self._get(f"/api/v1/processes/{name}/triggers")
+        """List all triggers (from config and agent-added) for a process.
+
+        Each has a stable ``id``: removing one trigger does not change the
+        others' IDs.
+        """
+        data = await self._get(self._proc(name, "triggers"))
         return data.get("triggers", [])
 
     async def add_trigger(self, name: str, trigger_config: dict[str, Any]) -> dict[str, Any]:
         """Add a trigger to a process.
+
+        Returns:
+            ``trigger_id`` (use it with :meth:`remove_trigger`), ``live``
+            (whether it is already listening) and ``effective_from``
+            (``"immediate"``, ``"next_start"`` or ``"restart"``).
 
         Example::
 
@@ -237,19 +357,24 @@ class OrchestrationClient:
                 "cron_expression": "0 9 * * 1-5",
             })
         """
-        return await self._post(f"/api/v1/processes/{name}/triggers", trigger_config)
+        return await self._post(self._proc(name, "triggers"), trigger_config)
 
     async def remove_trigger(self, name: str, trigger_id: str) -> dict[str, Any]:
-        """Remove a trigger by ID."""
-        return await self._delete(f"/api/v1/processes/{name}/triggers/{trigger_id}")
+        """Remove a trigger by the ``id`` from :meth:`list_triggers`.
+
+        The response's ``live`` says whether the running trigger stopped
+        now; when it is ``False`` the trigger keeps firing until the
+        process restarts (``effective_from: "restart"``).
+        """
+        return await self._delete(self._proc(name, "triggers", trigger_id))
 
     # ------------------------------------------------------------------
     # Secrets
     # ------------------------------------------------------------------
 
     async def list_secrets(self, name: str) -> list[dict[str, Any]]:
-        """List secret names and active status (never values)."""
-        data = await self._get(f"/api/v1/processes/{name}/secrets")
+        """List secret metadata: name, source and expiry (never values)."""
+        data = await self._get(self._proc(name, "secrets"))
         return data.get("secrets", [])
 
     async def rotate_secret(
@@ -266,16 +391,21 @@ class OrchestrationClient:
             name: Process name.
             secret_name: Name of the secret to rotate.
             value: New secret value.
-            ttl: Optional TTL in seconds.
+            ttl: New lifetime in seconds, counted from now.  Omitted: the
+                secret keeps its current expiry.
+
+        Raises:
+            OrchestrationAPIError: ``404 SECRET_NOT_FOUND`` when the process
+                has no secret of that name.
         """
         body: dict[str, Any] = {"value": value}
         if ttl is not None:
             body["ttl"] = ttl
-        return await self._patch(f"/api/v1/processes/{name}/secrets/{secret_name}", body)
+        return await self._patch(self._proc(name, "secrets", secret_name), body)
 
     async def revoke_secrets(self, name: str) -> dict[str, Any]:
         """Revoke all secrets (zero-fill, immediate)."""
-        return await self._delete(f"/api/v1/processes/{name}/secrets")
+        return await self._delete(self._proc(name, "secrets"))
 
     # ------------------------------------------------------------------
     # Journal
@@ -298,7 +428,7 @@ class OrchestrationClient:
         params: dict[str, Any] = {"limit": limit}
         if entry_type:
             params["type"] = entry_type
-        data = await self._get(f"/api/v1/processes/{name}/journal", **params)
+        data = await self._get(self._proc(name, "journal"), **params)
         return data.get("entries", [])
 
     # ------------------------------------------------------------------
@@ -307,21 +437,21 @@ class OrchestrationClient:
 
     async def get_mission(self, name: str) -> dict[str, Any]:
         """Get mission state and evaluation history."""
-        return await self._get(f"/api/v1/processes/{name}/mission")
+        return await self._get(self._proc(name, "mission"))
 
     async def fail_mission(
         self, name: str, reason: str = "Manually failed via client"
     ) -> dict[str, Any]:
-        """Manually fail a mission."""
-        return await self._post(f"/api/v1/processes/{name}/mission/fail", {"reason": reason})
+        """Manually fail an active or paused mission (``409`` otherwise)."""
+        return await self._post(self._proc(name, "mission", "fail"), {"reason": reason})
 
     async def pause_mission(self, name: str) -> dict[str, Any]:
-        """Pause mission evaluation."""
-        return await self._post(f"/api/v1/processes/{name}/mission/pause")
+        """Pause an active mission's evaluation (``409`` otherwise)."""
+        return await self._post(self._proc(name, "mission", "pause"))
 
     async def resume_mission(self, name: str) -> dict[str, Any]:
-        """Resume mission evaluation."""
-        return await self._post(f"/api/v1/processes/{name}/mission/resume")
+        """Resume a paused mission (``409`` otherwise)."""
+        return await self._post(self._proc(name, "mission", "resume"))
 
     # ------------------------------------------------------------------
     # Health
@@ -329,12 +459,12 @@ class OrchestrationClient:
 
     async def get_anomalies(self, name: str) -> list[dict[str, Any]]:
         """Get anomaly history for a process."""
-        data = await self._get(f"/api/v1/processes/{name}/health/anomalies")
+        data = await self._get(self._proc(name, "health", "anomalies"))
         return data.get("anomalies", [])
 
     async def clear_anomalies(self, name: str) -> dict[str, Any]:
-        """Clear anomaly history after resolving the issue."""
-        return await self._delete(f"/api/v1/processes/{name}/health/anomalies")
+        """Clear anomaly history (and cooldowns) after resolving the issue."""
+        return await self._delete(self._proc(name, "health", "anomalies"))
 
     # ------------------------------------------------------------------
     # Human communication
@@ -348,7 +478,8 @@ class OrchestrationClient:
         message_type: str = "context",
         priority: str = "normal",
         sender_id: str | None = None,
-        ttl: int | None = None,
+        ttl: float | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Send a message to a running agent.
 
@@ -360,6 +491,12 @@ class OrchestrationClient:
             priority: One of ``"low"``, ``"normal"``, ``"high"``, ``"critical"``.
             sender_id: Identifier for the sender (for audit trail).
             ttl: Time-to-live in seconds (message expires after TTL).
+            metadata: Custom data stored with the message.
+
+        Raises:
+            OrchestrationAPIError: ``409 PROCESS_NOT_RUNNING`` when the
+                process is stopped or failed, ``429 RATE_LIMITED`` when the
+                sender's rate limit is exceeded.
         """
         body: dict[str, Any] = {
             "content": content,
@@ -370,7 +507,9 @@ class OrchestrationClient:
             body["sender_id"] = sender_id
         if ttl is not None:
             body["ttl"] = ttl
-        return await self._post(f"/api/v1/processes/{name}/messages", body)
+        if metadata:
+            body["metadata"] = metadata
+        return await self._post(self._proc(name, "messages"), body)
 
     async def ask(
         self,
@@ -379,45 +518,50 @@ class OrchestrationClient:
         *,
         timeout: float = 120,
         sender_id: str | None = None,
-    ) -> str:
+        priority: str = "normal",
+    ) -> str | None:
         """Ask a question and wait for the agent's answer.
 
-        Long-polls until the agent responds or timeout expires.
+        Long-polls until the agent answers or *timeout* expires.  The agent
+        sees the question on its next run, so an agent that doesn't run
+        within *timeout* (no trigger fires) can't answer it.
 
         Args:
             name: Process name.
             question: Question text.
-            timeout: Max seconds to wait for a response.
+            timeout: Max seconds the server waits for the answer.
             sender_id: Identifier for the sender.
+            priority: One of ``"low"``, ``"normal"``, ``"high"``, ``"critical"``.
 
         Returns:
-            The agent's response text.
+            The agent's answer text, or ``None`` when it did not answer
+            within *timeout* (the server answers ``status: "timeout"``).
 
         Raises:
-            httpx.TimeoutException: If the agent doesn't respond in time.
+            OrchestrationAPIError: For an error answer, e.g. ``409
+                PROCESS_NOT_RUNNING`` or ``400 INBOX_DISABLED``.
         """
-        body: dict[str, Any] = {"content": question, "timeout": timeout}
+        body: dict[str, Any] = {"content": question, "timeout": timeout, "priority": priority}
         if sender_id:
             body["sender_id"] = sender_id
-        # Use a longer HTTP timeout to allow for long-polling
-        import httpx
-
-        resp = await self._client.post(
-            f"/api/v1/processes/{name}/ask",
-            json=body,
-            timeout=httpx.Timeout(timeout + 10),
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data.get("response", data.get("answer", ""))
+        # The HTTP timeout outlasts the server's long-poll.
+        data = await self._request("POST", self._proc(name, "ask"), body=body, timeout=timeout + 10)
+        if data.get("status") != "answered":
+            return None
+        answer = data.get("response")
+        return answer if isinstance(answer, str) else None
 
     async def get_inbox(self, name: str) -> dict[str, Any]:
         """Get inbox status for a process."""
-        return await self._get(f"/api/v1/processes/{name}/inbox")
+        return await self._get(self._proc(name, "inbox"))
 
     async def clear_inbox(self, name: str) -> dict[str, Any]:
-        """Clear all messages in the inbox."""
-        return await self._delete(f"/api/v1/processes/{name}/inbox")
+        """Clear all messages in the inbox.
+
+        Returns:
+            ``{}`` (the server answers ``204 No Content``).
+        """
+        return await self._delete(self._proc(name, "inbox"))
 
     # ------------------------------------------------------------------
     # Context
@@ -425,19 +569,20 @@ class OrchestrationClient:
 
     async def get_context(self, name: str) -> dict[str, Any]:
         """Get the process's AgentContext state."""
-        return await self._get(f"/api/v1/processes/{name}/context")
+        return await self._get(self._proc(name, "context"))
 
     async def update_context(self, name: str, state: dict[str, Any]) -> dict[str, Any]:
-        """Update AgentContext key-value state.
+        """Update AgentContext key-value state, all keys or none.
 
-        Only writable keys are accepted. Others return 403.
+        Only writable keys are accepted: if any key is not writable the
+        server answers ``403 WRITE_DENIED`` naming them, and writes nothing.
 
         Args:
             name: Process name.
             state: Dict of key-value pairs to update.
         """
-        return await self._patch(f"/api/v1/processes/{name}/context", {"state": state})
+        return await self._patch(self._proc(name, "context"), {"state": state})
 
     async def get_metrics(self, name: str) -> dict[str, Any]:
         """Get process metrics (invocation count, budget usage, etc.)."""
-        return await self._get(f"/api/v1/processes/{name}/metrics")
+        return await self._get(self._proc(name, "metrics"))

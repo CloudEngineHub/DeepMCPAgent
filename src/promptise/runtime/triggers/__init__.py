@@ -185,6 +185,7 @@ def _webhook_factory(
         signature_header=config.signature_header,
         signature_tolerance=config.signature_tolerance,
         allowed_sources=config.allowed_sources,
+        max_body_bytes=config.webhook_max_body_bytes,
         event_filter=compile_filter(config.filter_expression)
         if config.filter_expression is not None
         else None,
@@ -210,7 +211,11 @@ def _file_watch_factory(
         watch_path=config.watch_path,
         patterns=config.watch_patterns,
         events=config.watch_events,
+        recursive=config.watch_recursive,
         debounce_seconds=config.watch_debounce_seconds,
+        poll_interval=config.watch_poll_interval,
+        backend=config.watch_backend,
+        max_pending_events=config.watch_max_pending_events,
     )
 
 
