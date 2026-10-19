@@ -42,7 +42,7 @@ import json
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from aiohttp import web
 
@@ -51,9 +51,6 @@ from .._http_guard import LOOPBACK_ORIGIN as _LOOPBACK_ORIGIN
 from .._http_guard import bearer_token_matches
 from .._http_guard import host_name as _host_name
 from .._http_guard import is_loopback as _is_loopback
-
-if TYPE_CHECKING:  # a type only: importing it would make runtime -> node -> transport a cycle
-    from ..runtime import AgentRuntime
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +143,7 @@ class RuntimeTransport:
 
     def __init__(
         self,
-        runtime: AgentRuntime,
+        runtime: Any,  # an AgentRuntime; not imported, to keep runtime -> node -> transport acyclic
         *,
         host: str = "127.0.0.1",
         port: int = 9100,

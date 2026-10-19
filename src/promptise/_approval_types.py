@@ -166,7 +166,8 @@ class ApprovalHandler(Protocol):
     webhooks, poll APIs, or wait on queues.
     """
 
-    async def request_approval(self, request: ApprovalRequest) -> ApprovalDecision: ...
+    async def request_approval(self, request: ApprovalRequest) -> ApprovalDecision:
+        """Ask for a decision on *request* and return it."""
 
 
 def _arguments_json(arguments: Any) -> str:

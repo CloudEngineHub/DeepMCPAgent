@@ -114,6 +114,8 @@ def _cli(*args: str, env: dict[str, str], cwd: Path, timeout: float = 60.0):
         cwd=cwd,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=timeout,
     )
 
@@ -129,6 +131,8 @@ def _popen_start(env, cwd, *args: str) -> subprocess.Popen:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         **kwargs,
     )
 
@@ -481,6 +485,8 @@ class TestLogs:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         try:
             deadline = time.monotonic() + 30
