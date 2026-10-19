@@ -2,6 +2,8 @@
 
 The distributed runtime uses two complementary systems: **service discovery** for nodes to find each other, and **transport** for remote management via HTTP. Together, they enable multi-node agent deployments where processes can be started, stopped, monitored, and triggered across machines.
 
+With [distributed mode](index.md) (`DistributedConfig(enabled=True)`), every runtime builds its own `RuntimeTransport`, and the coordinator its discovery, from the config. This page documents the pieces themselves: the HTTP routes every node serves, and the discovery classes, for when you call them directly or assemble a cluster by hand.
+
 ```python
 from promptise.runtime.distributed.discovery import StaticDiscovery, RegistryDiscovery
 from promptise.runtime.distributed.transport import RuntimeTransport
@@ -96,7 +98,7 @@ Best for:
 
 ## RegistryDiscovery
 
-A dynamic, in-process registry where nodes register themselves and discover each other. Stale registrations are automatically pruned after a configurable TTL.
+A dynamic registry where nodes register themselves and discover each other. Stale registrations are pruned after a TTL (default 60 seconds). The object lives in one Python process; a coordinator started with distributed mode holds one (with `ttl=node_timeout`) and exposes it over HTTP as `POST /cluster/nodes`, so nodes on other machines register by calling that route.
 
 ```python
 from promptise.runtime.distributed.discovery import RegistryDiscovery
@@ -137,7 +139,9 @@ Best for:
 
 - Dynamic clusters where nodes come and go
 - Single-process testing with multiple logical nodes
-- Coordinator-hosted registry exposed via HTTP API
+- The coordinator of a cluster (`discovery_method="registry"`, the default)
+
+Over HTTP, a node refreshes its registration by posting it again (a `ClusterNode` does that every `heartbeat_interval`); `heartbeat()` is the in-process equivalent.
 
 ---
 
@@ -168,6 +172,17 @@ await transport.stop()
 ```
 
 The default `host` is `127.0.0.1` (this machine only). Pass `port=0` to let the OS pick a free port; `transport.port` reports it after `start()`.
+
+| Argument | Default | Description |
+|---|---|---|
+| `runtime` | required | The `AgentRuntime` to manage |
+| `host` | `"127.0.0.1"` | Interface to bind |
+| `port` | `9100` | Port (`0`: a free one) |
+| `node_id` | `"node-1"` | This node's ID (in `/health` and `/status`) |
+| `auth_token` | `None` | Bearer token for every route except `GET /health`; required off loopback |
+| `allow_unauthenticated` | `False` | Allow a non-loopback bind without a token |
+| `coordinator` | `None` | A `RuntimeCoordinator`: adds the `/cluster` routes (this node hosts the coordinator) |
+| `discovery` | `None` | The coordinator's discovery (`RegistryDiscovery` or `StaticDiscovery`) |
 
 ### Security
 
@@ -313,6 +328,10 @@ Response (202):
 }
 ```
 
+### Cluster routes (coordinator only)
+
+A transport created with `coordinator=` also serves `GET /cluster/nodes`, `POST /cluster/nodes` (register or refresh `{"node_id", "url", "metadata"}`), `DELETE /cluster/nodes/{node_id}` and `GET /cluster/status`. See [Coordinator](coordinator.md#hosted-by-a-runtime) for the request and response details.
+
 ### Error responses
 
 All endpoints return appropriate HTTP error codes:
@@ -324,59 +343,44 @@ All endpoints return appropriate HTTP error codes:
 | 400 | Bad request (invalid JSON, body or `payload`/`metadata` not an object) |
 | 401 | Missing or wrong bearer token |
 | 403 | Cross-origin browser request (loopback bind) |
-| 404 | Process not found |
+| 404 | Process (or, on `/cluster`, node) not found |
+| 409 | Cluster routes: registering with static discovery, or the coordinator's own ID |
 | 421 | `Host` header is not a loopback name (loopback bind) |
+| 422 | Cluster routes: a bad `node_id`, `url` or `metadata` |
 | 500 | Internal server error |
 
 ---
 
 ## Putting It Together
 
-A complete distributed deployment:
+For a real cluster, let the config wire everything: see the two-node setup in [Distributed Mode](index.md). By hand, the same pieces look like this (a node with a transport, and a coordinator that knows it):
 
 ```python
 import asyncio
 import os
 
-from promptise.runtime import AgentRuntime, ProcessConfig, TriggerConfig
-from promptise.runtime.distributed.transport import RuntimeTransport
+from promptise.runtime import AgentRuntime, ProcessConfig
 from promptise.runtime.distributed.coordinator import RuntimeCoordinator
-from promptise.runtime.distributed.discovery import RegistryDiscovery
+from promptise.runtime.distributed.transport import RuntimeTransport
 
-TOKEN = os.environ["PROMPTISE_NODE_TOKEN"]
+TOKEN = os.environ["CLUSTER_TOKEN"]
 
-async def run_node(node_id: str, port: int):
-    """Run a single runtime node."""
+async def run_node() -> None:
     runtime = AgentRuntime()
     await runtime.add_process("watcher", ProcessConfig(
-        model="openai:gpt-5-mini",
-        instructions="Monitor data.",
-        triggers=[TriggerConfig(type="cron", cron_expression="*/5 * * * *")],
+        model="openai:gpt-5-mini", instructions="Monitor data.",
     ))
     await runtime.start_all()
+    async with RuntimeTransport(runtime, port=9101, node_id="node-1", auth_token=TOKEN):
+        await asyncio.Event().wait()   # serve until cancelled
+    await runtime.shutdown()
 
-    async with RuntimeTransport(runtime, port=port, node_id=node_id, auth_token=TOKEN):
-        # Node is now discoverable and remotely manageable
-        try:
-            while True:
-                await asyncio.sleep(1)
-        except asyncio.CancelledError:
-            pass
-
-    await runtime.stop_all()
-
-async def run_coordinator():
-    """Run the cluster coordinator."""
+async def run_coordinator() -> None:
     async with RuntimeCoordinator(auth_token=TOKEN) as coordinator:
-        coordinator.register_node("node-1", "http://localhost:9100")
-        coordinator.register_node("node-2", "http://localhost:9101")
-
-        # Monitor cluster health
+        coordinator.register_node("node-1", "http://127.0.0.1:9101")
         while True:
             status = await coordinator.cluster_status()
-            print(f"Nodes: {status['total_nodes']}, "
-                  f"Healthy: {status['healthy_nodes']}, "
-                  f"Processes: {status['total_processes']}")
+            print(status["healthy_nodes"], "of", status["total_nodes"], "nodes healthy")
             await asyncio.sleep(15)
 ```
 
@@ -397,7 +401,7 @@ async def run_coordinator():
 
 | Method / Property | Description |
 |---|---|
-| `RuntimeTransport(runtime, host, port, node_id, auth_token, allow_unauthenticated)` | Create a transport server |
+| `RuntimeTransport(runtime, host, port, node_id, auth_token, allow_unauthenticated, coordinator, discovery)` | Create a transport server |
 | `node_id` | This node's unique identifier |
 | `port` | The port being listened on (the OS-assigned one after `start()` with `port=0`) |
 | `await start()` | Start the HTTP server |
@@ -407,8 +411,8 @@ async def run_coordinator():
 
 ## Tips and Gotchas
 
-!!! tip "Use RegistryDiscovery with the coordinator"
-    The coordinator can host a `RegistryDiscovery` instance and expose it via its HTTP API. Nodes register at startup and send periodic heartbeats. Stale nodes are automatically pruned.
+!!! tip "Let distributed mode host the registry"
+    `DistributedConfig(coordinator=True)` gives the coordinator a `RegistryDiscovery` and serves it as `POST /cluster/nodes`; nodes with `coordinator_url` register at start and re-register every `heartbeat_interval`. Stale nodes are pruned.
 
 !!! tip "Event injection for cross-node coordination"
     Use the `POST /processes/{name}/event` endpoint to trigger processes on remote nodes. This enables cross-node agent coordination without shared message brokers.
@@ -419,8 +423,8 @@ async def run_coordinator():
 !!! warning "One token per node, plain HTTP"
     `auth_token` is a single shared secret with full control of the node, and the transport does not terminate TLS. In production, put nodes behind a TLS reverse proxy or on a private network, and give each node its own token (`RuntimeCoordinator.register_node(..., auth_token=...)`).
 
-!!! warning "RegistryDiscovery is in-process only"
-    The `RegistryDiscovery` lives in memory within a single Python process. For multi-machine discovery, host it within the coordinator and expose registration/discovery via the coordinator's HTTP API.
+!!! warning "RegistryDiscovery lives in one Python process"
+    The registry is in memory. Across machines, nodes reach it through the coordinator's transport (`/cluster/nodes`); a restarted coordinator starts with an empty registry and fills it as nodes re-register.
 
 !!! warning "Trailing slashes are stripped"
     Both `StaticDiscovery` and `RegistryDiscovery` strip trailing slashes from URLs to ensure consistent URL construction.
@@ -429,7 +433,13 @@ async def run_coordinator():
 
 ## What's Next
 
+- [Distributed Mode](index.md) -- `DistributedConfig`, `ClusterNode` and a two-node setup
 - [Coordinator](coordinator.md) -- cluster coordination and health monitoring
 - [Configuration](../configuration.md) -- `DistributedConfig` reference
 - [Runtime Manager](../runtime-manager.md) -- the `AgentRuntime` that runs on each node
 - [Triggers Overview](../triggers/index.md) -- trigger events that can be injected remotely
+
+!!! tip "Learn the concept"
+
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- Many processes in one runtime, and when to spread them across nodes.
+    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api) -- Manage running agents over HTTP with a bearer token.

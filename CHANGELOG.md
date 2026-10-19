@@ -1,5 +1,95 @@
 # Changelog
 
+## Unreleased
+
+The Agent Runtime now does what its documentation says: unwired features (lifecycle hooks, rewind, distributed mode, the `promptise runtime stop | status | restart` commands) work, and the runtime docs were rewritten against the code.
+
+### Upgrade notes
+
+These changes can alter the behavior of existing code or deployments:
+
+- **Unknown keys are reported.** Manifests reject unknown keys in every section (with the dotted path and the valid keys), and a `servers:` entry that is neither an HTTP (`url`) nor a stdio (`command`) server is an error instead of being skipped. In Python, `OpenModeConfig`, `JournalConfig`, `ContextConfig`, `BudgetConfig`, `HealthConfig`, `MissionConfig`, `SecretScopeConfig`, `EscalationTarget`, `ToolCostAnnotation` and `DistributedConfig` still ignore unknown keys but emit a `FutureWarning` naming them; a future release will reject them. A `TriggerConfig` option that belongs to another trigger type (`watch_path` on a `cron` trigger) is now an error.
+- **Journal recovery is on by default.** With a journal configured, a process's first `start()` restores the context state, mission, budget counters, conversation and invocation count from the last checkpoint (`JournalConfig.recover_on_start=True`). A clean `stop()` writes a checkpoint too. Set `recover_on_start=False` to always start fresh.
+- **Conversation and memory survive `stop()` / `start()`.** `stop()` no longer clears the conversation history or closes the memory provider; `close()` does. Set `ContextConfig.conversation_clear_on_stop=True` for the old behavior.
+- **`SecretScopeConfig.revoke_on_stop` is honored.** With `revoke_on_stop=False`, secrets now survive a stop (every stop revoked them before). `secrets` values are `SecretStr`; `${VAR}` references are resolved when the process starts, not when the config is built, and literal values are masked in `repr()` and JSON dumps.
+- **Health `on_anomaly="escalate"` always suspends the process**, and sends the notification only when `escalation` is set (without a target it only logged before).
+- **Inbox messages are scanned and consumed.** `InboxConfig.scan_with_guardrails=True` (the default) is now applied: flagged messages are refused (`422 MESSAGE_REJECTED` over the API). Directives and context messages are removed after the run that saw them instead of repeating in every run until their TTL; answered questions are removed.
+- **Control API error codes.** Deploying a name that exists is `409 PROCESS_EXISTS` (was `409 DEPLOY_FAILED`); `DEPLOY_FAILED` is now `422` for a valid config that could not be created. Rotating an unknown secret is `404 SECRET_NOT_FOUND` (was `404 PROCESS_NOT_FOUND`). An oversized request body is `413 PAYLOAD_TOO_LARGE`, an unexpected error `500 INTERNAL_ERROR`. See the error-code table in docs/runtime/api.md.
+- **API deploys can't run commands by default.** A deploy whose config contains stdio (command) MCP servers or command hooks is refused with `403 COMMANDS_NOT_ALLOWED` unless the API is created with `OrchestrationAPI(allow_command_deploys=True)` (`promptise runtime start --allow-command-deploys`).
+- **Trigger IDs are stable.** Config triggers get IDs of the form `<type>-<digest>` instead of position-based `static_<n>`. The old IDs are still accepted by the API trigger routes, with a deprecation warning in the response.
+- **`DEFAULT_PRODUCTION_CONFIG` no longer sets `distributed.enabled=True`.** The flag did nothing before; it now starts a network transport, so the preset leaves it off and is identical to `DEFAULT_DEVELOPMENT_CONFIG`. `DistributedConfig(discovery_method="multicast")` is rejected (it was never implemented).
+- **`ShellHook` gets a minimal environment** (no inherited credentials) unless `inherit_env=True` or `env_passthrough` is set, and runs without a shell.
+- **The budget daily reset honors `daily_reset_hour_utc`**; the counters no longer also reset at midnight UTC.
+- **`StateError` subclasses `ProcessStateError`** (it is still a `ValueError`), so all three `except` clauses catch an invalid transition.
+- **`Mem0Provider.close()` keeps stored memories.** It called Mem0's `Memory.reset()`, which deleted every memory.
+
+### Fixed
+
+- **Restarting, starting or removing a `FAILED` process left its old tasks running** -- the old trigger, listener and heartbeat kept going, so events fired twice and dead-lettering continued after removal (`AgentRuntime.restart_process()`, `start_all()`, `remove_process()` and `POST /restart`). They are now torn down first.
+- **`stop()` from `CREATED` raised `StateError` and from `FAILED` never reached `STOPPED`** -- both now stop cleanly and emit `process.stopped`.
+- **Queued trigger events vanished on `stop()`** -- they are dead-lettered (`"process stopped"`) instead.
+- **An idle-suspended process never woke up** -- with `idle_timeout`, a cron or webhook agent stayed suspended forever while ticks piled up. The next trigger event now resumes it (`process.resumed` with `reason="trigger"`).
+- **`resume()` didn't reset the idle clock**, so the process was suspended again at the next heartbeat; and events queued while suspended were reordered. Both fixed.
+- **`process.failed` had an empty `error` after repeated failures** -- it carries the real error now.
+- **Webhook bodies over 1 MiB got `500`** -- they get `413` (checked against `Content-Length` and while reading chunked bodies). A request that fails with `500` or `503` releases its replay key, so the sender's retry is accepted.
+- **File-watch events were dropped when the process was busy** -- events now wait (changes to a waiting file are merged); only when `watch_max_pending_events` different files are waiting is a new one dropped, with an error log and a count in `FileWatchTrigger.dropped_events`. Polling compares the size as well as the mtime.
+- **Health: raising `error_window` (or other window sizes) on a running monitor silently disabled the check** -- windows are resized live, keeping the recorded data. `clear_anomalies()` (and `DELETE /health/anomalies`) now resets the cooldowns, and the anomaly history is bounded (`HealthMonitor.MAX_ANOMALIES`, 1000). `on_anomaly="stop"` is accepted by `HealthConfig` (it was unreachable).
+- **Mission: `success_check` could not be used from a process** -- `MissionConfig.success_check` passes it to the tracker. A completed or failed mission no longer becomes active again after a restart (it is restored from the journal). `check_mission` returns the evaluation history, not only the last one. `POST /mission/fail` stores the reason and emits `mission.failed`.
+- **Secrets: `get_secret` results were written to a `level="full"` journal in plain text** (see Security). Rotating an unknown secret returned `PROCESS_NOT_FOUND`; the client's `rotate_secret(ttl=)` was ignored by the server.
+- **Inbox: eviction dropped the newest lowest-priority message** and critical messages could push the inbox past `max_messages`. It now evicts the oldest lowest-priority message (answered questions first) and refuses a message (`InboxFullError`, `409 INBOX_FULL`) when nothing can be evicted for it. `POST /messages` checks the process state like `send_message()` (`409 PROCESS_NOT_RUNNING`). An `/ask` call whose question is removed by `DELETE /inbox` or evicted from a full inbox answers `410 QUESTION_REMOVED` (it ended with a closed connection or `500`); `process.ask()` raises `InboxQuestionRemoved` or `InboxFullError`.
+- **Context: `PATCH /context` wrote the allowed keys before answering `403`** -- it is atomic now: nothing is written when any key is refused. Context updates are journaled (`context_update` entries) and replayed on recovery.
+- **Manifests: `context: initial_state:` was silently dropped** -- every `context:` key now sets the `ContextConfig` field of the same name (`world:` still sets `initial_state`).
+- **API: `PATCH` of `budget`, `health` or `mission` with `enabled: true` answered `200` and did nothing** -- the subsystem is now built (or torn down) on the running process (`AgentProcess.apply_governance_config()`). Trigger routes were config-only: an added trigger started only after a restart and a deleted one kept firing. They now start and stop the trigger on a running process.
+- **`OrchestrationClient.remove_process()` and `clear_inbox()` raised `JSONDecodeError` after succeeding** -- `204` responses are handled.
+- **Memory providers broke after a restart** (`ChromaProvider is closed`) -- the provider is created once and closed only by `close()`.
+- **Budget counters reset on every restart** -- they are checkpointed in the journal and restored, so a restart can't reset the daily limits.
+- **`promptise runtime stop`, `status` and `restart` were placeholders, and `--detach` just exited** -- see Added. `promptise runtime start` also shuts down cleanly on `SIGTERM` (`docker stop` used to skip `stop_all()`).
+- **Escalation failures were silent** -- a webhook answering with an HTTP error status, a failed delivery, an `event_type` without an event bus and a target with nothing to deliver to are now logged as warnings (they were debug logs or nothing).
+
+### Added
+
+- **Lifecycle hooks are dispatched** -- `AgentProcess` dispatches all 13 `HookEvent`s. Declare them with `ProcessConfig.hooks` (`HookConfig`: an async `callback`, or a `command` run by `ShellHook`), in a manifest's `hooks:` section (commands only), or with `process.hooks.on(...)`. Hooks have `priority`, `once`, `timeout` (5 s for a command, 30 s for a callback), `fail_closed` and `tag`; blockable events can be refused with `HookBlocked`, and a hook can return data (for example a rewritten prompt). `ShellHook` passes the event as JSON on stdin, runs without a shell, gets a minimal environment plus `env` / `env_passthrough`, and is killed beyond `max_output_bytes`. See docs/runtime/hooks.md.
+- **Rewind** -- `AgentProcess.rewind_plan(entry_id, mode)` and `rewind(...)` restore the conversation, the context state or both to a journal entry (modes `both`, `conversation_only`, `code_only`, `summarize`), emitting `process.rewound`. API: `GET /api/v1/processes/{name}/rewind/plan` and `POST /api/v1/processes/{name}/rewind`; client: `rewind_plan()` / `rewind()`; CLI: `promptise runtime rewind <process> [<entry_id>] [--mode ...] [--plan]`. See docs/runtime/journal/rewind.md.
+- **Distributed mode** -- `DistributedConfig` is read: with `enabled=True`, `AgentRuntime.start_all()` / `run_forever()` start a `ClusterNode` that runs the management transport and either hosts the coordinator (`coordinator=True`, with `discovery_method="registry"` or `"static"` and `static_nodes`) or registers with one (`coordinator_url`), re-registering every `heartbeat_interval`. New fields: `coordinator`, `node_id`, `transport_host` (default loopback), `advertise_url`, `auth_token` (one cluster token, required off loopback unless `allow_unauthenticated=True`), `static_nodes`, `node_timeout`. See docs/runtime/distributed/.
+- **`promptise runtime` control** -- `start` serves the control API on loopback with a random token and records the runtime in a private state directory (`~/.promptise/runtime`, or `$PROMPTISE_RUNTIME_STATE_DIR`; `0700`/`0600`, ownership checked). `status`, `stop` (graceful, then `SIGTERM`, `--force`, `--timeout`) and `restart` find it there or use `--url` / `--token` (`$PROMPTISE_RUNTIME_TOKEN`) for a remote API, and `-p/--process` acts on one process. `start --detach` runs the runtime in the background with a log file; `start` has `--runtime-name`, `--api-host` and `--api-port`. `logs` shows the newest entries with their entry IDs, and `--follow` works.
+- **Process API** -- `add_trigger()` / `remove_trigger()` on a running process, `apply_governance_config(section)`, `fail_mission(reason)`, `record_operator_action()`, `suspend_reason`, `recovered`, and `status()` now includes the health summary and file-watch `pending_events` / `dropped_events`.
+- **New events** -- `process.suspended` (`reason`: `manual`, `idle`, `budget` or `health`), `process.resumed` (`reason`, `suspended_for`), `process.restart_exhausted` and `process.rewound`.
+- **`AgentRuntime.run_forever()`** -- starts every process and serves until `SIGTERM` / `SIGINT` (or `request_shutdown()`), then shuts down cleanly. `AgentRuntime(config)` now registers the processes in `config.processes` (only `from_config()` did).
+- **Webhook trigger** -- `TriggerConfig.webhook_max_body_bytes` (default 1 MiB).
+- **Budget** -- `BudgetConfig.warning_threshold` (default `0.8`): the fraction of a limit at which `budget.warning` is emitted (it was fixed at 80%).
+- **File-watch trigger** -- `watch_backend` (`auto`, `watchdog` or `polling`), `watch_recursive` (default `True`), `watch_poll_interval` (default 1 s) and `watch_max_pending_events` (default 10,000).
+- **Health** -- `HealthMonitor.apply_config()`, `clear_anomalies()` returning the number cleared, and `health_status()` (public, JSON-safe).
+- **Inbox** -- refusal exceptions `InvalidInboxMessage`, `InboxRateLimitError`, `InboxFullError`, `InboxMessageRejected` and `InboxQuestionRemoved` (all `ValueError` subclasses), `MessageInbox(scanner=...)`, `remove_consumed()`, `prompt_questions()`, `parse_answers()` and `scan_inbox_message()`.
+- **Mission** -- `MissionTracker.fail(reason, source=)`, `restore()`, final `completed` / `failed` states and an evaluation history.
+- **Secrets** -- `SecretScope.rotate(name, value, ttl=)`, `list_metadata()` (name, active, source, TTL and expiry; never the value), `sanitize()`, and `SecretNotFoundError` (a `KeyError`).
+- **Context** -- `ContextConfig.state_tool` gives the agent an `update_state(key, value)` tool (off by default; limited to `writable_keys` when set) and `ContextConfig.conversation_clear_on_stop`.
+- **`JournalConfig.recover_on_start`** (default `True`) and `RedactingJournal`.
+- **Control API** -- `OrchestrationAPI(on_shutdown=)` adds `POST /api/v1/runtime/shutdown`; `OrchestrationClient.shutdown()`; `OrchestrationAPIError` (a subclass of `httpx.HTTPStatusError` with the API's error `code`), exported from `promptise.runtime`; `ERROR_CODES` lists every code; config updates answer with `live` and `effective_from` (for example `"next_invocation"`, `"next_budget_check"`, `"restart"` or `"redeploy"`) so a change that only applies later says so.
+
+### Changed
+
+- Open-mode meta-tools go through public process methods. A spawned process inherits the parent's budget, health, approval policy, guardrails, trigger delivery, journal level and open-mode limits, gets none of its secrets, MCP servers, identity or hooks, and cannot spawn processes itself.
+- `TriggerConfig` validation names the field and the fix: `watch_backend="watchdog"` without the package installed is an error at construction, and `InboxConfig` rejects a `default_ttl` longer than `max_ttl`. `EscalationTarget.webhook_url` must be an `http://` or `https://` URL.
+- Every mutating API request is logged to the `promptise.runtime.api` logger (method, route, status, client; never the body) and, when it succeeds and the process has a journal, recorded as an `api_request` journal entry.
+- HTTP MCP server credential headers (`Authorization`, `x-api-key`, names containing `token` or `secret`, ...) are masked in `repr()` and JSON dumps of server specs.
+- The file journal replaces its checkpoint file atomically.
+
+### Security
+
+- Secret values never reach the journal in plain text: when secret scoping is on, the journal is wrapped in `RedactingJournal`, which replaces current and rotated values (the last 10 per secret) with `[REDACTED]`; `get_secret` results are no longer journaled at `level="full"`. The conversation history kept between runs and the data passed to lifecycle hooks are redacted the same way.
+- Inbox messages are scanned for prompt injection before they reach the prompt (`scan_with_guardrails`, see Upgrade notes).
+- API deploys can't start local programs (stdio MCP servers, command hooks) unless `allow_command_deploys=True`.
+- `ShellHook` no longer passes the host environment to hook programs and never runs the event payload through a shell.
+- The CLI's state directory holds bearer tokens and is created private (`0700` / `0600`); directories or files owned by another user or readable by others are refused.
+- `DistributedConfig` requires a cluster token for a non-loopback transport or a coordinator on another host.
+
+### Deprecated
+
+- Position-based trigger IDs (`static_<n>`) in the API trigger routes; use the stable IDs from `GET /triggers`.
+- Unknown keys in the section config models (`FutureWarning`; they will be rejected).
+- The manifest `entrypoint` key, which the runtime never read (`FutureWarning`). Declare hooks in `hooks:` instead.
+- `MissionConfig.on_complete` remains deprecated and ignored (`FutureWarning`); use `auto_complete`.
+
 ## 1.4.3 — 2026-10-18
 
 ### Fixed

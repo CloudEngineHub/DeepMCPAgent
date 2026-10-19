@@ -1,34 +1,87 @@
 # Orchestration API
 
-A complete REST API for managing your Agent Runtime — deploy agents, update configurations, send messages, and monitor health without touching code.
+`OrchestrationAPI` is a REST API for a running `AgentRuntime`. Use it to deploy, start, stop and remove agent processes, change their instructions, budgets and triggers while they run, send them messages, rotate their secrets and read their journals, all over HTTP. `OrchestrationClient` is the matching typed Python client. `promptise runtime start` serves this API for you (see [CLI Commands](cli.md)); in your own program you start it yourself.
 
 ```python
-from promptise.runtime import AgentRuntime, OrchestrationAPI
+import asyncio
 
-runtime = AgentRuntime()
-api = OrchestrationAPI(
-    runtime,
-    host="0.0.0.0",
-    port=9100,
-    auth_token="${ORCHESTRATION_API_TOKEN}",
-)
-await api.start()
+from promptise.runtime import AgentRuntime, OrchestrationAPI, OrchestrationClient
+
+
+async def main():
+    runtime = AgentRuntime()
+    api = OrchestrationAPI(runtime, port=9100, auth_token="change-me")
+    await api.start()
+
+    async with OrchestrationClient("http://127.0.0.1:9100", token="change-me") as client:
+        await client.deploy(
+            "monitor",
+            {
+                "model": "openai:gpt-5-mini",
+                "instructions": "Watch the data pipelines and report problems.",
+                "triggers": [{"type": "cron", "cron_expression": "*/5 * * * *"}],
+                "inbox": {"enabled": True},
+            },
+            start=True,
+        )
+        status = await client.get_process("monitor")
+        print(status["state"])  # running
+
+        await client.send_message(
+            "monitor", "Ignore staging alerts for 1 hour",
+            message_type="directive", priority="high", ttl=3600,
+        )
+
+    await api.stop()
+    await runtime.stop_all()
+
+
+asyncio.run(main())
 ```
+
+---
+
+## Creating the server
+
+```python
+OrchestrationAPI(
+    runtime,
+    *,
+    host="127.0.0.1",
+    port=9100,
+    auth_token=None,
+    on_shutdown=None,
+    allow_command_deploys=False,
+)
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `runtime` | required | The `AgentRuntime` to manage |
+| `host` | `"127.0.0.1"` | Bind address |
+| `port` | `9100` | Port. `0` lets the OS pick a free port; read it from `api.port` after `start()` |
+| `auth_token` | `None` | Bearer token required on every route except `GET /api/v1/health`. Required when `host` is not a loopback address. `"${VAR}"` reads it from the environment |
+| `on_shutdown` | `None` | Sync or async callable without arguments. When set, `POST /api/v1/runtime/shutdown` exists: it answers `202` and then calls the callable (for example `runtime.request_shutdown`). Without it the route answers `404` |
+| `allow_command_deploys` | `False` | Let `POST /api/v1/processes` deploy configs that run programs on the host (stdio MCP servers, command hooks). See [Deploys that run programs](#deploys-that-run-programs) |
+
+`await api.start()` binds the port and serves; `await api.stop()` closes the server. The constructor raises `ValueError` when `auth_token` is an empty string, names an unset environment variable, or is missing for a non-loopback `host`, and `TypeError` when `on_shutdown` is not callable.
 
 ---
 
 ## Authentication
 
-When `auth_token` is set, every request except `GET /api/v1/health` needs a Bearer token, including requests to unknown paths:
+When `auth_token` is set, every request except `GET /api/v1/health` needs the token, including requests to unknown paths:
 
 ```
 Authorization: Bearer <your-token>
 ```
 
-- **Loopback** (`127.0.0.1`, `localhost`, `::1`): auth token is optional
-- **Anything else**: auth token is **required** — the API refuses to start without one (an empty token is refused too)
-- Comparison is timing-safe (`hmac.compare_digest`)
-- Token supports env var resolution: `${ORCHESTRATION_API_TOKEN}`
+- **Loopback** (`127.0.0.1`, `localhost`, `::1`): the token is optional.
+- **Anything else**: the token is **required**. The constructor refuses to build the API without one.
+- The comparison is timing-safe.
+- `auth_token="${ORCHESTRATION_API_TOKEN}"` reads the token from the environment; an unset variable raises `ValueError`.
+
+A missing or wrong token gets `401 UNAUTHORIZED`.
 
 ### Browsers can't drive a local API
 
@@ -39,27 +92,114 @@ A loopback bind is reachable by any web page open in a browser on the same machi
 | `Host` header that isn't a loopback name | `421` `MISDIRECTED_REQUEST` | DNS rebinding: a page whose own host name resolves to `127.0.0.1` |
 | `Origin` header from a non-loopback site | `403` `CROSS_ORIGIN_REFUSED` | A cross-site `fetch` or form post from a page you visit |
 
-`curl`, scripts and the Promptise clients send a loopback `Host` and no `Origin`, so they are unaffected. A local web UI served from `http://localhost:<port>` is allowed. Set an `auth_token` even on loopback if other users share the machine.
+`curl`, scripts and the Promptise clients send a loopback `Host` and no `Origin`, so they are unaffected. A local web UI served from `http://localhost:<port>` is allowed. Set an `auth_token` even on loopback if other users share the machine. Behind a reverse proxy, keep the proxy's upstream `Host` on a loopback name, or bind the API to a non-loopback address with a token.
 
-Request bodies must be JSON objects. Anything else (a list, a string, invalid JSON) gets `400` `INVALID_JSON`; routes that take no body accept an empty one.
+### Request bodies
+
+Request bodies must be JSON objects. Anything else (a list, a string, invalid JSON) gets `400 INVALID_JSON`; routes that take no body accept an empty one. A body over 1 MiB gets `413 PAYLOAD_TOO_LARGE`.
 
 ---
 
-## Endpoints
+## Deploys that run programs
 
-### Process Lifecycle
+A config that starts a program on the runtime's host can't be deployed over the API by default. `POST /api/v1/processes` answers `403 COMMANDS_NOT_ALLOWED` when the config has:
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/processes` | List all processes |
-| `GET` | `/api/v1/processes/{name}` | Get process details (state, budget, health, mission) |
-| `POST` | `/api/v1/processes` | Deploy a new process from JSON config |
-| `POST` | `/api/v1/processes/{name}/start` | Start a process |
-| `POST` | `/api/v1/processes/{name}/stop` | Stop a process |
-| `POST` | `/api/v1/processes/{name}/restart` | Restart a process |
-| `DELETE` | `/api/v1/processes/{name}` | Remove a process |
+- a stdio MCP server (a server entry with a `command`, or `type`/`transport` `"stdio"`), or
+- a command hook (a `hooks` entry with a `command`).
 
-#### Deploy a new agent (no code required)
+Anyone with the token could otherwise run any command as the runtime's user. Use HTTP MCP servers and callback hooks, load such processes from manifests on the host, or, if every token holder may run commands there, enable it:
+
+```python
+api = OrchestrationAPI(runtime, auth_token="${ORCHESTRATION_API_TOKEN}", allow_command_deploys=True)
+```
+
+```bash
+promptise runtime start agents/ --allow-command-deploys
+```
+
+The check applies only to deploys. Processes loaded from manifests by the operator are not checked, and the other routes that change a process (triggers, `PATCH` sections, context, instructions) have no field that runs a program.
+
+---
+
+## Route reference
+
+Every route the server registers. Paths start with `/api/v1`. All routes except `GET /health` need the bearer token when one is set; `{name}` is the process name.
+
+### Runtime
+
+| Method | Path | What it does | Success |
+|---|---|---|---|
+| `GET` | `/health` | Load-balancer probe, no auth: `{"status": "healthy", "process_count"}` | `200` |
+| `GET` | `/runtime/status` | `{"process_count", "processes": {name: status}}` (plus `cluster` in distributed mode) | `200` |
+| `POST` | `/runtime/start-all` | Start every process: `{"status": "started"}` | `200` |
+| `POST` | `/runtime/stop-all` | Stop every process: `{"status": "stopped"}` | `200` |
+| `POST` | `/runtime/shutdown` | Only with `on_shutdown`: answers `{"status": "shutting_down"}`, then calls `on_shutdown` | `202` |
+
+### Processes
+
+| Method | Path | What it does | Success |
+|---|---|---|---|
+| `GET` | `/processes` | `{"processes": [{"name", "state", "process_id"}], "total"}` | `200` |
+| `POST` | `/processes` | Deploy: body `{"name", "config", "start"}` (see [Deploying a process](#deploying-a-process)) | `201` |
+| `GET` | `/processes/{name}` | Process status: state, counters, triggers, budget, health, mission state, active secret count | `200` |
+| `DELETE` | `/processes/{name}` | Stop and close the process, then remove it (memory closed, secrets revoked, conversation cleared) | `204` |
+| `POST` | `/processes/{name}/start` | Start: `{"name", "state"}` | `200` |
+| `POST` | `/processes/{name}/stop` | Stop: `{"name", "state"}` | `200` |
+| `POST` | `/processes/{name}/restart` | Stop (if running), then start: `{"name", "state"}` | `200` |
+| `POST` | `/processes/{name}/suspend` | Pause trigger processing: `{"name", "suspended": true, "state"}` | `200` |
+| `POST` | `/processes/{name}/resume` | Resume a suspended process: `{"name", "resumed": true, "state"}` | `200` |
+| `GET` | `/processes/{name}/metrics` | Same body as `GET /processes/{name}` | `200` |
+
+### Live configuration
+
+| Method | Path | What it does | Takes effect | Success |
+|---|---|---|---|---|
+| `PATCH` | `/processes/{name}/instructions` | Replace the instructions: `{"instructions": "..."}` | Next run (`effective_from: "next_invocation"`) | `200` |
+| `PATCH` | `/processes/{name}/budget` | Change `BudgetConfig` fields | Next budget check (`"next_budget_check"`) | `200` |
+| `PATCH` | `/processes/{name}/health` | Change `HealthConfig` fields | Next check (`"immediate"`) | `200` |
+| `PATCH` | `/processes/{name}/mission` | Change `MissionConfig` fields | Next evaluation and prompt (`"immediate"`) | `200` |
+| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs | -- | `200` |
+| `POST` | `/processes/{name}/triggers` | Add a trigger (body: a `TriggerConfig`) | At once on an active process, else at the next start | `201` |
+| `DELETE` | `/processes/{name}/triggers/{trigger_id}` | Stop and remove a trigger | At once on an active process, else at the next start | `200` |
+
+### Messages
+
+| Method | Path | What it does | Success |
+|---|---|---|---|
+| `POST` | `/processes/{name}/messages` | Queue a message: `{"message_id", "status": "queued", "expires_at"}` | `201` |
+| `POST` | `/processes/{name}/ask` | Ask a question and wait for the answer (long poll) | `200` |
+| `GET` | `/processes/{name}/inbox` | Pending messages and questions | `200` |
+| `DELETE` | `/processes/{name}/inbox` | Remove every message and cancel pending questions | `204` |
+
+### State, secrets, mission, health
+
+| Method | Path | What it does | Success |
+|---|---|---|---|
+| `GET` | `/processes/{name}/context` | `{"state", "writable_keys", "all_keys_writable"}` | `200` |
+| `PATCH` | `/processes/{name}/context` | Write state keys, all or none: `{"state": {...}}` | `200` |
+| `GET` | `/processes/{name}/secrets` | Secret metadata, never values | `200` |
+| `PATCH` | `/processes/{name}/secrets/{secret_name}` | Rotate one secret: `{"value", "ttl"?}` | `200` |
+| `DELETE` | `/processes/{name}/secrets` | Revoke every secret (zero-fill): `{"name", "secrets_revoked": true}` | `200` |
+| `GET` | `/processes/{name}/mission` | Mission state and evaluation history | `200` |
+| `POST` | `/processes/{name}/mission/fail` | Fail an `active` or `paused` mission: `{"reason"?}` | `200` |
+| `POST` | `/processes/{name}/mission/pause` | Pause an `active` mission | `200` |
+| `POST` | `/processes/{name}/mission/resume` | Resume a `paused` mission | `200` |
+| `GET` | `/processes/{name}/health/anomalies` | Anomaly history: `type`, `description`, `timestamp` | `200` |
+| `DELETE` | `/processes/{name}/health/anomalies` | Clear the history and cooldowns: `{"anomalies_cleared": n}` | `200` |
+
+### Journal and rewind
+
+| Method | Path | What it does | Success |
+|---|---|---|---|
+| `GET` | `/processes/{name}/journal` | Newest entries, oldest first. `?limit=` 1-500 (default 50), `?type=` filters by entry type | `200` |
+| `GET` | `/processes/{name}/rewind/plan` | Preview a rewind: `?target_entry_id=` (required), `?mode=` (default `both`). Changes nothing | `200` |
+| `POST` | `/processes/{name}/rewind` | Rewind to just before a journal entry: `{"target_entry_id", "mode"?, "actor"?}` | `200` |
+
+Each journal entry is `{"entry_id", "entry_type", "timestamp", "data"}`; the `entry_id` is a rewind target. Without a journal the route answers `{"name", "entries": [], "journal_enabled": false}`, and the rewind routes answer `400 JOURNAL_DISABLED`. Rewind modes are `both`, `conversation_only`, `code_only`, `summarize` and `cancel`; `actor` (default `"api"`) is recorded in the journal. A running process is suspended for the rewind and resumed afterwards, and a run still in flight when the rewind times out gives `409 REWIND_BUSY`. See [Rewind Engine](journal/rewind.md) for what each mode restores.
+
+---
+
+## Deploying a process
 
 ```bash
 curl -X POST http://localhost:9100/api/v1/processes \
@@ -77,204 +217,12 @@ curl -X POST http://localhost:9100/api/v1/processes \
   }'
 ```
 
-### Configuration Updates (hot-reload)
+- `name` must match `^[a-zA-Z][a-zA-Z0-9_-]{0,63}$` (`422 INVALID_NAME`); a name already registered gets `409 PROCESS_EXISTS`.
+- `config` is a `ProcessConfig` as JSON (`422 INVALID_CONFIG` when it doesn't validate). A valid config that still can't be turned into a process gets `422 DEPLOY_FAILED`.
+- `start` (default `false`) must be a boolean. When the start fails the answer is `500 START_FAILED` and the process **stays deployed**: fix the cause and `POST .../start`, or `DELETE` it.
+- The answer is `201` with `{"name", "process_id", "state", "created_at"}`.
 
-| Method | Path | Description | Takes effect |
-|--------|------|-------------|-------------|
-| `PATCH` | `/api/v1/processes/{name}/instructions` | Update system prompt | Next invocation |
-| `PATCH` | `/api/v1/processes/{name}/budget` | Update budget limits | Immediately |
-| `PATCH` | `/api/v1/processes/{name}/health` | Update health thresholds | Immediately |
-| `PATCH` | `/api/v1/processes/{name}/mission` | Update mission objective | Immediately |
-
-```bash
-# Increase budget mid-operation
-curl -X PATCH http://localhost:9100/api/v1/processes/monitor/budget \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"max_cost_per_day": 500.0}'
-```
-
-An `instructions` patch (`{"instructions": "..."}`, a string) replaces the process's instructions, including any an open-mode agent set for itself. The next invocation rebuilds the agent with them before it runs, keeping the connected MCP servers, the conversation history and the process state; an invocation already running finishes with the old instructions. No restart is needed. A process that is not running uses them when it starts. The same is available in Python as `process.update_instructions(text)`.
-
-The body of a `budget`, `health` or `mission` patch holds the fields to change, named as in [`BudgetConfig`, `HealthConfig` and `MissionConfig`](governance/budget.md). The patched section is validated against its model before anything changes, with the same limits as at deploy time and strict JSON types (`"5"` is not a number, `1` is not `true`). A field the model does not declare, including inside `escalation` or `tool_costs`, is answered with `422 UNKNOWN_FIELD`; an invalid value with `422 INVALID_CONFIG`. In both cases nothing is changed, even when other fields in the same patch are valid. `null` clears an optional field such as `max_cost_per_day`.
-
-### Trigger Management
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/processes/{name}/triggers` | List all triggers (static + dynamic) |
-| `POST` | `/api/v1/processes/{name}/triggers` | Add a trigger |
-| `DELETE` | `/api/v1/processes/{name}/triggers/{trigger_id}` | Remove a trigger |
-
-```bash
-# List triggers
-curl http://localhost:9100/api/v1/processes/monitor/triggers \
-  -H "Authorization: Bearer $TOKEN"
-
-# Add a cron trigger
-curl -X POST http://localhost:9100/api/v1/processes/monitor/triggers \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"type": "cron", "cron_expression": "0 9 * * 1-5"}'
-
-# Remove a trigger
-curl -X DELETE http://localhost:9100/api/v1/processes/monitor/triggers/static_0 \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Secret Management
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/processes/{name}/secrets` | List secret names and TTL (never values) |
-| `PATCH` | `/api/v1/processes/{name}/secrets/{secret_name}` | Rotate a secret value |
-| `DELETE` | `/api/v1/processes/{name}/secrets` | Revoke all secrets (zero-fill) |
-
-```bash
-# List secrets (names only — values are never exposed)
-curl http://localhost:9100/api/v1/processes/payment-bot/secrets \
-  -H "Authorization: Bearer $TOKEN"
-
-# Rotate a secret
-curl -X PATCH http://localhost:9100/api/v1/processes/payment-bot/secrets/stripe_key \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"value": "sk_live_new_key_here", "ttl": 3600}'
-
-# Emergency revoke all secrets
-curl -X DELETE http://localhost:9100/api/v1/processes/payment-bot/secrets \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Journal
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/processes/{name}/journal` | Read journal entries (supports `?limit=50&type=invocation_result`) |
-
-The process files its journal entries under its name (so they survive a restart, which gets a new `process_id`), and the endpoint reads them by name. The response is `{"name", "entries": [{"entry_type", "timestamp", "data"}, ...], "count"}`, oldest first, or `{"name", "entries": [], "journal_enabled": false}` when the process has no journal.
-
-```bash
-# Read last 20 journal entries
-curl "http://localhost:9100/api/v1/processes/monitor/journal?limit=20" \
-  -H "Authorization: Bearer $TOKEN"
-
-# Filter by entry type
-curl "http://localhost:9100/api/v1/processes/monitor/journal?type=state_transition" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Mission Control
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/processes/{name}/mission` | Get mission state + evaluation history |
-| `POST` | `/api/v1/processes/{name}/mission/fail` | Manually fail the mission |
-| `POST` | `/api/v1/processes/{name}/mission/pause` | Pause mission evaluation |
-| `POST` | `/api/v1/processes/{name}/mission/resume` | Resume mission evaluation |
-
-```bash
-# Check mission progress
-curl http://localhost:9100/api/v1/processes/migrator/mission \
-  -H "Authorization: Bearer $TOKEN"
-
-# Manually fail (e.g., requirements changed)
-curl -X POST http://localhost:9100/api/v1/processes/migrator/mission/fail \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"reason": "Requirements changed, migration cancelled"}'
-```
-
-### Health Monitoring
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/processes/{name}/health/anomalies` | Get anomaly history |
-| `DELETE` | `/api/v1/processes/{name}/health/anomalies` | Clear anomaly history |
-
-```bash
-# Check anomalies
-curl http://localhost:9100/api/v1/processes/monitor/health/anomalies \
-  -H "Authorization: Bearer $TOKEN"
-
-# Clear after fixing the issue
-curl -X DELETE http://localhost:9100/api/v1/processes/monitor/health/anomalies \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Process Suspend/Resume
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/v1/processes/{name}/suspend` | Pause trigger processing |
-| `POST` | `/api/v1/processes/{name}/resume` | Resume trigger processing |
-
-```bash
-# Pause during maintenance
-curl -X POST http://localhost:9100/api/v1/processes/monitor/suspend \
-  -H "Authorization: Bearer $TOKEN"
-
-# Resume after maintenance
-curl -X POST http://localhost:9100/api/v1/processes/monitor/resume \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Human Communication
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/v1/processes/{name}/messages` | Send a message to the agent |
-| `POST` | `/api/v1/processes/{name}/ask` | Ask a question (long-poll for response) |
-| `GET` | `/api/v1/processes/{name}/inbox` | Get inbox status |
-| `DELETE` | `/api/v1/processes/{name}/inbox` | Clear inbox |
-
-Requires `inbox.enabled: true` in the process config.
-
-```bash
-# Send a directive
-curl -X POST http://localhost:9100/api/v1/processes/monitor/messages \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"content": "Ignore staging alerts for 1 hour", "message_type": "directive", "priority": "high", "ttl": 3600}'
-
-# Ask a question (waits for agent to respond)
-curl -X POST http://localhost:9100/api/v1/processes/monitor/ask \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"content": "What anomalies have you detected?", "timeout": 120}'
-```
-
-### Observability
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/processes/{name}/metrics` | Process metrics (invocations, tools, budget) |
-| `GET` | `/api/v1/processes/{name}/context` | Agent context state |
-| `PATCH` | `/api/v1/processes/{name}/context` | Update context state (writable keys only) |
-
-### Runtime Management
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/v1/health` | No | Health probe for load balancers |
-| `GET` | `/api/v1/runtime/status` | Yes | Global runtime status |
-| `POST` | `/api/v1/runtime/start-all` | Yes | Start all processes |
-| `POST` | `/api/v1/runtime/stop-all` | Yes | Stop all processes |
-
----
-
-## Message Types
-
-Messages sent via `/messages` support 4 types:
-
-| Type | Use case | Example |
-|------|----------|---------|
-| `directive` | Tell the agent to do or stop doing something | "Do not restart any services today" |
-| `context` | Provide information the agent should know | "Traffic spike is from marketing campaign" |
-| `question` | Ask the agent something (expects response) | "What's the current health status?" |
-| `correction` | Tell the agent it was wrong | "That alert was a false positive" |
-
-Messages have **priority** (`low`, `normal`, `high`, `critical`) and **TTL** (auto-expire after N seconds).
-
----
-
-## Process Config (for deployment)
-
-The `config` object in `POST /api/v1/processes` follows the same schema as `ProcessConfig`:
+The `config` object follows `ProcessConfig`:
 
 ```json
 {
@@ -283,9 +231,7 @@ The `config` object in `POST /api/v1/processes` follows the same schema as `Proc
     "servers": {
         "tools": {"url": "http://tools:8080/mcp", "transport": "streamable-http"}
     },
-    "triggers": [
-        {"type": "cron", "cron_expression": "*/5 * * * *"}
-    ],
+    "triggers": [{"type": "cron", "cron_expression": "*/5 * * * *"}],
     "inbox": {"enabled": true, "max_messages": 50},
     "budget": {"enabled": true, "max_tool_calls_per_day": 500},
     "health": {"enabled": true, "stuck_threshold": 5},
@@ -299,136 +245,302 @@ The `config` object in `POST /api/v1/processes` follows the same schema as `Proc
 
 ---
 
-## Python SDK Client
+## Changing a running process
 
-Use `OrchestrationClient` to manage agents programmatically — same capabilities as the REST API but with typed methods, error handling, and async/await.
+### Instructions
 
-```python
-from promptise.runtime import OrchestrationClient
+`PATCH /instructions` with `{"instructions": "..."}` (a non-empty string) replaces the process's instructions, including any an open-mode agent set for itself. The next run rebuilds the agent with them before it runs, keeping the connected MCP servers, the conversation history and the context state; a run already in progress finishes with the old instructions. A process that is not running uses them when it starts. In Python: `process.update_instructions(text)`.
 
-async with OrchestrationClient("http://localhost:9100", auth_token="my-token") as client:
-    # Deploy a new agent
-    await client.deploy(
-        name="monitor",
-        config={"model": "openai:gpt-5-mini", "instructions": "Monitor pipelines."},
-        start=True,
-    )
+### Budget, health and mission
 
-    # Check status
-    status = await client.get_process("monitor")
-    print(status["state"])  # "running"
+<a id="configuration-updates-hot-reload"></a>
 
-    # Send a message to the running agent
-    await client.send_message("monitor", "Ignore staging alerts for 1 hour",
-                              message_type="directive", priority="high", ttl=3600)
+The body of a `budget`, `health` or `mission` patch holds the fields to change, named as in [`BudgetConfig`](governance/budget.md), [`HealthConfig`](governance/health.md) and [`MissionConfig`](governance/mission.md).
 
-    # Ask a question and wait for the agent to respond
-    response = await client.ask("monitor", "What anomalies have you found?", timeout=60)
-    print(response["response"]["content"])
-
-    # Update budget on the fly
-    await client.update_budget("monitor", max_cost_per_day=500.0)
-
-    # Rotate a secret without restart
-    await client.rotate_secret("monitor", "api_key", "sk-new-key-here")
-
-    # Read journal entries
-    journal = await client.get_journal("monitor", limit=20)
-
-    # Stop the agent
-    await client.stop_process("monitor")
+```bash
+curl -X PATCH http://localhost:9100/api/v1/processes/monitor/budget \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"max_cost_per_day": 500.0}'
 ```
 
-Every endpoint has a matching typed method:
+```json
+{"name": "monitor", "budget_updated": true, "effective_from": "next_budget_check", "live": true}
+```
 
-| REST Endpoint | Client Method |
-|---------------|---------------|
-| `GET /processes` | `client.list_processes()` |
-| `POST /processes` | `client.deploy(name, config)` |
-| `POST /processes/{name}/start` | `client.start_process(name)` |
-| `POST /processes/{name}/stop` | `client.stop_process(name)` |
-| `POST /processes/{name}/restart` | `client.restart_process(name)` |
-| `POST /processes/{name}/suspend` | `client.suspend_process(name)` |
-| `POST /processes/{name}/resume` | `client.resume_process(name)` |
-| `DELETE /processes/{name}` | `client.remove_process(name)` |
-| `PATCH /instructions` | `client.update_instructions(name, text)` |
-| `PATCH /budget` | `client.update_budget(name, **fields)` |
-| `PATCH /health` | `client.update_health(name, **fields)` |
-| `PATCH /mission` | `client.update_mission(name, **fields)` |
-| `GET /triggers` | `client.list_triggers(name)` |
-| `POST /triggers` | `client.add_trigger(name, config)` |
-| `DELETE /triggers/{id}` | `client.remove_trigger(name, id)` |
-| `GET /secrets` | `client.list_secrets(name)` |
-| `PATCH /secrets/{name}` | `client.rotate_secret(name, secret, value)` |
-| `DELETE /secrets` | `client.revoke_secrets(name)` |
-| `GET /journal` | `client.get_journal(name, limit, type)` |
-| `GET /mission` | `client.get_mission(name)` |
-| `POST /mission/fail` | `client.fail_mission(name, reason)` |
-| `POST /mission/pause` | `client.pause_mission(name)` |
-| `POST /mission/resume` | `client.resume_mission(name)` |
-| `GET /health/anomalies` | `client.get_anomalies(name)` |
-| `DELETE /health/anomalies` | `client.clear_anomalies(name)` |
-| `POST /messages` | `client.send_message(name, content, ...)` |
-| `POST /ask` | `client.ask(name, content, timeout)` |
-| `GET /inbox` | `client.get_inbox(name)` |
-| `DELETE /inbox` | `client.clear_inbox(name)` |
-| `GET /context` | `client.get_context(name)` |
-| `PATCH /context` | `client.update_context(name, state)` |
-| `GET /metrics` | `client.get_metrics(name)` |
+- The patched section is validated as a whole before anything changes, with the same limits as at deploy time and strict JSON types (`"5"` is not a number, `1` is not `true`). A field the model doesn't declare, including inside `escalation` or `tool_costs`, gets `422 UNKNOWN_FIELD`; an invalid value gets `422 INVALID_CONFIG`; an empty body gets `422 MISSING_FIELD`. In every case nothing changes. `null` clears an optional field such as `max_cost_per_day`.
+- The process applies the change at once (`live: true`). Budget limits apply at the next budget check (the next tool call, LLM turn or run start) and the usage counted so far is kept. Health thresholds and window sizes apply at the next check, keeping the recorded history. A mission change applies to the next evaluation and the next `[Mission]` prompt block, keeping the mission's progress.
+- `enabled` works live too: `{"enabled": true}` builds the subsystem on a process that was deployed without it, and `{"enabled": false}` removes it.
+
+The response always says when the change applies. `live` is `false` with `effective_from: "redeploy"`, `pending_fields` and a `note` only for a process object that can't apply governance changes itself (a custom process class without `apply_governance_config()`).
+
+### Triggers
+
+Config triggers have **stable IDs**: `<type>-<10-character digest of the trigger's config>`, for example `cron-6d904fd75c`. An ID doesn't depend on the trigger's position, so removing one trigger leaves the other IDs unchanged, and the IDs are the same after a restart. Identical configs get `-2`, `-3` suffixes. The ID is also the `trigger_id` of the events the trigger produces.
+
+```bash
+# List (config triggers include their config; agent-added ones have source "dynamic")
+curl http://localhost:9100/api/v1/processes/monitor/triggers -H "Authorization: Bearer $TOKEN"
+
+# Add
+curl -X POST http://localhost:9100/api/v1/processes/monitor/triggers \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"type": "cron", "cron_expression": "0 9 * * 1-5"}'
+# {"name": "monitor", "trigger_added": true, "trigger_id": "cron-fb9fa7b826",
+#  "trigger_type": "cron", "live": true, "effective_from": "immediate"}
+
+# Remove by ID
+curl -X DELETE http://localhost:9100/api/v1/processes/monitor/triggers/cron-6d904fd75c \
+  -H "Authorization: Bearer $TOKEN"
+# {"name": "monitor", "trigger_removed": "cron-6d904fd75c", "live": true, "effective_from": "immediate"}
+```
+
+| Operation | Process starting, running, suspended or awaiting | Process created, stopped or failed |
+|---|---|---|
+| Add | Created and started at once: `live: true`, `effective_from: "immediate"` | Added to the config: `live: false`, `effective_from: "next_start"` |
+| Remove a config trigger | Stopped at once and removed from the config: `live: true`, `"immediate"` | Removed from the config: `live: true`, `"next_start"` |
+| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` | -- |
+
+Adding a trigger identical to one already configured gets `409 TRIGGER_EXISTS`; an invalid config or one that can't start gets `422 INVALID_CONFIG`; an unknown ID gets `404 TRIGGER_NOT_FOUND`. The old position-based IDs (`static_0`, `static_1`, ...) are still accepted on `DELETE`; the response then carries a `warning` naming the stable ID to use instead.
+
+### Context state
+
+`PATCH /context` with `{"state": {key: value}}` writes all keys or none: if any key is not writable the answer is `403 WRITE_DENIED` naming them, and nothing is written. Writes are recorded with source `"api"` and journaled. Other top-level fields get `422 UNKNOWN_FIELD`. See [Agent Context](context.md).
+
+### Secrets
+
+`GET /secrets` lists metadata, `PATCH /secrets/{secret_name}` rotates one value (`404 SECRET_NOT_FOUND` for a name the process doesn't have), `DELETE /secrets` revokes all. Values never appear in a response. See [Secret Scoping](governance/secrets.md#over-the-api).
+
+### Mission
+
+`GET /mission` returns the state, objective, invocation count and evaluations; `fail`, `pause` and `resume` answer `409 MISSION_STATE` when the mission is not in a state that allows them. See [Mission Model](governance/mission.md#over-the-api).
 
 ---
 
-## How Inbox Messages Reach the Agent
+## Messages and questions
 
-When you send a message via `/messages` or `/ask`, here's what happens:
-
-1. **Message stored** — added to the process's `MessageInbox` with priority, TTL, and sender_id
-2. **Next invocation** — before the agent is called, the runtime checks the inbox:
-   - Expired messages are purged
-   - Pending messages are formatted into a system prompt block
-   - Injected between mission context and conversation history
-3. **Agent sees the messages** — formatted as:
-   ```
-   ## Operator Messages
-   [DIRECTIVE] (high priority): Ignore staging alerts for 1 hour
-   [QUESTION Q1]: What anomalies have you found?
-   If any questions are marked above, include "ANSWER Q1: <your response>" in your reply.
-   ```
-4. **Answer extraction** — after the agent responds, the runtime parses for `ANSWER Q1:` patterns and resolves the waiting future from the `/ask` call
-5. **Cleanup** — processed directives and answered questions are marked as done
-
----
-
-## Inbox Configuration
-
-Enable the inbox on a process via `ProcessConfig`:
-
-```python
-ProcessConfig(
-    model="openai:gpt-5-mini",
-    instructions="...",
-    inbox=InboxConfig(
-        enabled=True,
-        max_messages=50,            # Max messages in inbox
-        max_message_length=2000,    # Truncate long messages
-        default_ttl=3600,           # Messages expire after 1 hour
-        max_ttl=86400,              # Maximum TTL: 24 hours
-        rate_limit_per_sender=100,  # Max 100 messages per sender per hour
-    ),
-)
-```
-
-Or via JSON in the deploy endpoint:
+A process with an inbox takes messages from people while it runs. The agent sees them in its prompt on its next run. Enable it in the process config:
 
 ```json
 {"inbox": {"enabled": true, "max_messages": 50, "default_ttl": 3600}}
 ```
 
+| `InboxConfig` field | Default | Description |
+|---|---|---|
+| `enabled` | `false` | Enable the inbox |
+| `max_messages` | `50` | Most messages held at once (never exceeded) |
+| `max_message_length` | `2000` | Longer content is truncated to this many characters |
+| `default_ttl` | `3600` | Seconds a message lives when it has no `ttl` (`0` = no expiry) |
+| `max_ttl` | `86400` | Cap on any message's lifetime (`0` = no cap). `default_ttl` may not exceed it |
+| `rate_limit_per_sender` | `20` | Messages per `sender_id` per hour (messages without a `sender_id` are not limited) |
+| `scan_with_guardrails` | `true` | Scan messages for prompt injection when they arrive (see [Guardrail scanning](#guardrail-scanning)) |
+
+Without an inbox, `/messages` and `/ask` answer `400 INBOX_DISABLED` and `GET /inbox` answers `{"enabled": false, ...}`. A stopped or failed process gets `409 PROCESS_NOT_RUNNING`.
+
+### Message types and priorities
+
+| Type | Use case | Example |
+|---|---|---|
+| `directive` | Tell the agent to do or stop doing something | "Do not restart any services today" |
+| `context` | Information the agent should know (the default for `/messages`) | "Traffic spike is from a marketing campaign" |
+| `question` | Ask the agent something; it answers in its reply | "What's the current health status?" |
+| `correction` | Tell the agent it was wrong | "That alert was a false positive" |
+
+Priorities are `low`, `normal` (default), `high` and `critical`. The agent sees messages ordered by priority, then oldest first.
+
+### Sending a message
+
+```bash
+curl -X POST http://localhost:9100/api/v1/processes/monitor/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"content": "Ignore staging alerts for 1 hour", "message_type": "directive",
+       "priority": "high", "sender_id": "alice", "ttl": 3600}'
+# 201 {"message_id": "msg_...", "status": "queued", "expires_at": 1792445004.98}
+```
+
+Fields: `content` (required, non-empty string), `message_type`, `priority`, `sender_id` (string), `ttl` (seconds, `>= 0`; `0` or missing uses `default_ttl`, and `max_ttl` caps it) and `metadata` (object, stored with the message). An unknown `message_type` gets `422 INVALID_TYPE`; another bad field gets `422 INVALID_FIELD`.
+
+### Asking a question
+
+```bash
+curl -X POST http://localhost:9100/api/v1/processes/monitor/ask \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"content": "How many alerts did you skip?", "timeout": 120}'
+```
+
+The request waits until the agent answers or `timeout` seconds pass (default `120`, at most `3600`). It always answers `200`:
+
+```json
+{"question_id": "msg_...", "status": "answered", "response": "Three staging alerts skipped.",
+ "answered_at": 1792441406.1, "invocation_id": "2"}
+```
+
+or, when no answer came in time, `{"question_id", "status": "timeout", "response": null}`. The question stays in the inbox after a timeout (it lives for `timeout` + 60 seconds, capped by `max_ttl`), so a later run can still answer it, but nobody is waiting for that answer. The agent sees the question on its **next run**: if no trigger fires within `timeout`, it can't answer. `priority`, `sender_id` and `metadata` work as for `/messages`.
+
+### What the agent sees
+
+Before each run, the pending messages are added to the prompt as one system message, after the context state, budget and mission blocks and before the conversation history:
+
+```
+=== OPERATOR MESSAGES ===
+
+[HIGH DIRECTIVE] (from: alice, just now, expires in 59 min)
+Ignore staging alerts for 1 hour
+
+[QUESTION] (just now, expires in 1 min)
+How many alerts did you skip?
+→ Please include your answer prefixed with "ANSWER Q1:"
+
+=== END OPERATOR MESSAGES ===
+```
+
+Each message is a `[<PRIORITY> <TYPE>]` label (the priority is left out for `normal`) with the sender when known, its age (`just now`, `<n> min ago`, `<n>h ago`) and the time left before it expires, followed by the content. Questions are numbered `Q1`, `Q2`, ... in the order they appear in the block.
+
+### Answers and consumption
+
+After every run, the runtime:
+
+1. Reads `ANSWER Q<n>: <text>` parts from the agent's final reply and delivers each one to the question it numbers (the waiting `/ask` call returns it). Text after the marker up to the next `ANSWER Q` marker is the answer.
+2. Removes the messages that run saw: directives, context and corrections are gone after one run, and answered questions are removed. Unanswered questions stay until they are answered or expire.
+
+So a directive is shown once. Send it again, or store the fact in the [context state](context.md), when the agent must keep following it on later runs.
+
+### Limits and refusals
+
+| Situation | API answer | Python (`process.send_message`) |
+|---|---|---|
+| Empty content, unknown priority or type | `422 INVALID_FIELD` / `422 INVALID_TYPE` | `InvalidInboxMessage` |
+| Sender over `rate_limit_per_sender` this hour | `429 RATE_LIMITED` | `InboxRateLimitError` |
+| Inbox full and nothing can be evicted | `409 INBOX_FULL` | `InboxFullError` |
+| Flagged by the guardrail scan | `422 MESSAGE_REJECTED` | `InboxMessageRejected` (with `.reason`) |
+
+All four exception classes are in `promptise.runtime.inbox` and subclass `InboxError`, a `ValueError`. Refused messages are not counted against the sender's rate limit.
+
+When the inbox holds `max_messages` messages, a new message first replaces an answered question if there is one; otherwise it evicts the **oldest message of the lowest priority** present. Critical messages are never evicted, and a message never evicts one of higher priority: if every message is critical, or the new message has a lower priority than every evictable one, the new message is refused with `INBOX_FULL`. The inbox never holds more than `max_messages`. An `/ask` call waiting on an evicted question ends with `410 QUESTION_REMOVED`.
+
+### Guardrail scanning
+
+With `scan_with_guardrails: true` (the default), each message is scanned when it arrives, in overlapping 500-character windows, and a flagged message is refused (`422 MESSAGE_REJECTED`). The scanner is, in order:
+
+1. `ProcessConfig.guardrails`, when it can scan text (a `PromptiseSecurityScanner` or any object with `scan_text()` or `check_input()`).
+2. The trigger payload scanner, when `trigger_delivery.scan_payloads` is on. It is loaded when the process starts; messages that arrived before (a created process already takes messages) are scanned then, and flagged ones are removed (an `/ask` waiting on one gets `422 MESSAGE_REJECTED`).
+
+With neither, messages are **not scanned**: the process logs a one-time warning and accepts them. Set `guardrails` (for example `PromptiseSecurityScanner(detectors=[InjectionDetector()])`) or `trigger_delivery.scan_payloads=True` to scan them, or `scan_with_guardrails: false` to accept messages unscanned without the warning. Only give inbox access to people you trust with the agent's instructions: a message lands in the agent's prompt.
+
+### From Python
+
+```python
+msg_id = await process.send_message(
+    "Ignore staging alerts for 1 hour",
+    message_type="directive", priority="high", sender_id="alice", ttl=3600,
+)
+response = await process.ask("How many alerts did you skip?", timeout=60)
+print(response.content)  # an InboxResponse: question_id, content, answered_at, invocation_id
+```
+
+`send_message` returns the message ID. `ask` returns an `InboxResponse` and raises `asyncio.TimeoutError` when no answer arrives in time. Both raise `RuntimeError` when the process has no inbox or is stopped or failed, and `ValueError` (an `InboxError`) for a refused message.
+
 ---
 
-## Error Responses
+## Python client
 
-All errors follow a consistent format:
+`OrchestrationClient` has a typed method for every route. It uses `httpx` and is an async context manager.
+
+```python
+from promptise.runtime import OrchestrationAPIError, OrchestrationClient
+
+async with OrchestrationClient("http://localhost:9100", token="my-token") as client:
+    await client.deploy("monitor", {"model": "openai:gpt-5-mini", "instructions": "Monitor pipelines."}, start=True)
+
+    answer = await client.ask("monitor", "What anomalies have you found?", timeout=60)
+    print(answer)  # the answer text, or None if the agent didn't answer in time
+
+    result = await client.update_budget("monitor", max_cost_per_day=500.0)
+    print(result["live"], result["effective_from"])  # True next_budget_check
+
+    try:
+        await client.rotate_secret("monitor", "api_key", "sk-new-key", ttl=3600)
+    except OrchestrationAPIError as exc:
+        print(exc.status_code, exc.code, exc.error_message)  # 404 SECRET_NOT_FOUND ...
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `base_url` | required | For example `"http://localhost:9100"` |
+| `token` | `None` | The server's `auth_token`, sent as `Authorization: Bearer` |
+| `auth_token` | `None` | Alias of `token` (passing both with different values raises `ValueError`) |
+| `timeout` | `30.0` | Default request timeout in seconds |
+
+Use it with `async with`, or call `await client.aclose()` when done.
+
+**Errors.** A `4xx` or `5xx` answer raises `OrchestrationAPIError`, a subclass of `httpx.HTTPStatusError`, with `status_code`, `code` (the API error code, or `None` when the body was not an API error) and `error_message`. Network failures raise the usual `httpx` exceptions.
+
+**`204` answers.** `remove_process()` and `clear_inbox()` return `{}`.
+
+| Route | Method | Returns |
+|---|---|---|
+| `GET /health` | `health()` | `dict` |
+| `GET /runtime/status` | `runtime_status()` | `dict` |
+| `POST /runtime/start-all` | `start_all()` | `dict` |
+| `POST /runtime/stop-all` | `stop_all()` | `dict` |
+| `POST /runtime/shutdown` | `shutdown()` | `{"status": "shutting_down"}`; `404` error without `on_shutdown` |
+| `GET /processes` | `list_processes()` | `list[dict]` |
+| `POST /processes` | `deploy(name, config, *, start=False)` | `dict` |
+| `GET /processes/{name}` | `get_process(name)` | `dict` |
+| `DELETE /processes/{name}` | `remove_process(name)` | `{}` |
+| `POST .../start` | `start_process(name)` | `dict` |
+| `POST .../stop` | `stop_process(name)` | `dict` |
+| `POST .../restart` | `restart_process(name)` | `dict` |
+| `POST .../suspend` | `suspend_process(name)` | `dict` |
+| `POST .../resume` | `resume_process(name)` | `dict` |
+| `PATCH .../instructions` | `update_instructions(name, instructions)` | `dict` |
+| `PATCH .../budget` | `update_budget(name, **fields)` | `dict` |
+| `PATCH .../health` | `update_health(name, **fields)` | `dict` |
+| `PATCH .../mission` | `update_mission(name, **fields)` | `dict` |
+| `GET .../triggers` | `list_triggers(name)` | `list[dict]` |
+| `POST .../triggers` | `add_trigger(name, trigger_config)` | `dict` |
+| `DELETE .../triggers/{id}` | `remove_trigger(name, trigger_id)` | `dict` |
+| `GET .../secrets` | `list_secrets(name)` | `list[dict]` |
+| `PATCH .../secrets/{secret}` | `rotate_secret(name, secret_name, value, *, ttl=None)` | `dict` |
+| `DELETE .../secrets` | `revoke_secrets(name)` | `dict` |
+| `GET .../journal` | `get_journal(name, *, limit=50, entry_type=None)` | `list[dict]` |
+| `GET .../rewind/plan` | `rewind_plan(name, target_entry_id, *, mode="both")` | `dict` (the plan) |
+| `POST .../rewind` | `rewind(name, target_entry_id, *, mode="both", actor=None)` | `dict` |
+| `GET .../mission` | `get_mission(name)` | `dict` |
+| `POST .../mission/fail` | `fail_mission(name, reason="Manually failed via client")` | `dict` |
+| `POST .../mission/pause` | `pause_mission(name)` | `dict` |
+| `POST .../mission/resume` | `resume_mission(name)` | `dict` |
+| `GET .../health/anomalies` | `get_anomalies(name)` | `list[dict]` |
+| `DELETE .../health/anomalies` | `clear_anomalies(name)` | `dict` |
+| `POST .../messages` | `send_message(name, content, *, message_type="context", priority="normal", sender_id=None, ttl=None, metadata=None)` | `dict` |
+| `POST .../ask` | `ask(name, question, *, timeout=120, sender_id=None, priority="normal")` | `str \| None` |
+| `GET .../inbox` | `get_inbox(name)` | `dict` |
+| `DELETE .../inbox` | `clear_inbox(name)` | `{}` |
+| `GET .../context` | `get_context(name)` | `dict` |
+| `PATCH .../context` | `update_context(name, state)` | `dict` |
+| `GET .../metrics` | `get_metrics(name)` | `dict` |
+
+`ask()` returns the answer text, or `None` when the server answered `status: "timeout"`; its HTTP timeout is `timeout` + 10 seconds, so the server's long poll ends first.
+
+---
+
+## Audit log
+
+Every mutating request (`POST`, `PATCH`, `PUT`, `DELETE`) that passes the token and Host/Origin checks, successful or not, is logged at `INFO` to the `promptise.runtime.api` logger with its method, route, path parameters (process, trigger and secret **names**), status and client address. Requests those checks refuse (`401`, `403 CROSS_ORIGIN_REFUSED`, `421`) are logged as warnings, as are refused command deploys.
+
+A successful mutating request is also written to the process's journal (when it has one) as an `api_request` entry:
+
+```json
+{"method": "DELETE", "route": "/api/v1/processes/{name}/triggers/{trigger_id}",
+ "params": {"name": "monitor", "trigger_id": "cron-6d904fd75c"}, "status": 200, "client": "127.0.0.1"}
+```
+
+Request bodies are never logged: they can hold secret values and message text.
+
+---
+
+## Error responses
+
+Errors are JSON objects:
 
 ```json
 {
@@ -439,37 +551,91 @@ All errors follow a consistent format:
 }
 ```
 
-| HTTP Code | Error Code | When |
-|-----------|-----------|------|
-| 400 | `INVALID_JSON` | Request body is not valid JSON |
-| 400 | `SECRETS_DISABLED` | Secret operations on process without secrets |
-| 401 | `UNAUTHORIZED` | Missing or invalid Bearer token |
-| 403 | `WRITE_DENIED` | Writing to a non-writable context key |
-| 404 | `PROCESS_NOT_FOUND` | Process name doesn't exist |
-| 404 | `TRIGGER_NOT_FOUND` | Trigger ID doesn't exist |
-| 409 | `PROCESS_EXISTS` | Deploy with a name that's already registered |
-| 422 | `MISSING_FIELD` | Required field missing from request |
-| 422 | `INVALID_CONFIG` | Config fails validation (deploy, add trigger, `PATCH` budget/health/mission) |
-| 422 | `UNKNOWN_FIELD` | `PATCH` budget/health/mission names a field the config model does not declare |
-| 429 | `RATE_LIMITED` | Inbox rate limit exceeded |
-| 500 | `INTERNAL_ERROR` | Unexpected server error |
+The codes come from `promptise.runtime.api.ERROR_CODES` (`code -> (status, meaning)`):
+
+| Status | Code | Meaning |
+|---|---|---|
+| `400` | `HEALTH_DISABLED` | Health operation on a process without health monitoring |
+| `400` | `INBOX_DISABLED` | Inbox operation on a process without an inbox |
+| `400` | `INVALID_JSON` | Request body is not a JSON object |
+| `400` | `JOURNAL_DISABLED` | Rewind on a process without a journal |
+| `400` | `MISSION_DISABLED` | Mission operation on a process without a mission |
+| `400` | `RESUME_FAILED` | The process can't be resumed in its current state |
+| `400` | `ROTATION_FAILED` | The secret could not be rotated |
+| `400` | `SECRETS_DISABLED` | Secret operation on a process without secret scoping |
+| `400` | `SUSPEND_FAILED` | The process can't be suspended in its current state |
+| `401` | `UNAUTHORIZED` | Missing or wrong bearer token |
+| `403` | `COMMANDS_NOT_ALLOWED` | Deploy with a stdio MCP server or a command hook while allow_command_deploys is off |
+| `403` | `CROSS_ORIGIN_REFUSED` | Cross-site Origin on a loopback bind |
+| `403` | `WRITE_DENIED` | Context key(s) not writable (nothing was written) |
+| `404` | `ENTRY_NOT_FOUND` | Journal entry ID doesn't exist (rewind target) |
+| `404` | `NOT_FOUND` | No such route |
+| `404` | `PROCESS_NOT_FOUND` | Process name doesn't exist |
+| `404` | `SECRET_NOT_FOUND` | The process has no secret of that name |
+| `404` | `TRIGGER_NOT_FOUND` | Trigger ID doesn't exist |
+| `405` | `METHOD_NOT_ALLOWED` | The route doesn't accept this method |
+| `410` | `QUESTION_REMOVED` | `/ask`: the question was cleared or evicted from the inbox before it was answered |
+| `409` | `INBOX_FULL` | The inbox is full and nothing can be evicted for the message |
+| `409` | `MISSION_STATE` | Mission fail/pause/resume not valid in the mission's state |
+| `409` | `PROCESS_EXISTS` | Deploy with a name that's already registered |
+| `409` | `PROCESS_NOT_RUNNING` | Message or question to a stopped or failed process |
+| `409` | `REWIND_BUSY` | A run was still in flight when the rewind timed out |
+| `409` | `TRIGGER_EXISTS` | Adding a trigger identical to an existing one |
+| `413` | `PAYLOAD_TOO_LARGE` | Request body over the server's size limit (1 MiB) |
+| `421` | `MISDIRECTED_REQUEST` | Non-loopback Host on a loopback bind (DNS rebinding) |
+| `422` | `DEPLOY_FAILED` | The process could not be created from a valid config |
+| `422` | `INVALID_CONFIG` | Config fails validation (deploy, trigger, PATCH sections) |
+| `422` | `INVALID_FIELD` | A field has the wrong type or an out-of-range value |
+| `422` | `INVALID_NAME` | Process name doesn't match `^[a-zA-Z][a-zA-Z0-9_-]{0,63}$` |
+| `422` | `INVALID_TYPE` | Unknown message_type |
+| `422` | `MESSAGE_REJECTED` | The inbox's guardrail scan flagged the message |
+| `422` | `MISSING_FIELD` | Required field missing from the request |
+| `422` | `UNKNOWN_FIELD` | PATCH names a field the config model doesn't declare |
+| `429` | `RATE_LIMITED` | Inbox rate limit exceeded |
+| varies | `HTTP_ERROR` | Another HTTP error from the server (`400`, `408`, `411`, `414`, `431`, ...); the response status says which |
+| `500` | `INTERNAL_ERROR` | Unexpected server error (details in the server log) |
+| `500` | `RESTART_FAILED` | The process failed to restart |
+| `500` | `START_FAILED` | The process failed to start |
+| `500` | `STOP_FAILED` | The process failed to stop |
+
+`HTTP_ERROR` has no fixed status (its `ERROR_CODES` status is `None`): it carries the status of the underlying HTTP error. An `INTERNAL_ERROR` message is generic; the details go to the server log.
 
 ---
 
 ## Security
 
-- Bearer token required on non-localhost (timing-safe comparison)
-- Process names validated: alphanumeric + hyphens, max 64 chars
-- Config validated via Pydantic before process creation
-- Secret values are never returned in API responses (only names and TTL status)
-- Health endpoint has no auth (for Kubernetes probes)
-- Config updates (`PATCH` budget/health/mission) are validated against the config models before they are applied; unknown fields, out-of-range values and wrong types are refused with `422` and change nothing
-- All mutating operations (POST/PATCH/DELETE) are logged
+- Bearer token required on non-loopback binds, compared in constant time; `GET /api/v1/health` is the only route without auth (for Kubernetes probes).
+- On loopback binds, DNS-rebinding (`421`) and cross-site (`403`) requests are refused.
+- Deploys that would run programs on the host are refused unless `allow_command_deploys=True`.
+- Process names are validated, and configs are validated before a process is created or changed; invalid changes change nothing.
+- Secret values never appear in responses, error messages, the audit log or the journal.
+- Every mutating request is audited.
 
 ---
 
-## What's Next?
+## Common pitfalls
 
-- [Agent Processes](processes.md) — process lifecycle and configuration
-- [Governance](governance/budget.md) — budget, health, and mission configuration
-- [Triggers](triggers/index.md) — cron, webhook, file watch, event, message triggers
+- **An unanswered `/ask` is not an error.** It answers `200` with `status: "timeout"`, and `client.ask()` returns `None`. The agent only sees the question on its next run, so a process whose triggers don't fire within `timeout` can't answer. Inject an event or pick a trigger that runs often enough.
+- **Directives are shown once.** After the run that saw it, a directive is removed from the inbox. Put lasting rules in the instructions (`PATCH /instructions`) or the context state.
+- **Messages are unscanned without guardrails.** `scan_with_guardrails` defaults to `true`, but it needs a scanner; without `guardrails` or `trigger_delivery.scan_payloads` the process only logs a warning.
+- **`DELETE /inbox` ends waiting questions.** It removes pending questions; an `/ask` call still waiting on one answers `410 QUESTION_REMOVED` (`process.ask()` raises `InboxQuestionRemoved`). Wait for open questions before clearing the inbox.
+- **`START_FAILED` on deploy leaves the process registered.** A retry with the same name gets `409 PROCESS_EXISTS`; start it or delete it instead.
+- **Secret rotations don't survive a restart.** A restart resolves secrets from the config again; rotate the source value as well (see [Secret Scoping](governance/secrets.md)).
+- **Use stable trigger IDs.** Take the `id` from `GET /triggers`; position-based `static_<n>` IDs are deprecated.
+
+---
+
+## What's next?
+
+- [Agent Processes](processes.md) -- process lifecycle and configuration
+- [Agent Context](context.md) -- the state behind `GET/PATCH /context`
+- [Mission Model](governance/mission.md), [Autonomy Budget](governance/budget.md), [Behavioral Health](governance/health.md) and [Secret Scoping](governance/secrets.md) -- the sections you can patch
+- [Rewind Engine](journal/rewind.md) -- what the rewind routes restore
+- [Triggers](triggers/index.md) -- cron, webhook, file watch, event and message triggers
+- [CLI Commands](cli.md) -- `promptise runtime start` serves this API
+
+!!! tip "Learn the concept"
+
+    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api) -- Every route group, auth and the loopback guard, with real calls.
+    - [Message a Running AI Agent: Inbox, Directives and Ask](https://www.promptise.com/guides/view/message-running-ai-agent) -- Send directives and questions to an agent while it runs.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- How the API fits with budgets and recovery in a long-running runtime.

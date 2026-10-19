@@ -1,6 +1,6 @@
 # Agent Manifests
 
-Define agent processes declaratively using `.agent` YAML manifest files. Manifests let you version-control agent configurations, validate them before deployment, and start processes from the CLI without writing Python.
+A `.agent` manifest is a YAML file that declares one agent process: model, instructions, MCP servers, triggers, initial state, governance, hooks and process settings. Manifests let you review and version an agent's definition like any other config, validate it before deploying, and start it from the CLI without writing Python. The loader is strict: an unknown key anywhere fails with the list of valid keys, so a typo never silently keeps a default.
 
 ```yaml
 # watcher.agent
@@ -18,6 +18,9 @@ servers:
 triggers:
   - type: cron
     cron_expression: "*/5 * * * *"
+
+config:
+  restart_policy: on_failure
 ```
 
 ```bash
@@ -27,38 +30,68 @@ promptise runtime start watcher.agent
 
 ---
 
-## Manifest Schema
+## Top-level keys
 
-The `.agent` format is a YAML file validated against `AgentManifestSchema`. All sections except `version` and `name` are optional.
+`AgentManifestSchema` accepts exactly these keys. Only `name` is required.
 
-### Top-Level Fields
-
-| Field | Type | Required | Description |
+| Key | Type | Default | Becomes |
 |---|---|---|---|
-| `version` | `str` | yes | Schema version. Must be `"1.0"` |
-| `name` | `str` | yes | Unique process name |
-| `model` | `str` | no | LLM model ID (default: `"openai:gpt-5-mini"`) |
-| `instructions` | `str` | no | System prompt for the agent |
-| `identity` | `dict` | no | Agent identity — who the process is (see below) |
-| `servers` | `dict` | no | MCP server specifications |
-| `triggers` | `list` | no | Trigger configurations |
-| `world` | `dict` | no | Initial world state (key-value pairs) |
-| `memory` | `dict` | no | Memory provider configuration |
-| `journal` | `dict` | no | Journal (audit log) configuration |
-| `config` | `dict` | no | Additional `ProcessConfig` overrides |
-| `execution_mode` | `str` | no | `"strict"` (default) or `"open"` |
-| `open_mode` | `dict` | no | Open mode guardrails |
-| `entrypoint` | `str` | no | Python module for custom hooks |
+| `version` | `"1.0"` | `"1.0"` | Schema version; any other value is rejected |
+| `name` | `str` | required | The process name |
+| `model` | `str` | `"openai:gpt-5-mini"` | `ProcessConfig.model` |
+| `instructions` | `str` | none | `ProcessConfig.instructions` |
+| `identity` | mapping | none | `ProcessConfig.identity` (see [identity](#identity)) |
+| `servers` | mapping | `{}` | `ProcessConfig.servers` |
+| `triggers` | list | `[]` | `ProcessConfig.triggers` (each a `TriggerConfig`) |
+| `world` | mapping | `{}` | `context.initial_state` |
+| `memory` | mapping | none | `context.memory_*` fields |
+| `context` | mapping | none | Any `ContextConfig` field |
+| `journal` | mapping | `JournalConfig()` | `ProcessConfig.journal` (see [journal](#journal)) |
+| `execution_mode` | `"strict"` or `"open"` | `"strict"` | `ProcessConfig.execution_mode` |
+| `open_mode` | mapping | defaults | `OpenModeConfig` |
+| `secrets` | mapping | disabled | `SecretScopeConfig` |
+| `budget` | mapping | disabled | `BudgetConfig` |
+| `health` | mapping | disabled | `HealthConfig` |
+| `mission` | mapping | disabled | `MissionConfig` |
+| `hooks` | list | `[]` | `ProcessConfig.hooks` (command hooks) |
+| `config` | mapping | `{}` | Any other `ProcessConfig` field |
+| `entrypoint` | `str` | none | Reserved and not read; setting it emits a `FutureWarning` |
 
-### `identity` Section
+Every field of every section is listed on the [Configuration](configuration.md) page.
 
-Optional. Gives the long-running process a stable, traceable
-[Agent Identity](../identity/overview.md) — *who is acting*. Same shape as
-the [`.superagent` identity block](../core/agents/superagent-files.md#identity):
-a local identity tags the process's actions for attribution; a verifiable
-identity (Entra, AWS, GCP, SPIFFE, OIDC, or `auto`) additionally presents a
-signed credential — scoped to each server's `audience` — to the MCP servers
-the process calls. All string fields support `${ENV_VAR}`.
+---
+
+## Strict validation
+
+`load_manifest()` rejects:
+
+| Problem | Error message (inside `ManifestValidationError`) |
+|---|---|
+| Unknown top-level key (`journal_level: full`) | `journal_level` / `Extra inputs are not permitted` |
+| Unknown key in a section (`health:`, `context:`, `journal:`, `open_mode:`, `secrets:`, `budget:`, `mission:`) | `health: unknown key(s) ['error_windw']; valid keys are ['cooldown', ..., 'stuck_threshold']` |
+| Unknown key in `memory:` | `memory: unknown key(s) [...]; valid keys are ['auto_store', 'collection', 'max', 'min_score', 'persist_directory', 'provider', 'timeout', 'user_id']` |
+| Unknown key in `config:` | `config: unknown key(s) ['restart_on_failure']; valid keys are ['adaptive', 'approval', ...]` |
+| A `config:` key that has its own section | `config: ['instructions'] also set by the manifest's own section(s); set each option in one place (the top-level section)` |
+| `world:` and `context: initial_state` both set | `Initial state is set twice, in 'world:' and in 'context: initial_state'; use one of them` |
+| The same option in `memory:` and `context:` | `'memory: provider' and 'context: memory_provider' set the same option; use one of them` |
+| Unknown key in a server entry | `servers.tools: timout: Extra inputs are not permitted` |
+| A server without `url` or `command` | `servers.tools: needs 'url' (an HTTP server) or 'command' (a stdio server)` |
+| A trigger without `type` | `Trigger at index 0 is missing required 'type' field` |
+| A hook with an unknown event | `hooks[0]: ... unknown hook event 'on_start'; valid events are ['session_start', ...]` |
+| A hook with `callback:` | `hooks[0]: a manifest hook runs a 'command'; Python callbacks are registered in code (process.hooks)` |
+| Invalid `execution_mode` | `execution_mode: 'auto' is not one of ['strict', 'open']` |
+
+The exception message starts with `Manifest validation failed:`; `exc.errors` holds the Pydantic error details and `exc.file_path` the file.
+
+Trigger entries are checked in full (unknown keys, a missing `cron_expression`, a bad time zone) when the manifest is converted with `manifest_to_process_config()`, which `AgentRuntime.load_manifest()` and `promptise runtime start` call; the error there is a `pydantic.ValidationError` for `TriggerConfig`. `load_manifest()` and `promptise runtime validate` only check that each trigger has a `type`.
+
+---
+
+## Sections
+
+### identity
+
+Gives the process a stable, traceable [Agent Identity](../identity/overview.md). Same shape as the [`.superagent` identity block](../core/agents/superagent-files.md#identity): a local identity tags the process's actions for attribution; a verifiable identity (Entra, AWS, GCP, SPIFFE, OIDC, or `auto`) also presents a signed credential, scoped to each server's `audience`, to the MCP servers the process calls.
 
 ```yaml
 identity:
@@ -69,17 +102,11 @@ identity:
   token_env_var: CI_JOB_JWT_V2
 ```
 
-For `provider: local` only `agent_id` is required; for `provider: oidc`,
-`issuer` plus exactly one of `token_file` / `token_env_var`. See the
-[`.superagent` reference](../core/agents/superagent-files.md#identity) for
-the full field list and the
-[Agent Identity guide](../identity/guide.md) for the end-to-end flow.
+For `provider: local` only `agent_id` is required; for `provider: oidc`, `issuer` plus exactly one of `token_file` / `token_env_var`. See the [`.superagent` reference](../core/agents/superagent-files.md#identity) for every field and the [Agent Identity guide](../identity/guide.md) for the end-to-end flow.
 
-### `servers` Section
+### servers
 
-MCP server specifications, same format as `.superagent` files. Add an
-`audience` to a server to receive an identity credential minted for it
-(see the `identity` section above):
+MCP servers, the same format as `.superagent` files. `type` is `http`, `streamable-http`, `sse` or `stdio`; an HTTP server needs `url`, a stdio server `command`. Every key is passed to the server spec, and an unknown one fails.
 
 ```yaml
 servers:
@@ -93,80 +120,139 @@ servers:
     args: ["-m", "mytools.server"]
 ```
 
-### `triggers` Section
+### triggers
 
-A list of trigger configurations. Each entry must have a `type` field:
+A list of trigger configurations, each with a `type` and the fields of that type (see [Triggers](triggers/index.md)):
 
 ```yaml
 triggers:
   - type: cron
-    cron_expression: "*/5 * * * *"
+    cron_expression: "0 9 * * 1-5"
+    cron_timezone: Europe/Zurich
   - type: webhook
     webhook_path: /events
     webhook_port: 9090
+    hmac_secret: ${WEBHOOK_SECRET}
   - type: file_watch
     watch_path: /data/inbox
     watch_patterns: ["*.csv", "*.json"]
+    watch_backend: polling
   - type: event
     event_type: pipeline.degraded
 ```
 
-### `world` Section
+### world and context
 
-Initial key-value state injected into `AgentContext`:
+`world:` is the initial key-value state of the process's [`AgentContext`](context.md). `context:` accepts any `ContextConfig` field, including `initial_state`; use one of `world:` or `context: initial_state`, not both. Keys recovered from the journal on start replace these initial values.
 
 ```yaml
 world:
   pipeline_status: unknown
-  last_check: null
   alerts_created: 0
+
+context:
+  writable_keys: [pipeline_status, alerts_created]
+  conversation_max_messages: 50
+  state_tool: true          # gives the agent an update_state(key, value) tool
+  env_prefix: PIPELINE_
 ```
 
-### `memory` Section
+Equivalent, with the state inside `context:`:
 
-Configure the long-term memory provider:
+```yaml
+context:
+  initial_state:
+    pipeline_status: unknown
+    alerts_created: 0
+  writable_keys: [pipeline_status, alerts_created]
+```
+
+### memory
+
+Short names for the long-term memory fields of `ContextConfig`:
+
+| `memory:` key | Sets |
+|---|---|
+| `provider` | `memory_provider` (`in_memory`, `chroma`, `mem0`) |
+| `auto_store` | `memory_auto_store` |
+| `max` | `memory_max` |
+| `min_score` | `memory_min_score` |
+| `timeout` | `memory_timeout` |
+| `collection` | `memory_collection` |
+| `persist_directory` | `memory_persist_directory` |
+| `user_id` | `memory_user_id` |
 
 ```yaml
 memory:
-  provider: in_memory     # "in_memory", "chroma", or "mem0"
-  auto_store: false       # Auto-store exchanges in memory
-  max: 5                  # Max memories injected per invocation
-  min_score: 0.0          # Min relevance score
-  # ChromaDB-specific:
+  provider: chroma
   collection: agent_memory
   persist_directory: .promptise/chroma
-  # Mem0-specific:
-  user_id: default
+  max: 5
 ```
 
-### `journal` Section
+You can set the same options as `memory_*` keys under `context:` instead, but not both ways for one option.
 
-Durable audit log configuration:
+### journal
 
 ```yaml
 journal:
-  level: full             # "none", "checkpoint", or "full"
-  backend: file           # "file" or "memory"
+  level: full             # none | checkpoint | full
+  backend: file           # file | memory
   path: .promptise/journal
+  recover_on_start: true
 ```
 
-### `config` Section
+A manifest without a `journal:` section gets `JournalConfig()`: `level: checkpoint`, files under `.promptise/journal`, and recovery on start. A process loaded from a manifest therefore journals and, when started again under the same name, continues from its last checkpoint. Set `level: none` to turn the journal off, or `recover_on_start: false` to keep the journal but always start fresh. (A `ProcessConfig` built in Python has no journal unless you set one.)
 
-Any additional `ProcessConfig` fields not covered by other sections:
+### Governance
+
+`secrets:`, `budget:`, `health:` and `mission:` take the fields of `SecretScopeConfig`, `BudgetConfig`, `HealthConfig` and `MissionConfig`. Each needs `enabled: true`.
 
 ```yaml
-config:
-  concurrency: 2
-  heartbeat_interval: 30
-  idle_timeout: 3600
-  max_consecutive_failures: 5
-  restart_policy: on_failure
-  max_restarts: 5
+secrets:
+  enabled: true
+  secrets:
+    api_key: ${MONITORING_API_KEY}
+  default_ttl: 3600
+
+budget:
+  enabled: true
+  max_tool_calls_per_run: 20
+  max_cost_per_day: 50
+  on_exceeded: pause
+
+health:
+  enabled: true
+  on_anomaly: escalate
+  escalation:
+    webhook_url: https://hooks.example.com/agent-alerts
+
+mission:
+  enabled: true
+  objective: Keep every pipeline healthy.
+  success_criteria: No pipeline degraded for more than 15 minutes.
+  eval_every: 10
 ```
 
-### Open Mode
+`MissionConfig.success_check` is Python only and can't be set in a manifest.
 
-Enable self-modifying agent behavior with execution mode and guardrails:
+### hooks
+
+A list of [lifecycle hooks](hooks.md) that run an external command. Each entry takes the `HookConfig` fields for a command hook: `event`, `command`, `timeout`, `priority`, `once`, `tag`, `fail_closed`, `cwd`, `env`, `env_passthrough`, `max_output_bytes`. The event arrives on the command's stdin as JSON; no shell runs it.
+
+```yaml
+hooks:
+  - event: user_prompt_submit
+    command: ["./hooks/audit.sh"]
+    timeout: 5
+    fail_closed: true
+  - event: session_end
+    command: "python hooks/notify.py --channel ops"
+```
+
+Python callbacks are registered in code: `process.hooks.on(...)` or `HookConfig(callback=...)`.
+
+### Open mode
 
 ```yaml
 execution_mode: open
@@ -182,20 +268,64 @@ open_mode:
   sandbox_custom_tools: true
 ```
 
+See [Meta-Tools](meta-tools.md).
+
+### config
+
+Any `ProcessConfig` field that has no section of its own, for example:
+
+```yaml
+config:
+  concurrency: 2
+  heartbeat_interval: 30
+  idle_timeout: 3600
+  max_lifetime: 86400
+  max_consecutive_failures: 5
+  restart_policy: on_failure
+  max_restarts: 5
+  restart_backoff: 2
+  max_invocation_time: 300
+  inbox:
+    enabled: true
+  trigger_delivery:
+    max_retries: 2
+    dead_letter_size: 200
+```
+
+A key that has its own section (`model`, `instructions`, `identity`, `execution_mode`, `open_mode`, `servers`, `triggers`, `journal`, `context`, `secrets`, `budget`, `health`, `mission`, `hooks`) is refused in `config:` when that section is also set; set each option in one place.
+
 ---
 
-## Full Example
+## Environment variables and secrets
 
-This is the `pipeline_watcher.agent` manifest from the examples directory:
+`${VAR}` and `${VAR:-default}` references are resolved from the environment when the manifest is loaded, in every value of the file, with one exception: the values under `secrets.secrets`. Those stay references in the loaded config and are resolved by the process's [secret scope](governance/secrets.md) when it starts, so the config, `repr()` and any dump of it never hold the secret value. A reference to an unset variable without a default fails at load time in both cases:
+
+```text
+EnvVarNotFoundError: Environment variable 'MONITORING_API_KEY' not found (referenced in: secrets.secrets.api_key)
+```
+
+To keep a credential out of plain config, put it in `secrets.secrets` and have the agent read it with the `get_secret` tool. Other secret-bearing values, such as a webhook's `hmac_secret` or a server's credential headers, are resolved at load time; they are stored as `SecretStr` (masked in `repr()` and JSON dumps) but held in memory in plain form.
+
+```yaml
+secrets:
+  enabled: true
+  secrets:
+    db_password: ${DB_PASSWORD}             # resolved when the process starts
+    region: ${AWS_REGION:-eu-central-1}     # with a default
+```
+
+---
+
+## Full example
 
 ```yaml
 version: "1.0"
 name: pipeline-watcher
 model: openai:gpt-5-mini
 instructions: |
-  You are a Data Pipeline Watchdog. When triggered, run a
-  system_health_check to assess infrastructure status. If any
-  pipeline is degraded, get detailed metrics and create an alert.
+  You are a data pipeline watchdog. When triggered, run a
+  system_health_check. If a pipeline is degraded, get its metrics
+  and create an alert.
 
 servers:
   pipeline_tools:
@@ -205,144 +335,114 @@ servers:
 triggers:
   - type: cron
     cron_expression: "*/5 * * * *"
+  - type: webhook
+    webhook_path: /alerts
+    webhook_port: 9091
+    hmac_secret: ${WEBHOOK_SECRET}
 
 world:
   pipeline_status: unknown
-  last_check: null
   alerts_created: 0
 
 memory:
   provider: in_memory
-  auto_store: false
   max: 5
 
 journal:
   level: full
-  backend: file
   path: .promptise/journal
 
+budget:
+  enabled: true
+  max_tool_calls_per_run: 20
+  on_exceeded: pause
+
+hooks:
+  - event: session_start
+    command: ["./hooks/announce.sh"]
+
 config:
-  concurrency: 1
   heartbeat_interval: 30
   idle_timeout: 3600
   max_consecutive_failures: 5
   restart_policy: on_failure
+  inbox:
+    enabled: true
 ```
 
 ---
 
-## API Reference
-
-### `load_manifest(path)`
-
-Load and validate a `.agent` manifest file.
+## Python API
 
 ```python
-from promptise.runtime.manifest import load_manifest
+from promptise.runtime import (
+    AgentProcess, load_manifest, manifest_to_process_config, save_manifest, validate_manifest,
+)
 
-manifest = load_manifest("agents/watcher.agent")
-print(manifest.name)        # "pipeline-watcher"
-print(manifest.model)       # "openai:gpt-5-mini"
-print(len(manifest.triggers))  # 1
-```
-
-**Returns:** `AgentManifestSchema`
-**Raises:** `ManifestError` (file/parse errors), `ManifestValidationError` (schema errors)
-
-### `validate_manifest(path)`
-
-Validate a manifest file and return a list of warnings.
-
-```python
-from promptise.runtime.manifest import validate_manifest
+manifest = load_manifest("agents/watcher.agent")       # AgentManifestSchema
+config = manifest_to_process_config(manifest)          # ProcessConfig
+process = AgentProcess(name=manifest.name, config=config)
 
 warnings = validate_manifest("agents/watcher.agent")
-# ["No triggers defined -- agent will only respond to manual events"]
-```
-
-**Returns:** `list[str]` -- warning messages (empty if fully valid)
-
-### `manifest_to_process_config(manifest)`
-
-Convert a validated manifest into a `ProcessConfig` for use with `AgentProcess`.
-
-```python
-from promptise.runtime.manifest import load_manifest, manifest_to_process_config
-from promptise.runtime import AgentProcess
-
-manifest = load_manifest("agents/watcher.agent")
-config = manifest_to_process_config(manifest)
-process = AgentProcess(name=manifest.name, config=config)
-```
-
-**Returns:** `ProcessConfig`
-
-### `save_manifest(manifest, path)`
-
-Write a manifest to a YAML file.
-
-```python
-from promptise.runtime.manifest import save_manifest
+# ['No MCP servers configured — agent has no tools']
 
 save_manifest(manifest, "agents/watcher-copy.agent")
 ```
 
+| Function | Returns | Raises |
+|---|---|---|
+| `load_manifest(path)` | `AgentManifestSchema` | `ManifestError` (missing file, unreadable, invalid YAML, not a mapping), `ManifestValidationError` (schema), `EnvVarNotFoundError` (unset `${VAR}`) |
+| `validate_manifest(path)` | `list[str]` of warnings: no instructions, no triggers, no MCP servers | as `load_manifest()` |
+| `manifest_to_process_config(manifest)` | `ProcessConfig` | `pydantic.ValidationError` (for example an invalid trigger) |
+| `save_manifest(manifest, path)` | `None` | |
+
+`save_manifest()` writes the loaded manifest, so `${VAR}` references outside `secrets.secrets` are written with their resolved values. `AgentRuntime.load_manifest(path, name_override=None)` and `AgentRuntime.load_directory(dir)` load and register in one step (see [Runtime Manager](runtime-manager.md#loading-manifests)).
+
 ---
 
-## CLI Commands
-
-### Validate a Manifest
+## CLI
 
 ```bash
+# Validate: schema check plus a summary table and warnings (a file or a directory)
 promptise runtime validate agents/watcher.agent
-```
+promptise runtime validate agents/
 
-Checks schema validity and prints a summary table with name, model, servers, and triggers.
-
-### Start from a Manifest
-
-```bash
-# Start a single manifest
+# Start one manifest, or every *.agent file in a directory
 promptise runtime start agents/watcher.agent
-
-# Start all manifests in a directory
 promptise runtime start agents/
-
-# Start with the live dashboard
-promptise runtime start agents/watcher.agent --dashboard
-
-# Override the process name
 promptise runtime start agents/watcher.agent --name custom-watcher
-```
+promptise runtime start agents/watcher.agent --dashboard
+promptise runtime start agents/ --detach
 
-### Generate a Template
-
-```bash
-# Basic template
-promptise runtime init -o my-agent.agent
-
-# Cron-based template
+# Generate a template: basic, cron, webhook or full
 promptise runtime init --template cron -o watcher.agent
-
-# Full-featured template
-promptise runtime init --template full -o production.agent
 ```
 
-Available templates: `basic`, `cron`, `webhook`, `full`.
+See [CLI Commands](cli.md) for every option.
 
 ---
 
-!!! tip "Environment variable resolution"
-    Manifests support environment variable resolution. If the `promptise.env_resolver` module is available, `${VAR_NAME}` patterns in YAML values are replaced with their environment variable values at load time.
+## Common pitfalls
+
+- **Expecting `validate` to check triggers.** `promptise runtime validate` passes a trigger with a misspelt field; the error shows when the manifest is converted (at `start`). Run `manifest_to_process_config(load_manifest(path))` in CI to catch it early.
+- **A manifest process that "remembers" old state.** Without a `journal:` section the process journals to `.promptise/journal` and recovers on start. Set `journal: {level: none}` or `recover_on_start: false` if each start should be fresh.
+- **Putting an option in two places.** `config: {instructions: ...}` next to a top-level `instructions:` fails; so do `world:` together with `context: initial_state`.
+- **Secrets in plain values.** Only `secrets.secrets` keeps `${VAR}` references until start. A literal API key anywhere else is in the file and in the loaded config.
+- **Old keys from earlier examples.** `journal_level`, `restart_on_failure` and similar keys don't exist; the loader rejects them with the list of valid keys.
+- **Using `entrypoint`.** It is not read. Declare command hooks in `hooks:` and register Python hooks in code.
 
 ---
 
-## What's Next?
+## What's next
 
-- [Agent Processes](processes.md) -- `ProcessConfig` fields and trigger types in detail
-- [Runtime Manager](runtime-manager.md) -- multi-process management with `AgentRuntime`
-- [CLI Reference](../core/cli.md) -- full CLI command reference
+- [Configuration](configuration.md) -- every field of every section
+- [Agent Processes](processes.md) -- what the process does with its config
+- [Runtime Manager](runtime-manager.md) -- load many manifests into one runtime
+- [Runtime Hooks](hooks.md) -- hook events and their data
+- [CLI Commands](cli.md) -- `promptise runtime validate`, `start` and `init`
 
 !!! tip "Learn the concept"
 
     - [AI Agent YAML: Define and Run an Agent From a Config File](https://www.promptise.com/guides/view/ai-agent-yaml-config-file) -- Keep an agent's definition in a reviewed config file.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- Load a directory of manifests into one runtime.
+    - [AI Agent Secrets Management: Scoped, Expiring Credentials](https://www.promptise.com/guides/view/ai-agent-secrets-management) -- Keep credentials out of config with scoped secrets.

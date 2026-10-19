@@ -1,6 +1,22 @@
 # Conversation Buffer
 
-`ConversationBuffer` provides a rolling window of message exchanges for short-term memory within an `AgentProcess`. It retains the last N messages across trigger invocations, giving the agent continuity within a single process lifecycle.
+`ConversationBuffer` is an agent process's short-term memory: a rolling window of the last messages exchanged, replayed to the agent on every run so it remembers what it saw and said on earlier runs. Each `AgentProcess` owns one. It keeps its history across `stop()` / `start()` and restarts, can be checkpointed and recovered with a journal, and never stores a secret value in plain text.
+
+```python
+from promptise.runtime import ProcessConfig
+from promptise.runtime.config import ContextConfig
+
+config = ProcessConfig(
+    model="openai:gpt-5-mini",
+    instructions="Triage incoming tickets.",
+    context=ContextConfig(
+        conversation_max_messages=50,      # keep the last 50 messages
+        conversation_clear_on_stop=False,  # default: history survives stop()/start()
+    ),
+)
+```
+
+On its own:
 
 ```python
 from promptise.runtime.conversation import ConversationBuffer
@@ -9,35 +25,67 @@ buffer = ConversationBuffer(max_messages=50)
 buffer.append({"role": "user", "content": "Hello!"})
 buffer.append({"role": "assistant", "content": "Hi there!"})
 
-# Next invocation sees the previous exchange
 history = buffer.get_messages()
 # [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hi there!"}]
 ```
 
 ---
 
-## Concepts
+## How a process uses it
 
-Agent processes are often invoked repeatedly by triggers (cron jobs, webhooks, events). Each invocation needs context from prior exchanges to maintain coherent behavior. The `ConversationBuffer` provides this by maintaining a FIFO message buffer:
+On every run the process:
 
-- **Short-term only** -- messages are lost on process restart. For persistence across restarts, use a `MemoryProvider`.
-- **Rolling window** -- oldest messages are automatically evicted when `max_messages` is exceeded.
-- **Dual interface** -- synchronous methods for single-threaded use and tests; async methods with internal locking for concurrent access.
-- **Serializable** -- can be checkpointed to the journal for crash recovery.
+1. Puts the buffer's messages into the prompt after the system blocks (context state, budget, mission, inbox) and before the new trigger message.
+2. After the run, appends two messages: the trigger message as the `user` message and the agent's final reply as the `assistant` message. Tool calls, tool results and the injected system blocks are not stored.
+3. Drops the oldest messages when the buffer is over `conversation_max_messages`.
+
+| `ContextConfig` field | Default | Description |
+|---|---|---|
+| `conversation_max_messages` | `100` | Messages kept. `0` means **unlimited**, not off |
+| `conversation_history` | `True` | `False` turns the buffer off: every run sees only its own trigger message |
+| `conversation_clear_on_stop` | `False` | Clear the history on `stop()` |
+
+When an append makes the buffer drop old messages, the process fires the `pre_compact` hook (with the messages about to be dropped) and the `post_compact` hook. See [Runtime Hooks](hooks.md).
 
 ---
 
-## Basic Usage
+## Lifetime
+
+| Event | History |
+|---|---|
+| `stop()` then `start()` on the same process object | Kept (unless `conversation_clear_on_stop=True`) |
+| `restart_process()`, `POST /restart` (a stop, then a start) | Kept (unless `conversation_clear_on_stop=True`) |
+| An automatic restart after a failure (restart policy) | Kept |
+| An instructions change (`update_instructions`, `PATCH /instructions`) | Kept: the agent is rebuilt with the same history |
+| `close()`, `async with process:` exit, `AgentRuntime.remove_process()`, `DELETE /processes/{name}` | Cleared |
+| A new process object with the same name and a journal | Restored from the last checkpoint (`JournalConfig.recover_on_start`, default `True`) |
+| A new process object without a journal | Starts empty |
+
+With a journal, the conversation is part of every checkpoint (written after each run and on stop), and the first `start()` of a new process object restores it when `conversation_history` is on. `process.recovered["conversation_messages"]` says how many messages came back. A [rewind](journal/rewind.md) can roll the conversation back to an earlier point.
+
+Facts that must outlive all of this belong in long-term memory or in the [context state](context.md).
+
+---
+
+## Secret values are redacted
+
+With [secret scoping](governance/secrets.md) enabled, both messages are stored with every secret value replaced by `[REDACTED]`: current values, and values replaced by a rotation or expired. An agent that echoes a secret in its reply doesn't carry it into later prompts, and the conversation in journal checkpoints holds no plain-text secret.
+
+```python
+# The agent replied "the token is tok-SECRET-42"; the buffer holds:
+{"role": "assistant", "content": "the token is [REDACTED]"}
+```
+
+---
+
+## Basic usage
 
 ### Adding messages
 
 ```python
 buffer = ConversationBuffer(max_messages=100)
 
-# Add a single message
 buffer.append({"role": "user", "content": "Check the pipeline status."})
-
-# Add multiple messages at once
 buffer.extend([
     {"role": "assistant", "content": "Pipeline is healthy. No anomalies."},
     {"role": "user", "content": "What about the error rate?"},
@@ -47,119 +95,107 @@ buffer.extend([
 ### Reading messages
 
 ```python
-# Get all messages as a list copy (oldest first)
-messages = buffer.get_messages()
-
-# Check message count
-print(len(buffer))  # 3
+messages = buffer.get_messages()  # list copy, oldest first
+print(len(buffer))                # 3
 ```
 
-### Replacing the buffer
-
-Used during hot-reload to preserve conversation across agent rebuilds:
+### Replacing and clearing
 
 ```python
-buffer.set_messages(messages)
-```
-
-### Clearing
-
-```python
+buffer.set_messages(messages)  # replace the whole buffer (oldest dropped if over the limit)
 buffer.clear()
 assert len(buffer) == 0
 ```
 
----
-
-## Async-Safe Operations
-
-When multiple coroutines access the buffer concurrently (for example, a process handling concurrent triggers), use the async methods which acquire an internal `asyncio.Lock`:
+### Turning it off
 
 ```python
-# Thread-safe read
-snapshot = await buffer.async_snapshot()
-
-# Thread-safe replace
-await buffer.async_replace([{"role": "user", "content": "Fresh start"}])
-
-# Thread-safe append
-await buffer.async_append({"role": "assistant", "content": "Ready."})
+buffer = ConversationBuffer(max_messages=100, enabled=False)
+buffer.append({"role": "user", "content": "Hello"})
+assert len(buffer) == 0  # nothing is retained
 ```
 
 ---
 
-## Automatic Eviction
+## Async-safe operations
 
-When the buffer exceeds `max_messages`, the oldest messages are evicted automatically:
+When several coroutines use the buffer (a process with `concurrency > 1`), use the async methods, which hold an internal `asyncio.Lock`:
+
+```python
+snapshot = await buffer.async_snapshot()
+await buffer.async_replace([{"role": "user", "content": "Fresh start"}])
+await buffer.async_append({"role": "assistant", "content": "Ready."})
+```
+
+The synchronous methods take no lock; use them outside concurrent code (tests, serialization). The buffer is not thread-safe.
+
+---
+
+## Automatic eviction
+
+When the buffer exceeds `max_messages`, the oldest messages are dropped:
 
 ```python
 buffer = ConversationBuffer(max_messages=3)
 
-buffer.append({"role": "user", "content": "Message 1"})
-buffer.append({"role": "user", "content": "Message 2"})
-buffer.append({"role": "user", "content": "Message 3"})
-buffer.append({"role": "user", "content": "Message 4"})  # Evicts Message 1
+for i in range(1, 5):
+    buffer.append({"role": "user", "content": f"Message {i}"})  # the 4th evicts Message 1
 
 messages = buffer.get_messages()
 assert len(messages) == 3
 assert messages[0]["content"] == "Message 2"
 ```
 
-Set `max_messages=0` in `ContextConfig` to disable conversation buffering entirely.
-
 ---
 
 ## Serialization
 
-The buffer can be serialized for journal checkpointing and restored after a crash:
-
 ```python
-# Save
 data = buffer.to_dict()
-# {"max_messages": 100, "messages": [...]}
+# {"max_messages": 100, "enabled": True, "messages": [...]}
 
-# Restore
 restored = ConversationBuffer.from_dict(data)
 ```
 
 ---
 
-## API Summary
+## API summary
 
 | Method | Sync/Async | Description |
 |---|---|---|
-| `append(message)` | Sync | Add a single message dict |
-| `extend(messages)` | Sync | Add multiple message dicts |
-| `get_messages()` | Sync | Return all messages as a list copy |
-| `set_messages(messages)` | Sync | Replace the entire buffer |
+| `ConversationBuffer(max_messages=100, enabled=True)` | -- | `max_messages=0` is unlimited; `enabled=False` retains nothing |
+| `append(message)` | Sync | Add one message dict |
+| `extend(messages)` | Sync | Add several message dicts |
+| `get_messages()` | Sync | All messages as a list copy, oldest first |
+| `set_messages(messages)` | Sync | Replace the whole buffer |
 | `clear()` | Sync | Remove all messages |
-| `async_snapshot()` | Async | Thread-safe copy of all messages |
-| `async_replace(messages)` | Async | Thread-safe replacement of the entire buffer |
-| `async_append(message)` | Async | Thread-safe append of a single message |
-| `to_dict()` | Sync | Serialize to dict for checkpointing |
-| `ConversationBuffer.from_dict(data)` | Classmethod | Reconstruct from serialized dict |
+| `async_snapshot()` | Async | Locked copy of all messages |
+| `async_replace(messages)` | Async | Locked replacement of the whole buffer |
+| `async_append(message)` | Async | Locked append of one message |
+| `to_dict()` | Sync | Serialize (`max_messages`, `enabled`, `messages`) |
+| `ConversationBuffer.from_dict(data)` | Classmethod | Rebuild from `to_dict()` output |
 | `__len__()` | Sync | Current message count |
 
 ---
 
-## Tips and Gotchas
+## Common pitfalls
 
-!!! tip "Size the buffer for your use case"
-    A cron agent that runs every 5 minutes may only need `max_messages=20`. A webhook handler processing rapid events might need `max_messages=200`. The default is `100`.
-
-!!! tip "Use async methods in production"
-    When `concurrency > 1` in `ProcessConfig`, multiple invocations can access the buffer simultaneously. Always use `async_snapshot`, `async_append`, and `async_replace` in that scenario.
-
-!!! warning "Messages are lost on restart"
-    The conversation buffer is ephemeral. On process restart, the buffer starts empty unless you restore from a journal checkpoint. For persistent memory across restarts, use a `MemoryProvider`.
-
-!!! warning "Eviction is silent"
-    When the buffer overflows, the oldest messages are dropped without warning. If you need to preserve important context, store it in the agent's long-term memory.
+- **`conversation_max_messages=0` keeps everything.** It means unlimited, so the prompt grows with every run. Use `conversation_history=False` to turn the buffer off.
+- **`close()` clears the history; `stop()` doesn't.** Removing a process from a runtime closes it. To keep the conversation across a redeploy, configure a journal.
+- **Each run adds two messages.** `max_messages=20` holds the last 10 runs, not 20.
+- **Eviction is silent unless you hook it.** Old messages are dropped without a log line; use the `pre_compact` hook to summarize or archive them, or store important facts in the context state or long-term memory.
+- **Tool results aren't in the history.** Only the trigger message and the final reply are kept; a value the agent read from a tool is gone on the next run unless the reply or the state holds it.
 
 ---
 
-## What's Next
+## What's next
 
-- [Context](context.md) -- the full `AgentContext` that wraps the conversation buffer
-- [Configuration](configuration.md) -- `conversation_max_messages` in `ContextConfig`
-- [Journal Overview](journal/index.md) -- checkpointing the buffer for crash recovery
+- [Agent Context](context.md) -- state and long-term memory around the conversation
+- [Runtime Hooks](hooks.md) -- `pre_compact` / `post_compact`
+- [Journal](journal/index.md) and [Rewind Engine](journal/rewind.md) -- checkpointing, recovery and rolling back the conversation
+- [Secret Scoping](governance/secrets.md) -- the values that are redacted
+
+!!! tip "Learn the concept"
+
+    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs) -- How state, conversation and memory differ, and what survives a restart.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Checkpoints that bring the conversation back after a crash.

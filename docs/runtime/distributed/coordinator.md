@@ -1,6 +1,8 @@
 # Distributed Coordinator
 
-The `RuntimeCoordinator` is the central brain of a distributed agent runtime deployment. It tracks runtime nodes across the cluster, monitors their health with periodic checks, aggregates status information, and provides remote operations for starting, stopping, and injecting events into processes on remote nodes. It does not move processes on its own: when a node fails, your code picks a healthy node (`healthy_nodes`) and starts the process there (`start_process_on_node`).
+The `RuntimeCoordinator` is the part of a cluster that knows every node: it keeps a registry of runtime nodes, checks their health periodically, aggregates their status, and runs remote operations (start, stop, inject events) on them. It does not move processes on its own: when a node fails, your code picks a healthy node (`healthy_nodes`) and starts the process there (`start_process_on_node`).
+
+In a cluster built with [distributed mode](index.md), you don't create it yourself: `DistributedConfig(enabled=True, coordinator=True)` makes the runtime host one, exposes it on its transport (`/cluster/nodes`, `/cluster/status`), and lets nodes register. Use the class directly to monitor or drive nodes from your own code:
 
 ```python
 from promptise.runtime.distributed.coordinator import RuntimeCoordinator
@@ -48,6 +50,19 @@ In a distributed deployment, agent processes run across multiple machines (nodes
           │Runtime │
           └───────┘
 ```
+
+### Hosted by a runtime
+
+With `DistributedConfig(coordinator=True)`, the runtime's `ClusterNode` builds the coordinator with `health_check_interval=heartbeat_interval`, `node_timeout=node_timeout` (default three heartbeat intervals) and the cluster `auth_token`, registers itself (metadata `{"role": "coordinator"}`) and every entry of `static_nodes`, and starts the health monitor. Its transport then serves:
+
+| Route | Description |
+|---|---|
+| `GET /cluster/nodes` | The registered nodes (`NodeInfo.to_dict()` each) and `count`. With registry discovery, expired registrations are pruned first |
+| `POST /cluster/nodes` | Register or refresh a node: `{"node_id": "...", "url": "http://...", "metadata": {...}}`. `422` for a bad `node_id` (`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`), URL or metadata; `409` for the coordinator's own ID or with static discovery |
+| `DELETE /cluster/nodes/{node_id}` | Unregister a node (`404` when unknown, `409` for the coordinator itself) |
+| `GET /cluster/status` | `cluster_status()` plus `"coordinator": <node_id>` |
+
+Every `/cluster` route needs the cluster bearer token. `runtime.cluster.coordinator` is the `RuntimeCoordinator` object, for the remote operations below.
 
 ---
 
@@ -263,8 +278,8 @@ result = await coordinator.inject_event_on_node(
 !!! tip "Use the context manager"
     `async with RuntimeCoordinator() as coordinator:` automatically starts the health monitor on entry and stops it on exit. This is the recommended pattern.
 
-!!! tip "Set node_timeout to 3x health_check_interval"
-    A node that misses three consecutive health checks (45s with 15s intervals) is likely truly down, not just experiencing a transient network issue.
+!!! tip "Keep node_timeout at about 3x health_check_interval"
+    A node that misses three consecutive health checks (45s with 15s intervals, the defaults) is likely down, not just experiencing a transient network issue. `DistributedConfig.node_timeout` defaults to `3 * heartbeat_interval` for the same reason.
 
 !!! info "aiohttp shipped with base install"
     All HTTP-based operations (health checks, remote commands, status queries) use `aiohttp`, which is included in the base `pip install promptise`.
@@ -273,12 +288,13 @@ result = await coordinator.inject_event_on_node(
     The coordinator authenticates with bearer tokens but talks to nodes over plain HTTP unless the node URLs are `https://`. Across an untrusted network, put the nodes behind a TLS reverse proxy.
 
 !!! warning "Coordinator is a single point of failure"
-    The coordinator itself is not replicated. For high availability, run the coordinator behind a load balancer or implement coordinator election.
+    The coordinator itself is not replicated. If it stops, the nodes keep running their processes and keep trying to register; a restarted coordinator (registry discovery) finds them again within one `heartbeat_interval`, but its health history starts over.
 
 ---
 
 ## What's Next
 
+- [Distributed Mode](index.md) -- `DistributedConfig`, `ClusterNode` and a two-node setup
 - [Discovery and Transport](discovery-transport.md) -- service discovery and HTTP transport API
 - [Configuration](../configuration.md) -- `DistributedConfig` reference
 - [Runtime Manager](../runtime-manager.md) -- the `AgentRuntime` that runs on each node
@@ -286,3 +302,4 @@ result = await coordinator.inject_event_on_node(
 !!! tip "Learn the concept"
 
     - [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production) -- Operating long-running agents in production.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- When one runtime is enough and when to spread processes across nodes.

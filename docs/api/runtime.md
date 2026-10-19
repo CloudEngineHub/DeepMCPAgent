@@ -92,6 +92,20 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
       show_source: false
       heading_level: 4
 
+### TriggerDeliveryConfig
+
+::: promptise.runtime.config.TriggerDeliveryConfig
+    options:
+      show_source: false
+      heading_level: 4
+
+### HookConfig
+
+::: promptise.runtime.config.HookConfig
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
 ## Lifecycle
@@ -113,6 +127,13 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
 ### ProcessTransition
 
 ::: promptise.runtime.lifecycle.ProcessTransition
+    options:
+      show_source: false
+      heading_level: 4
+
+### StateError
+
+::: promptise.runtime.lifecycle.StateError
     options:
       show_source: false
       heading_level: 4
@@ -333,6 +354,13 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
       show_source: false
       heading_level: 4
 
+### SecretNotFoundError
+
+::: promptise.runtime.secrets.SecretNotFoundError
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
 ## Inbox (Human-in-the-loop)
@@ -368,6 +396,41 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
 ### MessageType
 
 ::: promptise.runtime.inbox.MessageType
+    options:
+      show_source: false
+      heading_level: 4
+
+### InboxError
+
+::: promptise.runtime.inbox.InboxError
+    options:
+      show_source: false
+      heading_level: 4
+
+### InvalidInboxMessage
+
+::: promptise.runtime.inbox.InvalidInboxMessage
+    options:
+      show_source: false
+      heading_level: 4
+
+### InboxRateLimitError
+
+::: promptise.runtime.inbox.InboxRateLimitError
+    options:
+      show_source: false
+      heading_level: 4
+
+### InboxFullError
+
+::: promptise.runtime.inbox.InboxFullError
+    options:
+      show_source: false
+      heading_level: 4
+
+### InboxMessageRejected
+
+::: promptise.runtime.inbox.InboxMessageRejected
     options:
       show_source: false
       heading_level: 4
@@ -421,6 +484,41 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
 ### ReplayEngine
 
 ::: promptise.runtime.journal.ReplayEngine
+    options:
+      show_source: false
+      heading_level: 4
+
+### RedactingJournal
+
+::: promptise.runtime.journal.RedactingJournal
+    options:
+      show_source: false
+      heading_level: 4
+
+### RewindEngine
+
+::: promptise.runtime.journal.RewindEngine
+    options:
+      show_source: false
+      heading_level: 4
+
+### RewindMode
+
+::: promptise.runtime.journal.RewindMode
+    options:
+      show_source: false
+      heading_level: 4
+
+### RewindPlan
+
+::: promptise.runtime.journal.RewindPlan
+    options:
+      show_source: false
+      heading_level: 4
+
+### RewindResult
+
+::: promptise.runtime.journal.RewindResult
     options:
       show_source: false
       heading_level: 4
@@ -484,9 +582,30 @@ Remote HTTP control of running processes.
       show_source: false
       heading_level: 4
 
+### OrchestrationAPIError
+
+::: promptise.runtime.api_client.OrchestrationAPIError
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
 ## Distributed coordination
+
+### ClusterNode
+
+::: promptise.runtime.distributed.ClusterNode
+    options:
+      show_source: false
+      heading_level: 4
+
+### RuntimeTransport
+
+::: promptise.runtime.distributed.RuntimeTransport
+    options:
+      show_source: false
+      heading_level: 4
 
 ### RuntimeCoordinator
 
@@ -519,6 +638,59 @@ Remote HTTP control of running processes.
 ### RegistryDiscovery
 
 ::: promptise.runtime.distributed.RegistryDiscovery
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Lifecycle hooks
+
+### HookManager
+
+::: promptise.runtime.hooks.HookManager
+    options:
+      show_source: false
+      heading_level: 4
+
+### HookEvent
+
+::: promptise.runtime.hooks.HookEvent
+    options:
+      show_source: false
+      heading_level: 4
+
+### HookContext
+
+::: promptise.runtime.hooks.HookContext
+    options:
+      show_source: false
+      heading_level: 4
+
+### HookBlocked
+
+::: promptise.runtime.hooks.HookBlocked
+    options:
+      show_source: false
+      heading_level: 4
+
+### DispatchResult
+
+::: promptise.runtime.hooks.DispatchResult
+    options:
+      show_source: false
+      heading_level: 4
+
+### ShellHook
+
+::: promptise.runtime.shell_hook.ShellHook
+    options:
+      show_source: false
+      heading_level: 4
+
+### ShellHookResult
+
+::: promptise.runtime.shell_hook.ShellHookResult
     options:
       show_source: false
       heading_level: 4

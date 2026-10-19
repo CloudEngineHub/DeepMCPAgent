@@ -475,131 +475,45 @@ The key is read only from the environment, never from the command line, and is n
 
 ## `promptise runtime` -- Process Management
 
-The `runtime` subcommand group manages long-running agent processes.
-
-### `promptise runtime start` -- Start Processes
-
-Start agent process(es) from a `.agent` manifest file or directory.
+The `runtime` subcommand group runs long-running agent processes from `.agent` [manifests](../runtime/manifests.md) and controls them from another terminal. The [Runtime CLI](../runtime/cli.md) page has every option and the details.
 
 ```bash
-# Start a single manifest
-promptise runtime start agents/watcher.agent
-
-# Start all manifests in a directory
-promptise runtime start agents/
-
-# Override process name
-promptise runtime start agents/watcher.agent --name custom-watcher
-
-# Run in the background
-promptise runtime start agents/watcher.agent --detach
-
-# Start with live monitoring dashboard
-promptise runtime start agents/ --dashboard
+promptise runtime start agents/watcher.agent --detach   # start in the background
+promptise runtime status                                # every runtime on this machine
+promptise runtime logs data-watcher --follow            # newest journal entries, with entry IDs
+promptise runtime rewind data-watcher <entry_id> --plan # preview a rewind
+promptise runtime restart                               # restart every process
+promptise runtime stop                                  # stop the runtime
 ```
 
-| Flag | Description |
+| Command | Description |
 |---|---|
-| `--name`, `-n` | Override process name from manifest |
-| `--detach`, `-d` | Run in the background |
-| `--dashboard` | Enable live terminal monitoring dashboard |
+| `promptise runtime start MANIFEST` | Start the process(es) of a `.agent` file or directory, in the foreground or with `--detach` |
+| `promptise runtime status [NAME]` | Show the processes of the running runtime(s), or one process (`--process`, `--json`) |
+| `promptise runtime stop [NAME]` | Stop a runtime (or one process with `--process`); `--timeout`, `--force` |
+| `promptise runtime restart [NAME]` | Restart every process of a runtime, or one process |
+| `promptise runtime logs NAME` | Show the newest journal entries of a process (`--lines`, `--follow`, `--journal-path`) |
+| `promptise runtime rewind PROCESS [ENTRY_ID]` | Roll a process back to just before a journal entry (`--mode`, `--plan`, `--yes`) |
+| `promptise runtime validate PATH` | Validate a `.agent` file or every `.agent` file in a directory |
+| `promptise runtime init` | Generate a template `.agent` file (`--template basic\|cron\|webhook\|full`) |
 
-Press `Ctrl+C` to stop all processes (in foreground mode).
+`start` serves the [control API](../runtime/api.md) on `127.0.0.1` with a random bearer token and records the runtime in a private state directory, `~/.promptise/runtime` (`0700`; one `0600` file per runtime; `PROMPTISE_RUNTIME_STATE_DIR` moves it). The other commands find the runtime there, so with one runtime running they need no name. `--url` (with `$PROMPTISE_RUNTIME_TOKEN` or `--token`) targets an Orchestration API on another machine instead.
 
-### `promptise runtime stop` -- Stop a Process
+`start` options:
 
-```bash
-promptise runtime stop data-watcher
-promptise runtime stop data-watcher --force
-```
+| Flag | Default | Description |
+|---|---|---|
+| `--name`, `-n` | -- | Override the process name (single manifest file only) |
+| `--runtime-name`, `-r` | process or directory name | Name of the runtime for the other commands |
+| `--detach/--no-detach`, `-d` | off | Run in the background, with a log file in the state directory |
+| `--dashboard/--no-dashboard` | off | Live terminal dashboard (foreground only) |
+| `--api-host` | `127.0.0.1` | Address of the control API |
+| `--api-port` | `0` (a free port) | Port of the control API |
+| `--allow-command-deploys` | off | Let the control API deploy processes with stdio MCP servers or command hooks (refused with `403 COMMANDS_NOT_ALLOWED` otherwise) |
 
-| Flag | Description |
-|---|---|
-| `--force` | Force stop the process |
+A foreground runtime stops gracefully on Ctrl+C, on SIGTERM (`docker stop`) and on `promptise runtime stop`. `stop` asks over the control API first, falls back to SIGTERM, and kills the runtime only with `--force`.
 
-### `promptise runtime status` -- Show Status
-
-```bash
-# Show status of all processes
-promptise runtime status
-
-# Show status of a specific process
-promptise runtime status data-watcher
-
-# Output as JSON
-promptise runtime status --json
-```
-
-| Flag | Description |
-|---|---|
-| `--json` | Output status as JSON |
-
-### `promptise runtime logs` -- View Journal
-
-Show journal entries for a running process.
-
-```bash
-# Show last 20 entries
-promptise runtime logs data-watcher
-
-# Show last 50 entries
-promptise runtime logs data-watcher --lines 50
-
-# Follow new entries
-promptise runtime logs data-watcher --follow
-
-# Custom journal path
-promptise runtime logs data-watcher --journal-path .promptise/journal
-```
-
-| Flag | Description |
-|---|---|
-| `--lines`, `-n` | Number of entries to show (default: 20) |
-| `--follow`, `-f` | Follow new entries in real time |
-| `--journal-path` | Journal directory (default: `.promptise/journal`) |
-
-### `promptise runtime restart` -- Restart a Process
-
-```bash
-promptise runtime restart data-watcher
-```
-
-### `promptise runtime validate` -- Validate a Manifest
-
-Check a `.agent` manifest file for schema errors and warnings.
-
-```bash
-promptise runtime validate agents/watcher.agent
-```
-
-Outputs a summary table with name, model, version, instructions, server count, and trigger count. Warnings are printed for common issues like missing instructions, triggers, or servers.
-
-### `promptise runtime init` -- Generate a Template
-
-Create a template `.agent` manifest file to get started quickly.
-
-```bash
-# Basic template
-promptise runtime init -o my-agent.agent
-
-# Cron-based template
-promptise runtime init --template cron -o watcher.agent
-
-# Webhook template
-promptise runtime init --template webhook -o handler.agent
-
-# Full-featured template
-promptise runtime init --template full -o production.agent
-
-# Overwrite existing file
-promptise runtime init --template cron -o watcher.agent --force
-```
-
-| Flag | Description |
-|---|---|
-| `--output`, `-o` | Output file path (default: `agent.agent`) |
-| `--template`, `-t` | Template type: `basic`, `cron`, `webhook`, `full` |
-| `--force` | Overwrite existing file |
+**Exit codes.** `0` success, `1` an error with a message (no runtime running, unknown name, API error, invalid manifest, no process could start, a stop that timed out, an unconfirmed rewind), `2` a usage error, `130` a second Ctrl+C or SIGTERM during shutdown.
 
 ---
 
@@ -638,7 +552,7 @@ promptise runtime validate watcher.agent
 promptise runtime start watcher.agent
 
 # 5. View logs in another terminal
-promptise runtime logs pipeline-watcher --follow
+promptise runtime logs data-watcher --follow
 ```
 
 ### MCPcast an Existing API

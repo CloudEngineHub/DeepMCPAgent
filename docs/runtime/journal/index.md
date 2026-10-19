@@ -1,263 +1,202 @@
 # Journal System
 
-The journal system provides durable audit logging for agent processes. Every state transition, trigger firing, invocation result, and checkpoint is recorded as a `JournalEntry`, enabling crash recovery, observability, and post-mortem analysis.
+The journal is a process's durable, append-only record: state transitions, context writes, run results, errors, restarts, and a checkpoint of the recoverable state after every run. It powers three things: you can see what a process did (`promptise runtime logs`, `GET /processes/{name}/journal`), a process picks up where it left off after a crash or restart, and you can [rewind](rewind.md) a process to an earlier point.
 
 ```python
-from promptise.runtime.journal import FileJournal, JournalEntry
-
-journal = FileJournal(base_path=".promptise/journal")
-
-await journal.append(JournalEntry(
-    process_id="data-watcher",
-    entry_type="trigger_event",
-    data={"trigger_type": "cron", "scheduled_time": "2026-03-04T10:05:00"},
-))
-
-entries = await journal.read("data-watcher", limit=10)
-```
-
----
-
-## Concepts
-
-The journal sits between the agent runtime and durable storage, capturing a chronological record of everything that happens in a process. It serves two primary purposes:
-
-1. **Observability** -- view what happened, when, and why. The CLI `promptise runtime logs` command reads from the journal.
-2. **Crash recovery** -- after a crash, the `ReplayEngine` reads the journal, finds the last checkpoint, and replays subsequent entries to reconstruct the process state.
-
-Three detail levels control how much is recorded:
-
-| Level | What is recorded | When to use |
-|---|---|---|
-| `"none"` | Nothing | Fire-and-forget processes where history does not matter |
-| `"checkpoint"` | State transitions, invocation results and errors, restarts, and a state snapshot after each trigger-invoke-result cycle | Default for a `JournalConfig`. Good balance of observability and storage efficiency |
-| `"full"` | Everything above, plus each trigger event, invocation start, and every tool call and tool result | Debugging, audit trails, compliance requirements |
-
-### Journaling an agent process
-
-An `AgentProcess` writes its journal when `ProcessConfig.journal` sets a level. Journaling is **off by default** for a `ProcessConfig`; turn it on per process:
-
-```python
-from promptise.runtime import ProcessConfig
-from promptise.runtime.config import JournalConfig
+from promptise.runtime import AgentProcess, JournalConfig, ProcessConfig
 
 config = ProcessConfig(
     model="openai:gpt-5-mini",
+    instructions="You write release notes.",
     journal=JournalConfig(level="checkpoint", backend="file", path=".promptise/journal"),
 )
+
+process = AgentProcess("notes", config)
+await process.start()
+process.context.put("stage", "draft")
+# ... trigger events run ...
+await process.stop()
+
+# Next time (a new Python process, after a crash or a deploy):
+again = AgentProcess("notes", config)
+await again.start()
+print(again.recovered)
+# {'lifecycle_state': 'stopped', 'entries_replayed': 1, 'context_keys': ['stage'],
+#  'mission_restored': False, 'budget_restored': False,
+#  'conversation_messages': 2, 'invocation_count': 1}
+print(again.context.get("stage"))   # 'draft'
 ```
 
-Entries are filed under the **process name** (not its internal ID), so `promptise runtime logs <name>` and recovery after a restart find them. Secret-access and mission-evaluation entries from the governance subsystems go to the same journal. Checkpoints hold `context_state`, `lifecycle_state`, `invocation_count`, the conversation buffer, and the budget and mission state when those are enabled. A failing journal backend is logged and never stops the process.
-
-!!! note "Changed in 1.3.0"
-    Earlier versions accepted `ProcessConfig.journal` but never wrote anything. Because a process journal is now real, the `ProcessConfig` default became `level="none"` so upgrading does not start writing files to `.promptise/journal`.
+The entries land in `.promptise/journal/notes.jsonl`, and the latest checkpoint in `.promptise/journal/notes.checkpoint.json`. Entries are filed under the **process name**, not its internal ID, so a restarted process (which gets a new `process_id`) and `promptise runtime logs notes` find them.
 
 ---
 
-## JournalEntry
+## Turning it on
 
-Every journal record is a `JournalEntry` dataclass:
+Journaling is **off by default** for a process: `ProcessConfig.journal` defaults to `JournalConfig(level="none")`. Pass a `JournalConfig` to turn it on; `JournalConfig()` itself defaults to `level="checkpoint"`.
 
-```python
-from promptise.runtime.journal import JournalEntry
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `level` | `"none" \| "checkpoint" \| "full"` | `"checkpoint"` | How much is recorded (see below). `"none"` creates no journal at all |
+| `backend` | `"file" \| "memory"` | `"file"` | `FileJournal` (JSONL on disk) or `InMemoryJournal` (lost when the Python process exits) |
+| `path` | `str` | `".promptise/journal"` | Directory of the file backend, relative to the working directory |
+| `recover_on_start` | `bool` | `True` | Restore the recorded state on the process object's first `start()` (see [Recovery on start](#recovery-on-start)) |
 
-entry = JournalEntry(
-    process_id="data-watcher",
-    entry_type="state_transition",
-    data={"from_state": "created", "to_state": "running"},
-)
+In a manifest:
+
+```yaml
+journal:
+  level: checkpoint
+  backend: file
+  path: .promptise/journal
+  recover_on_start: true
 ```
+
+Unknown keys are ignored with a `FutureWarning`.
+
+### Levels
+
+| Level | What the process records |
+|---|---|
+| `"none"` | Nothing (no journal object; rewind and recovery are unavailable) |
+| `"checkpoint"` | State transitions, every context write (`context_update`), each run's result, run errors, restarts, recovery and rewind markers, operator actions from the API, secret accesses, mission evaluations, and a checkpoint after every run |
+| `"full"` | Everything above, plus each trigger event, each run's start, and every tool call and tool result |
+
+A failing journal backend is logged and never stops the process.
+
+---
+
+## Entry types
+
+Every record is a `JournalEntry`:
 
 | Field | Type | Description |
 |---|---|---|
-| `entry_id` | `str` | Unique entry ID (auto-generated UUID) |
-| `process_id` | `str` | Owning process identifier |
-| `timestamp` | `datetime` | When the entry was recorded (UTC) |
-| `entry_type` | `str` | Type of entry |
-| `data` | `dict[str, Any]` | Entry-specific payload |
+| `entry_id` | `str` | Unique ID (a UUID). This is what [rewind](rewind.md) targets |
+| `process_id` | `str` | The process **name** the entry is filed under |
+| `timestamp` | `datetime` | When it was recorded (UTC) |
+| `entry_type` | `str` | One of the types below |
+| `data` | `dict[str, Any]` | Type-specific payload |
 
-### Entry types
+What an `AgentProcess` writes:
 
-| Entry Type | Description |
-|---|---|
-| `state_transition` | Process state change (from/to state) |
-| `trigger_event` | A trigger fired (trigger type, payload) |
-| `invocation_start` | Agent invocation began |
-| `invocation_result` | Agent invocation completed (final reply, duration) |
-| `checkpoint` | Full state snapshot |
-| `context_update` | Context state key changed (written by your code; replayed by `ReplayEngine`) |
-| `tool_call` / `tool_result` | A tool call and its result (`"full"` level) |
-| `restart` / `restart_exhausted` | Automatic restart attempt / `max_restarts` reached |
-| `error` | An invocation failed |
-
-### Serialization
-
-```python
-data = entry.to_dict()
-restored = JournalEntry.from_dict(data)
-```
-
----
-
-## JournalLevel
-
-Controls the detail level of journaling:
-
-```python
-from promptise.runtime.journal import JournalLevel
-
-JournalLevel.NONE        # No journaling
-JournalLevel.CHECKPOINT  # State snapshots per cycle (default)
-JournalLevel.FULL        # Every side effect
-```
-
-Configure via `JournalConfig`:
-
-```python
-from promptise.runtime.config import JournalConfig
-
-# Checkpoint level with file backend
-JournalConfig(level="checkpoint", backend="file", path=".promptise/journal")
-
-# Full level for debugging
-JournalConfig(level="full", backend="file")
-
-# Disabled
-JournalConfig(level="none")
-```
-
----
-
-## JournalProvider Protocol
-
-All journal backends implement the `JournalProvider` protocol:
-
-```python
-from promptise.runtime.journal import JournalProvider
-
-class JournalProvider(Protocol):
-    async def append(self, entry: JournalEntry) -> None:
-        """Append an entry to the journal."""
-        ...
-
-    async def read(
-        self,
-        process_id: str,
-        *,
-        since: datetime | None = None,
-        entry_type: str | None = None,
-        limit: int | None = None,
-    ) -> list[JournalEntry]:
-        """Read entries with optional filters."""
-        ...
-
-    async def checkpoint(
-        self, process_id: str, state: dict[str, Any]
-    ) -> None:
-        """Store a full state checkpoint."""
-        ...
-
-    async def last_checkpoint(
-        self, process_id: str
-    ) -> dict[str, Any] | None:
-        """Return the most recent checkpoint, or None."""
-        ...
-
-    async def close(self) -> None:
-        """Release any resources."""
-        ...
-```
-
----
-
-## Available Backends
-
-| Backend | Class | Persistence | Use Case |
+| `entry_type` | Level | When | `data` |
 |---|---|---|---|
-| File | `FileJournal` | Append-only JSONL files on disk | Production |
-| Memory | `InMemoryJournal` | Python list in memory | Testing and development |
+| `state_transition` | checkpoint | Every lifecycle transition | `from_state`, `to_state`, `reason`, `process_id` |
+| `context_update` | checkpoint | Every write to the context state (by your code, the API's `PATCH /context`, or the agent's state tool) | `key`, `value`, `timestamp`, `source` |
+| `invocation_result` | checkpoint | A run finished | `invocation`, `event_id`, `trigger_type`, `duration_ms`, `response` (first 2000 characters) |
+| `checkpoint` | checkpoint | After every run, after a failed or refused run when a budget is enabled, when the mission's state changes, on `stop()`, after a rewind | `{"state": {...}}`, see [Checkpoints](#checkpoints) |
+| `error` | checkpoint | A run raised | `event_id`, `error_type`, `error` (first 1000 characters) |
+| `restart` | checkpoint | An automatic restart begins | `reason`, `attempt` (`None` for a `max_lifetime` recycle) |
+| `restart_exhausted` | checkpoint | `max_restarts` reached | `reason`, `restarts`, `max_restarts`, `error` |
+| `recovered` | checkpoint | Journal recovery restored state at start | The same dict as `process.recovered` |
+| `rewind` | checkpoint | A rewind was applied | `target_entry_id`, `mode`, `actor`, `entries_affected`, `conversation_affected`, `code_affected`, `summary_note` |
+| `api_request` | checkpoint | A successful mutating request to the [Orchestration API](../api.md) | Method, route, path parameters, status and client address (never the body) |
+| `secret_access` | checkpoint | [Secret scoping](../governance/secrets.md) read, rotated, revoked or expired a secret | `action` (`"access"`, `"rotation"`, `"revoke_all"`, `"expired"`), `secret_name` (never the value) |
+| `mission_evaluation` | checkpoint | The [mission](../governance/mission.md) judge evaluated progress | `achieved`, `confidence`, `reasoning`, `progress_summary`, `mission_state`, `invocation_number`, `source` |
+| `trigger_event` | full | A run starts for a trigger event | `trigger_id`, `trigger_type`, `event_id`, `payload` |
+| `invocation_start` | full | Before the model is called | `invocation`, `event_id` |
+| `tool_call` | full | The agent called a tool | `tool`, `args` (redacted) |
+| `tool_result` | full | A tool returned | `tool`, `result` (first 2000 characters). Results of `get_secret` are never journaled |
 
-See [Journal Backends](backends.md) for detailed documentation of each backend.
+`secret_access` and `mission_evaluation` entries currently have an empty `entry_id`, so they can't be used as a rewind target; pick a neighboring entry.
+
+Your own code can append any other type with `journal.append(JournalEntry(...))`. Entries serialize with `entry.to_dict()` and `JournalEntry.from_dict(data)`.
+
+### Checkpoints
+
+A checkpoint is a full snapshot of what a process can recover:
+
+| Key | Content |
+|---|---|
+| `context_state` | The context key-value state |
+| `lifecycle_state` | The process state when it was written |
+| `invocation_count` | Runs so far |
+| `conversation` | The conversation buffer (short-term memory) |
+| `budget` | The budget counters (when a budget is enabled) |
+| `mission` | The mission's state and evaluation history (when a mission is enabled) |
+
+The context writes made before a checkpoint are journaled before it, so the journal's order matches what the checkpoint contains.
 
 ---
 
-## Reading Entries
+## Recovery on start
+
+With `recover_on_start=True` (the default), the **first** `start()` of a process object reads the journal for its name and restores what it recorded, before its own first transition is journaled:
+
+- the context state: the last checkpoint's `context_state` plus the `context_update` entries written after it (replayed with [`ReplayEngine`](replay.md)); recovered keys replace the same keys of `context.initial_state`;
+- the mission (`MissionTracker.restore`), when a mission is enabled;
+- the budget counters, when a budget is enabled, so a restart can't reset the daily limits;
+- the conversation history, when `context.conversation_history` is on;
+- the invocation count.
+
+Without a checkpoint (a crash before the first run ended), the `context_update` entries alone are replayed. A journal that holds neither restores nothing, and a journal that can't be read is logged and the process starts fresh.
+
+`process.recovered` reports what was restored (or is `None`): `lifecycle_state` (`"stopped"` after a clean stop, `"running"` after a crash), `entries_replayed`, `context_keys`, `mission_restored`, `budget_restored`, `conversation_messages` and `invocation_count`. The same dict is journaled as a `recovered` entry and passed to `SESSION_START` [hooks](../hooks.md) as `recovered`.
+
+Not recovered from the journal: long-term memory (its provider persists it), secrets, queued trigger events and dead letters, and anything a tool did outside the process. Later starts of the same object (an automatic restart, `restart_process`) keep the live state and don't read the journal again. Set `recover_on_start=False` to always start fresh.
+
+---
+
+## Secrets never reach the journal in plain text
+
+When [secret scoping](../governance/secrets.md) is enabled, the process wraps its journal in a `RedactingJournal`. Every string in an entry's `data` and in a checkpoint passes through the secret scope's redactor before it reaches the backend, so tool arguments, run results and the conversation snapshot store `[REDACTED]` instead of a secret value, also after a rotation. `get_secret` results are never journaled at all.
+
+To redact your own journal the same way:
 
 ```python
+from promptise.runtime.journal import FileJournal, RedactingJournal
+
+journal = RedactingJournal(FileJournal(".promptise/journal"), scope.sanitize)
+```
+
+The redactor must return a redacted copy and leave its input unchanged. Values that were stored redacted come back redacted on recovery and rewind.
+
+---
+
+## Reading entries
+
+| From | How |
+|---|---|
+| The terminal | `promptise runtime logs notes` (newest entries, with their entry IDs; `--follow` for more), see [CLI](../cli.md) |
+| The Orchestration API | `GET /api/v1/processes/{name}/journal?limit=50&type=checkpoint`; `OrchestrationClient.get_journal(name, limit=, entry_type=)` |
+| Python | `await journal.read(name, since=..., entry_type=..., limit=...)` on a backend |
+
+```python
+from datetime import datetime, timezone
 from promptise.runtime.journal import FileJournal
 
-journal = FileJournal()
-
-# Read all entries for a process
-entries = await journal.read("data-watcher")
-
-# Read with filters
-from datetime import datetime, UTC
-entries = await journal.read(
-    "data-watcher",
-    since=datetime(2026, 3, 4, tzinfo=UTC),
-    entry_type="trigger_event",
-    limit=20,
-)
-
-# Read the last checkpoint
-checkpoint = await journal.last_checkpoint("data-watcher")
+journal = FileJournal(".promptise/journal")
+entries = await journal.read("notes")
+errors = await journal.read("notes", entry_type="error",
+                            since=datetime(2026, 10, 1, tzinfo=timezone.utc))
+checkpoint = await journal.last_checkpoint("notes")
 ```
 
----
-
-## Checkpointing
-
-Checkpoints store a full state snapshot that the `ReplayEngine` uses as a recovery point:
-
-```python
-await journal.checkpoint("data-watcher", {
-    "context_state": {"pipeline_status": "healthy", "check_count": 42},
-    "lifecycle_state": "running",
-    "invocation_count": 42,
-})
-```
-
-The checkpoint is stored separately from the regular journal entries (as a dedicated file in the file backend) and also recorded as a journal entry with `entry_type="checkpoint"`.
+Backends implement the `JournalProvider` protocol: `append(entry)`, `read(process_id, *, since, entry_type, limit)`, `checkpoint(process_id, state)`, `last_checkpoint(process_id)` and `close()`. See [Journal Backends](backends.md).
 
 ---
 
-## API Summary
+## Common pitfalls
 
-| Class / Enum | Description |
-|---|---|
-| `JournalEntry` | Single journal record dataclass |
-| `JournalLevel` | Detail level enum: `NONE`, `CHECKPOINT`, `FULL` |
-| `JournalProvider` | Protocol for journal backends |
-| `FileJournal` | Append-only JSONL file backend |
-| `InMemoryJournal` | In-memory backend for testing |
-| `ReplayEngine` | Crash recovery from journal entries |
-
----
-
-## Tips and Gotchas
-
-!!! tip "Use checkpoint level for production"
-    The `"checkpoint"` level captures enough information for crash recovery without the storage overhead of `"full"`. Reserve `"full"` for debugging specific issues.
-
-!!! tip "View logs via CLI"
-    Use `promptise runtime logs <process-name>` to view journal entries in a formatted table. Add `--lines 50` to see more entries.
-
-!!! warning "Journal entries are append-only"
-    Neither backend supports deleting individual entries. To clear a process's journal, delete the JSONL file manually (file backend) or create a new `InMemoryJournal` instance.
-
-!!! warning "Checkpoint state must be JSON-serializable"
-    The checkpoint data dict is serialized to JSON. Ensure all values are JSON-compatible (strings, numbers, booleans, lists, dicts, None).
+- **Expecting a journal by default.** A `ProcessConfig` without `journal=` writes nothing, so `logs`, recovery and rewind have nothing to work with. Set `JournalConfig()` (checkpoint level).
+- **Two processes with the same name and path.** Entries are filed under the name, so they share one file and recover each other's state. Give each process its own name or `path`.
+- **A relative `path` and a different working directory.** `.promptise/journal` is relative to where the process starts. A process started from another directory finds no journal and starts fresh; use an absolute path in services.
+- **`backend: memory` and recovery.** The in-memory journal disappears with the Python process, so nothing survives a crash. Use it for tests.
+- **`recover_on_start` and a fresh run.** A test or a new deployment that should start clean must set `recover_on_start=False` or use a new journal directory; otherwise it continues the old state.
+- **`full` level and storage.** Tool results and payloads can be large, and JSONL files are never rotated by Promptise. Rotate or archive them externally.
 
 ---
 
 ## What's Next
 
-- [Journal Backends](backends.md) -- `FileJournal` and `InMemoryJournal` in detail
-- [Replay Engine](replay.md) -- crash recovery from journal entries
-- [Configuration](../configuration.md) -- `JournalConfig` reference
-- [CLI Commands](../cli.md) -- `promptise runtime logs` command
+- [Journal Backends](backends.md) -- `FileJournal`, `InMemoryJournal` and `RedactingJournal`
+- [Replay Engine](replay.md) -- how recovery rebuilds state from the journal
+- [Rewind](rewind.md) -- roll a process back to an earlier entry
+- [Configuration](../configuration.md) -- `JournalConfig` among the other options
+- [CLI Commands](../cli.md) -- `promptise runtime logs` and `promptise runtime rewind`
 
 !!! tip "Learn the concept"
 
     - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Journal progress and resume so side effects never run twice.
+    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs) -- What a process remembers between runs and how it is recorded.

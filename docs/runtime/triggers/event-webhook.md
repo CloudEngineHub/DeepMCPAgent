@@ -1,17 +1,23 @@
 # Event and Webhook Triggers
 
-The `EventTrigger`, `MessageTrigger`, and `WebhookTrigger` provide event-driven activation for agent processes. EventTrigger listens to the framework's internal EventBus, MessageTrigger subscribes to MessageBroker topics, and WebhookTrigger exposes an HTTP endpoint for external systems.
+These three triggers run an agent when something happens elsewhere. `WebhookTrigger` exposes an HTTP endpoint for external systems (GitHub, Stripe, CI, monitoring). `EventTrigger` and `MessageTrigger` listen to an event bus or a message broker that you share between processes, so one process can wake another.
 
 ```python
+import os
 from promptise.runtime import ProcessConfig, TriggerConfig
 
 config = ProcessConfig(
     model="openai:gpt-5-mini",
-    instructions="Handle incoming events and webhooks.",
+    instructions="Triage new GitHub issues.",
     triggers=[
-        TriggerConfig(type="event", event_type="pipeline.error"),
-        TriggerConfig(type="webhook", webhook_path="/events", webhook_port=9090),
-        TriggerConfig(type="message", topic="reports.daily"),
+        TriggerConfig(
+            type="webhook",
+            webhook_path="/github",
+            webhook_port=9090,
+            hmac_secret=os.environ["GITHUB_WEBHOOK_SECRET"],
+            signature_scheme="github",
+            filter_expression="payload['action'] == 'opened'",
+        ),
     ],
 )
 ```
@@ -20,117 +26,181 @@ config = ProcessConfig(
 
 ## Concepts
 
-All three trigger types use an internal `asyncio.Queue` to decouple event delivery from consumption. Events arriving faster than the agent can process them are buffered (up to the queue capacity). If the queue fills, events are dropped with a warning.
-
-| Trigger | Source | Use Case |
+| Trigger | Source | Use case |
 |---|---|---|
-| `EventTrigger` | Internal `EventBus` | React to events from other agent processes |
-| `MessageTrigger` | Internal `MessageBroker` | Subscribe to topic-based message streams |
-| `WebhookTrigger` | External HTTP POST | Receive events from external systems (CI/CD, monitoring, APIs) |
+| `WebhookTrigger` | External HTTP POST | Receive events from external systems (CI/CD, monitoring, SaaS webhooks) |
+| `EventTrigger` | The runtime's `event_bus` | React to events from other agent processes or your own code |
+| `MessageTrigger` | The runtime's `broker` | Subscribe to topic-based message streams |
+
+Each trigger buffers events in its own `asyncio.Queue` until the process's listener takes them. What happens when a buffer is full differs:
+
+- **Webhook:** the request is refused with `503` and a `Retry-After: 30` header, so the sender can retry. Nothing is dropped silently.
+- **Event and message:** the queue holds 100 events; beyond that, new events are dropped with a warning in the log.
 
 ---
 
 ## EventTrigger
 
-Wraps an `EventBus` subscription and converts matching events into `TriggerEvent` objects.
+Subscribes to one event type on an event bus and turns matching events into `TriggerEvent` objects.
+
+### The event bus
+
+The runtime doesn't ship an event bus. `EventTrigger` works with any object that has these async methods, so you can wrap Redis Pub/Sub, Kafka, or an in-memory dispatcher:
+
+| Method | Called by |
+|---|---|
+| `await subscribe(event_type, handler)` | `EventTrigger.start()` |
+| `await unsubscribe(event_type, handler)` | `EventTrigger.stop()` |
+| `await emit(event_type, payload)` | Budget, health and mission [escalations](../governance/budget.md#enforcement-actions) with an `EscalationTarget(event_type=...)` |
+
+The handler is an async callable that receives the event object. The trigger reads its `event_id`, `source` and `data` attributes (missing ones become `""` / `{}`).
+
+A minimal in-memory bus:
+
+```python
+from dataclasses import dataclass, field
+from uuid import uuid4
+
+
+@dataclass
+class BusEvent:
+    data: dict
+    source: str = ""
+    event_id: str = field(default_factory=lambda: uuid4().hex)
+
+
+class InMemoryBus:
+    def __init__(self) -> None:
+        self._handlers: dict[str, list] = {}
+
+    async def subscribe(self, event_type, handler):
+        self._handlers.setdefault(event_type, []).append(handler)
+
+    async def unsubscribe(self, event_type, handler):
+        self._handlers.get(event_type, []).remove(handler)
+
+    async def emit(self, event_type, data, source=""):
+        for handler in list(self._handlers.get(event_type, [])):
+            await handler(BusEvent(data=data, source=source))
+```
+
+Pass the same instance to the runtime and to whatever produces the events:
+
+```python
+from promptise.runtime import AgentRuntime, ProcessConfig, TriggerConfig
+
+bus = InMemoryBus()
+runtime = AgentRuntime(event_bus=bus)
+await runtime.add_process(
+    "pipeline-doctor",
+    ProcessConfig(
+        model="openai:gpt-5-mini",
+        instructions="Diagnose failed pipeline jobs.",
+        triggers=[TriggerConfig(type="event", event_type="pipeline.error", event_source="data-pipeline")],
+    ),
+)
+await runtime.start_all()
+
+await bus.emit("pipeline.error", {"job": "nightly-load"}, source="data-pipeline")
+```
 
 ### Configuration
 
-```python
-from promptise.runtime import TriggerConfig
-
-# Listen for pipeline errors
-TriggerConfig(type="event", event_type="pipeline.error")
-
-# With source filtering
-TriggerConfig(
-    type="event",
-    event_type="task.completed",
-    event_source="data-pipeline",
-)
-```
+| Field | Default | Description |
+|---|---|---|
+| `event_type` | required | Event type to subscribe to |
+| `event_source` | `None` | Only events whose `source` equals this fire the trigger |
+| `filter_expression` | `None` | Skip events before the agent runs (see [Filtering](index.md#filtering-events-before-the-agent-runs)) |
 
 ### Direct instantiation
 
 ```python
 from promptise.runtime.triggers.event import EventTrigger
-from promptise.runtime.events import EventBus
 
-bus = EventBus()
-
-trigger = EventTrigger(
-    bus,
-    "pipeline.error",
-    source_filter="data-pipeline",
-    trigger_id="pipe-err-listener",
-)
+trigger = EventTrigger(bus, "pipeline.error", source_filter="data-pipeline")
 
 await trigger.start()
 event = await trigger.wait_for_next()
 print(event.payload)
-# {
-#     "event_type": "pipeline.error",
-#     "event_id": "...",
-#     "source": "data-pipeline",
-#     "data": {...},
-# }
+# {'event_type': 'pipeline.error', 'event_id': '9b5e8cdb…', 'source': 'data-pipeline',
+#  'data': {'job': 'nightly-load'}}
 await trigger.stop()
 ```
-
-### Source filtering
-
-When `source_filter` is set, only events from that specific source fire the trigger. Events from other sources are silently ignored. This is useful when multiple producers publish to the same event type.
 
 ### Event payload
 
 | Field | Description |
 |---|---|
-| `event_type` | The EventBus event type string |
-| `event_id` | Unique event identifier |
-| `source` | Event source |
-| `data` | Event data dict |
+| `event_type` | The subscribed event type |
+| `event_id` | The bus event's `event_id` |
+| `source` | The bus event's `source` |
+| `data` | The bus event's `data` |
 
 ---
 
 ## MessageTrigger
 
-Wraps a `MessageBroker` subscription for topic-based messaging.
+Subscribes to one topic on a message broker.
 
-### Configuration
+### The message broker
+
+Like the event bus, the broker is any object with these async methods:
+
+| Method | Called by |
+|---|---|
+| `await subscribe(topic, handler)` | `MessageTrigger.start()`; returns a subscription ID |
+| `await unsubscribe(subscription_id)` | `MessageTrigger.stop()` |
+
+The handler receives a message object; the trigger reads `message_id`, `sender` and `content` (falling back to `str(message)` for `content`). Topic matching, including wildcards such as `reports.*`, is up to your broker.
 
 ```python
-from promptise.runtime import TriggerConfig
+from dataclasses import dataclass, field
+from uuid import uuid4
 
-# Subscribe to a specific topic
-TriggerConfig(type="message", topic="reports.daily")
 
-# Wildcard topics are supported by the broker
-TriggerConfig(type="message", topic="reports.*")
+@dataclass
+class Message:
+    content: str
+    sender: str = ""
+    message_id: str = field(default_factory=lambda: uuid4().hex)
+
+
+class InMemoryBroker:
+    def __init__(self) -> None:
+        self._subs: dict[str, tuple[str, object]] = {}
+
+    async def subscribe(self, topic, handler):
+        sub_id = uuid4().hex
+        self._subs[sub_id] = (topic, handler)
+        return sub_id
+
+    async def unsubscribe(self, sub_id):
+        self._subs.pop(sub_id, None)
+
+    async def publish(self, topic, content, sender=""):
+        for t, handler in list(self._subs.values()):
+            if t == topic:
+                await handler(Message(content=content, sender=sender))
+
+
+runtime = AgentRuntime(broker=InMemoryBroker())
+# TriggerConfig(type="message", topic="reports.daily")
 ```
 
 ### Direct instantiation
 
 ```python
 from promptise.runtime.triggers.event import MessageTrigger
-from promptise.runtime.broker import MessageBroker
 
-broker = MessageBroker()
-
-trigger = MessageTrigger(
-    broker,
-    "reports.daily",
-    trigger_id="daily-report-sub",
-)
+broker = InMemoryBroker()
+trigger = MessageTrigger(broker, "reports.daily")
 
 await trigger.start()
+await broker.publish("reports.daily", "Report ready", sender="report-generator")
 event = await trigger.wait_for_next()
 print(event.payload)
-# {
-#     "topic": "reports.daily",
-#     "message_id": "...",
-#     "sender": "report-generator",
-#     "content": "...",
-# }
+# {'topic': 'reports.daily', 'message_id': '8796…', 'sender': 'report-generator',
+#  'content': 'Report ready'}
 await trigger.stop()
 ```
 
@@ -138,16 +208,16 @@ await trigger.stop()
 
 | Field | Description |
 |---|---|
-| `topic` | The topic the message arrived on |
-| `message_id` | Unique message identifier |
-| `sender` | Message sender |
-| `content` | Message content |
+| `topic` | The subscribed topic |
+| `message_id` | The message's `message_id` |
+| `sender` | The message's `sender` |
+| `content` | The message's `content` |
 
 ---
 
 ## WebhookTrigger
 
-An `aiohttp` HTTP server that listens for incoming POST requests and converts them to `TriggerEvent` objects.
+An `aiohttp` HTTP server that listens for POST requests and turns each accepted request into a `TriggerEvent`. Each webhook trigger runs its own server on its own port.
 
 ### Configuration
 
@@ -163,6 +233,7 @@ TriggerConfig(
     hmac_secret=os.environ["GITHUB_WEBHOOK_SECRET"],
     signature_scheme="github",         # generic | github | stripe
     allowed_sources=["203.0.113.0/24"],  # the sender's published IP ranges
+    webhook_max_body_bytes=256 * 1024,   # default 1 MiB
     filter_expression="payload['action'] == 'opened'",
 )
 ```
@@ -173,13 +244,14 @@ TriggerConfig(
 | `webhook_port` | `9090` | TCP port (1025–65535) |
 | `webhook_host` | `"127.0.0.1"` | Interface to bind. The default only accepts local connections; use `"0.0.0.0"` to accept requests from other machines |
 | `hmac_secret` | `None` | Shared secret; when set, requests without a valid signature get `401` |
-| `signature_scheme` | `"generic"` | How the signature is computed (table below) |
-| `signature_header` | scheme default | Override the header the signature is read from |
+| `signature_scheme` | `"generic"` | How the signature is computed (table below); requires `hmac_secret` |
+| `signature_header` | scheme default | Override the header the signature is read from; requires `hmac_secret` |
 | `signature_tolerance` | `300` | Max age in seconds of a `stripe` signature timestamp; inside that window each signed request is accepted once (replay protection) |
 | `allowed_sources` | `[]` (any) | Client IPs or CIDR ranges allowed to call the webhook; others get `403` |
+| `webhook_max_body_bytes` | `1048576` (1 MiB) | Largest request body accepted, 1 byte to 1 GiB; larger bodies get `413` |
 | `filter_expression` | `None` | Skip events before the agent runs (see [Filtering](index.md#filtering-events-before-the-agent-runs)) |
 
-In a manifest, keep the secret out of the file with an environment reference: `hmac_secret: ${GITHUB_WEBHOOK_SECRET}`.
+In a manifest, keep the secret out of the file with an environment reference: `hmac_secret: ${GITHUB_WEBHOOK_SECRET}`. The secret is a `SecretStr`: it is masked in `repr()`, in config dumps and in `GET /triggers`.
 
 ### Authentication: HMAC signatures
 
@@ -209,6 +281,16 @@ urllib.request.urlopen(urllib.request.Request(
 
 For other providers that sign the body with HMAC-SHA256 and a `sha256=` prefix, keep `signature_scheme="generic"` and set `signature_header` to their header name.
 
+#### Stripe replay protection
+
+A `stripe` signature is accepted once. The webhook records it only when it takes the event, so a sender's retry is not mistaken for a replay:
+
+- after a `503` (process unavailable or queue full), the signature was never recorded and the retry goes through;
+- after a `500` (an unexpected error while handling the request), the signature is released again, so the retry goes through;
+- after a `202` or a `200 ignored`, the same signature gets `401`.
+
+Recorded signatures are kept for twice `signature_tolerance`.
+
 !!! warning "Set a secret before you expose the port"
     Without `hmac_secret`, anyone who can reach the port can make the agent run, and pick what it reads. The trigger logs a warning at start-up in that case. Always set a secret (and ideally `allowed_sources`) when `webhook_host` isn't loopback.
 
@@ -225,6 +307,7 @@ trigger = WebhookTrigger(
     host="127.0.0.1",
     hmac_secret="my-secret",
     signature_scheme="generic",
+    max_body_bytes=256 * 1024,
 )
 
 await trigger.start()
@@ -237,46 +320,57 @@ print(event.metadata)  # {"method": "POST", "path": "/webhook", ...}
 await trigger.stop()
 ```
 
+`event_filter=` takes a callable (the `TriggerEvent` in, a bool out); `TriggerConfig.filter_expression` is compiled into it. `WebhookTrigger` raises `ValueError` for an unknown `signature_scheme` or a `max_body_bytes` below 1.
+
 ### How requests are handled
 
 1. A POST request arrives at the configured path.
 2. The client address is checked against `allowed_sources` → `403` if not allowed.
-3. With `hmac_secret` set, the signature is verified → `401` if missing or wrong.
-4. If the owning process can't take the event (it is `FAILED` or stopping, or its queue is full) → `503` with `Retry-After: 30`.
-5. The body is parsed as JSON (falling back to plain text) and a `TriggerEvent` is created with the body as `payload` and request details in `metadata`.
-6. If a `filter_expression` is set and doesn't match → `200 {"status": "ignored", "event_id": ...}`; the agent doesn't run.
-7. Otherwise the event is queued and `202 {"status": "accepted", "event_id": ...}` is returned.
+3. The body size is checked against `webhook_max_body_bytes` → `413` if larger. The `Content-Length` header is checked before the body is read; a chunked body without one is cut off at the limit while it is read.
+4. With `hmac_secret` set, the signature is verified → `401` if missing or wrong (or a `stripe` replay).
+5. If the owning process can't take the event (it is `FAILED`, stopping or stopped, or its queue is full) → `503` with `Retry-After: 30`.
+6. The body is parsed as JSON (falling back to plain text) and a `TriggerEvent` is created with the body as `payload` and request details in `metadata`.
+7. If a `filter_expression` is set and doesn't match → `200 {"status": "ignored", "event_id": ...}`; the agent doesn't run.
+8. The event is queued → `202 {"status": "accepted", "event_id": ...}`. If the webhook's own queue is full at that moment → `503`.
 
-| Status | Body `status` | Meaning |
+A suspended process still accepts events: they wait in the queue until it resumes, and a process suspended by `idle_timeout` resumes by itself.
+
+| Status | Body | Meaning |
 |---|---|---|
-| `202` | `accepted` | Queued for the agent |
-| `200` | `ignored` | Didn't match `filter_expression` |
-| `401` | `error` | Missing or invalid signature |
-| `403` | `error` | Source address not in `allowed_sources` |
-| `503` | `unavailable` | Process failed/stopping or queue full; retry later |
+| `202` | `{"status": "accepted", "event_id": …}` | Queued for the agent |
+| `200` | `{"status": "ignored", "event_id": …}` | Didn't match `filter_expression` |
+| `401` | `{"status": "error", "message": "Missing or invalid signature"}` | Missing, wrong or replayed signature |
+| `403` | `{"status": "error", "message": "Source not allowed"}` | Source address not in `allowed_sources` |
+| `404` | (aiohttp) | Wrong path |
+| `405` | (aiohttp) | Method other than POST on the webhook path |
+| `413` | `{"status": "error", "message": "Request body too large (limit … bytes)"}` | Body larger than `webhook_max_body_bytes` |
+| `500` | `{"status": "error", "message": "internal error"}` | Unexpected error while handling the request; the event was not queued |
+| `503` | `{"status": "unavailable", "message": …}` + `Retry-After: 30` | `message` is `process failed`, `process stopped`, `queue full` or `webhook stopped`; retry later |
 
-Senders such as GitHub and Stripe retry on `5xx`, so events sent while the process is down are redelivered once it is running again, instead of piling up in a process that can't run them.
+The `202` is sent when the event is queued, before the agent runs. If the run later fails, the sender is not told; the event ends up in the process's [dead letters](index.md#retries-and-dead-letters). Stripe retries `5xx` answers automatically (for up to three days in live mode); GitHub doesn't retry failed deliveries by itself, but you can redeliver them from the webhook's settings page.
 
 Sensitive headers (`Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`) and the signature header are stripped from the metadata.
 
 ### Health check endpoint
 
-The webhook server also exposes `GET /health`. It returns `200` while events are accepted and `503` when they aren't:
+The webhook server also exposes `GET /health` on the same port. It returns `200` while events are accepted and `503` when they aren't:
 
 ```json
 {
     "status": "healthy",
     "reason": null,
-    "trigger_id": "webhook-9090/events",
+    "trigger_id": "webhook-1f0c9e2a7b",
     "queue_size": 0
 }
 ```
+
+When unavailable, `status` is `"unavailable"` and `reason` is the same text the POST route returns in `message`.
 
 ### Webhook payload
 
 The `payload` field contains the raw POST body:
 
-- If the body is valid JSON, it is stored as a dict.
+- If the body is valid JSON, it is stored as parsed JSON (usually a dict).
 - Otherwise, it is stored as a string.
 
 The agent sees it inside a delimited untrusted-data block; see [Trigger payloads are untrusted input](index.md#trigger-payloads-are-untrusted-input).
@@ -292,6 +386,8 @@ The agent sees it inside a delimited untrusted-data block; see [Trigger payloads
 | `remote` | Client IP address |
 | `signature_verified` | `True` when the request passed the HMAC check |
 
+The agent sees only the payload, not the metadata.
+
 ---
 
 ## Shared Patterns
@@ -300,17 +396,19 @@ The agent sees it inside a delimited untrusted-data block; see [Trigger payloads
 
 All three triggers use `asyncio.Queue` to buffer events:
 
-- `EventTrigger`: maxsize=100
-- `MessageTrigger`: maxsize=100
-- `WebhookTrigger`: maxsize=1000
+- `EventTrigger`: maxsize=100 (drops new events with a warning when full)
+- `MessageTrigger`: maxsize=100 (drops new events with a warning when full)
+- `WebhookTrigger`: maxsize=1000 (answers `503` when full)
 
 ### Graceful stop
 
 When `stop()` is called, each trigger:
 
-1. Unsubscribes from its event source (EventBus, MessageBroker, or shuts down the HTTP server).
+1. Unsubscribes from its event source (event bus, broker), or shuts down the HTTP server.
 2. Enqueues a sentinel event with `metadata={"_stop": True}`.
 3. Any `wait_for_next()` call receiving the sentinel raises `asyncio.CancelledError`.
+
+Events still in the trigger's queue are returned by `drain_pending()`. A process calls it when it stops (the events are dead-lettered with reason `process stopped`) or restarts (they move to the process queue), so an accepted `202` webhook event is not lost.
 
 ---
 
@@ -318,40 +416,40 @@ When `stop()` is called, each trigger:
 
 | Class | Description |
 |---|---|
-| `EventTrigger(event_bus, event_type, source_filter, trigger_id)` | EventBus trigger |
-| `MessageTrigger(broker, topic, trigger_id)` | MessageBroker trigger |
-| `WebhookTrigger(path, port, host, hmac_secret, *, signature_scheme, signature_header, signature_tolerance, allowed_sources, event_filter)` | HTTP webhook trigger |
+| `EventTrigger(event_bus, event_type, *, source_filter, trigger_id)` | Event-bus trigger |
+| `MessageTrigger(broker, topic, *, trigger_id)` | Message-broker trigger |
+| `WebhookTrigger(path, port, host, hmac_secret, *, signature_scheme, signature_header, signature_tolerance, allowed_sources, event_filter, max_body_bytes)` | HTTP webhook trigger |
 
-All implement the `BaseTrigger` protocol: `start()`, `stop()`, `wait_for_next()`.
+All implement the `BaseTrigger` protocol: `start()`, `stop()`, `wait_for_next()`. `WebhookTrigger.set_availability_check(callback)` installs the check behind the `503` answers; `AgentProcess` sets it for you.
 
 ---
 
-## Tips and Gotchas
+## Common pitfalls
+
+- **Large payloads.** Bodies over `webhook_max_body_bytes` (1 MiB by default) get `413`, and a retry of the same body gets `413` again. Raise the limit for providers that send big payloads.
+- **Two webhooks on one port.** Each webhook trigger binds its own server, so a second trigger on the same port fails to start (address already in use). Give each one its own port, or use one webhook with a `filter_expression` per event kind.
+- **Reverse proxy and `allowed_sources`.** Behind a proxy the peer address is the proxy's. List the proxy, or filter by IP in the proxy.
+- **`200 ignored` is final.** Senders treat a `2xx` as delivered. A filtered request is not retried later, even if you change the filter.
+- **A `202` is not a successful run.** Watch dead letters and the process status; the sender only knows the event was queued.
+- **Event bus not shared.** `EventTrigger` and `MessageTrigger` only see events emitted on the same bus or broker instance you passed to `AgentRuntime`.
 
 !!! tip "Use EventTrigger for inter-process coordination"
-    When one process needs to trigger another, use `EventTrigger` with a shared `EventBus`. This is more efficient than webhooks for in-process communication.
+    When one process needs to trigger another, use `EventTrigger` with a shared event bus. This is simpler than a webhook for in-process communication.
 
 !!! tip "Webhook security"
     The webhook server binds to `127.0.0.1` by default, so only local clients can reach it. When you bind `0.0.0.0`, set `hmac_secret` (and `allowed_sources` where the sender publishes its IP ranges), and put a reverse proxy (nginx, Caddy) in front for TLS. The trigger doesn't terminate TLS itself.
-
-!!! info "aiohttp shipped with base install"
-    `WebhookTrigger` uses `aiohttp`, which is included in the base `pip install promptise`.
-
-!!! warning "EventBus/Broker must be shared"
-    For `EventTrigger` and `MessageTrigger` to work, the same `EventBus` or `MessageBroker` instance must be shared between the event producer and the trigger. Pass them to the `AgentRuntime` constructor.
-
-!!! warning "Queue capacity is finite"
-    If events arrive faster than the agent processes them, the queue fills and the webhook answers `503` until there is room again. Monitor queue sizes via the dashboard or `status()` API. Increase `ProcessConfig.concurrency` for high-throughput scenarios.
 
 ---
 
 ## What's Next
 
-- [Triggers Overview](index.md) -- all trigger types and the base protocol
+- [Triggers Overview](index.md) -- stable trigger IDs, live trigger changes and the event queue
 - [Cron Trigger](cron.md) -- time-based scheduling
-- [File Watch Trigger](file-watch.md) -- filesystem monitoring
+- [File Watch Trigger](file-watch.md) -- file-system monitoring
+- [Runtime Manager](../runtime-manager.md) -- sharing an event bus and broker between processes
 - [Configuration](../configuration.md) -- full `TriggerConfig` reference
 
 !!! tip "Learn the concept"
 
     - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- Signed webhooks and prompt-injection tests for event-driven agents.
+    - [AI Agent Webhook Trigger: Run an Agent on HTTP Events](https://www.promptise.com/guides/view/ai-agent-webhook-trigger) -- HMAC signatures for GitHub and Stripe, replay protection and response codes.

@@ -1,200 +1,128 @@
 # Replay Engine
 
-The `ReplayEngine` reconstructs agent process state from journal entries after a crash. It reads the journal, finds the last checkpoint, and replays subsequent entries to rebuild the context state and lifecycle state -- enabling the process to resume where it left off.
+`ReplayEngine` rebuilds a process's state from its journal: it loads the last checkpoint and replays the entries written after it. An `AgentProcess` uses it on its first `start()` when `JournalConfig.recover_on_start` is on (the default), so a process that crashed or was redeployed continues with its context state, conversation, budget counters and mission. Use the engine directly to inspect what a process would recover, or to build your own tooling on a journal.
 
 ```python
-from promptise.runtime.journal import ReplayEngine, FileJournal
+from promptise.runtime.journal import FileJournal, ReplayEngine
 
-journal = FileJournal()
-engine = ReplayEngine(journal)
-
-recovered = await engine.recover("data-watcher")
+engine = ReplayEngine(FileJournal(".promptise/journal"))
+recovered = await engine.recover("notes")
 # {
-#     "context_state": {"pipeline_status": "degraded", "check_count": 42},
-#     "lifecycle_state": "running",
-#     "last_entry_type": "invocation_result",
-#     "entries_replayed": 7,
+#     "context_state": {"stage": "draft"},
+#     "lifecycle_state": "stopped",
+#     "last_entry_type": "state_transition",
+#     "entries_replayed": 1,
+#     "mission": None,
+#     "checkpoint": {"context_state": {...}, "lifecycle_state": "running", "invocation_count": 2,
+#                    "conversation": [...]},
 # }
 ```
 
----
-
-## Concepts
-
-Long-running agent processes may crash due to hardware failures, OOM kills, or bugs. Without recovery, the process would restart from scratch, losing all accumulated state. The replay engine solves this by reconstructing state from the durable journal:
-
-1. **Load the last checkpoint** -- the most recent full state snapshot.
-2. **Read entries after the checkpoint** -- incremental changes since the snapshot.
-3. **Replay entries sequentially** -- apply state transitions and context updates to rebuild the current state.
-
-This is a classic **event sourcing** recovery pattern: the checkpoint is the snapshot, and journal entries are the event log.
+`recover()` only reads. It changes neither the journal nor any process.
 
 ---
 
-## How Recovery Works
+## How recovery works
 
-### Step 1: Load the last checkpoint
+1. **Load the last checkpoint** with `journal.last_checkpoint(process_id)`. Its `context_state` and `lifecycle_state` are the starting point (the checkpoint is copied, so the stored one is never modified). Without a checkpoint, recovery starts from `context_state={}` and `lifecycle_state="created"`.
+2. **Find the entries after it.** The engine reads every entry and keeps only those after the **last** `checkpoint` entry; older entries, older checkpoints included, are already part of the snapshot. Without a checkpoint, every entry is replayed.
+3. **Replay them in order:**
+    - `state_transition` sets `lifecycle_state` to its `to_state`;
+    - `context_update` sets `context_state[key] = value`;
+    - every other type only updates `last_entry_type`.
 
-The engine calls `journal.last_checkpoint(process_id)`. If a checkpoint exists, it provides the starting state:
-
-```python
-{
-    "context_state": {"pipeline_status": "healthy", "check_count": 40},
-    "lifecycle_state": "running",
-}
-```
-
-If no checkpoint exists, recovery starts from an empty state (`context_state={}`, `lifecycle_state="created"`).
-
-### Step 2: Find entries after the checkpoint
-
-The engine reads all journal entries for the process and locates the **last** `checkpoint` entry. Only the entries after that point are collected for replay; entries before it (older checkpoints included) are already part of the snapshot. The checkpoint returned by the backend is copied, so replay never modifies the stored snapshot.
-
-!!! note "Fixed in 1.3.0"
-    Earlier versions replayed everything after the *first* checkpoint, so with several checkpoints stale `context_update` values overwrote the newer snapshot.
-
-### Step 3: Replay entries
-
-Each entry is applied in chronological order:
-
-- **`state_transition`** entries update the `lifecycle_state` from the `to_state` field.
-- **`context_update`** entries update `context_state` by setting the `key` to `value`.
-- Other entry types are noted (the last entry type is tracked) but do not modify the recovered state.
-
----
-
-## Using the ReplayEngine
-
-### Basic recovery
-
-```python
-from promptise.runtime.journal import ReplayEngine, FileJournal
-
-journal = FileJournal(base_path=".promptise/journal")
-engine = ReplayEngine(journal)
-
-# Recover state for a process
-recovered = await engine.recover("data-watcher")
-
-print(f"Lifecycle state: {recovered['lifecycle_state']}")
-print(f"Context state:   {recovered['context_state']}")
-print(f"Last entry type: {recovered['last_entry_type']}")
-print(f"Entries replayed: {recovered['entries_replayed']}")
-```
-
-### Recovery result
-
-The `recover` method returns a dict with:
+The result:
 
 | Key | Type | Description |
 |---|---|---|
-| `context_state` | `dict[str, Any]` | Reconstructed context key-value state |
-| `lifecycle_state` | `str` | Final lifecycle state (`"running"`, `"suspended"`, etc.) |
-| `last_entry_type` | `str` | Type of the last replayed entry |
-| `entries_replayed` | `int` | Number of entries replayed after the checkpoint |
-
-### Applying recovered state
-
-After recovery, apply the state to a new `AgentContext` and `ProcessLifecycle`:
-
-```python
-from promptise.runtime.context import AgentContext
-from promptise.runtime.lifecycle import ProcessLifecycle, ProcessState
-
-recovered = await engine.recover("data-watcher")
-
-# Restore context
-ctx = AgentContext(initial_state=recovered["context_state"])
-
-# Restore lifecycle
-lc = ProcessLifecycle(initial=ProcessState(recovered["lifecycle_state"]))
-```
+| `context_state` | `dict[str, Any]` | The rebuilt context state |
+| `lifecycle_state` | `str` | The last recorded process state (`"stopped"` after a clean stop, `"running"` after a crash) |
+| `last_entry_type` | `str` | Type of the last replayed entry (`""` when nothing was replayed) |
+| `entries_replayed` | `int` | Entries replayed after the checkpoint |
+| `mission` | `dict \| None` | The checkpoint's mission state (`MissionTracker.to_dict()`), for `MissionTracker.restore()` |
+| `checkpoint` | `dict` | The raw last checkpoint (`{}` when there is none): `conversation`, `invocation_count`, `budget`, ... |
 
 ---
 
-## Recovery Scenarios
+## What the process does with it
 
-### Scenario 1: Crash after several invocations
+On its first `start()`, an `AgentProcess` with a journal and `recover_on_start=True` calls `recover(name)` and applies the result before it journals its own first transition:
 
-```
-Journal entries:
-  1. state_transition: created -> starting
-  2. state_transition: starting -> running
-  3. trigger_event: cron fired
-  4. invocation_result: success
-  5. checkpoint: {check_count: 10, lifecycle: "running"}
-  6. trigger_event: cron fired
-  7. context_update: check_count = 11
-  8. invocation_result: success
-  --- CRASH ---
-```
-
-Recovery:
-
-1. Loads checkpoint from entry 5: `check_count=10`, `lifecycle="running"`
-2. Replays entries 6-8: `context_update` sets `check_count=11`
-3. Returns `context_state={"check_count": 11}`, `lifecycle_state="running"`, `entries_replayed=3`
-
-### Scenario 2: Crash with no checkpoint
-
-```
-Journal entries:
-  1. state_transition: created -> starting
-  2. state_transition: starting -> running
-  3. context_update: pipeline_status = "degraded"
-  --- CRASH ---
-```
-
-Recovery:
-
-1. No checkpoint found. Start from empty state.
-2. Replay all 3 entries.
-3. Returns `context_state={"pipeline_status": "degraded"}`, `lifecycle_state="running"`, `entries_replayed=3`
-
-### Scenario 3: No journal entries
-
-```python
-recovered = await engine.recover("new-process")
-# {"context_state": {}, "lifecycle_state": "created", "last_entry_type": "", "entries_replayed": 0}
-```
-
----
-
-## API Summary
-
-| Method | Description |
+| Restored | From |
 |---|---|
-| `ReplayEngine(journal)` | Create with a `JournalProvider` |
-| `await recover(process_id)` | Recover state from journal entries |
+| Context state | `context_state` (recovered keys replace the same keys of `context.initial_state`) |
+| Mission progress and history | `mission`, when the process has a mission |
+| Budget counters | `checkpoint["budget"]`, when the process has a budget (a restart can't reset the daily limits) |
+| Conversation history | `checkpoint["conversation"]`, when `context.conversation_history` is on |
+| Invocation count | `checkpoint["invocation_count"]` |
+
+`process.recovered` then reports what was restored, and a `recovered` entry is journaled. A journal with neither a checkpoint nor context writes restores nothing; a journal that can't be read is logged and the process starts fresh. See [Recovery on start](index.md#recovery-on-start).
+
+You don't need the engine to recover a process. Use it to look before you start one:
+
+```python
+recovered = await ReplayEngine(journal).recover("notes")
+if recovered["lifecycle_state"] == "running":
+    print("notes crashed last time; it will resume with", sorted(recovered["context_state"]))
+```
 
 ---
 
-## Tips and Gotchas
+## Recovery scenarios
 
-!!! tip "Frequent checkpoints reduce replay time"
-    The replay engine only needs to process entries after the last checkpoint. More frequent checkpoints mean fewer entries to replay, but more disk writes. The default `"checkpoint"` journal level creates a checkpoint after each trigger-invoke-result cycle.
+### A crash after a few runs
 
-!!! tip "Use full journal level for detailed recovery"
-    An `AgentProcess` checkpoints its context state after every invocation (both levels), and `level="full"` adds trigger events and tool calls for auditing. The process does not write `context_update` entries itself; append them from your own code when you need state reconstruction between checkpoints.
+```
+1. state_transition   created -> starting
+2. state_transition   starting -> running
+3. context_update     stage = "draft"
+4. invocation_result  invocation 1
+5. checkpoint         {context_state: {stage: "draft"}, lifecycle_state: "running", ...}
+6. context_update     stage = "published"
+--- crash ---
+```
 
-!!! warning "Replay does not restore memory providers"
-    The replay engine reconstructs `context_state` (key-value store) but does not restore the `MemoryProvider`. Long-term memory is managed by its own persistence layer (ChromaDB, Mem0, etc.) and does not need journal-based recovery.
+Recovery loads the checkpoint (entry 5), replays entry 6, and returns `context_state={"stage": "published"}`, `lifecycle_state="running"`, `entries_replayed=1`. The process restores the conversation and invocation count from the checkpoint, so the run that was cut off is the only thing lost.
 
-!!! warning "Replay does not restore conversation buffer"
-    The conversation buffer (short-term message history) is not replayed from journal entries. If you need conversation persistence across crashes, include it in checkpoint data.
+### A crash before the first run finished
 
-!!! warning "Idempotency matters"
-    The replay engine assumes entries can be applied sequentially. If your journal contains entries with side effects beyond state mutations (e.g., external API calls), those side effects are not replayed -- only the state changes recorded in the journal.
+```
+1. state_transition   created -> starting
+2. state_transition   starting -> running
+3. context_update     stage = "draft"
+--- crash ---
+```
+
+No checkpoint: all three entries are replayed. The result is `context_state={"stage": "draft"}`, `lifecycle_state="running"`, `entries_replayed=3`, `checkpoint={}`.
+
+### A new process
+
+```python
+await engine.recover("new-process")
+# {"context_state": {}, "lifecycle_state": "created", "last_entry_type": "",
+#  "entries_replayed": 0, "mission": None, "checkpoint": {}}
+```
+
+---
+
+## Common pitfalls
+
+- **Expecting side effects to be replayed.** Replay rebuilds state only. A tool call that sent an email is not repeated, and one that was cut off by the crash is not resumed. Make external actions idempotent (for example with an idempotency key stored in the context).
+- **Expecting long-term memory from the journal.** Memory providers (ChromaDB, Mem0, ...) persist on their own; the journal holds the context state and the conversation buffer.
+- **Values stored redacted.** With secret scoping, secrets were journaled as `[REDACTED]` and come back that way. Keep secrets in the secret scope, not in the context state.
+- **Custom entry types.** Only `state_transition` and `context_update` change the replayed state. Record your own state as `context_update` entries (`data={"key": ..., "value": ...}`), or write it through `process.context.put()`, which does this for you.
 
 ---
 
 ## What's Next
 
-- [Journal Overview](index.md) -- journal concepts and entry types
+- [Journal Overview](index.md) -- entry types, levels and recovery on start
 - [Journal Backends](backends.md) -- `FileJournal` and `InMemoryJournal`
-- [Lifecycle](../lifecycle.md) -- the state machine that produces `state_transition` entries
-- [Context](../context.md) -- the state layer that produces `context_update` entries
+- [Rewind](rewind.md) -- go back to an earlier point instead of the latest one
+- [Lifecycle](../lifecycle.md) -- the state machine behind `state_transition` entries
+- [Context](../context.md) -- the state layer behind `context_update` entries
 
 !!! tip "Learn the concept"
 
     - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Resume from the last step after a crash, with idempotency keys.
+    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs) -- What a process keeps between runs and how it is restored.

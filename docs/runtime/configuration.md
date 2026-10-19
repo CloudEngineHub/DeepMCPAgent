@@ -1,13 +1,9 @@
 # Configuration
 
-All runtime configuration is expressed as Pydantic `BaseModel` subclasses with sensible defaults. Atomic configs (`TriggerConfig`, etc.) are composed into `ProcessConfig` (single process) and `RuntimeConfig` (multi-process manager).
+All runtime configuration is Pydantic models with defaults for every optional field. Small section configs (`TriggerConfig`, `JournalConfig`, `BudgetConfig`, ...) are composed into a `ProcessConfig` for one process, and `ProcessConfig`s into a `RuntimeConfig` for an [`AgentRuntime`](runtime-manager.md). This page lists every field with its exact type and default. You only set what you want to change.
 
 ```python
-from promptise.runtime import (
-    RuntimeConfig, ProcessConfig,
-    TriggerConfig, JournalConfig, ContextConfig,
-    DistributedConfig, ExecutionMode, OpenModeConfig,
-)
+from promptise.runtime import JournalConfig, ProcessConfig, RuntimeConfig, TriggerConfig
 
 config = RuntimeConfig(
     processes={
@@ -15,278 +11,427 @@ config = RuntimeConfig(
             model="openai:gpt-5-mini",
             instructions="Monitor data pipelines.",
             triggers=[TriggerConfig(type="cron", cron_expression="*/5 * * * *")],
+            journal=JournalConfig(path=".promptise/journal"),
+            restart_policy="on_failure",
         ),
     },
 )
 ```
 
+Every class on this page is importable from `promptise.runtime`.
+
 ---
 
-## Concepts
-
-The configuration system follows a **composition** pattern. Small, focused config objects are nested inside larger ones:
+## Structure
 
 ```
 RuntimeConfig
   +-- processes: dict[str, ProcessConfig]
-  |     +-- TriggerConfig (list)
-  |     +-- JournalConfig
-  |     +-- ContextConfig
-  |     +-- OpenModeConfig
-  +-- DistributedConfig
+  |     +-- open_mode: OpenModeConfig
+  |     +-- triggers: list[TriggerConfig]
+  |     +-- trigger_delivery: TriggerDeliveryConfig
+  |     +-- journal: JournalConfig
+  |     +-- context: ContextConfig
+  |     +-- hooks: list[HookConfig]
+  |     +-- secrets: SecretScopeConfig
+  |     +-- budget: BudgetConfig        (tool_costs: ToolCostAnnotation, escalation: EscalationTarget)
+  |     +-- health: HealthConfig        (escalation: EscalationTarget)
+  |     +-- mission: MissionConfig      (escalation: EscalationTarget)
+  |     +-- inbox: InboxConfig
+  +-- distributed: DistributedConfig
 ```
 
-Every config field has a documented default value. You only need to specify what you want to override.
+---
+
+## Validation and unknown keys
+
+Values are validated when the config is created: types, ranges, required trigger fields, cron expressions, time zones and cross-field rules raise `pydantic.ValidationError` at construction, not when the process first runs. What happens to a key the model doesn't know depends on the model:
+
+| Models | Unknown key |
+|---|---|
+| `ProcessConfig`, `TriggerConfig`, `TriggerDeliveryConfig`, `InboxConfig`, `HookConfig` | Rejected: `ValidationError` ("Extra inputs are not permitted") |
+| `OpenModeConfig`, `JournalConfig`, `ContextConfig`, `SecretScopeConfig`, `BudgetConfig`, `HealthConfig`, `MissionConfig`, `ToolCostAnnotation`, `EscalationTarget`, `DistributedConfig` | Ignored with a `FutureWarning` naming the key and the valid keys; a future release will reject them |
+| `RuntimeConfig` | Ignored |
+
+```python
+HealthConfig(error_windw=5)
+# FutureWarning: HealthConfig: unknown key(s) ['error_windw'] are ignored; valid keys are
+# ['cooldown', 'empty_max_chars', ..., 'stuck_threshold']. Unknown keys will be rejected
+# in a future release.
+```
+
+[Manifests](manifests.md) reject unknown keys in every section, and so does the [Orchestration API](api.md). To catch typos in Python too, turn the warning into an error: `warnings.simplefilter("error", FutureWarning)`.
+
+### Secret fields
+
+These fields are `pydantic.SecretStr`: `TriggerConfig.hmac_secret`, the values of `SecretScopeConfig.secrets`, the values of `HookConfig.env` and `DistributedConfig.auth_token`. You pass plain strings; `repr()` shows `SecretStr('**********')`, and code reads the value with `.get_secret_value()`.
+
+`model_dump(mode="json")` and `RuntimeConfig.to_dict()` write literal values as `"**********"`. For `SecretScopeConfig.secrets`, `HookConfig.env` and `DistributedConfig.auth_token`, a `${VAR}` reference carries no secret and is written as is. Loading a dict that holds the `"**********"` placeholder raises a `ValidationError`, so a dumped config can't silently start with a wrong secret; supply the real values (or references) again.
+
+```python
+s = SecretScopeConfig(enabled=True, secrets={"api": "sk-live-123", "db": "${DB_PASSWORD}"})
+s.model_dump(mode="json")["secrets"]
+# {'api': '**********', 'db': '${DB_PASSWORD}'}
+```
 
 ---
 
 ## RuntimeConfig
 
-Top-level configuration that aggregates per-process configs and global settings.
-
-```python
-from promptise.runtime import RuntimeConfig, ProcessConfig
-
-config = RuntimeConfig(
-    processes={
-        "agent-a": ProcessConfig(model="openai:gpt-5-mini"),
-        "agent-b": ProcessConfig(model="openai:gpt-5-mini"),
-    },
-)
-```
-
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `processes` | `dict[str, ProcessConfig]` | `{}` | Named process configurations |
-| `distributed` | `DistributedConfig` | defaults | Distributed coordination settings |
-
-### Serialization
+| `processes` | `dict[str, ProcessConfig]` | `{}` | Processes to register, by name. `AgentRuntime(config)` registers them at construction. |
+| `distributed` | `DistributedConfig` | `DistributedConfig()` | Distributed mode (off by default) |
 
 ```python
-data = config.to_dict()      # JSON-compatible dict
-restored = RuntimeConfig.from_dict(data)
+data = config.to_dict()                  # JSON-compatible; secrets masked
+restored = RuntimeConfig.from_dict(data) # model_validate
 ```
 
 ### Presets
 
-Two preset configurations ship with the framework:
-
-| Preset | Description |
-|---|---|
-| `DEFAULT_DEVELOPMENT_CONFIG` | Local-only, distributed disabled |
-| `DEFAULT_PRODUCTION_CONFIG` | Distributed enabled |
+`DEFAULT_DEVELOPMENT_CONFIG` and `DEFAULT_PRODUCTION_CONFIG` are identical: no processes and `distributed.enabled=False`. Production hardening is per process (`journal`, `restart_policy`, `health`, `budget`, `trigger_delivery`), and distributed mode needs your cluster's coordinator and token, so no preset turns either on.
 
 ```python
-from promptise.runtime.config import (
-    DEFAULT_DEVELOPMENT_CONFIG,
-    DEFAULT_PRODUCTION_CONFIG,
-)
+from promptise.runtime import DEFAULT_DEVELOPMENT_CONFIG, DEFAULT_PRODUCTION_CONFIG
 ```
 
 ---
 
 ## ProcessConfig
 
-Configuration for a single agent process. Composes all atomic configs and adds process-level settings.
-
-```python
-from promptise.runtime import ProcessConfig, TriggerConfig
-
-config = ProcessConfig(
-    model="openai:gpt-5-mini",
-    instructions="You are a data monitoring agent.",
-    triggers=[
-        TriggerConfig(type="cron", cron_expression="*/5 * * * *"),
-    ],
-    concurrency=1,
-    heartbeat_interval=30.0,
-    restart_policy="on_failure",
-    max_restarts=3,
-)
-```
+Configuration for one agent process. Unknown keys are rejected.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `model` | `str` | `"openai:gpt-5-mini"` | LLM model identifier |
-| `instructions` | `str \| None` | `None` | System prompt for the agent |
-| `execution_mode` | `ExecutionMode` | `STRICT` | `"strict"` (immutable) or `"open"` (self-modifying) |
-| `open_mode` | `OpenModeConfig` | defaults | Guardrails for open mode (ignored in strict) |
-| `servers` | `dict[str, Any]` | `{}` | MCP server specifications |
-| `triggers` | `list[TriggerConfig]` | `[]` | Trigger configurations |
-| `journal` | `JournalConfig` | off (`level="none"`) | Journal configuration; pass a `JournalConfig` to turn it on |
-| `context` | `ContextConfig` | defaults | AgentContext configuration |
-| `concurrency` | `int` | `1` | Max concurrent trigger invocations (1-100) |
-| `heartbeat_interval` | `float` | `10.0` | Heartbeat period in seconds |
-| `idle_timeout` | `float` | `0.0` | Seconds idle before suspending (0 = never) |
-| `max_lifetime` | `float` | `0.0` | Max process lifetime in seconds (0 = unlimited) |
-| `max_consecutive_failures` | `int` | `3` | Consecutive failures before FAILED state |
-| `restart_policy` | `str` | `"never"` | `"always"`, `"on_failure"`, or `"never"` |
-| `max_restarts` | `int` | `3` | Max consecutive restart attempts (count resets after a successful invocation) |
-| `restart_backoff` | `float` | `1.0` | Seconds before the first restart; doubles per attempt, capped at 60 s |
-
-See [Restart Policies](processes.md#restart-policies) for how restarts behave.
+| `model` | `str` | `"openai:gpt-5-mini"` | LLM model ID |
+| `instructions` | `str \| None` | `None` | System prompt |
+| `execution_mode` | `ExecutionMode` | `ExecutionMode.STRICT` | `"strict"` or `"open"` (self-modifying, see [Meta-Tools](meta-tools.md)) |
+| `open_mode` | `OpenModeConfig` | `OpenModeConfig()` | Open-mode limits; ignored in strict mode |
+| `servers` | `dict[str, Any]` | `{}` | MCP servers: a dict per server (`url` for HTTP, `command` for stdio) or a server spec object |
+| `triggers` | `list[TriggerConfig]` | `[]` | What wakes the process |
+| `journal` | `JournalConfig` | `JournalConfig(level="none")` | Off unless set. `JournalConfig()` itself defaults to `level="checkpoint"`. |
+| `context` | `ContextConfig` | `ContextConfig()` | State, memory, conversation, environment |
+| `concurrency` | `int` | `1` | Runs in parallel (1-100) |
+| `heartbeat_interval` | `float` | `10.0` | Seconds between idle-timeout and lifetime checks (> 0) |
+| `idle_timeout` | `float` | `0.0` | Seconds without a run before the process suspends with reason `"idle"` (0 = never). The next trigger event resumes it. |
+| `max_lifetime` | `float` | `0.0` | Seconds after start at which the process stops, or is recycled with `restart_policy="always"` (0 = unlimited) |
+| `max_consecutive_failures` | `int` | `3` | Failed events in a row before `FAILED` (> 0) |
+| `restart_policy` | `Literal["always", "on_failure", "never"]` | `"never"` | See [Restart policies](processes.md#restart-policies) |
+| `max_restarts` | `int` | `3` | Automatic restart attempts in a row; the count resets after a successful run (>= 0) |
+| `restart_backoff` | `float` | `1.0` | Seconds before the first restart; doubles per attempt, capped at 60 s (>= 0) |
+| `secrets` | `SecretScopeConfig` | `SecretScopeConfig()` | Disabled |
+| `budget` | `BudgetConfig` | `BudgetConfig()` | Disabled |
+| `health` | `HealthConfig` | `HealthConfig()` | Disabled |
+| `mission` | `MissionConfig` | `MissionConfig()` | Disabled |
+| `inbox` | `InboxConfig` | `InboxConfig()` | Disabled |
+| `approval` | `Any \| None` | `None` | `ApprovalPolicy` (or dict) for human approval of tool calls |
+| `identity` | `Any \| None` | `None` | `AgentIdentity`: attributes the process's actions and presents its credential to MCP servers |
+| `trigger_delivery` | `TriggerDeliveryConfig` | `TriggerDeliveryConfig()` | Retries, dead letters, payload scanning |
+| `guardrails` | `Any \| None` | `None` | Passed to `build_agent()` (e.g. a `PromptiseSecurityScanner`) |
+| `observe` | `Any \| None` | `None` | Passed to `build_agent()`: `True` or an `ObservabilityConfig` |
+| `cache` | `Any \| None` | `None` | Passed to `build_agent()`: a `SemanticCache` |
+| `optimize_tools` | `Any \| None` | `None` | Passed to `build_agent()`: semantic tool selection |
+| `adaptive` | `Any \| None` | `None` | Passed to `build_agent()`: adaptive strategy |
+| `max_invocation_time` | `float` | `0` | Per-run timeout in seconds, passed to `build_agent()` (0 = none) |
+| `hooks` | `list[HookConfig]` | `[]` | [Lifecycle hooks](hooks.md), registered on `process.hooks` when the process is created |
 
 ---
 
 ## ExecutionMode
 
-Controls whether the agent can modify itself at runtime.
-
-| Mode | Description |
+| Value | Description |
 |---|---|
-| `ExecutionMode.STRICT` | Agent cannot modify itself. This is the default and recommended for production. |
-| `ExecutionMode.OPEN` | Agent can adapt its identity, memory, tools, and triggers at runtime via meta-tools. |
-
-```python
-from promptise.runtime.config import ExecutionMode
-
-config = ProcessConfig(
-    model="openai:gpt-5-mini",
-    execution_mode=ExecutionMode.OPEN,
-)
-```
+| `ExecutionMode.STRICT` (`"strict"`) | The agent can't change itself. Default. |
+| `ExecutionMode.OPEN` (`"open"`) | The agent gets [meta-tools](meta-tools.md) to change its instructions, tools, MCP servers and triggers, and to spawn processes, within `OpenModeConfig`. |
 
 ---
 
 ## OpenModeConfig
 
-Guardrails for open execution mode. Only takes effect when `execution_mode` is `OPEN`.
+Limits for open mode. Unknown keys are ignored without a warning.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `allow_identity_change` | `bool` | `True` | Agent can modify its own instructions |
-| `allow_tool_creation` | `bool` | `True` | Agent can define new Python tools |
-| `allow_mcp_connect` | `bool` | `True` | Agent can connect to new MCP servers |
-| `allow_trigger_management` | `bool` | `True` | Agent can add/remove triggers |
-| `allow_memory_management` | `bool` | `True` | Agent can store/search/forget memories |
-| `max_custom_tools` | `int` | `20` | Max number of agent-created tools |
-| `max_dynamic_triggers` | `int` | `10` | Max dynamically added triggers |
-| `max_instruction_length` | `int` | `10000` | Max character length for modified instructions |
-| `max_rebuilds` | `int \| None` | `None` | Max agent rebuilds (hot reloads) per lifetime of the process object; restarts do not reset it. A change refused by the limit is not applied, now or after a restart; `rollback()` is not refused (`None` = unlimited) |
-| `allowed_mcp_urls` | `list[str]` | `[]` | Whitelist of MCP server URLs (empty = any) |
-| `sandbox_custom_tools` | `bool` | `True` | Execute agent-written tools in a sandbox |
-| `allow_process_spawn` | `bool` | `False` | Agent can spawn new processes in the runtime |
-| `max_spawned_processes` | `int` | `3` | Max number of agent-spawned processes |
+| `allow_identity_change` | `bool` | `True` | `modify_instructions` tool |
+| `allow_tool_creation` | `bool` | `True` | `create_tool` tool |
+| `allow_mcp_connect` | `bool` | `True` | `connect_mcp_server` tool |
+| `allow_trigger_management` | `bool` | `True` | `add_trigger` / `remove_trigger` tools |
+| `allow_memory_management` | `bool` | `True` | `store_memory` / `search_memory` / `forget_memory` tools |
+| `max_custom_tools` | `int` | `20` | Agent-created tools (>= 0) |
+| `max_dynamic_triggers` | `int` | `10` | Agent-added triggers (>= 0) |
+| `max_instruction_length` | `int` | `10000` | Characters of agent-written instructions (>= 100) |
+| `max_rebuilds` | `int \| None` | `None` | Hot reloads per lifetime of the process object; restarts don't reset it. A refused change is not applied, now or after a restart. `rollback()` is not refused but counts. `None` = unlimited. |
+| `allowed_mcp_urls` | `list[str]` | `[]` | URLs `connect_mcp_server` may use (empty = any) |
+| `sandbox_custom_tools` | `bool` | `True` | Run agent-written tools with restricted builtins and no imports |
+| `allow_process_spawn` | `bool` | `False` | `spawn_process` / `list_processes` tools |
+| `max_spawned_processes` | `int` | `3` | Processes this agent may spawn (>= 0) |
 
 ---
 
 ## TriggerConfig
 
-Configuration for a single trigger. Each trigger `type` requires a different subset of fields. The `type` field accepts any string, including custom trigger types registered via `register_trigger_type()`.
+One trigger. Each built-in `type` reads its own subset of fields; setting a field of another built-in type (for example `watch_path` on a `cron` trigger) to a non-default value is an error, because the trigger would ignore it. Custom types (registered with `register_trigger_type()`) receive the whole config and use `custom_config`. Unknown keys are rejected. See [Triggers](triggers/index.md).
 
-```python
-from promptise.runtime import TriggerConfig
+| Field | Type | Default | Applies to | Description |
+|---|---|---|---|---|
+| `type` | `str` | required | all | `"cron"`, `"webhook"`, `"file_watch"`, `"event"`, `"message"` or a registered custom type |
+| `cron_expression` | `str \| None` | `None` | cron | Required for `cron`. Five fields, or six with a trailing seconds field |
+| `cron_timezone` | `str \| None` | `None` | cron | IANA time zone (`None` = UTC) |
+| `webhook_path` | `str` | `"/webhook"` | webhook | URL path |
+| `webhook_port` | `int` | `9090` | webhook | Listen port (1025-65535) |
+| `webhook_host` | `str` | `"127.0.0.1"` | webhook | Bind address (`"0.0.0.0"` = all interfaces) |
+| `hmac_secret` | `SecretStr \| None` | `None` | webhook | Signature secret; unsigned or badly signed requests get 401 |
+| `signature_scheme` | `Literal["generic", "github", "stripe"]` | `"generic"` | webhook | Signature format; a non-default value needs `hmac_secret` |
+| `signature_header` | `str \| None` | `None` | webhook | Header with the signature (default: the scheme's header); needs `hmac_secret` |
+| `signature_tolerance` | `int` | `300` | webhook | Max age in seconds of a `stripe` signature timestamp (> 0) |
+| `allowed_sources` | `list[str]` | `[]` | webhook | Client IPs / CIDR ranges allowed (empty = any); others get 403 |
+| `webhook_max_body_bytes` | `int` | `1048576` | webhook | Largest request body (1 MiB; 1 to 1 GiB); larger bodies get 413 |
+| `watch_path` | `str \| None` | `None` | file_watch | Required for `file_watch`: the directory to watch |
+| `watch_patterns` | `list[str]` | `["*"]` | file_watch | Glob patterns matched against the file name |
+| `watch_events` | `list[str]` | `["created", "modified"]` | file_watch | Any of `created`, `modified`, `deleted`, `moved` (at least one) |
+| `watch_debounce_seconds` | `float` | `0.5` | file_watch | Events for one file within this window merge into one (>= 0) |
+| `watch_recursive` | `bool` | `True` | file_watch | Also watch subdirectories |
+| `watch_backend` | `Literal["auto", "watchdog", "polling"]` | `"auto"` | file_watch | `auto`: OS notifications through `watchdog` when installed, else polling. `watchdog` fails if it isn't installed. `polling` scans the directory (for network shares and bind mounts) |
+| `watch_poll_interval` | `float` | `1.0` | file_watch | Seconds between scans with polling (> 0, <= 3600) |
+| `watch_max_pending_events` | `int` | `10000` | file_watch | Changed files held while the process is busy; past that, new files are dropped and counted in `dropped_events` (>= 1) |
+| `event_type` | `str \| None` | `None` | event | Required for `event`: the event type to subscribe to |
+| `event_source` | `str \| None` | `None` | event | Only events from this source |
+| `topic` | `str \| None` | `None` | message | Required for `message`: the broker topic (wildcards allowed) |
+| `custom_config` | `dict[str, Any]` | `{}` | all | Settings for custom trigger types |
+| `filter_expression` | `str \| Callable \| None` | `None` | all | Safe expression string or a callable taking the `TriggerEvent`; events that don't match skip the agent ([syntax](triggers/index.md#filtering-events-before-the-agent-runs)) |
 
-# Cron trigger
-TriggerConfig(type="cron", cron_expression="*/5 * * * *")
+---
 
-# Webhook trigger
-TriggerConfig(type="webhook", webhook_path="/events", webhook_port=9090)
+## TriggerDeliveryConfig
 
-# File watch trigger
-TriggerConfig(type="file_watch", watch_path="/data/inbox", watch_patterns=["*.csv"])
-
-# Event trigger
-TriggerConfig(type="event", event_type="task.completed")
-
-# Message trigger
-TriggerConfig(type="message", topic="reports.daily")
-
-# Custom trigger type (must be registered first)
-TriggerConfig(type="sqs", custom_config={"queue_url": "https://sqs..."})
-```
+How a process handles trigger events it can't process (`ProcessConfig.trigger_delivery`). Unknown keys are rejected.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `type` | `str` | required | Any registered type: `"cron"`, `"webhook"`, `"file_watch"`, `"event"`, `"message"`, or custom |
-| `cron_expression` | `str \| None` | `None` | Cron expression (required for `cron`); 5 fields, or 6 with trailing seconds |
-| `cron_timezone` | `str \| None` | `None` | IANA time zone for the schedule (`None` = UTC) |
-| `webhook_path` | `str` | `"/webhook"` | URL path (for `webhook`) |
-| `webhook_port` | `int` | `9090` | Listen port (for `webhook`, 1025-65535) |
-| `webhook_host` | `str` | `"127.0.0.1"` | Bind address (for `webhook`; `"0.0.0.0"` = all interfaces) |
-| `hmac_secret` | `SecretStr \| None` | `None` | Webhook signature secret; unsigned requests get 401 |
-| `signature_scheme` | `str` | `"generic"` | `"generic"`, `"github"` or `"stripe"` |
-| `signature_header` | `str \| None` | `None` | Override the signature header |
-| `signature_tolerance` | `int` | `300` | Max age (s) of a `stripe` signature timestamp |
-| `allowed_sources` | `list[str]` | `[]` | Client IPs / CIDRs allowed to call the webhook (empty = any) |
-| `watch_path` | `str \| None` | `None` | Directory to watch (required for `file_watch`) |
-| `watch_patterns` | `list[str]` | `["*"]` | Glob patterns (for `file_watch`) |
-| `watch_events` | `list[str]` | `["created", "modified"]` | Merged FS events to react to: `created`, `modified`, `deleted`, `moved` |
-| `watch_debounce_seconds` | `float` | `0.5` | Window in which events for one file are merged |
-| `event_type` | `str \| None` | `None` | EventBus event type (required for `event`) |
-| `event_source` | `str \| None` | `None` | Optional source filter (for `event`) |
-| `topic` | `str \| None` | `None` | Broker topic (required for `message`) |
-| `filter_expression` | `str \| Callable \| None` | `None` | Safe expression or callable; non-matching events skip the agent ([syntax](triggers/index.md#filtering-events-before-the-agent-runs)) |
-| `custom_config` | `dict[str, Any]` | `{}` | Arbitrary config for custom trigger types |
-
-!!! warning "Validation for built-in types"
-    A `cron` trigger without a valid `cron_expression`, a `file_watch` without `watch_path` or with unknown `watch_events`, an invalid `filter_expression`, time zone or `allowed_sources` entry, and any unknown key raise a `ValidationError` at construction time. Custom trigger types defer the rest of their validation to their factory function.
+| `max_retries` | `int` | `0` | Extra attempts for an event whose run raised (0-10). A retry re-runs the whole agent turn, so tools with side effects may run twice. |
+| `retry_backoff` | `float` | `2.0` | Seconds before the first retry; doubles per attempt (> 0) |
+| `retry_backoff_max` | `float` | `60.0` | Upper bound for the retry delay (> 0) |
+| `dead_letter_size` | `int` | `100` | Entries kept in `process.dead_letters`, oldest dropped first (>= 0) |
+| `scan_payloads` | `bool` | `False` | Prompt-injection scan of each payload before the agent sees it; flagged events are dead-lettered. Uses `guardrails` when it is a scanner, otherwise an injection-only `PromptiseSecurityScanner` (needs `transformers`) |
+| `max_payload_chars` | `int` | `20000` | Longest payload text placed in the prompt; longer payloads are truncated (>= 200) |
 
 ---
 
 ## JournalConfig
 
-Controls the durable audit log for process events. A `ProcessConfig` has journaling **off** unless you set `journal=JournalConfig(...)` (or a `journal:` section in a manifest); a `JournalConfig` you create defaults to `level="checkpoint"`.
+The durable audit log and recovery source (`ProcessConfig.journal`). Unknown keys warn. See [Journal](journal/index.md).
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `level` | `str` | `"checkpoint"` | `"none"` (disabled), `"checkpoint"` (transitions, invocation results, checkpoints), `"full"` (also trigger events and tool calls/results) |
-| `backend` | `str` | `"file"` | `"file"` or `"memory"` |
-| `path` | `str` | `".promptise/journal"` | Base directory for journal files |
+| `level` | `Literal["none", "checkpoint", "full"]` | `"checkpoint"` | `"none"` disables the journal. `"checkpoint"` records transitions, run results, context updates and checkpoints. `"full"` also records trigger events and tool calls. |
+| `backend` | `Literal["file", "memory"]` | `"file"` | Append-only JSONL files, or in memory (tests) |
+| `path` | `str` | `".promptise/journal"` | Base directory of the file backend |
+| `recover_on_start` | `bool` | `True` | On the first `start()` of a process object, restore context state, mission, budget counters, conversation history and invocation count from the last checkpoint of the same process name. `False` always starts fresh. |
+
+`ProcessConfig()` uses `JournalConfig(level="none")`: no journal unless you set one. A [manifest](manifests.md) without a `journal:` section gets `JournalConfig()`, which journals at `"checkpoint"` level.
 
 ---
 
 ## ContextConfig
 
-Configures the `AgentContext` layer: state management, memory, environment, and file mounts.
+State, memory, conversation and environment (`ProcessConfig.context`). Unknown keys warn. See [Context & State](context.md).
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `writable_keys` | `list[str]` | `[]` | State keys the agent can write (empty = all writable) |
-| `memory_provider` | `str \| None` | `None` | `"in_memory"`, `"chroma"`, `"mem0"`, or `None` |
-| `memory_max` | `int` | `5` | Max memories injected per invocation |
-| `memory_min_score` | `float` | `0.0` | Min relevance score for memory injection |
-| `memory_auto_store` | `bool` | `False` | Auto-store exchanges in long-term memory |
-| `memory_collection` | `str` | `"agent_memory"` | Collection name for ChromaDB |
-| `memory_persist_directory` | `str \| None` | `None` | Persist directory for ChromaDB |
-| `memory_user_id` | `str` | `"default"` | User ID for Mem0 scoping |
-| `conversation_max_messages` | `int` | `100` | Max messages in conversation buffer (**0 = unlimited**) |
-| `conversation_history` | `bool` | `True` | `False` turns short-term memory off: each run sees only its trigger event |
-| `file_mounts` | `dict[str, str]` | `{}` | Logical name to filesystem path mapping |
-| `env_prefix` | `str` | `"AGENT_"` | Prefix for exposed environment variables |
-| `initial_state` | `dict[str, Any]` | `{}` | Pre-populated key-value state |
+| `writable_keys` | `list[str]` | `[]` | State keys the agent may write (empty = all) |
+| `memory_provider` | `Literal["in_memory", "chroma", "mem0"] \| None` | `None` | Long-term memory provider (`None` = off) |
+| `memory_max` | `int` | `5` | Memories injected per run (>= 1) |
+| `memory_min_score` | `float` | `0.0` | Minimum relevance score (0-1) |
+| `memory_timeout` | `float` | `5.0` | Seconds to wait for a memory search or auto-store (> 0) |
+| `memory_auto_store` | `bool` | `False` | Store each exchange in long-term memory |
+| `memory_collection` | `str` | `"agent_memory"` | ChromaDB collection |
+| `memory_persist_directory` | `str \| None` | `None` | ChromaDB persist directory |
+| `memory_user_id` | `str` | `"default"` | Mem0 user scope |
+| `conversation_max_messages` | `int` | `100` | Messages kept in the conversation buffer (**0 = unlimited**) |
+| `conversation_history` | `bool` | `True` | `False`: every run sees only its trigger event |
+| `conversation_clear_on_stop` | `bool` | `False` | Clear the conversation history on `stop()`. By default it survives `stop()` / `start()` and restarts; `close()` always clears it. |
+| `state_tool` | `bool` | `False` | Give the agent an `update_state(key, value)` tool (limited to `writable_keys` when set) |
+| `file_mounts` | `dict[str, str]` | `{}` | Logical name to filesystem path |
+| `env_prefix` | `str` | `"AGENT_"` | Only environment variables with this prefix are exposed |
+| `initial_state` | `dict[str, Any]` | `{}` | State at the first start. Keys recovered from the journal replace these. |
+
+---
+
+## HookConfig
+
+One [lifecycle hook](hooks.md) (`ProcessConfig.hooks`): either an external `command` or an async Python `callback`, never both. Unknown keys are rejected.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `event` | `str` | required | A `HookEvent` value, e.g. `"user_prompt_submit"`; an unknown event is rejected with the list of valid ones |
+| `command` | `str \| list[str] \| None` | `None` | Program and arguments (a string is split like a shell would; no shell runs it). The event arrives on stdin as JSON. |
+| `callback` | `Any \| None` | `None` | Async callable taking a `HookContext` (code only; never serialized) |
+| `timeout` | `float \| None` | `None` | Seconds the hook may run: 5 for a command, 30 for a callback when unset (> 0, <= 3600) |
+| `priority` | `int` | `0` | Higher runs first |
+| `once` | `bool` | `False` | Run on the first matching event only |
+| `tag` | `str \| None` | `None` | Group name for `HookManager.remove_by_tag()` |
+| `fail_closed` | `bool` | `False` | An error or timeout of this hook blocks the action (blockable events only) |
+| `cwd` | `str \| None` | `None` | Working directory of the command (command only) |
+| `env` | `dict[str, SecretStr]` | `{}` | Extra environment variables for the command; `${VAR}` values are resolved when the hook runs (command only) |
+| `env_passthrough` | `list[str]` | `[]` | Host variables passed through; the command otherwise gets a minimal environment (command only) |
+| `max_output_bytes` | `int` | `65536` | Largest stdout accepted from the command (> 0, <= 10 MiB) |
+
+---
+
+## SecretScopeConfig
+
+Per-process secrets (`ProcessConfig.secrets`). Unknown keys warn. See [Secret Scoping](governance/secrets.md).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `False` | Turn secret scoping on |
+| `secrets` | `dict[str, SecretStr]` | `{}` | Name to value or `${VAR}` / `${VAR:-default}` reference. References are resolved from the environment when the process starts, so the config holds no secret value. |
+| `default_ttl` | `float \| None` | `None` | Seconds until a secret expires (`None` = never; > 0) |
+| `ttls` | `dict[str, float]` | `{}` | Per-secret TTLs; every name must be in `secrets`, every value positive |
+| `revoke_on_stop` | `bool` | `True` | Zero-fill and drop the secrets on `stop()`; `close()` always revokes them |
+
+---
+
+## BudgetConfig
+
+Autonomy limits (`ProcessConfig.budget`). Unknown keys warn. See [Autonomy Budget](governance/budget.md).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `False` | Turn budget tracking on |
+| `max_tool_calls_per_run` | `int \| None` | `None` | Tool calls per run (>= 1) |
+| `max_llm_turns_per_run` | `int \| None` | `None` | LLM turns per run (>= 1) |
+| `max_cost_per_run` | `float \| None` | `None` | Cost units per run (> 0) |
+| `max_irreversible_per_run` | `int \| None` | `None` | Irreversible tool calls per run (>= 0) |
+| `max_tool_calls_per_day` | `int \| None` | `None` | Tool calls per day (>= 1) |
+| `max_runs_per_day` | `int \| None` | `None` | Runs per day (>= 1) |
+| `max_cost_per_day` | `float \| None` | `None` | Cost units per day (> 0) |
+| `tool_costs` | `dict[str, ToolCostAnnotation]` | `{}` | Per-tool cost and irreversibility |
+| `on_exceeded` | `Literal["pause", "stop", "escalate"]` | `"pause"` | `pause` suspends (reason `"budget"`), `stop` stops, `escalate` notifies `escalation` and suspends |
+| `escalation` | `EscalationTarget \| None` | `None` | Where `escalate` sends its notification |
+| `daily_reset_hour_utc` | `int` | `0` | UTC hour at which the daily counters reset (0-23) |
+| `inject_remaining` | `bool` | `True` | Show the remaining budget in the agent's context |
+| `warning_threshold` | `float` (0-1, above 0) | `0.8` | Fraction of a limit at which `budget.warning` is emitted |
+
+### ToolCostAnnotation
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `cost_weight` | `float` | `1.0` | Cost units per call (> 0) |
+| `irreversible` | `bool` | `False` | Counts toward `max_irreversible_per_run` |
+
+### EscalationTarget
+
+Used by `BudgetConfig`, `HealthConfig` and `MissionConfig`.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `webhook_url` | `str \| None` | `None` | `http://` or `https://` URL that receives a JSON POST |
+| `event_type` | `str \| None` | `None` | Event type emitted on the event bus |
+
+---
+
+## HealthConfig
+
+Behavioral anomaly detection (`ProcessConfig.health`). Unknown keys warn. See [Behavioral Health](governance/health.md).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `False` | Turn health monitoring on |
+| `stuck_threshold` | `int` | `3` | Same tool with the same arguments this many times in a row is "stuck" (>= 2) |
+| `loop_window` | `int` | `20` | Recent tool calls examined for loops (>= 4) |
+| `loop_min_repeats` | `int` | `2` | Pattern repeats that count as a loop (>= 2) |
+| `empty_threshold` | `int` | `3` | Trivial final replies in a row that count as an anomaly (>= 2) |
+| `empty_max_chars` | `int` | `10` | A final reply of at most this many characters (stripped) is trivial; 0 counts only blank replies |
+| `error_window` | `int` | `10` | Recent runs the error rate is computed over (>= 2) |
+| `error_rate_threshold` | `float` | `0.5` | Error rate (in a full window) that counts as an anomaly (> 0, <= 1) |
+| `on_anomaly` | `Literal["log", "pause", "escalate", "stop"]` | `"log"` | `log` only logs, `pause` suspends (reason `"health"`), `escalate` notifies `escalation` (when set) and suspends, `stop` stops the process. A `health.anomaly` event is emitted in every case. |
+| `cooldown` | `float` | `300.0` | Seconds before the same anomaly is reported again (>= 0) |
+| `escalation` | `EscalationTarget \| None` | `None` | Where `escalate` sends its notification |
+
+---
+
+## MissionConfig
+
+Goal tracking with an LLM judge (`ProcessConfig.mission`). Unknown keys warn. See [Mission Model](governance/mission.md).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `False` | Turn mission tracking on |
+| `objective` | `str` | `""` | What the agent is trying to achieve |
+| `success_criteria` | `str` | `""` | How completion is judged |
+| `eval_model` | `str \| None` | `None` | Model for the judge (`None` = the process model) |
+| `eval_every` | `int` | `1` | Evaluate every N runs (>= 1) |
+| `confidence_threshold` | `float` | `0.7` | A verdict below this confidence pauses the mission (not the process) and notifies `escalation` when set (0-1) |
+| `timeout_hours` | `float` | `0.0` | Hours before the mission fails (0 = no timeout) |
+| `max_invocations` | `int` | `0` | Runs before the mission fails (0 = unlimited) |
+| `auto_complete` | `bool` | `True` | Stop the process when the mission is achieved; `False` keeps it running and skips later runs |
+| `on_complete` | `Literal["stop", "continue", "suspend"] \| None` | `None` | Deprecated and ignored (emits a `FutureWarning`); use `auto_complete` |
+| `escalation` | `EscalationTarget \| None` | `None` | Where low-confidence escalations go |
+| `success_check` | `Callable \| None` | `None` | Python check called with the `MissionEvidence` before the judge: `True` / `False` decide, `None` falls through. Code only; never serialized. |
+
+---
+
+## InboxConfig
+
+The human-to-agent message inbox (`ProcessConfig.inbox`). Unknown keys are rejected. See [Orchestration API](api.md).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `False` | Turn the inbox on |
+| `max_messages` | `int` | `50` | Messages held at once (> 0) |
+| `max_message_length` | `int` | `2000` | Characters per message (> 0) |
+| `default_ttl` | `float` | `3600` | Seconds a message lives (0 = no expiry; >= 0); must not exceed `max_ttl` |
+| `max_ttl` | `float` | `86400` | Longest TTL a sender may ask for (>= 0) |
+| `rate_limit_per_sender` | `int` | `20` | Messages per sender per hour (> 0) |
+| `scan_with_guardrails` | `bool` | `True` | Scan messages for prompt injection; flagged messages are refused |
 
 ---
 
 ## DistributedConfig
 
-Distributed runtime coordination settings.
+Distributed mode (`RuntimeConfig.distributed`). With `enabled=True`, `AgentRuntime.start_all()` starts this node's management transport and, depending on the role, the coordinator or the registration with one. Unknown keys warn. Inconsistent combinations raise a `ValidationError` that says what to change. See [Distributed Coordinator](distributed/coordinator.md).
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | `bool` | `False` | Enable distributed mode |
-| `coordinator_url` | `str \| None` | `None` | Coordinator node URL |
-| `transport_port` | `int` | `9100` | Management HTTP transport port (1025-65535) |
-| `discovery_method` | `str` | `"registry"` | `"registry"` or `"multicast"` |
-| `heartbeat_interval` | `float` | `15.0` | Node health check interval in seconds |
+| `enabled` | `bool` | `False` | Start the transport (and coordination) with the runtime |
+| `coordinator` | `bool` | `False` | This runtime hosts the cluster coordinator (not together with `coordinator_url`) |
+| `coordinator_url` | `str \| None` | `None` | Coordinator to register with (`http(s)://` URL) |
+| `node_id` | `str \| None` | `None` | This node's ID (default `<hostname>-<port>`) |
+| `transport_host` | `str` | `"127.0.0.1"` | Interface the transport binds; a non-loopback address needs `auth_token` (or `allow_unauthenticated`) |
+| `transport_port` | `int` | `9100` | Transport port; 0 picks a free one; 1-1024 are rejected |
+| `advertise_url` | `str \| None` | `None` | URL other nodes use; required with a wildcard `transport_host` and a coordinator role |
+| `auth_token` | `SecretStr \| None` | `None` | Cluster bearer token, or a `${VAR}` reference resolved when the transport starts |
+| `allow_unauthenticated` | `bool` | `False` | Allow a non-loopback transport or coordinator without `auth_token` |
+| `discovery_method` | `Literal["registry", "static", "multicast"]` | `"registry"` | `registry` (nodes register) or `static` (`static_nodes`). `multicast` is rejected: not implemented. |
+| `static_nodes` | `dict[str, str]` | `{}` | `node_id` to URL, for a coordinator with `discovery_method="static"` |
+| `heartbeat_interval` | `float` | `15.0` | Seconds between health checks and re-registrations (> 0) |
+| `node_timeout` | `float \| None` | `None` | Seconds of silence before a node is unhealthy or dropped (default 3 x `heartbeat_interval`) |
 
 ---
 
-## Tips and Gotchas
+## Common pitfalls
 
-!!! tip "Use presets as a starting point"
-    `DEFAULT_DEVELOPMENT_CONFIG` and `DEFAULT_PRODUCTION_CONFIG` provide sensible defaults. Copy and customize rather than building from scratch.
-
-!!! tip "Compose configs incrementally"
-    Start with `ProcessConfig(model="openai:gpt-5-mini")` and add fields as you need them. Every sub-config has safe defaults.
-
-!!! warning "TriggerConfig validation"
-    Each trigger type requires specific fields. The Pydantic model validator enforces this at construction time, not at runtime. Always validate your config before deploying.
+- **A typo in a section config.** `HealthConfig(error_windw=5)` only warns and keeps the default; `OpenModeConfig(max_rebuild=3)` doesn't even warn. Check warnings in tests, or define the config in a manifest, which rejects unknown keys.
+- **Governance without `enabled=True`.** `BudgetConfig(max_runs_per_day=10)` alone tracks nothing.
+- **`JournalConfig()` vs `ProcessConfig()`.** A `JournalConfig` you create journals at `"checkpoint"` level, but a `ProcessConfig` without one has no journal.
+- **Round-tripping secrets.** `to_dict()` masks literal secrets; `from_dict()` of that dict raises until you put the real values (or `${VAR}` references) back.
+- **`conversation_max_messages=0`.** It means unlimited, not disabled. Use `conversation_history=False` to turn short-term memory off.
+- **Expecting `DEFAULT_PRODUCTION_CONFIG` to harden anything.** It is the same as the development preset.
 
 ---
 
-## What's Next
+## What's next
 
-- [Runtime Manager](runtime-manager.md) -- using `AgentRuntime` to manage processes
-- [Context](context.md) -- the unified state layer (`AgentContext`)
-- [Triggers Overview](triggers/index.md) -- all trigger types and configuration
+- [Agent Processes](processes.md) -- what the process does with these settings
+- [Agent Manifests](manifests.md) -- the same settings in a `.agent` YAML file
+- [Runtime Manager](runtime-manager.md) -- `AgentRuntime` and `RuntimeConfig`
+- [Triggers Overview](triggers/index.md) -- trigger types in detail
+- [Context](context.md) -- the state layer `ContextConfig` configures
+
+!!! tip "Learn the concept"
+
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- Which settings turn an agent into a bounded, recoverable process.
+    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart) -- `restart_policy`, `max_restarts`, `restart_backoff`, `max_lifetime` and run timeouts in practice.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- `RuntimeConfig` with several processes in one runtime.

@@ -18,6 +18,9 @@ promptise run --prod                # JSON logs, preflight checks, graceful SIGT
 
 A complete example project is in [`examples/run/support_bot/`](https://github.com/promptise-com/foundry/tree/main/examples/run/support_bot).
 
+!!! note "`promptise run` and `promptise runtime`"
+    `promptise run` runs your Python program. For long-running agents that react to triggers (cron, webhooks, file changes) and are declared in `.agent` manifests, use the [Agent Runtime](../runtime/index.md): `promptise runtime start agents/ --detach`, then `promptise runtime status`, `logs`, `rewind` and `stop` from any terminal. See the [Runtime CLI](../runtime/cli.md).
+
 ---
 
 ## How it maps to npm
@@ -878,6 +881,7 @@ async def create_agent(ctx: RunContext) -> PromptiseAgent:
 ## What's next
 
 - [CLI reference](cli.md): every `promptise` command
+- [Runtime CLI](../runtime/cli.md): `promptise runtime` for long-running, trigger-driven agents
 - [Observability](observability.md): what the recorded timeline holds
 - [Streaming](streaming.md): the events `/v1/stream` sends
 - [Events & Notifications](events.md): agent events and sinks

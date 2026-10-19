@@ -1,10 +1,20 @@
 # Autonomy Budget
 
-Explicit, configured limits on what an agent can do autonomously — tool calls, LLM turns, cost, and irreversible actions. The agent is aware of its budget and the runtime enforces limits with configurable actions.
+An autonomy budget puts explicit limits on what an agent may do on its own: tool calls, LLM turns, abstract cost units and irreversible actions, per run and per day. The runtime refuses a tool call that would cross a limit before the tool runs, and then pauses, stops or escalates the process. The agent can see what is left of its budget, so it can plan around it.
+
+```python
+from promptise.runtime import ProcessConfig, BudgetConfig
+
+config = ProcessConfig(
+    model="openai:gpt-5-mini",
+    instructions="Process customer support tickets.",
+    budget=BudgetConfig(enabled=True, max_tool_calls_per_run=20, max_runs_per_day=200),
+)
+```
 
 ## When you need it
 
-Without a budget, an autonomous agent can loop indefinitely, call expensive APIs without limit, or take irreversible actions at 3am with no guardrails. The autonomy budget defines the envelope within which the agent operates freely. Anything outside that envelope requires human approval.
+Without a budget, an autonomous agent can loop indefinitely, call expensive APIs without limit, or take irreversible actions at 3am with no guardrails. The autonomy budget defines the envelope within which the agent operates freely. Anything outside that envelope stops the agent until a human looks at it.
 
 ## Configuration
 
@@ -26,7 +36,8 @@ config = ProcessConfig(
             "send_email": ToolCostAnnotation(cost_weight=2.0, irreversible=True),
             "search": ToolCostAnnotation(cost_weight=0.5),
         },
-        on_exceeded="escalate",  # "pause", "stop", or "escalate"
+        on_exceeded="escalate",   # "pause", "stop", or "escalate"
+        daily_reset_hour_utc=6,   # the budget day runs 06:00-06:00 UTC
         inject_remaining=True,    # Show budget in agent context
         escalation=EscalationTarget(
             webhook_url="https://hooks.slack.com/...",
@@ -56,6 +67,8 @@ budget:
     webhook_url: "https://hooks.slack.com/..."
 ```
 
+An unknown key under `budget:` is rejected in a manifest; in Python, `BudgetConfig` ignores it with a `FutureWarning`.
+
 ## How it works
 
 ### Per-run and daily tracking
@@ -63,7 +76,27 @@ budget:
 The budget system tracks two scopes:
 
 - **Per-run**: Resets at the start of every invocation. Limits how much the agent can do in a single trigger-driven execution.
-- **Per-day**: Resets at `daily_reset_hour_utc` (default: midnight UTC). Limits total daily activity.
+- **Per-day**: Limits total daily activity. The budget day runs from `daily_reset_hour_utc` (default `0`, midnight UTC) to the same hour the next day.
+
+The daily counters are reset when a run starts and the last reset happened before the most recent reset hour. With `daily_reset_hour_utc=6`, a run at 05:59 UTC still counts toward the previous day, and the first run at or after 06:00 UTC resets the counters and emits `budget.daily_reset`. Nothing resets while no run starts, so `process.status()["budget"]` can show the previous day's usage until the next run.
+
+### Counters survive restarts
+
+Within one process object, the counters live in memory: `stop()` / `start()` and `restart_process()` keep them.
+
+With a [journal](../journal/index.md), they also survive a new process object (a restarted runtime, a redeploy under the same name). Every checkpoint stores the budget counters: after each run, after a failed run, after a run refused by `max_runs_per_day`, and on `stop()`. On the first `start()`, with `journal.recover_on_start` on (the default), the daily counters and the time of the last daily reset are restored, so a restart can't reset the daily limits. The per-run counters start at zero. `process.recovered["budget_restored"]` says whether it happened.
+
+```python
+from promptise.runtime import BudgetConfig, JournalConfig, ProcessConfig
+
+config = ProcessConfig(
+    model="openai:gpt-5-mini",
+    journal=JournalConfig(level="checkpoint", path=".promptise/journal"),
+    budget=BudgetConfig(enabled=True, max_tool_calls_per_day=500),
+)
+```
+
+If the restored counters are from before the most recent reset hour, the next run resets them as usual. A journal that has no checkpoint for the process name, or a checkpoint without budget counters, leaves them at zero.
 
 ---
 
@@ -208,9 +241,9 @@ When `inject_remaining=True`, the agent sees remaining budget in a system messag
 [Budget Remaining] {'tool_calls_run': 20, 'llm_turns_run': None, 'cost_run': None, 'irreversible_run': 2, 'tool_calls_day': None, 'runs_day': 49, 'cost_day': None}
 ```
 
-The values are what is left of each limit (`BudgetState.remaining()`); the run that is starting already counts toward `runs_day`.
+The values are what is left of each limit (`BudgetState.remaining()`); the run that is starting already counts toward `runs_day`. The same dict is `process.status()["budget"]`.
 
-This lets the agent prioritize — if it's running low on budget, it can choose cheaper tools or skip non-essential operations. In open mode, the agent can also call `check_budget` to inspect remaining limits programmatically.
+This lets the agent prioritize — if it's running low on budget, it can choose cheaper tools or skip non-essential operations. In open mode, the agent can also call `check_budget` to inspect remaining limits.
 
 ---
 
@@ -222,7 +255,15 @@ Tool-call, cost and irreversible-action limits are checked **before each tool ca
 from promptise.runtime import BudgetExceededError  # error the agent sees as the tool result
 ```
 
-After the invocation finishes, the first violation of the run triggers the action configured in `on_exceeded` (below). `max_runs_per_day` is checked when an invocation starts; a run over that limit does not start.
+The message the agent gets looks like this:
+
+```text
+Budget limit max_tool_calls_per_day reached (limit 5); tool call 'send' was not executed. Stop calling tools and give your final answer.
+```
+
+LLM turns are counted but not blocked: the turn that exceeds `max_llm_turns_per_run` still runs, and every tool call after it is refused.
+
+After the invocation finishes, the first violation of the run triggers the action configured in `on_exceeded` (below). `max_runs_per_day` is checked when an invocation starts; a run over that limit does not start, and `on_exceeded` is applied at once.
 
 !!! note "Changed in 1.3.0"
     Earlier versions counted tool calls and applied `on_exceeded` only after the invocation had finished, so an agent could exceed `max_irreversible_per_run` (or any per-run limit) within a single run.
@@ -231,15 +272,17 @@ After the invocation finishes, the first violation of the run triggers the actio
 
 ## Enforcement actions
 
-When a limit is exceeded (after the invocation in which it happened):
+When a limit is exceeded (after the invocation in which it happened, or when a run is refused by `max_runs_per_day`):
 
 | Action | Behavior |
 |--------|----------|
-| `"pause"` | Suspend the process. Can be resumed by an operator or the runtime. |
-| `"stop"` | Stop the process entirely. Requires manual restart. |
-| `"escalate"` | Fire escalation notification (webhook + EventBus), then suspend. |
+| `"pause"` (default) | Suspend the process (`suspend_reason == "budget"`). Resume it with `resume()` or the API. |
+| `"stop"` | Stop the process. Start it again by hand. |
+| `"escalate"` | Send the escalation notification when `escalation` is set (webhook and/or event bus), then suspend. |
 
-Escalation sends a POST to the configured webhook URL (and emits the same payload as `escalation.event_type` on the process's EventBus) with the violation:
+A process paused by the budget does not resume by itself, not even after the daily reset hour: the reset only happens when a run starts. Its trigger events keep queueing and run in order after `resume()`.
+
+Escalation sends a POST to the configured webhook URL (and emits the same payload as `escalation.event_type` on the runtime's event bus) with the violation:
 
 ```json
 {
@@ -255,9 +298,50 @@ Escalation sends a POST to the configured webhook URL (and emits the same payloa
 }
 ```
 
-`limit_name` is the `BudgetConfig` field that was exceeded; `tool_name` is the tool whose call exceeded it, or `null` when no tool call did (a run over `max_runs_per_day`, or a model turn over `max_llm_turns_per_run`).
+`limit_name` is the `BudgetConfig` field that was exceeded; `current_value` is the value the refused call would have produced; `tool_name` is the tool whose call exceeded it, or `null` when no tool call did (a run over `max_runs_per_day`, or a model turn over `max_llm_turns_per_run`).
 
 The webhook URL must resolve to a public address (SSRF protection). The host is resolved before every notification, the notification is dropped with a warning if any address is private, loopback, link-local (cloud metadata) or otherwise internal, and the POST goes to the address that was checked, so a DNS record that changes in between (DNS rebinding) cannot send it to an internal service. Redirects are not followed. The same applies to health and mission escalations.
+
+---
+
+## Events
+
+| Event | Severity | When | Payload |
+|---|---|---|---|
+| `budget.warning` | warning | After a run, for each limit at `warning_threshold` (default 80%) or more of its value (and not over it) at the run's last budget check | `process_name`, `limit_type`, `current`, `limit`, `percentage` |
+| `budget.exceeded` | critical | After a run with a violation (once per run, for the first one) | `process_name`, `limit_type`, `current`, `limit` |
+| `budget.daily_reset` | info | When a run start resets the daily counters | `process_name` |
+
+`limit_type` is the `BudgetConfig` field name, for example `max_tool_calls_per_day`. The threshold is `warning_threshold` (default `0.8`). A run refused by `max_runs_per_day` applies `on_exceeded` but emits no `budget.exceeded` event; watch for `process.suspended` with `reason: "budget"` to catch it. Events reach the runtime's [event notifier](../../core/events.md) sinks.
+
+---
+
+## Changing limits while it runs
+
+Every `BudgetConfig` field can change on a running process through `PATCH /api/v1/processes/{name}/budget` (or `client.update_budget(name, **fields)`):
+
+```bash
+curl -X PATCH http://127.0.0.1:9100/api/v1/processes/support-agent/budget \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"max_tool_calls_per_day": 1000}'
+# {"name": "support-agent", "budget_updated": true, "effective_from": "next_budget_check", "live": true}
+```
+
+The patch is validated as a whole first (`422 UNKNOWN_FIELD` for a misspelt field, `422 INVALID_CONFIG` for a bad value; nothing changes then). The counters are kept, and each value applies at the next check that reads it:
+
+| Field | Takes effect |
+|---|---|
+| Tool-call, cost and irreversible limits, `tool_costs` | The next tool call, also inside a run already in progress |
+| `max_llm_turns_per_run` | The next LLM turn |
+| `max_runs_per_day`, `daily_reset_hour_utc`, `inject_remaining` | The next run start |
+| `on_exceeded`, `escalation` | The next violation |
+| `warning_threshold` | The warnings computed after the next run |
+| `enabled: true` | Builds the budget with zero counters; applies from the next run |
+| `enabled: false` | Drops the budget and its counters |
+
+Lowering a limit below what was already used blocks the next tool call. Raising a limit does not resume a process that the budget paused; call `resume()`.
+
+In Python, change `process.config.budget` and call `process.apply_governance_config("budget")`.
 
 ---
 
@@ -280,6 +364,17 @@ The agent can call `search` as many times as the cost budget allows, but it can 
 
 ---
 
+## Common pitfalls
+
+- **`cost_weight` is not money.** LLM token spend is not tracked at all; see [Understanding cost_weight](#understanding-cost_weight).
+- **No journal, no persistence across runtimes.** Without a `JournalConfig`, a new process object starts with zero daily counters.
+- **A daily limit pauses until someone resumes.** With `on_exceeded="pause"`, a process that hits `max_runs_per_day` stays suspended past the reset hour. Resume it on a schedule, or use `"stop"` and restart it, if that is what you want.
+- **`escalate` without a target.** The process is suspended, but nobody is notified. Set `escalation`.
+- **Disabling to "reset".** `PATCH {"enabled": false}` drops the counters; enabling again starts from zero. That defeats the daily limit.
+- **Tool names in `tool_costs`.** Keys must match the tool names the agent sees (MCP tool names); an unmatched key has no effect and the tool costs `1.0`.
+
+---
+
 ## API reference
 
 ### `BudgetConfig`
@@ -287,18 +382,19 @@ The agent can call `search` as many times as the cost budget allows, but it can 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `enabled` | `bool` | `False` | Enable budget tracking |
-| `max_tool_calls_per_run` | `int \| None` | `None` | Per-invocation tool call limit |
-| `max_llm_turns_per_run` | `int \| None` | `None` | Per-invocation LLM turn limit |
-| `max_cost_per_run` | `float \| None` | `None` | Per-invocation cost limit (abstract units) |
-| `max_irreversible_per_run` | `int \| None` | `None` | Per-invocation irreversible action limit |
-| `max_tool_calls_per_day` | `int \| None` | `None` | Daily tool call limit |
-| `max_runs_per_day` | `int \| None` | `None` | Daily invocation limit |
-| `max_cost_per_day` | `float \| None` | `None` | Daily cost limit (abstract units) |
+| `max_tool_calls_per_run` | `int \| None` (`>= 1`) | `None` | Per-invocation tool call limit |
+| `max_llm_turns_per_run` | `int \| None` (`>= 1`) | `None` | Per-invocation LLM turn limit |
+| `max_cost_per_run` | `float \| None` (`> 0`) | `None` | Per-invocation cost limit (abstract units) |
+| `max_irreversible_per_run` | `int \| None` (`>= 0`) | `None` | Per-invocation irreversible action limit |
+| `max_tool_calls_per_day` | `int \| None` (`>= 1`) | `None` | Daily tool call limit |
+| `max_runs_per_day` | `int \| None` (`>= 1`) | `None` | Daily invocation limit |
+| `max_cost_per_day` | `float \| None` (`> 0`) | `None` | Daily cost limit (abstract units) |
 | `tool_costs` | `dict[str, ToolCostAnnotation]` | `{}` | Per-tool cost annotations |
-| `on_exceeded` | `str` | `"pause"` | Action on violation: `"pause"`, `"stop"`, or `"escalate"` |
+| `on_exceeded` | `"pause" \| "stop" \| "escalate"` | `"pause"` | Action on violation |
+| `escalation` | `EscalationTarget \| None` | `None` | Where `"escalate"` sends violation notifications |
+| `daily_reset_hour_utc` | `int` (0-23) | `0` | UTC hour at which the budget day starts |
 | `inject_remaining` | `bool` | `True` | Show remaining budget in agent context |
-| `daily_reset_hour_utc` | `int` | `0` | Hour (0-23 UTC) when daily counters reset |
-| `escalation` | `EscalationTarget \| None` | `None` | Where to send violation notifications |
+| `warning_threshold` | `float` (0-1, above 0) | `0.8` | Fraction of a limit at which `budget.warning` is emitted |
 
 ### `ToolCostAnnotation`
 
@@ -309,19 +405,46 @@ The agent can call `search` as many times as the cost budget allows, but it can 
 
 ### `BudgetState`
 
+`BudgetState(config)`; the process creates it for you.
+
 | Method | Description |
 |--------|-------------|
 | `.record_tool_call(tool_name, *, enforce=False)` | Record a tool call and add its `cost_weight` to run and daily totals. Returns a `BudgetViolation` if any limit is exceeded, or `None`. With `enforce=True` the call is checked first: if it would exceed a limit it is **not** counted and the violation has `blocked=True` (the caller must not run the tool). |
 | `.record_tool_call_sync(tool_name, *, enforce=False)` | Thread-safe synchronous form, used by the runtime's budget guard (synchronous tools run on worker threads). |
-| `.record_llm_turn()` | Record an LLM turn (counts toward `max_llm_turns_per_run` only, no cost). Returns a `BudgetViolation` if limit exceeded. |
-| `.remaining()` | Dict of all remaining limits (tool calls, cost, LLM turns, irreversible actions). |
+| `.record_llm_turn()` | Record an LLM turn (counts toward `max_llm_turns_per_run` only, no cost). Returns a `BudgetViolation` if the limit is exceeded. |
+| `.record_run_start()` | Count a run toward `max_runs_per_day`; returns a violation when it is over the limit. |
 | `.reset_run()` | Reset per-run counters. Called automatically at the start of each invocation. |
+| `.check_daily_reset()` | Reset the daily counters if a reset hour has passed since the last reset; returns `True` when it did. |
+| `.remaining()` | Dict of what is left per limit (`tool_calls_run`, `llm_turns_run`, `cost_run`, `irreversible_run`, `tool_calls_day`, `runs_day`, `cost_day`); `None` = no limit, negative = exceeded. |
+| `.snapshot()` | The counters as a JSON-safe dict (what checkpoints store). |
+| `.restore(data)` | Load a snapshot: the daily counters and `last_daily_reset`; per-run counters start at zero. Raises `ValueError` for a malformed snapshot, changing nothing. |
+| `.pending_warnings` | `BudgetWarning`s for limits at `warning_threshold` or more after the latest check. |
+
+### `BudgetViolation`
+
+| Field | Description |
+|-------|-------------|
+| `limit_name` | The `BudgetConfig` field that was exceeded |
+| `limit_value` | The configured maximum |
+| `current_value` | The counter value that exceeded it (for a refused call: the value the call would have produced) |
+| `tool_name` | The tool that triggered it, or `None` |
+| `blocked` | `True` when the tool call was refused before it ran |
+
+`BudgetWarning` has `limit_name`, `limit_value`, `current_value` and `percentage` (0.0-1.0).
 
 ### `BudgetEnforcer`
 
 | Method | Description |
 |--------|-------------|
 | `.handle_violation(violation, process)` | Execute the configured enforcement action (pause, stop, or escalate). |
+
+## See also
+
+- [Behavioral Health](health.md) -- detect stuck, looping or failing agents
+- [Mission](mission.md) -- invocation and time limits for goal-driven processes
+- [Journal](../journal/index.md) -- the checkpoints that carry budget counters across restarts
+- [Orchestration API](../api.md) -- patch budgets and resume processes over HTTP
+- [Events & Notifications](../../core/events.md) -- deliver `budget.*` events
 
 !!! tip "Learn the concept"
 

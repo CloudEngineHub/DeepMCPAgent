@@ -269,6 +269,7 @@ nav:
           - Replay Engine: runtime/journal/replay.md
           - Rewind Engine: runtime/journal/rewind.md
       - Distributed:
+          - runtime/distributed/index.md
           - Coordinator: runtime/distributed/coordinator.md
           - Discovery & Transport: runtime/distributed/discovery-transport.md
       - Dashboard: runtime/dashboard.md
