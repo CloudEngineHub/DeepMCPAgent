@@ -155,6 +155,18 @@ class _KeyedJournal:
 _MAX_RESTART_BACKOFF = 60.0
 
 
+def _label_trigger_type(trigger: Any, kind: str) -> None:
+    """Give *trigger* a ``trigger_type`` (its config type) if it has none.
+
+    Built-in triggers don't carry their config type; :meth:`AgentProcess.status`
+    and the API show it.
+    """
+    if isinstance(getattr(trigger, "trigger_type", None), str):
+        return
+    with contextlib.suppress(AttributeError, TypeError):
+        trigger.trigger_type = kind
+
+
 def _resolve_server_specs(
     servers: dict[str, Any],
 ) -> dict[str, HTTPServerSpec | StdioServerSpec]:
@@ -177,7 +189,7 @@ def _resolve_server_specs(
     Raises:
         ValueError: An entry is neither a spec object nor a dict with a
             ``url`` (HTTP) or ``command`` (stdio), or a dict has an invalid
-            value.  Before 1.4.4 such entries were skipped silently, so the
+            value.  In 1.4.3 and earlier such entries were skipped silently, so the
             agent ran without that server's tools.  Unknown keys in a dict
             entry are ignored with a ``FutureWarning``.
     """
@@ -354,8 +366,8 @@ class AgentProcess:
     ``process.stopped``, ``process.failed`` (with the error),
     ``process.restarted``, ``process.restart_exhausted``,
     ``process.suspended`` and ``process.resumed`` (both with a ``reason``:
-    ``"manual"``, ``"idle"``, ``"budget"``, ``"health"`` or, for an
-    automatic resume, ``"trigger"``).
+    ``"manual"``, ``"idle"``, ``"budget"``, ``"health"``, ``"rewind"`` or,
+    for an automatic resume, ``"trigger"``).
 
     Trigger events are processed in arrival order.  While the process is
     suspended they wait in the queue; at :meth:`stop` the events still
@@ -436,7 +448,7 @@ class AgentProcess:
         # suspended workers wait on it instead of polling the queue.
         self._runnable = asyncio.Event()
         # Why the process is suspended ("manual", "idle", "budget",
-        # "health"), or None.  _suspend_cause overrides the reason of a
+        # "health", "rewind"), or None.  _suspend_cause overrides the reason of a
         # suspend() made while a subsystem handles a violation.
         self._suspend_reason: str | None = None
         self._suspend_cause: str | None = None
@@ -509,6 +521,9 @@ class AgentProcess:
         # Listener task per trigger object (id()), so one trigger can be
         # removed while the process runs.
         self._listener_by_trigger: dict[int, asyncio.Task[None]] = {}
+        # Events a cancelled listener was holding (trigger, event, admitted),
+        # collected by _shutdown so they are requeued or dead-lettered.
+        self._listener_leftovers: list[tuple[Any, TriggerEvent, bool]] = []
 
         # Trigger delivery: filters, retries, dead letters, payload scan
         self._trigger_filters: dict[str, EventFilter] = {}
@@ -542,6 +557,9 @@ class AgentProcess:
         self._trigger_listener_tasks: list[asyncio.Task[None]] = []
         self._heartbeat_task: asyncio.Task[None] | None = None
         self._background_tasks: set[asyncio.Task[Any]] = set()
+        # The loop the process runs on (set by start()), for hooks fired
+        # from worker threads (the budget guard on a synchronous tool).
+        self._loop: asyncio.AbstractEventLoop | None = None
 
         # Concurrency
         self._semaphore = asyncio.Semaphore(config.concurrency)
@@ -667,7 +685,46 @@ class AgentProcess:
                 health=self._health,
                 journal=self._journal_record if self._journal_full else None,
                 secrets=self._secrets,
+                on_budget_denied=self._on_budget_denied,
             )
+
+    @staticmethod
+    def _budget_denial_data(violation: Any) -> dict[str, Any]:
+        """``PERMISSION_DENIED`` data for something the budget refused."""
+        return {
+            "kind": "budget",
+            "tool_name": violation.tool_name,
+            "request_id": None,
+            "reason": (
+                f"budget limit {violation.limit_name} reached "
+                f"({violation.current_value:g} > {violation.limit_value:g})"
+            ),
+            "decided_by": "budget",
+            "limit_name": violation.limit_name,
+            "limit_value": violation.limit_value,
+            "current_value": violation.current_value,
+        }
+
+    def _on_budget_denied(self, violation: Any) -> None:
+        """The budget guard refused a tool call: fire ``PERMISSION_DENIED``.
+
+        Called by :class:`~promptise.runtime.callbacks.BudgetGuard`, on
+        the loop or on a worker thread (synchronous tools); the hooks run
+        in the background on the process's loop.
+        """
+        if not self._has_hooks(HookEvent.PERMISSION_DENIED):
+            return
+        data = self._budget_denial_data(violation)
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            loop = self._loop
+            if loop is None or loop.is_closed():
+                return
+            with contextlib.suppress(RuntimeError):  # loop closed meanwhile
+                loop.call_soon_threadsafe(self._notify_hook, HookEvent.PERMISSION_DENIED, data)
+            return
+        self._notify_hook(HookEvent.PERMISSION_DENIED, data)
 
     def apply_governance_config(self, section: str) -> None:
         """Apply ``config.<section>`` to the running process now.
@@ -974,6 +1031,25 @@ class AgentProcess:
             return False
         return True
 
+    async def _guardrail_denied(self, event: TriggerEvent, decided_by: str, error: Any) -> None:
+        """Fire ``PERMISSION_DENIED`` for a run the guardrails refused.
+
+        *decided_by* is ``"payload_scan"`` (the trigger payload scan) or
+        ``"guardrail"`` (the agent's guardrail scanner).
+        """
+        await self._dispatch_hook(
+            HookEvent.PERMISSION_DENIED,
+            {
+                "kind": "guardrail",
+                "tool_name": None,
+                "request_id": None,
+                "reason": str(error) or type(error).__name__,
+                "decided_by": decided_by,
+                "event_id": event.event_id,
+                "trigger_type": event.trigger_type,
+            },
+        )
+
     async def _append_conversation(self, messages: list[dict[str, Any]]) -> None:
         """Append to the conversation, with ``PRE_COMPACT`` / ``POST_COMPACT``.
 
@@ -1007,7 +1083,10 @@ class AgentProcess:
         """A copy of the ApprovalPolicy that dispatches the permission hooks.
 
         ``PERMISSION_REQUEST`` before the handler is asked (a block denies
-        the call without asking), ``PERMISSION_DENIED`` for every denial.
+        the call without asking), ``PERMISSION_DENIED`` for every denial
+        (``kind: "approval"``).  Budget and guardrail refusals fire
+        ``PERMISSION_DENIED`` too (:meth:`_on_budget_denied`,
+        :meth:`_guardrail_denied`).
         Other approval values (a bare handler) are returned unchanged.
         """
         from promptise.approval import ApprovalDecision, ApprovalPolicy
@@ -1052,6 +1131,7 @@ class AgentProcess:
                 await process._dispatch_hook(
                     HookEvent.PERMISSION_DENIED,
                     {
+                        "kind": "approval",
                         "tool_name": request.tool_name,
                         "request_id": request.request_id,
                         "reason": decision.reason,
@@ -1256,6 +1336,7 @@ class AgentProcess:
                 :class:`~promptise.runtime.exceptions.ProcessStateError`
                 and a :class:`ValueError`).
         """
+        self._loop = asyncio.get_running_loop()
         current = asyncio.current_task()
         if (
             self._restart_task is not None
@@ -1293,9 +1374,12 @@ class AgentProcess:
                 if self._memory_closed:
                     self._reopen_memory()
 
-                # 0. Resolve secrets before agent build
+                # 0. Resolve secrets before agent build.  A restart keeps
+                # the values the scope still holds (an operator rotation;
+                # with revoke_on_stop the stop emptied it) and resolves
+                # only the missing ones.
                 if self._secrets is not None:
-                    await self._secrets.resolve_initial()
+                    await self._secrets.resolve_initial(missing_only=True)
 
                 # 1. Build the agent (closing one left over when start()
                 # follows a FAILED state without a stop()).
@@ -1308,6 +1392,8 @@ class AgentProcess:
                     and self.config.inbox.scan_with_guardrails
                 ):
                     self._inbox.scanner = self._payload_scanner
+                    # Messages taken before start() weren't scanned yet.
+                    await self._inbox.rescan()
 
                 # 2. Create and start triggers
                 self._triggers = self._create_triggers()
@@ -1373,9 +1459,11 @@ class AgentProcess:
         it, the mission (:meth:`MissionTracker.restore`), the budget
         counters (:meth:`BudgetState.restore`, so a restart doesn't reset
         the daily limits), the conversation history and the invocation
-        count.  Nothing happens without a
-        checkpoint, or with ``journal.recover_on_start=False``.  A journal
-        that can't be read is logged and the process starts fresh.
+        count.  Without a checkpoint (a crash before the first run ended),
+        the ``context_update`` entries alone are replayed.  Nothing happens
+        when the journal has neither, or with
+        ``journal.recover_on_start=False``.  A journal that can't be read
+        is logged and the process starts fresh.
         """
         self._recovery_attempted = True
         if self._journal is None or not self.config.journal.recover_on_start:
@@ -1383,8 +1471,6 @@ class AgentProcess:
         from .journal import ReplayEngine
 
         try:
-            if not await self._journal.last_checkpoint(self.name):
-                return
             recovered = await ReplayEngine(self._journal).recover(self.name)
         except Exception:
             logger.warning(
@@ -1396,6 +1482,8 @@ class AgentProcess:
 
         checkpoint = recovered.get("checkpoint") or {}
         context_state = recovered.get("context_state") or {}
+        if not checkpoint and not context_state:
+            return  # a new process (or one that never wrote state)
         if context_state:
             self._context.restore_state(context_state)
         mission_restored = False
@@ -1579,18 +1667,31 @@ class AgentProcess:
             with contextlib.suppress(asyncio.CancelledError):
                 await self._heartbeat_task
 
-        # 4. Stop triggers (static + dynamic)
-        for trigger in self._triggers:
+        # 4. Stop triggers (static + dynamic), then take the events still
+        # inside them (a file watch's backlog, a webhook's queue).
+        leftovers = list(self._listener_leftovers)
+        self._listener_leftovers.clear()
+        for trigger in [*self._triggers, *self._dynamic_triggers]:
             with contextlib.suppress(Exception):
                 await trigger.stop()
-        for trigger in self._dynamic_triggers:
-            with contextlib.suppress(Exception):
-                await trigger.stop()
+            drain = getattr(trigger, "drain_pending", None)
+            if callable(drain):
+                try:
+                    leftovers.extend((trigger, e, False) for e in drain())
+                except Exception:
+                    logger.warning(
+                        "AgentProcess %s: could not take the pending events of trigger %s",
+                        self.name,
+                        getattr(trigger, "trigger_id", "?"),
+                        exc_info=True,
+                    )
 
         # Nothing feeds the queue any more: on a real stop, what is left
-        # goes to the dead letters instead of vanishing.
+        # goes to the dead letters instead of vanishing.  A restart keeps
+        # the queue and adds the triggers' leftovers to it.
         if final:
             self._drain_queue_to_dead_letters(reason)
+        await self._keep_trigger_leftovers(leftovers, final=final, reason=reason)
 
         # 5. Shutdown the agent and close the MCP client the process opened
         # for it (its stdio servers exit), plus any replaced by a rebuild.
@@ -1694,8 +1795,9 @@ class AgentProcess:
         Args:
             reason: Why: ``"manual"`` (default; an operator, the API, the
                 dashboard), ``"idle"`` (``idle_timeout``; the next trigger
-                event resumes the process by itself), ``"budget"`` or
-                ``"health"``.
+                event resumes the process by itself), ``"budget"``,
+                ``"health"`` or ``"rewind"`` (:meth:`rewind` suspends a
+                running process while it rewinds, then resumes it).
 
         Raises:
             StateError: The process is not ``RUNNING``.
@@ -1724,8 +1826,9 @@ class AgentProcess:
         reason of the suspension).
 
         Args:
-            reason: Why: ``"manual"`` (default) or ``"trigger"`` (a trigger
-                event woke a process suspended for ``idle_timeout``).
+            reason: Why: ``"manual"`` (default), ``"trigger"`` (a trigger
+                event woke a process suspended for ``idle_timeout``) or
+                ``"rewind"`` (the end of a :meth:`rewind`).
 
         Raises:
             StateError: The process is not suspended.
@@ -1740,7 +1843,7 @@ class AgentProcess:
     @property
     def suspend_reason(self) -> str | None:
         """Why the process is suspended (``"manual"``, ``"idle"``, ``"budget"``,
-        ``"health"``), or ``None`` when it isn't."""
+        ``"health"``, ``"rewind"``), or ``None`` when it isn't."""
         return self._suspend_reason if self.state == ProcessState.SUSPENDED else None
 
     async def _wake_if_idle(self) -> None:
@@ -1878,6 +1981,10 @@ class AgentProcess:
         Raises:
             RuntimeError: If inbox is not enabled.
             asyncio.TimeoutError: If timeout expires.
+            InboxError: The question was refused, or removed before it was
+                answered (``InboxQuestionRemoved`` after a clear,
+                ``InboxFullError`` when evicted); see
+                :meth:`MessageInbox.wait_for_response`.
         """
         if self._inbox is None:
             raise RuntimeError(f"Message inbox not enabled for process '{self.name}'.")
@@ -1903,8 +2010,10 @@ class AgentProcess:
 
         Returns:
             Dict with process name, state, ``suspend_reason``, counters,
-            queue and dead-letter sizes, uptime, ``triggers`` (``id``,
-            ``type``, ``source`` and, for a file watch, ``dropped_events``
+            queue and dead-letter sizes, ``uptime_seconds`` (since the
+            last start; ``None`` while stopped or failed), ``triggers``
+            (``id``, ``type`` — the config type, e.g. ``"cron"`` —,
+            ``source`` and, for a file watch, ``dropped_events``
             and ``pending_events``), ``recovered`` (after a journal
             recovery) and, per enabled subsystem, ``budget``,
             ``health_anomalies`` and ``health``
@@ -1912,8 +2021,14 @@ class AgentProcess:
             ``active_secrets``; ``hook_count`` is the number of hooks on
             :attr:`hooks`.
         """
+        # Seconds since the last start, while the process is up; None once
+        # it stopped or failed (and before the first start).
         uptime = None
-        if self._start_time is not None:
+        if self._start_time is not None and self.state not in (
+            ProcessState.CREATED,
+            ProcessState.STOPPED,
+            ProcessState.FAILED,
+        ):
             uptime = time.monotonic() - self._start_time
 
         status: dict[str, Any] = {
@@ -1960,7 +2075,11 @@ class AgentProcess:
 
     @staticmethod
     def _trigger_status(trigger: Any, source: str) -> dict[str, Any]:
-        """One trigger's entry in :meth:`status` (file watch adds its counters)."""
+        """One trigger's entry in :meth:`status` (file watch adds its counters).
+
+        ``type`` is the :class:`TriggerConfig` type (``"cron"``,
+        ``"webhook"``, ...), as ``GET /triggers`` shows it.
+        """
         trigger_id = getattr(trigger, "trigger_id", None)
         kind = getattr(trigger, "trigger_type", None)
         info: dict[str, Any] = {
@@ -2251,6 +2370,7 @@ class AgentProcess:
             trigger.trigger_id = trigger_id
         except AttributeError:  # a custom trigger with a read-only ID
             logger.debug("AgentProcess %s: trigger keeps its own id", self.name)
+        _label_trigger_type(trigger, trigger_config.type)
         if (
             trigger_config.filter_expression is not None
             and getattr(trigger, "event_filter", None) is None
@@ -2409,6 +2529,7 @@ class AgentProcess:
             trigger = _triggers.create_trigger(
                 config, event_bus=self._event_bus, broker=self._broker
             )
+            _label_trigger_type(trigger, config.type)
             if (
                 config.filter_expression is not None
                 and getattr(trigger, "event_filter", None) is None
@@ -2452,7 +2573,12 @@ class AgentProcess:
                         trigger.trigger_id = new_id
 
     async def _stop_trigger(self, trigger: BaseTrigger) -> None:
-        """Cancel a trigger's listener and stop the trigger."""
+        """Cancel a trigger's listener and stop the trigger (it is being removed).
+
+        Events the listener held and the trigger still buffered
+        (``drain_pending()``) are dead-lettered with reason ``"trigger
+        removed"``, as a stop does.
+        """
         task = self._listener_by_trigger.pop(id(trigger), None)
         if task is not None and task is not asyncio.current_task():
             task.cancel()
@@ -2464,6 +2590,22 @@ class AgentProcess:
             await trigger.stop()
         except Exception:
             logger.debug("AgentProcess %s: trigger stop error", self.name, exc_info=True)
+        held = [item for item in self._listener_leftovers if item[0] is trigger]
+        self._listener_leftovers = [i for i in self._listener_leftovers if i[0] is not trigger]
+        for _, event, _admitted in held:
+            self._dead_letter(event, "trigger removed")
+        drain = getattr(trigger, "drain_pending", None)
+        if callable(drain):
+            try:
+                for event in drain():
+                    self._dead_letter(event, "trigger removed")
+            except Exception:
+                logger.warning(
+                    "AgentProcess %s: could not take the pending events of trigger %s",
+                    self.name,
+                    trigger.trigger_id,
+                    exc_info=True,
+                )
         self._trigger_filters.pop(trigger.trigger_id, None)
 
     # ------------------------------------------------------------------
@@ -2486,13 +2628,20 @@ class AgentProcess:
             set_check(self._availability_reason)
         event_filter = self._trigger_filters.get(trigger.trigger_id)
         errors = 0
+        # The event between wait_for_next() and the queue, and whether it
+        # was admitted: a stop that cancels the listener there hands it to
+        # _shutdown instead of losing it.
+        holding: TriggerEvent | None = None
+        admitted = False
         try:
             while self.state not in (
                 ProcessState.STOPPED,
                 ProcessState.STOPPING,
             ):
+                holding, admitted = None, False
                 try:
                     event = await trigger.wait_for_next()
+                    holding = event
                     errors = 0
                 except asyncio.CancelledError:
                     raise
@@ -2527,9 +2676,13 @@ class AgentProcess:
                     continue
                 if not await self._admit_event(event):
                     continue
+                admitted = True
                 await self._wake_if_idle()
                 await self._trigger_queue.put(event)
+                holding = None
         except asyncio.CancelledError:
+            if holding is not None:
+                self._listener_leftovers.append((trigger, holding, admitted))
             return
 
     # ------------------------------------------------------------------
@@ -2586,9 +2739,12 @@ class AgentProcess:
 
         Each entry has ``event`` (the :class:`TriggerEvent`), ``reason``
         (``"retries exhausted"``, ``"process failed"``, ``"process
-        stopped"``, ``"queue full"``, ``"flagged by payload scan"``,
-        ``"blocked by guardrails"`` or ``"blocked by hook"``), ``error``, ``attempts`` and
-        ``dead_lettered_at``.  The list keeps the most recent
+        stopped"``, ``"process restarting"``, ``"trigger removed"``, ``"queue full"``, ``"flagged
+        by payload scan"``, ``"blocked by guardrails"`` or ``"blocked by
+        hook"``), ``error``, ``attempts`` and ``dead_lettered_at``.  A stop
+        dead-letters every event not run yet: queued, held by a worker or
+        a trigger listener, or still inside a trigger (a file watch's
+        backlog, a webhook's accepted requests).  The list keeps the most recent
         ``trigger_delivery.dead_letter_size`` entries.
         """
         return list(self._dead_letters)
@@ -2658,6 +2814,36 @@ class AgentProcess:
             handle.cancel()
             self._dead_letter(event, reason)
         self._retry_handles.clear()
+
+    async def _keep_trigger_leftovers(
+        self, leftovers: list[tuple[Any, TriggerEvent, bool]], *, final: bool, reason: str
+    ) -> None:
+        """Events taken from stopped triggers and cancelled listeners.
+
+        On a stop they are dead-lettered (*reason*).  On a restart they go
+        to the process queue (which survives it), after the trigger's
+        filter and the admission hooks when they hadn't passed them yet;
+        dead-lettered when the queue is full.
+        """
+        for trigger, event, admitted in leftovers:
+            if final:
+                self._dead_letter(event, reason)
+                continue
+            if not admitted:
+                event_filter = self._trigger_filters.get(getattr(trigger, "trigger_id", ""))
+                try:
+                    keep = event_filter is None or bool(event_filter(event))
+                except Exception:
+                    keep = False
+                if not keep:
+                    self._filtered_count += 1
+                    continue
+                if not await self._admit_event(event):
+                    continue
+            try:
+                self._trigger_queue.put_nowait(event)
+            except asyncio.QueueFull:
+                self._dead_letter(event, reason)
 
     def _drain_queue_to_dead_letters(self, reason: str) -> None:
         while True:
@@ -2802,6 +2988,7 @@ class AgentProcess:
             started = time.perf_counter()
             flagged = await self._scan_payload(event)
             if flagged is not None:
+                await self._guardrail_denied(event, "payload_scan", flagged)
                 self._dead_letter(event, "flagged by payload scan", error=flagged)
                 await self._task_completed(event, "dead_lettered", started, flagged)
                 return False
@@ -2820,6 +3007,7 @@ class AgentProcess:
                 await self._task_completed(event, "blocked", started, exc.reason)
                 return False
             except guardrail_violation as exc:
+                await self._guardrail_denied(event, "guardrail", exc)
                 self._dead_letter(event, "blocked by guardrails", error=exc)
                 await self._task_completed(event, "dead_lettered", started, exc)
                 return False
@@ -2955,6 +3143,10 @@ class AgentProcess:
             if run_violation is not None and self._budget_enforcer is not None:
                 # Counted runs survive a restart (see _journal_checkpoint).
                 await self._journal_checkpoint()
+                await self._dispatch_hook(
+                    HookEvent.PERMISSION_DENIED,
+                    {**self._budget_denial_data(run_violation), "event_id": event.event_id},
+                )
                 await self._handle_budget_violation(run_violation)
                 return None
             await self._budget.reset_run()
@@ -3123,23 +3315,6 @@ class AgentProcess:
             and self._budget_enforcer is not None
         ):
             violation = self._runtime_callback.pending_violations[0]
-            # Emit budget.exceeded event
-            if self._event_notifier is not None:
-                from promptise.events import emit_event
-
-                emit_event(
-                    self._event_notifier,
-                    "budget.exceeded",
-                    "critical",
-                    {
-                        "process_name": self.name,
-                        "limit_type": violation.limit_name,
-                        "current": violation.current_value,
-                        "limit": violation.limit_value,
-                    },
-                    agent_id=self.name,
-                    metadata=self._event_metadata(),
-                )
             await self._handle_budget_violation(violation)
 
         # -- Post-invoke: emit budget warnings (approaching limits) --
@@ -3167,6 +3342,7 @@ class AgentProcess:
         await self._handle_health_anomalies()
 
         # -- Post-invoke: evaluate mission --
+        mission_marker = self._mission_marker()
         if self._mission is not None and self._mission.should_evaluate():
             from .mission import MissionEvidence
 
@@ -3184,8 +3360,11 @@ class AgentProcess:
                 evidence,
                 self.config.model,
             )
-            # Emit mission events
-            if self._event_notifier is not None:
+            # Emit mission events (none for a skipped evaluation: another
+            # run is evaluating, nothing was judged)
+            if evaluation.skipped:
+                logger.debug("AgentProcess %s: mission evaluation skipped", self.name)
+            elif self._event_notifier is not None:
                 from promptise.events import emit_event
 
                 if evaluation.achieved:
@@ -3216,7 +3395,9 @@ class AgentProcess:
                         metadata=self._event_metadata(),
                     )
 
-            if evaluation.achieved:
+            if evaluation.skipped:
+                pass
+            elif evaluation.achieved:
                 logger.info(
                     "AgentProcess %s: mission achieved!",
                     self.name,
@@ -3253,6 +3434,15 @@ class AgentProcess:
         ):
             self._fail_mission_if_out_of_bounds()
 
+        # The run's checkpoint (10.5) was written before the evaluation: a
+        # mission that progressed, completed or failed is checkpointed
+        # again, so a crash doesn't bring it back as it was.
+        if self._mission_marker() != mission_marker and self.state not in (
+            ProcessState.STOPPING,
+            ProcessState.STOPPED,
+        ):
+            await self._journal_checkpoint()
+
         logger.debug(
             "AgentProcess %s: invocation #%d complete",
             self.name,
@@ -3288,9 +3478,30 @@ class AgentProcess:
             await self._inbox.remove_consumed(delivered)
 
     async def _handle_budget_violation(self, violation: Any) -> None:
-        """Apply ``budget.on_exceeded``; a resulting suspend has reason ``"budget"``."""
+        """Emit ``budget.exceeded`` and apply ``budget.on_exceeded``.
+
+        For every violation the process acts on: a run refused by
+        ``max_runs_per_day`` as well as a limit reached during a run.  A
+        resulting suspend has reason ``"budget"``.
+        """
         if self._budget_enforcer is None:
             return
+        if self._event_notifier is not None:
+            from promptise.events import emit_event
+
+            emit_event(
+                self._event_notifier,
+                "budget.exceeded",
+                "critical",
+                {
+                    "process_name": self.name,
+                    "limit_type": violation.limit_name,
+                    "current": violation.current_value,
+                    "limit": violation.limit_value,
+                },
+                agent_id=self.name,
+                metadata=self._event_metadata(),
+            )
         self._suspend_cause = "budget"
         try:
             await self._budget_enforcer.handle_violation(violation, self)
@@ -3331,6 +3542,7 @@ class AgentProcess:
         Raises:
             RuntimeError: The process has no mission (``mission.enabled``
                 is off).
+            ValueError: The mission is already completed or failed.
         """
         if self._mission is None:
             raise RuntimeError(
@@ -3338,11 +3550,28 @@ class AgentProcess:
             )
         return self._fail_mission(reason, source="manual")
 
+    def _mission_marker(self) -> tuple[str, int] | None:
+        """The mission's state and evaluation count (to see a change)."""
+        if self._mission is None:
+            return None
+        return self._mission.state.value, self._mission.evaluation_count
+
     def _fail_mission(self, message: str, *, source: str) -> dict[str, Any]:
-        """Fail the mission and emit ``mission.failed`` with its data."""
+        """Fail the mission and emit ``mission.failed`` with its data.
+
+        Also checkpoints the journal (in the background), so the failed
+        state survives a crash.
+        """
         assert self._mission is not None
         data = self._mission.fail(message, source=source)
         logger.info("AgentProcess %s: mission failed (%s): %s", self.name, source, message)
+        if self._journal is not None:
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                pass  # no loop: the next checkpoint records it
+            else:
+                self._spawn_background(self._journal_checkpoint())
         event_data = {"process_name": self.name, **data}
         if self._event_notifier is not None:
             from promptise.events import emit_event
@@ -3912,8 +4141,10 @@ class AgentProcess:
             return await engine.apply(
                 process_id=self.name, target_entry_id=target_entry_id, mode=mode, record=False
             )
-        # Validates the target before anything is suspended.
-        await engine.plan(process_id=self.name, target_entry_id=target_entry_id, mode=mode)
+        # Validates the target before anything is suspended.  This plan is
+        # the one reported: the suspend transition journaled below is not
+        # something the rewind undoes.
+        plan = await engine.plan(process_id=self.name, target_entry_id=target_entry_id, mode=mode)
 
         async with self._rewind_lock:
             if not self._recovery_attempted:
@@ -3941,11 +4172,15 @@ class AgentProcess:
                     mode=mode,
                     actor=actor,
                 )
-                await self._apply_rewind(result, mode)
+                result.plan = plan
+                await self._apply_rewind(result, mode, checkpoint=False)
             finally:
                 if suspended_here and self.state == ProcessState.SUSPENDED:
                     with contextlib.suppress(StateError):
                         await self.resume(reason="rewind")
+            # After the resume, so the checkpoint has the state the process
+            # is in (not "suspended").
+            await self._journal_checkpoint()
 
         logger.info(
             "AgentProcess %s: rewound to %s (%s) by %s",
@@ -3966,8 +4201,8 @@ class AgentProcess:
         )
         return result
 
-    async def _apply_rewind(self, result: Any, mode: Any) -> None:
-        """Put a :class:`RewindResult` into the live process, then checkpoint."""
+    async def _apply_rewind(self, result: Any, mode: Any, *, checkpoint: bool = True) -> None:
+        """Put a :class:`RewindResult` into the live process (then checkpoint)."""
         from .journal import RewindMode
 
         if mode in (RewindMode.BOTH, RewindMode.CODE_ONLY):
@@ -3982,7 +4217,8 @@ class AgentProcess:
             # The live history plus the note (the journal's copy may lag).
             note = result.conversation[-1]
             await self._append_conversation([dict(note)])
-        await self._journal_checkpoint()
+        if checkpoint:
+            await self._journal_checkpoint()
 
     def __repr__(self) -> str:
         return (

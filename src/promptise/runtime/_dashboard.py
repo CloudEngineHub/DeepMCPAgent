@@ -30,7 +30,9 @@ Example::
 
 from __future__ import annotations
 
+import asyncio
 import datetime
+import inspect
 import json
 import logging
 import os
@@ -282,11 +284,42 @@ class _LogCapture(logging.Handler):
 # ------------------------------------------------------------------
 
 
+def _redacted(process: Any, value: Any) -> Any:
+    """*value* with the process's secret values redacted (as in the journal)."""
+    redact = getattr(process, "_redact", None)
+    if not callable(redact):
+        return value
+    try:
+        result = redact(value)
+    except Exception:
+        return value
+    return result if isinstance(result, type(value)) else value
+
+
+#: Tag of the hooks the collector registers on each process.
+_HOOK_TAG = "promptise-dashboard"
+
+#: Snapshots between two journal reads (the journal is read, not pushed).
+_JOURNAL_EVERY = 4
+
+
 class RuntimeDataCollector:
     """Collects real-time data from a running AgentRuntime into DashboardState.
 
-    Runs as a background task, periodically polling the runtime for
-    process status, context state, and trigger info.
+    Runs as a background thread, periodically polling the runtime for
+    process status, context state, and trigger info.  Trigger events and
+    finished runs arrive through ``task_created`` / ``task_completed``
+    hooks it registers on every process (Events and Recent Activity
+    panels, trigger fire counts), and the journal panel is read from each
+    process's journal on the runtime's event loop.
+
+    Args:
+        runtime: The runtime to watch.
+        state: The shared dashboard state.
+        interval: Seconds between snapshots.
+        loop: The event loop the runtime runs on (default: the running
+            loop when the collector is created, if any).  Without one the
+            journal panel stays empty.
     """
 
     def __init__(
@@ -294,12 +327,25 @@ class RuntimeDataCollector:
         runtime: AgentRuntime,
         state: RuntimeDashboardState,
         interval: float = 0.5,
+        loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         self._runtime = runtime
         self._state = state
         self._interval = interval
         self._running = False
         self._thread: threading.Thread | None = None
+        if loop is None:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+        self._loop = loop
+        # Processes whose hooks are registered: name -> (process, hook ids).
+        self._hooked: dict[str, tuple[Any, list[str]]] = {}
+        # (process, trigger id) -> (fire count, last fired).
+        self._fires: dict[tuple[str, str], tuple[int, float]] = {}
+        self._journal_seen: dict[str, set[str]] = {}
+        self._snapshots = 0
 
     def start(self) -> None:
         """Start the data collection thread."""
@@ -308,8 +354,97 @@ class RuntimeDataCollector:
         self._thread.start()
 
     def stop(self) -> None:
-        """Stop collecting."""
+        """Stop collecting and remove the hooks it registered."""
         self._running = False
+        for process, ids in self._hooked.values():
+            for hook_id in ids:
+                try:
+                    process.hooks._remove_unlocked(hook_id)
+                except Exception:
+                    logger.debug("Dashboard hook removal failed", exc_info=True)
+        self._hooked.clear()
+
+    # -- hooks ----------------------------------------------------------
+
+    def _hook(self, name: str, process: Any) -> None:
+        """Register the event/run hooks on *process* (once)."""
+        from .hooks import HookEvent, HookManager
+
+        known = self._hooked.get(name)
+        if known is not None and known[0] is process:
+            return
+        manager = getattr(process, "hooks", None)
+        if not isinstance(manager, HookManager):
+            return
+        state = self._state
+        fires = self._fires
+
+        async def on_created(ctx: Any) -> None:
+            data = ctx.data
+            trigger_id = str(data.get("trigger_id") or "")
+            now = time.time()
+            count, _ = fires.get((name, trigger_id), (0, now))
+            fires[(name, trigger_id)] = (count + 1, now)
+            state.record_event(
+                EventLog(
+                    timestamp=now,
+                    process_name=name,
+                    trigger_type=str(data.get("trigger_type") or "?"),
+                    trigger_id=trigger_id,
+                    event_id=str(data.get("event_id") or ""),
+                    payload_summary="-",
+                )
+            )
+
+        async def on_completed(ctx: Any) -> None:
+            data = ctx.data
+            if data.get("outcome") == "retrying":
+                return  # counted once, when it finally ends
+            state.record_invocation(
+                InvocationLog(
+                    timestamp=time.time(),
+                    process_name=name,
+                    trigger_type=str(data.get("trigger_type") or "?"),
+                    trigger_id=str(data.get("trigger_id") or ""),
+                    success=data.get("outcome") == "success",
+                    duration_ms=float(data.get("duration_ms") or 0.0),
+                    error=data.get("error"),
+                )
+            )
+
+        ids = [
+            manager.register(HookEvent.TASK_CREATED, on_created, priority=-1000, tag=_HOOK_TAG),
+            manager.register(HookEvent.TASK_COMPLETED, on_completed, priority=-1000, tag=_HOOK_TAG),
+        ]
+        self._hooked[name] = (process, ids)
+
+    def _read_journal(self, name: str, process: Any) -> None:
+        """Copy the process's newest journal entries into the state."""
+        journal = getattr(process, "_journal", None)
+        loop = self._loop
+        if journal is None or loop is None or loop.is_closed():
+            return
+        read = getattr(journal, "read", None)
+        if not callable(read):
+            return
+        coro = read(name)
+        if not inspect.iscoroutine(coro):
+            return
+        try:
+            entries = asyncio.run_coroutine_threadsafe(coro, loop).result(timeout=2.0)
+        except Exception:
+            logger.debug("Dashboard journal read failed", exc_info=True)
+            return
+        seen = self._journal_seen.setdefault(name, set())
+        for entry in list(entries)[-100:]:
+            entry_id = getattr(entry, "entry_id", None)
+            if not entry_id or entry_id in seen:
+                continue
+            seen.add(entry_id)
+            to_dict = getattr(entry, "to_dict", None)
+            self._state.record_journal(to_dict() if callable(to_dict) else dict(entry))
+        if len(seen) > 5000:
+            seen.clear()
 
     def _collect_loop(self) -> None:
         """Background thread that polls the runtime."""
@@ -322,8 +457,18 @@ class RuntimeDataCollector:
 
     def _collect_snapshot(self) -> None:
         """Gather a full snapshot from the runtime."""
+        self._snapshots += 1
+        read_journal = self._snapshots % _JOURNAL_EVERY == 1
 
-        for name, process in self._runtime.processes.items():
+        for name, process in list(self._runtime.processes.items()):
+            if self._loop is not None and not self._loop.is_closed():
+                # Hook registration happens on the runtime's loop.
+                self._loop.call_soon_threadsafe(self._hook, name, process)
+            else:
+                self._hook(name, process)
+            if read_journal:
+                self._read_journal(name, process)
+
             # Process snapshot
             status = process.status()
             config = process.config
@@ -346,7 +491,7 @@ class RuntimeDataCollector:
             ctx = process.context
             self._state.contexts[name] = ContextSnapshot(
                 process_name=name,
-                state=ctx.state_snapshot(),
+                state=_redacted(process, ctx.state_snapshot()),
                 writable_keys=(sorted(ctx._writable_keys) if ctx._writable_keys else None),
                 env_count=len(ctx.env),
                 file_mount_count=len(ctx.files),
@@ -355,9 +500,15 @@ class RuntimeDataCollector:
             )
 
         # Collect trigger info
+        from .triggers.base import config_trigger_ids
+
         triggers: list[TriggerInfo] = []
         for name, process in self._runtime.processes.items():
-            for tc in process.config.triggers:
+            try:
+                ids = config_trigger_ids(process.config.triggers)
+            except Exception:
+                ids = [f"{name}/{tc.type}" for tc in process.config.triggers]
+            for tc, trigger_id in zip(process.config.triggers, ids, strict=False):
                 config_parts: list[str] = []
                 if tc.type == "cron" and tc.cron_expression:
                     config_parts.append(f"cron={tc.cron_expression}")
@@ -371,12 +522,15 @@ class RuntimeDataCollector:
                 elif tc.type == "message" and tc.topic:
                     config_parts.append(f"topic={tc.topic}")
 
+                count, last = self._fires.get((name, trigger_id), (0, None))
                 triggers.append(
                     TriggerInfo(
                         process_name=name,
-                        trigger_id=f"{name}/{tc.type}",
+                        trigger_id=trigger_id,
                         trigger_type=tc.type,
                         config_summary=" ".join(config_parts) or "-",
+                        fire_count=count,
+                        last_fired=last,
                     )
                 )
         self._state.triggers = triggers
@@ -419,6 +573,9 @@ class RuntimeDashboard:
     ) -> None:
         self._state = state
         self._runtime = runtime
+        # The runtime's event loop (captured by start()): commands typed in
+        # the key-reader thread run their coroutines on it.
+        self._loop: asyncio.AbstractEventLoop | None = None
         self._console = Console()
         self._live: Live | None = None
         self._refresh_thread: threading.Thread | None = None
@@ -438,7 +595,15 @@ class RuntimeDashboard:
     # ------------------------------------------------------------------
 
     def start(self) -> None:
-        """Start the live dashboard (takes over the terminal)."""
+        """Start the live dashboard (takes over the terminal).
+
+        Call it from the runtime's event loop (as ``promptise runtime start
+        --dashboard`` does): process commands are run on that loop.
+        """
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self._loop = None
         self._running = True
         self._suppress_loggers()
 
@@ -671,9 +836,32 @@ class RuntimeDashboard:
     # Command execution
     # ------------------------------------------------------------------
 
+    def _submit(self, make: Any) -> None:
+        """Run the coroutine ``make()`` on the runtime's loop (from the
+        key-reader thread); a failure is recorded as a command result."""
+        loop = self._loop
+        if loop is None or loop.is_closed():
+            raise RuntimeError("the runtime's event loop is not available")
+        future = asyncio.run_coroutine_threadsafe(make(), loop)
+
+        def done(fut: Any) -> None:
+            if fut.cancelled():
+                return
+            exc = fut.exception()
+            if exc is not None:
+                self._state.record_command(
+                    CommandResult(
+                        timestamp=time.time(),
+                        command="(result)",
+                        result=f"Error: {exc}",
+                        success=False,
+                    )
+                )
+
+        future.add_done_callback(done)
+
     def _execute_command(self, command: str) -> None:
         """Execute a command string from the dashboard."""
-        import asyncio as _asyncio
 
         parts = command.strip().split()
         if not parts:
@@ -722,34 +910,19 @@ class RuntimeDashboard:
                     try:
                         proc = self._runtime.get_process(name)
                         if cmd == "start":
-                            _asyncio.run_coroutine_threadsafe(
-                                proc.start(),
-                                _get_event_loop(),
-                            )
+                            self._submit(lambda: proc.start())
                             result_msg = f"Starting {name}..."
                         elif cmd == "stop":
-                            _asyncio.run_coroutine_threadsafe(
-                                proc.stop(),
-                                _get_event_loop(),
-                            )
+                            self._submit(lambda: proc.stop())
                             result_msg = f"Stopping {name}..."
                         elif cmd == "restart":
-                            _asyncio.run_coroutine_threadsafe(
-                                self._runtime.restart_process(name),
-                                _get_event_loop(),
-                            )
+                            self._submit(lambda: self._runtime.restart_process(name))
                             result_msg = f"Restarting {name}..."
                         elif cmd == "suspend":
-                            _asyncio.run_coroutine_threadsafe(
-                                proc.suspend(),
-                                _get_event_loop(),
-                            )
+                            self._submit(lambda: proc.suspend())
                             result_msg = f"Suspending {name}..."
                         elif cmd == "resume":
-                            _asyncio.run_coroutine_threadsafe(
-                                proc.resume(),
-                                _get_event_loop(),
-                            )
+                            self._submit(lambda: proc.resume())
                             result_msg = f"Resuming {name}..."
                     except KeyError:
                         result_msg = f"Process {name!r} not found"
@@ -778,10 +951,7 @@ class RuntimeDashboard:
                             trigger_type="manual",
                             payload=payload,
                         )
-                        _asyncio.run_coroutine_threadsafe(
-                            proc.inject(event),
-                            _get_event_loop(),
-                        )
+                        self._submit(lambda: proc.inject(event))
                         result_msg = f"Injected event into {name}"
                     except KeyError:
                         result_msg = f"Process {name!r} not found"
@@ -1660,17 +1830,3 @@ def _fmt_duration_ms(ms: float) -> str:
     if ms >= 1:
         return f"{ms:.0f}ms"
     return f"{ms:.1f}ms"
-
-
-def _get_event_loop() -> Any:
-    """Get the current running asyncio event loop.
-
-    Falls back to creating a new one if none is running (shouldn't
-    happen in normal runtime operation).
-    """
-    import asyncio
-
-    try:
-        return asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.new_event_loop()

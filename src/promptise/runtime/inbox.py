@@ -72,7 +72,7 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
-# Errors (all subclass ValueError, which add() raised before 1.4.4)
+# Errors (all subclass ValueError, which add() raised in 1.4.3 and earlier)
 # ---------------------------------------------------------------------------
 
 
@@ -90,6 +90,15 @@ class InboxRateLimitError(InboxError):
 
 class InboxFullError(InboxError):
     """The inbox is at ``max_messages`` and nothing can be evicted for this message."""
+
+
+class InboxQuestionRemoved(InboxError):
+    """A question was removed before it was answered (:meth:`MessageInbox.clear`).
+
+    Raised to whoever waits for its answer
+    (:meth:`MessageInbox.wait_for_response`).  A question evicted from a
+    full inbox raises :class:`InboxFullError` there instead.
+    """
 
 
 class InboxMessageRejected(InboxError):
@@ -449,6 +458,47 @@ class MessageInbox:
                 future.set_result(response)
         logger.debug("Inbox: response submitted for question %s", question_id)
 
+    async def rescan(self) -> list[tuple[str, str]]:
+        """Scan the messages already held with :attr:`scanner`; remove flagged ones.
+
+        For a scanner attached after messages arrived (a process attaches
+        its payload scanner when it starts, and a created process already
+        takes messages).  A removed question's waiter gets
+        :class:`InboxMessageRejected`.
+
+        Returns:
+            ``(message_id, reason)`` of every removed message (empty
+            without a scanner).
+        """
+        if self.scanner is None:
+            return []
+        async with self._lock:
+            held = list(self._messages.values())
+        removed: list[tuple[str, str]] = []
+        for message in held:
+            reason = await scan_inbox_message(message, self.scanner)
+            if reason is None:
+                continue
+            async with self._lock:
+                if self._messages.pop(message.message_id, None) is None:
+                    continue
+                future = self._question_futures.pop(message.message_id, None)
+            if future is not None and not future.done():
+                future.set_exception(
+                    InboxMessageRejected(
+                        f"Message removed: the guardrail scanner flagged it ({reason})", reason
+                    )
+                )
+            logger.warning(
+                "Inbox: removed %s message %s from %s (flagged when scanned later: %s)",
+                message.message_type.value,
+                message.message_id,
+                message.sender_id,
+                reason,
+            )
+            removed.append((message.message_id, reason))
+        return removed
+
     async def wait_for_response(self, question_id: str, timeout: float = 300) -> InboxResponse:
         """Wait for the agent to respond to a question.
 
@@ -461,7 +511,10 @@ class MessageInbox:
 
         Raises:
             KeyError: If no pending question with this ID.
-            asyncio.TimeoutError: If timeout expires.
+            asyncio.TimeoutError: If timeout expires, or the question expired.
+            InboxQuestionRemoved: The inbox was cleared.
+            InboxFullError: The question was evicted from a full inbox.
+            InboxMessageRejected: A later scan removed it (:meth:`rescan`).
         """
         async with self._lock:
             future = self._question_futures.get(question_id)
@@ -526,12 +579,20 @@ class MessageInbox:
             return self._purge_expired_locked()
 
     async def clear(self) -> None:
-        """Clear all messages and cancel pending question futures."""
+        """Clear all messages.
+
+        Whoever waits for the answer to a cleared question gets
+        :class:`InboxQuestionRemoved` (in 1.4.3 and earlier the wait was cancelled,
+        which dropped an ``/ask`` request's connection).
+        """
         async with self._lock:
-            # Cancel all pending question futures
             for future in self._question_futures.values():
                 if not future.done():
-                    future.cancel()
+                    future.set_exception(
+                        InboxQuestionRemoved(
+                            "The inbox was cleared before the question was answered"
+                        )
+                    )
             self._messages.clear()
             self._question_futures.clear()
 

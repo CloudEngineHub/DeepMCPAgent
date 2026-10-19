@@ -803,7 +803,7 @@ class Mem0Provider:
         reference.  After calling ``close()``, any further operations
         will raise ``RuntimeError``.
 
-        Before 1.4.4 this called Mem0's ``Memory.reset()``, which deletes
+        In 1.4.3 and earlier this called Mem0's ``Memory.reset()``, which deletes
         *every* stored memory (the vector store collection and the history
         database), so closing a provider (``AgentProcess.close()``,
         ``async with``, removing a runtime process) wiped the memories it

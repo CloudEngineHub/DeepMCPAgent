@@ -29,6 +29,18 @@ Security model:
   cross-site ``Origin`` with ``403``, so a web page open in a browser on
   the same machine can't drive the runtime.
 * Request bodies must be JSON objects (``400`` otherwise).
+* Deploys can't run programs on the host unless that is enabled: a
+  ``POST /api/v1/processes`` whose config has a stdio MCP server (a
+  ``command``) or a command hook is refused with ``403
+  COMMANDS_NOT_ALLOWED`` unless the API was created with
+  ``allow_command_deploys=True`` (``promptise runtime start
+  --allow-command-deploys``).  The other routes that change a process
+  (triggers, ``PATCH`` sections, context, instructions) have no field
+  that runs a program, and an open-mode agent's ``connect_mcp_server``
+  only connects HTTP servers and ``spawn_process`` children get no
+  servers or hooks, so a deployed agent can't start one either.
+  Processes the operator loads from manifests on the host are not
+  affected.
 * ``PATCH`` on ``budget``, ``health`` and ``mission`` validates the patched
   section against its config model (limits, strict JSON types, no unknown
   fields) and answers ``422`` without changing anything when it fails.
@@ -72,7 +84,7 @@ from .triggers.base import config_trigger_ids
 
 logger = logging.getLogger("promptise.runtime.api")
 
-__all__ = ["ERROR_CODES", "OrchestrationAPI", "config_trigger_ids"]
+__all__ = ["ERROR_CODES", "OrchestrationAPI", "command_features", "config_trigger_ids"]
 
 # Process name validation: alphanumeric + hyphens + underscores, max 64 chars
 _PROCESS_NAME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]{0,63}$")
@@ -94,7 +106,9 @@ _AUDIT_PROCESS: Any = (
 )
 
 #: Every error code the API answers with: ``code -> (status, meaning)``.
-ERROR_CODES: dict[str, tuple[int, str]] = {
+#: The status is ``None`` for ``HTTP_ERROR``, which keeps the status of the
+#: underlying HTTP error.
+ERROR_CODES: dict[str, tuple[int | None, str]] = {
     "INVALID_JSON": (400, "Request body is not a JSON object"),
     "INBOX_DISABLED": (400, "Inbox operation on a process without an inbox"),
     "SECRETS_DISABLED": (400, "Secret operation on a process without secret scoping"),
@@ -107,14 +121,23 @@ ERROR_CODES: dict[str, tuple[int, str]] = {
     "UNAUTHORIZED": (401, "Missing or wrong bearer token"),
     "WRITE_DENIED": (403, "Context key(s) not writable (nothing was written)"),
     "CROSS_ORIGIN_REFUSED": (403, "Cross-site Origin on a loopback bind"),
+    "COMMANDS_NOT_ALLOWED": (
+        403,
+        "Deploy with a stdio MCP server or a command hook while allow_command_deploys is off",
+    ),
     "NOT_FOUND": (404, "No such route"),
     "PROCESS_NOT_FOUND": (404, "Process name doesn't exist"),
     "TRIGGER_NOT_FOUND": (404, "Trigger ID doesn't exist"),
     "SECRET_NOT_FOUND": (404, "The process has no secret of that name"),
     "ENTRY_NOT_FOUND": (404, "Journal entry ID doesn't exist (rewind target)"),
     "METHOD_NOT_ALLOWED": (405, "The route doesn't accept this method"),
+    "QUESTION_REMOVED": (
+        410,
+        "/ask: the question was cleared or evicted from the inbox before it was answered",
+    ),
     "PAYLOAD_TOO_LARGE": (413, "Request body over the server's size limit (1 MiB)"),
-    "HTTP_ERROR": (400, "Another HTTP error from the server; the status says which"),
+    # No fixed status: the HTTP error's own (400, 408, 411, 414, 431, ...).
+    "HTTP_ERROR": (None, "Another HTTP error from the server; the response status says which"),
     "PROCESS_EXISTS": (409, "Deploy with a name that's already registered"),
     "PROCESS_NOT_RUNNING": (409, "Message or question to a stopped or failed process"),
     "TRIGGER_EXISTS": (409, "Adding a trigger identical to an existing one"),
@@ -137,8 +160,10 @@ ERROR_CODES: dict[str, tuple[int, str]] = {
     "RESTART_FAILED": (500, "The process failed to restart"),
 }
 
-#: Process states in which triggers run and live changes take effect.
-_ACTIVE_STATES = frozenset({"starting", "running", "suspended", "awaiting"})
+#: Process states in which triggers run and live changes take effect (the
+#: states in which ``AgentProcess.add_trigger`` starts a trigger at once; a
+#: starting process is reported by the state it reaches).
+_ACTIVE_STATES = frozenset({"running", "suspended", "awaiting"})
 
 #: States in which a process takes no messages (as ``process.send_message``).
 _CLOSED_STATES = frozenset({"stopped", "failed"})
@@ -182,6 +207,38 @@ def _http_error_response(exc: web.HTTPException) -> web.Response:
         exc.status, "HTTP_ERROR"
     )
     return _error_response(code, exc.reason, exc.status)
+
+
+def command_features(config: Any) -> list[str]:
+    """What in a process config runs a program on the host.
+
+    Stdio MCP servers (a :class:`~promptise.config.StdioServerSpec`, or a
+    dict entry with a ``command`` or ``type``/``transport`` ``"stdio"``)
+    and command hooks (:class:`~promptise.runtime.config.HookConfig` with
+    ``command``).  Returns one description per finding, e.g.
+    ``"servers['files'] (stdio MCP server)"``; empty when there is none.
+    """
+    from promptise.config import StdioServerSpec
+
+    found: list[str] = []
+    for name, spec in (getattr(config, "servers", None) or {}).items():
+        if isinstance(spec, StdioServerSpec):
+            stdio = True
+        elif isinstance(spec, Mapping):
+            transport = str(spec.get("type", spec.get("transport", "")) or "").lower()
+            stdio = "command" in spec or transport == "stdio"
+        else:
+            stdio = False
+        if stdio:
+            found.append(f"servers[{name!r}] (stdio MCP server)")
+    for index, hook in enumerate(getattr(config, "hooks", None) or []):
+        command = (
+            hook.get("command") if isinstance(hook, Mapping) else getattr(hook, "command", None)
+        )
+        if command is not None:
+            event = hook.get("event") if isinstance(hook, Mapping) else getattr(hook, "event", "?")
+            found.append(f"hooks[{index}] (command hook for {event!r})")
+    return found
 
 
 def _not_found(name: str) -> web.Response:
@@ -313,6 +370,15 @@ class OrchestrationAPI:
             e.g. ``runtime.request_shutdown``.  Without it the route
             doesn't exist (``404``).  ``promptise runtime start`` uses it
             for ``promptise runtime stop``.
+        allow_command_deploys: Let ``POST /api/v1/processes`` deploy
+            processes that run programs on this host: stdio MCP servers
+            (``command``) and command hooks.  Off by default, because
+            anyone with the token could then run any command as the
+            runtime's user; such a deploy answers ``403
+            COMMANDS_NOT_ALLOWED``.  Turn it on only when every token
+            holder may run commands here.  Processes already in the
+            runtime (loaded from manifests by the operator) are not
+            checked.
 
     Raises:
         ValueError: ``auth_token`` is empty, names an unset environment
@@ -328,6 +394,7 @@ class OrchestrationAPI:
         port: int = 9100,
         auth_token: str | None = None,
         on_shutdown: Callable[[], Any] | None = None,
+        allow_command_deploys: bool = False,
     ) -> None:
         if on_shutdown is not None and not callable(on_shutdown):
             raise TypeError(f"on_shutdown must be callable, got {type(on_shutdown).__name__}")
@@ -355,6 +422,7 @@ class OrchestrationAPI:
         self._port = port
         self._auth_token = auth_token
         self._on_shutdown = on_shutdown
+        self._allow_command_deploys = bool(allow_command_deploys)
         self._shutdown_tasks: set[asyncio.Future[Any]] = set()
 
         self._app: web.Application | None = None
@@ -695,8 +763,10 @@ class OrchestrationAPI:
 
     async def _handle_deploy(self, request: web.Request) -> web.Response:
         """Deploy a process: ``201``, ``409 PROCESS_EXISTS``, ``422`` for a
-        bad name or config, ``500 START_FAILED`` when ``start`` fails (the
-        process stays deployed)."""
+        bad name or config, ``403 COMMANDS_NOT_ALLOWED`` for a config with
+        stdio servers or command hooks (unless ``allow_command_deploys``),
+        ``500 START_FAILED`` when ``start`` fails (the process stays
+        deployed)."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
@@ -729,6 +799,9 @@ class OrchestrationAPI:
             return _error_response(
                 "INVALID_CONFIG", f"Config validation failed: {_validation_detail(exc)}", 422
             )
+        refused = self._refuse_commands(config)
+        if refused is not None:
+            return refused
 
         from .exceptions import RuntimeBaseError
 
@@ -763,6 +836,29 @@ class OrchestrationAPI:
                 "created_at": time.time(),
             },
             status=201,
+        )
+
+    def _refuse_commands(self, config: Any) -> web.Response | None:
+        """``403 COMMANDS_NOT_ALLOWED`` when *config* would run host programs
+        and ``allow_command_deploys`` is off (``None`` otherwise)."""
+        if self._allow_command_deploys:
+            return None
+        features = command_features(config)
+        if not features:
+            return None
+        logger.warning(
+            "OrchestrationAPI: refused a deploy that runs host commands: %s", ", ".join(features)
+        )
+        return _error_response(
+            "COMMANDS_NOT_ALLOWED",
+            "This config runs programs on the runtime's host ("
+            + ", ".join(features)
+            + "), which the control API doesn't allow by default: anyone with the API "
+            "token could run any command. Use HTTP MCP servers and callback hooks, load "
+            "the process from a manifest on the host, or, if every token holder may run "
+            "commands there, start the API with OrchestrationAPI(allow_command_deploys=True) "
+            "('promptise runtime start --allow-command-deploys').",
+            403,
         )
 
     async def _handle_remove_process(self, request: web.Request) -> web.Response:
@@ -907,7 +1003,11 @@ class OrchestrationAPI:
             )
 
         built = getattr(process, _SUBSYSTEMS[section], None) is not None
-        error = _apply_patch(getattr(process.config, section), body)
+        config_section = getattr(process.config, section)
+        previous = {
+            key: getattr(config_section, key) for key in body if hasattr(config_section, key)
+        }
+        error = _apply_patch(config_section, body)
         if error is not None:
             return error
 
@@ -915,7 +1015,27 @@ class OrchestrationAPI:
         result: dict[str, Any] = {"name": name, f"{section}_updated": True}
         apply = getattr(process, "apply_governance_config", None)
         if callable(apply):
-            await _maybe_await(apply(section))
+            try:
+                await _maybe_await(apply(section))
+            except (ValueError, TypeError) as exc:
+                # The process can't use the new values: put the old ones
+                # back (and re-apply them), so config and process agree.
+                for key, value in previous.items():
+                    setattr(config_section, key, value)
+                try:
+                    await _maybe_await(apply(section))
+                except Exception:
+                    logger.warning(
+                        "OrchestrationAPI: could not re-apply the previous %s config of %r",
+                        section,
+                        name,
+                        exc_info=True,
+                    )
+                return _error_response(
+                    "INVALID_CONFIG",
+                    f"The process can't apply this {section} config (nothing changed): {exc}",
+                    422,
+                )
             result.update(effective_from=live_effect, live=True)
             return _json_response(result)
 
@@ -1081,10 +1201,23 @@ class OrchestrationAPI:
             return error
 
         # Long-poll: wait for the agent to respond
+        from .inbox import InboxFullError, InboxMessageRejected, InboxQuestionRemoved
+
         try:
             response = await inbox.wait_for_response(msg_id, timeout=timeout)
         except asyncio.TimeoutError:
             return _json_response({"question_id": msg_id, "status": "timeout", "response": None})
+        except InboxMessageRejected as exc:  # removed by a later scan
+            return _error_response("MESSAGE_REJECTED", str(exc), 422)
+        except InboxQuestionRemoved as exc:  # DELETE /inbox while waiting
+            return _error_response("QUESTION_REMOVED", f"{exc} (question {msg_id})", 410)
+        except InboxFullError:  # evicted to make room for another message
+            return _error_response(
+                "QUESTION_REMOVED",
+                f"The question {msg_id} was evicted from the full inbox before it was "
+                "answered (raise inbox.max_messages, or send it with a higher priority)",
+                410,
+            )
         return _json_response(
             {
                 "question_id": msg_id,
@@ -1146,7 +1279,10 @@ class OrchestrationAPI:
 
     async def _handle_get_context(self, request: web.Request) -> web.Response:
         """State and writable keys (``writable_keys: []`` with
-        ``all_keys_writable: true`` when every key is writable)."""
+        ``all_keys_writable: true`` when every key is writable).
+
+        Secret values in the state are shown as ``[REDACTED]``, as in the
+        journal and the state recovered from it."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
@@ -1157,9 +1293,13 @@ class OrchestrationAPI:
             return _not_found(name)
         ctx = process.context
         writable = ctx.writable_keys
+        state = ctx.state_snapshot()
+        redact = getattr(process, "_redact", None)
+        if callable(redact):
+            state = redact(state)
         return _json_response(
             {
-                "state": ctx.state_snapshot(),
+                "state": state,
                 "writable_keys": writable or [],
                 "all_keys_writable": writable is None,
             }
@@ -1299,7 +1439,8 @@ class OrchestrationAPI:
                 return _error_response("INVALID_CONFIG", f"Invalid trigger config: {exc}", 422)
             if isinstance(returned, str):
                 trigger_id = returned
-            live = state in _ACTIVE_STATES
+            # add_trigger waits for a start in progress: judge by the state now.
+            live = _state_value(process) in _ACTIVE_STATES
             effective = "immediate" if live else "next_start"
         else:
             triggers.append(tc)
@@ -1371,8 +1512,10 @@ class OrchestrationAPI:
             result["warning"] = message
         if callable(remove):
             await _maybe_await(remove(stable_id))
-            live = True
-            effective = "immediate" if state in _ACTIVE_STATES else "next_start"
+            # Live when a running trigger was stopped; a process that isn't
+            # running just doesn't create it on its next start.
+            live = _state_value(process) in _ACTIVE_STATES
+            effective = "immediate" if live else "next_start"
         else:
             process.config.triggers.pop(index)
             live = state not in _ACTIVE_STATES

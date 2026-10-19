@@ -754,18 +754,50 @@ class TestCommandExecution:
         assert result.success is False
         assert "No runtime reference" in result.result
 
+    @staticmethod
+    def _with_loop(dashboard):
+        """Give *dashboard* a running event loop (start() captures the
+        runtime's loop; commands run their coroutines on it)."""
+        import asyncio
+        import threading
+
+        loop = asyncio.new_event_loop()
+        threading.Thread(target=loop.run_forever, daemon=True).start()
+        dashboard._loop = loop
+        return loop
+
     def test_inject_command(self):
         dashboard = self._make_dashboard_with_runtime()
-        dashboard._execute_command('inject watcher {"reason": "test"}')
-        result = dashboard._state.commands[0]
-        assert result.success is True
-        assert "Injected" in result.result
+        loop = self._with_loop(dashboard)
+        try:
+            dashboard._execute_command('inject watcher {"reason": "test"}')
+            result = dashboard._state.commands[0]
+            assert result.success is True
+            assert "Injected" in result.result
+            proc = dashboard._runtime.get_process("watcher")
+            for _ in range(100):
+                if proc.inject.await_count:
+                    break
+                time.sleep(0.01)
+            assert proc.inject.await_count == 1
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
 
     def test_inject_invalid_json(self):
         dashboard = self._make_dashboard_with_runtime()
-        dashboard._execute_command("inject watcher not-json")
+        loop = self._with_loop(dashboard)
+        try:
+            dashboard._execute_command("inject watcher not-json")
+            result = dashboard._state.commands[0]
+            assert result.success is True  # Falls back to raw payload
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
+
+    def test_commands_without_a_loop_say_so(self):
+        dashboard = self._make_dashboard_with_runtime()
+        dashboard._execute_command("stop watcher")
         result = dashboard._state.commands[0]
-        assert result.success is True  # Falls back to raw payload
+        assert result.success is False and "event loop" in result.result
 
     def test_inject_not_found(self):
         dashboard = self._make_dashboard_with_runtime()

@@ -164,7 +164,7 @@ class ShellHook:
             commands written in code: the command string is passed to the
             shell as is (the payload never is).
         encoding: stdin/stdout encoding. Default "utf-8".
-        inherit_env: Pass the whole host environment (before 1.4.4 the
+        inherit_env: Pass the whole host environment (in 1.4.3 and earlier the
             default).  Off by default so credentials in the environment
             don't reach hook programs.
         env_passthrough: Names of host environment variables to pass

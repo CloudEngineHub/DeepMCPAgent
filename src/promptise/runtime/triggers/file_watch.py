@@ -57,7 +57,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .base import TriggerEvent
+from .base import TriggerEvent, drain_queue
 
 #: Event types a :class:`FileWatchTrigger` can report.
 FILE_EVENT_TYPES = frozenset({"created", "modified", "deleted", "moved"})
@@ -152,6 +152,8 @@ class FileWatchTrigger:
         # Changes whose debounce window closed while the queue was full:
         # path -> raw event types, in arrival order (see _drain_backlog).
         self._backlog: dict[str, list[str]] = {}
+        # Waiting changes turned into events by stop() (see drain_pending).
+        self._leftover: list[TriggerEvent] = []
         self._dropped_events = 0
         self._stopped = False
         self._stop_event = asyncio.Event()
@@ -237,6 +239,16 @@ class FileWatchTrigger:
         for handle in self._pending_handles.values():
             handle.cancel()
         self._pending_handles.clear()
+        # Changes still waiting (backlog first, then those in their
+        # debounce window) become events for drain_pending().
+        waiting = {path: list(types) for path, types in self._backlog.items()}
+        for path, types in self._pending.items():
+            merged = waiting.setdefault(path, [])
+            merged.extend(t for t in types if t not in merged)
+        for path, types in waiting.items():
+            event = self._build_event(path, types)
+            if event is not None:
+                self._leftover.append(event)
         self._pending.clear()
         self._backlog.clear()
 
@@ -253,6 +265,14 @@ class FileWatchTrigger:
             pass
 
         logger.info("FileWatchTrigger stopped")
+
+    def drain_pending(self) -> list[TriggerEvent]:
+        """Take the changes nobody consumed (after :meth:`stop`): the queued
+        events, then the backlog and the changes still in their debounce
+        window."""
+        events = drain_queue(self._queue) + self._leftover
+        self._leftover = []
+        return events
 
     async def wait_for_next(self) -> TriggerEvent:
         """Wait for the next file change event.

@@ -223,8 +223,12 @@ class TestHealthSignals:
         monitor = HealthMonitor(HealthConfig(enabled=True, stuck_threshold=2), "p")
         await monitor.record_tool_call("t", {"a": 1})
         assert await monitor.record_tool_call("t", {"a": 1}) is not None  # stuck
-        assert await monitor.record_success() is True
+        # The run that got stuck finishing is not a recovery (since the runtime hardening) ...
         assert await monitor.record_success() is False
+        # ... the next clean run is, once.
+        monitor.begin_invocation()
+        assert await monitor.record_success() is True
+        monitor.begin_invocation()
         assert await monitor.record_success() is False
 
     async def test_success_without_anomaly_is_not_a_recovery(self) -> None:

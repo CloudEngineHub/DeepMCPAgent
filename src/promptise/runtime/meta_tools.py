@@ -302,7 +302,13 @@ async def _connect_mcp_server(
     url: str,
     transport: str = "streamable-http",
 ) -> str:
-    """Implementation for connect_mcp_server tool."""
+    """Implementation for connect_mcp_server tool.
+
+    Only HTTP(S) servers: the agent can't start a stdio server (a program
+    on the host), whatever ``allowed_mcp_urls`` says.
+    """
+    if not url.strip().lower().startswith(("http://", "https://")):
+        return "Error: the MCP server URL must start with http:// or https://"
     allowed = process.config.open_mode.allowed_mcp_urls
     if allowed:
         # Normalize URLs for comparison: lowercase scheme+host, strip trailing slash

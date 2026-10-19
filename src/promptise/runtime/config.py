@@ -58,7 +58,36 @@ class ExecutionMode(str, Enum):
     OPEN = "open"
 
 
-class OpenModeConfig(BaseModel):
+class _WarnOnUnknownKeys(BaseModel):
+    """Base for section configs: unknown keys warn instead of vanishing.
+
+    In 1.4.3 and earlier these models dropped unknown keys without a word, so a
+    misspelt option (``error_windw``) silently kept its default.  They are
+    still ignored, for backward compatibility, but now emit a
+    ``FutureWarning`` naming them; a future release will reject them, as
+    :class:`ProcessConfig` and :class:`TriggerConfig` already do.  Manifests
+    and the orchestration API reject them today.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _warn_unknown_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            unknown = sorted(str(k) for k in data if k not in cls.model_fields)
+            if unknown:
+                warnings.warn(
+                    f"{cls.__name__}: unknown key(s) {unknown} are ignored; "
+                    f"valid keys are {sorted(cls.model_fields)}. Unknown keys will be "
+                    "rejected in a future release.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+        return data
+
+
+class OpenModeConfig(_WarnOnUnknownKeys):
     """Guardrails for open execution mode.
 
     Controls what the agent is allowed to self-modify and how far.
@@ -83,6 +112,8 @@ class OpenModeConfig(BaseModel):
         allow_process_spawn: Agent can spawn new processes within the
             runtime.  Defaults to ``False``.
         max_spawned_processes: Max number of processes this agent can spawn.
+
+    Unknown keys are ignored with a ``FutureWarning``.
     """
 
     allow_identity_change: bool = Field(True, description="Agent can modify its own instructions")
@@ -122,35 +153,6 @@ class OpenModeConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # Atomic configs
 # ---------------------------------------------------------------------------
-
-
-class _WarnOnUnknownKeys(BaseModel):
-    """Base for section configs: unknown keys warn instead of vanishing.
-
-    Before 1.4.4 these models dropped unknown keys without a word, so a
-    misspelt option (``error_windw``) silently kept its default.  They are
-    still ignored, for backward compatibility, but now emit a
-    ``FutureWarning`` naming them; a future release will reject them, as
-    :class:`ProcessConfig` and :class:`TriggerConfig` already do.  Manifests
-    and the orchestration API reject them today.
-    """
-
-    model_config = ConfigDict(extra="ignore")
-
-    @model_validator(mode="before")
-    @classmethod
-    def _warn_unknown_keys(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            unknown = sorted(str(k) for k in data if k not in cls.model_fields)
-            if unknown:
-                warnings.warn(
-                    f"{cls.__name__}: unknown key(s) {unknown} are ignored; "
-                    f"valid keys are {sorted(cls.model_fields)}. Unknown keys will be "
-                    "rejected in a future release.",
-                    FutureWarning,
-                    stacklevel=2,
-                )
-        return data
 
 
 #: Filesystem events a ``file_watch`` trigger can react to.
@@ -658,8 +660,9 @@ class SecretScopeConfig(_WarnOnUnknownKeys):
             them) is resolved from ``os.environ`` when the process starts,
             not when the config is built, so the config holds no secret
             value.  Values are stored as :class:`~pydantic.SecretStr`:
-            ``repr()`` and JSON dumps show ``**********`` for literal
-            values (references are shown as written).
+            ``repr()`` shows ``**********`` for every value; JSON dumps
+            (``model_dump(mode="json")``) mask literal values and keep
+            references as written, so a dumped config can be loaded again.
         default_ttl: Default TTL in seconds (``None`` = no expiry).
         ttls: Per-secret TTL overrides in seconds.  Every name must be a
             key of ``secrets``.
@@ -729,6 +732,8 @@ class BudgetConfig(_WarnOnUnknownKeys):
         escalation: Escalation target for violations.
         daily_reset_hour_utc: UTC hour to reset daily counters.
         inject_remaining: Inject remaining budget into agent context.
+        warning_threshold: Fraction of a limit at which a
+            ``budget.warning`` event is emitted (default ``0.8``: 80%).
     """
 
     enabled: bool = Field(False, description="Enable budget tracking")
@@ -744,6 +749,9 @@ class BudgetConfig(_WarnOnUnknownKeys):
     escalation: EscalationTarget | None = Field(None)
     daily_reset_hour_utc: int = Field(0, ge=0, le=23)
     inject_remaining: bool = Field(True)
+    warning_threshold: float = Field(
+        0.8, gt=0, le=1, description="Fraction of a limit that emits budget.warning"
+    )
 
 
 class HealthConfig(_WarnOnUnknownKeys):
@@ -803,7 +811,9 @@ class MissionConfig(_WarnOnUnknownKeys):
         success_criteria: How to judge completion.
         eval_model: LLM for evaluation (None = use process model).
         eval_every: Evaluate every N invocations.
-        confidence_threshold: Below this = pause + escalate.
+        confidence_threshold: An evaluation that isn't achieved and has a lower
+            confidence escalates to ``escalation`` (when set); the process
+            keeps running (it is not paused).
         timeout_hours: Max hours (0 = no timeout).
         max_invocations: Max invocations (0 = unlimited).
         auto_complete: Stop the process when the mission is achieved
@@ -1217,7 +1227,7 @@ class DistributedConfig(_WarnOnUnknownKeys):
 
     Raises:
         ValueError: An inconsistent combination (each message says what
-            to change).  Before 1.4.4 these fields were read by nothing.
+            to change).  In 1.4.3 and earlier these fields were read by nothing.
 
     Unknown keys are ignored with a ``FutureWarning``.
     """
@@ -1351,7 +1361,7 @@ class DistributedConfig(_WarnOnUnknownKeys):
         return self.node_timeout if self.node_timeout is not None else 3 * self.heartbeat_interval
 
 
-class RuntimeConfig(BaseModel):
+class RuntimeConfig(_WarnOnUnknownKeys):
     """Top-level runtime configuration (composite).
 
     Aggregates per-process configs and global settings.
@@ -1359,6 +1369,8 @@ class RuntimeConfig(BaseModel):
     Attributes:
         processes: Named process configurations.
         distributed: Distributed coordination settings.
+
+    Unknown keys are ignored with a ``FutureWarning``.
     """
 
     processes: dict[str, ProcessConfig] = Field(
@@ -1396,7 +1408,7 @@ DEFAULT_DEVELOPMENT_CONFIG = RuntimeConfig(
 #: per process (``journal``, ``restart_policy``, ``health``, ``budget``,
 #: ``trigger_delivery``) and distributed mode needs your cluster's
 #: details (``coordinator`` / ``coordinator_url``, ``auth_token``), so no
-#: preset can turn either on.  Before 1.4.4 this preset set
+#: preset can turn either on.  In 1.4.3 and earlier this preset set
 #: ``distributed.enabled=True``, which did nothing then; now that the flag
 #: starts a network transport, the preset leaves it off.
 DEFAULT_PRODUCTION_CONFIG = RuntimeConfig(

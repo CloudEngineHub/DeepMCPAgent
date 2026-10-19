@@ -425,9 +425,10 @@ class TestManifestToProcessConfig:
     def test_identity_invalid_local_is_rejected(self) -> None:
         from pydantic import ValidationError
 
-        manifest = AgentManifestSchema(name="bad", identity={"provider": "local"})
+        # Rejected when the manifest is validated (load / 'promptise runtime
+        # validate'), not only when the process config is built.
         with pytest.raises(ValidationError, match="requires 'agent_id'"):
-            manifest_to_process_config(manifest)
+            AgentManifestSchema(name="bad", identity={"provider": "local"})
 
     def test_identity_env_resolved_via_load_manifest(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

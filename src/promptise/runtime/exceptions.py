@@ -18,7 +18,7 @@ class ProcessStateError(RuntimeBaseError):
 
     The runtime raises its subclass
     :class:`~promptise.runtime.lifecycle.StateError`, which is also a
-    :class:`ValueError` (what it was before 1.4.4), so ``except
+    :class:`ValueError` (what it was in 1.4.3 and earlier), so ``except
     ProcessStateError``, ``except StateError`` and ``except ValueError``
     all catch an invalid transition.
 

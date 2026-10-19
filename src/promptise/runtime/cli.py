@@ -10,6 +10,7 @@ Commands::
     promptise runtime stop [name]        Stop a runtime (or one process)
     promptise runtime restart [name]     Restart a runtime's processes (or one)
     promptise runtime logs <process>     Show (or follow) journal entries
+    promptise runtime rewind <process>   Rewind a process to a journal entry
     promptise runtime validate <path>    Validate .agent file(s)
     promptise runtime init               Generate template .agent file
 
@@ -369,13 +370,26 @@ def start(
             help="Port of the control API (default 0: a free port)",
         ),
     ] = 0,
+    allow_command_deploys: Annotated[
+        bool,
+        typer.Option(
+            "--allow-command-deploys",
+            help=(
+                "Let the control API deploy processes with stdio MCP servers or command "
+                "hooks, i.e. let anyone with the API token run commands on this machine "
+                "(refused with 403 COMMANDS_NOT_ALLOWED by default). The manifests you "
+                "start here are not affected."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Start agent process(es) from a .agent manifest or directory.
 
     Runs in the foreground until Ctrl+C or SIGTERM (``docker stop``), or
     until ``promptise runtime stop``; both stop every process gracefully.
     The control API's bearer token is random unless $PROMPTISE_RUNTIME_TOKEN
-    is set.
+    is set.  It refuses deploys that would run commands on this machine
+    unless --allow-command-deploys is given.
     """
     path = Path(manifest)
 
@@ -406,11 +420,13 @@ def start(
         )
 
     if detach:
-        _start_detached(path, name, rname, api_host, api_port)
+        _start_detached(path, name, rname, api_host, api_port, allow_command_deploys)
         return
 
     try:
-        code = asyncio.run(_run_foreground(path, name, rname, dashboard, api_host, api_port))
+        code = asyncio.run(
+            _run_foreground(path, name, rname, dashboard, api_host, api_port, allow_command_deploys)
+        )
     except ManifestValidationError as exc:
         _fail(f"Manifest validation failed: {exc}")
     except ManifestError as exc:
@@ -501,7 +517,12 @@ class _SignalCatcher:
 
 
 def _make_api(
-    runtime: AgentRuntime, host: str, port: int, token: str, shutdown: asyncio.Event
+    runtime: AgentRuntime,
+    host: str,
+    port: int,
+    token: str,
+    shutdown: asyncio.Event,
+    allow_command_deploys: bool = False,
 ) -> Any:
     """An Orchestration API for *runtime*, with ``POST /api/v1/runtime/shutdown``.
 
@@ -512,7 +533,12 @@ def _make_api(
     from .api import OrchestrationAPI
 
     return OrchestrationAPI(
-        runtime, host=host, port=port, auth_token=token, on_shutdown=shutdown.set
+        runtime,
+        host=host,
+        port=port,
+        auth_token=token,
+        on_shutdown=shutdown.set,
+        allow_command_deploys=allow_command_deploys,
     )
 
 
@@ -579,6 +605,7 @@ async def _run_foreground(
     dashboard: bool,
     api_host: str,
     api_port: int,
+    allow_command_deploys: bool = False,
 ) -> int:
     """Run the runtime until shutdown; return the exit code."""
     import secrets
@@ -634,7 +661,7 @@ async def _run_foreground(
 
         token = os.environ.get(TOKEN_ENV) or secrets.token_urlsafe(32)
         try:
-            api = _make_api(runtime, api_host, api_port, token, shutdown)
+            api = _make_api(runtime, api_host, api_port, token, shutdown, allow_command_deploys)
             await api.start()
         except (OSError, ValueError) as exc:
             api = None
@@ -689,6 +716,11 @@ async def _run_foreground(
                 f"\n[bold]Runtime[/bold] {escape(rname)} (pid {state.pid}), "
                 f"control API on {state.url}"
             )
+            if allow_command_deploys:
+                console.print(
+                    "[yellow]--allow-command-deploys: API deploys may run commands on "
+                    "this machine (stdio MCP servers, command hooks).[/yellow]"
+                )
             console.print(
                 "[dim]Press Ctrl+C to stop all processes, or run "
                 f"'promptise runtime stop {escape(rname)}' from another terminal.[/dim]"
@@ -718,7 +750,14 @@ async def _run_foreground(
             console.print("[green]All processes stopped.[/green]")
 
 
-def _start_detached(path: Path, name: str | None, rname: str, api_host: str, api_port: int) -> None:
+def _start_detached(
+    path: Path,
+    name: str | None,
+    rname: str,
+    api_host: str,
+    api_port: int,
+    allow_command_deploys: bool = False,
+) -> None:
     """Start the runtime as a detached background process and wait until it is ready."""
     import secrets
     import subprocess
@@ -745,6 +784,8 @@ def _start_detached(path: Path, name: str | None, rname: str, api_host: str, api
     ]
     if name is not None:
         cmd += ["--name", name]
+    if allow_command_deploys:
+        cmd.append("--allow-command-deploys")
     env = dict(os.environ)
     env[LAUNCH_ENV] = launch_id
     env["PYTHONUNBUFFERED"] = "1"
@@ -1033,7 +1074,10 @@ def logs(
     url: _UrlOption = None,
     token: _TokenOption = None,
 ) -> None:
-    """Show journal entries for a process (the newest --lines; --follow for more)."""
+    """Show journal entries for a process (the newest --lines; --follow for more).
+
+    Each entry shows its entry ID, the target 'promptise runtime rewind' takes.
+    """
     target: _Target | None = None
     file_dir: Path | None = None
     if url is not None:
@@ -1077,18 +1121,34 @@ def _journal_file_id(name: str) -> str:
     return name.replace("/", "_").replace("\\", "_")[:200]
 
 
-def _entry_row(entry: dict[str, Any]) -> tuple[str, str, str]:
+def _entry_row(entry: dict[str, Any]) -> tuple[str, str, str, str]:
+    """``(time, entry_id, type, data)`` of a journal entry, for display."""
     ts = entry.get("timestamp")
     time_str = str(ts)[:23] if ts is not None else "?"
     data_str = json.dumps(entry.get("data", {}), default=str)
     if len(data_str) > 80:
         data_str = data_str[:77] + "..."
-    return time_str, str(entry.get("entry_type", "?")), data_str
+    entry_id = str(entry.get("entry_id") or "-")
+    return time_str, entry_id, str(entry.get("entry_type", "?")), data_str
+
+
+#: Narrowest terminal that shows journal entries as a table (the entry IDs
+#: alone take 36 columns); narrower ones get one line per entry.
+_TABLE_MIN_WIDTH = 110
 
 
 def _print_entries(name: str, entries: list[dict[str, Any]]) -> None:
+    if console.width < _TABLE_MIN_WIDTH:
+        console.print(
+            f"[bold]Journal: {escape(name)}[/bold]  [dim](time, entry ID, type, data)[/dim]"
+        )
+        for entry in entries:
+            _print_entry_line(entry)
+        return
     table = Table(title=f"Journal: {name}", show_lines=False)
     table.add_column("Time", style="dim", width=23)
+    # Never cut: it is what 'promptise runtime rewind' takes.
+    table.add_column("Entry ID", style="magenta", no_wrap=True, min_width=36)
     table.add_column("Type", style="cyan", width=20)
     table.add_column("Data", style="white")
     for entry in entries:
@@ -1097,10 +1157,12 @@ def _print_entries(name: str, entries: list[dict[str, Any]]) -> None:
 
 
 def _print_entry_line(entry: dict[str, Any]) -> None:
-    time_str, entry_type, data_str = _entry_row(entry)
+    time_str, entry_id, entry_type, data_str = _entry_row(entry)
     console.print(
-        f"[dim]{escape(time_str)}[/dim]  [cyan]{escape(entry_type)}[/cyan]  {escape(data_str)}",
+        f"[dim]{escape(time_str)}[/dim]  [magenta]{escape(entry_id)}[/magenta]  "
+        f"[cyan]{escape(entry_type)}[/cyan]  {escape(data_str)}",
         highlight=False,
+        soft_wrap=True,
     )
 
 
@@ -1234,6 +1296,199 @@ def restart(
     result = _api(target, _restart_all, timeout=120.0)
     console.print(f"[green]Restarted every process[/green] of {escape(target.label)}")
     _print_status_table(result)
+
+
+# ---------------------------------------------------------------------------
+# runtime rewind
+# ---------------------------------------------------------------------------
+
+#: Modes ``rewind`` accepts (``cancel`` is ``--plan``).
+_REWIND_MODES = ("both", "conversation_only", "code_only", "summarize")
+
+_REWIND_MODE_HELP = {
+    "both": "the conversation and the context state",
+    "conversation_only": "the conversation only (context state kept)",
+    "code_only": "the context state only (conversation kept)",
+    "summarize": "nothing; a summary of what happened since is added to the conversation",
+}
+
+
+def _process_target(
+    process: str, runtime_name: str | None, url: str | None, token: str | None
+) -> _Target:
+    """The runtime that runs *process*: ``--url``, ``--runtime``, or the one
+    local runtime whose manifests have it (or the only one running)."""
+    if url is not None:
+        if runtime_name is not None:
+            _fail("--runtime names a runtime on this machine; it can't be combined with --url")
+        return _resolve_targets(None, process, url, token)[0][0]
+    if runtime_name is not None:
+        states = {s.name: s for s in _local_states()}
+        if token is not None:
+            _fail(
+                "--token only applies with --url; a runtime on this machine is reached "
+                "with the token from its state file"
+            )
+        state = states.get(runtime_name)
+        if state is None:
+            if not states:
+                _fail(_no_runtime_message())
+            _fail(
+                f"No runtime named {runtime_name!r} is running. Running: "
+                + ", ".join(sorted(states))
+            )
+        return _Target(state.url, state.token, state)
+    if token is not None:
+        _fail(
+            "--token only applies with --url; a runtime on this machine is reached "
+            "with the token from its state file"
+        )
+    states = _local_states()
+    if not states:
+        _fail(_no_runtime_message())
+    holders = [s for s in states if process in s.processes]
+    if len(holders) > 1:
+        _fail(
+            f"Process {process!r} runs in several runtimes ("
+            + ", ".join(s.name for s in holders)
+            + "); pass --runtime"
+        )
+    if holders:
+        return _Target(holders[0].url, holders[0].token, holders[0])
+    if len(states) == 1:  # e.g. a process deployed over the API
+        return _Target(states[0].url, states[0].token, states[0])
+    _fail(
+        f"No runtime started here has a process {process!r} in its manifests; pass "
+        "--runtime (running: " + ", ".join(sorted(s.name for s in states)) + ")"
+    )
+
+
+def _print_rewind_plan(process: str, plan: dict[str, Any]) -> None:
+    mode = str(plan.get("mode", "?"))
+    target = str(plan.get("target_entry_id", "?"))
+    when = plan.get("target_timestamp") or "?"
+    entry_type = plan.get("target_entry_type") or "?"
+    console.print(
+        f"[bold]Rewind plan[/bold] for {escape(process)}: back to just before entry "
+        f"[magenta]{escape(target)}[/magenta] ({escape(str(entry_type))}, {escape(str(when))})",
+        soft_wrap=True,
+    )
+    console.print(f"  Mode:      {escape(mode)} (rewinds {_REWIND_MODE_HELP.get(mode, mode)})")
+    console.print(
+        f"  Affected:  {plan.get('entries_affected', 0)} of {plan.get('entries_total', 0)} "
+        f"journal entries after it ({plan.get('conversation_entries_affected', 0)} "
+        f"conversation, {plan.get('code_entries_affected', 0)} state/tool)"
+    )
+    summary = plan.get("summary")
+    if summary:
+        console.print(f"  Summary:   {escape(str(summary))}", soft_wrap=True)
+    console.print(
+        "[dim]The journal itself is kept (a rewind entry is appended), so a rewind can "
+        "be rewound.[/dim]"
+    )
+
+
+@runtime_app.command()
+def rewind(
+    process: Annotated[str, typer.Argument(help="Process to rewind")],
+    entry_id: Annotated[
+        str | None,
+        typer.Argument(
+            help=(
+                "Journal entry to go back to (the state as of just before it); see the "
+                "Entry ID column of 'promptise runtime logs'. Omit it to list recent entries."
+            ),
+        ),
+    ] = None,
+    mode: Annotated[
+        str,
+        typer.Option(
+            "--mode",
+            "-m",
+            help=(
+                "What to rewind: both (default), conversation_only, code_only (context "
+                "state), or summarize (rewind nothing, add a summary to the conversation)"
+            ),
+        ),
+    ] = "both",
+    plan_only: Annotated[
+        bool,
+        typer.Option("--plan", help="Only show what the rewind would change"),
+    ] = False,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", "-y", help="Apply without asking for confirmation"),
+    ] = False,
+    runtime_name: Annotated[
+        str | None,
+        typer.Option(
+            "--runtime",
+            "-r",
+            help="Runtime the process runs in (needed when several runtimes are running)",
+        ),
+    ] = None,
+    lines: Annotated[
+        int,
+        typer.Option(
+            "--lines", "-n", min=1, max=500, help="Entries to list when no entry ID is given"
+        ),
+    ] = 20,
+    url: _UrlOption = None,
+    token: _TokenOption = None,
+) -> None:
+    """Rewind a process's conversation and/or state to an earlier journal entry.
+
+    Shows the plan first, then asks before applying it (--yes skips the
+    question, --plan stops after the plan).  A running process is
+    suspended for the rewind and resumed afterwards.  Needs a journal.
+    """
+    if mode not in _REWIND_MODES:
+        _fail(f"--mode must be one of {', '.join(_REWIND_MODES)} (got {mode!r})")
+    target = _process_target(process, runtime_name, url, token)
+
+    if entry_id is None:
+        entries = _api(target, lambda c: c.get_journal(process, limit=lines), process=process)
+        if not entries:
+            _fail(f"Process {process!r} has no journal entries to rewind to (is its journal on?)")
+        _print_entries(process, entries)
+        console.print(
+            "[dim]Pick an entry ID and run: promptise runtime rewind "
+            f"{escape(process)} <entry_id> --plan[/dim]",
+            soft_wrap=True,
+        )
+        return
+
+    plan = _api(target, lambda c: c.rewind_plan(process, entry_id, mode=mode), process=process)
+    _print_rewind_plan(process, plan)
+    if plan_only:
+        return
+    if not yes:
+        try:
+            confirmed = typer.confirm(f"Rewind {process}?", default=False)
+        except typer.Abort:  # no answer (stdin closed, Ctrl+C)
+            confirmed = False
+            err_console.print("No answer; pass --yes to rewind without a question.")
+        if not confirmed:
+            err_console.print("Rewind cancelled; nothing changed.")
+            raise typer.Exit(1)
+
+    result = _api(
+        target,
+        lambda c: c.rewind(process, entry_id, mode=mode, actor="cli"),
+        process=process,
+        timeout=120.0,
+    )
+    console.print(
+        f"[green]Rewound[/green] {escape(process)} to just before "
+        f"[magenta]{escape(entry_id)}[/magenta] ({escape(mode)}): "
+        f"{result.get('entries_affected', 0)} entries undone, "
+        f"{result.get('conversation_messages', 0)} conversation messages kept, "
+        f"state {escape(str(result.get('state', '?')))}",
+        soft_wrap=True,
+    )
+    rewind_entry = result.get("rewind_entry_id")
+    if rewind_entry:
+        console.print(f"[dim]Journal entry of this rewind: {escape(str(rewind_entry))}[/dim]")
 
 
 # ---------------------------------------------------------------------------

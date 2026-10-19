@@ -17,6 +17,7 @@ The :class:`TriggerEvent` carries metadata about what caused the firing
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from collections.abc import Iterable
@@ -71,6 +72,23 @@ class TriggerEvent:
         )
 
 
+def drain_queue(queue: asyncio.Queue[TriggerEvent]) -> list[TriggerEvent]:
+    """Take every event waiting in *queue*, without the stop sentinels.
+
+    For a trigger's ``drain_pending()``: what a stopped trigger still held,
+    so the process can dead-letter (or, on a restart, requeue) it instead
+    of losing it.
+    """
+    events: list[TriggerEvent] = []
+    while True:
+        try:
+            event = queue.get_nowait()
+        except asyncio.QueueEmpty:
+            return events
+        if not (event.metadata and event.metadata.get("_stop")):
+            events.append(event)
+
+
 @runtime_checkable
 class BaseTrigger(Protocol):
     """Protocol for all trigger implementations.
@@ -78,6 +96,11 @@ class BaseTrigger(Protocol):
     Triggers produce :class:`TriggerEvent` objects that cause the agent
     process to invoke the agent.  They run as background tasks and must
     be safely cancellable.
+
+    A trigger that buffers events may also implement
+    ``drain_pending() -> list[TriggerEvent]``: after :meth:`stop`, the
+    process takes those events and dead-letters them (on a restart: queues
+    them for the restarted process) instead of losing them.
     """
 
     trigger_id: str

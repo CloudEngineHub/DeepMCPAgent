@@ -106,6 +106,9 @@ class HealthMonitor:
         self._anomaly_count: dict[AnomalyType, int] = dict.fromkeys(AnomalyType, 0)
         # Set when an anomaly fires; cleared by the next clean success.
         self._unrecovered = False
+        # An anomaly was detected in the current invocation (its success
+        # is not a recovery; see record_success).
+        self._anomaly_this_run = False
         # Anomalies not yet handed to the owner (see take_new_anomalies).
         self._new_anomalies: list[Anomaly] = []
 
@@ -189,6 +192,7 @@ class HealthMonitor:
         """
         self._sync_windows()
         self._tool_history.clear()
+        self._anomaly_this_run = False
 
     async def record_tool_call(self, tool_name: str, args: dict[str, Any]) -> Anomaly | None:
         """Record a tool call and check for stuck/loop anomalies."""
@@ -222,6 +226,9 @@ class HealthMonitor:
     async def record_success(self) -> bool:
         """Record a successful invocation.
 
+        A run that itself produced an anomaly (a stuck or loop pattern
+        during its tool calls) is not a recovery, even when it finished.
+
         Returns:
             ``True`` if this success clears a previous anomaly (recovery).
         """
@@ -229,7 +236,7 @@ class HealthMonitor:
         self._error_window.append(False)
         # Recovery: the first clean success after an anomaly (once, so
         # process.py emits a single health.recovered per incident).
-        if self._unrecovered:
+        if self._unrecovered and not self._anomaly_this_run:
             self._unrecovered = False
             return True
         return False
@@ -482,6 +489,7 @@ class HealthMonitor:
         self._anomaly_count[anomaly.anomaly_type] += 1
         self._last_anomaly_time[self._cooldown_key(anomaly)] = time.monotonic()
         self._unrecovered = True
+        self._anomaly_this_run = True
         logger.warning(
             "Behavioral anomaly detected: %s — %s",
             anomaly.anomaly_type.value,

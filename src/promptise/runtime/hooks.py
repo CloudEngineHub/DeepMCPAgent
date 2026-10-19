@@ -108,9 +108,23 @@ class HookEvent(str, Enum):
     #: Blockable: the call is denied without asking the handler.
     PERMISSION_REQUEST = "permission_request"
 
-    #: An approval request was denied (by the handler, a classifier rule,
-    #: the gate or a hook).  Data: ``tool_name``, ``request_id``,
-    #: ``reason``, ``decided_by``.  Not blockable.
+    #: Something the agent was about to do was refused.  Data: ``kind``,
+    #: ``tool_name``, ``request_id``, ``reason``, ``decided_by``.
+    #: ``kind`` says what refused it:
+    #:
+    #: * ``"approval"``: an approval request was denied (by the handler, a
+    #:   classifier rule, the gate or a ``permission_request`` hook);
+    #:   ``decided_by`` as the :class:`~promptise.approval.ApprovalDecision`.
+    #: * ``"budget"``: a budget limit refused a tool call (``tool_name``
+    #:   set) or a run (``max_runs_per_day``; ``tool_name`` ``None``, plus
+    #:   ``event_id``).  ``decided_by`` ``"budget"``, plus ``limit_name``,
+    #:   ``limit_value`` and ``current_value``.
+    #: * ``"guardrail"``: a trigger event's run was refused by the payload
+    #:   scan (``decided_by`` ``"payload_scan"``) or the guardrail scanner
+    #:   (``"guardrail"``); ``tool_name`` ``None``, plus ``event_id`` and
+    #:   ``trigger_type``.
+    #:
+    #: Not blockable.
     PERMISSION_DENIED = "permission_denied"
 
     #: An open-mode agent is about to spawn a process (``spawn_process``
@@ -485,8 +499,13 @@ class HookManager:
         Args:
             event: The event to fire.
             process_id: Identifier of the dispatching process.
-            data: Event payload. Hooks may mutate the copy they receive;
-                the result is :attr:`DispatchResult.data`.
+            data: Event payload. Hooks get a copy as ``ctx.data``: they may
+                change it in place or assign a new dict to ``ctx.data``
+                (both are honored, and a later hook sees the earlier one's
+                version); what ``ctx.data`` holds after the last hook is
+                :attr:`DispatchResult.data`.  For which keys the runtime
+                reads back (e.g. ``prompt`` of ``user_prompt_submit``),
+                see :class:`HookEvent`.
             metadata: Per-dispatch metadata.
 
         Returns:

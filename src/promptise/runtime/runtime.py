@@ -307,7 +307,7 @@ class AgentRuntime:
         process = self.get_process(name)
         await process.stop()
 
-    async def restart_process(self, name: str) -> None:
+    async def restart_process(self, name: str, *, stop_timeout: float = 30.0) -> None:
         """Restart a single process (stop then start).
 
         A running or suspended process is stopped first; a ``FAILED`` one
@@ -316,11 +316,17 @@ class AgentRuntime:
         nothing fires twice.  Context state, long-term memory and the
         conversation history carry over.
 
+        A process that is already stopping (another stop or restart in
+        progress) is waited for, up to *stop_timeout* seconds.
+
         Args:
             name: Process name.
+            stop_timeout: Seconds to wait for a stop in progress.
 
         Raises:
             KeyError: If the process does not exist.
+            RuntimeError: The process was still stopping after
+                *stop_timeout* seconds (nothing was started).
         """
         process = self.get_process(name)
         if process.state not in (
@@ -329,6 +335,15 @@ class AgentRuntime:
             ProcessState.FAILED,
         ):
             await process.stop()
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + stop_timeout
+        while process.state == ProcessState.STOPPING:
+            if loop.time() >= deadline:
+                raise RuntimeError(
+                    f"Process {name!r} is still stopping after {stop_timeout:g}s; "
+                    "restart it once it has stopped"
+                )
+            await asyncio.sleep(0.05)
         await process.start()
 
     async def start_all(self) -> None:
@@ -416,7 +431,9 @@ class AgentRuntime:
         """List all processes with summary info.
 
         Returns:
-            List of dicts with name, state, and uptime for each process.
+            One dict per process: ``name``, ``state`` (the
+            :class:`ProcessState` value) and ``process_id``.  Use
+            :meth:`process_status` for uptime and counters.
         """
         result: list[dict[str, Any]] = []
         for name, process in self._processes.items():

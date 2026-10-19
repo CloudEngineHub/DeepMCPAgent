@@ -186,7 +186,7 @@ class BudgetState:
 
         The day runs from ``daily_reset_hour_utc`` to the same hour the
         next day: the counters reset when the last reset happened before
-        the most recent such boundary.  (Before 1.4.4 they also reset at
+        the most recent such boundary.  (In 1.4.3 and earlier they also reset at
         midnight UTC whatever the configured hour.)
 
         Returns:
@@ -376,8 +376,8 @@ class BudgetState:
             ("max_cost_per_day", cfg.max_cost_per_day, self.daily_cost + extra_cost),
         ]
 
-        # Check for warnings (≥80% of limit) — populate pending_warnings
-        warning_threshold = getattr(cfg, "warning_threshold", 0.8)
+        # Warnings at warning_threshold (default 80%) of a limit
+        warning_threshold = cfg.warning_threshold
         self.pending_warnings = []
         for limit_name, limit_value, current in checks:
             if limit_value is not None and limit_value > 0:

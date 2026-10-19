@@ -70,14 +70,25 @@ class BudgetGuard(BaseCallbackHandler):
         budget: The process's budget state.
         violations: List that collects violations (shared with
             :class:`RuntimeCallbackHandler`).
+        on_denied: Called with the violation of every refused call,
+            before the error is raised (the process dispatches the
+            ``permission_denied`` hook from it).  It may be called from a
+            worker thread (synchronous tools); it must not block, and an
+            error it raises is logged and ignored.
     """
 
     raise_error = True
     run_inline = True
 
-    def __init__(self, budget: BudgetState, violations: list[BudgetViolation]) -> None:
+    def __init__(
+        self,
+        budget: BudgetState,
+        violations: list[BudgetViolation],
+        on_denied: Callable[[BudgetViolation], None] | None = None,
+    ) -> None:
         self._budget = budget
         self._violations = violations
+        self._on_denied = on_denied
 
     def on_tool_start(self, serialized: Any, input_str: str, **kwargs: Any) -> None:
         """Count the call, or raise if running it would exceed a limit."""
@@ -92,6 +103,13 @@ class BudgetGuard(BaseCallbackHandler):
         if not any(v.limit_name == violation.limit_name for v in self._violations):
             self._violations.append(violation)
         if violation.blocked:
+            if violation.tool_name is None:
+                violation.tool_name = tool_name or None
+            if self._on_denied is not None:
+                try:
+                    self._on_denied(violation)
+                except Exception:
+                    logger.warning("Budget denial callback failed", exc_info=True)
             raise BudgetExceededError(violation)
 
 
@@ -133,6 +151,9 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
             records ``tool_call`` / ``tool_result`` journal entries.
         secrets: The process's secret scope, used to redact secret values
             from journalled tool arguments and results.
+        on_budget_denied: Passed to the :class:`BudgetGuard` as
+            ``on_denied``: called with the violation of every tool call
+            the budget refuses.
     """
 
     def __init__(
@@ -141,6 +162,7 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
         health: HealthMonitor | None = None,
         journal: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
         secrets: SecretScope | None = None,
+        on_budget_denied: Callable[[BudgetViolation], None] | None = None,
     ) -> None:
         self._budget = budget
         self._health = health
@@ -150,7 +172,9 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
         self._tool_runs: dict[Any, str] = {}
         self.pending_violations: list[BudgetViolation] = []
         self.budget_guard: BudgetGuard | None = (
-            BudgetGuard(budget, self.pending_violations) if budget is not None else None
+            BudgetGuard(budget, self.pending_violations, on_budget_denied)
+            if budget is not None
+            else None
         )
 
     def callbacks(self) -> list[Any]:

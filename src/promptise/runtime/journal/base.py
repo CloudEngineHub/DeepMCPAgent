@@ -11,11 +11,12 @@ observability.  Three detail levels are supported:
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Protocol, runtime_checkable
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 
 class JournalLevel(str, Enum):
@@ -31,7 +32,8 @@ class JournalEntry:
     """Single journal record.
 
     Attributes:
-        entry_id: Unique entry ID.
+        entry_id: Unique entry ID (a rewind target).  An empty ID is
+            replaced by a new one, so every entry has a real ID.
         process_id: Owning process.
         timestamp: When the entry was recorded (timezone.utc).
         entry_type: Type of entry (``state_transition``,
@@ -46,6 +48,10 @@ class JournalEntry:
     entry_type: str = ""
     data: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if not self.entry_id:
+            self.entry_id = str(uuid4())
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a JSON-compatible dict."""
         return {
@@ -58,9 +64,21 @@ class JournalEntry:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> JournalEntry:
-        """Deserialize from a dict."""
+        """Deserialize from a dict.
+
+        An entry stored without an ID (1.4.3 and earlier wrote some with
+        ``""``) gets one derived from its content, the same on every read,
+        so it can still be a rewind target.
+        """
+        entry_id = data.get("entry_id") or str(
+            uuid5(
+                NAMESPACE_URL,
+                f"promptise-journal:{data.get('process_id', '')}:{data.get('timestamp')}:"
+                f"{data.get('entry_type', '')}:{json.dumps(data.get('data', {}), sort_keys=True, default=str)}",
+            )
+        )
         return cls(
-            entry_id=data.get("entry_id", str(uuid4())),
+            entry_id=entry_id,
             process_id=data.get("process_id", ""),
             timestamp=datetime.fromisoformat(data["timestamp"]),
             entry_type=data.get("entry_type", ""),

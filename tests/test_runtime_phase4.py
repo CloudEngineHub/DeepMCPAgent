@@ -126,6 +126,12 @@ class TestAgentRuntimeProcessManagement:
 class TestAgentRuntimeManifestLoading:
     """Test manifest loading into processes."""
 
+    @pytest.fixture(autouse=True)
+    def _in_tmp(self, tmp_path, monkeypatch):
+        # A manifest without 'journal:' journals to .promptise/journal in
+        # the working directory; keep that out of the repository.
+        monkeypatch.chdir(tmp_path)
+
     @pytest.mark.asyncio
     async def test_load_manifest(self, tmp_path):
         path = _write_agent_manifest(tmp_path, name="from-manifest")

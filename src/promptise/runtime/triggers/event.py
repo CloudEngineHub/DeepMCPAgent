@@ -16,7 +16,7 @@ import logging
 from typing import Any
 from uuid import uuid4
 
-from .base import TriggerEvent
+from .base import TriggerEvent, drain_queue
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +103,10 @@ class EventTrigger:
             pass
         logger.info("EventTrigger %s stopped", self.trigger_id)
 
+    def drain_pending(self) -> list[TriggerEvent]:
+        """Take the events nobody consumed (after :meth:`stop`)."""
+        return drain_queue(self._queue)
+
     async def wait_for_next(self) -> TriggerEvent:
         """Block until a matching event arrives.
 
@@ -129,7 +133,7 @@ class MessageTrigger:
     Wraps a message broker subscription.
 
     Args:
-        broker: An object with ``subscribe(topic, handler)`` and ``unsubscribe(topic, subscription_id)`` methods.
+        broker: An object with async ``subscribe(topic, handler)`` (returning a subscription ID) and ``unsubscribe(subscription_id)`` methods.
         topic: Topic to subscribe to (supports wildcards like ``reports.*``).
         trigger_id: Unique identifier (auto-generated if not provided).
     """
@@ -199,6 +203,10 @@ class MessageTrigger:
         except asyncio.QueueFull:
             pass
         logger.info("MessageTrigger %s stopped", self.trigger_id)
+
+    def drain_pending(self) -> list[TriggerEvent]:
+        """Take the messages nobody consumed (after :meth:`stop`)."""
+        return drain_queue(self._queue)
 
     async def wait_for_next(self) -> TriggerEvent:
         """Block until a message arrives on the topic.

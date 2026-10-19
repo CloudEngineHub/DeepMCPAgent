@@ -63,7 +63,7 @@ from typing import Any, Literal
 from aiohttp import web
 
 from ..config import SIGNATURE_HEADERS
-from .base import TriggerEvent
+from .base import TriggerEvent, drain_queue
 
 logger = logging.getLogger(__name__)
 
@@ -218,6 +218,10 @@ class WebhookTrigger:
         self._app = None
         logger.info("WebhookTrigger stopped")
 
+    def drain_pending(self) -> list[TriggerEvent]:
+        """Take the accepted (``202``) events nobody consumed (after :meth:`stop`)."""
+        return drain_queue(self._queue)
+
     async def wait_for_next(self) -> TriggerEvent:
         """Wait for the next webhook event.
 
@@ -317,12 +321,19 @@ class WebhookTrigger:
     # ------------------------------------------------------------------
 
     def _too_large(self, request: web.Request, size: int | None) -> web.Response:
-        logger.warning(
-            "WebhookTrigger: rejected request from %s (body %s bytes, limit %d)",
-            request.remote,
-            size if size is not None else "over the limit,",
-            self._max_body_bytes,
-        )
+        if size is None:  # chunked: no Content-Length, stopped at the limit
+            logger.warning(
+                "WebhookTrigger: rejected request from %s (chunked body over the %d-byte limit)",
+                request.remote,
+                self._max_body_bytes,
+            )
+        else:
+            logger.warning(
+                "WebhookTrigger: rejected request from %s (body %d bytes, limit %d)",
+                request.remote,
+                size,
+                self._max_body_bytes,
+            )
         return web.json_response(
             {
                 "status": "error",
@@ -332,7 +343,15 @@ class WebhookTrigger:
         )
 
     async def _handle_request(self, request: web.Request) -> web.Response:
-        """Handle incoming POST request."""
+        """Handle incoming POST request.
+
+        A timestamped (``stripe``) signature is used up once the request
+        is past the signature and availability checks, also when the
+        filter then ignores the event (``200 ignored``): the request was
+        delivered and answered, so the same signed body can't be replayed.
+        It is released again only when the event couldn't be taken (``503``
+        queue full, ``500``), so the sender's retry goes through.
+        """
         replay_key: str | None = None
         try:
             if not self._source_allowed(request.remote):
@@ -413,7 +432,10 @@ class WebhookTrigger:
             try:
                 self._queue.put_nowait(event)
             except asyncio.QueueFull:
-                logger.warning("WebhookTrigger: queue full, dropping event")
+                logger.warning(
+                    "WebhookTrigger %s: queue full, answered 503 (the sender may retry)",
+                    self.trigger_id,
+                )
                 if replay_key is not None:
                     self._seen_signatures.pop(replay_key, None)
                 return web.json_response(

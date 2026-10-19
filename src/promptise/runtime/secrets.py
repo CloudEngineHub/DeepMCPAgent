@@ -58,7 +58,7 @@ class SecretNotFoundError(KeyError):
     """No secret with this name is configured in the scope.
 
     Subclasses :class:`KeyError` (what :meth:`SecretScope.rotate` raised
-    before 1.4.4).
+    in 1.4.3 and earlier).
 
     Attributes:
         name: The requested secret name.
@@ -166,13 +166,20 @@ class SecretScope:
     # Public API
     # ------------------------------------------------------------------
 
-    async def resolve_initial(self) -> None:
+    async def resolve_initial(self, *, missing_only: bool = False) -> None:
         """Resolve all secrets from config on startup.
 
         Each value in ``config.secrets`` is either a literal string or
         contains environment references (``${VAR}``, ``${VAR:-default}``),
-        which are resolved from ``os.environ`` now.  Calling it again (a
-        restart) re-resolves every secret and resets its TTL.
+        which are resolved from ``os.environ`` now.  Calling it again
+        re-resolves every secret and resets its TTL.
+
+        Args:
+            missing_only: Resolve only the secrets the scope doesn't hold
+                (never resolved, revoked or expired) and keep the others,
+                including values set by :meth:`rotate`.  A process uses it
+                when it starts again (``revoke_on_stop=False``), so an
+                operator's rotation survives a restart.
 
         Raises:
             KeyError: If a referenced environment variable is not set and
@@ -180,6 +187,8 @@ class SecretScope:
                 secret.
         """
         for name, template in self._config.secrets.items():
+            if missing_only and name in self._secrets:
+                continue
             raw = template.get_secret_value() if hasattr(template, "get_secret_value") else template
             value, source = self._resolve_env(name, str(raw))
             ttl = self._config.ttls.get(name, self._config.default_ttl)
@@ -440,7 +449,6 @@ class SecretScope:
             from .journal import JournalEntry
 
             entry = JournalEntry(
-                entry_id="",
                 process_id=self._process_id,
                 timestamp=datetime.now(timezone.utc),
                 entry_type="secret_access",

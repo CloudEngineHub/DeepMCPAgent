@@ -95,6 +95,10 @@ class MissionEvaluation:
         timestamp: When the evaluation was performed.
         invocation_number: Which invocation triggered this evaluation.
         source: ``"llm"`` or ``"programmatic"``.
+        skipped: ``True`` when no evaluation ran (another invocation was
+            evaluating at the same time, ``concurrency > 1``).  Such a
+            result is not recorded; the process emits no mission event
+            and doesn't escalate for it.
     """
 
     achieved: bool
@@ -104,6 +108,7 @@ class MissionEvaluation:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     invocation_number: int = 0
     source: str = "llm"
+    skipped: bool = False
 
 
 class MissionTracker:
@@ -305,6 +310,7 @@ class MissionTracker:
                 reasoning="Evaluation skipped (concurrent invocation)",
                 progress_summary="",
                 invocation_number=self._invocation_count,
+                skipped=True,
             )
         async with self._eval_lock:
             return await self._do_evaluate(evidence, model)
@@ -340,7 +346,17 @@ class MissionTracker:
             ``mission.failed`` events use it), ``message`` (*reason*),
             ``objective``, ``invocation_count``, ``previous_state`` and
             ``failed_at`` (ISO UTC).
+
+        Raises:
+            ValueError: The mission is already completed or failed (both
+                are final; in 1.4.3 and earlier a completed mission could
+                be failed afterwards).
         """
+        if self._state in (MissionState.COMPLETED, MissionState.FAILED):
+            raise ValueError(
+                f"The mission is already {self._state.value}; a {self._state.value} "
+                "mission can't be failed"
+            )
         previous = self._state
         self._state = MissionState.FAILED
         self._failure_reason = reason
@@ -656,7 +672,6 @@ class MissionTracker:
             from .journal import JournalEntry
 
             entry = JournalEntry(
-                entry_id="",
                 process_id=self._process_id,
                 timestamp=datetime.now(timezone.utc),
                 entry_type=entry_type,
@@ -679,7 +694,6 @@ class MissionTracker:
             from .journal import JournalEntry
 
             entry = JournalEntry(
-                entry_id="",
                 process_id=self._process_id,
                 timestamp=datetime.now(timezone.utc),
                 entry_type="mission_evaluation",

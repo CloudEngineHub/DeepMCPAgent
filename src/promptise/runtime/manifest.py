@@ -154,10 +154,15 @@ class AgentManifestSchema(BaseModel):
     @model_validator(mode="after")
     def _validate_manifest(self) -> AgentManifestSchema:
         """Validate cross-field constraints and every section's keys."""
-        # Validate trigger dicts have a 'type' field
+        # Every trigger is validated whole here (keys, types, the fields its
+        # type needs), so a typo fails at load / 'promptise runtime
+        # validate' and not when the process is built.
         for i, trigger in enumerate(self.triggers):
+            if not isinstance(trigger, dict):
+                raise ValueError(f"triggers[{i}]: must be a mapping, got {type(trigger).__name__}")
             if "type" not in trigger:
                 raise ValueError(f"Trigger at index {i} is missing required 'type' field")
+            _check_model(f"triggers[{i}] ({trigger['type']})", trigger, TriggerConfig)
         if self.execution_mode is not None:
             valid_modes = [m.value for m in ExecutionMode]
             if self.execution_mode not in valid_modes:
@@ -211,10 +216,11 @@ class AgentManifestSchema(BaseModel):
                     f"hooks[{i}]: a manifest hook runs a 'command'; Python callbacks are "
                     "registered in code (process.hooks)"
                 )
-            try:
-                HookConfig.model_validate(hook)
-            except ValidationError as exc:
-                raise ValueError(f"hooks[{i}]: {exc}") from None
+            _check_model(f"hooks[{i}]", hook, HookConfig)
+        if self.identity is not None:
+            from promptise.superagent_schema import IdentityConfig
+
+            _check_model("identity", self.identity, IdentityConfig)
         self._check_config_overrides()
         return self
 
@@ -250,6 +256,9 @@ class AgentManifestSchema(BaseModel):
                 f"config: {clashes} also set by the manifest's own section(s); "
                 "set each option in one place (the top-level section)"
             )
+        if self.config:
+            # The values themselves (types, limits, nested sections).
+            _check_model("config", dict(self.config), ProcessConfig)
 
 
 #: ``memory:`` keys and the ContextConfig field each one sets.
@@ -266,6 +275,52 @@ _MEMORY_KEYS = {
 
 _HTTP_TRANSPORTS = ("http", "streamable-http", "sse")
 
+#: The journal of a manifest without a ``journal:`` section: checkpoints in
+#: ``.promptise/journal`` (file backend), recovered on start.  Code-built
+#: :class:`ProcessConfig` has no journal by default; see
+#: :func:`manifest_to_process_config` for why manifests differ.
+MANIFEST_DEFAULT_JOURNAL = JournalConfig()
+
+
+def _unknown_keys_message(section: str, unknown: list[str], valid: list[str]) -> str:
+    """``section: unknown key(s) [...]`` with "did you mean" hints."""
+    import difflib
+
+    hints = []
+    for key in unknown:
+        close = difflib.get_close_matches(key, valid, n=1)
+        if close:
+            hints.append(f"{key!r} -> {close[0]!r}")
+    message = f"{section}: unknown key(s) {unknown}; valid keys are {valid}"
+    if hints:
+        message += f" (did you mean {', '.join(hints)}?)"
+    return message
+
+
+def _check_model(section: str, data: Any, model_cls: type[BaseModel]) -> None:
+    """Validate *data* as *model_cls*; a clear ``ValueError`` when it fails.
+
+    Unknown keys are named with "did you mean" hints; other problems are
+    listed as ``section.field: message``.
+    """
+    if not isinstance(data, dict):
+        raise ValueError(f"{section}: must be a mapping, got {type(data).__name__}")
+    valid = sorted(model_cls.model_fields)
+    unknown = sorted(str(k) for k in data if k not in model_cls.model_fields)
+    if unknown:
+        raise ValueError(_unknown_keys_message(section, unknown, valid))
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            model_cls.model_validate(data)
+    except ValidationError as exc:
+        problems = []
+        for error in exc.errors():
+            where = ".".join(str(part) for part in error.get("loc", ()))
+            label = f"{section}.{where}" if where else section
+            problems.append(f"{label}: {error.get('msg', 'invalid')}")
+        raise ValueError("; ".join(problems)) from None
+
 
 def _check_keys(section: str, data: Any, model_cls: type[BaseModel]) -> None:
     """Validate *data* against *model_cls*, rejecting unknown keys at any depth.
@@ -277,9 +332,7 @@ def _check_keys(section: str, data: Any, model_cls: type[BaseModel]) -> None:
         raise ValueError(f"{section}: must be a mapping, got {type(data).__name__}")
     unknown = sorted(set(data) - set(model_cls.model_fields))
     if unknown:
-        raise ValueError(
-            f"{section}: unknown key(s) {unknown}; valid keys are {sorted(model_cls.model_fields)}"
-        )
+        raise ValueError(_unknown_keys_message(section, unknown, sorted(model_cls.model_fields)))
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always", FutureWarning)
         model_cls.model_validate(data)
@@ -375,9 +428,30 @@ def load_manifest(path: str | Path) -> AgentManifestSchema:
                     raise EnvVarNotFoundError(missing[0], context=f"secrets.secrets.{secret_name}")
         data = {**data, "secrets": {**secrets_section, "secrets": {}}}
 
+    # Hook env values stay ${VAR} references too: HookConfig resolves them
+    # when the hook runs (a missing variable still fails here).
+    hook_envs: dict[int, dict[str, Any]] = {}
+    hooks_section = data.get("hooks")
+    if isinstance(hooks_section, list):
+        hooks_copy = list(hooks_section)
+        for index, hook in enumerate(hooks_copy):
+            if isinstance(hook, dict) and isinstance(hook.get("env"), dict):
+                hook_envs[index] = hook["env"]
+                for env_name, template in hook["env"].items():
+                    if isinstance(template, str) and ENV_VAR_PATTERN.search(template):
+                        missing = validate_all_env_vars_available({"_": template})
+                        if missing:
+                            raise EnvVarNotFoundError(
+                                missing[0], context=f"hooks[{index}].env.{env_name}"
+                            )
+                hooks_copy[index] = {**hook, "env": {}}
+        data = {**data, "hooks": hooks_copy}
+
     data = resolve_env_in_dict(data)
     if secret_templates is not None:
         data["secrets"]["secrets"] = secret_templates
+    for index, env in hook_envs.items():
+        data["hooks"][index]["env"] = env
 
     try:
         return AgentManifestSchema.model_validate(data)
@@ -450,8 +524,13 @@ def manifest_to_process_config(
     for trigger_data in manifest.triggers:
         triggers.append(TriggerConfig.model_validate(trigger_data))
 
-    # Parse journal
-    journal = JournalConfig()
+    # Journal.  Deliberately different from ProcessConfig (no journal):
+    # a manifest describes a long-running process started by the CLI,
+    # whose state should survive a restart and whose 'promptise runtime
+    # logs' / 'rewind' need entries, so without a 'journal:' section it
+    # gets MANIFEST_DEFAULT_JOURNAL (checkpoints in a file, recovered on
+    # start).  'journal: {level: none}' turns it off.
+    journal = MANIFEST_DEFAULT_JOURNAL.model_copy(deep=True)
     if manifest.journal:
         journal = JournalConfig.model_validate(manifest.journal)
 
