@@ -31,6 +31,8 @@ review; those fixes are regression-tested at the bottom of this module:
 
 from __future__ import annotations
 
+import pytest
+
 from promptise.config import HTTPServerSpec, StdioServerSpec
 from promptise.observability import (
     ObservabilityCollector,
@@ -114,9 +116,10 @@ def test_typed_specs_pass_through_unchanged() -> None:
     assert resolved["s"] is stdio
 
 
-def test_unrecognized_dict_spec_is_skipped() -> None:
-    resolved = _resolve_server_specs({"bad": {"nonsense": 1}})
-    assert "bad" not in resolved
+def test_unrecognized_dict_spec_is_rejected() -> None:
+    # Silently skipping a server entry hid config mistakes; it is now an error.
+    with pytest.raises(ValueError, match="needs 'url'"):
+        _resolve_server_specs({"bad": {"nonsense": 1}})
 
 
 def test_dict_spec_transport_alias_via_type() -> None:
