@@ -208,6 +208,8 @@ class TestClient:
             lambda c: c.rotate_secret(n, "s", "v"),
             lambda c: c.revoke_secrets(n),
             lambda c: c.get_journal(n),
+            lambda c: c.rewind_plan(n, "nope"),
+            lambda c: c.rewind(n, "nope"),
             lambda c: c.get_mission(n),
             lambda c: c.fail_mission(n),
             lambda c: c.pause_mission(n),

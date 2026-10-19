@@ -222,6 +222,16 @@ class OrchestrationClient:
         """Stop all processes."""
         return await self._post("/api/v1/runtime/stop-all")
 
+    async def shutdown(self) -> dict[str, Any]:
+        """Ask the server to shut its runtime down (``POST /api/v1/runtime/shutdown``).
+
+        Answered ``202 {"status": "shutting_down"}`` when the API was
+        created with ``on_shutdown`` (as ``promptise runtime start`` does);
+        otherwise the route doesn't exist and this raises
+        :class:`OrchestrationAPIError` with status 404.
+        """
+        return await self._post("/api/v1/runtime/shutdown")
+
     # ------------------------------------------------------------------
     # Process lifecycle
     # ------------------------------------------------------------------
@@ -430,6 +440,50 @@ class OrchestrationClient:
             params["type"] = entry_type
         data = await self._get(self._proc(name, "journal"), **params)
         return data.get("entries", [])
+
+    # ------------------------------------------------------------------
+    # Rewind
+    # ------------------------------------------------------------------
+
+    async def rewind_plan(
+        self, name: str, target_entry_id: str, *, mode: str = "both"
+    ) -> dict[str, Any]:
+        """Preview a rewind (changes nothing).
+
+        Args:
+            name: Process name.
+            target_entry_id: A journal ``entry_id`` (see :meth:`get_journal`).
+            mode: ``both``, ``conversation_only``, ``code_only``,
+                ``summarize`` or ``cancel``.
+
+        Returns:
+            The plan: ``entries_affected``, ``conversation_entries_affected``,
+            ``code_entries_affected``, ``target_timestamp``, ``summary``, ...
+        """
+        data = await self._get(
+            self._proc(name, "rewind", "plan"), target_entry_id=target_entry_id, mode=mode
+        )
+        plan: dict[str, Any] = data.get("plan", {})
+        return plan
+
+    async def rewind(
+        self,
+        name: str,
+        target_entry_id: str,
+        *,
+        mode: str = "both",
+        actor: str | None = None,
+    ) -> dict[str, Any]:
+        """Rewind a process to just before a journal entry.
+
+        See :meth:`AgentProcess.rewind <promptise.runtime.AgentProcess.rewind>`.
+        Raises :class:`OrchestrationAPIError` with code ``ENTRY_NOT_FOUND``,
+        ``JOURNAL_DISABLED`` or ``REWIND_BUSY``.
+        """
+        body: dict[str, Any] = {"target_entry_id": target_entry_id, "mode": mode}
+        if actor is not None:
+            body["actor"] = actor
+        return await self._post(self._proc(name, "rewind"), body)
 
     # ------------------------------------------------------------------
     # Mission control

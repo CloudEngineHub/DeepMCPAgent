@@ -37,6 +37,7 @@ from __future__ import annotations
 import hmac
 import json
 import logging
+import re
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -51,6 +52,16 @@ logger = logging.getLogger(__name__)
 
 #: Endpoints that answer without a bearer token (liveness probes).
 _PUBLIC_PATHS = frozenset({"/health"})
+
+#: Node IDs a node may register with.
+_NODE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+
+
+def _is_http_url(value: str) -> bool:
+    from urllib.parse import urlparse
+
+    parsed = urlparse(value)
+    return parsed.scheme in ("http", "https") and bool(parsed.hostname)
 
 
 class RuntimeTransport:
@@ -67,6 +78,15 @@ class RuntimeTransport:
     * ``POST /processes/{name}/restart`` — restart a process
     * ``POST /processes/{name}/event`` — inject a trigger event
 
+    With a ``coordinator`` (the node hosting the cluster coordinator):
+
+    * ``GET /cluster/nodes`` — the registered nodes and their health
+    * ``POST /cluster/nodes`` — register (or re-register) a node:
+      ``{"node_id": ..., "url": ..., "metadata": {...}}``; answers ``409``
+      with static discovery (the coordinator lists the nodes itself)
+    * ``DELETE /cluster/nodes/{node_id}`` — unregister a node
+    * ``GET /cluster/status`` — :meth:`RuntimeCoordinator.cluster_status`
+
     Args:
         runtime: The :class:`AgentRuntime` to manage.
         host: Host to bind to (default ``127.0.0.1`` — localhost only).
@@ -81,6 +101,11 @@ class RuntimeTransport:
             authenticates callers itself (an authenticating proxy, a
             private network you control); anyone who can reach the port
             can start, stop and drive your agents.
+        coordinator: A :class:`RuntimeCoordinator` to expose the
+            ``/cluster`` routes for (this node hosts the coordinator).
+        discovery: The coordinator's discovery: a
+            :class:`RegistryDiscovery` (nodes register through
+            ``POST /cluster/nodes``) or a :class:`StaticDiscovery`.
 
     Raises:
         ValueError: ``auth_token`` is empty, or ``host`` is not a
@@ -97,6 +122,8 @@ class RuntimeTransport:
         node_id: str = "node-1",
         auth_token: str | None = None,
         allow_unauthenticated: bool = False,
+        coordinator: Any | None = None,
+        discovery: Any | None = None,
     ) -> None:
         if auth_token is not None and not auth_token.strip():
             raise ValueError("auth_token must be a non-empty string (or None)")
@@ -114,6 +141,8 @@ class RuntimeTransport:
         self._port = port
         self._node_id = node_id
         self._auth_token = auth_token
+        self._coordinator = coordinator
+        self._discovery = discovery
 
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
@@ -123,6 +152,10 @@ class RuntimeTransport:
     def node_id(self) -> str:
         """This node's unique identifier."""
         return self._node_id
+
+    @node_id.setter
+    def node_id(self, value: str) -> None:
+        self._node_id = value
 
     @property
     def port(self) -> int:
@@ -208,6 +241,11 @@ class RuntimeTransport:
         r.add_post("/processes/{name}/stop", self._handle_stop)
         r.add_post("/processes/{name}/restart", self._handle_restart)
         r.add_post("/processes/{name}/event", self._handle_inject_event)
+        if self._coordinator is not None:
+            r.add_get("/cluster/nodes", self._handle_list_nodes)
+            r.add_post("/cluster/nodes", self._handle_register_node)
+            r.add_delete("/cluster/nodes/{node_id}", self._handle_unregister_node)
+            r.add_get("/cluster/status", self._handle_cluster_status)
 
     # ------------------------------------------------------------------
     # Handlers
@@ -315,6 +353,84 @@ class RuntimeTransport:
             },
             status=202,
         )
+
+    # ------------------------------------------------------------------
+    # Cluster (coordinator) handlers
+    # ------------------------------------------------------------------
+
+    async def _handle_list_nodes(self, request: web.Request) -> web.Response:
+        """The registered nodes (requires auth)."""
+        assert self._coordinator is not None
+        if self._discovery is not None and hasattr(self._discovery, "discover"):
+            await self._discovery.discover()  # a registry prunes stale nodes
+        nodes = [n.to_dict() for n in self._coordinator.nodes.values()]
+        return web.json_response(
+            {"node_id": self._node_id, "nodes": nodes, "count": len(nodes)}, dumps=_json_dumps
+        )
+
+    async def _handle_register_node(self, request: web.Request) -> web.Response:
+        """Register or refresh a node (requires auth)."""
+        from .discovery import StaticDiscovery
+
+        assert self._coordinator is not None
+        if isinstance(self._discovery, StaticDiscovery):
+            return web.json_response(
+                {
+                    "error": "This coordinator uses static discovery: nodes are listed in "
+                    "its static_nodes, they don't register"
+                },
+                status=409,
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "Invalid JSON body"}, status=400)
+        if not isinstance(body, dict):
+            return web.json_response({"error": "Body must be a JSON object"}, status=400)
+        node_id, url, metadata = body.get("node_id"), body.get("url"), body.get("metadata")
+        if not isinstance(node_id, str) or not _NODE_ID_RE.match(node_id):
+            return web.json_response(
+                {"error": "node_id must match ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}, status=422
+            )
+        if not isinstance(url, str) or not _is_http_url(url):
+            return web.json_response({"error": "url must be an http(s) URL"}, status=422)
+        if metadata is not None and not isinstance(metadata, dict):
+            return web.json_response({"error": "metadata must be a JSON object"}, status=422)
+        if node_id == self._node_id:
+            return web.json_response(
+                {"error": f"node_id {node_id!r} is the coordinator's own ID"}, status=409
+            )
+        known = self._coordinator.nodes.get(node_id)
+        if known is None or known.url != url.rstrip("/"):
+            self._coordinator.register_node(node_id, url, metadata or {})
+        elif metadata is not None:
+            known.metadata = dict(metadata)
+        if self._discovery is not None:
+            await self._discovery.register(node_id, url, metadata or {})
+        return web.json_response({"status": "registered", "node_id": node_id})
+
+    async def _handle_unregister_node(self, request: web.Request) -> web.Response:
+        """Unregister a node (requires auth)."""
+        assert self._coordinator is not None
+        node_id = request.match_info["node_id"]
+        if node_id == self._node_id:
+            return web.json_response(
+                {"error": "The coordinator can't unregister itself"}, status=409
+            )
+        try:
+            self._coordinator.unregister_node(node_id)
+        except KeyError:
+            return web.json_response({"error": f"Node {node_id!r} not registered"}, status=404)
+        if self._discovery is not None:
+            await self._discovery.unregister(node_id)
+        return web.json_response({"status": "unregistered", "node_id": node_id})
+
+    async def _handle_cluster_status(self, request: web.Request) -> web.Response:
+        """Aggregated cluster status (requires auth)."""
+        assert self._coordinator is not None
+        status = await self._coordinator.cluster_status()
+        status["coordinator"] = self._node_id
+        return web.json_response(status, dumps=_json_dumps)
 
     # ------------------------------------------------------------------
     # Context manager

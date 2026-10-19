@@ -7,6 +7,9 @@ Enables agent processes to run across multiple machines with:
 * :class:`ProcessDiscovery` — node discovery protocol
 * :class:`StaticDiscovery` — fixed-topology discovery
 * :class:`RegistryDiscovery` — dynamic registry-based discovery
+* :class:`ClusterNode` — what :class:`AgentRuntime` runs for
+  ``DistributedConfig(enabled=True)``: the transport plus the coordinator
+  or the registration with one
 """
 
 from __future__ import annotations
@@ -18,12 +21,14 @@ from .discovery import (
     RegistryDiscovery,
     StaticDiscovery,
 )
+from .node import ClusterNode
 
 # Transport requires aiohttp — lazy import
 try:
     from .transport import RuntimeTransport
 
     __all__ = [
+        "ClusterNode",
         "RuntimeTransport",
         "RuntimeCoordinator",
         "NodeInfo",
@@ -34,6 +39,7 @@ try:
     ]
 except ImportError:
     __all__ = [
+        "ClusterNode",
         "RuntimeCoordinator",
         "NodeInfo",
         "ProcessDiscovery",

@@ -69,6 +69,13 @@ class AgentRuntime:
     call :meth:`request_shutdown` from your own handler) so ``SIGTERM``
     shuts the runtime down cleanly instead of killing it mid-run.
 
+    Distributed mode: with ``config.distributed.enabled``,
+    :meth:`start_all` (and :meth:`run_forever`) first start this node's
+    management transport and, per the config, the cluster coordinator or
+    the registration with one (see
+    :class:`~promptise.runtime.config.DistributedConfig`;
+    :attr:`cluster`).  :meth:`shutdown` stops them.
+
     Args:
         config: Optional :class:`RuntimeConfig` for global settings and
             the processes to register.
@@ -76,6 +83,10 @@ class AgentRuntime:
         broker: Optional shared MessageBroker for message triggers.
         event_notifier: Optional :class:`~promptise.events.EventNotifier`
             shared by all processes (drained by :meth:`stop_all`).
+        hooks: Optional :class:`~promptise.runtime.hooks.HookManager`
+            shared by all processes: its hooks fire for every process's
+            lifecycle events (after each process's own ``hooks``;
+            ``ctx.process_id`` names the process).
     """
 
     def __init__(
@@ -85,11 +96,15 @@ class AgentRuntime:
         event_bus: Any | None = None,
         broker: Any | None = None,
         event_notifier: Any | None = None,
+        hooks: Any | None = None,
     ) -> None:
         self._config = config or RuntimeConfig()
         self._event_bus = event_bus
         self._broker = broker
         self._event_notifier = event_notifier
+        self._hooks = hooks
+        # Distributed mode (started by start_all, see start_distributed)
+        self._cluster: Any | None = None
 
         # Process registry
         self._processes: dict[str, AgentProcess] = {}
@@ -148,6 +163,7 @@ class AgentRuntime:
             broker=self._broker,
             runtime=self,
             event_notifier=self._event_notifier,
+            hooks=self._hooks,
         )
         self._processes[name] = process
         logger.info("AgentRuntime: registered process %r", name)
@@ -320,9 +336,12 @@ class AgentRuntime:
 
         ``CREATED``, ``STOPPED`` and ``FAILED`` processes are started (a
         failed one is torn down first, see :meth:`AgentProcess.start`).  A
-        process that fails to start is logged and skipped.
+        process that fails to start is logged and skipped.  With
+        ``distributed.enabled`` the cluster node starts first
+        (:meth:`start_distributed`); its failure raises.
         """
-        for name, process in self._processes.items():
+        await self.start_distributed()
+        for name, process in list(self._processes.items()):
             if process.state in (
                 ProcessState.CREATED,
                 ProcessState.STOPPED,
@@ -364,16 +383,20 @@ class AgentRuntime:
         """Global runtime status.
 
         Returns:
-            Dict with process count and per-process status.
+            Dict with process count and per-process status (plus
+            ``cluster`` in distributed mode).
         """
         process_statuses = {}
         for name, process in self._processes.items():
             process_statuses[name] = process.status()
 
-        return {
+        status: dict[str, Any] = {
             "process_count": len(self._processes),
             "processes": process_statuses,
         }
+        if self._cluster is not None:
+            status["cluster"] = self._cluster.status()
+        return status
 
     def process_status(self, name: str) -> dict[str, Any]:
         """Status for a single process.
@@ -421,7 +444,7 @@ class AgentRuntime:
 
         Closing releases what a process keeps across restarts (long-term
         memory, secrets, conversation history).  The processes stay
-        registered.
+        registered.  The cluster node (distributed mode) stops last.
         """
         await self.stop_all()
         for name, process in list(self._processes.items()):
@@ -429,6 +452,49 @@ class AgentRuntime:
                 await process.close()
             except Exception as exc:
                 logger.error("AgentRuntime: failed to close %s: %s", name, exc)
+        await self.stop_distributed()
+
+    # ------------------------------------------------------------------
+    # Distributed mode
+    # ------------------------------------------------------------------
+
+    @property
+    def cluster(self) -> Any | None:
+        """The running :class:`~promptise.runtime.distributed.node.ClusterNode`
+        (its ``transport``, ``coordinator``, ``node_id``, ``url``), or
+        ``None`` when distributed mode is off or not started."""
+        return self._cluster
+
+    async def start_distributed(self) -> None:
+        """Start this node's cluster membership (``distributed.enabled``).
+
+        Starts the management transport on
+        ``distributed.transport_host:transport_port``, then the
+        coordinator (``coordinator=True``) or the registration with
+        ``coordinator_url``.  Does nothing when ``distributed.enabled`` is
+        off or it already runs.  :meth:`start_all` calls it.
+
+        Raises:
+            ValueError: The cluster token's ``${ENV_VAR}`` is not set.
+            OSError: The transport port can't be bound.
+        """
+        cfg = self._config.distributed
+        if not cfg.enabled or self._cluster is not None:
+            return
+        from .distributed.node import ClusterNode
+
+        node = ClusterNode(self, cfg)
+        await node.start()
+        self._cluster = node
+
+    async def stop_distributed(self) -> None:
+        """Stop the cluster membership (unregister, stop the transport)."""
+        node, self._cluster = self._cluster, None
+        if node is not None:
+            try:
+                await node.stop()
+            except Exception as exc:
+                logger.error("AgentRuntime: failed to stop the cluster node: %s", exc)
 
     def request_shutdown(self) -> None:
         """Ask :meth:`run_forever` to stop (safe from a signal handler)."""
@@ -493,6 +559,7 @@ class AgentRuntime:
         event_bus: Any | None = None,
         broker: Any | None = None,
         event_notifier: Any | None = None,
+        hooks: Any | None = None,
     ) -> AgentRuntime:
         """Create a runtime from a :class:`RuntimeConfig` with all
         processes pre-registered.
@@ -505,6 +572,7 @@ class AgentRuntime:
             event_bus: Optional shared EventBus.
             broker: Optional shared MessageBroker.
             event_notifier: Optional :class:`EventNotifier` for all processes.
+            hooks: Optional :class:`HookManager` shared by all processes.
 
         Returns:
             A new :class:`AgentRuntime` with processes registered.
@@ -514,6 +582,7 @@ class AgentRuntime:
             event_bus=event_bus,
             broker=broker,
             event_notifier=event_notifier,
+            hooks=hooks,
         )
 
     def __repr__(self) -> str:

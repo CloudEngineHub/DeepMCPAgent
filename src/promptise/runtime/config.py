@@ -5,17 +5,12 @@ sensible defaults.  Atomic configs (:class:`TriggerConfig`,
 :class:`JournalConfig`, etc.) are composed into :class:`ProcessConfig`
 (single process) and :class:`RuntimeConfig` (multi-process manager).
 
-Two preset configurations are provided for common environments:
-
-* :data:`DEFAULT_DEVELOPMENT_CONFIG` — local-only defaults.
-* :data:`DEFAULT_PRODUCTION_CONFIG` — ``distributed.enabled=True``.
-
-The two presets differ only in that flag, which is informational: no part
-of the runtime starts distributed coordination from it (use
-:class:`~promptise.runtime.distributed.RuntimeCoordinator` and the
-runtime transport explicitly).  Production hardening is per process:
-set ``journal``, ``restart_policy``, ``health``, ``budget`` and
-``trigger_delivery`` on each :class:`ProcessConfig`.
+Two preset configurations are provided: :data:`DEFAULT_DEVELOPMENT_CONFIG`
+and :data:`DEFAULT_PRODUCTION_CONFIG`.  They are identical (local only):
+production hardening is per process (set ``journal``, ``restart_policy``,
+``health``, ``budget`` and ``trigger_delivery`` on each
+:class:`ProcessConfig`), and distributed mode
+(:class:`DistributedConfig`) needs your cluster's coordinator and token.
 """
 
 from __future__ import annotations
@@ -515,8 +510,9 @@ class JournalConfig(_WarnOnUnknownKeys):
             the journal holds a checkpoint for the process name, restore
             what it recorded: the context state (with the
             ``context_update`` entries written after the checkpoint), the
-            mission, the conversation history and the invocation count.
-            Recovered keys replace the same keys of
+            mission, the budget counters (so a restart can't reset the
+            daily limits), the conversation history and the invocation
+            count.  Recovered keys replace the same keys of
             ``context.initial_state``.  A clean :meth:`stop` writes a
             checkpoint too, so the next run continues from it.  ``True``
             by default (a journal is opt-in, and recovery is what it is
@@ -895,6 +891,122 @@ class InboxConfig(BaseModel):
         return self
 
 
+class HookConfig(BaseModel):
+    """One runtime lifecycle hook of a process (``ProcessConfig.hooks``).
+
+    Either ``command`` (an external program run as a
+    :class:`~promptise.runtime.ShellHook`; the form a manifest's
+    ``hooks:`` section uses) or ``callback`` (an async Python callable
+    taking a :class:`~promptise.runtime.HookContext`; code only).  See
+    :mod:`promptise.runtime.hooks` for the events, what each one's data
+    holds and which ones can be blocked.
+
+    Attributes:
+        event: The :class:`~promptise.runtime.HookEvent` value, e.g.
+            ``"user_prompt_submit"``.
+        command: Program and arguments: a list, or a string split like a
+            shell would (no shell runs it).  The event arrives on stdin as
+            JSON.
+        callback: Async callable (code only; not serialised).
+        timeout: Seconds the hook may run (default 5 for a command, 30
+            for a callback).
+        priority: Higher runs first.
+        once: Run on the first matching event only.
+        tag: Group name (:meth:`HookManager.remove_by_tag`).
+        fail_closed: An error or timeout of this hook blocks the action
+            (for a blockable event) instead of being ignored.
+        cwd: Working directory of the command.
+        env: Extra environment variables for the command.  Values may be
+            ``${VAR}`` references, resolved from the host environment when
+            the hook runs; literal values are masked in JSON dumps.
+        env_passthrough: Host environment variables passed through to the
+            command (it gets a minimal environment otherwise).
+        max_output_bytes: Largest stdout accepted from the command.
+
+    Unknown keys are rejected.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    event: str = Field(..., description="HookEvent value, e.g. 'user_prompt_submit'")
+    command: str | list[str] | None = Field(None, description="External program and arguments")
+    callback: Any | None = Field(None, exclude=True, description="Async Python callable")
+    timeout: float | None = Field(None, gt=0, le=3600, description="Max seconds per run")
+    priority: int = Field(0, description="Higher priority runs first")
+    once: bool = Field(False, description="Run once, then deregister")
+    tag: str | None = Field(None, description="Group tag")
+    fail_closed: bool = Field(False, description="An error or timeout blocks the action")
+    cwd: str | None = Field(None, description="Working directory of the command")
+    env: dict[str, SecretStr] = Field(
+        default_factory=dict, repr=False, description="Extra environment variables"
+    )
+    env_passthrough: list[str] = Field(
+        default_factory=list, description="Host environment variables passed through"
+    )
+    max_output_bytes: int = Field(
+        65_536, gt=0, le=10 * 1024 * 1024, description="Largest stdout accepted"
+    )
+
+    @field_validator("event")
+    @classmethod
+    def _check_event(cls, v: str) -> str:
+        from .hooks import HookEvent
+
+        valid = [e.value for e in HookEvent]
+        value = v.value if isinstance(v, HookEvent) else v
+        if value not in valid:
+            raise ValueError(f"unknown hook event {v!r}; valid events are {valid}")
+        return str(value)
+
+    @field_serializer("env", when_used="json")
+    def _dump_env(self, v: dict[str, SecretStr]) -> dict[str, str]:
+        return {
+            name: (raw if is_env_reference(raw) else "**********")
+            for name, raw in ((n, s.get_secret_value()) for n, s in v.items())
+        }
+
+    @model_validator(mode="after")
+    def _check_kind(self) -> HookConfig:
+        if (self.command is None) == (self.callback is None):
+            raise ValueError(
+                f"hook for {self.event!r}: set exactly one of 'command' (an external "
+                "program) or 'callback' (an async Python callable)"
+            )
+        if self.command is not None:
+            if isinstance(self.command, str) and not self.command.strip():
+                raise ValueError(f"hook for {self.event!r}: 'command' is empty")
+            if isinstance(self.command, list) and not self.command:
+                raise ValueError(f"hook for {self.event!r}: 'command' is empty")
+        else:
+            import inspect
+
+            call = getattr(self.callback, "__call__", None)  # noqa: B004
+            if not (
+                inspect.iscoroutinefunction(self.callback)
+                or (call is not None and inspect.iscoroutinefunction(call))
+            ):
+                raise ValueError(
+                    f"hook for {self.event!r}: 'callback' must be an async function "
+                    f"(async def ...), got {type(self.callback).__name__}"
+                )
+            command_only = [
+                name
+                for name in ("cwd", "env", "env_passthrough")
+                if name in self.model_fields_set and getattr(self, name)
+            ]
+            if command_only:
+                raise ValueError(
+                    f"hook for {self.event!r}: {command_only} only apply to a 'command' hook"
+                )
+        for name, value in self.env.items():
+            if value.get_secret_value() == "**********":
+                raise ValueError(
+                    f"hook env {name!r} is the masked placeholder from a serialised config; "
+                    "pass the real value or an ${ENV_VAR} reference"
+                )
+        return self
+
+
 class ProcessConfig(BaseModel):
     """Configuration for a single agent process.
 
@@ -929,6 +1041,9 @@ class ProcessConfig(BaseModel):
         guardrails: Passed through to :func:`~promptise.agent.build_agent`
             when the agent is built, as are ``observe``, ``cache``,
             ``optimize_tools``, ``adaptive`` and ``max_invocation_time``.
+        hooks: Runtime lifecycle hooks (:class:`HookConfig`), registered
+            on the process's :attr:`~AgentProcess.hooks` manager when the
+            process is created.
 
     Unknown keys are rejected, so a misspelt option fails loudly instead
     of being ignored.
@@ -1036,27 +1151,204 @@ class ProcessConfig(BaseModel):
         0, ge=0, description="Per-invocation timeout in seconds (0 = none)"
     )
 
+    # -- Runtime lifecycle hooks (opt-in) --
+    hooks: list[HookConfig] = Field(
+        default_factory=list,
+        description="Lifecycle hooks: external commands or async Python callables",
+    )
 
-class DistributedConfig(BaseModel):
-    """Distributed runtime coordination configuration.
+
+class DistributedConfig(_WarnOnUnknownKeys):
+    """Distributed runtime coordination (``RuntimeConfig.distributed``).
+
+    With ``enabled=True``, :meth:`AgentRuntime.start_all` (and
+    :meth:`~AgentRuntime.run_forever`) start this node's management
+    transport (:class:`~promptise.runtime.distributed.RuntimeTransport`)
+    on ``transport_host:transport_port``; :meth:`AgentRuntime.shutdown`
+    stops it.  Then, depending on the role:
+
+    * ``coordinator=True``: this runtime hosts the cluster coordinator
+      (:class:`~promptise.runtime.distributed.RuntimeCoordinator`), which
+      monitors the nodes' health.  With ``discovery_method="registry"``
+      nodes register themselves at ``POST /cluster/nodes`` of its
+      transport (and are dropped when they stop re-registering for
+      ``node_timeout`` seconds); with ``"static"`` the nodes are listed in
+      ``static_nodes``.  The coordinator also lists itself.
+    * ``coordinator_url`` set: this node registers with the coordinator at
+      that URL when it starts, re-registers every ``heartbeat_interval``
+      seconds (so a restarted coordinator finds it again) and unregisters
+      at shutdown.
+    * Neither: a stand-alone node, managed through its transport (a
+      static coordinator elsewhere can list it).
+
+    Security: one cluster token (``auth_token``) authenticates everything:
+    requests to this node's transport (every route but ``GET /health``),
+    this node's registration with the coordinator, and the coordinator's
+    requests to the nodes.  A non-loopback ``transport_host`` or a
+    coordinator on another host needs it, unless
+    ``allow_unauthenticated=True`` says a proxy or a private network
+    authenticates callers.
 
     Attributes:
-        enabled: Enable distributed mode.
-        coordinator_url: URL of the coordinator node.
-        transport_port: Port for the management HTTP transport.
-        discovery_method: How runtime nodes discover each other.
-        heartbeat_interval: Health check interval for node monitoring.
+        enabled: Start the transport (and coordination) with the runtime.
+        coordinator: This runtime hosts the coordinator.
+        coordinator_url: Base URL of the coordinator's transport, for
+            ``discovery_method="registry"`` nodes.
+        node_id: This node's ID (default: ``<hostname>-<port>``).
+        transport_host: Interface the transport binds (default loopback).
+        transport_port: Port of the transport (``0``: a free port).
+        advertise_url: URL other nodes reach this one at (default
+            ``http://<transport_host>:<port>``; required when binding a
+            wildcard address and registering with a coordinator).
+        auth_token: The cluster bearer token, or an ``${ENV_VAR}``
+            reference resolved when the transport starts.
+        allow_unauthenticated: Allow a non-loopback transport or
+            coordinator without ``auth_token``.
+        discovery_method: ``"registry"`` (nodes register with the
+            coordinator) or ``"static"`` (``static_nodes``).
+            ``"multicast"`` is not implemented and is rejected.
+        static_nodes: ``node_id -> URL`` of the nodes, for a static
+            coordinator.
+        heartbeat_interval: Seconds between the coordinator's health
+            checks and between a node's re-registrations.
+        node_timeout: Seconds without a successful health check (or a
+            re-registration) before a node counts as unhealthy (or is
+            dropped from the registry).  Default ``3 * heartbeat_interval``.
+
+    Raises:
+        ValueError: An inconsistent combination (each message says what
+            to change).  Before 1.4.4 these fields were read by nothing.
+
+    Unknown keys are ignored with a ``FutureWarning``.
     """
 
     enabled: bool = Field(False, description="Enable distributed mode")
-    coordinator_url: str | None = Field(None, description="Coordinator node URL")
-    transport_port: int = Field(9100, gt=1024, le=65535, description="Management transport port")
-    discovery_method: Literal["registry", "multicast"] = Field(
+    coordinator: bool = Field(False, description="This runtime hosts the cluster coordinator")
+    coordinator_url: str | None = Field(None, description="Coordinator transport URL")
+    node_id: str | None = Field(None, description="This node's ID")
+    transport_host: str = Field("127.0.0.1", description="Interface the transport binds")
+    transport_port: int = Field(9100, ge=0, le=65535, description="Management transport port")
+    advertise_url: str | None = Field(None, description="URL other nodes reach this node at")
+    auth_token: SecretStr | None = Field(None, description="Cluster bearer token or ${ENV_VAR}")
+    allow_unauthenticated: bool = Field(
+        False, description="Allow a non-loopback transport/coordinator without auth_token"
+    )
+    discovery_method: Literal["registry", "static", "multicast"] = Field(
         "registry", description="Node discovery method"
+    )
+    static_nodes: dict[str, str] = Field(
+        default_factory=dict, description="node_id -> URL (static discovery)"
     )
     heartbeat_interval: float = Field(
         15.0, gt=0, description="Node health check interval (seconds)"
     )
+    node_timeout: float | None = Field(
+        None, gt=0, description="Seconds before a silent node is unhealthy / dropped"
+    )
+
+    @field_validator("transport_port")
+    @classmethod
+    def _check_port(cls, v: int) -> int:
+        if 0 < v <= 1024:
+            raise ValueError(
+                f"transport_port {v} is a privileged port; use a port above 1024 (or 0 "
+                "for a free one)"
+            )
+        return v
+
+    @field_validator("coordinator_url", "advertise_url")
+    @classmethod
+    def _check_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        from urllib.parse import urlparse
+
+        parsed = urlparse(v)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+            raise ValueError(f"{v!r} must be an http:// or https:// URL with a host")
+        return v.rstrip("/")
+
+    @field_validator("static_nodes")
+    @classmethod
+    def _check_static_nodes(cls, v: dict[str, str]) -> dict[str, str]:
+        for node_id, url in v.items():
+            cls._check_url(url)
+            if not node_id:
+                raise ValueError("static_nodes: node IDs must be non-empty")
+        return {k: u.rstrip("/") for k, u in v.items()}
+
+    @field_serializer("auth_token", when_used="json")
+    def _dump_token(self, v: SecretStr | None) -> str | None:
+        if v is None:
+            return None
+        raw = v.get_secret_value()
+        return raw if is_env_reference(raw) else "**********"
+
+    @model_validator(mode="after")
+    def _check_roles(self) -> DistributedConfig:
+        if self.discovery_method == "multicast":
+            raise ValueError(
+                "discovery_method='multicast' is not implemented. Use 'registry' (nodes "
+                "register with the coordinator at coordinator_url) or 'static' (list the "
+                "nodes in static_nodes on the coordinator)."
+            )
+        if self.auth_token is not None:
+            raw = self.auth_token.get_secret_value()
+            if not raw.strip():
+                raise ValueError("auth_token must be a non-empty string (or None)")
+            if raw == "**********":
+                raise ValueError(
+                    "auth_token is the masked placeholder from a serialised config; pass "
+                    "the real token or an ${ENV_VAR} reference"
+                )
+        if self.coordinator and self.coordinator_url:
+            raise ValueError(
+                "A coordinator doesn't register with another coordinator: set either "
+                "coordinator=True or coordinator_url, not both"
+            )
+        if self.static_nodes and not (self.coordinator and self.discovery_method == "static"):
+            raise ValueError(
+                "static_nodes is read by a coordinator with discovery_method='static'; set "
+                "coordinator=True and discovery_method='static', or remove static_nodes"
+            )
+        if self.discovery_method == "static" and self.coordinator_url:
+            raise ValueError(
+                "With discovery_method='static' nodes don't register: the coordinator "
+                "lists them in static_nodes. Remove coordinator_url, or use "
+                "discovery_method='registry'."
+            )
+        from ._http_guard import is_loopback
+
+        unauthenticated = self.auth_token is None and not self.allow_unauthenticated
+        if unauthenticated and not is_loopback(self.transport_host):
+            raise ValueError(
+                f"transport_host {self.transport_host!r} is not a loopback address: set "
+                "auth_token (the cluster token), so only cluster members can manage this "
+                "node, or allow_unauthenticated=True if a proxy or private network "
+                "authenticates callers"
+            )
+        if self.coordinator_url and unauthenticated:
+            from urllib.parse import urlparse
+
+            host = urlparse(self.coordinator_url).hostname or ""
+            if not is_loopback(host):
+                raise ValueError(
+                    f"coordinator_url {self.coordinator_url!r} is on another host: set "
+                    "auth_token (the cluster token) so the coordinator accepts this "
+                    "node, or allow_unauthenticated=True"
+                )
+        wildcard = self.transport_host.strip("[]") in ("0.0.0.0", "::", "")
+        if wildcard and self.advertise_url is None and (self.coordinator_url or self.coordinator):
+            raise ValueError(
+                f"transport_host {self.transport_host!r} is a wildcard address, so other "
+                "nodes can't use it: set advertise_url to the URL they reach this node at "
+                "(e.g. 'http://node-1.internal:9100')"
+            )
+        return self
+
+    def effective_node_timeout(self) -> float:
+        """``node_timeout``, or three heartbeat intervals."""
+        return self.node_timeout if self.node_timeout is not None else 3 * self.heartbeat_interval
 
 
 class RuntimeConfig(BaseModel):
@@ -1100,9 +1392,13 @@ DEFAULT_DEVELOPMENT_CONFIG = RuntimeConfig(
     distributed=DistributedConfig(enabled=False),
 )
 
-#: Preset with ``distributed.enabled=True``.  That is its only difference
-#: from :data:`DEFAULT_DEVELOPMENT_CONFIG`, and the flag is informational
-#: (see the module docstring): it does not change how processes run.
+#: Same as :data:`DEFAULT_DEVELOPMENT_CONFIG`.  Production hardening is
+#: per process (``journal``, ``restart_policy``, ``health``, ``budget``,
+#: ``trigger_delivery``) and distributed mode needs your cluster's
+#: details (``coordinator`` / ``coordinator_url``, ``auth_token``), so no
+#: preset can turn either on.  Before 1.4.4 this preset set
+#: ``distributed.enabled=True``, which did nothing then; now that the flag
+#: starts a network transport, the preset leaves it off.
 DEFAULT_PRODUCTION_CONFIG = RuntimeConfig(
-    distributed=DistributedConfig(enabled=True),
+    distributed=DistributedConfig(enabled=False),
 )

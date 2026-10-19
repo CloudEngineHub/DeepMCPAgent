@@ -51,6 +51,7 @@ from .config import (
     EscalationTarget,
     ExecutionMode,
     HealthConfig,
+    HookConfig,
     InboxConfig,
     JournalConfig,
     MissionConfig,
@@ -71,6 +72,7 @@ from .conversation import ConversationBuffer
 
 # -- Distributed --
 from .distributed import (
+    ClusterNode,
     DiscoveredNode,
     NodeInfo,
     RegistryDiscovery,
@@ -92,6 +94,7 @@ from .health import Anomaly, AnomalyType, HealthMonitor
 
 # -- Hooks --
 from .hooks import (
+    BLOCKABLE_EVENTS,
     DispatchResult,
     HookBlocked,
     HookCallable,
@@ -186,6 +189,7 @@ __all__ = [
     "InboxResponse",
     "MessageType",
     "HealthConfig",
+    "HookConfig",
     "MissionConfig",
     "DEFAULT_DEVELOPMENT_CONFIG",
     "DEFAULT_PRODUCTION_CONFIG",
@@ -250,6 +254,7 @@ __all__ = [
     "RuntimeDataCollector",
     # Distributed
     "RuntimeCoordinator",
+    "ClusterNode",
     "NodeInfo",
     "DiscoveredNode",
     "StaticDiscovery",
@@ -261,6 +266,7 @@ __all__ = [
     "HookManager",
     "HookBlocked",
     "DispatchResult",
+    "BLOCKABLE_EVENTS",
     "ShellHook",
     "ShellHookResult",
 ]

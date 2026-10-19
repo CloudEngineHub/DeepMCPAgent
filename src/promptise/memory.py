@@ -42,6 +42,7 @@ Example — shared memory across a network::
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import re
 import time
@@ -796,20 +797,31 @@ class Mem0Provider:
             return 0
 
     async def close(self) -> None:
-        """Release Mem0 client resources.
+        """Release Mem0 client resources.  Stored memories are kept.
 
-        After calling ``close()``, any further operations will raise
-        ``RuntimeError``.
+        Calls the client's ``close()`` when it has one, then drops the
+        reference.  After calling ``close()``, any further operations
+        will raise ``RuntimeError``.
+
+        Before 1.4.4 this called Mem0's ``Memory.reset()``, which deletes
+        *every* stored memory (the vector store collection and the history
+        database), so closing a provider (``AgentProcess.close()``,
+        ``async with``, removing a runtime process) wiped the memories it
+        was meant to keep.  To delete memories on purpose, use
+        :meth:`delete` / :meth:`purge_user`, or Mem0's own API.
         """
         if self._closed:
             return
         self._closed = True
-        if hasattr(self._client, "reset"):
+        closer = getattr(self._client, "close", None)
+        if callable(closer):
             try:
                 loop = asyncio.get_running_loop()
-                await loop.run_in_executor(None, self._client.reset)
+                result = await loop.run_in_executor(None, closer)
+                if inspect.isawaitable(result):
+                    await result
             except Exception:
-                logger.warning("Mem0Provider.close() reset failed", exc_info=True)
+                logger.warning("Mem0Provider.close(): the client's close() failed", exc_info=True)
         self._client = None  # type: ignore[assignment]
         logger.debug("Mem0Provider closed")
 

@@ -18,10 +18,14 @@ the agent to modify its own configuration at runtime:
 * **forget_memory** — delete a memory
 * **list_capabilities** — introspect current tools, triggers, identity
 
-Each tool captures a reference to the owning ``AgentProcess`` and
-mutates its dynamic state.  Tools that change the graph (instructions,
-tools, MCP servers) trigger a hot-reload via
-:meth:`AgentProcess._hot_reload`.
+Each tool captures a reference to the owning ``AgentProcess`` and goes
+through its methods (:meth:`~AgentProcess.set_dynamic_instructions`,
+:meth:`~AgentProcess.add_dynamic_trigger`,
+:meth:`~AgentProcess.remove_trigger`, :meth:`~AgentProcess.spawn_process`),
+so the limits, the ``CONFIG_CHANGE`` / ``SUBAGENT_START`` hooks (which
+can refuse the change) and the cleanup (trigger listeners) apply.  Tools
+that change the graph (instructions, tools, MCP servers) trigger a
+hot-reload.
 """
 
 from __future__ import annotations
@@ -227,23 +231,8 @@ def _make_tool(
 
 
 async def _modify_instructions(process: Any, new_instructions: str) -> str:
-    """Implementation for modify_instructions tool."""
-    max_len = process.config.open_mode.max_instruction_length
-    if len(new_instructions) > max_len:
-        return f"Error: instructions exceed max length ({len(new_instructions)} > {max_len})"
-
-    # Staged under the rebuild lock, only once the rebuild is allowed (a
-    # refused change must not take effect on the next restart).
-    def stage() -> Any:
-        previous = process._dynamic_instructions
-        process._dynamic_instructions = new_instructions
-
-        def undo() -> None:
-            process._dynamic_instructions = previous
-
-        return undo
-
-    result: str = await process._hot_reload(reason="instructions modified", stage=stage)
+    """Implementation for modify_instructions tool (:meth:`AgentProcess.set_dynamic_instructions`)."""
+    result: str = await process.set_dynamic_instructions(new_instructions)
     return result
 
 
@@ -291,7 +280,12 @@ async def _create_tool(
         return undo
 
     try:
-        result = await process._hot_reload(reason=f"tool '{tool_name}' created", stage=stage)
+        result = await process._hot_reload(
+            reason=f"tool '{tool_name}' created",
+            stage=stage,
+            change="tool",
+            details={"tool_name": tool_name},
+        )
     except Exception as exc:
         return f"Error creating tool: {exc}"
     if result.startswith("Error"):
@@ -344,7 +338,10 @@ async def _connect_mcp_server(
             return undo
 
         result = await process._hot_reload(
-            reason=f"MCP server '{server_name}' connected", stage=stage
+            reason=f"MCP server '{server_name}' connected",
+            stage=stage,
+            change="mcp_server",
+            details={"server_name": server_name, "url": url},
         )
     except Exception as exc:
         return f"Error connecting to MCP server: {exc}"
@@ -373,65 +370,45 @@ async def _add_trigger(
     Supports all built-in trigger types (cron, event, message, webhook,
     file_watch) and any custom-registered trigger types.
     """
-    max_triggers = process.config.open_mode.max_dynamic_triggers
-    if len(process._dynamic_triggers) >= max_triggers:
-        return f"Error: max dynamic triggers ({max_triggers}) reached"
+    kwargs: dict[str, Any] = {"type": trigger_type}
+    if cron_expression:
+        kwargs["cron_expression"] = cron_expression
+    if event_type:
+        kwargs["event_type"] = event_type
+    if topic:
+        kwargs["topic"] = topic
+    if webhook_path is not None:
+        kwargs["webhook_path"] = webhook_path
+    if webhook_port is not None:
+        kwargs["webhook_port"] = webhook_port
+    if watch_path is not None:
+        kwargs["watch_path"] = watch_path
+    if watch_patterns is not None:
+        kwargs["watch_patterns"] = watch_patterns
+    if custom_config:
+        kwargs["custom_config"] = custom_config
 
     try:
-        from .config import TriggerConfig
-        from .triggers import create_trigger
-
-        kwargs: dict[str, Any] = {"type": trigger_type}
-        if cron_expression:
-            kwargs["cron_expression"] = cron_expression
-        if event_type:
-            kwargs["event_type"] = event_type
-        if topic:
-            kwargs["topic"] = topic
-        if webhook_path is not None:
-            kwargs["webhook_path"] = webhook_path
-        if webhook_port is not None:
-            kwargs["webhook_port"] = webhook_port
-        if watch_path is not None:
-            kwargs["watch_path"] = watch_path
-        if watch_patterns is not None:
-            kwargs["watch_patterns"] = watch_patterns
-        if custom_config:
-            kwargs["custom_config"] = custom_config
-
-        config = TriggerConfig(**kwargs)
-        trigger = create_trigger(
-            config,
-            event_bus=process._event_bus,
-            broker=process._broker,
-        )
-        await trigger.start()
-
-        # Start listener task
-        task = asyncio.create_task(
-            process._trigger_listener(trigger),
-            name=f"{process.name}-dynamic-{trigger.trigger_id}",
-        )
-        process._trigger_listener_tasks.append(task)
-        process._dynamic_triggers.append(trigger)
-
-        return f"Trigger '{trigger.trigger_id}' ({trigger_type}) added and listening."
+        trigger_id = await process.add_dynamic_trigger(kwargs)
     except Exception as exc:
         return f"Error adding trigger: {exc}"
+    return f"Trigger '{trigger_id}' ({trigger_type}) added and listening."
 
 
 async def _remove_trigger(process: Any, trigger_id: str) -> str:
-    """Implementation for remove_trigger tool."""
-    for i, trigger in enumerate(process._dynamic_triggers):
-        if trigger.trigger_id == trigger_id:
-            try:
-                await trigger.stop()
-            except Exception:
-                logger.debug("Trigger stop error during removal", exc_info=True)
-            process._dynamic_triggers.pop(i)
-            return f"Trigger '{trigger_id}' removed."
+    """Implementation for remove_trigger tool.
 
-    return f"Error: trigger '{trigger_id}' not found in dynamic triggers"
+    Uses :meth:`AgentProcess.remove_trigger` (``source="agent"``), which
+    also cancels the trigger's listener.  Only triggers the agent added
+    can be removed.
+    """
+    try:
+        await process.remove_trigger(trigger_id, source="agent")
+    except KeyError:
+        return f"Error: trigger '{trigger_id}' not found in dynamic triggers"
+    except Exception as exc:
+        return f"Error removing trigger: {exc}"
+    return f"Trigger '{trigger_id}' removed."
 
 
 async def _spawn_process(
@@ -445,8 +422,9 @@ async def _spawn_process(
 ) -> str:
     """Implementation for spawn_process tool.
 
-    Creates a new :class:`AgentProcess` within the parent
-    :class:`AgentRuntime`, starts it, and tracks it in the parent's
+    Uses :meth:`AgentProcess.spawn_process`: the new process is created
+    in the parent :class:`AgentRuntime` with the parent's guardrails
+    (budget, health, approval, ...), started, and tracked in the parent's
     spawned process list.
     """
     if runtime is None:
@@ -454,41 +432,22 @@ async def _spawn_process(
             "Error: process is not running inside an AgentRuntime. "
             "spawn_process requires a runtime."
         )
-
-    max_spawned = process.config.open_mode.max_spawned_processes
-    if len(process._spawned_processes) >= max_spawned:
-        return f"Error: max spawned processes ({max_spawned}) reached"
-
-    # Check for duplicate name
-    if process_name in runtime.processes:
-        return f"Error: process '{process_name}' already exists in the runtime"
-
     try:
-        from .config import ExecutionMode, ProcessConfig, TriggerConfig
-
-        trigger_configs = []
-        for t in triggers or []:
-            trigger_configs.append(TriggerConfig(**t))
-
-        config = ProcessConfig(
-            model=model or process.config.model,
+        await process.spawn_process(
+            process_name,
             instructions=instructions,
-            execution_mode=ExecutionMode(execution_mode),
-            triggers=trigger_configs,
-        )
-
-        new_process = await runtime.add_process(process_name, config)
-        await new_process.start()
-
-        process._spawned_processes.append(process_name)
-
-        return (
-            f"Process '{process_name}' spawned and started. "
-            f"Mode: {execution_mode}. "
-            f"Triggers: {len(trigger_configs)}."
+            model=model,
+            triggers=list(triggers or []),
+            execution_mode=execution_mode,
+            runtime=runtime,
         )
     except Exception as exc:
         return f"Error spawning process: {exc}"
+    return (
+        f"Process '{process_name}' spawned and started. "
+        f"Mode: {execution_mode}. "
+        f"Triggers: {len(triggers or [])}."
+    )
 
 
 async def _list_processes(process: Any, runtime: Any) -> str:
@@ -511,7 +470,7 @@ async def _list_processes(process: Any, runtime: Any) -> str:
             spawned_by = " [spawned by this process]"
         lines.append(
             f"  - {name}: state={proc.state.value}, "
-            f"invocations={proc._invocation_count}"
+            f"invocations={proc.status().get('invocation_count', 0)}"
             f"{is_self}{spawned_by}"
         )
 

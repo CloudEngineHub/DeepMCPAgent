@@ -100,6 +100,7 @@ ERROR_CODES: dict[str, tuple[int, str]] = {
     "SECRETS_DISABLED": (400, "Secret operation on a process without secret scoping"),
     "MISSION_DISABLED": (400, "Mission operation on a process without a mission"),
     "HEALTH_DISABLED": (400, "Health operation on a process without health monitoring"),
+    "JOURNAL_DISABLED": (400, "Rewind on a process without a journal"),
     "SUSPEND_FAILED": (400, "The process can't be suspended in its current state"),
     "RESUME_FAILED": (400, "The process can't be resumed in its current state"),
     "ROTATION_FAILED": (400, "The secret could not be rotated"),
@@ -110,6 +111,7 @@ ERROR_CODES: dict[str, tuple[int, str]] = {
     "PROCESS_NOT_FOUND": (404, "Process name doesn't exist"),
     "TRIGGER_NOT_FOUND": (404, "Trigger ID doesn't exist"),
     "SECRET_NOT_FOUND": (404, "The process has no secret of that name"),
+    "ENTRY_NOT_FOUND": (404, "Journal entry ID doesn't exist (rewind target)"),
     "METHOD_NOT_ALLOWED": (405, "The route doesn't accept this method"),
     "PAYLOAD_TOO_LARGE": (413, "Request body over the server's size limit (1 MiB)"),
     "HTTP_ERROR": (400, "Another HTTP error from the server; the status says which"),
@@ -117,6 +119,7 @@ ERROR_CODES: dict[str, tuple[int, str]] = {
     "PROCESS_NOT_RUNNING": (409, "Message or question to a stopped or failed process"),
     "TRIGGER_EXISTS": (409, "Adding a trigger identical to an existing one"),
     "MISSION_STATE": (409, "Mission fail/pause/resume not valid in the mission's state"),
+    "REWIND_BUSY": (409, "A run was still in flight when the rewind timed out"),
     "MISDIRECTED_REQUEST": (421, "Non-loopback Host on a loopback bind (DNS rebinding)"),
     "MISSING_FIELD": (422, "Required field missing from the request"),
     "INVALID_NAME": (422, "Process name doesn't match ^[a-zA-Z][a-zA-Z0-9_-]{0,63}$"),
@@ -303,6 +306,13 @@ class OrchestrationAPI:
         auth_token: Bearer token required on every route except
             ``GET /api/v1/health``. **Required** when ``host`` is not a
             loopback address.  ``"${VAR}"`` reads it from the environment.
+        on_shutdown: Enables ``POST /api/v1/runtime/shutdown``
+            (authenticated like every route): the request is answered
+            ``202 {"status": "shutting_down"}`` and *on_shutdown* (a sync
+            or async callable without arguments) is called right after,
+            e.g. ``runtime.request_shutdown``.  Without it the route
+            doesn't exist (``404``).  ``promptise runtime start`` uses it
+            for ``promptise runtime stop``.
 
     Raises:
         ValueError: ``auth_token`` is empty, names an unset environment
@@ -317,7 +327,10 @@ class OrchestrationAPI:
         host: str = "127.0.0.1",
         port: int = 9100,
         auth_token: str | None = None,
+        on_shutdown: Callable[[], Any] | None = None,
     ) -> None:
+        if on_shutdown is not None and not callable(on_shutdown):
+            raise TypeError(f"on_shutdown must be callable, got {type(on_shutdown).__name__}")
         # Resolve env var in auth_token
         if auth_token and auth_token.startswith("${") and auth_token.endswith("}"):
             import os
@@ -341,6 +354,8 @@ class OrchestrationAPI:
         self._host = host
         self._port = port
         self._auth_token = auth_token
+        self._on_shutdown = on_shutdown
+        self._shutdown_tasks: set[asyncio.Future[Any]] = set()
 
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
@@ -539,6 +554,8 @@ class OrchestrationAPI:
         r.add_get("/api/v1/runtime/status", self._handle_runtime_status)
         r.add_post("/api/v1/runtime/start-all", self._handle_start_all)
         r.add_post("/api/v1/runtime/stop-all", self._handle_stop_all)
+        if self._on_shutdown is not None:
+            r.add_post("/api/v1/runtime/shutdown", self._handle_shutdown)
 
         # Process lifecycle
         r.add_get("/api/v1/processes", self._handle_list_processes)
@@ -573,6 +590,8 @@ class OrchestrationAPI:
 
         # Journal
         r.add_get("/api/v1/processes/{name}/journal", self._handle_get_journal)
+        r.add_get("/api/v1/processes/{name}/rewind/plan", self._handle_rewind_plan)
+        r.add_post("/api/v1/processes/{name}/rewind", self._handle_rewind)
 
         # Mission control
         r.add_get("/api/v1/processes/{name}/mission", self._handle_get_mission)
@@ -622,6 +641,28 @@ class OrchestrationAPI:
             return auth_err
         await self._runtime.start_all()
         return _json_response({"status": "started"})
+
+    async def _handle_shutdown(self, request: web.Request) -> web.Response:
+        """``202``, then the ``on_shutdown`` callback (after the answer is sent)."""
+        auth_err = self._require_auth(request)
+        if auth_err:
+            return auth_err
+        callback = self._on_shutdown
+        assert callback is not None  # the route exists only with a callback
+
+        def fire() -> None:
+            try:
+                result = callback()
+            except Exception:
+                logger.exception("OrchestrationAPI: on_shutdown raised")
+                return
+            if inspect.isawaitable(result):
+                task = asyncio.ensure_future(result)
+                self._shutdown_tasks.add(task)
+                task.add_done_callback(self._shutdown_tasks.discard)
+
+        asyncio.get_running_loop().call_soon(fire)
+        return _json_response({"status": "shutting_down"}, status=202)
 
     async def _handle_stop_all(self, request: web.Request) -> web.Response:
         auth_err = self._require_auth(request)
@@ -1486,7 +1527,8 @@ class OrchestrationAPI:
 
     async def _handle_get_journal(self, request: web.Request) -> web.Response:
         """Read the newest journal entries (``?limit=`` 1-500, default 50;
-        ``?type=`` filters by entry type)."""
+        ``?type=`` filters by entry type).  Each entry has its ``entry_id``
+        (a rewind target)."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
@@ -1514,6 +1556,7 @@ class OrchestrationAPI:
         entries = entries[-limit:]
         serialized = [
             {
+                "entry_id": getattr(e, "entry_id", None),
                 "entry_type": getattr(e, "entry_type", "unknown"),
                 "timestamp": _iso(getattr(e, "timestamp", 0)),
                 "data": getattr(e, "data", {}),
@@ -1521,6 +1564,123 @@ class OrchestrationAPI:
             for e in entries
         ]
         return _json_response({"name": name, "entries": serialized, "count": len(serialized)})
+
+    # ------------------------------------------------------------------
+    # Rewind
+    # ------------------------------------------------------------------
+
+    def _rewind_args(
+        self, process: Any, target: Any, mode: Any
+    ) -> tuple[str, str, web.Response | None]:
+        from .journal import RewindMode
+
+        if getattr(process, "_journal", None) is None or not hasattr(process, "rewind"):
+            return (
+                "",
+                "",
+                _error_response(
+                    "JOURNAL_DISABLED",
+                    "The process has no journal; rewind needs one (set its journal config)",
+                    400,
+                ),
+            )
+        if not target:
+            return (
+                "",
+                "",
+                _error_response(
+                    "MISSING_FIELD",
+                    "'target_entry_id' is required (an entry_id from /journal)",
+                    422,
+                ),
+            )
+        if not isinstance(target, str):
+            return (
+                "",
+                "",
+                _error_response("INVALID_FIELD", "'target_entry_id' must be a string", 422),
+            )
+        modes = [m.value for m in RewindMode]
+        if not isinstance(mode, str) or mode not in modes:
+            return (
+                "",
+                "",
+                _error_response("INVALID_FIELD", f"'mode' must be one of {', '.join(modes)}", 422),
+            )
+        return target, mode, None
+
+    async def _handle_rewind_plan(self, request: web.Request) -> web.Response:
+        """Preview a rewind: ``?target_entry_id=`` (required), ``?mode=`` (default
+        ``both``).  Changes nothing."""
+        auth_err = self._require_auth(request)
+        if auth_err:
+            return auth_err
+        name = request.match_info["name"]
+        try:
+            process = self._get_process(name)
+        except KeyError:
+            return _not_found(name)
+        target, mode, err = self._rewind_args(
+            process,
+            request.query.get("target_entry_id") or request.query.get("target"),
+            request.query.get("mode", "both"),
+        )
+        if err is not None:
+            return err
+        try:
+            plan = await process.rewind_plan(target, mode)
+        except ValueError as exc:
+            return _error_response("ENTRY_NOT_FOUND", str(exc), 404)
+        return _json_response({"name": name, "plan": plan.to_dict()})
+
+    async def _handle_rewind(self, request: web.Request) -> web.Response:
+        """Rewind a process to just before a journal entry.
+
+        Body: ``target_entry_id`` (required), ``mode`` (``both`` — the
+        default —, ``conversation_only``, ``code_only``, ``summarize`` or
+        ``cancel``) and ``actor`` (recorded in the journal; default
+        ``"api"``).  A running process is suspended for the rewind and
+        resumed afterwards.  Non-destructive: the journal is appended to.
+        """
+        auth_err = self._require_auth(request)
+        if auth_err:
+            return auth_err
+        name = request.match_info["name"]
+        try:
+            process = self._get_process(name)
+        except KeyError:
+            return _not_found(name)
+        body = await self._json_body(request)
+        target, mode, err = self._rewind_args(
+            process, body.get("target_entry_id"), body.get("mode", "both")
+        )
+        if err is not None:
+            return err
+        actor = body.get("actor", "api")
+        if not isinstance(actor, str) or not actor.strip() or len(actor) > 200:
+            return _error_response(
+                "INVALID_FIELD", "'actor' must be a non-empty string (max 200 chars)", 422
+            )
+        try:
+            result = await process.rewind(target, mode, actor=actor)
+        except ValueError as exc:
+            return _error_response("ENTRY_NOT_FOUND", str(exc), 404)
+        except TimeoutError as exc:
+            return _error_response("REWIND_BUSY", str(exc), 409)
+        plan = result.plan
+        return _json_response(
+            {
+                "name": name,
+                "mode": mode,
+                "target_entry_id": target,
+                "rewind_entry_id": result.rewind_entry_id,
+                "entries_affected": plan.entries_affected if plan is not None else 0,
+                "context_keys": sorted(process.context.state_keys()),
+                "conversation_messages": process.status().get("conversation_messages", 0),
+                "state": _state_value(process),
+                "plan": plan.to_dict() if plan is not None else None,
+            }
+        )
 
     # ------------------------------------------------------------------
     # Mission control

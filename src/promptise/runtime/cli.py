@@ -66,7 +66,6 @@ from rich.table import Table
 
 from ._cli_state import (
     LAUNCH_ENV,
-    SHUTDOWN_PATH,
     TOKEN_ENV,
     RuntimeState,
     StateError,
@@ -504,27 +503,17 @@ class _SignalCatcher:
 def _make_api(
     runtime: AgentRuntime, host: str, port: int, token: str, shutdown: asyncio.Event
 ) -> Any:
-    """An Orchestration API for *runtime*, plus ``POST /api/v1/runtime/shutdown``.
+    """An Orchestration API for *runtime*, with ``POST /api/v1/runtime/shutdown``.
 
-    The extra route (authenticated like every other) sets *shutdown*: the
-    ``stop`` command uses it to shut the runtime down gracefully on every
-    platform (Windows has no SIGTERM a process can catch).
+    The shutdown route (authenticated like every other) sets *shutdown*:
+    the ``stop`` command uses it to shut the runtime down gracefully on
+    every platform (Windows has no SIGTERM a process can catch).
     """
-    from aiohttp import web
-
     from .api import OrchestrationAPI
 
-    class _RuntimeCLIAPI(OrchestrationAPI):
-        def _setup_routes(self) -> None:
-            super()._setup_routes()
-            assert self._app is not None
-            self._app.router.add_post(SHUTDOWN_PATH, self._handle_shutdown)
-
-        async def _handle_shutdown(self, request: web.Request) -> web.Response:
-            asyncio.get_running_loop().call_soon(shutdown.set)
-            return web.json_response({"status": "shutting_down"}, status=202)
-
-    return _RuntimeCLIAPI(runtime, host=host, port=port, auth_token=token)
+    return OrchestrationAPI(
+        runtime, host=host, port=port, auth_token=token, on_shutdown=shutdown.set
+    )
 
 
 def _journal_info(process: Any) -> dict[str, Any] | None:
@@ -872,7 +861,7 @@ def stop(
         return
 
     async def _shutdown(client: OrchestrationClient) -> dict[str, Any]:
-        return await client._post(SHUTDOWN_PATH)
+        return await client.shutdown()
 
     from .api_client import OrchestrationAPIError
 

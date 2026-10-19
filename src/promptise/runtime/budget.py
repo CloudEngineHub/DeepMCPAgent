@@ -24,7 +24,7 @@ from __future__ import annotations
 import logging
 import threading
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -184,18 +184,17 @@ class BudgetState:
     async def check_daily_reset(self) -> bool:
         """Reset daily counters if the reset hour has passed.
 
+        The day runs from ``daily_reset_hour_utc`` to the same hour the
+        next day: the counters reset when the last reset happened before
+        the most recent such boundary.  (Before 1.4.4 they also reset at
+        midnight UTC whatever the configured hour.)
+
         Returns:
             ``True`` if counters were reset, ``False`` otherwise.
         """
         with self._lock:
             now = datetime.now(timezone.utc)
-            reset_hour = self._config.daily_reset_hour_utc
-            # Check if we've crossed the reset hour since last reset
-            if now.date() > self.last_daily_reset.date() or (
-                now.date() == self.last_daily_reset.date()
-                and now.hour >= reset_hour
-                and self.last_daily_reset.hour < reset_hour
-            ):
+            if self._reset_due(now):
                 self.daily_tool_calls = 0
                 self.daily_runs = 0
                 self.daily_cost = 0.0
@@ -203,6 +202,17 @@ class BudgetState:
                 logger.info("Daily budget counters reset")
                 return True
             return False
+
+    def _reset_due(self, now: datetime) -> bool:
+        """Whether a daily reset boundary lies between the last reset and *now*."""
+        reset_hour = self._config.daily_reset_hour_utc
+        boundary = now.replace(hour=reset_hour, minute=0, second=0, microsecond=0)
+        if boundary > now:
+            boundary -= timedelta(days=1)
+        last = self.last_daily_reset
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        return last < boundary
 
     def remaining(self) -> dict[str, int | float | None]:
         """Return remaining budget per category.
@@ -241,17 +251,73 @@ class BudgetState:
         return "[Budget] " + " | ".join(parts)
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialise for journal checkpointing."""
-        return {
-            "run_tool_calls": self.run_tool_calls,
-            "run_llm_turns": self.run_llm_turns,
-            "run_cost": self.run_cost,
-            "run_irreversible": self.run_irreversible,
-            "daily_tool_calls": self.daily_tool_calls,
-            "daily_runs": self.daily_runs,
-            "daily_cost": self.daily_cost,
-            "last_daily_reset": self.last_daily_reset.isoformat(),
-        }
+        """Serialise for journal checkpointing (same as :meth:`snapshot`)."""
+        with self._lock:
+            return {
+                "run_tool_calls": self.run_tool_calls,
+                "run_llm_turns": self.run_llm_turns,
+                "run_cost": self.run_cost,
+                "run_irreversible": self.run_irreversible,
+                "daily_tool_calls": self.daily_tool_calls,
+                "daily_runs": self.daily_runs,
+                "daily_cost": self.daily_cost,
+                "last_daily_reset": self.last_daily_reset.isoformat(),
+            }
+
+    def snapshot(self) -> dict[str, Any]:
+        """The counters as a JSON-serialisable dict (for a journal checkpoint).
+
+        :class:`~promptise.runtime.AgentProcess` stores it in every
+        checkpoint as ``"budget"`` and passes it to :meth:`restore` on
+        journal recovery, so restarting a process (or the whole runtime)
+        doesn't reset its daily limits.
+        """
+        return self.to_dict()
+
+    def restore(self, data: dict[str, Any]) -> None:
+        """Load counters saved by :meth:`snapshot` into this state.
+
+        The daily counters and ``last_daily_reset`` are restored as
+        recorded: if the daily reset hour has passed since, the next
+        :meth:`check_daily_reset` resets them as usual.  The per-run
+        counters start at zero (a new run resets them anyway).  The
+        config (limits) stays this state's own.
+
+        Raises:
+            ValueError: *data* is not a snapshot (a counter is negative,
+                not a number, or ``last_daily_reset`` is not an ISO
+                timestamp).  Nothing is changed.
+        """
+        if not isinstance(data, dict):
+            raise ValueError(f"budget snapshot must be a dict, got {type(data).__name__}")
+
+        def number(key: str, kind: type) -> Any:
+            value = data.get(key, 0)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+                raise ValueError(f"budget snapshot: {key!r} must be a non-negative number")
+            return kind(value)
+
+        daily_tool_calls = number("daily_tool_calls", int)
+        daily_runs = number("daily_runs", int)
+        daily_cost = number("daily_cost", float)
+        last_reset = self.last_daily_reset
+        raw_reset = data.get("last_daily_reset")
+        if raw_reset:
+            try:
+                last_reset = datetime.fromisoformat(str(raw_reset))
+            except ValueError as exc:
+                raise ValueError(f"budget snapshot: bad last_daily_reset {raw_reset!r}") from exc
+            if last_reset.tzinfo is None:
+                last_reset = last_reset.replace(tzinfo=timezone.utc)
+        with self._lock:
+            self.daily_tool_calls = daily_tool_calls
+            self.daily_runs = daily_runs
+            self.daily_cost = daily_cost
+            self.last_daily_reset = last_reset
+            self.run_tool_calls = 0
+            self.run_llm_turns = 0
+            self.run_cost = 0.0
+            self.run_irreversible = 0
 
     @classmethod
     def from_dict(cls, data: dict[str, Any], config: Any) -> BudgetState:

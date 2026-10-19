@@ -387,8 +387,10 @@ class TestRuntimeConfig:
         assert cfg.distributed.enabled is False
 
     def test_production_preset(self) -> None:
+        # Since 1.4.4 distributed.enabled starts a network transport, so
+        # the preset (which has no cluster details) leaves it off.
         cfg = DEFAULT_PRODUCTION_CONFIG
-        assert cfg.distributed.enabled is True
+        assert cfg.distributed.enabled is False
 
 
 # =========================================================================

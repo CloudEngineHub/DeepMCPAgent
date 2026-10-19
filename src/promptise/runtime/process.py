@@ -15,6 +15,10 @@ Wraps a :class:`~promptise.agent.PromptiseAgent` with:
   and checkpoints (when ``ProcessConfig.journal`` is set), with
   automatic recovery from the last checkpoint on the first start
 * Restart policy: automatic restart with backoff after ``FAILED``
+* Lifecycle hooks: every :class:`~promptise.runtime.hooks.HookEvent` is
+  dispatched to :attr:`AgentProcess.hooks` (``ProcessConfig.hooks``)
+* Rewind: :meth:`AgentProcess.rewind` rolls the context state and/or the
+  conversation back to a journal entry (non-destructively)
 
 Long-term memory, the context state and (by default) the conversation
 history live as long as the process object: ``stop()`` / ``start()`` and
@@ -58,6 +62,7 @@ from uuid import uuid4
 from .config import ExecutionMode, ProcessConfig, TriggerConfig
 from .context import CONTEXT_UPDATE_ENTRY_TYPE, AgentContext, StateEntry
 from .conversation import ConversationBuffer
+from .hooks import BLOCKABLE_EVENTS, DispatchResult, HookBlocked, HookEvent, HookManager
 from .lifecycle import ProcessLifecycle, ProcessState, StateError
 from .triggers import create_trigger
 from .triggers.base import BaseTrigger, TriggerEvent, config_trigger_ids
@@ -368,6 +373,15 @@ class AgentProcess:
             (enables the ``spawn_process`` meta-tool in open mode).
         event_notifier: Optional :class:`~promptise.events.EventNotifier`
             for the process's events (and its agent's).
+        hooks: Optional shared :class:`~promptise.runtime.hooks.HookManager`
+            (e.g. one :class:`AgentRuntime` passes to all its processes),
+            dispatched after the process's own :attr:`hooks` (which holds
+            ``config.hooks``); ``ctx.process_id`` names the process.
+
+    Lifecycle hooks: the process dispatches every
+    :class:`~promptise.runtime.hooks.HookEvent` to :attr:`hooks` (see the
+    event's docstring for when, with which data, and what blocking it
+    does).  Hook data has secret values redacted.
 
     Raises:
         ValueError: An entry of ``config.servers`` is not a server spec
@@ -384,6 +398,7 @@ class AgentProcess:
         broker: Any | None = None,
         runtime: Any | None = None,
         event_notifier: Any | None = None,
+        hooks: HookManager | None = None,
     ) -> None:
         self.name = name
         self.process_id = process_id or str(uuid4())
@@ -516,6 +531,7 @@ class AgentProcess:
         self._spawned_processes: list[str] = []
         self._rebuild_lock = asyncio.Lock()
         self._rebuild_count = 0
+        self._rewind_lock = asyncio.Lock()
 
         # Background tasks
         self._worker_tasks: list[asyncio.Task[None]] = []
@@ -546,6 +562,13 @@ class AgentProcess:
         self._last_error: str | None = None
         self._start_time: float | None = None
         self._last_activity: float | None = None
+
+        # Lifecycle hooks: the process's own manager (config.hooks plus
+        # whatever code registers on .hooks), then an optional shared one.
+        self._hooks = HookManager(default_timeout=30.0)
+        self._shared_hooks: HookManager | None = hooks
+        self._session_active = False
+        self._register_config_hooks()
 
     # ------------------------------------------------------------------
     # Governance init
@@ -666,11 +689,11 @@ class AgentProcess:
         """
         self._sync_governance(section)
         self._build_runtime_callback()
-        logger.info(
-            "AgentProcess %s: applied %s config (enabled=%s)",
-            self.name,
-            section,
-            getattr(self.config, section).enabled,
+        enabled = getattr(self.config, section).enabled
+        logger.info("AgentProcess %s: applied %s config (enabled=%s)", self.name, section, enabled)
+        self._notify_hook(
+            HookEvent.CONFIG_CHANGE,
+            {"source": "operator", "change": section, "enabled": enabled},
         )
 
     def _inbox_scanner(self) -> Any | None:
@@ -752,10 +775,307 @@ class AgentProcess:
         """
         await self._journal_record(action, data)
 
+    # ------------------------------------------------------------------
+    # Lifecycle hooks
+    # ------------------------------------------------------------------
+
+    @property
+    def hooks(self) -> HookManager:
+        """This process's :class:`~promptise.runtime.hooks.HookManager`.
+
+        Holds the hooks of ``config.hooks``; register more in code::
+
+            @process.hooks.on(HookEvent.USER_PROMPT_SUBMIT)
+            async def audit(ctx):
+                ...
+
+        Its default hook timeout is 30 seconds.  A hook must not await a
+        lifecycle method of this process (``stop()``, ``start()``,
+        ``rewind()``); schedule it with ``asyncio.create_task``.
+        """
+        return self._hooks
+
+    def _register_config_hooks(self) -> None:
+        """Register ``config.hooks`` on :attr:`hooks` (commands as ShellHooks)."""
+        from .shell_hook import ShellHook
+
+        for spec in self.config.hooks:
+            timeout = spec.timeout
+            if spec.callback is not None:
+                callback = spec.callback
+            else:
+                shell = ShellHook(
+                    command=spec.command if spec.command is not None else "",
+                    timeout=spec.timeout or 5.0,
+                    cwd=spec.cwd,
+                    env={k: v.get_secret_value() for k, v in spec.env.items()} or None,
+                    env_passthrough=list(spec.env_passthrough),
+                    max_output_bytes=spec.max_output_bytes,
+                )
+                callback = shell.callback
+                # The program is killed at its own timeout; this is a backstop.
+                timeout = shell.timeout + 5.0
+            self._hooks.register(
+                HookEvent(spec.event),
+                callback,
+                once=spec.once,
+                priority=spec.priority,
+                tag=spec.tag,
+                timeout=timeout,
+                fail_closed=spec.fail_closed,
+            )
+
+    def _has_hooks(self, event: HookEvent) -> bool:
+        return self._hooks.has_hooks(event) or (
+            self._shared_hooks is not None and self._shared_hooks.has_hooks(event)
+        )
+
+    async def _dispatch_hook(self, event: HookEvent, data: dict[str, Any]) -> DispatchResult | None:
+        """Dispatch *event* to the process's hooks, then the shared ones.
+
+        The data has secret values redacted.  Returns ``None`` when no hook
+        is registered (nothing is copied then).  A block of an event that
+        can't be blocked is logged and dropped from the result.  Never
+        raises.
+        """
+        if not self._has_hooks(event):
+            return None
+        payload = self._redact(dict(data))
+        metadata = {"process_name": self.name, "process_id": self.process_id}
+        result: DispatchResult | None = None
+        for manager in (self._hooks, self._shared_hooks):
+            if manager is None or not manager.has_hooks(event):
+                continue
+            try:
+                outcome = await manager.dispatch(
+                    event, process_id=self.name, data=payload, metadata=metadata
+                )
+            except Exception:
+                logger.warning(
+                    "AgentProcess %s: %s hook dispatch failed",
+                    self.name,
+                    event.value,
+                    exc_info=True,
+                )
+                continue
+            payload = outcome.data
+            if result is None:
+                result = outcome
+            else:
+                result.fired += outcome.fired
+                result.errors.extend(outcome.errors)
+                result.blocked, result.reason, result.data = (
+                    outcome.blocked,
+                    outcome.reason,
+                    outcome.data,
+                )
+            if outcome.blocked:
+                break
+        if result is not None and result.blocked and event not in BLOCKABLE_EVENTS:
+            logger.warning(
+                "AgentProcess %s: a hook tried to block %s, which can't be blocked; ignored (%s)",
+                self.name,
+                event.value,
+                result.reason,
+            )
+            result.blocked = False
+        return result
+
+    def _notify_hook(self, event: HookEvent, data: dict[str, Any]) -> None:
+        """Dispatch an informational hook from synchronous code (background)."""
+        if not self._has_hooks(event):
+            return
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return  # no loop (e.g. a config change made before the process runs)
+        self._spawn_background(self._dispatch_hook(event, data))
+
+    async def _config_change_blocked(
+        self, change: str, *, source: str, **details: Any
+    ) -> str | None:
+        """Dispatch ``CONFIG_CHANGE``; the block reason for an agent's change.
+
+        Operator changes (``source="operator"``) always proceed.
+        """
+        result = await self._dispatch_hook(
+            HookEvent.CONFIG_CHANGE, {"source": source, "change": change, **details}
+        )
+        if result is not None and result.blocked and source == "agent":
+            return result.reason or "blocked by hook"
+        return None
+
+    async def _end_session(self, reason: str) -> None:
+        """Dispatch ``SESSION_END`` once per session (before teardown)."""
+        if not self._session_active:
+            return
+        self._session_active = False
+        await self._dispatch_hook(
+            HookEvent.SESSION_END,
+            {"reason": reason, "invocation_count": self._invocation_count},
+        )
+
+    async def _task_completed(
+        self,
+        event: TriggerEvent,
+        outcome: str,
+        started: float,
+        error: BaseException | str | None = None,
+    ) -> None:
+        if not self._has_hooks(HookEvent.TASK_COMPLETED):
+            return
+        if isinstance(error, BaseException):
+            error = f"{type(error).__name__}: {error}"
+        await self._dispatch_hook(
+            HookEvent.TASK_COMPLETED,
+            {
+                "event_id": event.event_id,
+                "trigger_id": event.trigger_id,
+                "trigger_type": event.trigger_type,
+                "outcome": outcome,
+                "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+                "error": (error or None) and str(error)[:1000],
+            },
+        )
+
+    async def _admit_event(self, event: TriggerEvent) -> bool:
+        """``FILE_CHANGED`` / ``TASK_CREATED`` hooks for a new event.
+
+        Returns ``False`` when a hook refused it: a blocked file change is
+        dropped (counted as filtered), a blocked task dead-lettered.
+        """
+        if event.trigger_type == "file_watch" and self._has_hooks(HookEvent.FILE_CHANGED):
+            payload = (
+                event.payload if isinstance(event.payload, dict) else {"payload": event.payload}
+            )
+            result = await self._dispatch_hook(
+                HookEvent.FILE_CHANGED,
+                {**payload, "trigger_id": event.trigger_id, "event_id": event.event_id},
+            )
+            if result is not None and result.blocked:
+                self._filtered_count += 1
+                logger.info(
+                    "AgentProcess %s: file change %s dropped by hook: %s",
+                    self.name,
+                    event.event_id,
+                    result.reason,
+                )
+                return False
+        result = await self._dispatch_hook(
+            HookEvent.TASK_CREATED,
+            {
+                "event_id": event.event_id,
+                "trigger_id": event.trigger_id,
+                "trigger_type": event.trigger_type,
+            },
+        )
+        if result is not None and result.blocked:
+            self._dead_letter(event, "blocked by hook", error=result.reason)
+            return False
+        return True
+
+    async def _append_conversation(self, messages: list[dict[str, Any]]) -> None:
+        """Append to the conversation, with ``PRE_COMPACT`` / ``POST_COMPACT``.
+
+        The compaction hooks fire when the append makes the buffer drop
+        its oldest messages (``conversation_max_messages``).
+        """
+        buffer = self._conversation_buffer
+        limit = buffer.max_messages
+        overflow = 0
+        if buffer.enabled and limit > 0:
+            overflow = len(buffer) + len(messages) - limit
+        if overflow > 0 and self._has_hooks(HookEvent.PRE_COMPACT):
+            current = await buffer.async_snapshot()
+            await self._dispatch_hook(
+                HookEvent.PRE_COMPACT,
+                {
+                    "buffer_size": len(current),
+                    "max_messages": limit,
+                    "dropping": (current + messages)[:overflow],
+                },
+            )
+        for message in messages:
+            await buffer.async_append(message)
+        if overflow > 0:
+            await self._dispatch_hook(
+                HookEvent.POST_COMPACT,
+                {"buffer_size": len(buffer), "dropped": overflow},
+            )
+
+    def _hooked_approval(self, approval: Any) -> Any:
+        """A copy of the ApprovalPolicy that dispatches the permission hooks.
+
+        ``PERMISSION_REQUEST`` before the handler is asked (a block denies
+        the call without asking), ``PERMISSION_DENIED`` for every denial.
+        Other approval values (a bare handler) are returned unchanged.
+        """
+        from promptise.approval import ApprovalDecision, ApprovalPolicy
+
+        if not isinstance(approval, ApprovalPolicy):
+            return approval
+        if not (
+            self._has_hooks(HookEvent.PERMISSION_REQUEST)
+            or self._has_hooks(HookEvent.PERMISSION_DENIED)
+        ):
+            return approval
+        import copy
+
+        process = self
+        inner_handler = approval.handler
+        inner_on_decision = approval.on_decision
+
+        class _HookedHandler:
+            async def request_approval(self, request: Any) -> Any:
+                result = await process._dispatch_hook(
+                    HookEvent.PERMISSION_REQUEST,
+                    {
+                        "tool_name": request.tool_name,
+                        "arguments": request.arguments,
+                        "request_id": request.request_id,
+                    },
+                )
+                if result is not None and result.blocked:
+                    return ApprovalDecision(
+                        approved=False,
+                        reason=f"Denied by a permission_request hook: {result.reason}",
+                        decided_by="gate",
+                    )
+                return await inner_handler.request_approval(request)
+
+        async def on_decision(request: Any, decision: Any) -> None:
+            if inner_on_decision is not None:
+                outcome = inner_on_decision(request, decision)
+                if hasattr(outcome, "__await__"):
+                    await outcome
+            if not decision.approved:
+                await process._dispatch_hook(
+                    HookEvent.PERMISSION_DENIED,
+                    {
+                        "tool_name": request.tool_name,
+                        "request_id": request.request_id,
+                        "reason": decision.reason,
+                        "decided_by": decision.decided_by,
+                    },
+                )
+
+        hooked = copy.copy(approval)
+        hooked.handler = _HookedHandler()
+        hooked.on_decision = on_decision
+        return hooked
+
     async def _journal_checkpoint(self) -> None:
-        """Snapshot recoverable state (read back by :class:`ReplayEngine`)."""
+        """Snapshot recoverable state (read back by :meth:`_recover_from_journal`).
+
+        Written after every run, after a failed run and a refused one when
+        a budget is enabled (so its counters survive a restart), on stop
+        and after a rewind.
+        """
         if self._journal is None:
             return
+        # The context_update entries of writes made so far come first, so
+        # the journal's order matches what the checkpoint contains.
+        await self._context.flush_update_hooks()
         state: dict[str, Any] = {
             "context_state": self._context.state_snapshot(),
             "lifecycle_state": self.state.value,
@@ -763,7 +1083,7 @@ class AgentProcess:
             "conversation": await self._conversation_buffer.async_snapshot(),
         }
         if self._budget is not None:
-            state["budget"] = self._budget.to_dict()
+            state["budget"] = self._budget.snapshot()
         if self._mission is not None:
             with contextlib.suppress(Exception):
                 state["mission"] = self._mission.to_dict()
@@ -885,6 +1205,7 @@ class AgentProcess:
         self._restart_task = None
         self._restarting = True
         try:
+            await self._end_session("restart")
             async with self._lock:
                 await self._shutdown(final=False)
             if self._stop_requested:
@@ -945,6 +1266,8 @@ class AgentProcess:
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await self._restart_task
             self._restart_task = None
+        if self.state == ProcessState.FAILED:
+            await self._end_session("restart")
         async with self._lock:
             if self.state == ProcessState.FAILED:
                 # Stop the old listeners, triggers and heartbeat first.
@@ -1016,6 +1339,7 @@ class AgentProcess:
                 await self._lifecycle.transition(ProcessState.RUNNING, reason="startup complete")
                 logger.info("AgentProcess %s started", self.name)
                 self._emit("process.started", "info")
+                self._session_active = True
 
             except Exception as exc:
                 # The lifecycle listener emits ``process.failed`` (and
@@ -1026,6 +1350,10 @@ class AgentProcess:
                     metadata={"error": f"{type(exc).__name__}: {exc}"},
                 )
                 raise
+        # Outside the lock, so a hook may inspect (or schedule work on) the process.
+        await self._dispatch_hook(
+            HookEvent.SESSION_START, {"restart": self._restarting, "recovered": self.recovered}
+        )
 
     def _start_listener(self, trigger: BaseTrigger) -> asyncio.Task[None]:
         """Start the listener task that feeds *trigger*'s events to the queue."""
@@ -1042,8 +1370,10 @@ class AgentProcess:
 
         Uses :class:`~promptise.runtime.journal.ReplayEngine`: the context
         state of the checkpoint plus the ``context_update`` entries after
-        it, the mission (:meth:`MissionTracker.restore`), the conversation
-        history and the invocation count.  Nothing happens without a
+        it, the mission (:meth:`MissionTracker.restore`), the budget
+        counters (:meth:`BudgetState.restore`, so a restart doesn't reset
+        the daily limits), the conversation history and the invocation
+        count.  Nothing happens without a
         checkpoint, or with ``journal.recover_on_start=False``.  A journal
         that can't be read is logged and the process starts fresh.
         """
@@ -1075,6 +1405,14 @@ class AgentProcess:
                 mission_restored = True
             except ValueError as exc:
                 logger.warning("AgentProcess %s: mission not restored: %s", self.name, exc)
+        # Budget counters: a restart must not reset the daily limits.
+        budget_restored = False
+        if self._budget is not None and isinstance(checkpoint.get("budget"), dict):
+            try:
+                self._budget.restore(checkpoint["budget"])
+                budget_restored = True
+            except ValueError as exc:
+                logger.warning("AgentProcess %s: budget not restored: %s", self.name, exc)
         conversation = checkpoint.get("conversation")
         if isinstance(conversation, list) and self.config.context.conversation_history:
             await self._conversation_buffer.async_replace(conversation)
@@ -1086,6 +1424,7 @@ class AgentProcess:
             "entries_replayed": recovered.get("entries_replayed", 0),
             "context_keys": sorted(context_state),
             "mission_restored": mission_restored,
+            "budget_restored": budget_restored,
             "conversation_messages": len(conversation) if isinstance(conversation, list) else 0,
             "invocation_count": self._invocation_count,
         }
@@ -1104,7 +1443,8 @@ class AgentProcess:
         Keys: ``lifecycle_state`` (the state the journal last recorded:
         ``"stopped"`` after a clean stop, ``"running"`` after a crash),
         ``entries_replayed``, ``context_keys``, ``mission_restored``,
-        ``conversation_messages`` and ``invocation_count``.
+        ``budget_restored``, ``conversation_messages`` and
+        ``invocation_count``.
         """
         return dict(self._recovered) if self._recovered is not None else None
 
@@ -1143,6 +1483,7 @@ class AgentProcess:
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await self._restart_task
         self._restart_task = None
+        await self._end_session("stop")
         async with self._lock:
             if self.state == ProcessState.STOPPED and self._recycled:
                 # Stopped mid-recycle (max_lifetime): finish the stop.
@@ -1423,16 +1764,24 @@ class AgentProcess:
         self.config.instructions = instructions
         self._dynamic_instructions = None
         self._instructions_changed = True
+        self._notify_hook(
+            HookEvent.CONFIG_CHANGE,
+            {"source": "operator", "change": "instructions", "length": len(instructions)},
+        )
 
     async def inject(self, event: TriggerEvent) -> None:
         """Manually inject a trigger event into the queue.
 
         Like a trigger event, it resumes a process suspended for
-        ``idle_timeout``.  A full queue dead-letters it.
+        ``idle_timeout``, and passes the ``FILE_CHANGED`` /
+        ``TASK_CREATED`` hooks (a hook can refuse it).  A full queue
+        dead-letters it.
 
         Args:
             event: The trigger event to inject.
         """
+        if not await self._admit_event(event):
+            return
         await self._wake_if_idle()
         try:
             self._trigger_queue.put_nowait(event)
@@ -1560,7 +1909,8 @@ class AgentProcess:
             recovery) and, per enabled subsystem, ``budget``,
             ``health_anomalies`` and ``health``
             (:meth:`HealthMonitor.health_status`), ``mission_state`` and
-            ``active_secrets``.
+            ``active_secrets``; ``hook_count`` is the number of hooks on
+            :attr:`hooks`.
         """
         uptime = None
         if self._start_time is not None:
@@ -1588,6 +1938,7 @@ class AgentProcess:
             "filtered_count": self._filtered_count,
             "pending_retries": len(self._retry_handles),
             "uptime_seconds": uptime,
+            "hook_count": len(self._hooks.registered()),
             "triggers": [self._trigger_status(t, "config") for t in self._triggers]
             + [self._trigger_status(t, "dynamic") for t in self._dynamic_triggers],
         }
@@ -1776,7 +2127,8 @@ class AgentProcess:
             # (an identity supplies its own agent id).
             build_kwargs["observer_agent_id"] = self.name
         if self.config.approval is not None:
-            build_kwargs["approval"] = self.config.approval
+            # A copy that dispatches the permission hooks, when any are set.
+            build_kwargs["approval"] = self._hooked_approval(self.config.approval)
         if self._event_notifier is not None:
             build_kwargs["events"] = self._event_notifier
         if hasattr(self.config, "observe") and self.config.observe:
@@ -1950,49 +2302,154 @@ class AgentProcess:
                 self._start_listener(trigger)
             self.config.triggers.append(config)
         logger.info("AgentProcess %s: added trigger %s", self.name, trigger_id)
+        await self._dispatch_hook(
+            HookEvent.CONFIG_CHANGE,
+            {
+                "source": "operator",
+                "change": "trigger_added",
+                "trigger_id": trigger_id,
+                "trigger_type": config.type,
+            },
+        )
         return trigger_id
 
-    async def remove_trigger(self, trigger_id: str) -> None:
+    async def remove_trigger(self, trigger_id: str, *, source: str = "operator") -> None:
         """Stop and remove a trigger: a config trigger or an agent-added one.
 
         A config trigger (ID from :func:`config_trigger_ids`) is removed
         from ``config.triggers`` and, when it runs, stopped with its
-        listener at once.  An agent-added (open mode) trigger is stopped
-        and dropped.  The other triggers keep their IDs.
+        listener at once.  An agent-added (open mode) trigger is stopped,
+        its listener cancelled, and dropped.  The other triggers keep their
+        IDs.  Dispatches ``CONFIG_CHANGE`` (``change="trigger_removed"``).
+
+        Args:
+            trigger_id: The trigger's ID.
+            source: ``"operator"`` (default) or ``"agent"`` (the open-mode
+                ``remove_trigger`` meta-tool): an agent can only remove
+                triggers it added, and a ``CONFIG_CHANGE`` hook can refuse
+                it.
 
         Raises:
-            KeyError: No trigger has *trigger_id*.
+            KeyError: No trigger has *trigger_id* (for ``source="agent"``:
+                no agent-added one).
+            PermissionError: A hook refused the agent's change.
         """
+        if source == "agent":
+            if not any(t.trigger_id == trigger_id for t in self._dynamic_triggers):
+                raise KeyError(f"Process {self.name!r} has no agent-added trigger {trigger_id!r}")
+            refusal = await self._config_change_blocked(
+                "trigger_removed", source="agent", trigger_id=trigger_id
+            )
+            if refusal is not None:
+                raise PermissionError(f"Removing trigger {trigger_id!r} was blocked: {refusal}")
         async with self._lock:
             for i, trigger in enumerate(self._dynamic_triggers):
                 if trigger.trigger_id == trigger_id:
                     self._dynamic_triggers.pop(i)
                     await self._stop_trigger(trigger)
-                    logger.info("AgentProcess %s: removed trigger %s", self.name, trigger_id)
-                    return
-            ids = config_trigger_ids(self.config.triggers)
-            if trigger_id not in ids:
-                raise KeyError(f"Process {self.name!r} has no trigger {trigger_id!r}")
-            index = ids.index(trigger_id)
-            self.config.triggers.pop(index)
-            running = next((t for t in self._triggers if t.trigger_id == trigger_id), None)
-            if running is not None:
-                self._triggers.remove(running)
-                await self._stop_trigger(running)
-            # Identical configs are told apart by -2, -3 suffixes: keep the
-            # running triggers' IDs in step with the config.
-            if len(self._triggers) == len(self.config.triggers):
-                for trigger, new_id in zip(
-                    self._triggers, config_trigger_ids(self.config.triggers), strict=True
-                ):
-                    if trigger.trigger_id != new_id:
-                        if trigger.trigger_id in self._trigger_filters:
-                            self._trigger_filters[new_id] = self._trigger_filters.pop(
-                                trigger.trigger_id
-                            )
-                        with contextlib.suppress(AttributeError):
-                            trigger.trigger_id = new_id
+                    break
+            else:
+                if source == "agent":
+                    raise KeyError(
+                        f"Process {self.name!r} has no agent-added trigger {trigger_id!r}"
+                    )
+                await self._remove_config_trigger(trigger_id)
         logger.info("AgentProcess %s: removed trigger %s", self.name, trigger_id)
+        if source != "agent":
+            await self._dispatch_hook(
+                HookEvent.CONFIG_CHANGE,
+                {"source": source, "change": "trigger_removed", "trigger_id": trigger_id},
+            )
+
+    async def add_dynamic_trigger(self, config: TriggerConfig | dict[str, Any]) -> str:
+        """Add a trigger on the agent's behalf (open mode's ``add_trigger``).
+
+        Unlike :meth:`add_trigger` the trigger is not added to
+        ``config.triggers``: it lives until :meth:`stop`, :meth:`rollback`
+        or :meth:`remove_trigger`, and counts towards
+        ``open_mode.max_dynamic_triggers``.  It starts at once with its
+        listener (and filter).  A ``CONFIG_CHANGE`` hook (``source="agent"``,
+        ``change="trigger_added"``) can refuse it.
+
+        Returns:
+            The trigger's ID.
+
+        Raises:
+            RuntimeError: Not in open mode, or the process is stopping,
+                stopped or failed.
+            PermissionError: ``open_mode.allow_trigger_management`` is off
+                or a hook refused it.
+            ValueError: The limit is reached, or the config is invalid or
+                can't start.
+        """
+        if self.config.execution_mode != ExecutionMode.OPEN:
+            raise RuntimeError("Agent-added triggers are only available in open mode")
+        if not self.config.open_mode.allow_trigger_management:
+            raise PermissionError("open_mode.allow_trigger_management is off")
+        if isinstance(config, dict):
+            try:
+                config = TriggerConfig(**config)
+            except Exception as exc:
+                raise ValueError(f"Invalid trigger config: {exc}") from exc
+        limit = self.config.open_mode.max_dynamic_triggers
+        if len(self._dynamic_triggers) >= limit:
+            raise ValueError(f"max dynamic triggers ({limit}) reached")
+        refusal = await self._config_change_blocked(
+            "trigger_added", source="agent", trigger_type=config.type
+        )
+        if refusal is not None:
+            raise PermissionError(f"Adding the {config.type} trigger was blocked: {refusal}")
+        from . import triggers as _triggers
+
+        async with self._lock:
+            if self.state in (ProcessState.STOPPING, ProcessState.STOPPED, ProcessState.FAILED):
+                raise RuntimeError(f"Process {self.name!r} is {self.state.value}")
+            if len(self._dynamic_triggers) >= limit:
+                raise ValueError(f"max dynamic triggers ({limit}) reached")
+            trigger = _triggers.create_trigger(
+                config, event_bus=self._event_bus, broker=self._broker
+            )
+            if (
+                config.filter_expression is not None
+                and getattr(trigger, "event_filter", None) is None
+            ):
+                self._trigger_filters[trigger.trigger_id] = compile_filter(config.filter_expression)
+            try:
+                await trigger.start()
+            except Exception as exc:
+                self._trigger_filters.pop(trigger.trigger_id, None)
+                raise ValueError(f"Trigger could not start: {exc}") from exc
+            self._dynamic_triggers.append(trigger)
+            self._start_listener(trigger)
+        logger.info(
+            "AgentProcess %s: agent added %s trigger %s", self.name, config.type, trigger.trigger_id
+        )
+        return trigger.trigger_id
+
+    async def _remove_config_trigger(self, trigger_id: str) -> None:
+        """Remove (and stop) a config trigger; the caller holds ``_lock``."""
+        ids = config_trigger_ids(self.config.triggers)
+        if trigger_id not in ids:
+            raise KeyError(f"Process {self.name!r} has no trigger {trigger_id!r}")
+        index = ids.index(trigger_id)
+        self.config.triggers.pop(index)
+        running = next((t for t in self._triggers if t.trigger_id == trigger_id), None)
+        if running is not None:
+            self._triggers.remove(running)
+            await self._stop_trigger(running)
+        # Identical configs are told apart by -2, -3 suffixes: keep the
+        # running triggers' IDs in step with the config.
+        if len(self._triggers) == len(self.config.triggers):
+            for trigger, new_id in zip(
+                self._triggers, config_trigger_ids(self.config.triggers), strict=True
+            ):
+                if trigger.trigger_id != new_id:
+                    if trigger.trigger_id in self._trigger_filters:
+                        self._trigger_filters[new_id] = self._trigger_filters.pop(
+                            trigger.trigger_id
+                        )
+                    with contextlib.suppress(AttributeError):
+                        trigger.trigger_id = new_id
 
     async def _stop_trigger(self, trigger: BaseTrigger) -> None:
         """Cancel a trigger's listener and stop the trigger."""
@@ -2068,6 +2525,8 @@ class AgentProcess:
                 if self.state == ProcessState.FAILED:
                     self._dead_letter(event, "process failed")
                     continue
+                if not await self._admit_event(event):
+                    continue
                 await self._wake_if_idle()
                 await self._trigger_queue.put(event)
         except asyncio.CancelledError:
@@ -2127,8 +2586,8 @@ class AgentProcess:
 
         Each entry has ``event`` (the :class:`TriggerEvent`), ``reason``
         (``"retries exhausted"``, ``"process failed"``, ``"process
-        stopped"``, ``"queue full"``, ``"flagged by payload scan"`` or
-        ``"blocked by guardrails"``), ``error``, ``attempts`` and
+        stopped"``, ``"queue full"``, ``"flagged by payload scan"``,
+        ``"blocked by guardrails"`` or ``"blocked by hook"``), ``error``, ``attempts`` and
         ``dead_lettered_at``.  The list keeps the most recent
         ``trigger_delivery.dead_letter_size`` entries.
         """
@@ -2340,9 +2799,11 @@ class AgentProcess:
         async with self._semaphore:
             if me is not None:
                 self._running_workers.add(me)
+            started = time.perf_counter()
             flagged = await self._scan_payload(event)
             if flagged is not None:
                 self._dead_letter(event, "flagged by payload scan", error=flagged)
+                await self._task_completed(event, "dead_lettered", started, flagged)
                 return False
 
             attempt = self._delivery_attempts.get(event.event_id, 0) + 1
@@ -2353,12 +2814,20 @@ class AgentProcess:
                 self._consecutive_failures = 0
             except asyncio.CancelledError:
                 raise
+            except HookBlocked as exc:
+                # A user_prompt_submit hook refused the run: not a failure.
+                self._dead_letter(event, "blocked by hook", error=exc.reason)
+                await self._task_completed(event, "blocked", started, exc.reason)
+                return False
             except guardrail_violation as exc:
                 self._dead_letter(event, "blocked by guardrails", error=exc)
+                await self._task_completed(event, "dead_lettered", started, exc)
+                return False
             except Exception as exc:
                 if attempt <= self.config.trigger_delivery.max_retries:
                     logger.warning("AgentProcess %s: invocation failed (%s)", self.name, exc)
                     self._schedule_retry(event, attempt)
+                    await self._task_completed(event, "retrying", started, exc)
                     return False
 
                 self._consecutive_failures += 1
@@ -2375,6 +2844,7 @@ class AgentProcess:
                     self.config.max_consecutive_failures,
                 )
                 self._dead_letter(event, "retries exhausted", error=exc)
+                await self._task_completed(event, "failed", started, exc)
                 if self._consecutive_failures >= self.config.max_consecutive_failures:
                     logger.error(
                         "AgentProcess %s: max failures reached, transitioning to FAILED",
@@ -2395,6 +2865,8 @@ class AgentProcess:
                     self._cancel_pending_retries("process failed")
                     self._drain_queue_to_dead_letters("process failed")
                     return True
+                return False
+            await self._task_completed(event, "success", started)
         return False
 
     async def _invoke_agent(self, event: TriggerEvent) -> Any:
@@ -2435,6 +2907,30 @@ class AgentProcess:
         if self._agent is None:
             raise RuntimeError("Agent not built")
 
+        # -- Pre-invoke: the prompt, through the user_prompt_submit hooks
+        # (they may rewrite it, or refuse the run: HookBlocked, before any
+        # budget is counted) --
+        message = self._format_trigger_message(event)
+        if self._has_hooks(HookEvent.USER_PROMPT_SUBMIT):
+            shown = self._redact(message)
+            hooked = await self._dispatch_hook(
+                HookEvent.USER_PROMPT_SUBMIT,
+                {
+                    "prompt": shown,
+                    "event_id": event.event_id,
+                    "trigger_id": event.trigger_id,
+                    "trigger_type": event.trigger_type,
+                },
+            )
+            if hooked is not None:
+                if hooked.blocked:
+                    raise HookBlocked(hooked.reason or "blocked by a user_prompt_submit hook")
+                rewritten = hooked.data.get("prompt")
+                # Only a real rewrite replaces the prompt (the hook saw the
+                # redacted copy; unchanged, the original stays).
+                if isinstance(rewritten, str) and rewritten != shown:
+                    message = rewritten
+
         # -- Pre-invoke: reset callback handler for this invocation --
         if self._runtime_callback is not None:
             self._runtime_callback.reset()
@@ -2457,6 +2953,8 @@ class AgentProcess:
                 )
             run_violation = await self._budget.record_run_start()
             if run_violation is not None and self._budget_enforcer is not None:
+                # Counted runs survive a restart (see _journal_checkpoint).
+                await self._journal_checkpoint()
                 await self._handle_budget_violation(run_violation)
                 return None
             await self._budget.reset_run()
@@ -2473,8 +2971,6 @@ class AgentProcess:
             if self._fail_mission_if_out_of_bounds():
                 return None
 
-        # Format the trigger event as a user message
-        message = self._format_trigger_message(event)
         user_msg: dict[str, Any] = {"role": "user", "content": message}
 
         if self._journal_full:
@@ -2554,6 +3050,10 @@ class AgentProcess:
                     "error": str(exc)[:1000],
                 },
             )
+            if self._budget is not None:
+                # The failed run's tool calls and cost count too, also
+                # after a restart.
+                await self._journal_checkpoint()
             raise
 
         # The agent's final reply (the result also echoes the input history,
@@ -2562,11 +3062,10 @@ class AgentProcess:
 
         # 7. Update conversation buffer with this exchange (secret values
         # redacted, so a secret the agent echoed never reaches a later prompt)
-        await self._conversation_buffer.async_append(self._redact(user_msg))
+        exchange = [self._redact(user_msg)]
         if final_reply is not None:
-            await self._conversation_buffer.async_append(
-                {"role": "assistant", "content": self._redact(final_reply)}
-            )
+            exchange.append({"role": "assistant", "content": self._redact(final_reply)})
+        await self._append_conversation(exchange)
 
         # 7.5. Answer inbox questions from the reply, then remove what this
         # run consumed (directives, context, corrections, answered
@@ -2604,6 +3103,7 @@ class AgentProcess:
 
         # 10.5. Journal the result and checkpoint recoverable state
         if self._journal is not None:
+            await self._context.flush_update_hooks()
             await self._journal_record(
                 "invocation_result",
                 {
@@ -3004,6 +3504,9 @@ class AgentProcess:
         reason: str = "",
         stage: Callable[[], Callable[[], None]] | None = None,
         enforce_limit: bool = True,
+        change: str | None = None,
+        source: str = "agent",
+        details: dict[str, Any] | None = None,
     ) -> str:
         """Rebuild the agent graph with current dynamic state.
 
@@ -3021,6 +3524,12 @@ class AgentProcess:
             stage: Applies the change and returns a function that undoes it.
             enforce_limit: Refuse once ``OpenModeConfig.max_rebuilds`` is
                 reached (``False`` for :meth:`rollback`).
+            change: What changes (``"instructions"``, ``"tool"``,
+                ``"mcp_server"``, ``"rollback"``), for the
+                ``CONFIG_CHANGE`` hook.  An agent's change
+                (``source="agent"``) can be refused by the hook.
+            source: ``"agent"`` (a meta-tool) or ``"operator"``.
+            details: Extra hook data.
 
         Returns:
             Status message indicating success or failure.
@@ -3043,6 +3552,19 @@ class AgentProcess:
                         refusal,
                     )
                     return refusal
+
+            if change is not None:
+                refusal = await self._config_change_blocked(
+                    change, source=source, **(details or {})
+                )
+                if refusal is not None:
+                    logger.warning(
+                        "AgentProcess %s: %s change refused by a hook: %s",
+                        self.name,
+                        change,
+                        refusal,
+                    )
+                    return f"Error: the change was blocked by a hook: {refusal}"
 
             undo = stage() if stage is not None else None
 
@@ -3081,10 +3603,13 @@ class AgentProcess:
             return "Rebuild successful"
 
     async def rollback(self) -> str:
-        """Revert to the original configuration.
+        """Revert to the original configuration (open mode).
 
         Clears all dynamic state (instructions, tools, servers,
         triggers) and rebuilds the agent from the original config.
+        It undoes the agent's *self-modifications*; it doesn't touch the
+        context state or the conversation history.  To roll those back to
+        an earlier point, use :meth:`rewind` (any mode).
         A rollback is not refused by ``OpenModeConfig.max_rebuilds`` (it
         is how an operator undoes the agent's changes), but it counts as a
         rebuild.  If the rebuild fails, the instructions, tools and servers
@@ -3099,11 +3624,11 @@ class AgentProcess:
         if self.config.execution_mode != ExecutionMode.OPEN:
             raise RuntimeError("Rollback is only available in open mode")
 
-        # Stop and clear dynamic triggers
-        for trigger in self._dynamic_triggers:
-            with contextlib.suppress(Exception):
-                await trigger.stop()
-        self._dynamic_triggers.clear()
+        # Stop and clear dynamic triggers (their listeners too)
+        async with self._lock:
+            dynamic, self._dynamic_triggers = list(self._dynamic_triggers), []
+            for trigger in dynamic:
+                await self._stop_trigger(trigger)
 
         def clear() -> Callable[[], None]:
             saved = (
@@ -3124,8 +3649,340 @@ class AgentProcess:
             return undo
 
         return await self._hot_reload(
-            reason="rollback to original configuration", stage=clear, enforce_limit=False
+            reason="rollback to original configuration",
+            stage=clear,
+            enforce_limit=False,
+            change="rollback",
+            source="operator",
         )
+
+    async def set_dynamic_instructions(self, instructions: str) -> str:
+        """Replace the instructions on the agent's behalf (open mode).
+
+        What the ``modify_instructions`` meta-tool calls: the agent is
+        rebuilt with *instructions* (hot reload), :meth:`rollback` restores
+        the configured ones, and ``open_mode.max_instruction_length`` /
+        ``max_rebuilds`` apply.  A ``CONFIG_CHANGE`` hook
+        (``source="agent"``) can refuse it.  Operators use
+        :meth:`update_instructions` instead.
+
+        Returns:
+            ``"Rebuild successful"`` or an ``"Error: ..."`` message.
+
+        Raises:
+            RuntimeError: Not in open mode.
+        """
+        max_len = self.config.open_mode.max_instruction_length
+        if len(instructions) > max_len:
+            return f"Error: instructions exceed max length ({len(instructions)} > {max_len})"
+
+        # Staged under the rebuild lock, only once the rebuild is allowed (a
+        # refused change must not take effect on the next restart).
+        def stage() -> Callable[[], None]:
+            previous = self._dynamic_instructions
+            self._dynamic_instructions = instructions
+
+            def undo() -> None:
+                self._dynamic_instructions = previous
+
+            return undo
+
+        return await self._hot_reload(
+            reason="instructions modified",
+            stage=stage,
+            change="instructions",
+            details={"length": len(instructions)},
+        )
+
+    @property
+    def spawned_processes(self) -> list[str]:
+        """Names of the processes this one spawned (open mode)."""
+        return list(self._spawned_processes)
+
+    def _child_config(
+        self,
+        *,
+        instructions: str,
+        model: str | None,
+        triggers: list[TriggerConfig],
+        execution_mode: ExecutionMode,
+    ) -> ProcessConfig:
+        """The config of a process spawned by this one.
+
+        The child inherits the parent's guardrails: budget, health,
+        approval policy, guardrail scanner, trigger delivery, journal
+        level and open-mode limits (with spawning switched off, so
+        spawned processes can't spawn more).  It gets no secrets, MCP
+        servers, identity or hooks of the parent.
+        """
+        parent = self.config
+        open_mode = parent.open_mode.model_copy(update={"allow_process_spawn": False})
+        return ProcessConfig(
+            model=model or parent.model,
+            instructions=instructions,
+            execution_mode=execution_mode,
+            open_mode=open_mode,
+            triggers=triggers,
+            budget=parent.budget.model_copy(deep=True),
+            health=parent.health.model_copy(deep=True),
+            trigger_delivery=parent.trigger_delivery.model_copy(deep=True),
+            journal=parent.journal.model_copy(deep=True),
+            approval=parent.approval,
+            guardrails=parent.guardrails,
+            max_invocation_time=parent.max_invocation_time,
+        )
+
+    async def spawn_process(
+        self,
+        name: str,
+        *,
+        instructions: str,
+        model: str | None = None,
+        triggers: list[TriggerConfig | dict[str, Any]] | None = None,
+        execution_mode: str | ExecutionMode = ExecutionMode.STRICT,
+        runtime: Any | None = None,
+    ) -> AgentProcess:
+        """Spawn a process in the runtime on the agent's behalf (open mode).
+
+        What the ``spawn_process`` meta-tool calls.  The new process is
+        registered in the parent :class:`AgentRuntime` and started; it
+        inherits this process's guardrails (see :meth:`_child_config`).
+        Dispatches ``SUBAGENT_START`` first (a hook can refuse the spawn)
+        and ``SUBAGENT_STOP`` when the child stops or fails.  *runtime*
+        overrides the process's own runtime reference.
+
+        Raises:
+            RuntimeError: Not in open mode, or no runtime.
+            PermissionError: ``open_mode.allow_process_spawn`` is off, or
+                a hook refused the spawn.
+            ValueError: ``max_spawned_processes`` reached, the name is
+                taken, or the config is invalid.
+            Exception: The child failed to start (it is removed again).
+        """
+        if self.config.execution_mode != ExecutionMode.OPEN:
+            raise RuntimeError("Spawning processes is only available in open mode")
+        runtime = runtime if runtime is not None else self._runtime
+        if runtime is None:
+            raise RuntimeError("this process is not running inside an AgentRuntime")
+        if not self.config.open_mode.allow_process_spawn:
+            raise PermissionError("open_mode.allow_process_spawn is off")
+        limit = self.config.open_mode.max_spawned_processes
+        if len(self._spawned_processes) >= limit:
+            raise ValueError(f"max spawned processes ({limit}) reached")
+        if name in runtime.processes:
+            raise ValueError(f"process {name!r} already exists in the runtime")
+        try:
+            trigger_configs = [
+                t if isinstance(t, TriggerConfig) else TriggerConfig(**t) for t in triggers or []
+            ]
+            mode = ExecutionMode(execution_mode)
+            config = self._child_config(
+                instructions=instructions,
+                model=model,
+                triggers=trigger_configs,
+                execution_mode=mode,
+            )
+        except Exception as exc:
+            raise ValueError(f"invalid process config: {exc}") from exc
+        hooked = await self._dispatch_hook(
+            HookEvent.SUBAGENT_START,
+            {
+                "process_name": name,
+                "execution_mode": mode.value,
+                "trigger_count": len(trigger_configs),
+            },
+        )
+        if hooked is not None and hooked.blocked:
+            raise PermissionError(f"spawning {name!r} was blocked by a hook: {hooked.reason}")
+
+        child: AgentProcess = await runtime.add_process(name, config)
+        try:
+            await child.start()
+        except BaseException:
+            with contextlib.suppress(Exception):
+                await runtime.remove_process(name)
+            raise
+        self._spawned_processes.append(name)
+        lifecycle = getattr(child, "lifecycle", None)
+        if isinstance(lifecycle, ProcessLifecycle):
+            lifecycle.add_listener(self._child_listener(name))
+        logger.info("AgentProcess %s: spawned process %s (%s)", self.name, name, mode.value)
+        return child
+
+    def _child_listener(self, name: str) -> Callable[[Any], Any]:
+        async def listener(transition: Any) -> None:
+            if transition.to_state in (ProcessState.STOPPED, ProcessState.FAILED):
+                await self._dispatch_hook(
+                    HookEvent.SUBAGENT_STOP,
+                    {"process_name": name, "state": transition.to_state.value},
+                )
+
+        return listener
+
+    # ------------------------------------------------------------------
+    # Rewind
+    # ------------------------------------------------------------------
+
+    def _rewind_engine(self) -> Any:
+        if self._journal is None:
+            raise RuntimeError(
+                f"Process {self.name!r} has no journal; rewind needs one "
+                "(set ProcessConfig.journal, e.g. JournalConfig(level='checkpoint'))"
+            )
+        from .journal import RewindEngine
+
+        return RewindEngine(self._journal)
+
+    async def rewind_plan(self, target_entry_id: str, mode: Any = "both") -> Any:
+        """Preview :meth:`rewind` without changing anything.
+
+        Returns:
+            A :class:`~promptise.runtime.journal.RewindPlan` (how many
+            journal entries after the target the rewind would undo).
+
+        Raises:
+            RuntimeError: The process has no journal.
+            ValueError: *target_entry_id* is not in the journal, or *mode*
+                is not a :class:`~promptise.runtime.journal.RewindMode`.
+        """
+        from .journal import RewindMode
+
+        return await self._rewind_engine().plan(
+            process_id=self.name, target_entry_id=target_entry_id, mode=RewindMode(mode)
+        )
+
+    async def rewind(
+        self,
+        target_entry_id: str,
+        mode: Any = "both",
+        *,
+        actor: str = "operator",
+        wait_timeout: float = 60.0,
+    ) -> Any:
+        """Roll the process back to just before a journal entry.
+
+        Modes (:class:`~promptise.runtime.journal.RewindMode`):
+        ``"both"`` (context state and conversation history),
+        ``"conversation_only"``, ``"code_only"`` (the context state only),
+        ``"summarize"`` (nothing is rolled back; a system note about the
+        interval is added to the conversation) and ``"cancel"`` (a dry run,
+        like :meth:`rewind_plan`).
+
+        Non-destructive: the journal is only appended to — a ``rewind``
+        entry (with *actor*) and a checkpoint of the rewound state, so a
+        later recovery starts from it.  Never rolled back: long-term
+        memory, the budget counters (a rewind doesn't refund budget), the
+        mission, secrets, and the effects tool calls had outside the
+        process.
+
+        A ``RUNNING`` process is suspended for the rewind (reason
+        ``"rewind"``), waits for a run in flight to finish, and is resumed
+        afterwards; events that arrive meanwhile wait in the queue.  A
+        suspended or stopped process stays as it is.  Emits
+        ``process.rewound`` and the ``CONFIG_CHANGE`` hook
+        (``change="rewind"``).
+
+        Different from :meth:`rollback` (open mode), which discards the
+        agent's self-modifications (instructions, tools, servers,
+        triggers) and keeps the state and history.
+
+        Args:
+            target_entry_id: The journal entry to go back to (from
+                ``GET /processes/{name}/journal`` or
+                :meth:`JournalProvider.read`); the state is rebuilt as it
+                was just before it.
+            mode: The rewind mode.
+            actor: Who asked (recorded in the journal).
+            wait_timeout: Seconds to wait for a run in flight.
+
+        Returns:
+            The :class:`~promptise.runtime.journal.RewindResult`.
+
+        Raises:
+            RuntimeError: The process has no journal.
+            ValueError: Unknown entry or mode.
+            TimeoutError: A run was still in flight after *wait_timeout*
+                (nothing was changed; the process is resumed).
+        """
+        from .journal import RewindMode
+
+        mode = RewindMode(mode)
+        engine = self._rewind_engine()
+        if mode == RewindMode.CANCEL:
+            return await engine.apply(
+                process_id=self.name, target_entry_id=target_entry_id, mode=mode, record=False
+            )
+        # Validates the target before anything is suspended.
+        await engine.plan(process_id=self.name, target_entry_id=target_entry_id, mode=mode)
+
+        async with self._rewind_lock:
+            if not self._recovery_attempted:
+                # The live state must be the journal's before parts of it
+                # are kept (and checkpointed) by the rewind.
+                async with self._lock:
+                    if not self._recovery_attempted:
+                        await self._recover_from_journal()
+            suspended_here = False
+            if self.state == ProcessState.RUNNING:
+                await self.suspend(reason="rewind")
+                suspended_here = True
+            try:
+                deadline = time.monotonic() + wait_timeout
+                while self._inflight > 0:
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError(
+                            f"Process {self.name!r} still had a run in flight after "
+                            f"{wait_timeout:g}s; nothing was rewound"
+                        )
+                    await asyncio.sleep(0.05)
+                result = await engine.apply(
+                    process_id=self.name,
+                    target_entry_id=target_entry_id,
+                    mode=mode,
+                    actor=actor,
+                )
+                await self._apply_rewind(result, mode)
+            finally:
+                if suspended_here and self.state == ProcessState.SUSPENDED:
+                    with contextlib.suppress(StateError):
+                        await self.resume(reason="rewind")
+
+        logger.info(
+            "AgentProcess %s: rewound to %s (%s) by %s",
+            self.name,
+            target_entry_id,
+            mode.value,
+            actor,
+        )
+        data = {
+            "target_entry_id": target_entry_id,
+            "mode": mode.value,
+            "actor": actor,
+            "entries_affected": result.plan.entries_affected if result.plan else 0,
+        }
+        self._emit("process.rewound", "warning", data)
+        await self._dispatch_hook(
+            HookEvent.CONFIG_CHANGE, {"source": "operator", "change": "rewind", **data}
+        )
+        return result
+
+    async def _apply_rewind(self, result: Any, mode: Any) -> None:
+        """Put a :class:`RewindResult` into the live process, then checkpoint."""
+        from .journal import RewindMode
+
+        if mode in (RewindMode.BOTH, RewindMode.CODE_ONLY):
+            target = dict(result.context_state)
+            for key in self._context.state_keys():
+                if key not in target:
+                    self._context._state.pop(key, None)
+            self._context.restore_state(target, source="rewind")
+        if mode in (RewindMode.BOTH, RewindMode.CONVERSATION_ONLY):
+            await self._conversation_buffer.async_replace(list(result.conversation))
+        elif mode == RewindMode.SUMMARIZE and result.conversation:
+            # The live history plus the note (the journal's copy may lag).
+            note = result.conversation[-1]
+            await self._append_conversation([dict(note)])
+        await self._journal_checkpoint()
 
     def __repr__(self) -> str:
         return (

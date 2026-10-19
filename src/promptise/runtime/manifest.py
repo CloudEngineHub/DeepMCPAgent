@@ -63,6 +63,7 @@ from .config import (
     ContextConfig,
     ExecutionMode,
     HealthConfig,
+    HookConfig,
     JournalConfig,
     MissionConfig,
     OpenModeConfig,
@@ -89,7 +90,18 @@ class AgentManifestSchema(BaseModel):
         memory: Memory provider configuration.
         journal: Journal configuration.
         config: Additional process config overrides.
-        entrypoint: Optional Python module for custom hooks.
+        hooks: Lifecycle hooks, each an external command run on an event
+            (see :class:`~promptise.runtime.config.HookConfig`)::
+
+                hooks:
+                  - event: user_prompt_submit
+                    command: ["./hooks/audit.sh"]
+                    timeout: 5
+                    fail_closed: true
+
+        entrypoint: Reserved; not read by the runtime.  Python hooks are
+            registered in code (``process.hooks`` or ``HookConfig(
+            callback=...)``).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -116,7 +128,10 @@ class AgentManifestSchema(BaseModel):
     config: dict[str, Any] = Field(default_factory=dict, description="Process config overrides")
     execution_mode: str | None = Field(None, description="Execution mode: 'strict' or 'open'")
     open_mode: dict[str, Any] | None = Field(None, description="Open mode guardrails configuration")
-    entrypoint: str | None = Field(None, description="Python module for custom hooks")
+    entrypoint: str | None = Field(None, description="Reserved; not read by the runtime")
+    hooks: list[dict[str, Any]] = Field(
+        default_factory=list, description="Lifecycle hooks (external commands)"
+    )
     secrets: dict[str, Any] | None = Field(
         None, description="Per-process secret scoping configuration"
     )
@@ -182,6 +197,24 @@ class AgentManifestSchema(BaseModel):
         for name, spec in self.servers.items():
             if isinstance(spec, dict):
                 _server_spec(name, spec)  # raises on a bad entry
+        if self.entrypoint is not None:
+            warnings.warn(
+                "manifest 'entrypoint' is not read by the runtime (it never was); remove "
+                "it. Declare hooks in the 'hooks:' section (commands) or register Python "
+                "hooks in code with process.hooks.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        for i, hook in enumerate(self.hooks):
+            if "callback" in hook:
+                raise ValueError(
+                    f"hooks[{i}]: a manifest hook runs a 'command'; Python callbacks are "
+                    "registered in code (process.hooks)"
+                )
+            try:
+                HookConfig.model_validate(hook)
+            except ValidationError as exc:
+                raise ValueError(f"hooks[{i}]: {exc}") from None
         self._check_config_overrides()
         return self
 
@@ -209,6 +242,7 @@ class AgentManifestSchema(BaseModel):
             "budget": self.budget is not None,
             "health": self.health is not None,
             "mission": self.mission is not None,
+            "hooks": bool(self.hooks),
         }
         clashes = sorted(k for k in self.config if dedicated.get(k))
         if clashes:
@@ -493,6 +527,8 @@ def manifest_to_process_config(
         "health": health_cfg.model_dump(),
         "mission": mission_cfg.model_dump(),
     }
+    if manifest.hooks:
+        config_data["hooks"] = [HookConfig.model_validate(h) for h in manifest.hooks]
 
     # Apply any extra config overrides
     for key, value in manifest.config.items():

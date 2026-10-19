@@ -10,10 +10,9 @@ state as it was at that point. The rewind can be selective:
 * ``RewindMode.CONVERSATION_ONLY`` — restore the conversation buffer
   but keep current context state. Useful when an agent went off-rails
   in chat but you want to keep accumulated tool results / files.
-* ``RewindMode.CODE_ONLY`` — restore context state and any "code" /
-  "tool result" / "file" entries but keep the conversation buffer.
-  Useful when you want to "undo" a tool call without losing the
-  reasoning that led to it.
+* ``RewindMode.CODE_ONLY`` — restore the context state as it was but
+  keep the conversation buffer.  Useful when you want to "undo" the
+  state a tool call wrote without losing the reasoning that led to it.
 * ``RewindMode.SUMMARIZE`` — keep current state but inject a summary
   of the rewound interval into the conversation. Lets the agent
   remember it tried something without re-running it.
@@ -23,6 +22,29 @@ state as it was at that point. The rewind can be selective:
 A rewind is **non-destructive**: the original journal entries stay on
 disk. The rewind itself is recorded as a ``rewind`` entry so the
 history shows the rollback point and the choice that was made.
+
+The engine only *computes* the rewound state.  To rewind a live process
+use :meth:`AgentProcess.rewind <promptise.runtime.AgentProcess.rewind>`
+(or ``POST /api/v1/processes/{name}/rewind``), which applies the result to
+the process (context state and/or conversation history), records the
+rewind and writes a checkpoint so a later recovery starts from the
+rewound state.  What a rewind never touches: long-term memory, the
+budget counters (a rewind must not refund spent budget), the mission's
+progress, secrets and external side effects of tool calls (an email sent
+stays sent).
+
+State is rebuilt from the journal: ``checkpoint`` entries (the process
+writes one after every run, holding the context state and the
+conversation), ``context_update`` entries (every state write),
+``state_transition`` entries and the conversation entry types
+(``user_prompt``, ``assistant_message``, ``conversation_turn``).  Values
+the journal stored redacted (secrets, as ``[REDACTED]``) come back
+redacted.
+
+Not to be confused with open mode's :meth:`AgentProcess.rollback`, which
+discards the agent's *self-modifications* (instructions, custom tools,
+MCP servers, triggers it added) and rebuilds it from its original
+configuration; it doesn't touch state or history.
 
 Example::
 
@@ -52,6 +74,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from uuid import uuid4
 
 from .base import JournalEntry, JournalProvider
 
@@ -81,6 +104,10 @@ _CONVERSATION_TYPES = frozenset(
         "user_prompt",
         "assistant_message",
         "conversation_turn",
+        # What an AgentProcess journals for a run (its conversation itself
+        # is in the checkpoint written after the run).
+        "trigger_event",
+        "invocation_result",
     }
 )
 
@@ -114,6 +141,7 @@ class RewindPlan:
         code_entries_affected: Of those, how many are code/state-style.
         target_timestamp: When the target entry was written.
         summary: Human-readable summary of the rewind plan.
+        target_entry_type: The target entry's type.
     """
 
     process_id: str
@@ -125,11 +153,34 @@ class RewindPlan:
     code_entries_affected: int
     target_timestamp: datetime | None
     summary: str = ""
+    target_entry_type: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-serialisable form (for the orchestration API)."""
+        return {
+            "process_id": self.process_id,
+            "target_entry_id": self.target_entry_id,
+            "target_entry_type": self.target_entry_type,
+            "mode": self.mode.value,
+            "entries_total": self.entries_total,
+            "entries_affected": self.entries_affected,
+            "conversation_entries_affected": self.conversation_entries_affected,
+            "code_entries_affected": self.code_entries_affected,
+            "target_timestamp": (
+                self.target_timestamp.isoformat() if self.target_timestamp else None
+            ),
+            "summary": self.summary,
+        }
 
 
 @dataclass
 class RewindResult:
-    """State produced by :meth:`RewindEngine.apply`."""
+    """State produced by :meth:`RewindEngine.apply`.
+
+    ``context_state`` and ``conversation`` are the state *after* the
+    rewind (per mode: rewound, or the current one kept).  For ``CANCEL``
+    they are empty and only ``plan`` is set.
+    """
 
     process_id: str
     target_entry_id: str
@@ -188,13 +239,24 @@ class RewindEngine:
             ValueError: If ``target_entry_id`` is not present in the
                 journal for ``process_id``.
         """
+        mode = RewindMode(mode)
         all_entries = await self._journal.read(process_id)
         target_idx = self._find_target_index(all_entries, target_entry_id)
+        return self._plan_for(process_id, all_entries, target_idx, mode)
+
+    def _plan_for(
+        self,
+        process_id: str,
+        all_entries: list[JournalEntry],
+        target_idx: int,
+        mode: RewindMode,
+    ) -> RewindPlan:
+        target_entry_id = all_entries[target_idx].entry_id
         affected = all_entries[target_idx:]
 
         conv = sum(1 for e in affected if e.entry_type in _CONVERSATION_TYPES)
         code = sum(1 for e in affected if e.entry_type in _CODE_TYPES)
-        target_ts = all_entries[target_idx].timestamp if affected else None
+        target_ts = all_entries[target_idx].timestamp
 
         if mode == RewindMode.SUMMARIZE:
             verb = "summarize without removing"
@@ -218,6 +280,7 @@ class RewindEngine:
             code_entries_affected=code,
             target_timestamp=target_ts,
             summary=summary,
+            target_entry_type=all_entries[target_idx].entry_type,
         )
 
     # ------------------------------------------------------------------
@@ -256,14 +319,10 @@ class RewindEngine:
             lifecycle state, conversation, and an optional summary
             note injected (for SUMMARIZE mode).
         """
+        mode = RewindMode(mode)
         all_entries = await self._journal.read(process_id)
         target_idx = self._find_target_index(all_entries, target_entry_id)
-
-        plan = await self.plan(
-            process_id=process_id,
-            target_entry_id=target_entry_id,
-            mode=mode,
-        )
+        plan = self._plan_for(process_id, all_entries, target_idx, mode)
 
         # CANCEL: dry-run only
         if mode == RewindMode.CANCEL:
@@ -274,17 +333,24 @@ class RewindEngine:
                 plan=plan,
             )
 
-        # Decide which historical entries to keep when rebuilding.
-        kept = self._select_kept_entries(all_entries, target_idx, mode)
-
-        context_state, lifecycle_state, conversation = self._reconstruct(kept)
+        # State just before the target, and the current state.  Each mode
+        # takes the rewound part from the first and keeps the rest from
+        # the second.  (Filtering entries instead goes wrong: a checkpoint
+        # after the target holds the *whole* state, so keeping it would
+        # bring back what was supposed to be rewound.)
+        before_ctx, before_life, before_conv = self._reconstruct(all_entries[:target_idx])
+        now_ctx, now_life, now_conv = self._reconstruct(all_entries)
 
         summary_note: str | None = None
-        if mode == RewindMode.SUMMARIZE:
+        if mode == RewindMode.BOTH:
+            context_state, lifecycle_state, conversation = before_ctx, before_life, before_conv
+        elif mode == RewindMode.CONVERSATION_ONLY:
+            context_state, lifecycle_state, conversation = now_ctx, now_life, before_conv
+        elif mode == RewindMode.CODE_ONLY:
+            context_state, lifecycle_state, conversation = before_ctx, before_life, now_conv
+        else:  # SUMMARIZE: keep everything, add a note about the interval
             summary_note = self._build_summary_note(all_entries[target_idx:])
-            # Don't actually drop anything; rebuild from full history.
-            kept = all_entries
-            context_state, lifecycle_state, conversation = self._reconstruct(kept)
+            context_state, lifecycle_state, conversation = now_ctx, now_life, now_conv
             conversation.append(
                 {
                     "role": "system",
@@ -299,7 +365,7 @@ class RewindEngine:
         applied_at = datetime.now(timezone.utc)
         rewind_entry_id: str | None = None
         if record:
-            rewind_entry_id = f"rewind-{int(applied_at.timestamp() * 1000)}"
+            rewind_entry_id = f"rewind-{uuid4().hex}"
             await self._journal.append(
                 JournalEntry(
                     entry_id=rewind_entry_id,
@@ -352,33 +418,6 @@ class RewindEngine:
         raise ValueError(f"target entry id {target_entry_id!r} not found in journal")
 
     @staticmethod
-    def _select_kept_entries(
-        entries: list[JournalEntry],
-        target_idx: int,
-        mode: RewindMode,
-    ) -> list[JournalEntry]:
-        before = entries[:target_idx]
-        after = entries[target_idx:]
-
-        if mode == RewindMode.BOTH:
-            return list(before)
-
-        if mode == RewindMode.CONVERSATION_ONLY:
-            # Drop conversation entries after target; keep code entries.
-            kept = list(before)
-            kept.extend(e for e in after if e.entry_type not in _CONVERSATION_TYPES)
-            return kept
-
-        if mode == RewindMode.CODE_ONLY:
-            # Drop code/state entries after target; keep conversation.
-            kept = list(before)
-            kept.extend(e for e in after if e.entry_type not in _CODE_TYPES)
-            return kept
-
-        # SUMMARIZE rebuilds from full history; CANCEL never reaches here.
-        return list(entries)
-
-    @staticmethod
     def _reconstruct(
         entries: list[JournalEntry],
     ) -> tuple[dict[str, Any], str, list[dict[str, Any]]]:
@@ -392,13 +431,15 @@ class RewindEngine:
             d = entry.data
 
             if t == "checkpoint":
-                # Checkpoints are full snapshots — they overwrite.
-                if isinstance(d.get("context_state"), dict):
-                    context_state = dict(d["context_state"])
-                if isinstance(d.get("lifecycle_state"), str):
-                    lifecycle_state = d["lifecycle_state"]
-                if isinstance(d.get("conversation"), list):
-                    conversation = list(d["conversation"])
+                # Checkpoints are full snapshots — they overwrite.  The
+                # journal backends store them as {"state": {...}}.
+                snap = d.get("state") if isinstance(d.get("state"), dict) else d
+                if isinstance(snap.get("context_state"), dict):
+                    context_state = dict(snap["context_state"])
+                if isinstance(snap.get("lifecycle_state"), str):
+                    lifecycle_state = snap["lifecycle_state"]
+                if isinstance(snap.get("conversation"), list):
+                    conversation = [dict(m) for m in snap["conversation"] if isinstance(m, dict)]
                 continue
 
             if t == "state_transition":
