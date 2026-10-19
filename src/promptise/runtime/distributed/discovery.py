@@ -36,6 +36,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
+from ..._logsafe import log_safe
+
 logger = logging.getLogger(__name__)
 
 
@@ -188,15 +190,15 @@ class RegistryDiscovery:
             )
             logger.info(
                 "RegistryDiscovery: registered %s at %s",
-                node_id,
-                url,
+                log_safe(node_id),
+                log_safe(url),
             )
 
     async def unregister(self, node_id: str) -> None:
         """Remove a node from the registry."""
         async with self._lock:
             self._nodes.pop(node_id, None)
-            logger.info("RegistryDiscovery: unregistered %s", node_id)
+            logger.info("RegistryDiscovery: unregistered %s", log_safe(node_id))
 
     async def heartbeat(self, node_id: str) -> None:
         """Update a node's registration timestamp.

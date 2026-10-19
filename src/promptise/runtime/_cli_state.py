@@ -116,7 +116,7 @@ class RuntimeState:
     def url(self) -> str:
         """Base URL of the runtime's Orchestration API."""
         host = self.host
-        if host in ("0.0.0.0", ""):
+        if host in ("0.0.0.0", ""):  # nosec B104 - maps a wildcard bind to loopback, binds nothing
             host = "127.0.0.1"
         elif host == "::":
             host = "::1"

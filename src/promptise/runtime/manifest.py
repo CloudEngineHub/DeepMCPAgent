@@ -411,7 +411,7 @@ def load_manifest(path: str | Path) -> AgentManifestSchema:
     # ${VAR} references until the process starts (SecretScope resolves
     # them), so the loaded config never holds a secret in plain text.
     from promptise.env_resolver import (
-        ENV_VAR_PATTERN,
+        has_env_reference,
         resolve_env_in_dict,
         validate_all_env_vars_available,
     )
@@ -422,7 +422,7 @@ def load_manifest(path: str | Path) -> AgentManifestSchema:
     if isinstance(secrets_section, dict) and isinstance(secrets_section.get("secrets"), dict):
         secret_templates = secrets_section["secrets"]
         for secret_name, template in secret_templates.items():
-            if isinstance(template, str) and ENV_VAR_PATTERN.search(template):
+            if isinstance(template, str) and has_env_reference(template):
                 missing = validate_all_env_vars_available({"_": template})
                 if missing:
                     raise EnvVarNotFoundError(missing[0], context=f"secrets.secrets.{secret_name}")
@@ -438,7 +438,7 @@ def load_manifest(path: str | Path) -> AgentManifestSchema:
             if isinstance(hook, dict) and isinstance(hook.get("env"), dict):
                 hook_envs[index] = hook["env"]
                 for env_name, template in hook["env"].items():
-                    if isinstance(template, str) and ENV_VAR_PATTERN.search(template):
+                    if isinstance(template, str) and has_env_reference(template):
                         missing = validate_all_env_vars_available({"_": template})
                         if missing:
                             raise EnvVarNotFoundError(

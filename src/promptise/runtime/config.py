@@ -1419,7 +1419,7 @@ class DistributedConfig(_WarnOnUnknownKeys):
                     "auth_token (the cluster token) so the coordinator accepts this "
                     "node, or allow_unauthenticated=True"
                 )
-        wildcard = self.transport_host.strip("[]") in ("0.0.0.0", "::", "")
+        wildcard = self.transport_host.strip("[]") in ("0.0.0.0", "::", "")  # nosec B104 - detects a wildcard bind, binds nothing
         if wildcard and self.advertise_url is None and (self.coordinator_url or self.coordinator):
             raise ValueError(
                 f"transport_host {self.transport_host!r} is a wildcard address, so other "

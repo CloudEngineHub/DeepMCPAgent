@@ -168,9 +168,9 @@ class ClusterNode:
         """Unregister (best effort), stop the coordinator and the transport."""
         for task in self._tasks:
             task.cancel()
-        for task in self._tasks:
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await task
+        # The tasks' own errors and cancellations are returned, not raised;
+        # a cancellation of stop() itself still propagates.
+        await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
         if self._config.coordinator_url and self.registered:
             with contextlib.suppress(Exception):

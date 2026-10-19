@@ -119,16 +119,16 @@ class StateError(ProcessStateError, ValueError):
     ) -> None:
         self.current = current
         self.target = target
-        self.process_id = process_id  # type: ignore[assignment]
-        self.current_state = current.value
-        self.attempted_state = target.value
         allowed = sorted(s.value for s in VALID_TRANSITIONS.get(current, set()))
         owner = f"Process {process_id!r}: " if process_id else ""
-        # ProcessStateError.__init__ formats a different message; set it here.
-        Exception.__init__(
-            self,
-            f"{owner}Cannot transition from {current.value!r} to {target.value!r}. "
-            f"Allowed targets: {allowed}",
+        super().__init__(
+            process_id,
+            current.value,
+            target.value,
+            message=(
+                f"{owner}Cannot transition from {current.value!r} to {target.value!r}. "
+                f"Allowed targets: {allowed}"
+            ),
         )
 
 

@@ -42,6 +42,7 @@ import signal
 from pathlib import Path
 from typing import Any
 
+from .._logsafe import log_safe
 from .config import ProcessConfig, RuntimeConfig
 from .exceptions import ManifestError, RuntimeBaseError
 from .lifecycle import ProcessState
@@ -172,7 +173,7 @@ class AgentRuntime:
             deploy_policy=deploy_policy,
         )
         self._processes[name] = process
-        logger.info("AgentRuntime: registered process %r", name)
+        logger.info("AgentRuntime: registered process %s", log_safe(repr(name)))
         return process
 
     async def remove_process(self, name: str) -> None:
@@ -198,7 +199,7 @@ class AgentRuntime:
                 await process.close()
             finally:
                 del self._processes[name]
-            logger.info("AgentRuntime: removed process %r", name)
+            logger.info("AgentRuntime: removed process %s", log_safe(repr(name)))
 
     def get_process(self, name: str) -> AgentProcess:
         """Get a process by name.

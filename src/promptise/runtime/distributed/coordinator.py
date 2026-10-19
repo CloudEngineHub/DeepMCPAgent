@@ -34,6 +34,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from ..._logsafe import log_safe
+
 logger = logging.getLogger(__name__)
 
 # Try to import aiohttp for HTTP-based health checks
@@ -142,7 +144,7 @@ class RuntimeCoordinator:
         )
         self._nodes[node_id] = node
         self._tokens[node_id] = auth_token
-        logger.info("Coordinator: registered node %s at %s", node_id, url)
+        logger.info("Coordinator: registered node %s at %s", log_safe(node_id), log_safe(url))
         return node
 
     def unregister_node(self, node_id: str) -> None:
@@ -158,7 +160,7 @@ class RuntimeCoordinator:
             raise KeyError(f"Node {node_id!r} not registered")
         del self._nodes[node_id]
         self._tokens.pop(node_id, None)
-        logger.info("Coordinator: unregistered node %s", node_id)
+        logger.info("Coordinator: unregistered node %s", log_safe(node_id))
 
     def get_node(self, node_id: str) -> NodeInfo:
         """Get information about a registered node.

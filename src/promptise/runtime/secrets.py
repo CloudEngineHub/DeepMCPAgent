@@ -458,18 +458,18 @@ class SecretScope:
 
     def _resolve_env(self, name: str, template: str) -> tuple[str, str]:
         """Resolve environment references; return ``(value, source)``."""
-        from promptise.env_resolver import ENV_VAR_PATTERN, resolve_env_var
+        from promptise.env_resolver import has_env_reference, iter_env_references, resolve_env_var
         from promptise.exceptions import EnvVarNotFoundError
 
-        if not ENV_VAR_PATTERN.search(template):
+        if not has_env_reference(template):
             # Not an env reference — treat as literal value
             return template, "literal"
         policy = self._env_references
         refused = sorted(
             {
-                match.group(1)
-                for match in ENV_VAR_PATTERN.finditer(template)
-                if policy is False or (policy is not True and match.group(1) not in policy)
+                ref.name
+                for ref in iter_env_references(template)
+                if policy is False or (policy is not True and ref.name not in policy)
             }
         )
         if refused:

@@ -42,15 +42,18 @@ import json
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import web
 
+from ..._logsafe import log_safe
 from .._http_guard import LOOPBACK_ORIGIN as _LOOPBACK_ORIGIN
 from .._http_guard import bearer_token_matches
 from .._http_guard import host_name as _host_name
 from .._http_guard import is_loopback as _is_loopback
-from ..runtime import AgentRuntime
+
+if TYPE_CHECKING:  # a type only: importing it would make runtime -> node -> transport a cycle
+    from ..runtime import AgentRuntime
 
 logger = logging.getLogger(__name__)
 
@@ -426,9 +429,9 @@ class RuntimeTransport:
             logger.warning(
                 "RuntimeTransport %s: refused to register node %r at %s (host not in "
                 "allowed_node_hosts)",
-                self._node_id,
-                node_id,
-                url,
+                log_safe(self._node_id),
+                log_safe(repr(node_id)),
+                log_safe(url),
             )
             return web.json_response(
                 {"error": "The node URL's host is not in the coordinator's allowed_node_hosts"},

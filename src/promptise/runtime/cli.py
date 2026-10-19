@@ -536,11 +536,11 @@ class _SignalCatcher:
                     self._loop_signals.append(sig)
                     continue
                 except (NotImplementedError, RuntimeError, ValueError):
-                    pass
+                    pass  # the loop can't watch this signal: fall back to signal.signal
             try:
                 self._previous[sig] = signal.signal(sig, self._from_signal)
             except (ValueError, OSError):
-                pass
+                pass  # not settable on this platform: shutdown just ignores this signal
 
     def uninstall(self) -> None:
         for sig in self._loop_signals:
@@ -647,12 +647,13 @@ async def _wait_for_shutdown(
         announce()
         if not forever.done():
             request_shutdown()
-        await forever
+        await asyncio.gather(forever)  # re-raises run_forever's error
     finally:
         if not waiter.done():
             waiter.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await waiter
+            # Wait for the cancelled waiter without swallowing a
+            # cancellation of this task (its CancelledError is returned).
+            await asyncio.gather(waiter, return_exceptions=True)
     return True
 
 

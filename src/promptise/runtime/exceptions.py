@@ -23,22 +23,28 @@ class ProcessStateError(RuntimeBaseError):
     all catch an invalid transition.
 
     Attributes:
-        process_id: The process that attempted the transition.
+        process_id: The process that attempted the transition (``None``
+            when a :class:`~promptise.runtime.lifecycle.StateError` was
+            raised without one).
         current_state: The process's current state.
         attempted_state: The target state that was rejected.
     """
 
     def __init__(
         self,
-        process_id: str,
+        process_id: str | None,
         current_state: str,
         attempted_state: str,
+        *,
+        message: str | None = None,
     ) -> None:
         self.process_id = process_id
         self.current_state = current_state
         self.attempted_state = attempted_state
         super().__init__(
-            f"Process {process_id!r}: invalid transition {current_state!r} -> {attempted_state!r}"
+            message
+            or f"Process {process_id!r}: invalid transition {current_state!r} -> "
+            f"{attempted_state!r}"
         )
 
 

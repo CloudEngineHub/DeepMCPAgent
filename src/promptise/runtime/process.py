@@ -59,6 +59,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from .._logsafe import log_safe
 from ._deploy_policy import DeployPolicy
 from .config import ExecutionMode, ProcessConfig, TriggerConfig
 from .context import CONTEXT_UPDATE_ENTRY_TYPE, AgentContext, StateEntry
@@ -796,7 +797,7 @@ class AgentProcess:
                 "Set ProcessConfig.guardrails (e.g. PromptiseSecurityScanner(detectors="
                 "[InjectionDetector()])) or trigger_delivery.scan_payloads=True to scan "
                 "them, or inbox.scan_with_guardrails=False to accept them unscanned.",
-                self.name,
+                log_safe(self.name),
             )
         return None
 

@@ -120,11 +120,13 @@ def env_references_in(value: Any, path: str = "") -> Iterator[tuple[str, str]]:
     Walks dicts (keys and values), lists and tuples; *path* is the dotted
     location of the string (``secrets.secrets.k``, ``triggers[0].hmac_secret``).
     """
-    from promptise.env_resolver import ENV_VAR_PATTERN
+    from promptise.env_resolver import iter_env_references
 
     if isinstance(value, str):
-        for match in ENV_VAR_PATTERN.finditer(value):
-            yield path or "<value>", match.group(1)
+        # Linear-time scan: *value* comes from API requests (CodeQL
+        # py/polynomial-redos on ENV_VAR_PATTERN).
+        for ref in iter_env_references(value):
+            yield path or "<value>", ref.name
     elif isinstance(value, Mapping):
         for key, item in value.items():
             child = f"{path}.{key}" if path else str(key)

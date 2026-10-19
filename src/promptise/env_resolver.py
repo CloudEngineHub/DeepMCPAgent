@@ -21,13 +21,85 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Any
+import string
+from collections.abc import Iterator
+from typing import Any, NamedTuple
 
 from .exceptions import EnvVarNotFoundError
 
 # Regex pattern for ${VAR_NAME} or ${VAR_NAME:-default_value}
 # Matches: ${VARIABLE_NAME} or ${VARIABLE_NAME:-some default value}
+#
+# Kept as the reference definition of the syntax (and for callers that
+# import it).  Matching it against untrusted text takes quadratic time on
+# crafted input (``${A:-${a:-${a:-...`` with no closing brace), so this
+# module matches with :func:`iter_env_references` instead, which finds
+# exactly the same references in one left-to-right pass.
 ENV_VAR_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*?)(?::-(.*?))?\}")
+
+_NAME_START = frozenset(string.ascii_letters + "_")
+_NAME_CHARS = _NAME_START | frozenset(string.digits)
+
+
+class EnvReference(NamedTuple):
+    """One ``${VAR}`` / ``${VAR:-default}`` reference in a string."""
+
+    start: int
+    """Index of the ``$``."""
+    end: int
+    """Index just past the closing ``}``."""
+    name: str
+    """The variable name."""
+    default: str | None
+    """The text after ``:-`` (``None`` without a default)."""
+
+
+def iter_env_references(text: str) -> Iterator[EnvReference]:
+    """The ``${VAR}`` references in *text*, left to right, in linear time.
+
+    Finds the same references as ``ENV_VAR_PATTERN.finditer(text)``: a
+    name is ``[A-Za-z_][A-Za-z0-9_]*``; a default runs to the first ``}``
+    and can't span a line break; references don't nest (in
+    ``${A:-${B}}`` the default of ``A`` is ``${B``).  Unlike the regex,
+    a string full of unterminated references can't make it backtrack:
+    every character is looked at a bounded number of times.
+    """
+    n = len(text)
+    # Positions of the next "}" / line break at or after the current
+    # default; -2 = not looked up yet, -1 = there is none.  Defaults start
+    # further right each time, so these only move forward.
+    next_close = next_newline = -2
+    pos = text.find("${")
+    while pos != -1:
+        k = pos + 2
+        if k < n and text[k] in _NAME_START:
+            k += 1
+            while k < n and text[k] in _NAME_CHARS:
+                k += 1
+            if k < n and text[k] == "}":
+                yield EnvReference(pos, k + 1, text[pos + 2 : k], None)
+                pos = text.find("${", k + 1)
+                continue
+            if text.startswith(":-", k):
+                default_start = k + 2
+                if next_close != -1 and next_close < default_start:
+                    next_close = text.find("}", default_start)
+                if next_close == -1:
+                    return  # no "}" left: no later reference can close either
+                if next_newline != -1 and next_newline < default_start:
+                    next_newline = text.find("\n", default_start)
+                if next_newline == -1 or next_newline > next_close:
+                    yield EnvReference(
+                        pos, next_close + 1, text[pos + 2 : k], text[default_start:next_close]
+                    )
+                    pos = text.find("${", next_close + 1)
+                    continue
+        pos = text.find("${", pos + 1)
+
+
+def has_env_reference(text: str) -> bool:
+    """Whether *text* holds at least one ``${VAR}`` reference."""
+    return next(iter_env_references(text), None) is not None
 
 
 def resolve_env_var(
@@ -63,10 +135,10 @@ def resolve_env_var(
         >>> resolve_env_var("${MISSING}")  # Raises EnvVarNotFoundError
     """
 
-    def replacer(match: re.Match[str]) -> str:
-        """Replace a single ${VAR} match with its value."""
-        var_name = match.group(1)
-        default_value = match.group(2)  # None if no :- clause
+    def replacer(ref: EnvReference) -> str:
+        """Replace a single ${VAR} reference with its value."""
+        var_name = ref.name
+        default_value = ref.default  # None if no :- clause
 
         env_value = os.environ.get(var_name)
 
@@ -77,11 +149,20 @@ def resolve_env_var(
             return default_value
 
         if allow_missing:
-            return match.group(0)  # Return original ${VAR}
+            return value[ref.start : ref.end]  # Return original ${VAR}
 
         raise EnvVarNotFoundError(var_name, context)
 
-    return ENV_VAR_PATTERN.sub(replacer, value)
+    parts: list[str] = []
+    last = 0
+    for ref in iter_env_references(value):
+        parts.append(value[last : ref.start])
+        parts.append(replacer(ref))
+        last = ref.end
+    if not parts:
+        return value
+    parts.append(value[last:])
+    return "".join(parts)
 
 
 def resolve_env_in_dict(
@@ -168,12 +249,10 @@ def validate_all_env_vars_available(
 
     def check_string(s: str) -> None:
         """Extract and check env vars from a single string."""
-        for match in ENV_VAR_PATTERN.finditer(s):
-            var_name = match.group(1)
-            default_value = match.group(2)
+        for ref in iter_env_references(s):
             # Only required if no default
-            if default_value is None and var_name not in os.environ:
-                missing.add(var_name)
+            if ref.default is None and ref.name not in os.environ:
+                missing.add(ref.name)
 
     def check_dict(d: dict[str, Any]) -> None:
         """Recursively check a dict for env var references."""
