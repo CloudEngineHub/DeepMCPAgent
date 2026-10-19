@@ -73,7 +73,7 @@ def state_dir(tmp_path, monkeypatch):
     # Never leave a runtime behind, whatever the test did.
     for file in path.glob("*.json") if path.is_dir() else []:
         try:
-            pid = int(json.loads(file.read_text())["pid"])
+            pid = int(json.loads(file.read_text(encoding="utf-8"))["pid"])
         except (OSError, ValueError, KeyError):
             continue
         if pid != os.getpid() and _cli_state.pid_alive(pid):
@@ -145,7 +145,7 @@ def _wait_ready(state_dir: Path, name: str, proc: subprocess.Popen | None = None
             out = proc.stdout.read() if proc.stdout else ""
             pytest.fail(f"runtime exited early ({proc.returncode}):\n{out}")
         try:
-            data = json.loads(path.read_text())
+            data = json.loads(path.read_text(encoding="utf-8"))
             if data.get("ready"):
                 return data
         except (OSError, ValueError):
@@ -579,7 +579,7 @@ class TestRealRuntime:
                 proc.communicate()
 
         # The journal recorded a clean stop.
-        journal = (workdir / "journal" / "hello.jsonl").read_text().splitlines()
+        journal = (workdir / "journal" / "hello.jsonl").read_text(encoding="utf-8").splitlines()
         last = json.loads(journal[-1])
         assert last["entry_type"] == "state_transition"
         assert last["data"]["to_state"] == "stopped"
@@ -624,7 +624,9 @@ class TestRealRuntime:
         assert "Shutting down (SIGTERM)" in out
         assert "All processes stopped" in out
         assert not (state_dir / "hello.json").exists()
-        last = json.loads((workdir / "journal" / "hello.jsonl").read_text().splitlines()[-1])
+        last = json.loads(
+            (workdir / "journal" / "hello.jsonl").read_text(encoding="utf-8").splitlines()[-1]
+        )
         assert last["data"]["to_state"] == "stopped"
 
     @pytest.mark.skipif(not POSIX, reason="POSIX signals")
@@ -691,7 +693,7 @@ class TestRealRuntime:
         started = _cli("start", "hello.agent", "--detach", env=env, cwd=workdir, timeout=120)
         assert started.returncode == 0, started.stdout + started.stderr
         assert "Started runtime hello in the background" in started.stdout
-        data = json.loads((state_dir / "hello.json").read_text())
+        data = json.loads((state_dir / "hello.json").read_text(encoding="utf-8"))
         pid = data["pid"]
         try:
             assert str(pid) in started.stdout
@@ -707,7 +709,7 @@ class TestRealRuntime:
             assert stopped.returncode == 0, stopped.stderr
             assert _cli_state.wait_for_exit(pid, 30)
             assert not (state_dir / "hello.json").exists()
-            assert "All processes stopped" in (state_dir / "hello.log").read_text()
+            assert "All processes stopped" in (state_dir / "hello.log").read_text(encoding="utf-8")
         finally:
             if _cli_state.pid_alive(pid):
                 _cli_state.kill_process(pid)
