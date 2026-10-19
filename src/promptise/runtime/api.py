@@ -53,7 +53,6 @@ live.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import inspect
 import json
 import logging
@@ -61,7 +60,7 @@ import math
 import re
 import time
 import types
-from collections.abc import Awaitable, Callable, Iterable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import datetime
 from typing import Any, Union, get_args, get_origin
 
@@ -69,6 +68,7 @@ from aiohttp import web
 from pydantic import BaseModel, ValidationError
 
 from ._http_guard import bearer_token_matches, is_loopback, loopback_request_problem
+from .triggers.base import config_trigger_ids
 
 logger = logging.getLogger("promptise.runtime.api")
 
@@ -293,41 +293,6 @@ def _apply_patch(section: BaseModel, body: dict[str, Any]) -> web.Response | Non
     return None
 
 
-# ----------------------------------------------------------------------
-# Trigger IDs
-# ----------------------------------------------------------------------
-
-
-def _trigger_fingerprint(trigger_config: Any) -> str:
-    """A digest of a trigger config's content (secrets masked)."""
-    try:
-        data = trigger_config.model_dump(mode="json", exclude={"filter_expression"})
-        expr = getattr(trigger_config, "filter_expression", None)
-        data["filter_expression"] = expr if isinstance(expr, str) or expr is None else repr(expr)
-        text = json.dumps(data, sort_keys=True, default=str)
-    except Exception:
-        text = repr(trigger_config)
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:10]
-
-
-def config_trigger_ids(triggers: Iterable[Any]) -> list[str]:
-    """Stable IDs for a process's config triggers, in list order.
-
-    An ID is ``<type>-<digest of the trigger's config>`` (secret values are
-    masked before hashing), so it does not depend on the trigger's
-    position: removing one trigger leaves the others' IDs unchanged, and
-    the IDs are the same after a restart.  Identical configs get ``-2``,
-    ``-3``... suffixes.
-    """
-    ids: list[str] = []
-    seen: dict[str, int] = {}
-    for tc in triggers:
-        base = f"{getattr(tc, 'type', 'trigger')}-{_trigger_fingerprint(tc)}"
-        seen[base] = seen.get(base, 0) + 1
-        ids.append(base if seen[base] == 1 else f"{base}-{seen[base]}")
-    return ids
-
-
 class OrchestrationAPI:
     """REST API server for managing an AgentRuntime.
 
@@ -494,7 +459,9 @@ class OrchestrationAPI:
         if status >= 400 or not process_name:
             return
         process = self._runtime.processes.get(process_name)
-        record = getattr(process, "_journal_record", None)
+        record = getattr(process, "record_operator_action", None) or getattr(
+            process, "_journal_record", None
+        )
         if record is None:
             return
         try:

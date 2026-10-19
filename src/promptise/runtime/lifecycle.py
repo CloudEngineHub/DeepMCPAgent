@@ -2,19 +2,34 @@
 
 Defines the valid states an :class:`AgentProcess` can be in and the
 legal transitions between them.  The :class:`ProcessLifecycle` class
-provides a thread-safe, auditable state machine that records every
-transition with timestamps and reasons.
+provides an auditable state machine, safe for concurrent use from
+asyncio tasks of one event loop (it is not thread-safe), that records
+every transition with timestamps and reasons.
 
-State diagram::
+Transitions (as :class:`~promptise.runtime.process.AgentProcess` uses
+them)::
 
-    CREATED ──► STARTING ──► RUNNING ──► STOPPING ──► STOPPED
-                   │            │  ▲          ▲
-                   │            │  │          │
-                   ▼            ▼  │          │
-                 FAILED     SUSPENDED     FAILED ─► STARTING (restart)
-                               │
-                               ▼
-                           AWAITING ──► RUNNING (trigger fires)
+    CREATED   ──► STARTING, STOPPED (stop() before start())
+    STARTING  ──► RUNNING, FAILED, STOPPING
+    RUNNING   ──► SUSPENDED, STOPPING, FAILED
+    SUSPENDED ──► RUNNING, STOPPING, FAILED
+    STOPPING  ──► STOPPED, FAILED
+    STOPPED   ──► STARTING
+    FAILED    ──► STARTING (start() / automatic restart), STOPPING (stop())
+
+* ``SUSPENDED``: processing paused.  Entered by
+  :meth:`~AgentProcess.suspend` (an operator, the API or the dashboard),
+  a budget or health action, or ``idle_timeout``.  Trigger events keep
+  queueing (in order) and run after :meth:`~AgentProcess.resume`; a
+  process suspended for ``idle_timeout`` resumes by itself when the next
+  trigger event arrives.
+* ``FAILED``: too many consecutive failures, or a failed start.
+  :meth:`~AgentProcess.start` (or an automatic restart) goes back to
+  ``STARTING``; :meth:`~AgentProcess.stop` goes to ``STOPPING`` →
+  ``STOPPED``.
+* ``AWAITING``: reserved.  The value and its transitions are kept for
+  backward compatibility, but :class:`AgentProcess` never enters it: an
+  idle process is ``RUNNING`` (or ``SUSPENDED`` after ``idle_timeout``).
 """
 
 from __future__ import annotations
@@ -28,6 +43,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from .exceptions import ProcessStateError
+
 logger = logging.getLogger(__name__)
 
 #: Callback invoked after every successful transition (sync or async).
@@ -35,7 +52,11 @@ TransitionListener = Callable[["ProcessTransition"], "Awaitable[None] | None"]
 
 
 class ProcessState(str, Enum):
-    """Agent process lifecycle states."""
+    """Agent process lifecycle states.
+
+    ``AWAITING`` is reserved: :class:`~promptise.runtime.process.AgentProcess`
+    never enters it (see the module docstring).
+    """
 
     CREATED = "created"
     STARTING = "starting"
@@ -69,20 +90,45 @@ VALID_TRANSITIONS: dict[ProcessState, frozenset[ProcessState]] = {
     ),
     ProcessState.STOPPING: frozenset({ProcessState.STOPPED, ProcessState.FAILED}),
     ProcessState.STOPPED: frozenset({ProcessState.STARTING}),
-    ProcessState.FAILED: frozenset({ProcessState.STARTING}),
+    ProcessState.FAILED: frozenset({ProcessState.STARTING, ProcessState.STOPPING}),
 }
 
 
-class StateError(ValueError):
-    """Raised when an invalid state transition is attempted."""
+class StateError(ProcessStateError, ValueError):
+    """Raised when an invalid state transition is attempted.
 
-    def __init__(self, current: ProcessState, target: ProcessState) -> None:
+    One exception type for invalid transitions: it is a
+    :class:`~promptise.runtime.exceptions.ProcessStateError` (so
+    ``except RuntimeBaseError`` catches it) and, as before, a
+    :class:`ValueError`.
+
+    Attributes:
+        current: The state the transition started from.
+        target: The rejected target state.
+        process_id: The owning process (its name), when known.
+        current_state: ``current.value`` (as on ``ProcessStateError``).
+        attempted_state: ``target.value``.
+    """
+
+    def __init__(
+        self,
+        current: ProcessState,
+        target: ProcessState,
+        *,
+        process_id: str | None = None,
+    ) -> None:
         self.current = current
         self.target = target
+        self.process_id = process_id  # type: ignore[assignment]
+        self.current_state = current.value
+        self.attempted_state = target.value
         allowed = sorted(s.value for s in VALID_TRANSITIONS.get(current, set()))
-        super().__init__(
-            f"Cannot transition from {current.value!r} to {target.value!r}. "
-            f"Allowed targets: {allowed}"
+        owner = f"Process {process_id!r}: " if process_id else ""
+        # ProcessStateError.__init__ formats a different message; set it here.
+        Exception.__init__(
+            self,
+            f"{owner}Cannot transition from {current.value!r} to {target.value!r}. "
+            f"Allowed targets: {allowed}",
         )
 
 
@@ -127,14 +173,17 @@ class ProcessTransition:
 
 
 class ProcessLifecycle:
-    """Thread-safe state machine for process lifecycle.
+    """State machine for process lifecycle.
 
     Tracks the current state, validates transitions against
     :data:`VALID_TRANSITIONS`, and records an audit trail of all
-    transitions.
+    transitions.  Transitions are serialised with an :class:`asyncio.Lock`,
+    so concurrent tasks of one event loop can use it; it is not
+    thread-safe.
 
     Args:
         initial: Starting state (default :attr:`ProcessState.CREATED`).
+        process_id: Owner name shown in :class:`StateError` messages.
 
     Example::
 
@@ -147,8 +196,14 @@ class ProcessLifecycle:
         assert len(lc.history) == 2
     """
 
-    def __init__(self, initial: ProcessState = ProcessState.CREATED) -> None:
+    def __init__(
+        self,
+        initial: ProcessState = ProcessState.CREATED,
+        *,
+        process_id: str | None = None,
+    ) -> None:
         self._state = initial
+        self._process_id = process_id
         self._history: list[ProcessTransition] = []
         self._lock = asyncio.Lock()
         self._listeners: list[TransitionListener] = []
@@ -203,7 +258,7 @@ class ProcessLifecycle:
         """
         async with self._lock:
             if not self.can_transition(target):
-                raise StateError(self._state, target)
+                raise StateError(self._state, target, process_id=self._process_id)
 
             transition = ProcessTransition(
                 from_state=self._state,

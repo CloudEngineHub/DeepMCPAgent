@@ -36,7 +36,7 @@ from ._dashboard import (
 
 # -- Orchestration API --
 from .api import OrchestrationAPI
-from .api_client import OrchestrationClient
+from .api_client import OrchestrationAPIError, OrchestrationClient
 
 # -- Governance --
 from .budget import BudgetEnforcer, BudgetState, BudgetViolation
@@ -178,6 +178,7 @@ __all__ = [
     "InboxConfig",
     # Orchestration API
     "OrchestrationAPI",
+    "OrchestrationAPIError",
     "OrchestrationClient",
     # Message Inbox
     "MessageInbox",

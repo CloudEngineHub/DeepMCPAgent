@@ -24,12 +24,21 @@ Example::
 
         # Runtime manages processes until stopped …
         await runtime.stop_all()
+
+For a long-running service, :meth:`AgentRuntime.run_forever` starts every
+process and stops them cleanly on ``SIGTERM`` / ``SIGINT`` (``docker
+stop``, Ctrl+C)::
+
+    runtime = AgentRuntime(RuntimeConfig(processes={"watcher": config}))
+    await runtime.run_forever()
 """
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
+import signal
 from pathlib import Path
 from typing import Any
 
@@ -51,10 +60,22 @@ class AgentRuntime:
     Manages a dictionary of :class:`AgentProcess` instances with shared
     resources and coordinated lifecycle.
 
+    The processes declared in ``config.processes`` are registered at
+    construction (not started): ``AgentRuntime(config)`` and
+    :meth:`from_config` are equivalent.
+
+    ``async with AgentRuntime(...)`` stops and closes every process on
+    exit.  Signals are not handled there: use :meth:`run_forever` (or
+    call :meth:`request_shutdown` from your own handler) so ``SIGTERM``
+    shuts the runtime down cleanly instead of killing it mid-run.
+
     Args:
-        config: Optional :class:`RuntimeConfig` for global settings.
+        config: Optional :class:`RuntimeConfig` for global settings and
+            the processes to register.
         event_bus: Optional shared EventBus for inter-process events.
         broker: Optional shared MessageBroker for message triggers.
+        event_notifier: Optional :class:`~promptise.events.EventNotifier`
+            shared by all processes (drained by :meth:`stop_all`).
     """
 
     def __init__(
@@ -73,6 +94,11 @@ class AgentRuntime:
         # Process registry
         self._processes: dict[str, AgentProcess] = {}
         self._lock = asyncio.Lock()
+        # Set by request_shutdown() (and the signal handlers of run_forever()).
+        self._shutdown_event: asyncio.Event | None = None
+
+        for name, process_config in self._config.processes.items():
+            self._register(name, process_config)
 
     # ------------------------------------------------------------------
     # Process management
@@ -99,27 +125,41 @@ class AgentRuntime:
             RuntimeBaseError: If a process with this name already exists.
         """
         async with self._lock:
-            if name in self._processes:
-                raise RuntimeBaseError(
-                    f"Process {name!r} already exists. Use remove_process() "
-                    "first or choose a different name."
-                )
+            return self._register(name, config, process_id=process_id)
 
-            process = AgentProcess(
-                name=name,
-                config=config,
-                process_id=process_id,
-                event_bus=self._event_bus,
-                broker=self._broker,
-                runtime=self,
-                event_notifier=self._event_notifier,
+    def _register(
+        self,
+        name: str,
+        config: ProcessConfig,
+        *,
+        process_id: str | None = None,
+    ) -> AgentProcess:
+        if name in self._processes:
+            raise RuntimeBaseError(
+                f"Process {name!r} already exists. Use remove_process() "
+                "first or choose a different name."
             )
-            self._processes[name] = process
-            logger.info("AgentRuntime: registered process %r", name)
-            return process
+
+        process = AgentProcess(
+            name=name,
+            config=config,
+            process_id=process_id,
+            event_bus=self._event_bus,
+            broker=self._broker,
+            runtime=self,
+            event_notifier=self._event_notifier,
+        )
+        self._processes[name] = process
+        logger.info("AgentRuntime: registered process %r", name)
+        return process
 
     async def remove_process(self, name: str) -> None:
-        """Remove a process (stopping it first if running).
+        """Remove a process, stopping and closing it first.
+
+        Works in every state: a ``FAILED`` process is stopped too, so its
+        triggers, listeners and heartbeat end before it is removed.  The
+        process is then closed (:meth:`AgentProcess.close`: long-term
+        memory closed, secrets revoked).
 
         Args:
             name: Process name to remove.
@@ -132,14 +172,10 @@ class AgentRuntime:
             if process is None:
                 raise KeyError(f"No process named {name!r}")
 
-            if process.state not in (
-                ProcessState.STOPPED,
-                ProcessState.CREATED,
-                ProcessState.FAILED,
-            ):
-                await process.stop()
-
-            del self._processes[name]
+            try:
+                await process.close()
+            finally:
+                del self._processes[name]
             logger.info("AgentRuntime: removed process %r", name)
 
     def get_process(self, name: str) -> AgentProcess:
@@ -258,6 +294,12 @@ class AgentRuntime:
     async def restart_process(self, name: str) -> None:
         """Restart a single process (stop then start).
 
+        A running or suspended process is stopped first; a ``FAILED`` one
+        is torn down by :meth:`AgentProcess.start` itself (its old
+        triggers, listeners and heartbeat end before new ones start), so
+        nothing fires twice.  Context state, long-term memory and the
+        conversation history carry over.
+
         Args:
             name: Process name.
 
@@ -274,7 +316,12 @@ class AgentRuntime:
         await process.start()
 
     async def start_all(self) -> None:
-        """Start all registered processes."""
+        """Start all registered processes that are not running.
+
+        ``CREATED``, ``STOPPED`` and ``FAILED`` processes are started (a
+        failed one is torn down first, see :meth:`AgentProcess.start`).  A
+        process that fails to start is logged and skipped.
+        """
         for name, process in self._processes.items():
             if process.state in (
                 ProcessState.CREATED,
@@ -287,7 +334,7 @@ class AgentRuntime:
                     logger.error("AgentRuntime: failed to start %s: %s", name, exc)
 
     async def stop_all(self) -> None:
-        """Stop all running processes.
+        """Stop all processes that are not stopped (``FAILED`` ones too).
 
         Afterwards the shared event notifier (if any) is drained, so every
         ``process.stopped`` event is delivered before this returns.
@@ -367,7 +414,72 @@ class AgentRuntime:
         return self
 
     async def __aexit__(self, *exc: object) -> None:
+        await self.shutdown()
+
+    async def shutdown(self) -> None:
+        """Stop every process (:meth:`stop_all`), then close them all.
+
+        Closing releases what a process keeps across restarts (long-term
+        memory, secrets, conversation history).  The processes stay
+        registered.
+        """
         await self.stop_all()
+        for name, process in list(self._processes.items()):
+            try:
+                await process.close()
+            except Exception as exc:
+                logger.error("AgentRuntime: failed to close %s: %s", name, exc)
+
+    def request_shutdown(self) -> None:
+        """Ask :meth:`run_forever` to stop (safe from a signal handler)."""
+        if self._shutdown_event is None:
+            self._shutdown_event = asyncio.Event()
+        self._shutdown_event.set()
+
+    async def run_forever(self, *, install_signal_handlers: bool = True) -> None:
+        """Start all processes and run until shutdown is requested.
+
+        Returns after :meth:`request_shutdown`, ``SIGTERM`` or ``SIGINT``
+        (with *install_signal_handlers*), or when the task running it is
+        cancelled; every process is then stopped and closed
+        (:meth:`shutdown`), so ``docker stop`` or Ctrl+C never cuts a
+        process off without ``process.stopped``, a final checkpoint and
+        its dead letters.
+
+        Args:
+            install_signal_handlers: Install ``SIGTERM`` / ``SIGINT``
+                handlers on the running loop for the duration of the call
+                (removed afterwards: SIGTERM goes back to the default,
+                SIGINT to ``KeyboardInterrupt``).  Skipped
+                where the loop doesn't support them (Windows, or a thread
+                other than the main one).
+        """
+        if self._shutdown_event is None:
+            self._shutdown_event = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        installed: list[signal.Signals] = []
+        if install_signal_handlers:
+            for sig in (signal.SIGTERM, signal.SIGINT):
+                try:
+                    loop.add_signal_handler(sig, self._on_signal, sig)
+                    installed.append(sig)
+                except (NotImplementedError, RuntimeError, ValueError):
+                    logger.debug("AgentRuntime: cannot handle %s on this loop", sig.name)
+        try:
+            await self.start_all()
+            await self._shutdown_event.wait()
+        finally:
+            for sig in installed:
+                with contextlib.suppress(Exception):
+                    loop.remove_signal_handler(sig)
+            try:
+                await self.shutdown()
+            finally:
+                self._shutdown_event = None
+
+    def _on_signal(self, sig: signal.Signals) -> None:
+        logger.info("AgentRuntime: received %s, shutting down", sig.name)
+        self.request_shutdown()
 
     # ------------------------------------------------------------------
     # Config-based initialization
@@ -385,6 +497,9 @@ class AgentRuntime:
         """Create a runtime from a :class:`RuntimeConfig` with all
         processes pre-registered.
 
+        Equivalent to ``AgentRuntime(config, ...)``, which registers the
+        configured processes too (kept for backward compatibility).
+
         Args:
             config: Runtime configuration.
             event_bus: Optional shared EventBus.
@@ -394,15 +509,12 @@ class AgentRuntime:
         Returns:
             A new :class:`AgentRuntime` with processes registered.
         """
-        runtime = cls(
+        return cls(
             config=config,
             event_bus=event_bus,
             broker=broker,
             event_notifier=event_notifier,
         )
-        for name, process_config in config.processes.items():
-            await runtime.add_process(name, process_config)
-        return runtime
 
     def __repr__(self) -> str:
         states = {}

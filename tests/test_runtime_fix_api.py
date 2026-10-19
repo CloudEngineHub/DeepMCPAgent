@@ -645,8 +645,11 @@ class TestMessageRoutes:
 
 class TestGovernancePatches:
     async def test_enabling_an_unbuilt_subsystem_is_not_reported_live(self, served) -> None:
+        # A process without apply_governance_config (AgentProcess has it
+        # since phase 2; see test_runtime_fix_process.py for the live path).
         runtime, _, base = served
         process = await _add(runtime)
+        process.apply_governance_config = None
         for section in ("budget", "health", "mission"):
             status, body = await _call(
                 "PATCH", f"{base}/api/v1/processes/worker/{section}", {"enabled": True}
@@ -662,6 +665,7 @@ class TestGovernancePatches:
     async def test_disabling_a_built_subsystem_is_not_reported_live(self, served) -> None:
         runtime, _, base = served
         process = await _add(runtime, budget=BudgetConfig(enabled=True, max_tool_calls_per_run=5))
+        process.apply_governance_config = None  # the fallback path, as above
         status, body = await _call(
             "PATCH", base + "/api/v1/processes/worker/budget", {"enabled": False}
         )
@@ -763,6 +767,10 @@ class TestTriggerRoutes:
     async def test_running_process_reports_restart(self, served) -> None:
         runtime, _, base = served
         process = await _add(runtime, triggers=[TriggerConfig(**CRON_A)])
+        # The fallback for a process without add_trigger / remove_trigger
+        # (AgentProcess has both since phase 2).
+        process.add_trigger = None
+        process.remove_trigger = None
         await process.start()
         url = base + "/api/v1/processes/worker/triggers"
         status, body = await _call("POST", url, CRON_B)
@@ -877,12 +885,13 @@ class TestMissionHealthJournal:
         assert status == 200
         assert process._mission.state.value == "failed"
         assert process._mission.failure_reason == "wrong target"
-        assert emitted == [
-            (
-                "mission.failed",
-                {"process_name": "worker", "reason": "manual", "message": "wrong target"},
-            )
-        ]
+        [(event_type, data)] = emitted
+        assert event_type == "mission.failed"
+        assert {k: data[k] for k in ("process_name", "reason", "message")} == {
+            "process_name": "worker",
+            "reason": "manual",
+            "message": "wrong target",
+        }
 
     async def test_clear_anomalies_resets_cooldowns(self, served) -> None:
         runtime, _, base = served

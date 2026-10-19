@@ -1,13 +1,19 @@
 """Short-term conversation memory for agent processes.
 
 :class:`ConversationBuffer` maintains a rolling window of message
-exchanges across trigger invocations within a single process lifecycle.
-Messages are lost on process restart — persistent memory across restarts
-is handled by long-term :class:`~promptise.memory.MemoryProvider`.
+exchanges across trigger invocations.  An
+:class:`~promptise.runtime.process.AgentProcess` keeps its buffer for the
+process object's lifetime: ``stop()`` / ``start()`` and automatic restarts
+keep the history (unless ``ContextConfig.conversation_clear_on_stop``),
+``close()`` clears it, and with a journal the history is checkpointed and
+restored when a new process object with the same name recovers.  Facts
+that must outlive that belong in long-term
+:class:`~promptise.memory.MemoryProvider` memory.
 
-Thread-safe for concurrent access via an internal :class:`asyncio.Lock`
-(acquired only in async helpers; synchronous methods remain lock-free
-for use outside async contexts such as tests and serialization).
+Safe for concurrent use from asyncio tasks via an internal
+:class:`asyncio.Lock` (acquired only in the async helpers; the
+synchronous methods are lock-free, for use outside async contexts such as
+tests and serialization).  It is not thread-safe.
 
 Example::
 
@@ -32,9 +38,8 @@ from typing import Any
 class ConversationBuffer:
     """Rolling buffer of conversation messages (short-term memory).
 
-    Maintains the last *max_messages* message exchanges across
-    invocations within a single process lifecycle.  Oldest messages
-    are evicted when the buffer is full.
+    Maintains the last *max_messages* messages across invocations.
+    Oldest messages are evicted when the buffer is full.
 
     The buffer is safe for concurrent async access: the async helpers
     :meth:`async_snapshot` and :meth:`async_replace` use an internal

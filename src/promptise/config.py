@@ -6,11 +6,42 @@ Supports the Promptise MCP Client with token-based authentication
 
 from __future__ import annotations
 
+import re
 import warnings
 from collections.abc import Mapping
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    FieldSerializationInfo,
+    SecretStr,
+    field_serializer,
+    field_validator,
+)
+
+#: Shown instead of a credential header's value in dumps and reprs.
+MASKED_HEADER_VALUE = "**********"
+
+#: Header names whose values are credentials (matched case-insensitively,
+#: anywhere in the name): masked in JSON dumps and reprs.
+_CREDENTIAL_HEADER = re.compile(
+    r"authorization|cookie|api[-_]?key|token|secret|password|passwd|session|signature|credential",
+    re.IGNORECASE,
+)
+
+
+def is_credential_header(name: str) -> bool:
+    """Whether header *name* carries a credential (its value is masked)."""
+    return bool(_CREDENTIAL_HEADER.search(name))
+
+
+def mask_headers(headers: Mapping[str, str]) -> dict[str, str]:
+    """A copy of *headers* with credential values replaced by ``**********``."""
+    return {
+        k: (MASKED_HEADER_VALUE if is_credential_header(k) and v else v) for k, v in headers.items()
+    }
 
 
 class _BaseServer(BaseModel):
@@ -54,7 +85,14 @@ class HTTPServerSpec(_BaseServer):
     Attributes:
         url: Full endpoint URL (e.g., ``http://127.0.0.1:8080/mcp``).
         transport: ``"http"``, ``"streamable-http"``, or ``"sse"``.
-        headers: Extra HTTP headers sent on every request.
+        headers: Extra HTTP headers sent on every request.  Values of
+            credential headers (``Authorization``, ``Cookie``,
+            ``x-api-key``, names containing ``token``, ``secret``, ...)
+            are sent as given but shown as ``**********`` in ``repr()``
+            and in ``model_dump(mode="json")`` (a ``${VAR}`` resolved
+            from a manifest never shows up in a dump or a log line).
+            ``model_dump()`` in Python mode keeps them, so a spec can be
+            rebuilt from it.
         auth: Deprecated and ignored — it was never sent to the server.
             Setting it emits a ``FutureWarning``; use ``bearer_token`` or
             ``api_key``.
@@ -169,6 +207,19 @@ class HTTPServerSpec(_BaseServer):
         if self.forward_caller_token is not None:
             return self.forward_caller_token
         return not self.has_api_key
+
+    @field_serializer("headers")
+    def _mask_credential_headers(
+        self, headers: dict[str, str], info: FieldSerializationInfo
+    ) -> dict[str, str]:
+        return mask_headers(headers) if info.mode == "json" else dict(headers)
+
+    def __repr_args__(self) -> Any:
+        for name, value in super().__repr_args__():
+            if name == "headers" and isinstance(value, Mapping):
+                yield name, mask_headers(value)
+            else:
+                yield name, value
 
     @field_validator("auth")
     @classmethod

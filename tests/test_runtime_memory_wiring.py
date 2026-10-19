@@ -410,7 +410,9 @@ class TestAgentProcessStopCleansUp:
     """Tests for cleanup during stop()."""
 
     @pytest.mark.asyncio
-    async def test_stop_clears_conversation(self):
+    async def test_stop_keeps_conversation_close_clears_it(self):
+        # Since 1.4.4 the history survives stop()/start(); close() (or
+        # context.conversation_clear_on_stop) clears it.
         process = AgentProcess(
             name="test",
             config=ProcessConfig(),
@@ -422,6 +424,20 @@ class TestAgentProcessStopCleansUp:
         await process._lifecycle.transition(ProcessState.STARTING, reason="test")
         await process._lifecycle.transition(ProcessState.RUNNING, reason="test")
 
+        await process.stop()
+        assert len(process._conversation_buffer) == 1
+        await process.close()
+        assert len(process._conversation_buffer) == 0
+
+    @pytest.mark.asyncio
+    async def test_stop_clears_conversation_when_configured(self):
+        process = AgentProcess(
+            name="test",
+            config=ProcessConfig(context=ContextConfig(conversation_clear_on_stop=True)),
+        )
+        process._conversation_buffer.append({"role": "user", "content": "hello"})
+        await process._lifecycle.transition(ProcessState.STARTING, reason="test")
+        await process._lifecycle.transition(ProcessState.RUNNING, reason="test")
         await process.stop()
         assert len(process._conversation_buffer) == 0
 

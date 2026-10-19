@@ -8,7 +8,14 @@ sensible defaults.  Atomic configs (:class:`TriggerConfig`,
 Two preset configurations are provided for common environments:
 
 * :data:`DEFAULT_DEVELOPMENT_CONFIG` — local-only defaults.
-* :data:`DEFAULT_PRODUCTION_CONFIG` — distributed enabled.
+* :data:`DEFAULT_PRODUCTION_CONFIG` — ``distributed.enabled=True``.
+
+The two presets differ only in that flag, which is informational: no part
+of the runtime starts distributed coordination from it (use
+:class:`~promptise.runtime.distributed.RuntimeCoordinator` and the
+runtime transport explicitly).  Production hardening is per process:
+set ``journal``, ``restart_policy``, ``health``, ``budget`` and
+``trigger_delivery`` on each :class:`ProcessConfig`.
 """
 
 from __future__ import annotations
@@ -504,6 +511,16 @@ class JournalConfig(_WarnOnUnknownKeys):
             (state snapshots per cycle), or ``full`` (every side effect).
         backend: Storage backend.
         path: Directory for the file backend.
+        recover_on_start: On a process object's first :meth:`start`, when
+            the journal holds a checkpoint for the process name, restore
+            what it recorded: the context state (with the
+            ``context_update`` entries written after the checkpoint), the
+            mission, the conversation history and the invocation count.
+            Recovered keys replace the same keys of
+            ``context.initial_state``.  A clean :meth:`stop` writes a
+            checkpoint too, so the next run continues from it.  ``True``
+            by default (a journal is opt-in, and recovery is what it is
+            for); ``False`` always starts fresh.
     """
 
     level: Literal["none", "checkpoint", "full"] = Field(
@@ -511,6 +528,9 @@ class JournalConfig(_WarnOnUnknownKeys):
     )
     backend: Literal["file", "memory"] = Field("file", description="Journal storage backend")
     path: str = Field(".promptise/journal", description="Base directory for journal files")
+    recover_on_start: bool = Field(
+        True, description="Restore state from the last checkpoint on the first start"
+    )
 
 
 class ContextConfig(_WarnOnUnknownKeys):
@@ -532,6 +552,14 @@ class ContextConfig(_WarnOnUnknownKeys):
             (short-term memory).  ``0`` means **unlimited**, not disabled.
         conversation_history: Set to ``False`` to turn short-term memory
             off, so every run sees only the current trigger event.
+        conversation_clear_on_stop: Clear the conversation history when
+            the process stops.  ``False`` (default): the history survives
+            ``stop()`` / ``start()`` and restarts of the same process
+            object; :meth:`~AgentProcess.close` always clears it.
+        state_tool: Give the agent an ``update_state(key, value)`` tool
+            that writes to its context state (limited to
+            ``writable_keys`` when set).  Off by default: without
+            ``writable_keys`` the agent can write any key.
         file_mounts: Mapping of logical name → filesystem path.
         env_prefix: Only expose environment variables with this prefix.
         initial_state: Pre-populated key-value state.
@@ -570,6 +598,14 @@ class ContextConfig(_WarnOnUnknownKeys):
     conversation_history: bool = Field(
         True,
         description="Carry short-term conversation history between runs (False = each run starts fresh)",
+    )
+    conversation_clear_on_stop: bool = Field(
+        False, description="Clear the conversation history on stop() (default: keep it)"
+    )
+
+    # -- Agent-writable state --
+    state_tool: bool = Field(
+        False, description="Give the agent an update_state tool for its context state"
     )
 
     # -- Environment --
@@ -781,6 +817,11 @@ class MissionConfig(_WarnOnUnknownKeys):
             happens on completion is decided by ``auto_complete`` alone.
             Setting it emits a ``FutureWarning``; it will be removed.
         escalation: Escalation target for low confidence.
+        success_check: Optional programmatic check, called with the
+            :class:`~promptise.runtime.mission.MissionEvidence` before the
+            LLM judge: ``True`` (achieved) or ``False`` (not achieved)
+            decides, ``None`` falls through to the judge.  Python only
+            (not in manifests or the API) and never serialised.
 
     Unknown keys are ignored with a ``FutureWarning``.
     """
@@ -798,6 +839,9 @@ class MissionConfig(_WarnOnUnknownKeys):
         None, description="Deprecated and ignored; use auto_complete."
     )
     escalation: EscalationTarget | None = Field(None)
+    success_check: Callable[[Any], bool | None] | None = Field(
+        None, exclude=True, description="Programmatic success check (Python only)"
+    )
 
     @field_validator("on_complete")
     @classmethod
@@ -1051,10 +1095,14 @@ class RuntimeConfig(BaseModel):
 # Presets
 # ---------------------------------------------------------------------------
 
+#: Local-only preset (``distributed.enabled=False``, the default).
 DEFAULT_DEVELOPMENT_CONFIG = RuntimeConfig(
     distributed=DistributedConfig(enabled=False),
 )
 
+#: Preset with ``distributed.enabled=True``.  That is its only difference
+#: from :data:`DEFAULT_DEVELOPMENT_CONFIG`, and the flag is informational
+#: (see the module docstring): it does not change how processes run.
 DEFAULT_PRODUCTION_CONFIG = RuntimeConfig(
     distributed=DistributedConfig(enabled=True),
 )

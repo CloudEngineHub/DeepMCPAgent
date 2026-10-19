@@ -6,6 +6,10 @@ All trigger implementations must satisfy the :class:`BaseTrigger` protocol:
 * ``wait_for_next()`` — async generator that yields :class:`TriggerEvent`
   objects whenever the trigger fires
 
+:func:`config_trigger_ids` gives a process's config triggers their stable
+IDs (used by :class:`~promptise.runtime.process.AgentProcess` and the
+orchestration API).
+
 The :class:`TriggerEvent` carries metadata about what caused the firing
 (cron time, webhook body, file path, etc.) and is placed on the
 :class:`AgentProcess` trigger queue for processing.
@@ -13,6 +17,9 @@ The :class:`TriggerEvent` carries metadata about what caused the firing
 
 from __future__ import annotations
 
+import hashlib
+import json
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Protocol, runtime_checkable
@@ -94,3 +101,43 @@ class BaseTrigger(Protocol):
             TriggerError: If the trigger encounters a fatal error.
         """
         ...
+
+
+# ----------------------------------------------------------------------
+# Stable trigger IDs
+# ----------------------------------------------------------------------
+
+
+def _trigger_fingerprint(trigger_config: Any) -> str:
+    """A digest of a trigger config's content (secrets masked)."""
+    try:
+        data = trigger_config.model_dump(mode="json", exclude={"filter_expression"})
+        expr = getattr(trigger_config, "filter_expression", None)
+        data["filter_expression"] = expr if isinstance(expr, str) or expr is None else repr(expr)
+        text = json.dumps(data, sort_keys=True, default=str)
+    except Exception:
+        text = repr(trigger_config)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:10]
+
+
+def config_trigger_ids(triggers: Iterable[Any]) -> list[str]:
+    """Stable IDs for a process's config triggers, in list order.
+
+    An ID is ``<type>-<digest of the trigger's config>`` (secret values are
+    masked before hashing), so it does not depend on the trigger's
+    position: removing one trigger leaves the others' IDs unchanged, and
+    the IDs are the same after a restart.  Identical configs get ``-2``,
+    ``-3``... suffixes.
+
+    :class:`~promptise.runtime.process.AgentProcess` gives each running
+    config trigger this ID (``trigger.trigger_id`` and the ``trigger_id``
+    of its events), and the orchestration API uses it in its trigger
+    routes.
+    """
+    ids: list[str] = []
+    seen: dict[str, int] = {}
+    for tc in triggers:
+        base = f"{getattr(tc, 'type', 'trigger')}-{_trigger_fingerprint(tc)}"
+        seen[base] = seen.get(base, 0) + 1
+        ids.append(base if seen[base] == 1 else f"{base}-{seen[base]}")
+    return ids
