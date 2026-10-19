@@ -7,7 +7,11 @@ body as payload.
 Requests pass these checks in order:
 
 1. ``allowed_sources`` — client IP must be in one of the listed IPs/CIDR
-   ranges (403 otherwise).
+   ranges (403 otherwise).  A webhook without ``hmac_secret`` on a
+   loopback address also refuses requests a browser page could send: a
+   non-loopback ``Host`` header (DNS rebinding, ``421``) or a cross-site
+   ``Origin`` (``403``), so a web page open on the same machine can't fire
+   it.
 2. Body size — a body larger than ``max_body_bytes`` (default 1 MiB) gets
    ``413`` (checked against ``Content-Length`` before the body is read,
    and while reading it).
@@ -62,6 +66,7 @@ from typing import Any, Literal
 
 from aiohttp import web
 
+from .._http_guard import is_loopback, loopback_request_problem
 from ..config import SIGNATURE_HEADERS
 from .base import TriggerEvent, drain_queue
 
@@ -99,7 +104,10 @@ class WebhookTrigger:
         hmac_secret: Optional HMAC secret for signature verification.
             When set, requests without a valid signature get 401.
             Verification uses timing-safe comparison.  **Strongly
-            recommended** when ``host`` is not loopback.
+            recommended** when ``host`` is not loopback.  Without it, a
+            loopback webhook refuses browser-style cross-site requests
+            (``421`` for a non-loopback ``Host``, ``403`` for a cross-site
+            ``Origin``).
         signature_scheme: ``"generic"``, ``"github"`` or ``"stripe"`` (see
             the module docs).
         signature_header: Header carrying the signature (defaults to the
@@ -359,6 +367,21 @@ class WebhookTrigger:
                 return web.json_response(
                     {"status": "error", "message": "Source not allowed"}, status=403
                 )
+            if self._hmac_secret is None and is_loopback(self._host):
+                # Unsigned and local: only a browser page could reach it
+                # from elsewhere (cross-site POST, DNS rebinding).
+                problem = loopback_request_problem(
+                    request.headers.get("Host", ""), request.headers.get("Origin")
+                )
+                if problem is not None:
+                    status, message = problem
+                    logger.warning(
+                        "WebhookTrigger: rejected request from %s (%d %s)",
+                        request.remote,
+                        status,
+                        message,
+                    )
+                    return web.json_response({"status": "error", "message": message}, status=status)
 
             if request.content_length is not None and request.content_length > (
                 self._max_body_bytes

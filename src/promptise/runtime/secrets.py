@@ -11,7 +11,10 @@ expired) from text before it is stored or shown.
 Environment references in the config (``${VAR}``, ``${VAR:-default}``,
 or text containing them) are resolved when :meth:`SecretScope.resolve_initial`
 runs (process start), not when the config is built, so configs and
-manifests never hold the resolved value.
+manifests never hold the resolved value.  A scope for a config that came
+from the control API (``source="api"``) resolves only the references its
+``env_references`` policy allows, so a deploy can't read the host's
+environment.
 
 Example::
 
@@ -35,6 +38,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
@@ -52,6 +56,28 @@ REDACTED = "[REDACTED]"
 
 #: Previous values kept per secret (encrypted) so they stay redacted.
 MAX_RETIRED_VALUES = 10
+
+
+class SecretResolutionError(KeyError):
+    """A secret's environment reference could not be resolved.
+
+    Raised by :meth:`SecretScope.resolve_initial`.  Subclasses
+    :class:`KeyError` (what was raised before).  For a scope with
+    ``source="api"`` the message is the same whether the variable is not
+    allowed or not set, so it can't be used to probe the host's
+    environment; the details go to the log.
+
+    Attributes:
+        secret_name: The secret whose reference failed.
+    """
+
+    def __init__(self, message: str, secret_name: str) -> None:
+        super().__init__(message)
+        self.message = message
+        self.secret_name = secret_name
+
+    def __str__(self) -> str:
+        return self.message
 
 
 class SecretNotFoundError(KeyError):
@@ -117,6 +143,14 @@ class SecretScope:
         config: Secret scoping configuration.
         process_id: Owning process ID (for journal entries).
         journal: Optional journal provider for access logging.
+        source: Where the config came from: ``"operator"`` (code or a
+            manifest on the host) or ``"api"`` (a control-API deploy, or a
+            process spawned by one).  Only changes the error messages:
+            for ``"api"`` a failed reference gives the same generic error
+            whether the variable is refused or not set.
+        env_references: Which environment variables ``${VAR}`` references
+            may read: ``True`` (any, the default), ``False`` (none: a
+            reference fails to resolve) or a collection of variable names.
     """
 
     def __init__(
@@ -124,10 +158,17 @@ class SecretScope:
         config: SecretScopeConfig,
         process_id: str,
         journal: JournalProvider | None = None,
+        *,
+        source: str = "operator",
+        env_references: bool | Collection[str] = True,
     ) -> None:
         self._config = config
         self._process_id = process_id
         self._journal = journal
+        self._source = source
+        self._env_references: bool | frozenset[str] = (
+            env_references if isinstance(env_references, bool) else frozenset(env_references)
+        )
         self._secrets: dict[str, SecretEntry] = {}
         # Values that are no longer current (rotated or expired), kept
         # encrypted so sanitize_text still redacts them; cleared by revoke_all.
@@ -182,9 +223,10 @@ class SecretScope:
                 operator's rotation survives a restart.
 
         Raises:
-            KeyError: If a referenced environment variable is not set and
-                has no default.  The message names the variable and the
-                secret.
+            SecretResolutionError: A referenced environment variable is
+                not set and has no default, or ``env_references`` doesn't
+                allow it (a :class:`KeyError`).  The message names the
+                variable and the secret, except for ``source="api"``.
         """
         for name, template in self._config.secrets.items():
             if missing_only and name in self._secrets:
@@ -422,14 +464,49 @@ class SecretScope:
         if not ENV_VAR_PATTERN.search(template):
             # Not an env reference — treat as literal value
             return template, "literal"
+        policy = self._env_references
+        refused = sorted(
+            {
+                match.group(1)
+                for match in ENV_VAR_PATTERN.finditer(template)
+                if policy is False or (policy is not True and match.group(1) not in policy)
+            }
+        )
+        if refused:
+            logger.warning(
+                "Secret %r of process %s references environment variable(s) %s, which this "
+                "process may not read (source=%s)",
+                name,
+                self._process_id,
+                ", ".join(refused),
+                self._source,
+            )
+            raise self._resolution_error(
+                name,
+                f"Secret '{name}' references environment variable(s) {', '.join(refused)}, "
+                "which this process may not read",
+            )
         try:
             return resolve_env_var(template.strip(), context=f"secrets.{name}"), "env"
         except EnvVarNotFoundError as exc:
             var_name = getattr(exc, "var_name", None) or str(exc)
-            raise KeyError(
+            raise self._resolution_error(
+                name,
                 f"Environment variable '{var_name}' not found "
-                f"(required by secret '{name}'); set it before starting the process"
+                f"(required by secret '{name}'); set it before starting the process",
             ) from None
+
+    def _resolution_error(self, name: str, detail: str) -> SecretResolutionError:
+        """The error for a reference that can't be resolved (generic for the API)."""
+        if self._source != "api":
+            return SecretResolutionError(detail, name)
+        logger.warning("Process %s: %s", self._process_id, detail)
+        return SecretResolutionError(
+            f"Secret '{name}' could not be resolved: a config deployed through the "
+            "control API can only reference the environment variables the operator "
+            "allowed, and they must be set",
+            name,
+        )
 
     def _is_expired(self, entry: SecretEntry) -> bool:
         if entry.expires_at is None:

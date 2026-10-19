@@ -27,10 +27,10 @@ collector.stop()
 The dashboard has three parts:
 
 1. **`RuntimeDashboardState`** -- the data the dashboard shows: process, trigger and context snapshots, plus ring buffers for invocations, events, commands and journal entries.
-2. **`RuntimeDataCollector`** -- a background thread that reads the `AgentRuntime` every `interval` seconds and refreshes the process, trigger and context snapshots in the state.
+2. **`RuntimeDataCollector`** -- a background thread that reads the `AgentRuntime` every `interval` seconds and refreshes the process, trigger and context snapshots in the state. It also registers `task_created` / `task_completed` [hooks](hooks.md) on every process (for the event and run panels and the trigger fire counts) and reads each process's journal for the Logs tab.
 3. **`RuntimeDashboard`** -- the renderer. It draws the state with `rich.Live` in the terminal's alternate screen, reads keys in a background thread, and captures Python log output for the Logs tab.
 
-The collector fills only the snapshots. The invocation, event and journal buffers are filled by whatever calls `state.record_invocation()`, `state.record_event()` and `state.record_journal()`; neither the collector nor `promptise runtime start --dashboard` does, so in that setup those panels stay empty.
+The collector fills every panel. Trigger events and finished runs arrive through the hooks it registers (removed again by `collector.stop()`); journal entries are read from each process's journal every fourth snapshot, on the runtime's event loop. Context values are shown with secret values `[REDACTED]`, as in the journal. Create the collector on the runtime's loop (or pass `loop=`): without a loop the journal panel stays empty. `state.record_invocation()`, `state.record_event()` and `state.record_journal()` remain available to add records of your own.
 
 ---
 
@@ -42,8 +42,8 @@ Switch tabs with the number keys `1`-`7`, the left and right arrow keys, or `Tab
 |---|---|---|
 | 1 | **Overview** | Counters (processes, running, failed, triggers, invocations, errors, throughput, uptime), a table of processes, and recent invocations (from `state.invocations`) |
 | 2 | **Processes** | Per process: state, process ID, model, invocations, failures, triggers, queue size, concurrency, heartbeat interval, uptime |
-| 3 | **Triggers** | Every config trigger: process, type, a configuration summary (cron expression, webhook port and path, watched path, event type or topic), fire count and last fire time (from the state; the collector leaves them at `0` and `-`) |
-| 4 | **Context** | Per process: each state key, its value (cut at 50 characters), whether it is writable and how many writes it has had, plus the number of environment variables, file mounts and whether memory is on |
+| 3 | **Triggers** | Every config trigger: process, type, a configuration summary (cron expression, webhook port and path, watched path, event type or topic), fire count and last fire time (counted from `task_created`) |
+| 4 | **Context** | Per process: each state key, its value (secret values redacted, cut at 50 characters), whether it is writable and how many writes it has had, plus the number of environment variables, file mounts and whether memory is on |
 | 5 | **Logs** | Captured Python log records (runtime logs) and `state.journal_entries` |
 | 6 | **Events** | `state.events` (trigger events) and `state.invocations` (invocation results) |
 | 7 | **Commands** | The command line and the history of commands run |
@@ -73,11 +73,10 @@ Press `:` or `/` to type a command (the Commands tab opens), `Enter` to run it, 
 | `list` | Names of the processes in the dashboard state |
 | `status` | Process count and how many are running |
 | `status <name>` | One process's state, invocations and queue size |
-| `start <name>`, `stop <name>`, `restart <name>`, `suspend <name>`, `resume <name>` | Lifecycle commands (see the warning below) |
+| `start <name>`, `stop <name>`, `restart <name>`, `suspend <name>`, `resume <name>` | Lifecycle commands, run on the runtime's event loop (`restart` is `AgentRuntime.restart_process()`) |
 | `inject <name> [payload_json]` | Inject a `manual` trigger event with the payload (non-JSON text becomes `{"raw": "..."}`) |
 
-!!! warning "Lifecycle and inject commands are not carried out"
-    `start`, `stop`, `restart`, `suspend`, `resume` and `inject` report success (`Stopping <name>...`) but the action does not run: the dashboard's key-reader thread has no event loop to run it on. Use `promptise runtime stop`, the [Orchestration API](api.md) or Python code instead. `help`, `list` and `status` work.
+Lifecycle and inject commands are submitted to the runtime's event loop, which `dashboard.start()` captures, so call `start()` from that loop (as `promptise runtime start --dashboard` does). The command history shows `Stopping <name>...` at once; if the action then fails, a `(result)` entry with the error follows. Without a loop (or without `runtime=`), the command answers with an error and nothing runs.
 
 ---
 
@@ -172,7 +171,7 @@ Methods: `record_invocation(log)` (also counts errors), `record_event(event)`, `
 | `consecutive_failures` | `int` | Current failure streak |
 | `trigger_count` | `int` | Number of running config triggers |
 | `queue_size` | `int` | Pending events in the queue |
-| `uptime_seconds` | `float \| None` | Time since the process started |
+| `uptime_seconds` | `float \| None` | Time since the process started; `None` while it is not up (created, stopped, failed) |
 | `concurrency` | `int` | Max concurrent invocations |
 | `heartbeat_interval` | `float` | Heartbeat period |
 
@@ -217,7 +216,7 @@ collector.start()   # daemon thread
 collector.stop()    # ends the loop after the current sleep
 ```
 
-Every `interval` seconds (default `0.5`) it calls `status()` on each process of `runtime.processes`, reads its config and context, rebuilds the trigger list from the config triggers, and drops snapshots of processes that are no longer in the runtime.
+Every `interval` seconds (default `0.5`) it calls `status()` on each process of `runtime.processes`, reads its config and context, rebuilds the trigger list from the config triggers (with their stable IDs and the fire counts its hooks counted), and drops snapshots of processes that are no longer in the runtime. On each new process it registers a `task_created` and a `task_completed` hook (priority `-1000`, tag `promptise-dashboard`); every fourth snapshot it reads the newest 100 journal entries of each process. `stop()` ends the loop after the current sleep and removes the hooks.
 
 ---
 
@@ -226,8 +225,8 @@ Every `interval` seconds (default `0.5`) it calls `status()` on each process of 
 | Class | Description |
 |---|---|
 | `RuntimeDashboardState` | Data container for everything the dashboard shows |
-| `RuntimeDataCollector(runtime, state, interval=0.5)` | Background thread that refreshes the snapshots from the runtime |
-| `RuntimeDashboard(state, runtime=None)` | Terminal renderer: `start()` takes over the terminal, `stop()` restores it. `runtime` is used by the commands |
+| `RuntimeDataCollector(runtime, state, interval=0.5, loop=None)` | Background thread that refreshes the snapshots from the runtime, registers the event/run hooks and reads the journals. `loop` defaults to the running loop when it is created |
+| `RuntimeDashboard(state, runtime=None)` | Terminal renderer: `start()` (call it on the runtime's loop) takes over the terminal, `stop()` restores it. `runtime` is used by the commands |
 | `ProcessSnapshot`, `TriggerInfo`, `ContextSnapshot` | Snapshots for display |
 | `InvocationLog`, `EventLog`, `CommandResult` | Records for the ring buffers |
 
@@ -238,7 +237,7 @@ Every `interval` seconds (default `0.5`) it calls `status()` on each process of 
 - **The dashboard takes over the terminal.** It draws in the alternate screen and reads keys directly; you can't use the same terminal for other commands. Always call `dashboard.stop()` (in a `finally`) so the terminal is restored.
 - **Log output moves into the Logs tab.** While the dashboard runs, the root logger is set to `DEBUG` and existing console handlers of the root, `promptise.runtime`, `httpx`, `uvicorn` and `asyncio` loggers are muted; `stop()` restores them.
 - **Empty Events, Recent Activity and journal panels.** The collector doesn't fill them; call the `state.record_*` methods from your own code to use them.
-- **Lifecycle commands don't run.** Use the API or the CLI to start, stop or restart processes (see [Commands](#commands)).
+- **Starting the dashboard off the runtime's loop.** Commands then can't run and the journal panel stays empty; create the collector and call `dashboard.start()` inside the coroutine that runs the runtime.
 - **Shorter intervals cost more.** The collector polls every process each `interval`; `2.0` is plenty for a quiet runtime.
 - **Not with `--detach`.** The dashboard needs a foreground terminal.
 

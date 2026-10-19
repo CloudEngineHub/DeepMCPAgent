@@ -73,7 +73,8 @@ Each value in `secrets` is either a literal or contains environment references:
 | Literal | `"tok-abc123"` | The text as written |
 
 - References are resolved when the process **starts** (`SecretScope.resolve_initial()`), not when the config is built, so a `ProcessConfig` or a loaded manifest holds the reference, never the value. Loading a manifest checks that the referenced variables exist and fails early when one is missing.
-- A variable that is unset (and has no default) when the process starts raises `KeyError` naming the variable and the secret; the process ends up `failed`.
+- A variable that is unset (and has no default) when the process starts raises `SecretResolutionError` (a `KeyError`) naming the variable and the secret; the process ends up `failed`.
+- A process deployed through the [control API](../api.md#environment-references) may only reference the variables the operator allowed (`OrchestrationAPI(allowed_env_vars=...)` or `allow_env_references=True`): the API refuses other references with `403 ENV_REFERENCES_NOT_ALLOWED`, and the process's scope won't resolve them either. Its resolution errors are generic (they don't say whether a variable exists), so a token holder can't probe the host's environment.
 - Values are stored as `pydantic.SecretStr`: `repr()` shows `SecretStr('**********')`, and a JSON dump (`model_dump(mode="json")`) shows `**********` for literal values and references as written. Passing the masked placeholder `**********` back as a value is refused, so a dumped config with literal values can't be loaded again by mistake.
 - Every name in `ttls` must be a key of `secrets`, and every TTL must be positive.
 
@@ -114,6 +115,7 @@ Secret values are replaced by `[REDACTED]` wherever the runtime stores or shows 
 | Journal entries and checkpoints | Every string in the entry data and the checkpoint state, including tool arguments and results (`level="full"`), invocation results, context updates and the conversation snapshot. The result of the `get_secret` tool is always journaled as `[REDACTED]` |
 | Conversation history | The stored trigger message and the agent's reply, so an echoed secret never reaches a later prompt |
 | Lifecycle hooks | The data passed to hooks, including the prompt a `user_prompt_submit` hook sees |
+| Inbox answers | The answer to a question (`ANSWER Qn:` in the reply), so `POST /ask` and `process.ask()` return `[REDACTED]` instead of a value the agent was talked into repeating; `GET /inbox` too |
 | Control API | Responses never contain values; a failed rotation answers `ROTATION_FAILED` without echoing the error |
 
 Redaction covers the current values and values that were rotated away or expired (the last 10 per secret), longest first. It is an exact text match: a value that was encoded, split or reformatted is not recognized.
@@ -176,11 +178,11 @@ Unknown keys are ignored with a `FutureWarning`.
 
 ### `SecretScope`
 
-`SecretScope(config, process_id, journal=None)` from `promptise.runtime.secrets`. A process with `secrets.enabled` creates its own (it is not a public attribute of the process); reach a running process's secrets over the API.
+`SecretScope(config, process_id, journal=None, *, source="operator", env_references=True)` from `promptise.runtime.secrets`. `env_references` limits which variables `${VAR}` may read (`True` any, `False` none, or a set of names); `source="api"` makes resolution errors generic. A process with `secrets.enabled` creates its own (it is not a public attribute of the process); reach a running process's secrets over the API.
 
 | Member | Description |
 |---|---|
-| `await .resolve_initial()` | Resolve every secret from the config and start its TTL (again on each call) |
+| `await .resolve_initial(*, missing_only=False)` | Resolve every secret from the config and start its TTL (again on each call). `missing_only=True` resolves only the secrets the scope doesn't hold, keeping rotated values (what a process start uses). Raises `SecretResolutionError` |
 | `.get(name)` | The value, or `None` when missing or expired (access-logged) |
 | `await .rotate(name, new_value, *, ttl=None)` | Replace a value now; `SecretNotFoundError` for an unknown name |
 | `await .revoke_all()` | Zero-fill and remove all secrets, forget rotated values, new encryption key |
@@ -197,7 +199,7 @@ Unknown keys are ignored with a `FutureWarning`.
 
 ## Common pitfalls
 
-- **A rotation lasts until the next start.** `start()` (and so a restart) resolves the secrets from the config again. Rotate the value at its source (the environment variable or your secret manager) as well.
+- **A rotation lasts until the next stop.** With the default `revoke_on_stop=True`, `stop()` (and so a restart) revokes every secret and the next start resolves them from the config again. With `revoke_on_stop=False` a start only resolves missing secrets, so the rotated value survives. Rotate the value at its source (the environment variable or your secret manager) as well.
 - **The model sees what `get_secret` returns.** Redaction keeps the value out of storage, not out of the model's context. Prefer server-side credentials in MCP server specs.
 - **Secrets in the context state come back as `[REDACTED]`.** The journal stores the redacted value, so recovery restores the placeholder.
 - **No journal, no access log.** The `ProcessConfig` default journal level is `none`.

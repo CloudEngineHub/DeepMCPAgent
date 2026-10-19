@@ -26,6 +26,17 @@ so the limits, the ``CONFIG_CHANGE`` / ``SUBAGENT_START`` hooks (which
 can refuse the change) and the cleanup (trigger listeners) apply.  Tools
 that change the graph (instructions, tools, MCP servers) trigger a
 hot-reload.
+
+Security: these tools hand the model control over its own setup.
+``create_tool`` in particular runs model-written Python in the runtime's
+own process with restricted builtins, which are **not a sandbox**: code
+can walk Python's object graph back to ``os`` and run commands as the
+runtime's user.  Enable ``allow_tool_creation`` only where that is
+acceptable (the control API refuses such deploys unless
+``allow_command_deploys`` is on); for code from untrusted sources use the
+Docker sandbox (:mod:`promptise.sandbox`, ``build_agent(sandbox=...)``)
+instead.  ``connect_mcp_server`` only connects HTTP(S) servers that pass
+:func:`check_mcp_url`, and never sends them the process identity.
 """
 
 from __future__ import annotations
@@ -249,7 +260,12 @@ async def _create_tool(
     parameters: dict[str, Any],
     python_code: str,
 ) -> str:
-    """Implementation for create_tool tool."""
+    """Implementation for create_tool tool.
+
+    The code runs in the runtime's process (see :func:`_build_dynamic_tool`):
+    restricted builtins limit mistakes, not a determined model, so this is
+    equivalent to letting the model run code as the runtime's user.
+    """
     max_tools = process.config.open_mode.max_custom_tools
     if len(process._custom_tools) >= max_tools:
         return f"Error: max custom tools ({max_tools}) reached"
@@ -296,6 +312,66 @@ async def _create_tool(
     return f"Tool '{tool_name}' created. {_NEXT_RUN_NOTE}"
 
 
+def normalize_mcp_url(url: str) -> str:
+    """An MCP URL for comparison: lowercase scheme and host, default port
+    dropped, no trailing slash."""
+    from urllib.parse import urlparse
+
+    p = urlparse(url.strip())
+    scheme = p.scheme.lower()
+    try:
+        port = p.port
+    except ValueError:
+        port = None
+    if port == {"http": 80, "https": 443}.get(scheme):
+        port = None
+    host = (p.hostname or "").lower()
+    if ":" in host:
+        host = f"[{host}]"
+    return f"{scheme}://{host}{':%d' % port if port else ''}{p.path.rstrip('/')}"
+
+
+async def check_mcp_url(process: Any, url: str) -> str | None:
+    """Why an agent may not connect the MCP server at *url* (``None``: it may).
+
+    * Only ``http://`` / ``https://`` URLs (an agent can't start a stdio
+      server, a program on the host).
+    * With ``open_mode.allowed_mcp_urls`` set, the URL must be one of
+      them; a listed URL is trusted as the operator wrote it, private
+      addresses included.
+    * Without an allowlist, a process deployed through the control API
+      may connect no server at all, and an operator-configured one only
+      servers whose host resolves to public addresses (no loopback,
+      private, link-local or cloud-metadata targets), checked like
+      escalation webhooks (:func:`promptise._outbound.pin_target`).  The
+      check runs when the agent connects and again at every agent build;
+      it can't stop a host that changes its DNS answer in between, so set
+      ``allowed_mcp_urls`` where that matters.
+    """
+    if not url.strip().lower().startswith(("http://", "https://")):
+        return "the MCP server URL must start with http:// or https://"
+    allowed = process.config.open_mode.allowed_mcp_urls
+    if allowed:
+        if normalize_mcp_url(url) not in {normalize_mcp_url(a) for a in allowed}:
+            return "URL not in allowed whitelist (open_mode.allowed_mcp_urls)"
+        return None
+    policy = getattr(process, "_deploy_policy", None)
+    if policy is not None and policy.from_api:
+        return (
+            "this process was deployed through the control API and has no "
+            "open_mode.allowed_mcp_urls, so it may not connect MCP servers"
+        )
+    from promptise._outbound import BlockedTarget, pin_target
+
+    try:
+        await pin_target(url.strip())
+    except BlockedTarget as exc:
+        return f"refused: {exc} (list the URL in open_mode.allowed_mcp_urls to allow it)"
+    except (OSError, ValueError) as exc:
+        return f"the MCP server host did not resolve ({exc})"
+    return None
+
+
 async def _connect_mcp_server(
     process: Any,
     server_name: str,
@@ -305,35 +381,28 @@ async def _connect_mcp_server(
     """Implementation for connect_mcp_server tool.
 
     Only HTTP(S) servers: the agent can't start a stdio server (a program
-    on the host), whatever ``allowed_mcp_urls`` says.
+    on the host), whatever ``allowed_mcp_urls`` says.  The URL is checked
+    by :func:`check_mcp_url` (allowlist, private addresses).  The server
+    gets neither the process identity's credential nor a caller's token,
+    unless its URL is in ``open_mode.identity_mcp_urls``.
     """
-    if not url.strip().lower().startswith(("http://", "https://")):
-        return "Error: the MCP server URL must start with http:// or https://"
-    allowed = process.config.open_mode.allowed_mcp_urls
-    if allowed:
-        # Normalize URLs for comparison: lowercase scheme+host, strip trailing slash
-        from urllib.parse import urlparse
-
-        def _normalize_url(u: str) -> str:
-            p = urlparse(u.strip())
-            return (
-                f"{p.scheme.lower()}://{p.hostname or ''}"
-                f"{':%d' % p.port if p.port else ''}"
-                f"{p.path.rstrip('/')}"
-            )
-
-        norm_url = _normalize_url(url)
-        norm_allowed = {_normalize_url(a) for a in allowed}
-        if norm_url not in norm_allowed:
-            return "Error: URL not in allowed whitelist"
-
     if server_name in process._dynamic_servers:
         return f"Error: server '{server_name}' already connected"
+    problem = await check_mcp_url(process, url)
+    if problem is not None:
+        return f"Error: {problem}"
 
     try:
         from promptise.config import HTTPServerSpec
 
-        spec = HTTPServerSpec(url=url, transport=transport)
+        identity_urls = process.config.open_mode.identity_mcp_urls
+        trusted = normalize_mcp_url(url) in {normalize_mcp_url(a) for a in identity_urls}
+        spec = HTTPServerSpec(
+            url=url,
+            transport=transport,
+            # Never hand a caller's token to a server the agent picked.
+            forward_caller_token=None if trusted else False,
+        )
 
         def stage() -> Any:
             process._dynamic_servers[server_name] = spec
@@ -828,18 +897,23 @@ def _build_dynamic_tool(
 
     .. warning::
 
-        The ``sandbox=True`` restricted-builtins mode is **defense-in-depth
-        only** and should NOT be considered a security boundary.  Python's
-        object model allows ``getattr``-based traversal that can reach
-        dangerous functions.  For untrusted code, use Docker-based execution
-        via the sandbox module instead.
+        This is **not a sandbox**, with ``sandbox=True`` or ``False``.  The
+        code runs in the runtime's own process, and restricted builtins
+        can be escaped through Python's object model (for example by
+        walking ``object.__subclasses__()`` to a class whose globals hold
+        ``os``), so agent-written code can run any command as the
+        runtime's user.  The restrictions only keep honest code from
+        reaching for files and imports by accident.  For untrusted code,
+        use the Docker sandbox (:mod:`promptise.sandbox`) instead.
 
     Args:
         name: Tool name.
         description: Tool description.
         python_code: Python code defining a ``run(**kwargs) -> str``
             function.
-        sandbox: Restrict builtins for safety (default ``True``).
+        sandbox: Restricted builtins and no imports (default ``True``);
+            ``False`` allows the fixed import allowlist.  Neither isolates
+            the code.
         parameters: JSON object schema of the tool's parameters.
 
     Returns:
@@ -902,7 +976,9 @@ def _build_dynamic_tool(
                     )
 
                 ns["__builtins__"]["__import__"] = _safe_import
-            exec(python_code, ns)  # noqa: S102  # nosec B102 - intentional sandbox meta-tool with restricted builtins/import allowlist
+            # Not isolated (see the docstring): the control API only allows
+            # it with allow_command_deploys.
+            exec(python_code, ns)  # noqa: S102  # nosec B102 - open-mode create_tool, documented as unsandboxed
 
             run_fn = ns.get("run")
             if run_fn is None:

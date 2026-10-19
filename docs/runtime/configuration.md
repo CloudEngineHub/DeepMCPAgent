@@ -149,12 +149,12 @@ Configuration for one agent process. Unknown keys are rejected.
 
 ## OpenModeConfig
 
-Limits for open mode. Unknown keys are ignored without a warning.
+Limits for open mode. Unknown keys are ignored with a `FutureWarning`. Open mode lets the model change its own setup; see [Meta-Tools: Security](meta-tools.md#security) before you turn capabilities on.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `allow_identity_change` | `bool` | `True` | `modify_instructions` tool |
-| `allow_tool_creation` | `bool` | `True` | `create_tool` tool |
+| `allow_tool_creation` | `bool` | `True` | `create_tool` tool. Runs model-written Python in the runtime's process (not a sandbox); the control API refuses it without `allow_command_deploys` |
 | `allow_mcp_connect` | `bool` | `True` | `connect_mcp_server` tool |
 | `allow_trigger_management` | `bool` | `True` | `add_trigger` / `remove_trigger` tools |
 | `allow_memory_management` | `bool` | `True` | `store_memory` / `search_memory` / `forget_memory` tools |
@@ -162,10 +162,12 @@ Limits for open mode. Unknown keys are ignored without a warning.
 | `max_dynamic_triggers` | `int` | `10` | Agent-added triggers (>= 0) |
 | `max_instruction_length` | `int` | `10000` | Characters of agent-written instructions (>= 100) |
 | `max_rebuilds` | `int \| None` | `None` | Hot reloads per lifetime of the process object; restarts don't reset it. A refused change is not applied, now or after a restart. `rollback()` is not refused but counts. `None` = unlimited. |
-| `allowed_mcp_urls` | `list[str]` | `[]` | URLs `connect_mcp_server` may use (empty = any) |
-| `sandbox_custom_tools` | `bool` | `True` | Run agent-written tools with restricted builtins and no imports |
+| `allowed_mcp_urls` | `list[str]` | `[]` | URLs `connect_mcp_server` may use. Empty: any URL whose host resolves to public addresses (warning at start); for a process deployed through the control API, none |
+| `identity_mcp_urls` | `list[str]` | `[]` | Agent-connected server URLs that may receive the process identity's credential and a caller's token (empty = none) |
+| `sandbox_custom_tools` | `bool` | `True` | Run agent-written tools with restricted builtins and no imports (`False`: a fixed import allowlist). Not a security boundary either way |
 | `allow_process_spawn` | `bool` | `False` | `spawn_process` / `list_processes` tools |
 | `max_spawned_processes` | `int` | `3` | Processes this agent may spawn (>= 0) |
+| `allow_public_webhooks` | `bool` | `False` | Webhook triggers the agent adds (or gives a spawned process) may bind a non-loopback `webhook_host`, with an `hmac_secret` |
 
 ---
 
@@ -214,7 +216,7 @@ How a process handles trigger events it can't process (`ProcessConfig.trigger_de
 | `retry_backoff_max` | `float` | `60.0` | Upper bound for the retry delay (> 0) |
 | `dead_letter_size` | `int` | `100` | Entries kept in `process.dead_letters`, oldest dropped first (>= 0) |
 | `scan_payloads` | `bool` | `False` | Prompt-injection scan of each payload before the agent sees it; flagged events are dead-lettered. Uses `guardrails` when it is a scanner, otherwise an injection-only `PromptiseSecurityScanner` (needs `transformers`) |
-| `max_payload_chars` | `int` | `20000` | Longest payload text placed in the prompt; longer payloads are truncated (>= 200) |
+| `max_payload_chars` | `int` | `20000` | Longest payload text placed in the prompt; longer payloads are truncated (>= 200). The payload scan reads exactly this text |
 
 ---
 
@@ -253,7 +255,7 @@ State, memory, conversation and environment (`ProcessConfig.context`). Unknown k
 | `conversation_clear_on_stop` | `bool` | `False` | Clear the conversation history on `stop()`. By default it survives `stop()` / `start()` and restarts; `close()` always clears it. |
 | `state_tool` | `bool` | `False` | Give the agent an `update_state(key, value)` tool (limited to `writable_keys` when set) |
 | `file_mounts` | `dict[str, str]` | `{}` | Logical name to filesystem path |
-| `env_prefix` | `str` | `"AGENT_"` | Only environment variables with this prefix are exposed |
+| `env_prefix` | `str` | `"AGENT_"` | Only environment variables with this prefix are exposed. Must not be empty (an empty prefix would expose the whole environment) |
 | `initial_state` | `dict[str, Any]` | `{}` | State at the first start. Keys recovered from the journal replace these. |
 
 ---
@@ -406,6 +408,7 @@ Distributed mode (`RuntimeConfig.distributed`). With `enabled=True`, `AgentRunti
 | `allow_unauthenticated` | `bool` | `False` | Allow a non-loopback transport or coordinator without `auth_token` |
 | `discovery_method` | `Literal["registry", "static", "multicast"]` | `"registry"` | `registry` (nodes register) or `static` (`static_nodes`). `multicast` is rejected: not implemented. |
 | `static_nodes` | `dict[str, str]` | `{}` | `node_id` to URL, for a coordinator with `discovery_method="static"` |
+| `allowed_node_hosts` | `list[str]` | `[]` | Hosts a registering node's URL may name (`*.example.com` matches subdomains); others get `403`. Empty: any host |
 | `heartbeat_interval` | `float` | `15.0` | Seconds between health checks and re-registrations (> 0) |
 | `node_timeout` | `float \| None` | `None` | Seconds of silence before a node is unhealthy or dropped (default 3 x `heartbeat_interval`) |
 
@@ -413,7 +416,7 @@ Distributed mode (`RuntimeConfig.distributed`). With `enabled=True`, `AgentRunti
 
 ## Common pitfalls
 
-- **A typo in a section config.** `HealthConfig(error_windw=5)` only warns and keeps the default; `OpenModeConfig(max_rebuild=3)` doesn't even warn. Check warnings in tests, or define the config in a manifest, which rejects unknown keys.
+- **A typo in a section config.** `HealthConfig(error_windw=5)` or `OpenModeConfig(max_rebuild=3)` only warns and keeps the default. Check warnings in tests, or define the config in a manifest, which rejects unknown keys.
 - **Governance without `enabled=True`.** `BudgetConfig(max_runs_per_day=10)` alone tracks nothing.
 - **`JournalConfig()` vs `ProcessConfig()`.** A `JournalConfig` you create journals at `"checkpoint"` level, but a `ProcessConfig` without one has no journal.
 - **Round-tripping secrets.** `to_dict()` masks literal secrets; `from_dict()` of that dict raises until you put the real values (or `${VAR}` references) back.

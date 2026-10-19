@@ -50,6 +50,7 @@ import asyncio
 import contextlib
 import json
 import os
+import re
 import signal
 import sys
 import threading
@@ -106,6 +107,9 @@ _T = TypeVar("_T")
 
 #: Seconds ``start --detach`` waits for the background runtime to be ready.
 _DETACH_READY_TIMEOUT = 60.0
+
+#: What ``--allow-env-var`` accepts (the names a ``${VAR}`` reference can use).
+_ENV_VAR_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 #: Seconds ``stop`` waits after SIGTERM (the fallback) before giving up.
 _SIGTERM_GRACE = 10.0
@@ -377,19 +381,45 @@ def start(
             help=(
                 "Let the control API deploy processes with stdio MCP servers or command "
                 "hooks, i.e. let anyone with the API token run commands on this machine "
-                "(refused with 403 COMMANDS_NOT_ALLOWED by default). The manifests you "
-                "start here are not affected."
+                "(refused with 403 COMMANDS_NOT_ALLOWED by default). Open mode with "
+                "tool creation counts too. The manifests you start here are not affected."
             ),
         ),
     ] = False,
+    allow_env_references: Annotated[
+        bool,
+        typer.Option(
+            "--allow-env-references",
+            help=(
+                "Let control-API deploys use ${VAR} references to any environment "
+                "variable of this machine (refused with 403 ENV_REFERENCES_NOT_ALLOWED by "
+                "default, since the agent can read a secret back). The manifests you start "
+                "here are not affected."
+            ),
+        ),
+    ] = False,
+    allow_env_var: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--allow-env-var",
+            metavar="NAME",
+            help=(
+                "Let control-API deploys reference this one environment variable as "
+                "${NAME} (repeatable)."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Start agent process(es) from a .agent manifest or directory.
 
     Runs in the foreground until Ctrl+C or SIGTERM (``docker stop``), or
     until ``promptise runtime stop``; both stop every process gracefully.
     The control API's bearer token is random unless $PROMPTISE_RUNTIME_TOKEN
-    is set.  It refuses deploys that would run commands on this machine
-    unless --allow-command-deploys is given.
+    is set (the variable is then removed from this process's environment,
+    so agents, hooks and MCP servers don't inherit it).  The API refuses
+    deploys that would run commands on this machine unless
+    --allow-command-deploys is given, and deploys with ${VAR} references
+    unless --allow-env-references or --allow-env-var NAME allows them.
     """
     path = Path(manifest)
 
@@ -419,13 +449,36 @@ def start(
             "with --runtime-name."
         )
 
+    env_vars = list(allow_env_var or [])
+    for var in env_vars:
+        if not _ENV_VAR_NAME.match(var):
+            _fail(f"--allow-env-var {var!r} is not an environment variable name")
     if detach:
-        _start_detached(path, name, rname, api_host, api_port, allow_command_deploys)
+        _start_detached(
+            path,
+            name,
+            rname,
+            api_host,
+            api_port,
+            allow_command_deploys,
+            allow_env_references=allow_env_references,
+            allowed_env_vars=env_vars,
+        )
         return
 
     try:
         code = asyncio.run(
-            _run_foreground(path, name, rname, dashboard, api_host, api_port, allow_command_deploys)
+            _run_foreground(
+                path,
+                name,
+                rname,
+                dashboard,
+                api_host,
+                api_port,
+                allow_command_deploys,
+                allow_env_references=allow_env_references,
+                allowed_env_vars=env_vars,
+            )
         )
     except ManifestValidationError as exc:
         _fail(f"Manifest validation failed: {exc}")
@@ -523,6 +576,9 @@ def _make_api(
     token: str,
     shutdown: asyncio.Event,
     allow_command_deploys: bool = False,
+    *,
+    allow_env_references: bool = False,
+    allowed_env_vars: list[str] | None = None,
 ) -> Any:
     """An Orchestration API for *runtime*, with ``POST /api/v1/runtime/shutdown``.
 
@@ -539,6 +595,8 @@ def _make_api(
         auth_token=token,
         on_shutdown=shutdown.set,
         allow_command_deploys=allow_command_deploys,
+        allow_env_references=allow_env_references,
+        allowed_env_vars=allowed_env_vars or (),
     )
 
 
@@ -606,6 +664,9 @@ async def _run_foreground(
     api_host: str,
     api_port: int,
     allow_command_deploys: bool = False,
+    *,
+    allow_env_references: bool = False,
+    allowed_env_vars: list[str] | None = None,
 ) -> int:
     """Run the runtime until shutdown; return the exit code."""
     import secrets
@@ -659,9 +720,20 @@ async def _run_foreground(
             if not dashboard:
                 console.print(f"[green]Loaded process:[/green] {process.name}")
 
-        token = os.environ.get(TOKEN_ENV) or secrets.token_urlsafe(32)
+        # Read once and removed, so processes, hooks and stdio servers
+        # started from here don't inherit the control API's token.
+        token = os.environ.pop(TOKEN_ENV, None) or secrets.token_urlsafe(32)
         try:
-            api = _make_api(runtime, api_host, api_port, token, shutdown, allow_command_deploys)
+            api = _make_api(
+                runtime,
+                api_host,
+                api_port,
+                token,
+                shutdown,
+                allow_command_deploys,
+                allow_env_references=allow_env_references,
+                allowed_env_vars=allowed_env_vars,
+            )
             await api.start()
         except (OSError, ValueError) as exc:
             api = None
@@ -719,7 +791,13 @@ async def _run_foreground(
             if allow_command_deploys:
                 console.print(
                     "[yellow]--allow-command-deploys: API deploys may run commands on "
-                    "this machine (stdio MCP servers, command hooks).[/yellow]"
+                    "this machine (stdio MCP servers, command hooks, open-mode tool "
+                    "creation).[/yellow]"
+                )
+            if allow_env_references:
+                console.print(
+                    "[yellow]--allow-env-references: API deploys may read any environment "
+                    "variable of this process through ${VAR} references.[/yellow]"
                 )
             console.print(
                 "[dim]Press Ctrl+C to stop all processes, or run "
@@ -757,6 +835,9 @@ def _start_detached(
     api_host: str,
     api_port: int,
     allow_command_deploys: bool = False,
+    *,
+    allow_env_references: bool = False,
+    allowed_env_vars: list[str] | None = None,
 ) -> None:
     """Start the runtime as a detached background process and wait until it is ready."""
     import secrets
@@ -786,6 +867,10 @@ def _start_detached(
         cmd += ["--name", name]
     if allow_command_deploys:
         cmd.append("--allow-command-deploys")
+    if allow_env_references:
+        cmd.append("--allow-env-references")
+    for var in allowed_env_vars or []:
+        cmd += ["--allow-env-var", var]
     env = dict(os.environ)
     env[LAUNCH_ENV] = launch_id
     env["PYTHONUNBUFFERED"] = "1"

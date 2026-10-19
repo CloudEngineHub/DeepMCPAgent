@@ -457,7 +457,7 @@ config = ProcessConfig(
 )
 ```
 
-With `scan_payloads=True`, every string in the payload (keys included) is checked by a prompt-injection classifier before the agent runs, in overlapping 500-character windows up to `max_payload_chars`. A flagged event is dead-lettered with reason `flagged by payload scan` and the agent never sees it. Flagged events don't count towards `max_consecutive_failures`.
+With `scan_payloads=True`, the payload is checked by a prompt-injection classifier before the agent runs. The scan reads exactly the payload text the prompt shows (the rendered JSON, keys included, cut at `max_payload_chars`), end to end, in 500-character windows that overlap by 50 characters, so nothing reaches the prompt unscanned. A flagged event is dead-lettered with reason `flagged by payload scan` and the agent never sees it. Flagged events don't count towards `max_consecutive_failures`.
 
 The scanner is `ProcessConfig.guardrails` when that is a `PromptiseSecurityScanner` (its full rule set then applies to payloads), otherwise an injection-only `PromptiseSecurityScanner(detectors=[InjectionDetector()])`. The model needs `transformers` and `torch` and loads when the process starts. If it can't load, `start()` fails instead of silently skipping the scan.
 
@@ -609,6 +609,7 @@ process.clear_dead_letters()
 | `process failed` | The process hit `max_consecutive_failures`, or an event arrived while it was `FAILED` |
 | `process stopped` | `stop()` was called: events still queued, still buffered in a trigger (webhook, file watch, event and message triggers), held by a waiting worker or a listener, waiting for a retry, or running (`error: "run cancelled"`) |
 | `process restarting` | The process was recycled (`max_lifetime`) or restarted after `FAILED` while the event was held by a worker or waiting for a retry. Queued events, and events still buffered in the old triggers, stay for the next run (dead-lettered with this reason only if the queue is full) |
+| `trigger removed` | The trigger was removed while the event was still buffered in it or held by its listener |
 | `queue full` | `inject()` or a retry found the queue full |
 | `flagged by payload scan` | The [payload scan](#scanning-payloads-for-prompt-injection) flagged the event |
 | `blocked by guardrails` | The agent's `guardrails` raised `GuardrailViolation` |

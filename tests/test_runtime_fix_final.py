@@ -299,7 +299,9 @@ class TestOpenModeCantStartCommands:
         child = parent._child_config(
             instructions="i", model=None, triggers=[], execution_mode=ExecutionMode.OPEN
         )
-        assert command_features(child) == []
+        # No stdio server or command hook; open-mode tool creation is
+        # inherited from the parent's open_mode (it counts as running code).
+        assert [f for f in command_features(child) if "allow_tool_creation" not in f] == []
         assert child.open_mode.allow_process_spawn is False
 
 

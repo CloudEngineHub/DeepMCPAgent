@@ -183,6 +183,7 @@ The default `host` is `127.0.0.1` (this machine only). Pass `port=0` to let the 
 | `allow_unauthenticated` | `False` | Allow a non-loopback bind without a token |
 | `coordinator` | `None` | A `RuntimeCoordinator`: adds the `/cluster` routes (this node hosts the coordinator) |
 | `discovery` | `None` | The coordinator's discovery (`RegistryDiscovery` or `StaticDiscovery`) |
+| `allowed_node_hosts` | `None` | Hosts a node registering at `POST /cluster/nodes` may name in its URL (`*.example.com` matches subdomains); others get `403`. `None` or empty: any host |
 
 ### Security
 
@@ -190,10 +191,14 @@ The transport can start, stop and drive your agents, so it is locked down by def
 
 | Rule | Behaviour |
 |---|---|
-| Bearer token | With `auth_token` set, every endpoint except `GET /health` requires `Authorization: Bearer <token>` (compared in constant time). Missing or wrong token: `401`. |
+| Bearer token | With `auth_token` set, every endpoint except `GET /health` requires `Authorization: Bearer <token>` (compared in constant time). Missing or wrong token, including a header with non-ASCII bytes: `401`. |
 | Public bind needs a token | `RuntimeTransport(host="0.0.0.0")` (or any non-loopback address) without `auth_token` raises `ValueError`. If an authenticating proxy or a private network you control already protects the port, opt out explicitly with `allow_unauthenticated=True` (a warning is logged at start). |
 | Loopback bind blocks browsers | On `127.0.0.1` / `localhost` / `::1`, a request whose `Host` header is not a loopback name gets `421` (DNS rebinding), and a request with an `Origin` header from a non-loopback origin gets `403`. A web page you visit cannot drive the local runtime. Non-browser clients (the coordinator, `curl`, scripts) send no `Origin` and are unaffected. |
 | Empty token | `auth_token=""` raises `ValueError`. |
+| Node URLs | `POST /cluster/nodes` takes `http://` or `https://` URLs with a host only (`422` otherwise), and only hosts in `allowed_node_hosts` when it is set (`403`). |
+
+!!! warning "Registered URLs receive the cluster token"
+    The coordinator sends health checks and management calls, with the cluster token, to every URL registered at `POST /cluster/nodes`. Anyone holding the token can register a URL, and so make the coordinator send requests (and the token) to any host it can reach, internal services included. Set `allowed_node_hosts` (`DistributedConfig.allowed_node_hosts`) to your nodes' host names or a domain such as `*.cluster.internal`, or use static discovery, where only your config lists nodes.
 
 Use TLS (a reverse proxy) when the token crosses an untrusted network: the transport itself speaks plain HTTP.
 

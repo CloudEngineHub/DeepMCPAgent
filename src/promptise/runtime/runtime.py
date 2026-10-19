@@ -125,6 +125,7 @@ class AgentRuntime:
         config: ProcessConfig,
         *,
         process_id: str | None = None,
+        deploy_policy: Any | None = None,
     ) -> AgentProcess:
         """Register a new agent process.
 
@@ -132,6 +133,9 @@ class AgentRuntime:
             name: Unique process name.
             config: Process configuration.
             process_id: Optional explicit process ID.
+            deploy_policy: Where the config came from (see
+                :class:`~promptise.runtime.process.AgentProcess`); the
+                control API passes ``source="api"`` for its deploys.
 
         Returns:
             The created :class:`AgentProcess`.
@@ -140,7 +144,7 @@ class AgentRuntime:
             RuntimeBaseError: If a process with this name already exists.
         """
         async with self._lock:
-            return self._register(name, config, process_id=process_id)
+            return self._register(name, config, process_id=process_id, deploy_policy=deploy_policy)
 
     def _register(
         self,
@@ -148,6 +152,7 @@ class AgentRuntime:
         config: ProcessConfig,
         *,
         process_id: str | None = None,
+        deploy_policy: Any | None = None,
     ) -> AgentProcess:
         if name in self._processes:
             raise RuntimeBaseError(
@@ -164,6 +169,7 @@ class AgentRuntime:
             runtime=self,
             event_notifier=self._event_notifier,
             hooks=self._hooks,
+            deploy_policy=deploy_policy,
         )
         self._processes[name] = process
         logger.info("AgentRuntime: registered process %r", name)

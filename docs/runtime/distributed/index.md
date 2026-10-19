@@ -131,6 +131,7 @@ The workers then run stand-alone (`enabled=True`, no `coordinator_url`) with the
 | `allow_unauthenticated` | `bool` | `False` | Allow a non-loopback transport or coordinator without `auth_token` |
 | `discovery_method` | `"registry" \| "static" \| "multicast"` | `"registry"` | How the coordinator finds nodes (`"multicast"` is rejected) |
 | `static_nodes` | `dict[str, str]` | `{}` | `node_id -> URL`, for a coordinator with `discovery_method="static"` |
+| `allowed_node_hosts` | `list[str]` | `[]` | For a registry coordinator: the hosts a registering node's URL may name (`*.example.com` matches subdomains); others get `403`. Empty: any host |
 | `heartbeat_interval` | `float` | `15.0` | Seconds between the coordinator's health checks and between a node's re-registrations |
 | `node_timeout` | `float \| None` | `None` | Seconds without a successful health check (or re-registration) before a node counts as unhealthy (or is dropped from the registry). Default `3 * heartbeat_interval` |
 
@@ -160,6 +161,8 @@ One cluster token authenticates everything:
 Generate it once (`secrets.token_urlsafe(32)`), give it to every node through an environment variable, and reference it as `auth_token="${CLUSTER_TOKEN}"` so it never sits in code or config files. A transport without a token logs a warning at start: any local process could manage that runtime. A node started with the wrong token is refused by the coordinator (`401`) and keeps retrying, logging the failure.
 
 The transport speaks plain HTTP. Across an untrusted network, put the nodes behind a TLS-terminating reverse proxy and use `https://` URLs for `coordinator_url`, `advertise_url` and `static_nodes`.
+
+The coordinator calls every registered node URL with the cluster token, so a token holder could register an internal address and have the coordinator send requests there. On a registry coordinator, set `allowed_node_hosts` to your nodes' hosts (see [Security](discovery-transport.md#security)).
 
 ---
 

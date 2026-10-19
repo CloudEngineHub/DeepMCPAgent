@@ -29,7 +29,7 @@ The state directory holds tokens, so it is private:
 | Environment variable | Effect |
 |---|---|
 | `PROMPTISE_RUNTIME_STATE_DIR` | Use this state directory instead of `~/.promptise/runtime` |
-| `PROMPTISE_RUNTIME_TOKEN` | `start`: use this API token instead of a random one. Client commands: the token for `--url` |
+| `PROMPTISE_RUNTIME_TOKEN` | `start`: use this API token instead of a random one (`start` then removes the variable from its own environment, so agents, hooks and stdio MCP servers don't inherit it). Client commands: the token for `--url` |
 
 ### A runtime on another machine
 
@@ -66,7 +66,9 @@ promptise runtime start agents/ --dashboard                  # live terminal das
 | `--dashboard/--no-dashboard` | | off | Live monitoring dashboard (foreground only) |
 | `--api-host` | | `127.0.0.1` | Address the control API listens on |
 | `--api-port` | | `0` | Port of the control API (`0`: a free port) |
-| `--allow-command-deploys` | | off | Let the control API deploy processes with stdio MCP servers or command hooks |
+| `--allow-command-deploys` | | off | Let the control API deploy processes with stdio MCP servers, command hooks or open-mode tool creation |
+| `--allow-env-references` | | off | Let control-API deploys use `${VAR}` references to any environment variable of this machine |
+| `--allow-env-var NAME` | | -- | Let control-API deploys reference this one variable as `${NAME}`; repeatable |
 
 In the foreground, `start` loads the manifests, starts the control API, writes the state file, starts every process and prints a status table:
 
@@ -103,7 +105,9 @@ Started runtime notes in the background
 
 When the background runtime exits during startup, `start` prints the last 20 lines of its log and exits with 1. When it isn't ready after 60 seconds, `start` says so and exits with 0 (the runtime keeps starting; check `status` and the log). `--detach` can't be combined with `--dashboard`.
 
-**`--allow-command-deploys`.** By default the control API refuses `POST /api/v1/processes` for a config with a stdio MCP server or a command [hook](hooks.md) (`403 COMMANDS_NOT_ALLOWED`): anyone with the token could otherwise run any command on the machine. The flag lifts that; use it only when every token holder may run commands there. The manifests you start are never affected.
+**`--allow-command-deploys`.** By default the control API refuses `POST /api/v1/processes` for a config with a stdio MCP server, a command [hook](hooks.md) or open mode with `allow_tool_creation` (`403 COMMANDS_NOT_ALLOWED`): anyone with the token could otherwise run any command on the machine. The flag lifts that; use it only when every token holder may run commands there. The manifests you start are never affected.
+
+**`--allow-env-references` and `--allow-env-var NAME`.** By default the control API refuses a deploy (or a trigger or `PATCH` body) with a `${VAR}` reference (`403 ENV_REFERENCES_NOT_ALLOWED`), because the deployed agent could read the value back through a secret. `--allow-env-var SEARCH_API_KEY` (repeatable) allows those variables only; `--allow-env-references` allows any. Both are passed on to a `--detach` runtime. Paths in deployed configs (journal, memory, watch paths) must lie in `./.promptise` under the directory you start the runtime in (`403 PATH_NOT_ALLOWED`). See [Securing the control API](api.md#securing-the-control-api).
 
 ---
 

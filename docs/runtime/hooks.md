@@ -50,6 +50,8 @@ Runtime hooks are not the [reasoning graph hooks](../core/engine-hooks.md) (`Hoo
 
 `process.hooks` is the process's own `HookManager`. It holds the hooks from `config.hooks` and whatever you register in code. A shared manager runs after the process's own hooks; `ctx.process_id` tells you which process dispatched the event.
 
+A process spawned by an open-mode agent (`spawn_process`) inherits its parent's `hooks` manager (and whatever the parent inherited): they run for the child after the child's own hooks and before the shared manager, with `ctx.process_id` naming the child. So a `permission_request` or `user_prompt_submit` hook on the parent governs every process it spawns.
+
 ```python
 from promptise.runtime import AgentRuntime, HookEvent, HookManager
 
@@ -100,7 +102,7 @@ Each entry is a `HookConfig` with a `command`. A manifest resolves `${VAR}` refe
 
 ### Deploying command hooks over the control API
 
-A command hook runs a program on the runtime's host. The [Orchestration API](api.md) therefore refuses a `POST /api/v1/processes` whose config has a command hook (or a stdio MCP server) with `403 COMMANDS_NOT_ALLOWED`, unless the API was created with `OrchestrationAPI(..., allow_command_deploys=True)` (`promptise runtime start --allow-command-deploys`). Anyone with the API token could otherwise run any command as the runtime's user. Callback hooks can't be sent over HTTP at all, and processes you load from manifests on the host are not checked.
+A command hook runs a program on the runtime's host. The [Orchestration API](api.md) therefore refuses a `POST /api/v1/processes` whose config has a command hook (or a stdio MCP server, or open-mode tool creation) with `403 COMMANDS_NOT_ALLOWED`, unless the API was created with `OrchestrationAPI(..., allow_command_deploys=True)` (`promptise runtime start --allow-command-deploys`). Anyone with the API token could otherwise run any command as the runtime's user. Callback hooks can't be sent over HTTP at all, and processes you load from manifests on the host are not checked.
 
 ---
 
@@ -162,7 +164,7 @@ Every callback receives a single `HookContext`:
 
 **Returned data.** Hooks run one after another on the same `ctx.data`, so a later hook sees what an earlier one changed. The process reads one value back: the `prompt` of `USER_PROMPT_SUBMIT`. The hook sees the prompt with secrets redacted; only a prompt that a hook actually changed replaces the original. Changes to `data` of other events are not used.
 
-**Order.** Hooks run by priority (highest first; ties in registration order). The process's own hooks run before the shared manager's. A `once=True` hook is removed before it runs, so it runs at most once even when dispatches overlap.
+**Order.** Hooks run by priority (highest first; ties in registration order). The process's own hooks run first, then those inherited from the process that spawned it, then the shared manager's. A `once=True` hook is removed before it runs, so it runs at most once even when dispatches overlap.
 
 **Timeouts.** A hook that runs longer than its timeout is cancelled and recorded as an error. The manager an `AgentProcess` creates has a default timeout of 30 seconds; a standalone `HookManager()` has none unless you pass `HookManager(default_timeout=...)`. A command hook's program is killed at its own `timeout`; the manager allows 5 seconds more as a backstop.
 

@@ -94,9 +94,19 @@ class OpenModeConfig(_WarnOnUnknownKeys):
     Only takes effect when ``ProcessConfig.execution_mode`` is
     :attr:`ExecutionMode.OPEN`.
 
+    Security: open mode gives the model control over its own setup, so
+    treat every ``allow_*`` capability as something the model (and whoever
+    can put text in front of it: trigger payloads, inbox messages, tool
+    results) can use.  ``allow_tool_creation`` runs model-written Python
+    **inside the runtime's process**; the restricted builtins are not a
+    sandbox and can be escaped, so it amounts to running arbitrary code as
+    the runtime's user.  The control API refuses such deploys unless
+    ``allow_command_deploys`` is on.
+
     Attributes:
         allow_identity_change: Agent can modify its own instructions.
-        allow_tool_creation: Agent can define new Python tools.
+        allow_tool_creation: Agent can define new Python tools, executed
+            in the runtime's process (not isolated; see above).
         allow_mcp_connect: Agent can connect to new MCP servers.
         allow_trigger_management: Agent can add/remove triggers.
         allow_memory_management: Agent can explicitly store/search/forget.
@@ -107,11 +117,27 @@ class OpenModeConfig(_WarnOnUnknownKeys):
             process object; restarts do not reset it. A change the limit
             refuses is not applied, now or after a restart.
             ``rollback()`` is not refused. ``None`` = unlimited.
-        allowed_mcp_urls: Whitelist of MCP server URLs (empty = any).
-        sandbox_custom_tools: Execute agent-written tools in sandbox.
+        allowed_mcp_urls: The MCP server URLs the agent may connect to.
+            Empty means any public URL for an operator-configured process
+            (loopback, private, link-local and cloud-metadata addresses
+            are refused; a warning is logged at start) and **none** for a
+            process deployed through the control API.  Listed URLs are
+            trusted as written, private addresses included.
+        identity_mcp_urls: Agent-connected MCP servers that may receive
+            the process identity's credential (``identity``) and a
+            caller's token.  Empty (the default): none do, so the agent
+            can't send its credential to a server it picked.
+        sandbox_custom_tools: Run agent-written tools with restricted
+            builtins and no imports (``False``: a fixed allowlist of
+            standard-library imports).  Either way the code runs in the
+            runtime's process; this is not a security boundary.
         allow_process_spawn: Agent can spawn new processes within the
             runtime.  Defaults to ``False``.
         max_spawned_processes: Max number of processes this agent can spawn.
+        allow_public_webhooks: Webhook triggers the agent adds, or gives a
+            process it spawns, may bind a non-loopback ``webhook_host``
+            (they must then set ``hmac_secret``).  ``False`` (default):
+            such triggers are refused.
 
     Unknown keys are ignored with a ``FutureWarning``.
     """
@@ -135,9 +161,24 @@ class OpenModeConfig(_WarnOnUnknownKeys):
     )
     allowed_mcp_urls: list[str] = Field(
         default_factory=list,
-        description="Whitelist of MCP server URLs (empty = any)",
+        description=(
+            "MCP server URLs the agent may connect to (empty = any public URL; "
+            "none for API-deployed processes)"
+        ),
     )
-    sandbox_custom_tools: bool = Field(True, description="Execute agent-written tools in sandbox")
+    identity_mcp_urls: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Agent-connected MCP server URLs that may receive the process identity's "
+            "credential (empty = none)"
+        ),
+    )
+    sandbox_custom_tools: bool = Field(
+        True,
+        description=(
+            "Restricted builtins, no imports for agent-written tools (not a security boundary)"
+        ),
+    )
     allow_process_spawn: bool = Field(
         False,
         description=(
@@ -147,6 +188,12 @@ class OpenModeConfig(_WarnOnUnknownKeys):
     )
     max_spawned_processes: int = Field(
         3, ge=0, description="Max number of processes this agent can spawn"
+    )
+    allow_public_webhooks: bool = Field(
+        False,
+        description=(
+            "Agent-added / spawned webhook triggers may bind a non-loopback host (with hmac_secret)"
+        ),
     )
 
 
@@ -559,7 +606,9 @@ class ContextConfig(_WarnOnUnknownKeys):
             ``writable_keys`` when set).  Off by default: without
             ``writable_keys`` the agent can write any key.
         file_mounts: Mapping of logical name → filesystem path.
-        env_prefix: Only expose environment variables with this prefix.
+        env_prefix: Only expose environment variables with this prefix
+            (:meth:`AgentContext.get_env`).  Must not be empty: an empty
+            prefix would expose the whole environment.
         initial_state: Pre-populated key-value state.
 
     Unknown keys are ignored with a ``FutureWarning``.
@@ -610,8 +659,21 @@ class ContextConfig(_WarnOnUnknownKeys):
     file_mounts: dict[str, str] = Field(
         default_factory=dict, description="Logical name → filesystem path"
     )
-    env_prefix: str = Field("AGENT_", description="Prefix for exposed environment variables")
+    env_prefix: str = Field(
+        "AGENT_", min_length=1, description="Prefix for exposed environment variables"
+    )
     initial_state: dict[str, Any] = Field(default_factory=dict, description="Pre-populated state")
+
+    @field_validator("env_prefix")
+    @classmethod
+    def _check_env_prefix(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError(
+                "env_prefix must not be empty: an empty prefix exposes the whole "
+                "environment (API keys included) to the agent. Use a prefix such as "
+                "'AGENT_' and name the variables the agent may read with it."
+            )
+        return v
 
 
 # ---------------------------------------------------------------------------
@@ -1219,6 +1281,12 @@ class DistributedConfig(_WarnOnUnknownKeys):
             ``"multicast"`` is not implemented and is rejected.
         static_nodes: ``node_id -> URL`` of the nodes, for a static
             coordinator.
+        allowed_node_hosts: For a registry coordinator: the host names
+            or IP addresses a registering node's URL may name (``*.`` +
+            a domain matches its subdomains).  Empty: any host.  The
+            coordinator sends the cluster token to every registered URL
+            (health checks, management calls), so a token holder could
+            point it anywhere; list your nodes' hosts to stop that.
         heartbeat_interval: Seconds between the coordinator's health
             checks and between a node's re-registrations.
         node_timeout: Seconds without a successful health check (or a
@@ -1248,6 +1316,10 @@ class DistributedConfig(_WarnOnUnknownKeys):
     )
     static_nodes: dict[str, str] = Field(
         default_factory=dict, description="node_id -> URL (static discovery)"
+    )
+    allowed_node_hosts: list[str] = Field(
+        default_factory=list,
+        description="Hosts a registering node's URL may name (empty = any)",
     )
     heartbeat_interval: float = Field(
         15.0, gt=0, description="Node health check interval (seconds)"

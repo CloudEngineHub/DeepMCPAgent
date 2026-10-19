@@ -18,6 +18,10 @@ Security model:
   name are refused (``421``, DNS rebinding) and so are requests from a
   browser page on another origin (``403``), so a web page cannot drive
   a local runtime.
+* ``POST /cluster/nodes`` takes ``http``/``https`` URLs only.  The
+  coordinator calls every registered URL with the cluster token, so a
+  token holder can make it send requests (and the token) to any host it
+  can reach; ``allowed_node_hosts`` limits the hosts a node may register.
 
 Example::
 
@@ -34,7 +38,6 @@ Example::
 
 from __future__ import annotations
 
-import hmac
 import json
 import logging
 import re
@@ -44,6 +47,7 @@ from typing import Any
 from aiohttp import web
 
 from .._http_guard import LOOPBACK_ORIGIN as _LOOPBACK_ORIGIN
+from .._http_guard import bearer_token_matches
 from .._http_guard import host_name as _host_name
 from .._http_guard import is_loopback as _is_loopback
 from ..runtime import AgentRuntime
@@ -60,8 +64,29 @@ _NODE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 def _is_http_url(value: str) -> bool:
     from urllib.parse import urlparse
 
-    parsed = urlparse(value)
-    return parsed.scheme in ("http", "https") and bool(parsed.hostname)
+    try:
+        parsed = urlparse(value)
+        return parsed.scheme in ("http", "https") and bool(parsed.hostname)
+    except ValueError:
+        return False
+
+
+def _host_allowed(url: str, allowed: list[str]) -> bool:
+    """Whether *url*'s host is one of *allowed* (``*.example.com`` matches
+    subdomains).  An empty list allows any host."""
+    if not allowed:
+        return True
+    from urllib.parse import urlparse
+
+    host = (urlparse(url).hostname or "").lower().rstrip(".")
+    for entry in allowed:
+        pattern = entry.strip().lower().strip("[]").rstrip(".")
+        if pattern.startswith("*."):
+            if host.endswith(pattern[1:]):
+                return True
+        elif host == pattern:
+            return True
+    return False
 
 
 class RuntimeTransport:
@@ -106,6 +131,9 @@ class RuntimeTransport:
         discovery: The coordinator's discovery: a
             :class:`RegistryDiscovery` (nodes register through
             ``POST /cluster/nodes``) or a :class:`StaticDiscovery`.
+        allowed_node_hosts: Hosts a registering node's URL may name
+            (``*.example.com`` for subdomains); others get ``403``.  Empty
+            or ``None``: any host.
 
     Raises:
         ValueError: ``auth_token`` is empty, or ``host`` is not a
@@ -124,6 +152,7 @@ class RuntimeTransport:
         allow_unauthenticated: bool = False,
         coordinator: Any | None = None,
         discovery: Any | None = None,
+        allowed_node_hosts: list[str] | None = None,
     ) -> None:
         if auth_token is not None and not auth_token.strip():
             raise ValueError("auth_token must be a non-empty string (or None)")
@@ -143,6 +172,7 @@ class RuntimeTransport:
         self._auth_token = auth_token
         self._coordinator = coordinator
         self._discovery = discovery
+        self._allowed_node_hosts = list(allowed_node_hosts or [])
 
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
@@ -171,13 +201,11 @@ class RuntimeTransport:
         return self._port
 
     def _check_auth(self, request: web.Request) -> bool:
-        """Verify Bearer token if auth is configured."""
+        """Verify Bearer token if auth is configured (timing-safe; a header
+        with non-ASCII characters is a mismatch, not an error)."""
         if self._auth_token is None:
             return True
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return False
-        return hmac.compare_digest(auth_header[7:].encode(), self._auth_token.encode())
+        return bearer_token_matches(request.headers.get("Authorization", ""), self._auth_token)
 
     @web.middleware
     async def _guard(
@@ -394,6 +422,18 @@ class RuntimeTransport:
             )
         if not isinstance(url, str) or not _is_http_url(url):
             return web.json_response({"error": "url must be an http(s) URL"}, status=422)
+        if not _host_allowed(url, self._allowed_node_hosts):
+            logger.warning(
+                "RuntimeTransport %s: refused to register node %r at %s (host not in "
+                "allowed_node_hosts)",
+                self._node_id,
+                node_id,
+                url,
+            )
+            return web.json_response(
+                {"error": "The node URL's host is not in the coordinator's allowed_node_hosts"},
+                status=403,
+            )
         if metadata is not None and not isinstance(metadata, dict):
             return web.json_response({"error": "metadata must be a JSON object"}, status=422)
         if node_id == self._node_id:

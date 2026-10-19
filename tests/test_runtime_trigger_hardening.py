@@ -762,11 +762,15 @@ class TestUntrustedPayloads:
         assert "line one\nline two" in msg
 
     def test_payload_chunks_cover_long_strings(self) -> None:
+        # The windows cover the rendered payload text (keys included).
         chunks = _payload_chunks({"title": "t", "body": "a" * 1200, "n": 3}, budget=10_000)
-        assert "title" in chunks and "t" in chunks
-        assert sum(len(c) for c in chunks if set(c) == {"a"}) >= 1200
+        joined = "".join(chunks)
+        assert '"title"' in joined and '"t"' in joined
+        assert sum(c.count("a") for c in chunks) >= 1200
         assert all(len(c) <= 500 for c in chunks)
-        assert sum(len(c) for c in _payload_chunks({"b": "a" * 100_000}, budget=2000)) <= 2000
+        # At most budget new characters (the 50-character overlaps aren't charged).
+        capped = _payload_chunks({"b": "a" * 100_000}, budget=2000)
+        assert sum(len(c) for c in capped) - 50 * (len(capped) - 1) <= 2000
 
     async def test_scan_flags_payload_without_running_agent(self) -> None:
         from promptise.guardrails import ScanReport, SecurityFinding

@@ -268,7 +268,7 @@ open_mode:
   sandbox_custom_tools: true
 ```
 
-See [Meta-Tools](meta-tools.md).
+`allow_tool_creation: true` lets the model run Python in the runtime's process; restricted builtins don't contain it. Keep it off unless that is acceptable. See [Meta-Tools](meta-tools.md#security).
 
 ### config
 

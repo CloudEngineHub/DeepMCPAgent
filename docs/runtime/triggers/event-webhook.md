@@ -294,6 +294,10 @@ Recorded signatures are kept for twice `signature_tolerance`.
 !!! warning "Set a secret before you expose the port"
     Without `hmac_secret`, anyone who can reach the port can make the agent run, and pick what it reads. The trigger logs a warning at start-up in that case. Always set a secret (and ideally `allowed_sources`) when `webhook_host` isn't loopback.
 
+**Unsigned loopback webhooks refuse browser requests.** A webhook on a loopback address can also be reached by any web page open in a browser on the same machine (a cross-site form post or `fetch`, or DNS rebinding). Without `hmac_secret`, a loopback webhook therefore answers `421` to a request whose `Host` header is not a loopback name and `403` to one with a cross-site `Origin` header, like the [control API](../api.md#browsers-cant-drive-a-local-api). Local senders such as `curl`, scripts and other services send a loopback `Host` and no `Origin`, so they are unaffected. A signed webhook skips this check: the signature already proves the sender.
+
+**Agent-added webhooks.** A webhook trigger an open-mode agent adds (`add_trigger`), or gives a process it spawns, must listen on loopback unless `open_mode.allow_public_webhooks` is on, and then needs an `hmac_secret` (see [Open Mode](../meta-tools.md#security)).
+
 `allowed_sources` is checked against the TCP peer address. Behind a reverse proxy that is the proxy's address, so list the proxy and do the provider IP check there.
 
 ### Direct instantiation
@@ -325,7 +329,7 @@ await trigger.stop()
 ### How requests are handled
 
 1. A POST request arrives at the configured path.
-2. The client address is checked against `allowed_sources` → `403` if not allowed.
+2. The client address is checked against `allowed_sources` → `403` if not allowed. Without `hmac_secret` on a loopback bind, a non-loopback `Host` header → `421` and a cross-site `Origin` → `403`.
 3. The body size is checked against `webhook_max_body_bytes` → `413` if larger. The `Content-Length` header is checked before the body is read; a chunked body without one is cut off at the limit while it is read.
 4. With `hmac_secret` set, the signature is verified → `401` if missing or wrong (or a `stripe` replay).
 5. If the owning process can't take the event (it is `FAILED`, stopping or stopped, or its queue is full) → `503` with `Retry-After: 30`.
@@ -341,6 +345,8 @@ A suspended process still accepts events: they wait in the queue until it resume
 | `200` | `{"status": "ignored", "event_id": …}` | Didn't match `filter_expression` |
 | `401` | `{"status": "error", "message": "Missing or invalid signature"}` | Missing, wrong or replayed signature |
 | `403` | `{"status": "error", "message": "Source not allowed"}` | Source address not in `allowed_sources` |
+| `403` | `{"status": "error", "message": "Cross-origin request refused"}` | Unsigned loopback webhook, cross-site `Origin` |
+| `421` | `{"status": "error", "message": "Misdirected request"}` | Unsigned loopback webhook, non-loopback `Host` (DNS rebinding) |
 | `404` | (aiohttp) | Wrong path |
 | `405` | (aiohttp) | Method other than POST on the webhook path |
 | `413` | `{"status": "error", "message": "Request body too large (limit … bytes)"}` | Body larger than `webhook_max_body_bytes` |

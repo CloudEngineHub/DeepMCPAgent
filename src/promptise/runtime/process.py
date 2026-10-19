@@ -59,6 +59,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from ._deploy_policy import DeployPolicy
 from .config import ExecutionMode, ProcessConfig, TriggerConfig
 from .context import CONTEXT_UPDATE_ENTRY_TYPE, AgentContext, StateEntry
 from .conversation import ConversationBuffer
@@ -285,43 +286,46 @@ def _server_spec_from_dict(name: str, spec: dict[str, Any]) -> HTTPServerSpec | 
     )
 
 
-def _payload_chunks(payload: Any, budget: int, size: int = 500, overlap: int = 50) -> list[str]:
-    """Split every string in *payload* into overlapping windows for scanning.
+def _render_payload(payload: Any, limit: int) -> tuple[str, int]:
+    """The payload text the agent's prompt shows: ``(text, cut)``.
 
-    Dict keys are included (they are shown to the model too).  At most
-    *budget* characters are returned in total.
+    A string is shown as is, anything else as indented JSON (``repr`` if
+    it can't be serialised).  At most *limit* characters are shown; *cut*
+    is how many were left out.  The payload scan reads exactly this text
+    (:func:`_payload_chunks`), so nothing reaches the prompt unscanned.
     """
-    strings: list[str] = []
+    if isinstance(payload, str):
+        text = payload
+    else:
+        try:
+            text = json.dumps(payload, indent=2, ensure_ascii=False, default=str)
+        except (TypeError, ValueError):
+            text = repr(payload)
+    if len(text) > limit:
+        return text[:limit], len(text) - limit
+    return text, 0
 
-    def walk(value: Any) -> None:
-        if isinstance(value, str):
-            strings.append(value)
-        elif isinstance(value, dict):
-            for key, item in value.items():
-                if isinstance(key, str):
-                    strings.append(key)
-                walk(item)
-        elif isinstance(value, (list, tuple, set)):
-            for item in value:
-                walk(item)
 
-    walk(payload)
+def _payload_chunks(payload: Any, budget: int, size: int = 500, overlap: int = 50) -> list[str]:
+    """Split the payload text the prompt shows into overlapping scan windows.
+
+    The text is :func:`_render_payload`'s (at most *budget* characters,
+    the same ``max_payload_chars`` cut as the prompt), covered end to end
+    by windows of *size* characters that overlap by *overlap*, so a
+    phrase on a window boundary is still seen whole.  Only new characters
+    count against the budget: the overlap is not charged.
+    """
+    text, _ = _render_payload(payload, budget)
+    if not text.strip():
+        return []
+    step = max(1, size - overlap)
     chunks: list[str] = []
-    remaining = budget
-    for text in strings:
-        text = text.strip()
-        if not text:
-            continue
-        start = 0
-        while start < len(text) and remaining > 0:
-            chunk = text[start : start + min(size, remaining)]
-            chunks.append(chunk)
-            remaining -= len(chunk)
-            if start + size >= len(text):
-                break
-            start += size - overlap
-        if remaining <= 0:
+    start = 0
+    while True:
+        chunks.append(text[start : start + size])
+        if start + size >= len(text):
             break
+        start += step
     return chunks
 
 
@@ -389,6 +393,13 @@ class AgentProcess:
             (e.g. one :class:`AgentRuntime` passes to all its processes),
             dispatched after the process's own :attr:`hooks` (which holds
             ``config.hooks``); ``ctx.process_id`` names the process.
+        deploy_policy: Where the config came from
+            (:class:`~promptise.runtime._deploy_policy.DeployPolicy`).  The
+            default is an operator config without limits; the control API
+            passes ``source="api"``, which limits ``${VAR}`` references in
+            secrets to the variables the operator allowed and makes an
+            empty ``open_mode.allowed_mcp_urls`` mean no MCP server.
+            Processes this one spawns get the same policy.
 
     Lifecycle hooks: the process dispatches every
     :class:`~promptise.runtime.hooks.HookEvent` to :attr:`hooks` (see the
@@ -411,10 +422,15 @@ class AgentProcess:
         runtime: Any | None = None,
         event_notifier: Any | None = None,
         hooks: HookManager | None = None,
+        deploy_policy: DeployPolicy | None = None,
     ) -> None:
         self.name = name
         self.process_id = process_id or str(uuid4())
         self.config = config
+        self._deploy_policy = deploy_policy or DeployPolicy()
+        # Hook managers of the process that spawned this one (and its own
+        # parents), dispatched after this process's hooks; see spawn_process.
+        self._inherited_hooks: tuple[HookManager, ...] = ()
         # Fail at construction for a server entry that can't be used.
         _resolve_server_specs(dict(config.servers or {}))
         self._event_notifier = event_notifier
@@ -614,6 +630,8 @@ class AgentProcess:
                 config=cfg.secrets,
                 process_id=self.process_id,
                 journal=self._journal_view(),
+                source=self._deploy_policy.source,
+                env_references=self._deploy_policy.env_references(),
             )
 
         self._sync_governance("budget")
@@ -882,13 +900,19 @@ class AgentProcess:
                 fail_closed=spec.fail_closed,
             )
 
+    def _hook_managers(self) -> list[HookManager]:
+        """The managers dispatched, in order: own, inherited (parents'), shared."""
+        managers = [self._hooks, *self._inherited_hooks]
+        if self._shared_hooks is not None and self._shared_hooks not in managers:
+            managers.append(self._shared_hooks)
+        return managers
+
     def _has_hooks(self, event: HookEvent) -> bool:
-        return self._hooks.has_hooks(event) or (
-            self._shared_hooks is not None and self._shared_hooks.has_hooks(event)
-        )
+        return any(manager.has_hooks(event) for manager in self._hook_managers())
 
     async def _dispatch_hook(self, event: HookEvent, data: dict[str, Any]) -> DispatchResult | None:
-        """Dispatch *event* to the process's hooks, then the shared ones.
+        """Dispatch *event* to the process's hooks, then the ones it inherited
+        from the process that spawned it, then the shared ones.
 
         The data has secret values redacted.  Returns ``None`` when no hook
         is registered (nothing is copied then).  A block of an event that
@@ -900,8 +924,8 @@ class AgentProcess:
         payload = self._redact(dict(data))
         metadata = {"process_name": self.name, "process_id": self.process_id}
         result: DispatchResult | None = None
-        for manager in (self._hooks, self._shared_hooks):
-            if manager is None or not manager.has_hooks(event):
+        for manager in self._hook_managers():
+            if not manager.has_hooks(event):
                 continue
             try:
                 outcome = await manager.dispatch(
@@ -1374,6 +1398,7 @@ class AgentProcess:
                 if self._memory_closed:
                     self._reopen_memory()
 
+                self._warn_open_mcp()
                 # 0. Resolve secrets before agent build.  A restart keeps
                 # the values the scope still holds (an operator rotation;
                 # with revoke_on_stop the stop emptied it) and resolves
@@ -1440,6 +1465,23 @@ class AgentProcess:
         await self._dispatch_hook(
             HookEvent.SESSION_START, {"restart": self._restarting, "recovered": self.recovered}
         )
+
+    def _warn_open_mcp(self) -> None:
+        """Warn when an open-mode agent may connect any MCP server."""
+        cfg = self.config
+        if (
+            cfg.execution_mode == ExecutionMode.OPEN
+            and cfg.open_mode.allow_mcp_connect
+            and not cfg.open_mode.allowed_mcp_urls
+            and not self._deploy_policy.from_api
+        ):
+            logger.warning(
+                "AgentProcess %s: open mode allows connect_mcp_server with no "
+                "open_mode.allowed_mcp_urls, so the agent may connect any public MCP "
+                "server (private and loopback addresses are refused). List the servers "
+                "it may use in allowed_mcp_urls, or set allow_mcp_connect=False.",
+                self.name,
+            )
 
     def _start_listener(self, trigger: BaseTrigger) -> asyncio.Task[None]:
         """Start the listener task that feeds *trigger*'s events to the queue."""
@@ -2120,10 +2162,34 @@ class AgentProcess:
         new agent is built (closing the new client if the build fails),
         and the caller retires the previous one (:meth:`_hot_reload`) or
         has already closed it (:meth:`start`).
+
+        Servers the agent connected (``connect_mcp_server``) are checked
+        again here (see :func:`~promptise.runtime.meta_tools.check_mcp_url`;
+        one that now fails is left out with a warning) and never receive
+        the process identity's credential unless their URL is in
+        ``open_mode.identity_mcp_urls``.
         """
         # Merge servers: static + dynamic
         servers = dict(self.config.servers or {})
-        servers.update(self._dynamic_servers)
+        dynamic_names: set[str] = set()
+        if self._dynamic_servers:
+            from .meta_tools import check_mcp_url
+
+            for sname, sspec in self._dynamic_servers.items():
+                url = getattr(sspec, "url", None) or (
+                    sspec.get("url") if isinstance(sspec, dict) else None
+                )
+                problem = await check_mcp_url(self, str(url or ""))
+                if problem is not None:
+                    logger.warning(
+                        "AgentProcess %s: leaving out agent-connected MCP server %r: %s",
+                        self.name,
+                        sname,
+                        problem,
+                    )
+                    continue
+                servers[sname] = sspec
+                dynamic_names.add(sname)
 
         mcp_multi: Any | None = None
         mcp_adapter: Any | None = None
@@ -2158,9 +2224,13 @@ class AgentProcess:
                             else None,
                             # The process identity, renewed per request and
                             # failing closed (see identity_token_provider).
+                            # Never for a server the agent picked, unless
+                            # the operator listed its URL.
                             bearer_token_provider=identity_token_provider(
                                 self.config.identity, spec, owner=f"AgentProcess {self.name!r}"
-                            ),
+                            )
+                            if name not in dynamic_names or self._identity_allowed_for(spec.url)
+                            else None,
                             api_key=spec.api_key.get_secret_value() if spec.api_key else None,
                         )
                     else:
@@ -2184,7 +2254,11 @@ class AgentProcess:
                     forward_caller_token=[
                         sname
                         for sname, spec in resolved.items()
-                        if not isinstance(spec, HTTPServerSpec) or spec.forwards_caller_token
+                        if not isinstance(spec, HTTPServerSpec)
+                        or (
+                            spec.forwards_caller_token
+                            and (sname not in dynamic_names or self._identity_allowed_for(spec.url))
+                        )
                     ],
                 )
                 mcp_tools = await mcp_adapter.as_langchain_tools()
@@ -2198,6 +2272,14 @@ class AgentProcess:
         self._mcp_multi = mcp_multi
         self._mcp_adapter = mcp_adapter
         self._mcp_tools = mcp_tools
+
+    def _identity_allowed_for(self, url: str) -> bool:
+        """Whether the operator lets an agent-connected server at *url* get
+        the identity credential (``open_mode.identity_mcp_urls``)."""
+        from .meta_tools import normalize_mcp_url
+
+        allowed = self.config.open_mode.identity_mcp_urls
+        return bool(allowed) and normalize_mcp_url(url) in {normalize_mcp_url(a) for a in allowed}
 
     async def _create_agent(self, mcp_tools: list[Any]) -> Any:
         """Build a PromptiseAgent from the current configuration.
@@ -2497,8 +2579,9 @@ class AgentProcess:
         Raises:
             RuntimeError: Not in open mode, or the process is stopping,
                 stopped or failed.
-            PermissionError: ``open_mode.allow_trigger_management`` is off
-                or a hook refused it.
+            PermissionError: ``open_mode.allow_trigger_management`` is off,
+                a hook refused it, or it is a webhook on a non-loopback
+                host (see :meth:`_agent_trigger_problem`).
             ValueError: The limit is reached, or the config is invalid or
                 can't start.
         """
@@ -2511,6 +2594,9 @@ class AgentProcess:
                 config = TriggerConfig(**config)
             except Exception as exc:
                 raise ValueError(f"Invalid trigger config: {exc}") from exc
+        problem = self._agent_trigger_problem(config)
+        if problem is not None:
+            raise PermissionError(problem)
         limit = self.config.open_mode.max_dynamic_triggers
         if len(self._dynamic_triggers) >= limit:
             raise ValueError(f"max dynamic triggers ({limit}) reached")
@@ -2546,6 +2632,37 @@ class AgentProcess:
             "AgentProcess %s: agent added %s trigger %s", self.name, config.type, trigger.trigger_id
         )
         return trigger.trigger_id
+
+    def _agent_trigger_problem(self, config: TriggerConfig) -> str | None:
+        """Why the agent may not add *config* (or give it to a spawned process).
+
+        For an API-deployed process, a ``file_watch`` path must lie in the
+        API's data directory.  A webhook the model sets up may listen on
+        loopback only, unless
+        ``open_mode.allow_public_webhooks`` is on, and then only with an
+        ``hmac_secret``: otherwise anyone who can reach the port could
+        feed the agent.  ``None`` when the trigger is fine.
+        """
+        from ._http_guard import is_loopback
+
+        if config.type == "file_watch" and config.watch_path:
+            problem = self._deploy_policy.path_problem(config.watch_path)
+            if problem is not None:
+                return f"watch_path {problem} (an API-deployed process may only watch there)"
+        if config.type != "webhook" or is_loopback(config.webhook_host or "127.0.0.1"):
+            return None
+        if not self.config.open_mode.allow_public_webhooks:
+            return (
+                f"a webhook trigger on {config.webhook_host!r} would accept requests from "
+                "other machines; agent-added webhooks listen on loopback only unless "
+                "open_mode.allow_public_webhooks is on"
+            )
+        if not config.hmac_secret:
+            return (
+                f"a webhook trigger on {config.webhook_host!r} needs an hmac_secret "
+                "(agent-added public webhooks must be signed)"
+            )
+        return None
 
     async def _remove_config_trigger(self, trigger_id: str) -> None:
         """Remove (and stop) a config trigger; the caller holds ``_lock``."""
@@ -2879,9 +2996,10 @@ class AgentProcess:
         """Scan the payload's text for prompt injection.
 
         Returns a description of the finding, or ``None`` when clean.
-        Every string in the payload is scanned in overlapping 500-character
-        windows (the model reads 512 tokens at most), up to
-        ``max_payload_chars`` characters in total.
+        The scan reads exactly the payload text the prompt shows (see
+        :func:`_render_payload`: up to ``max_payload_chars`` characters),
+        in overlapping 500-character windows (the model reads 512 tokens
+        at most).
         """
         if self._payload_scanner is None:
             return None
@@ -2903,17 +3021,9 @@ class AgentProcess:
         data.  A payload can't close the block early because it can't
         know the tag.
         """
-        limit = self.config.trigger_delivery.max_payload_chars
-        payload = event.payload
-        if isinstance(payload, str):
-            text = payload
-        else:
-            try:
-                text = json.dumps(payload, indent=2, ensure_ascii=False, default=str)
-            except (TypeError, ValueError):
-                text = repr(payload)
-        if len(text) > limit:
-            text = f"{text[:limit]}\n[... truncated {len(text) - limit} characters ...]"
+        text, cut = _render_payload(event.payload, self.config.trigger_delivery.max_payload_chars)
+        if cut:
+            text = f"{text}\n[... truncated {cut} characters ...]"
         tag = f"untrusted-trigger-payload-{secrets.token_hex(6)}"
         return (
             f"[Trigger: {event.trigger_type}] trigger_id={event.trigger_id} "
@@ -3451,7 +3561,8 @@ class AgentProcess:
         return result
 
     async def _consume_inbox(self, delivered: list[Any], reply: str) -> None:
-        """Submit the reply's ``ANSWER Qn:`` parts, remove consumed messages."""
+        """Submit the reply's ``ANSWER Qn:`` parts (secret values redacted),
+        remove consumed messages."""
         from .inbox import InboxResponse, parse_answers, prompt_questions
 
         if self._inbox is None:
@@ -3463,7 +3574,9 @@ class AgentProcess:
                     question_id,
                     InboxResponse(
                         question_id=question_id,
-                        content=answer,
+                        # The answer leaves the process (/ask, the inbox):
+                        # no secret value in it.
+                        content=self._redact(answer),
                         invocation_id=str(self._invocation_count + 1),
                     ),
                 )
@@ -3942,7 +4055,9 @@ class AgentProcess:
         approval policy, guardrail scanner, trigger delivery, journal
         level and open-mode limits (with spawning switched off, so
         spawned processes can't spawn more).  It gets no secrets, MCP
-        servers, identity or hooks of the parent.
+        servers or identity of the parent, and no ``hooks`` in its config:
+        :meth:`spawn_process` makes the parent's hook managers dispatch for
+        it instead.
         """
         parent = self.config
         open_mode = parent.open_mode.model_copy(update={"allow_process_spawn": False})
@@ -3975,15 +4090,23 @@ class AgentProcess:
 
         What the ``spawn_process`` meta-tool calls.  The new process is
         registered in the parent :class:`AgentRuntime` and started; it
-        inherits this process's guardrails (see :meth:`_child_config`).
-        Dispatches ``SUBAGENT_START`` first (a hook can refuse the spawn)
-        and ``SUBAGENT_STOP`` when the child stops or fails.  *runtime*
-        overrides the process's own runtime reference.
+        inherits this process's guardrails (see :meth:`_child_config`),
+        its hooks (the parent's :attr:`hooks`, and what the parent itself
+        inherited, are dispatched for the child after its own, so
+        ``permission_request`` and ``user_prompt_submit`` hooks govern the
+        child too) and its deploy policy (a child of an API-deployed
+        process is limited like its parent).  Webhook triggers for the
+        child must listen on loopback unless
+        ``open_mode.allow_public_webhooks`` is on (then with an
+        ``hmac_secret``).  Dispatches ``SUBAGENT_START`` first (a hook can
+        refuse the spawn) and ``SUBAGENT_STOP`` when the child stops or
+        fails.  *runtime* overrides the process's own runtime reference.
 
         Raises:
             RuntimeError: Not in open mode, or no runtime.
-            PermissionError: ``open_mode.allow_process_spawn`` is off, or
-                a hook refused the spawn.
+            PermissionError: ``open_mode.allow_process_spawn`` is off, a
+                hook refused the spawn, or a trigger is a webhook on a
+                non-loopback host.
             ValueError: ``max_spawned_processes`` reached, the name is
                 taken, or the config is invalid.
             Exception: The child failed to start (it is removed again).
@@ -4013,6 +4136,10 @@ class AgentProcess:
             )
         except Exception as exc:
             raise ValueError(f"invalid process config: {exc}") from exc
+        for trigger_config in trigger_configs:
+            problem = self._agent_trigger_problem(trigger_config)
+            if problem is not None:
+                raise PermissionError(f"can't spawn {name!r}: {problem}")
         hooked = await self._dispatch_hook(
             HookEvent.SUBAGENT_START,
             {
@@ -4024,7 +4151,11 @@ class AgentProcess:
         if hooked is not None and hooked.blocked:
             raise PermissionError(f"spawning {name!r} was blocked by a hook: {hooked.reason}")
 
-        child: AgentProcess = await runtime.add_process(name, config)
+        child: AgentProcess = await runtime.add_process(
+            name, config, deploy_policy=self._deploy_policy
+        )
+        # Before start(): the agent is built with the hooks it will use.
+        child._inherited_hooks = (self._hooks, *self._inherited_hooks)
         try:
             await child.start()
         except BaseException:

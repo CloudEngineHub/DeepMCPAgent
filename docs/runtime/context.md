@@ -202,7 +202,7 @@ With [secret scoping](governance/secrets.md) on, the journal redacts secret valu
 | `initial_state` | `{}` | State the process starts with |
 | `writable_keys` | `[]` | Keys `put()` / `update()` may write; empty means all |
 | `state_tool` | `False` | Give the agent the `update_state(key, value)` tool |
-| `env_prefix` | `"AGENT_"` | Only environment variables with this prefix appear in `ctx.env` |
+| `env_prefix` | `"AGENT_"` | Only environment variables with this prefix appear in `ctx.env`. An empty prefix is refused (it would expose the whole environment) |
 | `file_mounts` | `{}` | Logical name to filesystem path |
 | `memory_provider` | `None` | `"in_memory"`, `"chroma"` or `"mem0"` for long-term memory |
 | `memory_max` | `5` | Memories injected per run |

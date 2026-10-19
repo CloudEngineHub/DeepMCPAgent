@@ -52,6 +52,9 @@ OrchestrationAPI(
     auth_token=None,
     on_shutdown=None,
     allow_command_deploys=False,
+    allow_env_references=False,
+    allowed_env_vars=None,
+    data_dir=None,
 )
 ```
 
@@ -62,9 +65,12 @@ OrchestrationAPI(
 | `port` | `9100` | Port. `0` lets the OS pick a free port; read it from `api.port` after `start()` |
 | `auth_token` | `None` | Bearer token required on every route except `GET /api/v1/health`. Required when `host` is not a loopback address. `"${VAR}"` reads it from the environment |
 | `on_shutdown` | `None` | Sync or async callable without arguments. When set, `POST /api/v1/runtime/shutdown` exists: it answers `202` and then calls the callable (for example `runtime.request_shutdown`). Without it the route answers `404` |
-| `allow_command_deploys` | `False` | Let `POST /api/v1/processes` deploy configs that run programs on the host (stdio MCP servers, command hooks). See [Deploys that run programs](#deploys-that-run-programs) |
+| `allow_command_deploys` | `False` | Let `POST /api/v1/processes` deploy configs that run programs or code on the host (stdio MCP servers, command hooks, open mode with `allow_tool_creation`). See [Deploys that run programs](#deploys-that-run-programs) |
+| `allow_env_references` | `False` | Let deployed configs use `${VAR}` references to any environment variable of the host. See [Environment references](#environment-references) |
+| `allowed_env_vars` | `None` | Names of the variables deployed configs may reference when `allow_env_references` is off, e.g. `{"SEARCH_API_KEY"}` |
+| `data_dir` | `./.promptise` | The directory file system paths in deployed configs must lie in. See [File system paths](#file-system-paths) |
 
-`await api.start()` binds the port and serves; `await api.stop()` closes the server. The constructor raises `ValueError` when `auth_token` is an empty string, names an unset environment variable, or is missing for a non-loopback `host`, and `TypeError` when `on_shutdown` is not callable.
+`await api.start()` binds the port and serves; `await api.stop()` closes the server. The constructor raises `ValueError` when `auth_token` is an empty string, names an unset environment variable, or is missing for a non-loopback `host`, and `TypeError` when `on_shutdown` is not callable or `allowed_env_vars` is a single string.
 
 ---
 
@@ -100,12 +106,38 @@ Request bodies must be JSON objects. Anything else (a list, a string, invalid JS
 
 ---
 
-## Deploys that run programs
+## Securing the control API
 
-A config that starts a program on the runtime's host can't be deployed over the API by default. `POST /api/v1/processes` answers `403 COMMANDS_NOT_ALLOWED` when the config has:
+Anyone with the token can deploy agents, so treat a token holder as someone who writes process configs on your machine. The API keeps such a config from reaching further than the agent itself:
 
-- a stdio MCP server (a server entry with a `command`, or `type`/`transport` `"stdio"`), or
-- a command hook (a `hooks` entry with a `command`).
+| Setting | Default | What it protects |
+|---|---|---|
+| `auth_token` | random with `promptise runtime start`, else `None` | Every route except `GET /health`. Required off loopback |
+| Loopback bind (`host="127.0.0.1"`) | on | Only local clients; browser pages are refused (`421` / `403`) |
+| `allow_command_deploys` | `False` | Deploys can't start programs or run agent-written code on the host |
+| `allow_env_references` / `allowed_env_vars` | off / none | Deploys can't read the host's environment through `${VAR}` |
+| `data_dir` | `./.promptise` | Deploys can't write journals, memory or watch files elsewhere |
+| `open_mode.allowed_mcp_urls` | empty = **no** server for API deploys | A deployed open-mode agent can't connect MCP servers you didn't list |
+
+```python
+api = OrchestrationAPI(
+    runtime,
+    host="127.0.0.1",
+    auth_token="${ORCHESTRATION_API_TOKEN}",
+    allowed_env_vars={"SEARCH_API_KEY"},  # the only variable deploys may reference
+    data_dir="/var/lib/promptise",
+)
+```
+
+The same switches exist on the CLI: `promptise runtime start --allow-command-deploys --allow-env-references --allow-env-var NAME`. Processes you load from manifests on the host are yours and none of these checks apply to them. The process keeps the limits it was deployed with (secrets, MCP allowlist, paths) and passes them on to the processes it spawns.
+
+### Deploys that run programs
+
+A config that starts a program, or runs agent-written code, on the runtime's host can't be deployed over the API by default. `POST /api/v1/processes` answers `403 COMMANDS_NOT_ALLOWED` when the config has:
+
+- a stdio MCP server (a server entry with a `command`, or `type`/`transport` `"stdio"`),
+- a command hook (a `hooks` entry with a `command`), or
+- open mode with `open_mode.allow_tool_creation` (the default in open mode). The agent's `create_tool` runs model-written Python inside the runtime's process, and its restricted builtins are not a sandbox, so it amounts to running commands. Deploy open-mode agents with `"open_mode": {"allow_tool_creation": false}`.
 
 Anyone with the token could otherwise run any command as the runtime's user. Use HTTP MCP servers and callback hooks, load such processes from manifests on the host, or, if every token holder may run commands there, enable it:
 
@@ -118,6 +150,25 @@ promptise runtime start agents/ --allow-command-deploys
 ```
 
 The check applies only to deploys. Processes loaded from manifests by the operator are not checked, and the other routes that change a process (triggers, `PATCH` sections, context, instructions) have no field that runs a program.
+
+### Environment references
+
+`${VAR}` references are resolved from the host's environment when a process starts (for example in `secrets`), and an agent can read a secret back with `get_secret`. So a deploy, a `POST .../triggers` or a `PATCH` of `budget`, `health` or `mission` whose body contains a `${VAR}` reference anywhere gets `403 ENV_REFERENCES_NOT_ALLOWED`, naming where the reference is. `instructions` are never resolved, so text there isn't checked. To allow references:
+
+- `allowed_env_vars={"SEARCH_API_KEY"}` (`--allow-env-var SEARCH_API_KEY`, repeatable): only these variables, or
+- `allow_env_references=True` (`--allow-env-references`): any variable.
+
+Otherwise send the value itself as a literal secret. As a backstop, an API-deployed process's secret scope resolves only the allowed variables too. A reference that can't be resolved fails the start with a generic `START_FAILED` message that doesn't say whether the variable exists (the server log has the detail).
+
+### File system paths
+
+Paths in a deployed config must lie inside `data_dir` (default `./.promptise` under the runtime's working directory, where the journal goes by default). Relative paths are resolved against the working directory, as the process uses them. `403 PATH_NOT_ALLOWED` answers a deploy whose
+
+- `journal.path` (for a file journal that is on),
+- `context.memory_persist_directory`, or
+- a file-watch trigger's `watch_path`
+
+is outside it, uses `..` or `~`, or is a symlink that leads out. `POST .../triggers` checks `watch_path` the same way, and the deployed agent's own `add_trigger` (open mode) is held to `data_dir` too.
 
 ---
 
@@ -158,7 +209,7 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `PATCH` | `/processes/{name}/budget` | Change `BudgetConfig` fields | Next budget check (`"next_budget_check"`) | `200` |
 | `PATCH` | `/processes/{name}/health` | Change `HealthConfig` fields | Next check (`"immediate"`) | `200` |
 | `PATCH` | `/processes/{name}/mission` | Change `MissionConfig` fields | Next evaluation and prompt (`"immediate"`) | `200` |
-| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs | -- | `200` |
+| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret` and credential-like `custom_config` values masked | -- | `200` |
 | `POST` | `/processes/{name}/triggers` | Add a trigger (body: a `TriggerConfig`) | At once on an active process, else at the next start | `201` |
 | `DELETE` | `/processes/{name}/triggers/{trigger_id}` | Stop and remove a trigger | At once on an active process, else at the next start | `200` |
 
@@ -167,8 +218,8 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | Method | Path | What it does | Success |
 |---|---|---|---|
 | `POST` | `/processes/{name}/messages` | Queue a message: `{"message_id", "status": "queued", "expires_at"}` | `201` |
-| `POST` | `/processes/{name}/ask` | Ask a question and wait for the answer (long poll) | `200` |
-| `GET` | `/processes/{name}/inbox` | Pending messages and questions | `200` |
+| `POST` | `/processes/{name}/ask` | Ask a question and wait for the answer (long poll; secret values in the answer are `[REDACTED]`) | `200` |
+| `GET` | `/processes/{name}/inbox` | Pending messages and questions (redacted like the journal) | `200` |
 | `DELETE` | `/processes/{name}/inbox` | Remove every message and cancel pending questions | `204` |
 
 ### State, secrets, mission, health
@@ -218,8 +269,8 @@ curl -X POST http://localhost:9100/api/v1/processes \
 ```
 
 - `name` must match `^[a-zA-Z][a-zA-Z0-9_-]{0,63}$` (`422 INVALID_NAME`); a name already registered gets `409 PROCESS_EXISTS`.
-- `config` is a `ProcessConfig` as JSON (`422 INVALID_CONFIG` when it doesn't validate). A valid config that still can't be turned into a process gets `422 DEPLOY_FAILED`.
-- `start` (default `false`) must be a boolean. When the start fails the answer is `500 START_FAILED` and the process **stays deployed**: fix the cause and `POST .../start`, or `DELETE` it.
+- `config` is a `ProcessConfig` as JSON (`422 INVALID_CONFIG` when it doesn't validate). A valid config that still can't be turned into a process gets `422 DEPLOY_FAILED`. The [security checks](#securing-the-control-api) answer `403` with `COMMANDS_NOT_ALLOWED`, `ENV_REFERENCES_NOT_ALLOWED` or `PATH_NOT_ALLOWED`.
+- `start` (default `false`) must be a boolean. When the start fails the answer is `500 START_FAILED` and the process **stays deployed**: fix the cause and `POST .../start`, or `DELETE` it. A process whose start fails because of the process itself (a secret that can't be resolved, for example) is `500 START_FAILED` on `POST .../start` too, never `404`.
 - The answer is `201` with `{"name", "process_id", "state", "created_at"}`.
 
 The `config` object follows `ProcessConfig`:
@@ -300,7 +351,7 @@ curl -X DELETE http://localhost:9100/api/v1/processes/monitor/triggers/cron-6d90
 | Remove a config trigger | Stopped at once and removed from the config: `live: true`, `"immediate"` | Removed from the config: `live: true`, `"next_start"` |
 | Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` | -- |
 
-Adding a trigger identical to one already configured gets `409 TRIGGER_EXISTS`; an invalid config or one that can't start gets `422 INVALID_CONFIG`; an unknown ID gets `404 TRIGGER_NOT_FOUND`. The old position-based IDs (`static_0`, `static_1`, ...) are still accepted on `DELETE`; the response then carries a `warning` naming the stable ID to use instead.
+Adding a trigger identical to one already configured gets `409 TRIGGER_EXISTS`; an invalid config or one that can't start gets `422 INVALID_CONFIG`; a `${VAR}` reference gets `403 ENV_REFERENCES_NOT_ALLOWED` and a `watch_path` outside `data_dir` `403 PATH_NOT_ALLOWED`; an unknown ID gets `404 TRIGGER_NOT_FOUND`. In the listing, `hmac_secret` is masked, and so are the values of `custom_config` keys that look like credentials (names containing `secret`, `token`, `password`, `api_key`, `auth`, `credential`, `signature` or `cookie`). The old position-based IDs (`static_0`, `static_1`, ...) are still accepted on `DELETE`; the response then carries a `warning` naming the stable ID to use instead.
 
 ### Context state
 
@@ -399,7 +450,7 @@ Each message is a `[<PRIORITY> <TYPE>]` label (the priority is left out for `nor
 
 After every run, the runtime:
 
-1. Reads `ANSWER Q<n>: <text>` parts from the agent's final reply and delivers each one to the question it numbers (the waiting `/ask` call returns it). Text after the marker up to the next `ANSWER Q` marker is the answer.
+1. Reads `ANSWER Q<n>: <text>` parts from the agent's final reply and delivers each one to the question it numbers (the waiting `/ask` call returns it). Text after the marker up to the next `ANSWER Q` marker is the answer. Secret values in it are replaced by `[REDACTED]`, as in the journal, so a question can't make the agent hand out a secret.
 2. Removes the messages that run saw: directives, context and corrections are gone after one run, and answered questions are removed. Unanswered questions stay until they are answered or expire.
 
 So a directive is shown once. Send it again, or store the fact in the [context state](context.md), when the agent must keep following it on later runs.
@@ -565,8 +616,10 @@ The codes come from `promptise.runtime.api.ERROR_CODES` (`code -> (status, meani
 | `400` | `SECRETS_DISABLED` | Secret operation on a process without secret scoping |
 | `400` | `SUSPEND_FAILED` | The process can't be suspended in its current state |
 | `401` | `UNAUTHORIZED` | Missing or wrong bearer token |
-| `403` | `COMMANDS_NOT_ALLOWED` | Deploy with a stdio MCP server or a command hook while allow_command_deploys is off |
+| `403` | `COMMANDS_NOT_ALLOWED` | Deploy with a stdio MCP server, a command hook or open-mode tool creation while allow_command_deploys is off |
 | `403` | `CROSS_ORIGIN_REFUSED` | Cross-site Origin on a loopback bind |
+| `403` | `ENV_REFERENCES_NOT_ALLOWED` | Config with a `${VAR}` reference the API doesn't allow (allow_env_references / allowed_env_vars) |
+| `403` | `PATH_NOT_ALLOWED` | Journal, memory or watch path outside the API's data_dir (or with '..') |
 | `403` | `WRITE_DENIED` | Context key(s) not writable (nothing was written) |
 | `404` | `ENTRY_NOT_FOUND` | Journal entry ID doesn't exist (rewind target) |
 | `404` | `NOT_FOUND` | No such route |
@@ -574,13 +627,13 @@ The codes come from `promptise.runtime.api.ERROR_CODES` (`code -> (status, meani
 | `404` | `SECRET_NOT_FOUND` | The process has no secret of that name |
 | `404` | `TRIGGER_NOT_FOUND` | Trigger ID doesn't exist |
 | `405` | `METHOD_NOT_ALLOWED` | The route doesn't accept this method |
-| `410` | `QUESTION_REMOVED` | `/ask`: the question was cleared or evicted from the inbox before it was answered |
 | `409` | `INBOX_FULL` | The inbox is full and nothing can be evicted for the message |
 | `409` | `MISSION_STATE` | Mission fail/pause/resume not valid in the mission's state |
 | `409` | `PROCESS_EXISTS` | Deploy with a name that's already registered |
 | `409` | `PROCESS_NOT_RUNNING` | Message or question to a stopped or failed process |
 | `409` | `REWIND_BUSY` | A run was still in flight when the rewind timed out |
 | `409` | `TRIGGER_EXISTS` | Adding a trigger identical to an existing one |
+| `410` | `QUESTION_REMOVED` | `/ask`: the question was cleared or evicted from the inbox before it was answered |
 | `413` | `PAYLOAD_TOO_LARGE` | Request body over the server's size limit (1 MiB) |
 | `421` | `MISDIRECTED_REQUEST` | Non-loopback Host on a loopback bind (DNS rebinding) |
 | `422` | `DEPLOY_FAILED` | The process could not be created from a valid config |
@@ -606,9 +659,12 @@ The codes come from `promptise.runtime.api.ERROR_CODES` (`code -> (status, meani
 
 - Bearer token required on non-loopback binds, compared in constant time; `GET /api/v1/health` is the only route without auth (for Kubernetes probes).
 - On loopback binds, DNS-rebinding (`421`) and cross-site (`403`) requests are refused.
-- Deploys that would run programs on the host are refused unless `allow_command_deploys=True`.
+- Deploys that would run programs or agent-written code on the host are refused unless `allow_command_deploys=True`.
+- `${VAR}` references in deployed configs are refused unless allowed, and an API-deployed process resolves only the allowed variables; a failed resolution doesn't reveal whether a variable exists.
+- Journal, memory and watch paths in deployed configs stay inside `data_dir`.
+- An API-deployed open-mode agent connects only the MCP servers in `allowed_mcp_urls` (none when it is empty), and agent-connected servers never receive the process identity's credential (see [Open Mode](meta-tools.md#security)).
 - Process names are validated, and configs are validated before a process is created or changed; invalid changes change nothing.
-- Secret values never appear in responses, error messages, the audit log or the journal.
+- Secret values never appear in responses (including `/ask` answers), error messages, the audit log or the journal.
 - Every mutating request is audited.
 
 ---
@@ -620,7 +676,9 @@ The codes come from `promptise.runtime.api.ERROR_CODES` (`code -> (status, meani
 - **Messages are unscanned without guardrails.** `scan_with_guardrails` defaults to `true`, but it needs a scanner; without `guardrails` or `trigger_delivery.scan_payloads` the process only logs a warning.
 - **`DELETE /inbox` ends waiting questions.** It removes pending questions; an `/ask` call still waiting on one answers `410 QUESTION_REMOVED` (`process.ask()` raises `InboxQuestionRemoved`). Wait for open questions before clearing the inbox.
 - **`START_FAILED` on deploy leaves the process registered.** A retry with the same name gets `409 PROCESS_EXISTS`; start it or delete it instead.
-- **Secret rotations don't survive a restart.** A restart resolves secrets from the config again; rotate the source value as well (see [Secret Scoping](governance/secrets.md)).
+- **Secret rotations don't survive a restart** (with the default `revoke_on_stop=True`). A restart revokes the secrets and resolves them from the config again; rotate the source value as well (see [Secret Scoping](governance/secrets.md)).
+- **An open-mode deploy gets `403 COMMANDS_NOT_ALLOWED`.** Open mode allows `create_tool` by default, which runs agent-written code on the host. Send `"open_mode": {"allow_tool_creation": false}`, or start the API with `allow_command_deploys=True` if every token holder may run code there.
+- **A `${VAR}` in a deploy gets `403 ENV_REFERENCES_NOT_ALLOWED`.** Send the value, or ask the operator to allow that variable (`--allow-env-var NAME`).
 - **Use stable trigger IDs.** Take the `id` from `GET /triggers`; position-based `static_<n>` IDs are deprecated.
 
 ---

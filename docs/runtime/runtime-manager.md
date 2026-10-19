@@ -78,7 +78,7 @@ process = await runtime.add_process(
 )
 ```
 
-`add_process(name, config, *, process_id=None)` returns the new `AgentProcess` (in `CREATED` state). Names are unique; a duplicate raises `RuntimeBaseError`:
+`add_process(name, config, *, process_id=None, deploy_policy=None)` returns the new `AgentProcess` (in `CREATED` state). `deploy_policy` says where the config came from; the [control API](api.md#securing-the-control-api) passes its own for deploys (limited `${VAR}` references, MCP allowlist, `data_dir`), and code you write leaves it out. Names are unique; a duplicate raises `RuntimeBaseError`:
 
 ```text
 Process 'data-watcher' already exists. Use remove_process() first or choose a different name.
@@ -107,7 +107,7 @@ names = await runtime.load_directory("agents/")  # every *.agent file, in name o
 | `await stop_all()` | Stops every process that is not `STOPPED` or `CREATED` (`FAILED` and `SUSPENDED` ones too), then drains the shared event notifier |
 | `await start_process(name)` | `get_process(name).start()` |
 | `await stop_process(name)` | `get_process(name).stop()` |
-| `await restart_process(name)` | Stops a running or suspended process, then starts it. A `FAILED` process is torn down by `start()` itself (old triggers, listeners and heartbeat end first), so nothing fires twice. Context state, long-term memory and conversation history carry over. |
+| `await restart_process(name, *, stop_timeout=30.0)` | Stops a running or suspended process, then starts it. A `FAILED` process is torn down by `start()` itself (old triggers, listeners and heartbeat end first), so nothing fires twice. A process that is already stopping (another stop or restart) is waited for, up to `stop_timeout` seconds; after that it raises `RuntimeError` and starts nothing. Context state, long-term memory and conversation history carry over. |
 | `await shutdown()` | `stop_all()`, then closes every process (memory, secrets, conversation), then stops the cluster node. The processes stay registered. |
 
 Each method that takes a name raises `KeyError` for an unknown one.
@@ -193,7 +193,7 @@ With `RuntimeConfig(distributed=DistributedConfig(enabled=True, ...))`, `start_a
 |---|---|
 | `AgentRuntime(config=None, *, event_bus, broker, event_notifier, hooks)` | Create a runtime; registers `config.processes` |
 | `await AgentRuntime.from_config(config, ...)` | Same as the constructor |
-| `await add_process(name, config, *, process_id=None)` | Register a process; returns it |
+| `await add_process(name, config, *, process_id=None, deploy_policy=None)` | Register a process; returns it |
 | `await remove_process(name)` | Stop, close and unregister a process |
 | `get_process(name)` | The `AgentProcess` |
 | `processes` | Dict copy of all processes |
@@ -201,7 +201,7 @@ With `RuntimeConfig(distributed=DistributedConfig(enabled=True, ...))`, `start_a
 | `await load_manifest(path, *, name_override=None)` | Register a process from a `.agent` file |
 | `await load_directory(path)` | Register every `*.agent` file in a directory |
 | `await start_all()` / `await stop_all()` | Start / stop every process |
-| `await start_process(name)` / `await stop_process(name)` / `await restart_process(name)` | Control one process |
+| `await start_process(name)` / `await stop_process(name)` / `await restart_process(name, *, stop_timeout=30.0)` | Control one process |
 | `await shutdown()` | Stop and close every process, stop the cluster node |
 | `await run_forever(*, install_signal_handlers=True)` | Start everything and run until a signal or `request_shutdown()` |
 | `request_shutdown()` | Make `run_forever()` return |

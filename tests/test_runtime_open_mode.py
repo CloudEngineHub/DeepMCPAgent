@@ -591,9 +591,13 @@ class TestConnectMCPServerTool:
     async def test_result_says_the_tools_are_for_the_next_run(self):
         from promptise.runtime.meta_tools import _connect_mcp_server
 
+        # A loopback URL has to be listed (unlisted private hosts are refused).
         process = AgentProcess(
             name="test",
-            config=ProcessConfig(execution_mode=ExecutionMode.OPEN),
+            config=ProcessConfig(
+                execution_mode=ExecutionMode.OPEN,
+                open_mode=OpenModeConfig(allowed_mcp_urls=["http://127.0.0.1:1/mcp"]),
+            ),
         )
         process._hot_reload = AsyncMock(return_value="Rebuild successful")
 
@@ -1184,11 +1188,13 @@ class TestOpenModeIntegration:
         """
         from promptise.config import HTTPServerSpec
 
+        # The dynamic server's URL is listed, so the build doesn't resolve it.
         process = AgentProcess(
             name="test",
             config=ProcessConfig(
                 execution_mode=ExecutionMode.OPEN,
                 servers={"static": HTTPServerSpec(url="http://static")},
+                open_mode=OpenModeConfig(allowed_mcp_urls=["http://dynamic"]),
             ),
         )
         process._dynamic_servers = {
@@ -1210,7 +1216,7 @@ class TestOpenModeIntegration:
             ) as mock_adapter_cls,
             patch(
                 "promptise.mcp.client.MCPClient",
-            ),
+            ) as mock_client_cls,
         ):
             mock_build.return_value = MagicMock()
             mock_multi_instance = MagicMock()
@@ -1231,6 +1237,11 @@ class TestOpenModeIntegration:
             # MCP tools were passed via extra_tools
             extra = call_kwargs.get("extra_tools", [])
             assert mock_tool in extra
+            # Both the static and the dynamic server got a client.
+            assert sorted(c.kwargs["url"] for c in mock_client_cls.call_args_list) == [
+                "http://dynamic",
+                "http://static",
+            ]
 
     @pytest.mark.asyncio
     async def test_meta_tools_included_in_build(self):
@@ -1798,7 +1809,7 @@ class TestMaxRebuildsNeverStages:
     async def test_refused_tool_and_server_are_not_staged(self):
         from promptise.runtime.meta_tools import _connect_mcp_server, _create_tool
 
-        process = _stub_process(max_rebuilds=0)
+        process = _stub_process(max_rebuilds=0, allowed_mcp_urls=["http://127.0.0.1:1/mcp"])
         await process.start()
         try:
             tool_reply = await _create_tool(

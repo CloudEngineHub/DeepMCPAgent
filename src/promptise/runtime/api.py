@@ -29,18 +29,40 @@ Security model:
   cross-site ``Origin`` with ``403``, so a web page open in a browser on
   the same machine can't drive the runtime.
 * Request bodies must be JSON objects (``400`` otherwise).
-* Deploys can't run programs on the host unless that is enabled: a
+* Deploys can't run code on the host unless that is enabled: a
   ``POST /api/v1/processes`` whose config has a stdio MCP server (a
-  ``command``) or a command hook is refused with ``403
-  COMMANDS_NOT_ALLOWED`` unless the API was created with
-  ``allow_command_deploys=True`` (``promptise runtime start
-  --allow-command-deploys``).  The other routes that change a process
-  (triggers, ``PATCH`` sections, context, instructions) have no field
-  that runs a program, and an open-mode agent's ``connect_mcp_server``
-  only connects HTTP servers and ``spawn_process`` children get no
-  servers or hooks, so a deployed agent can't start one either.
+  ``command``), a command hook, or open mode with
+  ``open_mode.allow_tool_creation`` (the agent's ``create_tool`` runs
+  model-written Python in the runtime's process, and restricted builtins
+  are not a sandbox) is refused with ``403 COMMANDS_NOT_ALLOWED`` unless
+  the API was created with ``allow_command_deploys=True`` (``promptise
+  runtime start --allow-command-deploys``).  The other routes that change
+  a process (triggers, ``PATCH`` sections, context, instructions) have no
+  field that runs a program, and an open-mode agent's
+  ``connect_mcp_server`` only connects HTTP servers and ``spawn_process``
+  children get no servers, so a deployed agent can't start one either.
   Processes the operator loads from manifests on the host are not
   affected.
+* Deploys can't read the host's environment: a config sent to
+  ``POST /api/v1/processes``, ``POST .../triggers`` or a ``PATCH`` route
+  with a ``${VAR}`` reference anywhere (``instructions`` aside, which are
+  never resolved) is refused with ``403 ENV_REFERENCES_NOT_ALLOWED``,
+  unless ``allow_env_references=True`` or every variable is in
+  ``allowed_env_vars``.  As a backstop the deployed process's secret
+  scope resolves only those variables, and a failed resolution gives the
+  same generic error whether a variable is refused or not set.
+* Deploys can't pick file system paths outside ``data_dir`` (default
+  ``./.promptise``): ``journal.path`` (file journal),
+  ``context.memory_persist_directory`` and file-watch ``watch_path``
+  values outside it, or with ``..``, are refused with ``403
+  PATH_NOT_ALLOWED`` (the agent's own ``add_trigger`` is held to it too).
+* An API-deployed open-mode process with an empty
+  ``open_mode.allowed_mcp_urls`` may connect no MCP server (for an
+  operator's process empty still means any public URL).
+* Answers and inbox listings are redacted: secret values in an ``/ask``
+  answer or ``GET .../inbox`` are ``[REDACTED]``, as in the journal; and
+  ``GET .../triggers`` masks ``hmac_secret`` and the values of credential
+  keys in ``custom_config``.
 * ``PATCH`` on ``budget``, ``health`` and ``mission`` validates the patched
   section against its config model (limits, strict JSON types, no unknown
   fields) and answers ``422`` without changing anything when it fails.
@@ -72,13 +94,15 @@ import math
 import re
 import time
 import types
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Union, get_args, get_origin
 
 from aiohttp import web
 from pydantic import BaseModel, ValidationError
 
+from ._deploy_policy import DeployPolicy, default_data_dir, env_references_in, path_problem
 from ._http_guard import bearer_token_matches, is_loopback, loopback_request_problem
 from .triggers.base import config_trigger_ids
 
@@ -123,7 +147,17 @@ ERROR_CODES: dict[str, tuple[int | None, str]] = {
     "CROSS_ORIGIN_REFUSED": (403, "Cross-site Origin on a loopback bind"),
     "COMMANDS_NOT_ALLOWED": (
         403,
-        "Deploy with a stdio MCP server or a command hook while allow_command_deploys is off",
+        "Deploy with a stdio MCP server, a command hook or open-mode tool creation while "
+        "allow_command_deploys is off",
+    ),
+    "ENV_REFERENCES_NOT_ALLOWED": (
+        403,
+        "Config with a ${VAR} reference the API doesn't allow (allow_env_references / "
+        "allowed_env_vars)",
+    ),
+    "PATH_NOT_ALLOWED": (
+        403,
+        "Journal, memory or watch path outside the API's data_dir (or with '..')",
     ),
     "NOT_FOUND": (404, "No such route"),
     "PROCESS_NOT_FOUND": (404, "Process name doesn't exist"),
@@ -210,13 +244,16 @@ def _http_error_response(exc: web.HTTPException) -> web.Response:
 
 
 def command_features(config: Any) -> list[str]:
-    """What in a process config runs a program on the host.
+    """What in a process config runs a program (or arbitrary code) on the host.
 
     Stdio MCP servers (a :class:`~promptise.config.StdioServerSpec`, or a
-    dict entry with a ``command`` or ``type``/``transport`` ``"stdio"``)
-    and command hooks (:class:`~promptise.runtime.config.HookConfig` with
-    ``command``).  Returns one description per finding, e.g.
-    ``"servers['files'] (stdio MCP server)"``; empty when there is none.
+    dict entry with a ``command`` or ``type``/``transport`` ``"stdio"``),
+    command hooks (:class:`~promptise.runtime.config.HookConfig` with
+    ``command``) and open mode with ``open_mode.allow_tool_creation`` (the
+    agent's ``create_tool`` runs model-written Python in the runtime's
+    process; its restricted builtins are not a sandbox).  Returns one
+    description per finding, e.g. ``"servers['files'] (stdio MCP
+    server)"``; empty when there is none.
     """
     from promptise.config import StdioServerSpec
 
@@ -238,7 +275,52 @@ def command_features(config: Any) -> list[str]:
         if command is not None:
             event = hook.get("event") if isinstance(hook, Mapping) else getattr(hook, "event", "?")
             found.append(f"hooks[{index}] (command hook for {event!r})")
+    mode = getattr(config, "execution_mode", None)
+    open_mode = getattr(config, "open_mode", None)
+    if str(getattr(mode, "value", mode)) == "open" and getattr(
+        open_mode, "allow_tool_creation", False
+    ):
+        found.append(
+            "open_mode.allow_tool_creation (agent-written Python runs in the runtime's process)"
+        )
     return found
+
+
+#: ``custom_config`` keys whose values ``GET .../triggers`` masks.
+_CREDENTIAL_KEY = re.compile(
+    r"secret|token|passw|pwd|api[-_]?key|auth|credential|private[-_]?key|signature|cookie",
+    re.I,
+)
+
+
+def _mask_custom_config(value: Any) -> Any:
+    """*value* with the values of credential-looking keys masked."""
+    if isinstance(value, Mapping):
+        return {
+            k: "**********"
+            if isinstance(k, str) and _CREDENTIAL_KEY.search(k) and v not in (None, "")
+            else _mask_custom_config(v)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_mask_custom_config(v) for v in value]
+    return value
+
+
+def _failure_text(exc: BaseException) -> str:
+    """An exception for an API error message; a secret that couldn't be
+    resolved gives a generic text (no hint whether a variable exists)."""
+    from .secrets import SecretResolutionError
+
+    cause: BaseException | None = exc
+    while cause is not None:
+        if isinstance(cause, SecretResolutionError):
+            return (
+                f"secret '{cause.secret_name}' could not be resolved (details are in the "
+                "server log)"
+            )
+        cause = cause.__cause__ or cause.__context__
+    return str(exc)
 
 
 def _not_found(name: str) -> web.Response:
@@ -378,7 +460,24 @@ class OrchestrationAPI:
             COMMANDS_NOT_ALLOWED``.  Turn it on only when every token
             holder may run commands here.  Processes already in the
             runtime (loaded from manifests by the operator) are not
-            checked.
+            checked.  Open mode with ``open_mode.allow_tool_creation``
+            counts as running commands (the agent's ``create_tool`` is not
+            sandboxed).
+        allow_env_references: Let deployed configs use ``${VAR}``
+            references to any environment variable of this host (in
+            secrets, which the agent can read back).  Off by default:
+            such a config answers ``403 ENV_REFERENCES_NOT_ALLOWED``.
+        allowed_env_vars: The variables deployed configs may reference
+            when ``allow_env_references`` is off, e.g.
+            ``{"SEARCH_API_KEY"}``.
+        data_dir: The directory deployed configs' file system paths must
+            lie in: ``journal.path`` (file journal),
+            ``context.memory_persist_directory`` and file-watch
+            ``watch_path`` (also those the deployed agent adds later).
+            Relative paths are resolved against the working directory,
+            as the process uses them.  Default: ``./.promptise`` (where
+            the journal goes by default).  Others answer ``403
+            PATH_NOT_ALLOWED``.
 
     Raises:
         ValueError: ``auth_token`` is empty, names an unset environment
@@ -395,6 +494,9 @@ class OrchestrationAPI:
         auth_token: str | None = None,
         on_shutdown: Callable[[], Any] | None = None,
         allow_command_deploys: bool = False,
+        allow_env_references: bool = False,
+        allowed_env_vars: Iterable[str] | None = None,
+        data_dir: str | Path | None = None,
     ) -> None:
         if on_shutdown is not None and not callable(on_shutdown):
             raise TypeError(f"on_shutdown must be callable, got {type(on_shutdown).__name__}")
@@ -423,6 +525,16 @@ class OrchestrationAPI:
         self._auth_token = auth_token
         self._on_shutdown = on_shutdown
         self._allow_command_deploys = bool(allow_command_deploys)
+        if isinstance(allowed_env_vars, str):
+            raise TypeError("allowed_env_vars must be a collection of names, not a string")
+        self._allowed_env_vars = frozenset(allowed_env_vars or ())
+        self._allow_env_references = bool(allow_env_references)
+        self._data_dir = Path(data_dir) if data_dir is not None else default_data_dir()
+        self._deploy_policy = DeployPolicy.for_api(
+            allow_env_references=self._allow_env_references,
+            allowed_env_vars=self._allowed_env_vars,
+            data_dir=self._data_dir,
+        )
         self._shutdown_tasks: set[asyncio.Future[Any]] = set()
 
         self._app: web.Application | None = None
@@ -764,9 +876,15 @@ class OrchestrationAPI:
     async def _handle_deploy(self, request: web.Request) -> web.Response:
         """Deploy a process: ``201``, ``409 PROCESS_EXISTS``, ``422`` for a
         bad name or config, ``403 COMMANDS_NOT_ALLOWED`` for a config with
-        stdio servers or command hooks (unless ``allow_command_deploys``),
-        ``500 START_FAILED`` when ``start`` fails (the process stays
-        deployed)."""
+        stdio servers, command hooks or open-mode tool creation (unless
+        ``allow_command_deploys``), ``403 ENV_REFERENCES_NOT_ALLOWED`` for
+        a ``${VAR}`` the API doesn't allow, ``403 PATH_NOT_ALLOWED`` for a
+        path outside ``data_dir``, ``500 START_FAILED`` when ``start``
+        fails (the process stays deployed).
+
+        The process is created with the API's deploy policy
+        (:class:`~promptise.runtime._deploy_policy.DeployPolicy`), which
+        it passes on to the processes it spawns."""
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
@@ -791,6 +909,11 @@ class OrchestrationAPI:
         config_data = body.get("config", {})
         if not isinstance(config_data, dict):
             return _error_response("INVALID_CONFIG", "'config' must be a JSON object", 422)
+        refused = self._refuse_env_references(
+            {k: v for k, v in config_data.items() if k != "instructions"}, "config"
+        )
+        if refused is not None:
+            return refused
         try:
             from .config import ProcessConfig
 
@@ -799,14 +922,16 @@ class OrchestrationAPI:
             return _error_response(
                 "INVALID_CONFIG", f"Config validation failed: {_validation_detail(exc)}", 422
             )
-        refused = self._refuse_commands(config)
+        refused = self._refuse_commands(config) or self._refuse_paths(config)
         if refused is not None:
             return refused
 
         from .exceptions import RuntimeBaseError
 
         try:
-            process = await self._runtime.add_process(name, config)
+            process = await self._runtime.add_process(
+                name, config, deploy_policy=self._deploy_policy
+            )
         except RuntimeBaseError as exc:
             if name in self._runtime.processes:  # lost a race with another deploy
                 return _error_response("PROCESS_EXISTS", f"Process '{name}' already exists", 409)
@@ -824,7 +949,7 @@ class OrchestrationAPI:
                 )
                 return _error_response(
                     "START_FAILED",
-                    f"Process '{name}' was deployed but failed to start: {exc}",
+                    f"Process '{name}' was deployed but failed to start: {_failure_text(exc)}",
                     500,
                 )
 
@@ -837,6 +962,76 @@ class OrchestrationAPI:
             },
             status=201,
         )
+
+    def _refuse_env_references(self, data: Any, where: str) -> web.Response | None:
+        """``403 ENV_REFERENCES_NOT_ALLOWED`` when *data* has a ``${VAR}``
+        reference the API doesn't allow (``None`` otherwise).
+
+        The message names the references found in the request (its own
+        text), never whether a variable exists.
+        """
+        if self._allow_env_references:
+            return None
+        refused = [
+            (path, var)
+            for path, var in env_references_in(data, where)
+            if var not in self._allowed_env_vars
+        ]
+        if not refused:
+            return None
+        found = ", ".join(f"{path} (${{{var}}})" for path, var in refused[:10])
+        logger.warning("OrchestrationAPI: refused a request with environment references: %s", found)
+        return _error_response(
+            "ENV_REFERENCES_NOT_ALLOWED",
+            "This request references environment variables of the runtime's host ("
+            + found
+            + "), which the control API doesn't allow by default: the agent could read "
+            "them back. Send the values themselves (e.g. as secrets), or have the operator "
+            "allow the variables with OrchestrationAPI(allowed_env_vars={...}) "
+            "('promptise runtime start --allow-env-var NAME') or all of them with "
+            "allow_env_references=True ('--allow-env-references').",
+            403,
+        )
+
+    def _path_refusal(self, problems: list[str]) -> web.Response | None:
+        if not problems:
+            return None
+        logger.warning("OrchestrationAPI: refused paths: %s", "; ".join(problems))
+        return _error_response(
+            "PATH_NOT_ALLOWED",
+            "; ".join(problems)
+            + f". Paths in API requests must lie in the data directory {str(self._data_dir)!r} "
+            "(OrchestrationAPI(data_dir=...)), without '..'.",
+            403,
+        )
+
+    def _trigger_path_problems(self, triggers: Any, where: str) -> list[str]:
+        problems: list[str] = []
+        for index, trigger in enumerate(triggers or []):
+            watch_path = getattr(trigger, "watch_path", None)
+            if getattr(trigger, "type", None) == "file_watch" and watch_path:
+                problem = path_problem(watch_path, self._data_dir)
+                if problem is not None:
+                    label = f"{where}[{index}].watch_path" if where else "watch_path"
+                    problems.append(f"{label}: {problem}")
+        return problems
+
+    def _refuse_paths(self, config: Any) -> web.Response | None:
+        """``403 PATH_NOT_ALLOWED`` when *config* names a journal, memory or
+        watch path outside ``data_dir`` (``None`` otherwise)."""
+        problems: list[str] = []
+        journal = config.journal
+        if journal.level != "none" and journal.backend == "file":
+            problem = path_problem(journal.path, self._data_dir)
+            if problem is not None:
+                problems.append(f"journal.path: {problem}")
+        persist = config.context.memory_persist_directory
+        if persist:
+            problem = path_problem(persist, self._data_dir)
+            if problem is not None:
+                problems.append(f"context.memory_persist_directory: {problem}")
+        problems += self._trigger_path_problems(config.triggers, "triggers")
+        return self._path_refusal(problems)
 
     def _refuse_commands(self, config: Any) -> web.Response | None:
         """``403 COMMANDS_NOT_ALLOWED`` when *config* would run host programs
@@ -851,12 +1046,13 @@ class OrchestrationAPI:
         )
         return _error_response(
             "COMMANDS_NOT_ALLOWED",
-            "This config runs programs on the runtime's host ("
+            "This config runs programs or code on the runtime's host ("
             + ", ".join(features)
             + "), which the control API doesn't allow by default: anyone with the API "
-            "token could run any command. Use HTTP MCP servers and callback hooks, load "
-            "the process from a manifest on the host, or, if every token holder may run "
-            "commands there, start the API with OrchestrationAPI(allow_command_deploys=True) "
+            "token could run any command. Use HTTP MCP servers and callback hooks, set "
+            "open_mode.allow_tool_creation=false, load the process from a manifest on the "
+            "host, or, if every token holder may run commands there, start the API with "
+            "OrchestrationAPI(allow_command_deploys=True) "
             "('promptise runtime start --allow-command-deploys').",
             403,
         )
@@ -872,47 +1068,36 @@ class OrchestrationAPI:
         except KeyError:
             return _not_found(name)
 
-    async def _handle_start(self, request: web.Request) -> web.Response:
+    async def _lifecycle_action(self, request: web.Request, action: str, code: str) -> web.Response:
+        """Run ``runtime.<action>_process``; ``404`` only for an unknown name.
+
+        Looked up first, so a ``KeyError`` from the process itself (a
+        secret that can't be resolved is one) is ``500 <code>``, not
+        ``PROCESS_NOT_FOUND``.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         name = request.match_info["name"]
         try:
-            await self._runtime.start_process(name)
-            process = self._get_process(name)
-            return _json_response({"name": name, "state": _state_value(process)})
+            self._get_process(name)
         except KeyError:
             return _not_found(name)
+        try:
+            await getattr(self._runtime, f"{action}_process")(name)
+            process = self._get_process(name)
         except Exception as exc:
-            return _error_response("START_FAILED", str(exc), 500)
+            return _error_response(code, _failure_text(exc), 500)
+        return _json_response({"name": name, "state": _state_value(process)})
+
+    async def _handle_start(self, request: web.Request) -> web.Response:
+        return await self._lifecycle_action(request, "start", "START_FAILED")
 
     async def _handle_stop(self, request: web.Request) -> web.Response:
-        auth_err = self._require_auth(request)
-        if auth_err:
-            return auth_err
-        name = request.match_info["name"]
-        try:
-            await self._runtime.stop_process(name)
-            process = self._get_process(name)
-            return _json_response({"name": name, "state": _state_value(process)})
-        except KeyError:
-            return _not_found(name)
-        except Exception as exc:
-            return _error_response("STOP_FAILED", str(exc), 500)
+        return await self._lifecycle_action(request, "stop", "STOP_FAILED")
 
     async def _handle_restart(self, request: web.Request) -> web.Response:
-        auth_err = self._require_auth(request)
-        if auth_err:
-            return auth_err
-        name = request.match_info["name"]
-        try:
-            await self._runtime.restart_process(name)
-            process = self._get_process(name)
-            return _json_response({"name": name, "state": _state_value(process)})
-        except KeyError:
-            return _not_found(name)
-        except Exception as exc:
-            return _error_response("RESTART_FAILED", str(exc), 500)
+        return await self._lifecycle_action(request, "restart", "RESTART_FAILED")
 
     # ------------------------------------------------------------------
     # Config updates
@@ -1001,6 +1186,9 @@ class OrchestrationAPI:
             return _error_response(
                 "MISSING_FIELD", f"Send the {section} fields to change as a JSON object", 422
             )
+        refused = self._refuse_env_references(body, section)
+        if refused is not None:
+            return refused
 
         built = getattr(process, _SUBSYSTEMS[section], None) is not None
         config_section = getattr(process.config, section)
@@ -1162,9 +1350,10 @@ class OrchestrationAPI:
     async def _handle_ask(self, request: web.Request) -> web.Response:
         """Ask a question and long-poll for the answer.
 
-        ``200`` with ``status: "answered"`` and the ``response`` text, or
-        ``status: "timeout"`` and ``response: null`` when the agent did not
-        answer within ``timeout`` seconds (default 120, at most 3600).
+        ``200`` with ``status: "answered"`` and the ``response`` text
+        (secret values ``[REDACTED]``), or ``status: "timeout"`` and
+        ``response: null`` when the agent did not answer within
+        ``timeout`` seconds (default 120, at most 3600).
         """
         auth_err = self._require_auth(request)
         if auth_err:
@@ -1218,11 +1407,13 @@ class OrchestrationAPI:
                 "answered (raise inbox.max_messages, or send it with a higher priority)",
                 410,
             )
+        redact = getattr(process, "_redact", None)
+        answer = redact(response.content) if callable(redact) else response.content
         return _json_response(
             {
                 "question_id": msg_id,
                 "status": "answered",
-                "response": response.content,
+                "response": answer,
                 "answered_at": response.answered_at,
                 "invocation_id": response.invocation_id,
             }
@@ -1245,6 +1436,9 @@ class OrchestrationAPI:
                     }
                 )
             status = await process._inbox.status()
+            redact = getattr(process, "_redact", None)
+            if callable(redact):
+                status = redact(status)
             return _json_response({"enabled": True, **status})
         except KeyError:
             return _not_found(name)
@@ -1368,7 +1562,9 @@ class OrchestrationAPI:
         """List all triggers (config + agent-added) for a process.
 
         Config triggers have stable IDs (see :func:`config_trigger_ids`);
-        secret fields are masked.
+        ``hmac_secret`` is masked, and so are the values of
+        ``custom_config`` keys that look like credentials (``token``,
+        ``secret``, ``password``, ``api_key``, ``auth``...).
         """
         auth_err = self._require_auth(request)
         if auth_err:
@@ -1386,6 +1582,8 @@ class OrchestrationAPI:
                 config = tc.model_dump(mode="json", exclude={"filter_expression"})
             except Exception:
                 config = {"type": tc.type}
+            if config.get("custom_config"):
+                config["custom_config"] = _mask_custom_config(config["custom_config"])
             triggers.append({"id": tid, "type": tc.type, "source": "config", "config": config})
         for t in getattr(process, "_dynamic_triggers", []):
             tid = getattr(t, "trigger_id", None) or str(id(t))
@@ -1413,6 +1611,9 @@ class OrchestrationAPI:
             return _not_found(name)
         if not body.get("type"):
             return _error_response("MISSING_FIELD", "'type' is required", 422)
+        refused = self._refuse_env_references(body, "trigger")
+        if refused is not None:
+            return refused
         from .config import TriggerConfig
 
         try:
@@ -1421,6 +1622,9 @@ class OrchestrationAPI:
             return _error_response(
                 "INVALID_CONFIG", f"Invalid trigger config: {_validation_detail(exc)}", 422
             )
+        refused = self._path_refusal(self._trigger_path_problems([tc], ""))
+        if refused is not None:
+            return refused
         triggers = process.config.triggers
         trigger_id = config_trigger_ids([tc])[0]
         if trigger_id in config_trigger_ids(triggers):

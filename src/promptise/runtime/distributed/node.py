@@ -122,6 +122,7 @@ class ClusterNode:
             allow_unauthenticated=cfg.allow_unauthenticated,
             coordinator=self.coordinator,
             discovery=self.discovery,
+            allowed_node_hosts=list(cfg.allowed_node_hosts),
         )
         if self._token is None:
             logger.warning(

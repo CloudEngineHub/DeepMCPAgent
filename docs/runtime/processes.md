@@ -163,6 +163,7 @@ A run that raises is retried when `trigger_delivery.max_retries` is above 0 (def
 |---|---|
 | `"process stopped"` | Not run yet at `stop()` (queued, held, running or still inside a trigger), or arriving while the process is stopping or stopped |
 | `"process restarting"` | Held by a worker, or waiting for a retry, when an automatic restart or recycle tears the process down |
+| `"trigger removed"` | Still buffered in a trigger, or held by its listener, when the trigger was removed (`remove_trigger()`, `DELETE .../triggers/{id}`, the agent's `remove_trigger`) |
 | `"process failed"` | Queued when the process failed, or arriving while it is `FAILED` |
 | `"retries exhausted"` | The run raised and used up `trigger_delivery.max_retries` |
 | `"queue full"` | `inject()` or a retry found the queue full |
@@ -206,7 +207,7 @@ process.clear_dead_letters()
 | `dead_letter_count` | Entries in `dead_letters` |
 | `filtered_count` | Events skipped by a trigger's `filter_expression` |
 | `pending_retries` | Events waiting for a retry |
-| `uptime_seconds` | Seconds since the last `start()`, or `None` before the first |
+| `uptime_seconds` | Seconds since the last `start()` while the process is up; `None` before the first start and while it is stopped or failed |
 | `hook_count` | Hooks registered on `process.hooks` |
 | `recovered` | Only after a journal recovery: the `recovered` dict |
 | `budget` | Only with a budget: remaining limits |

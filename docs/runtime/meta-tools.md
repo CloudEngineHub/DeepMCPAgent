@@ -2,6 +2,10 @@
 
 In open mode (`execution_mode=ExecutionMode.OPEN`) an agent process gets meta-tools: tools that change the process itself instead of the outside world. With them the agent can rewrite its instructions, write new Python tools, connect MCP servers, add and remove its own triggers, manage long-term memory and spawn helper processes. Every meta-tool goes through the same process methods an operator would use, so the limits in `OpenModeConfig` and your [hooks](hooks.md) apply to each change.
 
+!!! warning "Open mode hands the model control of its own setup"
+
+    Whoever can put text in front of the model (trigger payloads, inbox messages, tool results) can try to steer these tools. `create_tool` in particular runs model-written Python **inside the runtime's process**; its restricted builtins are not a sandbox. Read [Security](#security) before you enable open mode, and switch off what the agent doesn't need.
+
 ```python
 import asyncio
 
@@ -12,6 +16,7 @@ config = ProcessConfig(
     instructions="You are an adaptive monitoring agent. Improve your own tooling over time.",
     execution_mode=ExecutionMode.OPEN,
     open_mode=OpenModeConfig(
+        allow_tool_creation=False,    # no model-written Python in this process
         allow_mcp_connect=False,      # no new servers
         allow_process_spawn=True,     # may start helper processes
         max_custom_tools=10,
@@ -40,7 +45,7 @@ asyncio.run(main())
 | Meta-tool | Present when | What it does |
 |---|---|---|
 | `modify_instructions` | `allow_identity_change` | Replace the system prompt (hot reload) |
-| `create_tool` | `allow_tool_creation` | Define a Python tool (hot reload) |
+| `create_tool` | `allow_tool_creation` | Define a Python tool (hot reload). Runs in the runtime's process, not isolated |
 | `connect_mcp_server` | `allow_mcp_connect` | Connect an HTTP MCP server (hot reload) |
 | `add_trigger` | `allow_trigger_management` | Add a cron, event, message, webhook, file_watch or custom trigger |
 | `remove_trigger` | `allow_trigger_management` | Remove a trigger the agent added |
@@ -64,10 +69,10 @@ Each meta-tool calls a process method, and every method enforces the limits and 
 |---|---|---|
 | `modify_instructions` | `process.set_dynamic_instructions()` | `max_instruction_length`, `max_rebuilds` |
 | `create_tool` | hot reload | `max_custom_tools`, duplicate names, `max_rebuilds` |
-| `connect_mcp_server` | hot reload | `http(s)` URL, `allowed_mcp_urls`, duplicate names, `max_rebuilds` |
-| `add_trigger` | `process.add_dynamic_trigger()` | `max_dynamic_triggers`, trigger validation, process state |
+| `connect_mcp_server` | hot reload | duplicate names, `http(s)` URL, `allowed_mcp_urls` (or a public address when it is empty), `max_rebuilds` |
+| `add_trigger` | `process.add_dynamic_trigger()` | `max_dynamic_triggers`, trigger validation, loopback-only webhooks, the API's `data_dir` for watch paths, process state |
 | `remove_trigger` | `process.remove_trigger(trigger_id, source="agent")` | only triggers the agent added |
-| `spawn_process` | `process.spawn_process()` | `max_spawned_processes`, unique name; the `subagent_start` hook can refuse it |
+| `spawn_process` | `process.spawn_process()` | `max_spawned_processes`, unique name, loopback-only webhooks; the `subagent_start` hook can refuse it |
 
 A refused or failed change is not applied, now or after a restart. Tools report problems as text starting with `Error`, so the model can read them and carry on.
 
@@ -140,7 +145,10 @@ With `sandbox_custom_tools=True` (the default), agent-written code runs with res
 
 With `sandbox_custom_tools=False`, the code runs with the **same restricted builtins** (no `open`, `exec`, `eval`, file I/O or network access) but may import a fixed allowlist of standard-library modules: `base64`, `collections`, `copy`, `datetime`, `functools`, `hashlib`, `itertools`, `json`, `math`, `re`, `string`, `urllib.parse`, `uuid`. Any other import (`os`, `decimal`, ...) fails with `Import of '...' is not allowed`, and each call logs a warning. No setting gives agent-written code full Python builtins; give the agent such capabilities as reviewed MCP tools.
 
-Restricted builtins are defense in depth, not a security boundary: Python's object model can reach other functions through attribute access. For untrusted code, use the Docker [sandbox](../core/sandbox.md).
+**This is not a sandbox**, with either setting. The code runs in the runtime's own process, and Python's object model lets code walk from any object back to modules like `os`, so agent-written code can run commands as the runtime's user, read its memory and environment, and reach anything the runtime can. The restrictions only stop honest code from reaching for files and imports by accident. Treat `allow_tool_creation=True` as "the model may run arbitrary code here":
+
+- the control API refuses to deploy such a config unless `allow_command_deploys` is on (`403 COMMANDS_NOT_ALLOWED`);
+- for code from the model, prefer the Docker [sandbox](../core/sandbox.md) (`build_agent(sandbox=...)`), which runs each command in an isolated container, or give the agent reviewed MCP tools instead.
 
 ---
 
@@ -152,13 +160,25 @@ Restricted builtins are defense in depth, not a security boundary: Python's obje
 | `url` | `str` | required | `http://` or `https://` URL of the MCP server |
 | `transport` | `str` | `"streamable-http"` | `streamable-http` or `sse` |
 
-Only HTTP(S) servers: the agent can't start a stdio server (a program on the host). When `allowed_mcp_urls` is non-empty, only those URLs are accepted (compared with a lowercase scheme and host and without a trailing slash). After connecting, the agent is rebuilt with the server's tools, which are available from the next run.
+Only HTTP(S) servers: the agent can't start a stdio server (a program on the host). Which URLs are accepted depends on `allowed_mcp_urls`:
+
+| `allowed_mcp_urls` | Operator-configured process | Process deployed through the [control API](api.md#securing-the-control-api) |
+|---|---|---|
+| Listed URLs | Only those (compared with a lowercase scheme and host, default ports dropped, no trailing slash); a listed private or loopback URL is fine | The same |
+| Empty | Any URL whose host resolves to public addresses only: loopback, private, link-local (cloud metadata) and other internal addresses are refused. A warning is logged when the process starts | **None**: the agent can't connect servers |
+
+The address check resolves the host when the agent connects and again at every agent build, like escalation webhooks, but it can't stop a host whose DNS answer changes in between; list the servers in `allowed_mcp_urls` where that matters. After connecting, the agent is rebuilt with the server's tools, which are available from the next run.
+
+A server the agent connected never receives the process identity's credential (`ProcessConfig.identity`) or a caller's token, so the agent can't send them to a server it picked. List the URLs that may receive it in `open_mode.identity_mcp_urls`.
 
 | Result | When |
 |---|---|
 | `Connected to MCP server 'x' at <url>. Its tools are available from your next run, not in this one: this run keeps the tools it started with.` | Connected |
 | `Error: the MCP server URL must start with http:// or https://` | Not an HTTP(S) URL |
-| `Error: URL not in allowed whitelist` | Not in `allowed_mcp_urls` |
+| `Error: URL not in allowed whitelist (open_mode.allowed_mcp_urls)` | Not in `allowed_mcp_urls` |
+| `Error: refused: '<host>' resolves to private/internal IP <ip> (...)` | No allowlist, and the host is internal |
+| `Error: this process was deployed through the control API and has no open_mode.allowed_mcp_urls, ...` | API-deployed process without an allowlist |
+| `Error: the MCP server host did not resolve (...)` | No allowlist, and the host doesn't resolve |
 | `Error: server 'x' already connected` | Duplicate name |
 | `Error connecting to MCP server: <reason>` | The connection or rebuild failed |
 | `Error: max rebuilds (N) reached; the change was not applied` | `max_rebuilds` used up |
@@ -182,6 +202,8 @@ Only HTTP(S) servers: the agent can't start a stdio server (a program on the hos
 
 The trigger is validated like any `TriggerConfig`, started at once with its listener, and counts toward `max_dynamic_triggers`. It is not added to `config.triggers`: it lives until `remove_trigger`, `rollback()` or the next `stop()` (a restart drops it too).
 
+A webhook the agent adds listens on loopback only. `process.add_dynamic_trigger()` refuses a non-loopback `webhook_host` unless `open_mode.allow_public_webhooks` is on, and then requires an `hmac_secret`. For a process deployed through the control API, a `file_watch` `watch_path` must lie in the API's `data_dir`.
+
 | Result | When |
 |---|---|
 | `Trigger 'cron-36042769' (cron) added and listening.` | Added; the ID is what `remove_trigger` takes |
@@ -189,6 +211,8 @@ The trigger is validated like any `TriggerConfig`, started at once with its list
 | `Error adding trigger: Invalid trigger config: <details>` | Invalid fields |
 | `Error adding trigger: Adding the cron trigger was blocked: <reason>` | A `config_change` hook refused it |
 | `Error adding trigger: Trigger could not start: <reason>` | The trigger failed to start (for example a port in use) |
+| `Error adding trigger: a webhook trigger on '0.0.0.0' would accept requests from other machines; ...` | Non-loopback webhook (see above) |
+| `Error adding trigger: watch_path '...' is outside the data directory ...` | API-deployed process, path outside `data_dir` |
 
 ---
 
@@ -225,9 +249,11 @@ The new process is registered in the parent's `AgentRuntime`, started, and liste
 | `budget`, `health`, `trigger_delivery` and `journal` settings (copies: the child has its own counters) | Secrets |
 | `approval` policy and `guardrails` scanner | MCP servers |
 | `max_invocation_time` | Identity |
-| `open_mode` limits, with `allow_process_spawn` switched off | Hooks, mission, inbox, context settings |
+| `open_mode` limits, with `allow_process_spawn` switched off | `config.hooks` entries, mission, inbox, context settings |
+| The parent's hooks: its `hooks` manager (and what the parent inherited) is dispatched for the child after the child's own, so `permission_request`, `user_prompt_submit` and every other hook the parent has also govern the child (`ctx.process_id` names the child) | |
+| The deploy policy: a child of an API-deployed process is limited like its parent (env references, MCP allowlist, `data_dir`) | |
 
-So a spawned process can never spawn more processes, even in open mode. The `subagent_start` hook runs before the spawn and can refuse it; `subagent_stop` runs when the child stops or fails. The child runs independently: stopping the parent does not stop it. `allow_process_spawn` defaults to `False`.
+So a spawned process can never spawn more processes, even in open mode. Its `triggers` follow the `add_trigger` rules: webhooks listen on loopback unless `open_mode.allow_public_webhooks` is on (then with an `hmac_secret`), so the model can't open a public, unsigned endpoint. The `subagent_start` hook runs before the spawn and can refuse it; `subagent_stop` runs when the child stops or fails. The child runs independently: stopping the parent does not stop it. `allow_process_spawn` defaults to `False`.
 
 | Result | When |
 |---|---|
@@ -237,6 +263,7 @@ So a spawned process can never spawn more processes, even in open mode. The `sub
 | `Error spawning process: process 'helper' already exists in the runtime` | Name taken |
 | `Error spawning process: invalid process config: <details>` | Bad trigger or mode |
 | `Error spawning process: spawning 'helper' was blocked by a hook: <reason>` | A `subagent_start` hook refused it |
+| `Error spawning process: can't spawn 'helper': a webhook trigger on '0.0.0.0' ...` | A non-loopback (or unsigned public) webhook trigger |
 
 A child that fails to start is removed from the runtime again, and the error is returned.
 
@@ -301,6 +328,22 @@ Rebuilds: 2
 
 ---
 
+## Security
+
+Open mode gives the model the same levers an operator has, within `OpenModeConfig`. Plan for a model that has been talked into misusing them.
+
+| Capability | Risk | What limits it |
+|---|---|---|
+| `create_tool` (`allow_tool_creation`, on by default) | Runs model-written Python in the runtime's process: effectively any command as the runtime's user | Nothing contains it. Switch it off unless that is acceptable; the control API refuses it without `allow_command_deploys` |
+| `connect_mcp_server` (`allow_mcp_connect`) | Sends requests (and tool arguments) to a server the model picked | `allowed_mcp_urls`; without it, internal addresses are refused and API deploys get none. Agent-connected servers never get the process identity's credential or a caller's token (`identity_mcp_urls` opts a URL in) |
+| `add_trigger` (`allow_trigger_management`) | Opens new entry points (webhooks, file watchers) | Webhooks on loopback only unless `allow_public_webhooks` (then signed); unsigned loopback webhooks refuse browser cross-site requests; API deploys keep watch paths in `data_dir` |
+| `spawn_process` (`allow_process_spawn`, off by default) | New processes with their own triggers | Children inherit the guardrails, hooks and deploy policy, can't spawn further, and follow the `add_trigger` webhook rules |
+| `get_secret` (secret scoping on) | The model reads secret values | Secret values are redacted from the journal, the prompt history, `/ask` answers and inbox listings; an API deploy can't make a secret out of a host environment variable unless the operator allows it |
+
+Hooks are the place for your own policy: a `config_change` hook (`source="agent"`) can refuse any self-modification, `subagent_start` any spawn, and `permission_request` any approval-gated tool call, for spawned children too.
+
+---
+
 ## Hot reload
 
 `modify_instructions`, `create_tool` and `connect_mcp_server` rebuild the agent:
@@ -346,9 +389,9 @@ print(await tools["add_trigger"].ainvoke({"trigger_type": "cron", "cron_expressi
 - **Spawning without a runtime.** A bare `AgentProcess` can't spawn; register it with `AgentRuntime.add_process()` (which passes the runtime) or pass `runtime=`.
 - **Expecting the new tool in the same run.** Created tools and connected servers are available from the next run.
 - **Leaving `max_rebuilds` unset.** Each hot reload reconnects every MCP server. A cap bounds both the cost and how far the agent can drift.
-- **Assuming a child has the parent's secrets or tools.** A spawned process gets the parent's limits, not its secrets, servers or hooks.
-- **Treating the sandbox as isolation.** Restricted builtins reduce risk; they don't contain hostile code. Keep `sandbox_custom_tools=True` and use the Docker sandbox or MCP tools for anything sensitive.
-- **Empty `allowed_mcp_urls`.** It means any HTTP(S) URL. List the servers the agent may use, or set `allow_mcp_connect=False`.
+- **Assuming a child has the parent's secrets or tools.** A spawned process gets the parent's limits and hooks, not its secrets or servers.
+- **Treating the sandbox as isolation.** Restricted builtins don't contain hostile code: `create_tool` can run any command as the runtime's user. Set `allow_tool_creation=False` unless that is acceptable, and use the Docker sandbox or MCP tools for anything sensitive.
+- **Empty `allowed_mcp_urls`.** For your own process it means any public HTTP(S) URL (a warning says so at start); for an API deploy it means none. List the servers the agent may use, or set `allow_mcp_connect=False`.
 
 ---
 

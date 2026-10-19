@@ -58,7 +58,7 @@ With `DistributedConfig(coordinator=True)`, the runtime's `ClusterNode` builds t
 | Route | Description |
 |---|---|
 | `GET /cluster/nodes` | The registered nodes (`NodeInfo.to_dict()` each) and `count`. With registry discovery, expired registrations are pruned first |
-| `POST /cluster/nodes` | Register or refresh a node: `{"node_id": "...", "url": "http://...", "metadata": {...}}`. `422` for a bad `node_id` (`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`), URL or metadata; `409` for the coordinator's own ID or with static discovery |
+| `POST /cluster/nodes` | Register or refresh a node: `{"node_id": "...", "url": "http://...", "metadata": {...}}`. `422` for a bad `node_id` (`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`), URL (`http`/`https` with a host) or metadata; `403` for a host not in `allowed_node_hosts`; `409` for the coordinator's own ID or with static discovery |
 | `DELETE /cluster/nodes/{node_id}` | Unregister a node (`404` when unknown, `409` for the coordinator itself) |
 | `GET /cluster/status` | `cluster_status()` plus `"coordinator": <node_id>` |
 
