@@ -330,7 +330,7 @@ Used by `BudgetConfig`, `HealthConfig` and `MissionConfig`.
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `webhook_url` | `str \| None` | `None` | `http://` or `https://` URL that receives a JSON POST |
-| `event_type` | `str \| None` | `None` | Event type emitted on the event bus |
+| `event_type` | `str \| None` | `None` | Event type emitted on the runtime's event bus. Needs `AgentRuntime(event_bus=...)` (`promptise runtime start` has an in-process bus); without a bus, or with no subscriber on an `InProcessEventBus`, a warning is logged and nothing is delivered |
 
 ---
 

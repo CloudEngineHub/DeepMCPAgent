@@ -3537,6 +3537,7 @@ class AgentProcess:
                             {
                                 "type": "low_confidence",
                                 "process_id": self.process_id,
+                                "process_name": self.name,
                                 "confidence": evaluation.confidence,
                                 "reasoning": evaluation.reasoning,
                             },

@@ -155,7 +155,7 @@ from .triggers import (
 )
 from .triggers.base import BaseTrigger, TriggerEvent
 from .triggers.cron import CronTrigger
-from .triggers.event import EventTrigger, MessageTrigger
+from .triggers.event import BusEvent, EventTrigger, InProcessEventBus, MessageTrigger
 
 __all__ = [
     # Lifecycle
@@ -225,6 +225,8 @@ __all__ = [
     "TriggerEvent",
     "CronTrigger",
     "EventTrigger",
+    "InProcessEventBus",
+    "BusEvent",
     "MessageTrigger",
     "create_trigger",
     "register_trigger_type",

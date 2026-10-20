@@ -77,7 +77,7 @@ Every `eval_every` successful runs (after each one by default), while the missio
 3. Otherwise asks the judge: a tool-less agent built with `eval_model` (or the process's model) that gets the objective, the success criteria and the evidence (the state as JSON up to 1,000 characters, the last 20 tool calls, the trigger up to 300 characters, the last 10 conversation messages up to 500 characters each) and must answer with JSON: `achieved`, `confidence` (0.0-1.0, clamped), `reasoning`, `progress_summary`.
 4. Applies the verdict:
     - **Achieved**: the mission is `completed`, a `mission.complete` event is emitted, and with `auto_complete=True` (the default) the process stops.
-    - **Not achieved, confidence below `confidence_threshold`**: the mission is `paused`, a `mission.progress` event is emitted, and when `escalation` is set it receives `{"type": "low_confidence", "process_id", "confidence", "reasoning"}`.
+    - **Not achieved, confidence below `confidence_threshold`**: the mission is `paused`, a `mission.progress` event is emitted, and when `escalation` is set it receives `{"type": "low_confidence", "process_id", "process_name", "confidence", "reasoning"}`.
     - **Otherwise**: a `mission.progress` event; the mission stays `active`.
 
 If the judge call fails or its reply is not valid JSON, the evaluation counts as not achieved with confidence `0.5` and reasoning starting with `Evaluation failed:`, so with the default threshold it pauses the mission. Every evaluation is journaled as a `mission_evaluation` entry (`achieved`, `confidence`, `reasoning`, `progress_summary`, `mission_state`, `invocation_number`, `source`).

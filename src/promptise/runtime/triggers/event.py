@@ -3,6 +3,9 @@
 :class:`EventTrigger` fires when a subscribed event matches a pattern,
 converting the event payload into :class:`TriggerEvent` objects.
 
+:class:`InProcessEventBus` is a minimal event bus for one Python process;
+``promptise runtime start`` gives its runtime one.
+
 :class:`MessageTrigger` does the same for message topic subscriptions.
 
 Both use an internal ``asyncio.Queue`` to decouple event delivery from
@@ -13,12 +16,82 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
 from typing import Any
 from uuid import uuid4
 
 from .base import TriggerEvent, drain_queue
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class BusEvent:
+    """An event delivered by :class:`InProcessEventBus`."""
+
+    event_type: str
+    data: dict[str, Any]
+    source: str = ""
+    event_id: str = field(default_factory=lambda: uuid4().hex)
+
+
+class InProcessEventBus:
+    """An event bus that delivers to subscribers in the same Python process.
+
+    Implements what the runtime uses a bus for: ``subscribe`` /
+    ``unsubscribe`` (``event`` triggers) and ``emit`` (escalations with an
+    ``event_type``, :class:`~promptise.events.EventBusSink`).  Nothing
+    leaves the process: to reach other hosts, pass your own bus to
+    :class:`~promptise.runtime.AgentRuntime`.
+
+    Example::
+
+        bus = InProcessEventBus()
+        runtime = AgentRuntime(event_bus=bus)
+        await bus.emit("pipeline.error", {"job": "nightly"}, source="etl")
+    """
+
+    def __init__(self) -> None:
+        self._handlers: dict[str, list[Callable[[BusEvent], Awaitable[Any]]]] = {}
+
+    async def subscribe(
+        self, event_type: Any, handler: Callable[[BusEvent], Awaitable[Any]]
+    ) -> None:
+        """Call *handler* with every event of *event_type*."""
+        key = str(getattr(event_type, "value", event_type))
+        self._handlers.setdefault(key, []).append(handler)
+
+    async def unsubscribe(
+        self, event_type: Any, handler: Callable[[BusEvent], Awaitable[Any]]
+    ) -> None:
+        """Stop calling *handler* (no error if it was not subscribed)."""
+        key = str(getattr(event_type, "value", event_type))
+        handlers = self._handlers.get(key, [])
+        if handler in handlers:
+            handlers.remove(handler)
+
+    def subscriber_count(self, event_type: str) -> int:
+        """How many handlers are subscribed to *event_type*."""
+        return len(self._handlers.get(event_type, []))
+
+    async def emit(self, event_type: str, data: dict[str, Any], source: str = "") -> int:
+        """Deliver an event to every subscriber of *event_type*.
+
+        A handler that raises is logged and does not stop the others.
+
+        Returns:
+            How many subscribers it was delivered to.
+        """
+        event = BusEvent(event_type=event_type, data=dict(data or {}), source=source)
+        delivered = 0
+        for handler in list(self._handlers.get(event_type, [])):
+            try:
+                await handler(event)
+                delivered += 1
+            except Exception:
+                logger.warning("InProcessEventBus: a %r handler failed", event_type, exc_info=True)
+        return delivered
 
 
 class EventTrigger:

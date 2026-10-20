@@ -134,8 +134,8 @@ class RewindPlan:
             be reconstructed *as of just before* this entry).
         mode: Selected mode (echoed for clarity).
         entries_total: Number of entries in the full journal.
-        entries_affected: Number of entries that *would be ignored* by
-            the rewind (those after the target).
+        entries_affected: Number of entries the rewind undoes: the
+            target and every entry after it.
         conversation_entries_affected: Of those, how many are
             conversation-style.
         code_entries_affected: Of those, how many are code/state-style.

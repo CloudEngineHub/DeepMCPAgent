@@ -59,15 +59,27 @@ async def escalate(
     if target.event_type:
         if event_bus is None:
             logger.warning(
-                "Escalation event %r not emitted: the process has no event bus",
+                "Escalation event %r not emitted: the process has no event bus. Create "
+                "the runtime with AgentRuntime(event_bus=...) (promptise.runtime."
+                "InProcessEventBus for processes in this Python process; 'promptise "
+                "runtime start' has one), or set EscalationTarget.webhook_url",
                 target.event_type,
             )
         else:
             delivered_somewhere = True
             try:
-                await event_bus.emit(target.event_type, payload)
+                delivered = await event_bus.emit(target.event_type, payload)
             except Exception as exc:
                 logger.warning("Escalation event emission failed: %s", exc, exc_info=True)
+            else:
+                if type(delivered) is int and delivered == 0:
+                    logger.warning(
+                        "Escalation event %r reached no subscriber: nothing on the event "
+                        "bus listens for it (for example a process with an 'event' trigger "
+                        "for %r)",
+                        target.event_type,
+                        target.event_type,
+                    )
 
     if not delivered_somewhere:
         logger.warning(

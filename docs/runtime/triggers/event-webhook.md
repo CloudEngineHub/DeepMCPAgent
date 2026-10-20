@@ -45,7 +45,7 @@ Subscribes to one event type on an event bus and turns matching events into `Tri
 
 ### The event bus
 
-The runtime doesn't ship an event bus. `EventTrigger` works with any object that has these async methods, so you can wrap Redis Pub/Sub, Kafka, or an in-memory dispatcher:
+`AgentRuntime` doesn't create an event bus; you pass one. `promptise.runtime.InProcessEventBus` delivers events between the processes of one Python process (`promptise runtime start` gives its runtime one, so `event` triggers and escalations with an `event_type` work between the processes it runs). `EventTrigger` works with any object that has these async methods, so you can also wrap Redis Pub/Sub, Kafka, or your own dispatcher:
 
 | Method | Called by |
 |---|---|
@@ -55,7 +55,7 @@ The runtime doesn't ship an event bus. `EventTrigger` works with any object that
 
 The handler is an async callable that receives the event object. The trigger reads its `event_id`, `source` and `data` attributes (missing ones become `""` / `{}`).
 
-A minimal in-memory bus:
+A minimal in-memory bus (`InProcessEventBus` is this, plus error handling):
 
 ```python
 from dataclasses import dataclass, field

@@ -657,6 +657,19 @@ async def _wait_for_shutdown(
     return True
 
 
+def _new_runtime() -> AgentRuntime:
+    """The runtime ``promptise runtime start`` runs its processes on.
+
+    It has an in-process event bus, so ``event`` triggers and escalations
+    with an ``event_type`` work between the processes this command runs
+    (without a bus they could not start, or went nowhere).
+    """
+    from .runtime import AgentRuntime
+    from .triggers.event import InProcessEventBus
+
+    return AgentRuntime(event_bus=InProcessEventBus())
+
+
 async def _run_foreground(
     path: Path,
     name: str | None,
@@ -671,8 +684,6 @@ async def _run_foreground(
 ) -> int:
     """Run the runtime until shutdown; return the exit code."""
     import secrets
-
-    from .runtime import AgentRuntime
 
     launch_id = os.environ.pop(LAUNCH_ENV, None)
     loop = asyncio.get_running_loop()
@@ -700,7 +711,7 @@ async def _run_foreground(
             reason = ""
         console.print(f"\n[yellow]Shutting down{reason}...[/yellow]")
 
-    runtime = AgentRuntime()
+    runtime = _new_runtime()
     api: Any = None
     shut_down = False
     dashboard_obj: Any = None
@@ -1460,10 +1471,14 @@ def _print_rewind_plan(process: str, plan: dict[str, Any]) -> None:
         soft_wrap=True,
     )
     console.print(f"  Mode:      {escape(mode)} (rewinds {_REWIND_MODE_HELP.get(mode, mode)})")
+    affected = int(plan.get("entries_affected", 0) or 0)
+    # entries_affected counts the target itself: the rewind undoes it too.
+    after = max(affected - 1, 0)
     console.print(
-        f"  Affected:  {plan.get('entries_affected', 0)} of {plan.get('entries_total', 0)} "
-        f"journal entries after it ({plan.get('conversation_entries_affected', 0)} "
-        f"conversation, {plan.get('code_entries_affected', 0)} state/tool)"
+        f"  Affected:  {affected} of {plan.get('entries_total', 0)} journal entries: "
+        f"the target and the {after} after it "
+        f"({plan.get('conversation_entries_affected', 0)} conversation, "
+        f"{plan.get('code_entries_affected', 0)} state/tool)"
     )
     summary = plan.get("summary")
     if summary:

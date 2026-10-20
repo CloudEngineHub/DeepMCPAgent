@@ -59,7 +59,7 @@ print(runtime.list_processes())
 
 - **`event_notifier`**: every process emits its `process.*`, `invocation.*` and governance events through it. A process never stops a shared notifier; `stop_all()` drains it after the last process has stopped, so every `process.stopped` is delivered before `stop_all()` returns.
 - **`hooks`**: a [`HookManager`](hooks.md) whose hooks run for every process's lifecycle events, after each process's own `hooks`. `ctx.process_id` names the process.
-- **`event_bus`** and **`broker`**: objects you provide; the runtime does not create them. `event` triggers call `await event_bus.subscribe(event_type, handler)` and `await event_bus.unsubscribe(event_type, handler)`; `message` triggers call `await broker.subscribe(topic, handler)` (which returns a subscription ID) and `await broker.unsubscribe(subscription_id)`. See [Event & Webhook triggers](triggers/event-webhook.md).
+- **`event_bus`** and **`broker`**: objects you provide; `AgentRuntime` does not create them. `promptise.runtime.InProcessEventBus` is a ready-made bus for processes in one Python process, and `promptise runtime start` gives its runtime one. `event` triggers call `await event_bus.subscribe(event_type, handler)` and `await event_bus.unsubscribe(event_type, handler)`; `message` triggers call `await broker.subscribe(topic, handler)` (which returns a subscription ID) and `await broker.unsubscribe(subscription_id)`. See [Event & Webhook triggers](triggers/event-webhook.md).
 
 ---
 

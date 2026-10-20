@@ -26,7 +26,7 @@ from ..config import TriggerConfig
 from ..exceptions import TriggerError
 from .base import BaseTrigger, TriggerEvent
 from .cron import CronTrigger
-from .event import EventTrigger, MessageTrigger
+from .event import BusEvent, EventTrigger, InProcessEventBus, MessageTrigger
 from .filters import FilterExpressionError, compile_filter
 
 __all__ = [
@@ -34,6 +34,8 @@ __all__ = [
     "TriggerEvent",
     "CronTrigger",
     "EventTrigger",
+    "InProcessEventBus",
+    "BusEvent",
     "MessageTrigger",
     "create_trigger",
     "compile_filter",

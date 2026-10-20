@@ -1141,10 +1141,11 @@ class OrchestrationAPI:
             "This config runs programs or code on the runtime's host ("
             + ", ".join(features)
             + "), which the control API doesn't allow by default: anyone with the API "
-            "token could run any command. Use HTTP MCP servers and callback hooks, set "
-            "open_mode.allow_tool_creation=false, load the process from a manifest on the "
-            "host, or, if every token holder may run commands there, start the API with "
-            "OrchestrationAPI(allow_command_deploys=True) "
+            "token could run any command. Use HTTP MCP servers instead of stdio ones, "
+            "leave out the command hooks (a hook that runs code is registered on the host, "
+            "in a manifest or in Python), set open_mode.allow_tool_creation=false, load "
+            "the process from a manifest on the host, or, if every token holder may run "
+            "commands there, start the API with OrchestrationAPI(allow_command_deploys=True) "
             "('promptise runtime start --allow-command-deploys').",
             403,
         )

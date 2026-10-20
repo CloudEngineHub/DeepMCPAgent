@@ -139,7 +139,7 @@ A config that starts a program, or runs agent-written code, on the runtime's hos
 - a command hook (a `hooks` entry with a `command`), or
 - open mode with `open_mode.allow_tool_creation` (the default in open mode). The agent's `create_tool` runs model-written Python inside the runtime's process, and its restricted builtins are not a sandbox, so it amounts to running commands. Deploy open-mode agents with `"open_mode": {"allow_tool_creation": false}`.
 
-Anyone with the token could otherwise run any command as the runtime's user. Use HTTP MCP servers and callback hooks, load such processes from manifests on the host, or, if every token holder may run commands there, enable it:
+Anyone with the token could otherwise run any command as the runtime's user. Use HTTP MCP servers instead of stdio ones and leave out command hooks (a deploy is JSON, so it can't carry a Python callback hook either; register hooks on the host, in a manifest or in code), load such processes from manifests on the host, or, if every token holder may run commands there, enable it:
 
 ```python
 api = OrchestrationAPI(runtime, auth_token="${ORCHESTRATION_API_TOKEN}", allow_command_deploys=True)

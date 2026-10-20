@@ -497,7 +497,7 @@ promptise runtime stop                                  # stop the runtime
 | `promptise runtime validate PATH` | Validate a `.agent` file or every `.agent` file in a directory |
 | `promptise runtime init` | Generate a template `.agent` file (`--template basic\|cron\|webhook\|full`) |
 
-`start` serves the [control API](../runtime/api.md) on `127.0.0.1` with a random bearer token and records the runtime in a private state directory, `~/.promptise/runtime` (`0700`; one `0600` file per runtime; `PROMPTISE_RUNTIME_STATE_DIR` moves it). The other commands find the runtime there, so with one runtime running they need no name. `--url` (with `$PROMPTISE_RUNTIME_TOKEN` or `--token`) targets an Orchestration API on another machine instead.
+`start` runs its processes on one runtime with an in-process event bus (`InProcessEventBus`), so `event` triggers and escalations with an `event_type` reach the other processes of that runtime. It serves the [control API](../runtime/api.md) on `127.0.0.1` with a random bearer token and records the runtime in a private state directory, `~/.promptise/runtime` (`0700`; one `0600` file per runtime; `PROMPTISE_RUNTIME_STATE_DIR` moves it). The other commands find the runtime there, so with one runtime running they need no name. `--url` (with `$PROMPTISE_RUNTIME_TOKEN` or `--token`) targets an Orchestration API on another machine instead.
 
 `start` options:
 

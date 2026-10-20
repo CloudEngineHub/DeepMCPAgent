@@ -624,7 +624,7 @@ process.clear_dead_letters()
 - **`idle_timeout` with a sparse schedule.** An idle-suspended process wakes on the next trigger event, so a cron agent still runs on time. But `process.status()` shows `suspended` between runs; check `suspend_reason == "idle"` before alerting on it.
 - **Removing a trigger by position.** IDs are stable digests, not list positions. Read them from `GET /triggers` or `status()["triggers"]`; `static_<n>` IDs still work for `DELETE` but are deprecated.
 - **Changing a trigger's config changes its ID.** The ID is a digest of the config, so editing a trigger (a new cron expression, another port) gives it a new ID. Remove the old one and add the new one.
-- **`event` and `message` triggers without a bus.** Without `AgentRuntime(event_bus=...)` or `broker=...`, the trigger can't be created: the process fails to start, and `POST /triggers` answers `422`.
+- **`event` and `message` triggers without a bus.** Without `AgentRuntime(event_bus=...)` or `broker=...`, the trigger can't be created: the process fails to start, and `POST /triggers` answers `422`. `promptise runtime start` has an in-process event bus, so its `event` triggers work; `message` triggers still need a broker.
 - **Suspended is not stopped.** A suspended process keeps accepting and queueing events (the webhook answers `202`). Stop it if senders should be told to retry.
 
 !!! info "Dependencies shipped with base install"
