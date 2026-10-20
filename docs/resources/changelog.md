@@ -4,6 +4,53 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
+## v1.5.1 — Unreleased
+
+Promptise now works with the MCP Python SDK 2.x as well as 1.x, the SPIFFE extra installs, sandboxed code no longer runs as root, PII patterns stop redacting parts of numbers, and a set of runtime fixes, among them a stop() race that could run a finished run again.
+
+### Upgrade notes
+
+- **The MCP SDK 2.x is supported, and a new install gets it.** The requirement is `mcp>=1.9,<3` (was `<2`), so Promptise installs next to packages that need the 2.x SDK, and 2.x clients reach a Promptise server with the 2026-07-28 protocol revision. Promptise's APIs are unchanged. Code of your own that reads MCP SDK objects (the `Tool`, `CallToolResult`... that `MCPClient` and `TestClient` return) follows the SDK: 2.x has snake_case attributes (`tool.input_schema`, `result.is_error`). Pin `"mcp>=1.9,<2"` to keep the 1.x SDK. `pydantic-settings` is now a direct dependency (the 1.x SDK installed it, 2.x doesn't).
+- **On a 2026-07-28 connection the server can't send requests to the client**, so elicitation (including `ElicitationApprover`) and sampling are declined there, and gated calls fail closed. Promptise's `MCPClient` always uses the handshake, where they work; with the 2.x SDK's own client use `Client(..., mode="legacy")`.
+- **Sandboxed code runs as `nobody`.** `SandboxConfig.user` (also in a `.superagent` `sandbox:` section) defaults to `"65534:65534"`; before, the container ran as the image's default user, root in `python:3.11-slim`. The workspace (`HOME`) and `/tmp` stay writable and `pip install` still installs into the workspace. Set `user="root"` for the old behavior, or the image's user name for a custom image.
+- **`promptise[identity-spiffe]` depends on `spiffe`** (py-spiffe), the package that exists on PyPI. 1.5.0's `pyspiffe>=1.0` could not be installed, so `[identity-spiffe]` and `[identity-all]` were unusable.
+- **PII redaction changed for some inputs.** A number pattern now matches a whole number or nothing (an order number `2024-118-5521` is no longer redacted as a phone number, a 14-digit value after `NPI` no longer as an NPI); a spaced IBAN is redacted whole as `[IBAN]` (it was partly redacted as an Aadhaar number); contextual bank accounts take up to 34 digits.
+- **Some trigger IDs change once.** A trigger whose ID hashed a function `filter_expression` (its ID changed on every start anyway), or a `custom_config` value with a credential-like key or a URL with user info, gets a new stable ID: those values are now masked before hashing, as documented.
+- **`promptise runtime start` has an in-process event bus.** `event` triggers and escalations with an `event_type` now work between the processes of one CLI runtime (an `event` trigger could not start before).
+- **A run refused by `max_runs_per_day` is dead-lettered** (reason `"budget: max_runs_per_day"`) and its `task_completed` outcome is `"refused"`; it reported `"success"` and was lost.
+- **An unset `${VAR}` in a manifest raises `ManifestEnvVarError`**, which is both a `ManifestError` and the `EnvVarNotFoundError` raised before.
+- **An `async def` `filter_expression` is rejected** when the `TriggerConfig` is built; it was never awaited, so every event passed.
+
+### Fixed
+
+- **mcp 2.x: `import promptise` failed** (`McpError` is `MCPError`) and the server and client could not run on it. A compatibility layer (`promptise.mcp._compat`, `promptise.mcp.server._sdk`) registers the server's handlers on either SDK's lowlevel server, reads protocol fields in either spelling, hands the SDK `httpx2` objects with 2.x, keeps HTTP 401/403/404 statuses that 2.x no longer raises (so `MCPConnectionRejectedError` and session re-initialisation behave as with 1.x), reports a failed `bearer_token_provider` as `MCPCredentialError`, and keys `list_changed` notifications and `SessionState` on the connection (2.x builds a new session object per request). The 1.x code paths are unchanged.
+- **SPIFFE SDK mode never worked** -- it imported `pyspiffe.workloadapi...` and called `WorkloadApiClient(spiffe_socket_path=...)` / `fetch_jwt_svid(audiences=...)`. It now uses `spiffe.WorkloadApiClient(socket_path=...)`, `fetch_jwt_svid(audience=...)` and `JwtSvid.token`, also for `AgentIdentity.auto()` with `SPIFFE_ENDPOINT_SOCKET` set; a missing or invalid socket raises `CredentialAcquisitionError`.
+- **PII: `phone_us` matched the last ten digits of longer numbers** (`2024-118-5521` became `2[PHONE]`); spaced IBANs were read as Aadhaar / My Number and partly redacted (an IBAN is now detected in groups of four, checked with the mod-97 checksum, and findings inside it are dropped); and `exp 12/2025` became `[CARD_EXPIRY]25` -- EIN, NPI, BSN, DEA, Medicare, NHS, NY licence, passport, PAN, VIN, SWIFT, DOB, IPv4, MRN, SSN, ITIN, SIN, RRN and NDC patterns had the same boundary problem.
+- **`stop()` during a finished run's `task_completed` hook dead-lettered the event** ("process stopped", "run cancelled"), and `redeliver_dead_letters()` then ran the finished run again, repeating its tool calls. The event is released before the hooks run; only events whose run did not finish are dead-lettered.
+- **`redeliver_dead_letters()` didn't wake an idle-suspended process**, so redelivered events never ran.
+- **Trigger IDs with a function filter changed on every start** (they hashed `repr()`, which has a memory address); they hash the function's module and name.
+- **Event and message triggers dropped events silently** when their 100-event buffer was full. They count them (`dropped_events` in `status()["triggers"]`) and the process dead-letters them (`"trigger buffer full"`).
+- **`promptise runtime start` could not use custom trigger types** (validate passed, start failed with "Unknown trigger type"). `start` and `validate` take `--import MODULE` to import the module that registers them, and both report an unknown type before anything starts.
+- **`promptise runtime validate` printed a traceback for an unset `${VAR}`** and, for a directory, stopped at that file; it reports the file and goes on. `promptise runtime start` printed a traceback too (for a directory, after "All processes stopped"); it now checks every manifest before starting anything.
+- **An approval-denied call used up `max_irreversible_per_run`** (counted when the call starts, before the gate asks). A denied call gives its irreversible action back; it still counts as a tool call and against the cost budget.
+- **An unreachable cluster node raised `aiohttp` or timeout errors** from remote operations; they raise `NodeUnreachableError`, a `RuntimeError`, as documented.
+- **The `low_confidence` mission escalation had no `process_name`**, unlike the budget and health payloads.
+- **A lost connection could be reported as `Failed to call tool 'x': `** (an empty reason), depending on whether the request or the session noticed first; it is reported as `Connection to ... was lost (...)` on both SDKs. This also fixes a flaky test (`test_auto_reconnect_off_reports_the_lost_session`).
+- **Dashboard:** the Processes tab hid Name and Model below about 160 columns (it now drops the least important columns first); the Logs tab's log panel pushed the journal panel off the screen; the header's Events counter showed runs; the Events tab's Payload column was always `-` (a new `payload_summary` in the `task_created` hook data fills it).
+- **`GET /triggers` showed the password of a URL in `custom_config`** (`scheme://user:pass@host`); URL user info is masked.
+- **Messages:** `COMMANDS_NOT_ALLOWED` suggested callback hooks, which a JSON deploy can't carry; `rewind --plan` said "N of M entries after it" with N counting the target; the escalation warning without an event bus now says how to fix it; a refused cluster node was logged with doubled quotes; and every budget refusal logged LangChain's "Error in BudgetGuard.on_tool_start callback" warning (the guard now logs the refusal at INFO).
+- **Manifests:** unknown top-level, `config:` and `memory:` keys get "did you mean" hints like the other sections.
+
+### Changed
+
+- New: `SandboxConfig.user`; `promptise.runtime.InProcessEventBus`; `promptise.runtime.ManifestEnvVarError`; `promptise.runtime.distributed.NodeUnreachableError`; `promptise.approval.on_approval_denied`; `--import` for `promptise runtime start` and `validate`.
+- CI: a `test-mcp-v1` job runs the MCP tests and mypy with `mcp<2`; the main matrix resolves to the 2.x SDK.
+- Docs: installation (MCP SDK versions, identity extras), SPIFFE provider, sandbox user, MCP server SDK compatibility, triggers, processes, hooks, budget, coordinator and CLI pages describe the changes above.
+- Docs corrected where the code was right: a run refused by `max_runs_per_day` does emit `budget.exceeded` (budget.md); every journal entry has an `entry_id`, so `secret_access` and `mission_evaluation` entries can be rewind targets (journal index, rewind.md); the rewind worked example's undone count matches its plan and the resume comes before the checkpoint; manifests' triggers are fully validated at load and `get_secret` exists only in open mode (manifests.md); hook `env` values stay `${VAR}` until the hook runs (hooks.md); the dashboard collector fills the Events, Recent Activity and journal panels, and its trigger IDs are the stable ones (dashboard.md).
+- The `purge_user` docstrings (cache, memory, observability) describe deleting one user's data on request instead of naming a law (docs only).
+
+---
+
 ## v1.5.0 — 2026-10-20
 
 The Agent Runtime now does what its documentation says: unwired features (lifecycle hooks, rewind, distributed mode, the `promptise runtime stop | status | restart` commands) work, and the runtime docs were rewritten against the code.
