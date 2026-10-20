@@ -67,23 +67,26 @@ Every field of every section is listed on the [Configuration](configuration.md) 
 
 | Problem | Error message (inside `ManifestValidationError`) |
 |---|---|
-| Unknown top-level key (`journal_level: full`) | `journal_level` / `Extra inputs are not permitted` |
+| Unknown top-level key (`journal_level: full`) | `manifest: unknown key(s) ['journal_level']; valid keys are [...] (did you mean 'journal_level' -> 'journal'?)` |
 | Unknown key in a section (`health:`, `context:`, `journal:`, `open_mode:`, `secrets:`, `budget:`, `mission:`) | `health: unknown key(s) ['error_windw']; valid keys are ['cooldown', ..., 'stuck_threshold']` |
-| Unknown key in `memory:` | `memory: unknown key(s) [...]; valid keys are ['auto_store', 'collection', 'max', 'min_score', 'persist_directory', 'provider', 'timeout', 'user_id']` |
-| Unknown key in `config:` | `config: unknown key(s) ['restart_on_failure']; valid keys are ['adaptive', 'approval', ...]` |
+| Unknown key in `memory:` | `memory: unknown key(s) ['provder']; valid keys are ['auto_store', 'collection', 'max', 'min_score', 'persist_directory', 'provider', 'timeout', 'user_id'] (did you mean 'provder' -> 'provider'?)` |
+| Unknown key in `config:` | `config: unknown key(s) ['concurency']; valid keys are ['adaptive', 'approval', ...] (did you mean 'concurency' -> 'concurrency'?)` |
 | A `config:` key that has its own section | `config: ['instructions'] also set by the manifest's own section(s); set each option in one place (the top-level section)` |
 | `world:` and `context: initial_state` both set | `Initial state is set twice, in 'world:' and in 'context: initial_state'; use one of them` |
 | The same option in `memory:` and `context:` | `'memory: provider' and 'context: memory_provider' set the same option; use one of them` |
 | Unknown key in a server entry | `servers.tools: timout: Extra inputs are not permitted` |
 | A server without `url` or `command` | `servers.tools: needs 'url' (an HTTP server) or 'command' (a stdio server)` |
 | A trigger without `type` | `Trigger at index 0 is missing required 'type' field` |
+| An invalid trigger (an unknown key, a missing `cron_expression`, a bad time zone) | `triggers[0] (cron): unknown key(s) ['cron']; valid keys are [...]` |
 | A hook with an unknown event | `hooks[0]: ... unknown hook event 'on_start'; valid events are ['session_start', ...]` |
 | A hook with `callback:` | `hooks[0]: a manifest hook runs a 'command'; Python callbacks are registered in code (process.hooks)` |
 | Invalid `execution_mode` | `execution_mode: 'auto' is not one of ['strict', 'open']` |
 
 The exception message starts with `Manifest validation failed:`; `exc.errors` holds the Pydantic error details and `exc.file_path` the file.
 
-Trigger entries are checked in full (unknown keys, a missing `cron_expression`, a bad time zone) when the manifest is converted with `manifest_to_process_config()`, which `AgentRuntime.load_manifest()` and `promptise runtime start` call; the error there is a `pydantic.ValidationError` for `TriggerConfig`. `load_manifest()` and `promptise runtime validate` only check that each trigger has a `type`.
+Trigger entries are checked in full (unknown keys, the fields their type needs, a bad time zone) when the manifest is loaded, so `load_manifest()`, `promptise runtime validate` and `promptise runtime start` all report a bad trigger. Unknown keys, here and in every other section, come with "did you mean" hints.
+
+A `${VAR}` that is not set raises `ManifestEnvVarError`, which is both a `ManifestError` and an `EnvVarNotFoundError`. `promptise runtime validate` reports it for that file and goes on with the next one; `promptise runtime start` checks every manifest first and starts nothing when one fails.
 
 ---
 
@@ -301,10 +304,10 @@ A key that has its own section (`model`, `instructions`, `identity`, `execution_
 `${VAR}` and `${VAR:-default}` references are resolved from the environment when the manifest is loaded, in every value of the file, with one exception: the values under `secrets.secrets`. Those stay references in the loaded config and are resolved by the process's [secret scope](governance/secrets.md) when it starts, so the config, `repr()` and any dump of it never hold the secret value. A reference to an unset variable without a default fails at load time in both cases:
 
 ```text
-EnvVarNotFoundError: Environment variable 'MONITORING_API_KEY' not found (referenced in: secrets.secrets.api_key)
+ManifestEnvVarError: agents/monitor.agent: Environment variable 'MONITORING_API_KEY' not found (referenced in: secrets.secrets.api_key)
 ```
 
-To keep a credential out of plain config, put it in `secrets.secrets` and have the agent read it with the `get_secret` tool. Other secret-bearing values, such as a webhook's `hmac_secret` or a server's credential headers, are resolved at load time; they are stored as `SecretStr` (masked in `repr()` and JSON dumps) but held in memory in plain form.
+To keep a credential out of plain config, put it in `secrets.secrets`. In [open mode](meta-tools.md) the agent reads it with the `get_secret` tool; a strict-mode process has no such tool, so pass the credential to your own code or MCP server instead (see [Secret scoping](governance/secrets.md)). Other secret-bearing values, such as a webhook's `hmac_secret` or a server's credential headers, are resolved at load time; they are stored as `SecretStr` (masked in `repr()` and JSON dumps) but held in memory in plain form.
 
 ```yaml
 secrets:
@@ -391,7 +394,7 @@ save_manifest(manifest, "agents/watcher-copy.agent")
 
 | Function | Returns | Raises |
 |---|---|---|
-| `load_manifest(path)` | `AgentManifestSchema` | `ManifestError` (missing file, unreadable, invalid YAML, not a mapping), `ManifestValidationError` (schema), `EnvVarNotFoundError` (unset `${VAR}`) |
+| `load_manifest(path)` | `AgentManifestSchema` | `ManifestError` (missing file, unreadable, invalid YAML, not a mapping), `ManifestValidationError` (schema), `ManifestEnvVarError` (unset `${VAR}`; also an `EnvVarNotFoundError`) |
 | `validate_manifest(path)` | `list[str]` of warnings: no instructions, no triggers, no MCP servers | as `load_manifest()` |
 | `manifest_to_process_config(manifest)` | `ProcessConfig` | `pydantic.ValidationError` (for example an invalid trigger) |
 | `save_manifest(manifest, path)` | `None` | |
@@ -424,7 +427,7 @@ See [CLI Commands](cli.md) for every option.
 
 ## Common pitfalls
 
-- **Expecting `validate` to check triggers.** `promptise runtime validate` passes a trigger with a misspelt field; the error shows when the manifest is converted (at `start`). Run `manifest_to_process_config(load_manifest(path))` in CI to catch it early.
+- **Expecting `get_secret` in strict mode.** The agent's `get_secret` tool exists only in open mode; in strict mode `secrets.secrets` holds values for your code, not for the model.
 - **A manifest process that "remembers" old state.** Without a `journal:` section the process journals to `.promptise/journal` and recovers on start. Set `journal: {level: none}` or `recover_on_start: false` if each start should be fresh.
 - **Putting an option in two places.** `config: {instructions: ...}` next to a top-level `instructions:` fails; so do `world:` together with `context: initial_state`.
 - **Secrets in plain values.** Only `secrets.secrets` keeps `${VAR}` references until start. A literal API key anywhere else is in the file and in the loaded config.

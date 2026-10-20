@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from promptise.exceptions import EnvVarNotFoundError
+
 
 class RuntimeBaseError(RuntimeError):
     """Base exception for all runtime module errors."""
@@ -50,6 +52,23 @@ class ProcessStateError(RuntimeBaseError):
 
 class ManifestError(RuntimeBaseError):
     """Raised when ``.agent`` manifest loading fails (I/O or parse error)."""
+
+
+class ManifestEnvVarError(ManifestError, EnvVarNotFoundError):
+    """A ``${VAR}`` in a ``.agent`` manifest names an unset environment variable.
+
+    A :class:`ManifestError`, so the CLI and :meth:`AgentRuntime.load_directory`
+    report it like any other manifest problem, and an
+    :class:`~promptise.exceptions.EnvVarNotFoundError`, which is what
+    :func:`~promptise.runtime.manifest.load_manifest` raised before 1.5.1.
+
+    Attributes:
+        file_path: The manifest that references the variable.
+    """
+
+    def __init__(self, message: str, *, file_path: str | None = None) -> None:
+        self.file_path = file_path
+        RuntimeError.__init__(self, f"{file_path}: {message}" if file_path else message)
 
 
 class ManifestValidationError(ManifestError):

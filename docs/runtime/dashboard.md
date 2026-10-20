@@ -41,11 +41,11 @@ Switch tabs with the number keys `1`-`7`, the left and right arrow keys, or `Tab
 | # | Tab | What it shows |
 |---|---|---|
 | 1 | **Overview** | Counters (processes, running, failed, triggers, invocations, errors, throughput, uptime), a table of processes, and recent invocations (from `state.invocations`) |
-| 2 | **Processes** | Per process: state, process ID, model, invocations, failures, triggers, queue size, concurrency, heartbeat interval, uptime |
+| 2 | **Processes** | Per process: name, state, process ID, model, invocations, failures, triggers, queue size, concurrency, heartbeat interval, uptime. On a narrow terminal the least important columns are left out first (heartbeat, process ID, concurrency, uptime...); name, state and model always show |
 | 3 | **Triggers** | Every config trigger: process, type, a configuration summary (cron expression, webhook port and path, watched path, event type or topic), fire count and last fire time (counted from `task_created`) |
 | 4 | **Context** | Per process: each state key, its value (secret values redacted, cut at 50 characters), whether it is writable and how many writes it has had, plus the number of environment variables, file mounts and whether memory is on |
-| 5 | **Logs** | Captured Python log records (runtime logs) and `state.journal_entries` |
-| 6 | **Events** | `state.events` (trigger events) and `state.invocations` (invocation results) |
+| 5 | **Logs** | Captured Python log records (runtime logs) and `state.journal_entries`, each in its own panel with a share of the height (newest first) |
+| 6 | **Events** | `state.events` (trigger events, with a one-line payload preview) and `state.invocations` (invocation results) |
 | 7 | **Commands** | The command line and the history of commands run |
 
 Process states are color-coded:
@@ -180,7 +180,7 @@ Methods: `record_invocation(log)` (also counts errors), `record_event(event)`, `
 | Field | Type | Description |
 |---|---|---|
 | `process_name` | `str` | Owning process |
-| `trigger_id` | `str` | `<process>/<type>` as set by the collector (not the API's stable trigger ID) |
+| `trigger_id` | `str` | The trigger's stable ID, the same as the API's (for example `cron-2721f2b845`) |
 | `trigger_type` | `str` | `cron`, `webhook`, `file_watch`, `event`, `message`, ... |
 | `config_summary` | `str` | Short configuration text, or `-` |
 | `fire_count` | `int` | Times fired (default `0`) |
@@ -236,7 +236,7 @@ Every `interval` seconds (default `0.5`) it calls `status()` on each process of 
 
 - **The dashboard takes over the terminal.** It draws in the alternate screen and reads keys directly; you can't use the same terminal for other commands. Always call `dashboard.stop()` (in a `finally`) so the terminal is restored.
 - **Log output moves into the Logs tab.** While the dashboard runs, the root logger is set to `DEBUG` and existing console handlers of the root, `promptise.runtime`, `httpx`, `uvicorn` and `asyncio` loggers are muted; `stop()` restores them.
-- **Empty Events, Recent Activity and journal panels.** The collector doesn't fill them; call the `state.record_*` methods from your own code to use them.
+- **An empty journal panel.** The collector reads the journal on the runtime's event loop; create it there (or pass `loop=`), and give the process a `journal`.
 - **Starting the dashboard off the runtime's loop.** Commands then can't run and the journal panel stays empty; create the collector and call `dashboard.start()` inside the coroutine that runs the runtime.
 - **Shorter intervals cost more.** The collector polls every process each `interval`; `2.0` is plenty for a quiet runtime.
 - **Not with `--detach`.** The dashboard needs a foreground terminal.

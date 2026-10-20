@@ -71,7 +71,7 @@ from .config import (
     SecretScopeConfig,
     TriggerConfig,
 )
-from .exceptions import ManifestError, ManifestValidationError
+from .exceptions import ManifestEnvVarError, ManifestError, ManifestValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +151,18 @@ class AgentManifestSchema(BaseModel):
         ),
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_unknown_top_level_keys(cls, data: Any) -> Any:
+        """Unknown top-level keys, named with "did you mean" hints."""
+        if isinstance(data, dict):
+            unknown = sorted(str(k) for k in data if k not in cls.model_fields)
+            if unknown:
+                raise ValueError(
+                    _unknown_keys_message("manifest", unknown, sorted(cls.model_fields))
+                )
+        return data
+
     @model_validator(mode="after")
     def _validate_manifest(self) -> AgentManifestSchema:
         """Validate cross-field constraints and every section's keys."""
@@ -170,11 +182,9 @@ class AgentManifestSchema(BaseModel):
                     f"execution_mode: {self.execution_mode!r} is not one of {valid_modes}"
                 )
         if self.memory is not None:
-            unknown = sorted(set(self.memory) - set(_MEMORY_KEYS))
+            unknown = sorted(str(k) for k in set(self.memory) - set(_MEMORY_KEYS))
             if unknown:
-                raise ValueError(
-                    f"memory: unknown key(s) {unknown}; valid keys are {sorted(_MEMORY_KEYS)}"
-                )
+                raise ValueError(_unknown_keys_message("memory", unknown, sorted(_MEMORY_KEYS)))
         if self.context is not None:
             _check_keys("context", self.context, ContextConfig)
             if self.world and self.context.get("initial_state"):
@@ -226,11 +236,10 @@ class AgentManifestSchema(BaseModel):
 
     def _check_config_overrides(self) -> None:
         """``config:`` may hold any ProcessConfig field, once."""
-        unknown = sorted(set(self.config) - set(ProcessConfig.model_fields))
+        unknown = sorted(str(k) for k in set(self.config) - set(ProcessConfig.model_fields))
         if unknown:
             raise ValueError(
-                f"config: unknown key(s) {unknown}; valid keys are "
-                f"{sorted(ProcessConfig.model_fields)}"
+                _unknown_keys_message("config", unknown, sorted(ProcessConfig.model_fields))
             )
         # Keys that also have a dedicated section: setting both would
         # silently drop one of them.
@@ -388,6 +397,8 @@ def load_manifest(path: str | Path) -> AgentManifestSchema:
 
     Raises:
         ManifestError: If the file cannot be read or parsed.
+        ManifestEnvVarError: A ``${VAR}`` names an unset environment
+            variable (also an :class:`~promptise.exceptions.EnvVarNotFoundError`).
         ManifestValidationError: If schema validation fails.
     """
     path = Path(path)
@@ -410,6 +421,29 @@ def load_manifest(path: str | Path) -> AgentManifestSchema:
     # Resolve environment variables, except secret values: those stay
     # ${VAR} references until the process starts (SecretScope resolves
     # them), so the loaded config never holds a secret in plain text.
+    from promptise.exceptions import EnvVarNotFoundError
+
+    try:
+        data = _resolve_manifest_env(data)
+    except EnvVarNotFoundError as exc:
+        raise ManifestEnvVarError(str(exc), file_path=str(path)) from exc
+
+    try:
+        return AgentManifestSchema.model_validate(data)
+    except ValidationError as exc:
+        raise ManifestValidationError(
+            f"Manifest validation failed: {exc}",
+            errors=exc.errors(),
+            file_path=str(path),
+        ) from exc
+
+
+def _resolve_manifest_env(data: dict[str, Any]) -> dict[str, Any]:
+    """Resolve ``${VAR}`` references in a manifest's data.
+
+    Raises:
+        EnvVarNotFoundError: A referenced variable is not set.
+    """
     from promptise.env_resolver import (
         has_env_reference,
         resolve_env_in_dict,
@@ -452,15 +486,7 @@ def load_manifest(path: str | Path) -> AgentManifestSchema:
         data["secrets"]["secrets"] = secret_templates
     for index, env in hook_envs.items():
         data["hooks"][index]["env"] = env
-
-    try:
-        return AgentManifestSchema.model_validate(data)
-    except ValidationError as exc:
-        raise ManifestValidationError(
-            f"Manifest validation failed: {exc}",
-            errors=exc.errors(),
-            file_path=str(path),
-        ) from exc
+    return data
 
 
 def save_manifest(manifest: AgentManifestSchema, path: str | Path) -> None:

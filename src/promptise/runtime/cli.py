@@ -433,6 +433,7 @@ def start(
     if detach and dashboard:
         _fail("--dashboard needs a terminal and can't be combined with --detach")
 
+    _check_manifests(path)
     try:
         rname = _runtime_name_for(path, name, runtime_name)
         existing = find_state(rname)
@@ -490,6 +491,31 @@ def start(
         _fail(f"{type(exc).__name__}: {exc}")
     if code:
         raise typer.Exit(code)
+
+
+def _check_manifests(path: Path) -> None:
+    """Load every manifest *path* names before anything starts.
+
+    A manifest that fails (invalid, or a ``${VAR}`` that is not set) is
+    reported, one line per file, and nothing is started; otherwise the
+    error would surface while the runtime starts (as a traceback, or after
+    "All processes stopped" for a directory).
+    """
+    files = sorted(path.glob("*.agent")) if path.is_dir() else [path]
+    problems: list[str] = []
+    for file in files:
+        try:
+            load_manifest(file)
+        except ManifestValidationError as exc:
+            problems.append(f"{file}: {exc}")
+        except ManifestError as exc:
+            problems.append(str(exc) if str(file) in str(exc) else f"{file}: {exc}")
+    if not problems:
+        return
+    for problem in problems:
+        err_console.print(f"[red]✗[/red] {escape(problem)}", soft_wrap=True)
+    noun = "manifest" if len(problems) == 1 else "manifests"
+    _fail(f"{len(problems)} {noun} could not be loaded; nothing was started")
 
 
 def _runtime_name_for(path: Path, name: str | None, runtime_name: str | None) -> str:

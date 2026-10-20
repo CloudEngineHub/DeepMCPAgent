@@ -84,6 +84,7 @@ from .distributed import (
 from .exceptions import (
     BudgetExceededError,
     JournalError,
+    ManifestEnvVarError,
     ManifestError,
     ManifestValidationError,
     ProcessStateError,
@@ -214,6 +215,7 @@ __all__ = [
     "RuntimeBaseError",
     "BudgetExceededError",
     "ProcessStateError",
+    "ManifestEnvVarError",
     "ManifestError",
     "ManifestValidationError",
     "TriggerError",

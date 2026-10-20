@@ -660,6 +660,17 @@ class AgentProcess:
         self._sync_governance("mission")
         self._build_runtime_callback()
 
+    def _payload_summary(self, payload: Any, limit: int = 120) -> str:
+        """A one-line preview of a trigger payload (secrets redacted)."""
+        if not payload:
+            return ""
+        try:
+            text = json.dumps(self._redact(payload), default=str, separators=(", ", ": "))
+        except Exception:
+            text = str(payload)
+        text = " ".join(text.split())
+        return text if len(text) <= limit else text[: limit - 3] + "..."
+
     def _redact(self, value: Any) -> Any:
         """Secret values in *value* replaced by ``[REDACTED]`` (a copy)."""
         if self._secrets is None:
@@ -1069,6 +1080,7 @@ class AgentProcess:
                 "event_id": event.event_id,
                 "trigger_id": event.trigger_id,
                 "trigger_type": event.trigger_type,
+                "payload_summary": self._payload_summary(event.payload),
             },
         )
         if result is not None and result.blocked:

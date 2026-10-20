@@ -98,7 +98,7 @@ hooks:
     env_passthrough: [SLACK_TOKEN]
 ```
 
-Each entry is a `HookConfig` with a `command`. A manifest resolves `${VAR}` references when it is loaded (everywhere except the `secrets:` section), so `env: {SLACK_TOKEN: ${SLACK_TOKEN}}` would need the variable at load time and put its value into the loaded config. `env_passthrough` hands the variable to the program when the hook runs instead. A `callback` key in a manifest is an error (`hooks[0]: a manifest hook runs a 'command'; Python callbacks are registered in code (process.hooks)`). The old top-level `entrypoint` key is not read by the runtime; a manifest that sets it loads with a `FutureWarning`.
+Each entry is a `HookConfig` with a `command`. A manifest resolves `${VAR}` references when it is loaded, except in the `secrets:` section and in hook `env:` values: those stay `${VAR}` references in the loaded config and are resolved each time the hook runs. Loading still checks that every variable they name is set, so `env: {SLACK_TOKEN: ${SLACK_TOKEN}}` needs the variable at load time but never puts its value into the loaded config. `env_passthrough` hands a host variable to the program as it is. A `callback` key in a manifest is an error (`hooks[0]: a manifest hook runs a 'command'; Python callbacks are registered in code (process.hooks)`). The old top-level `entrypoint` key is not read by the runtime; a manifest that sets it loads with a `FutureWarning`.
 
 ### Deploying command hooks over the control API
 
@@ -123,7 +123,7 @@ A command hook runs a program on the runtime's host. The [Orchestration API](api
 | `POST_COMPACT` | After that compaction | `buffer_size`, `dropped` | No |
 | `FILE_CHANGED` | A file-watch trigger reported a change | The event payload (`path`, `event_type`, ...), `trigger_id`, `event_id` | Yes: the event is dropped and counted as filtered |
 | `CONFIG_CHANGE` | The process's effective configuration changed | `source` (`"agent"` or `"operator"`), `change`, plus details | Only for `source="agent"`: the agent's change is not applied. Operator changes always apply |
-| `TASK_CREATED` | A trigger event is about to be queued (from a trigger or `inject()`) | `event_id`, `trigger_id`, `trigger_type` | Yes: the event is dead-lettered (`"blocked by hook"`) instead of queued |
+| `TASK_CREATED` | A trigger event is about to be queued (from a trigger or `inject()`) | `event_id`, `trigger_id`, `trigger_type`, `payload_summary` (the payload as one line of JSON, at most 120 characters, secrets redacted) | Yes: the event is dead-lettered (`"blocked by hook"`) instead of queued |
 | `TASK_COMPLETED` | A queued event finished | `event_id`, `trigger_id`, `trigger_type`, `outcome`, `duration_ms`, `error` | No |
 
 `PERMISSION_DENIED` covers three kinds of refusal:

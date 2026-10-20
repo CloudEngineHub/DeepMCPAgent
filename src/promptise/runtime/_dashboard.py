@@ -392,7 +392,7 @@ class RuntimeDataCollector:
                     trigger_type=str(data.get("trigger_type") or "?"),
                     trigger_id=trigger_id,
                     event_id=str(data.get("event_id") or ""),
-                    payload_summary="-",
+                    payload_summary=str(data.get("payload_summary") or "-"),
                 )
             )
 
@@ -545,6 +545,49 @@ class RuntimeDataCollector:
 # ------------------------------------------------------------------
 # Dashboard renderer
 # ------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class _Column:
+    header: str
+    width: int  # the width it needs (a minimum for ratio columns)
+    options: dict[str, Any]
+
+
+#: The Processes tab's columns, in display order, with the priority each
+#: is kept at when the terminal is narrow (lower = kept longer).
+_PROCESS_COLUMNS: tuple[tuple[int, _Column], ...] = (
+    # Name takes the spare width; its "width" is the minimum it keeps.
+    (0, _Column("Name", 18, {"style": "white", "no_wrap": True, "ratio": 1, "width": 18})),
+    (1, _Column("State", 12, {"justify": "center", "width": 12})),
+    (9, _Column("PID", 10, {"style": "dim", "width": 10})),
+    (2, _Column("Model", 24, {"style": "dim", "width": 24, "no_wrap": True})),
+    (3, _Column("Invocations", 12, {"justify": "right", "width": 12})),
+    (4, _Column("Failures", 9, {"justify": "right", "width": 9})),
+    (6, _Column("Triggers", 9, {"justify": "right", "width": 9})),
+    (5, _Column("Queue", 7, {"justify": "right", "width": 7})),
+    (8, _Column("Conc.", 6, {"justify": "right", "width": 6})),
+    (10, _Column("Heartbeat", 10, {"justify": "right", "width": 10})),
+    (7, _Column("Uptime", 12, {"style": "dim", "width": 12})),
+)
+
+
+def _process_columns(console_width: int) -> list[_Column]:
+    """The Processes tab columns that fit *console_width* (Name always does).
+
+    The least important columns are left out first, so Name, State and
+    Model never collapse to nothing on a narrow terminal.
+    """
+    available = console_width - 6  # tab panel and its padding
+    kept: set[str] = set()
+    used = 0
+    for _, column in sorted(_PROCESS_COLUMNS, key=lambda item: item[0]):
+        need = column.width + 2  # cell padding
+        if column.header != "Name" and used + need > available:
+            continue
+        kept.add(column.header)
+        used += need
+    return [column for _, column in _PROCESS_COLUMNS if column.header in kept]
 
 
 class RuntimeDashboard:
@@ -1048,10 +1091,11 @@ class RuntimeDashboard:
         info.append(" configured\n", style="dim")
 
         info.append("Events     ", style="dim")
-        info.append(f"{s.total_invocations}", style="bold white")
+        info.append(f"{s.total_events}", style="bold white")
+        info.append(f"  ({s.total_invocations} runs", style="dim")
         if s.total_errors:
-            info.append(f"  ({s.total_errors} errors)", style="red")
-        info.append("\n\n")
+            info.append(f", {s.total_errors} failed", style="red")
+        info.append(")\n\n", style="dim")
 
         info.append("promptise.com", style="dim underline")
         info.append("  \u00b7  ", style="dim")
@@ -1214,6 +1258,7 @@ class RuntimeDashboard:
                 padding=(1, 2),
             )
 
+        columns = _process_columns(self._console.width)
         table = Table(
             show_header=True,
             header_style="bold dim",
@@ -1221,40 +1266,29 @@ class RuntimeDashboard:
             show_edge=False,
             padding=(0, 1),
         )
-        table.add_column("Name", style="white", no_wrap=True, ratio=3)
-        table.add_column("State", justify="center", width=12)
-        table.add_column("PID", style="dim", width=10)
-        table.add_column("Model", style="dim", ratio=2)
-        table.add_column("Invocations", justify="right", width=12)
-        table.add_column("Failures", justify="right", width=9)
-        table.add_column("Triggers", justify="right", width=9)
-        table.add_column("Queue", justify="right", width=7)
-        table.add_column("Conc.", justify="right", width=6)
-        table.add_column("Heartbeat", justify="right", width=10)
-        table.add_column("Uptime", style="dim", width=12)
+        for column in columns:
+            table.add_column(column.header, **column.options)
 
         for proc in sorted(s.processes.values(), key=lambda p: p.name):
             state_color = STATE_COLORS.get(proc.state, "white")
-            state_text = Text(proc.state.upper(), style=state_color)
             uptime_str = _format_duration(proc.uptime_seconds) if proc.uptime_seconds else "-"
-            failures_text = Text(
-                str(proc.consecutive_failures),
-                style="red" if proc.consecutive_failures > 0 else "dim",
-            )
-
-            table.add_row(
-                proc.name,
-                state_text,
-                proc.process_id[:8],
-                proc.model,
-                str(proc.invocation_count),
-                failures_text,
-                str(proc.trigger_count),
-                str(proc.queue_size),
-                str(proc.concurrency),
-                f"{proc.heartbeat_interval:.0f}s",
-                uptime_str,
-            )
+            cells: dict[str, Any] = {
+                "Name": proc.name,
+                "State": Text(proc.state.upper(), style=state_color),
+                "PID": proc.process_id[:8],
+                "Model": proc.model,
+                "Invocations": str(proc.invocation_count),
+                "Failures": Text(
+                    str(proc.consecutive_failures),
+                    style="red" if proc.consecutive_failures > 0 else "dim",
+                ),
+                "Triggers": str(proc.trigger_count),
+                "Queue": str(proc.queue_size),
+                "Conc.": str(proc.concurrency),
+                "Heartbeat": f"{proc.heartbeat_interval:.0f}s",
+                "Uptime": uptime_str,
+            }
+            table.add_row(*(cells[column.header] for column in columns))
 
         summary = Text(
             f"  {len(s.processes)} processes    Use ':help' for process commands",
@@ -1534,25 +1568,35 @@ class RuntimeDashboard:
             style="dim",
         )
 
-        body = Table.grid(expand=True)
-        body.add_column(ratio=1)
-        body.add_row(
-            Panel(
-                lines,
-                title="[dim]Runtime Logs[/]",
-                border_style=BORDER,
-                padding=(0, 1),
-            )
+        # A split layout gives each panel its share of the height (newest
+        # lines first, the rest cropped); stacked in a grid, the log panel
+        # took the whole screen and pushed the journal panel off it.
+        body = Layout()
+        body.split_column(
+            Layout(
+                Panel(
+                    lines,
+                    title="[dim]Runtime Logs[/]",
+                    border_style=BORDER,
+                    padding=(0, 1),
+                ),
+                name="logs",
+                ratio=3,
+                minimum_size=4,
+            ),
+            Layout(
+                Panel(
+                    journal_lines,
+                    title="[dim]Journal Entries[/]",
+                    border_style=BORDER,
+                    padding=(0, 1),
+                ),
+                name="journal",
+                ratio=2,
+                minimum_size=4,
+            ),
+            Layout(count_text, name="count", size=1),
         )
-        body.add_row(
-            Panel(
-                journal_lines,
-                title="[dim]Journal Entries[/]",
-                border_style=BORDER,
-                padding=(0, 1),
-            )
-        )
-        body.add_row(count_text)
 
         return Panel(
             body,
