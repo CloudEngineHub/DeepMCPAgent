@@ -1764,12 +1764,17 @@ class TestStalePlanIsNeverWritten:
             "dropped": [],
         }
 
+        # The re-curation for the new profile is held until the test lets it
+        # finish, so a slow runner can't land it before the steps that need
+        # it still running.
+        rebuild_may_finish = asyncio.Event()
+
         async def complete(system: str, user: str) -> str:
             nonlocal calls
             calls += 1
             if calls == 1:
                 return json.dumps(PROPOSAL)
-            await asyncio.sleep(1.5)  # the re-curation for the new profile takes a while
+            await rebuild_may_finish.wait()
             return json.dumps(full_proposal)
 
         app = _app(tmp_path, str(spec_file), completer=complete)
@@ -1806,7 +1811,11 @@ class TestStalePlanIsNeverWritten:
             await pilot.pause()
             assert app.pane.id == "project" and app.result is None
             await pilot.press("enter")  # return to the review; the rebuild is still running
-            await _settle(pilot, 2.0)  # …and now it has landed
+            rebuild_may_finish.set()
+            await _until(  # …and now it has landed
+                pilot, lambda: app.plan is not first_plan and app.plan_built_for == app.plan_key()
+            )
+            await _settle(pilot)
             assert app.pane.id == "review"
             assert app.plan is not first_plan and app.plan_built_for == app.plan_key()
             assert [t.name for t in app.plan.tools] == [
