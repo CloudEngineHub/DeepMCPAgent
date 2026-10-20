@@ -19,6 +19,28 @@ from .exceptions import BudgetExceededError
 
 logger = logging.getLogger("promptise.runtime.callbacks")
 
+
+class _BudgetRefusalLogFilter(logging.Filter):
+    """Drop LangChain's warning for a tool call the budget refused.
+
+    LangChain logs ``Error in BudgetGuard.on_tool_start callback:
+    BudgetExceededError(...)`` for every refusal before it re-raises it,
+    which reads like a crash.  A refusal is expected; :class:`BudgetGuard`
+    logs it itself (INFO), and the agent gets it as the tool's result.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        return not (
+            isinstance(args, tuple)
+            and len(args) >= 3
+            and args[0] == "BudgetGuard"
+            and str(args[2]).startswith("BudgetExceededError(")
+        )
+
+
+logging.getLogger("langchain_core.callbacks.manager").addFilter(_BudgetRefusalLogFilter())
+
 if TYPE_CHECKING:
     from .budget import BudgetState, BudgetViolation
     from .health import HealthMonitor
@@ -110,6 +132,13 @@ class BudgetGuard(BaseCallbackHandler):
                     self._on_denied(violation)
                 except Exception:
                     logger.warning("Budget denial callback failed", exc_info=True)
+            logger.info(
+                "Budget refused tool call %s: %s %g > %g",
+                violation.tool_name or "?",
+                violation.limit_name,
+                violation.current_value,
+                violation.limit_value,
+            )
             raise BudgetExceededError(violation)
 
 

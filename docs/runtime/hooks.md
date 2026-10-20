@@ -136,7 +136,7 @@ A command hook runs a program on the runtime's host. The [Orchestration API](api
 
 `CONFIG_CHANGE` names the change in `change`: `"instructions"`, `"tool"`, `"mcp_server"`, `"trigger_added"`, `"trigger_removed"`, `"budget"`, `"health"`, `"mission"`, `"rollback"` or `"rewind"`.
 
-`TASK_COMPLETED`'s `outcome` is `"success"`, `"retrying"`, `"failed"`, `"blocked"` or `"dead_lettered"`.
+`TASK_COMPLETED`'s `outcome` is `"success"`, `"retrying"`, `"failed"`, `"blocked"`, `"dead_lettered"` or `"refused"` (the run did not start: `max_runs_per_day` was reached; the event is dead-lettered with reason `"budget: max_runs_per_day"`). The event is no longer the worker's when the hook runs: a `stop()` that arrives while a `task_completed` hook is still running doesn't dead-letter an event whose run has finished.
 
 `HookEvent` values are the lowercase names (`HookEvent.USER_PROMPT_SUBMIT.value == "user_prompt_submit"`). `BLOCKABLE_EVENTS` is the frozenset of the six blockable events.
 

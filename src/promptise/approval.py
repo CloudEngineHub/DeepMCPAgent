@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import contextvars
 import copy
 import hashlib
 import hmac as _hmac_mod
@@ -37,7 +38,15 @@ import secrets
 import time
 import typing
 from collections import OrderedDict
-from collections.abc import AsyncIterator, Awaitable, Callable, Hashable, Mapping, Sequence
+from collections.abc import (
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Hashable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 from dataclasses import replace as _dc_replace
 from fnmatch import fnmatch
 from typing import Any, Literal
@@ -63,6 +72,29 @@ from ._outbound import pin_target
 from .tools import WrappingTool, plain_arguments
 
 logger = logging.getLogger("promptise.approval")
+
+#: Listeners told the tool name when an approval gate denies a call, for the
+#: run in progress (see :func:`on_approval_denied`).
+_denial_listeners: contextvars.ContextVar[tuple[Callable[[str], None], ...]] = (
+    contextvars.ContextVar("promptise_approval_denial_listeners", default=())
+)
+
+
+@contextlib.contextmanager
+def on_approval_denied(listener: Callable[[str], None]) -> Iterator[None]:
+    """Call *listener* with the tool name of every call a gate denies in this context.
+
+    The agent runtime uses it to give a denied call's irreversible-action
+    budget back: the budget is counted when the call starts, before the
+    gate asks, and a call that never ran must not use up
+    ``max_irreversible_per_run``.
+    """
+    token = _denial_listeners.set((*_denial_listeners.get(), listener))
+    try:
+        yield
+    finally:
+        _denial_listeners.reset(token)
+
 
 __all__ = [
     "ApprovalRequest",
@@ -993,6 +1025,11 @@ class _ApprovalToolWrapper(WrappingTool):
                     **_decision_event_fields(decision),
                 },
             )
+            for listener in _denial_listeners.get():
+                try:
+                    listener(tool_name)
+                except Exception:
+                    logger.debug("Approval denial listener failed", exc_info=True)
             return f"DENIED: {reason}"
 
         # Approved — execute with the original arguments, or the reviewer's edits

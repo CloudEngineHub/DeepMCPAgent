@@ -220,7 +220,16 @@ node_status = await coordinator.get_node_status("node-1")
 
 ## Remote Operations
 
-Remote operations raise `RuntimeError` when the node answers with an error status (`401` wrong token, `404` unknown process, `500` failed start, ...), so a failure is never mistaken for success.
+Remote operations raise `RuntimeError` when the node answers with an error status (`401` wrong token, `404` unknown process, `500` failed start, ...), so a failure is never mistaken for success. A node that can't be reached at all (connection refused, a DNS failure, a timeout) raises `NodeUnreachableError`, a `RuntimeError` subclass with the `node_id`, so `except RuntimeError` handles both and failover code can tell a down node apart:
+
+```python
+from promptise.runtime.distributed import NodeUnreachableError
+
+try:
+    await coordinator.start_process_on_node("node-1", "data-watcher")
+except NodeUnreachableError:
+    await coordinator.start_process_on_node("node-2", "data-watcher")
+```
 
 ### Start a process on a remote node
 

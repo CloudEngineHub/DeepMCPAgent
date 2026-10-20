@@ -47,6 +47,22 @@ except ImportError:
     HAS_AIOHTTP = False
 
 
+class NodeUnreachableError(RuntimeError):
+    """A node could not be reached (connection refused, DNS, timeout...).
+
+    A :class:`RuntimeError`, like the error for a node that answers with
+    an error status, so ``except RuntimeError`` handles both; catch this
+    subclass to fail over only when the node is down.
+
+    Attributes:
+        node_id: The node that could not be reached.
+    """
+
+    def __init__(self, message: str, *, node_id: str) -> None:
+        super().__init__(message)
+        self.node_id = node_id
+
+
 @dataclass
 class NodeInfo:
     """Information about a runtime node in the cluster.
@@ -317,10 +333,22 @@ class RuntimeCoordinator:
                     )
                 return data if isinstance(data, dict) else {"result": data}
 
-        if session is not None:
-            return await _do(session)
-        async with ClientSession(timeout=ClientTimeout(total=timeout)) as sess:
-            return await _do(sess)
+        from aiohttp import ClientError
+
+        try:
+            if session is not None:
+                return await _do(session)
+            async with ClientSession(timeout=ClientTimeout(total=timeout)) as sess:
+                return await _do(sess)
+        except (ClientError, asyncio.TimeoutError, OSError) as exc:
+            # aiohttp's own errors (and a timeout) are not RuntimeErrors;
+            # remote operations raise RuntimeError, as documented.
+            detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+            raise NodeUnreachableError(
+                f"{method} {path} on node {node.node_id!r} failed: node unreachable "
+                f"at {node.url} ({detail})",
+                node_id=node.node_id,
+            ) from exc
 
     async def _check_node_health(self, session: Any, node: NodeInfo) -> dict[str, Any]:
         """Check health of a single node."""
@@ -369,7 +397,9 @@ class RuntimeCoordinator:
 
         Raises:
             KeyError: If node doesn't exist.
-            RuntimeError: If aiohttp is not available.
+            RuntimeError: If aiohttp is not available, the node answers with
+                an error status, or (:class:`NodeUnreachableError`) it can't
+                be reached.
         """
         node = self.get_node(node_id)
         try:
@@ -392,7 +422,8 @@ class RuntimeCoordinator:
             Response from the node.
 
         Raises:
-            RuntimeError: If the node rejects the request (non-2xx).
+            RuntimeError: If the node rejects the request (non-2xx), or
+                :class:`NodeUnreachableError` if it can't be reached.
         """
         node = self.get_node(node_id)
         return await self._request("POST", node, f"/processes/{process_name}/start", timeout=30)
@@ -408,7 +439,8 @@ class RuntimeCoordinator:
             Response from the node.
 
         Raises:
-            RuntimeError: If the node rejects the request (non-2xx).
+            RuntimeError: If the node rejects the request (non-2xx), or
+                :class:`NodeUnreachableError` if it can't be reached.
         """
         node = self.get_node(node_id)
         return await self._request("POST", node, f"/processes/{process_name}/stop", timeout=30)
@@ -432,7 +464,8 @@ class RuntimeCoordinator:
             Response from the node.
 
         Raises:
-            RuntimeError: If the node rejects the request (non-2xx).
+            RuntimeError: If the node rejects the request (non-2xx), or
+                :class:`NodeUnreachableError` if it can't be reached.
         """
         node = self.get_node(node_id)
         return await self._request(

@@ -154,6 +154,19 @@ class BudgetState:
 
             return self._check_limits(tool_name)
 
+    def refund_irreversible(self, tool_name: str) -> None:
+        """Give back the irreversible action of a call that did not run.
+
+        A call is counted when it starts; when an approval gate then denies
+        it, nothing irreversible happened, so it must not use up
+        ``max_irreversible_per_run``.  Other counters (tool calls, cost)
+        keep the attempt.
+        """
+        with self._lock:
+            annotation = self._config.tool_costs.get(tool_name)
+            if annotation is not None and annotation.irreversible and self.run_irreversible > 0:
+                self.run_irreversible -= 1
+
     async def record_llm_turn(self) -> BudgetViolation | None:
         """Record an LLM turn and check limits."""
         with self._lock:

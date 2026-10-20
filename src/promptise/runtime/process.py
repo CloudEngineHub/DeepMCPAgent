@@ -381,6 +381,20 @@ async def _cancel_and_wait(tasks: list[asyncio.Task[Any]]) -> None:
             task.exception()  # retrieve it, so asyncio doesn't log it as never retrieved
 
 
+class _RunRefused(Exception):
+    """A run the process refused before starting it (``max_runs_per_day``).
+
+    Attributes:
+        reason: The dead-letter reason (``"budget: max_runs_per_day"``).
+        detail: What was exceeded.
+    """
+
+    def __init__(self, reason: str, detail: str) -> None:
+        super().__init__(detail)
+        self.reason = reason
+        self.detail = detail
+
+
 class AgentProcess:
     """Lifecycle container for a long-running agent process.
 
@@ -1035,6 +1049,14 @@ class AgentProcess:
         started: float,
         error: BaseException | str | None = None,
     ) -> None:
+        # The event has its outcome now.  It stops being the worker's held
+        # event before the hooks run: a stop() that arrives while they run
+        # must not dead-letter it as "process stopped" (a redelivery would
+        # run a finished run again, irreversible tool calls included).
+        me = asyncio.current_task()
+        if me is not None and self._worker_events.get(me) is event:
+            del self._worker_events[me]
+            self._running_workers.discard(me)
         if not self._has_hooks(HookEvent.TASK_COMPLETED):
             return
         if isinstance(error, BaseException):
@@ -3139,6 +3161,13 @@ class AgentProcess:
                 self._consecutive_failures = 0
             except asyncio.CancelledError:
                 raise
+            except _RunRefused as exc:
+                # max_runs_per_day: the run never started.  Dead-lettered, so
+                # it can be redelivered after the daily reset; not a failure.
+                self._delivery_attempts.pop(event.event_id, None)
+                self._dead_letter(event, exc.reason, error=exc.detail)
+                await self._task_completed(event, "refused", started, exc.detail)
+                return False
             except HookBlocked as exc:
                 # A user_prompt_submit hook refused the run: not a failure.
                 self._dead_letter(event, "blocked by hook", error=exc.reason)
@@ -3286,7 +3315,11 @@ class AgentProcess:
                     {**self._budget_denial_data(run_violation), "event_id": event.event_id},
                 )
                 await self._handle_budget_violation(run_violation)
-                return None
+                raise _RunRefused(
+                    f"budget: {run_violation.limit_name}",
+                    f"{run_violation.limit_name} reached "
+                    f"({run_violation.current_value:g} > {run_violation.limit_value:g})",
+                )
             await self._budget.reset_run()
 
         # -- Pre-invoke: check mission timeout / invocation limits --
@@ -3360,12 +3393,22 @@ class AgentProcess:
         if self._runtime_callback is not None:
             invoke_config["callbacks"] = self._runtime_callback.callbacks()
 
+        from promptise.approval import on_approval_denied
         from promptise.events import _event_scope
 
+        # A call an approval gate denies gives its irreversible action back.
+        refund = (
+            on_approval_denied(self._budget.refund_irreversible)
+            if self._budget is not None
+            else contextlib.nullcontext()
+        )
         try:
             # Attribute the agent's events to this process and trigger.
-            with _event_scope(
-                metadata={**self._event_metadata(), "trigger_type": event.trigger_type}
+            with (
+                refund,
+                _event_scope(
+                    metadata={**self._event_metadata(), "trigger_type": event.trigger_type}
+                ),
             ):
                 result = await self._agent.ainvoke(
                     {"messages": messages},

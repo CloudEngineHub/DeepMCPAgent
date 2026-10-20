@@ -263,7 +263,7 @@ Budget limit max_tool_calls_per_day reached (limit 5); tool call 'send' was not 
 
 LLM turns are counted but not blocked: the turn that exceeds `max_llm_turns_per_run` still runs, and every tool call after it is refused.
 
-After the invocation finishes, the first violation of the run triggers the action configured in `on_exceeded` (below). `max_runs_per_day` is checked when an invocation starts; a run over that limit does not start, and `on_exceeded` is applied at once.
+After the invocation finishes, the first violation of the run triggers the action configured in `on_exceeded` (below). `max_runs_per_day` is checked when an invocation starts; a run over that limit does not start, and `on_exceeded` is applied at once. Its event goes to the [dead letters](../processes.md#dead-letters) with reason `"budget: max_runs_per_day"` (the `task_completed` hook reports outcome `"refused"`), so `redeliver_dead_letters()` can run it after the daily reset.
 
 !!! note "Changed in 1.3.0"
     Earlier versions counted tool calls and applied `on_exceeded` only after the invocation had finished, so an agent could exceed `max_irreversible_per_run` (or any per-run limit) within a single run.
@@ -361,6 +361,8 @@ budget=BudgetConfig(
 ```
 
 The agent can call `search` as many times as the cost budget allows, but it can only call `delete_record` and/or `send_email` a combined total of 2 times per invocation.
+
+A call an [approval gate](../../core/approval.md) denies did nothing irreversible, so it gives its irreversible action back: with `max_irreversible_per_run=2`, two denied `delete_record` calls still leave room for two approved ones. It still counts as a tool call and against the cost budget.
 
 ---
 

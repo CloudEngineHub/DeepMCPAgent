@@ -427,7 +427,7 @@ class RuntimeTransport:
                 "RuntimeTransport %s: refused to register node %r at %s (host not in "
                 "allowed_node_hosts)",
                 log_safe(self._node_id),
-                log_safe(repr(node_id)),
+                log_safe(node_id),
                 log_safe(url),
             )
             return web.json_response(

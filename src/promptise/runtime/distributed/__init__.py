@@ -14,7 +14,7 @@ Enables agent processes to run across multiple machines with:
 
 from __future__ import annotations
 
-from .coordinator import NodeInfo, RuntimeCoordinator
+from .coordinator import NodeInfo, NodeUnreachableError, RuntimeCoordinator
 from .discovery import (
     DiscoveredNode,
     ProcessDiscovery,
@@ -32,6 +32,7 @@ try:
         "RuntimeTransport",
         "RuntimeCoordinator",
         "NodeInfo",
+        "NodeUnreachableError",
         "ProcessDiscovery",
         "DiscoveredNode",
         "StaticDiscovery",
@@ -42,6 +43,7 @@ except ImportError:
         "ClusterNode",
         "RuntimeCoordinator",
         "NodeInfo",
+        "NodeUnreachableError",
         "ProcessDiscovery",
         "DiscoveredNode",
         "StaticDiscovery",

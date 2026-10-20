@@ -161,7 +161,8 @@ A run that raises is retried when `trigger_delivery.max_retries` is above 0 (def
 
 | Reason | When |
 |---|---|
-| `"process stopped"` | Not run yet at `stop()` (queued, held, running or still inside a trigger), or arriving while the process is stopping or stopped |
+| `"process stopped"` | Not run yet at `stop()` (queued, held, running or still inside a trigger), or arriving while the process is stopping or stopped. A run that finished (its `task_completed` hooks may still be running) is not dead-lettered |
+| `"budget: max_runs_per_day"` | The run was refused because `max_runs_per_day` was reached; redeliver it after the daily reset |
 | `"process restarting"` | Held by a worker, or waiting for a retry, when an automatic restart or recycle tears the process down |
 | `"trigger removed"` | Still buffered in a trigger, or held by its listener, when the trigger was removed (`remove_trigger()`, `DELETE .../triggers/{id}`, the agent's `remove_trigger`) |
 | `"process failed"` | Queued when the process failed, or arriving while it is `FAILED` |
