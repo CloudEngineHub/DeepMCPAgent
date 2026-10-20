@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import difflib
+import re
 from enum import Enum
 from typing import Any, Literal
 
@@ -30,6 +31,13 @@ _KEY_HINTS: dict[str, str] = {
 }
 
 _SIZE_UNITS = {"K": 1024, "M": 1024**2, "G": 1024**3, "T": 1024**4}
+
+#: The user sandboxed code runs as unless ``SandboxConfig.user`` says
+#: otherwise: ``nobody``/``nogroup`` by number, which exists (or needs no
+#: entry) in every image.
+DEFAULT_SANDBOX_USER = "65534:65534"
+
+_USER_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*(?::[A-Za-z0-9_][A-Za-z0-9_.-]*)?$")
 
 
 def parse_size(size: str) -> int:
@@ -64,6 +72,9 @@ class SandboxConfig(BaseModel):
         workdir: Working directory inside container (default: "/workspace")
         env: Additional environment variables
         allow_sudo: Allow sudo access in container (default: False)
+        user: User the container and every command run as, ``"uid[:gid]"``
+            or a user name from the image (default: ``"65534:65534"``,
+            ``nobody``). Set ``"root"`` to run as root, the 1.5.0 behaviour.
         runtime: Docker runtime to run the container with (``"runsc"`` for gVisor)
         read_only_rootfs: Mount the root filesystem read-only (default: True)
 
@@ -94,6 +105,13 @@ class SandboxConfig(BaseModel):
     workdir: str = Field("/workspace", description="Working directory inside container")
     env: dict[str, str] = Field(default_factory=dict, description="Environment variables")
     allow_sudo: bool = Field(False, description="Allow sudo access in container")
+    user: str = Field(
+        DEFAULT_SANDBOX_USER,
+        description=(
+            "User the sandboxed code runs as: 'uid[:gid]' or a user name in the image. "
+            "Defaults to 65534:65534 (nobody); set 'root' to run as root."
+        ),
+    )
     runtime: str | None = Field(None, description="Docker runtime (e.g., 'runsc' for gVisor)")
     read_only_rootfs: bool = Field(True, description="Read-only root filesystem")
 
@@ -118,6 +136,24 @@ class SandboxConfig(BaseModel):
             + "; ".join(problems)
             + f". Valid options: {', '.join(cls.model_fields)}"
         )
+
+    @field_validator("user")
+    @classmethod
+    def validate_user(cls, v: str) -> str:
+        """Validate the ``user[:group]`` the container runs as."""
+        v = v.strip()
+        if not _USER_RE.match(v):
+            raise ValueError(
+                f"Invalid sandbox user {v!r}: use 'uid', 'uid:gid', 'name' or "
+                "'name:group' (for example '65534:65534', or 'root' to run as root)"
+            )
+        return v
+
+    @property
+    def runs_as_root(self) -> bool:
+        """Whether sandboxed code runs as root (``user="root"`` or uid 0)."""
+        name = self.user.split(":", 1)[0]
+        return name in ("root", "0")
 
     @field_validator("memory_limit", "disk_limit")
     @classmethod

@@ -297,6 +297,10 @@ class DockerBackend(SandboxBackend):
             "stdin_open": True,
             "working_dir": self.config.workdir,
             "environment": self._environment(),
+            # Not root unless asked for: the image's default user (root for
+            # python:*-slim) would otherwise run the agent's code. The
+            # internal setup and kill commands still exec as root.
+            "user": self.config.user,
             "command": "/bin/bash",
             "labels": {
                 "promptise.sandbox": "true",
@@ -360,12 +364,30 @@ class DockerBackend(SandboxBackend):
         host_config["tmpfs"] = {
             "/tmp": f"rw,noexec,nosuid,size={tmp_bytes}",  # nosec B108 - path inside sandboxed container, not host
             "/var/tmp": f"rw,noexec,nosuid,size={var_tmp_bytes}",  # nosec B108 - path inside sandboxed container, not host
-            self.config.workdir: f"rw,size={disk_bytes}",
+            self.config.workdir: f"rw,size={disk_bytes}{self._workspace_owner()}",
         }
 
         config["host_config"] = host_config
 
         return config
+
+    def _workspace_owner(self) -> str:
+        """tmpfs options that make the workspace writable by the sandbox user.
+
+        Docker creates tmpfs mounts as root with mode 755, so the workspace
+        (also ``HOME``) would be read-only for a non-root user. A numeric
+        user is made its owner; a user given by name, whose uid only the
+        image knows, gets a world-writable (sticky, 1777) workspace.
+        """
+        if self.config.runs_as_root:
+            return ""
+        uid, _, gid = self.config.user.partition(":")
+        if not uid.isdigit():
+            return ",mode=1777"
+        options = f",uid={uid}"
+        if gid.isdigit():
+            options += f",gid={gid}"
+        return options
 
     def _parse_size(self, size_str: str) -> int:
         """Parse size string to bytes.

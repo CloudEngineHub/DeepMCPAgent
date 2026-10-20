@@ -9,7 +9,7 @@ Key Features:
 - Multiple backends: Docker (with optional gVisor runtime)
 - Layered security: no network by default, Docker's default seccomp profile,
   dropped capabilities, no-new-privileges, read-only root filesystem,
-  optional gVisor
+  a non-root user (``nobody`` unless ``user="root"``), optional gVisor
 - Full CLI access: Execute any command within the isolated environment
 - Resource limits: CPU, memory, processes, workspace size, execution time
 

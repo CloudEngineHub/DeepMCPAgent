@@ -75,7 +75,7 @@ Five LangChain tools for agent interaction:
 
 ## Security Architecture
 
-### 7 Layers of Defense
+### 8 Layers of Defense
 
 1. **gVisor Runtime** (optional): User-space kernel with syscall interception
 2. **Seccomp**: Syscall filtering (~200 allowed syscalls)
@@ -84,6 +84,7 @@ Five LangChain tools for agent interaction:
 5. **Read-only Root FS**: Prevent system file modification
 6. **No Privileged Mode**: Non-privileged container
 7. **Resource Limits**: CPU, memory, disk quotas via cgroups
+8. **Non-root User**: Code runs as `nobody` (uid 65534); `user="root"` opts in to root
 
 ### Security Profiles
 

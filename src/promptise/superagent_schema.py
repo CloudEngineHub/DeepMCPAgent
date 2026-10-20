@@ -314,6 +314,8 @@ class SandboxConfigSection(BaseModel):
         workdir: Working directory inside container.
         env: Additional environment variables.
         allow_sudo: Allow sudo access in container.
+        user: User the sandboxed code runs as (default ``"65534:65534"``,
+            ``nobody``; ``"root"`` to run as root).
 
     Examples:
         >>> config = SandboxConfigSection(
@@ -339,6 +341,9 @@ class SandboxConfigSection(BaseModel):
     workdir: str = Field("/workspace", description="Working directory")
     env: dict[str, str] = Field(default_factory=dict, description="Environment variables")
     allow_sudo: bool = Field(False, description="Allow sudo access")
+    user: str = Field(
+        "65534:65534", description="User the sandboxed code runs as ('root' to run as root)"
+    )
 
 
 class MemorySection(BaseModel):

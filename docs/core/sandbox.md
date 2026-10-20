@@ -41,6 +41,7 @@ The sandbox provides a secure execution environment for agent-generated code. Wh
 - **Resource limits** -- CPU, memory, process count, workspace size, and execution time
 - **Network isolation** -- no network by default; restricted (DNS + HTTP/HTTPS egress) or full when you ask for it
 - **Filesystem isolation** -- read-only root, size-capped writable workspace
+- **A non-root user** -- code runs as `nobody` (uid 65534) unless you set `user="root"`
 - **Capability dropping** -- ~40 Linux capabilities dropped, `no-new-privileges` always set
 - **Syscall filtering** -- Docker's default seccomp profile; optional gVisor kernel
 - **Timeouts that stop the code** -- a command that exceeds its timeout is killed
@@ -65,6 +66,7 @@ The sandbox provides a secure execution environment for agent-generated code. Wh
 | `workdir` | `str` | `"/workspace"` | Working directory inside container |
 | `env` | `dict[str, str]` | `{}` | Additional environment variables (`HOME` defaults to `workdir`) |
 | `allow_sudo` | `bool` | `False` | Keep `CAP_SETUID`/`CAP_SETGID` so `sudo` works in images that ship it |
+| `user` | `str` | `"65534:65534"` | User the container and every command run as: `"uid[:gid]"` or a user name from the image. The default is `nobody`. Set `"root"` to run as root. |
 | `runtime` | `str \| None` | `None` | Docker runtime (e.g., `"runsc"` for gVisor) |
 | `read_only_rootfs` | `bool` | `True` | Read-only root filesystem |
 
@@ -365,6 +367,7 @@ What every sandbox container gets, and what it does not:
 | Seccomp | Docker's default seccomp profile, which blocks ~44 syscalls such as `mount`, `reboot`, `kexec_load` and kernel module loading. Promptise does not ship a custom profile. |
 | AppArmor | Docker's `docker-default` profile on hosts with AppArmor enabled. Promptise does not load a custom profile. |
 | Capabilities | ~40 capabilities dropped, including `CAP_SYS_ADMIN`, `CAP_NET_ADMIN`, `CAP_SYS_PTRACE` and `CAP_SETUID`/`CAP_SETGID` (kept only with `allow_sudo=True`). `CAP_SYS_ADMIN` is never re-added. |
+| User | Code runs as `nobody` (`user="65534:65534"`), not as the image's default user (root in `python:*-slim`). The workspace is owned by (or writable for) that user. Root only with `user="root"`. |
 | Privileges | `no-new-privileges` always set; never a privileged container |
 | Filesystem | Read-only root; writable size-capped tmpfs at `workdir`, `/tmp` and `/var/tmp` (`/tmp` and `/var/tmp` are `noexec`) |
 | Resources | `cpu_limit`, `memory_limit` (swap disabled), `pids_limit`, `disk_limit` |
@@ -374,6 +377,19 @@ What every sandbox container gets, and what it does not:
 The egress filter for `network="restricted"` and the kill of a timed-out
 command run as short privileged `exec`s issued by the host-side backend; the
 sandboxed code itself never gains those privileges.
+
+!!! note "Upgrading from 1.5.0"
+    Before 1.5.1 the sandbox did not set a user, so code ran as the image's
+    default user, which is root in the default `python:3.11-slim` image.
+    It now runs as `nobody`. The workspace (also `HOME`) and `/tmp` are
+    writable, and `pip install` installs into the workspace as before. Code
+    that writes outside them, or a custom image that expects a particular
+    user, needs `user=` set: the image's user name, or `user="root"` for the
+    old behaviour.
+
+    ```python
+    agent = await build_agent(..., sandbox={"user": "root"})  # 1.5.0 behaviour
+    ```
 
 ---
 

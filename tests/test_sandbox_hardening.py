@@ -111,7 +111,7 @@ class TestContainerConfig:
         conf = DockerBackend(cfg)._build_container_config()["host_config"]
         assert conf["pids_limit"] == 64
         assert conf["mem_limit"] == 512 * 1024**2
-        assert conf["tmpfs"]["/workspace"] == f"rw,size={256 * 1024**2}"
+        assert conf["tmpfs"]["/workspace"] == f"rw,size={256 * 1024**2},uid=65534,gid=65534"
         # /tmp and /var/tmp never exceed the disk limit
         assert conf["tmpfs"]["/tmp"].endswith(f"size={256 * 1024**2}")
         assert conf["read_only"] is True
@@ -120,7 +120,7 @@ class TestContainerConfig:
         cfg = SandboxConfig(read_only_rootfs=False, disk_limit="2G")
         conf = DockerBackend(cfg)._build_container_config()["host_config"]
         assert conf["read_only"] is False
-        assert conf["tmpfs"]["/workspace"] == f"rw,size={2 * 1024**3}"
+        assert conf["tmpfs"]["/workspace"] == f"rw,size={2 * 1024**3},uid=65534,gid=65534"
 
     def test_security_opts_and_caps(self):
         conf = DockerBackend(SandboxConfig())._build_container_config()
@@ -144,6 +144,67 @@ class TestContainerConfig:
     def test_gvisor_sets_runtime(self):
         conf = DockerBackend(SandboxConfig(backend="gvisor"))._build_container_config()
         assert conf["host_config"]["runtime"] == "runsc"
+
+
+class TestSandboxUser:
+    """Agent code runs as a non-root user unless root is asked for (1.5.1)."""
+
+    def test_default_user_is_not_root(self):
+        cfg = SandboxConfig()
+        assert cfg.user == "65534:65534"
+        assert cfg.runs_as_root is False
+        conf = DockerBackend(cfg)._build_container_config()
+        # Without "user" Docker runs the image's default user: root in python:*-slim
+        assert conf["user"] == "65534:65534"
+        # Capability drops and no-new-privileges are unchanged
+        assert conf["security_opt"] == ["no-new-privileges"]
+        assert "CAP_SETUID" in conf["host_config"]["cap_drop"]
+
+    def test_default_user_owns_the_workspace(self):
+        conf = DockerBackend(SandboxConfig())._build_container_config()["host_config"]
+        assert conf["tmpfs"]["/workspace"].endswith(",uid=65534,gid=65534")
+        # /tmp and /var/tmp are world-writable tmpfs already
+        assert "uid=" not in conf["tmpfs"]["/tmp"]
+
+    @pytest.mark.parametrize("user", ["root", "0", "0:0", "root:root"])
+    def test_root_is_an_explicit_opt_in(self, user):
+        cfg = SandboxConfig(user=user)
+        assert cfg.runs_as_root is True
+        conf = DockerBackend(cfg)._build_container_config()
+        assert conf["user"] == user
+        assert conf["host_config"]["tmpfs"]["/workspace"] == f"rw,size={1024**3}"
+        assert "CAP_SYS_ADMIN" in conf["host_config"]["cap_drop"]
+
+    def test_named_user_gets_a_writable_workspace(self):
+        conf = DockerBackend(SandboxConfig(user="sandbox"))._build_container_config()
+        assert conf["user"] == "sandbox"
+        assert conf["host_config"]["tmpfs"]["/workspace"].endswith(",mode=1777")
+
+    def test_numeric_uid_without_gid(self):
+        conf = DockerBackend(SandboxConfig(user="1000"))._build_container_config()
+        assert conf["host_config"]["tmpfs"]["/workspace"].endswith(",uid=1000")
+
+    @pytest.mark.parametrize("user", ["", " ", "a b", "1000:", ":1000", "x;rm -rf /"])
+    def test_invalid_user_rejected(self, user):
+        with pytest.raises(ValidationError, match="Invalid sandbox user"):
+            SandboxConfig(user=user)
+
+    def test_superagent_section_passes_user_through(self):
+        from promptise.superagent_schema import SandboxConfigSection
+
+        section = SandboxConfigSection()
+        assert section.user == "65534:65534"
+        assert SandboxConfig(**SandboxConfigSection(user="root").model_dump()).runs_as_root
+
+    @pytest.mark.asyncio
+    async def test_internal_exec_still_runs_as_root(self):
+        """The egress filter and the kill script need root; user code does not."""
+        cfg = SandboxConfig(network="restricted")
+        backend = DockerBackend(cfg)
+        container = MagicMock()
+        container.exec_run.return_value = SimpleNamespace(exit_code=0, output=(b"", b""))
+        await backend._setup_network_restrictions(container)
+        assert container.exec_run.call_args.kwargs["user"] == "root"
 
 
 # ---------------------------------------------------------------------------
