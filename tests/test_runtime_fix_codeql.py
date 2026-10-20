@@ -65,13 +65,26 @@ class TestEnvReferenceScanner:
         assert [(r.name, r.default) for r in iter_env_references(text)] == found
         assert has_env_reference(text) is bool(found)
 
-    def test_pathological_input_is_fast(self) -> None:
-        started = time.perf_counter()
+    def test_pathological_input_is_handled(self) -> None:
         assert list(env_references_in({"instructions": _PATHOLOGICAL})) == []
         assert resolve_env_var(_PATHOLOGICAL) == _PATHOLOGICAL
         assert validate_all_env_vars_available({"k": _PATHOLOGICAL}) == []
-        # The regex needs minutes for this; the scanner a few milliseconds.
-        assert time.perf_counter() - started < 2.0
+
+    def test_pathological_input_scales_linearly(self) -> None:
+        # Wall-clock limits are flaky on shared CI runners, so compare growth
+        # instead: 4x the input takes ~4x as long when linear, ~16x when
+        # quadratic (the regex this replaced needs minutes at this size).
+        def best_of_three(repeats: int) -> float:
+            text = "${A:-" + "${a:-a" * repeats + "\n}"
+            times = []
+            for _ in range(3):
+                started = time.perf_counter()
+                resolve_env_var(text)
+                times.append(time.perf_counter() - started)
+            return min(times)
+
+        small, large = best_of_three(50_000), best_of_three(200_000)
+        assert large < max(small, 1e-3) * 10
 
     def test_resolution_is_unchanged(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("PROMPTISE_T_SET", "v")
