@@ -284,7 +284,7 @@ class MemoryProvider(Protocol):
     async def purge_user(self, user_id: str) -> int:
         """Delete every entry owned by ``user_id``.
 
-        Primarily intended for GDPR "right to be forgotten" requests.
+        Use it to delete one user's data on request.
         For ``SHARED`` scope providers this is a no-op that returns ``0``
         — there is no per-user ownership to honor.
 

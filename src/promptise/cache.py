@@ -472,7 +472,7 @@ class InMemoryCacheBackend:
         return len(to_remove)
 
     async def purge_user(self, user_id: str) -> int:
-        """Remove all entries for a user (GDPR compliance)."""
+        """Remove all entries for a user, for example when they ask you to delete their data."""
         # Exact match — not prefix! "user:12" must NOT match "user:123"
         exact_key = f"user:{user_id}"
         count = 0
@@ -835,7 +835,7 @@ class RedisCacheBackend:
         return len(to_remove)
 
     async def purge_user(self, user_id: str) -> int:
-        """Remove all entries for a user (GDPR compliance)."""
+        """Remove all entries for a user, for example when they ask you to delete their data."""
         r = await self._get_redis()
         exact_key = f"user:{user_id}"
         entries_key = self._scope_entries_key(exact_key)
@@ -1241,7 +1241,7 @@ class SemanticCache:
     async def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int:
         """Remove all cached entries for a user.
 
-        Use for GDPR right-to-erasure compliance.
+        Use it to delete one user's cached data on request.
 
         Args:
             user_id: The user whose cache to purge.
@@ -1251,7 +1251,7 @@ class SemanticCache:
 
         Note:
             This purges the **per-user** scope (``user:<id>``), which is the
-            default and the GDPR-relevant one.  A cache created with
+            default and the one that holds a user's data.  A cache created with
             ``scope="per_session"`` keys entries by the user's session, so
             ``purge_user`` does not remove them; they expire with their TTL.
 

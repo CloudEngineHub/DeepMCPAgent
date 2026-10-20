@@ -818,7 +818,7 @@ class ObservabilityCollector:
         be purged by their owners.  Returns the number of in-memory
         entries removed.
 
-        Intended for GDPR "right to be forgotten" workflows.
+        Use it to delete one user's data on request.
         """
         if not user_id:
             return 0
