@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import json
+import os
 import subprocess
 import sys
 import textwrap
@@ -150,7 +151,7 @@ def test_function_filter_id_is_the_same_in_every_run(tmp_path: Path) -> None:
             """
         )
     )
-    env = {"PYTHONPATH": str(SRC), "PATH": "/usr/bin:/bin"}
+    env = {**os.environ, "PYTHONPATH": str(SRC)}
     ids = {
         subprocess.run(
             [sys.executable, str(script)], capture_output=True, text=True, env=env, check=True
