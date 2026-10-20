@@ -31,6 +31,7 @@ from promptise.mcpcast.wizard import (
     Detection,
     MCPcastWizard,
     ParsedSpec,
+    SpecPane,
     Usage,
     WizardSettings,
     detect_local_apis,
@@ -139,8 +140,16 @@ def _patient_pilot(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 async def _settle(pilot, seconds: float = 0.3) -> None:
-    """Let thread workers (spec loading, detection) finish and messages drain."""
+    """Let thread workers (spec loading, detection) finish and messages drain.
+
+    A spec load still running after *seconds* gets up to 3 s more, so a slow
+    CI runner doesn't send the next key while the spec step refuses it.  A
+    load a test holds open on purpose simply stays open after that.
+    """
     await pilot.pause(seconds)
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline and any(p._loading for p in pilot.app.query(SpecPane)):
+        await pilot.pause(0.05)
     await pilot.pause()
 
 
@@ -152,6 +161,17 @@ async def _until(pilot, ready, timeout: float = 10.0) -> None:
         assert time.monotonic() < deadline, "condition not met in time"
         await pilot.pause(0.1)
     await pilot.pause()
+
+
+async def _spec_loaded(app: MCPcastWizard, pilot) -> None:
+    """Wait until the spec step has finished loading the document.
+
+    The next Enter is refused while it loads, and every key after it then
+    lands one step early, so a fixed pause raced slow CI runners.
+    """
+    pane = app.query_one(SpecPane)
+    await _until(pilot, lambda: not pane._loading, timeout=30.0)
+    await _settle(pilot)
 
 
 def _plain(text: str) -> str:
@@ -751,7 +771,7 @@ class TestWizardFlow:
         app = _app(tmp_path, str(spec_file), completer=_scripted(PROPOSAL))
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # → model
             await pilot.pause()
             assert "✓ openai:gpt-5-mini" in _text(app, "#model-status")
@@ -779,7 +799,7 @@ class TestWizardFlow:
         app = _app(tmp_path, str(spec_file))
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")
             await pilot.pause()
             assert app.pane.id == "model"
@@ -819,7 +839,7 @@ class TestWizardFlow:
         app = _app(tmp_path, str(path))
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # Continue without a usable base URL
             await pilot.pause()
             assert app.pane.id == "spec"
@@ -858,7 +878,7 @@ class TestWizardFlow:
         app = _app(tmp_path, str(spec_file))
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")
             await pilot.press("down", "enter")  # offline
             await pilot.press("enter")  # read-only
@@ -894,7 +914,7 @@ class TestWizardFlow:
         app = _app(tmp_path, str(spec_file))
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")
             await pilot.press("down", "enter")
             await pilot.press("enter")
@@ -929,7 +949,7 @@ class TestWizardFlow:
         app = _app(tmp_path, str(path))
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")
             await pilot.press("down", "enter")
             await pilot.press("enter")
@@ -949,7 +969,7 @@ class TestWizardFlow:
         app = _app(tmp_path, str(spec_file))
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")
             await pilot.press("down", "enter")
             await pilot.press("enter")  # read-only
@@ -983,7 +1003,7 @@ class TestWizardFlow:
         )
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # → model
             await pilot.press("enter")  # design with a model (key is "set")
             await pilot.press("enter")  # read-only
@@ -1210,7 +1230,7 @@ class TestAuditedBehaviour:
         async with app.run_test(size=(100, 34)) as pilot:
             await _to_review(pilot, app)
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # write (read-only: 2 tools)
             await _settle(pilot)
             assert app.result is not None and len(app.result.plan.tools) == 2
@@ -1253,7 +1273,7 @@ class TestAuditedBehaviour:
         async with app.run_test(size=(100, 34)) as pilot:
             await _to_review(pilot, app)
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # write
             await _settle(pilot)
             assert app.result is not None
@@ -1406,7 +1426,7 @@ class TestAuditedBehaviour:
                 await pilot.press("enter")
                 await pilot.press("enter")
                 await pilot.press("enter")
-                await _settle(pilot)
+                await _spec_loaded(app, pilot)
                 await pilot.press("enter")  # write
                 await _settle(pilot)
                 assert app.result is not None
@@ -1533,7 +1553,7 @@ class TestAuditedBehaviour:
         async with app.run_test(size=(100, 34)) as pilot:
             await _to_review(pilot, app)
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # write
             await _settle(pilot)
             assert app.pane.id == "write" and app.result is None
@@ -1549,7 +1569,7 @@ class TestAuditedBehaviour:
         async with app.run_test(size=(100, 34)) as pilot:
             await _to_review(pilot, app)
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # write
             await _settle(pilot)
             await pilot.press("c")
@@ -1571,7 +1591,7 @@ class TestAuditedBehaviour:
         )
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # → model
             await pilot.pause()
             assert app.query_one("#model-input").value == "anthropic:claude-sonnet-4.5"
@@ -1780,7 +1800,7 @@ class TestStalePlanIsNeverWritten:
         app = _app(tmp_path, str(spec_file), completer=complete)
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # → model
             await pilot.press("enter")  # design with a model
             await pilot.press("enter")  # read-only
@@ -1849,7 +1869,7 @@ class TestStalePlanIsNeverWritten:
         app = _app(tmp_path, str(spec_file), completer=complete)
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")
             await pilot.press("enter")
             await pilot.press("enter")  # read-only
@@ -1909,7 +1929,7 @@ class TestStalePlanIsNeverWritten:
         app = _app(tmp_path, str(spec_file), completer=_scripted(PROPOSAL))
         async with app.run_test(size=(100, 34)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # → model
             await pilot.press("enter")  # design with a model
             await pilot.press("enter")  # read-only
@@ -1970,7 +1990,7 @@ class TestMarkdownLinks:
         # tall enough for the description paragraph to be on screen for the click
         async with app.run_test(size=(120, 60)) as pilot:
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")
             await pilot.press("enter")
             await pilot.press("enter")
@@ -2169,7 +2189,7 @@ class TestNextSteps:
             app.query_one("#project-out").value = "my widgets"
             await pilot.pause()
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # write
             await _settle(pilot)
             assert app.result is not None
@@ -2261,7 +2281,7 @@ class TestWriteRefusalsAndRenamedPackages:
         async with app.run_test(size=(100, 34)) as pilot:
             await _to_review(pilot, app)
             await pilot.press("enter")
-            await _settle(pilot)
+            await _spec_loaded(app, pilot)
             await pilot.press("enter")  # write
             await _settle(pilot)
             assert app.pane.id == "write" and app.result is None
