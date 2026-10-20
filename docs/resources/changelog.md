@@ -4,7 +4,7 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
-## v1.5.1 — Unreleased
+## v1.5.1 — 2026-10-21
 
 Promptise now works with the MCP Python SDK 2.x as well as 1.x, the SPIFFE extra installs, sandboxed code no longer runs as root, PII patterns stop redacting parts of numbers, and a set of runtime fixes, among them a stop() race that could run a finished run again.
 
