@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import logging
 import os
 import re
 import signal
@@ -33,6 +34,11 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+#: Windows refuses to delete a file another process has open.
+_WINDOWS = os.name == "nt"
 
 __all__ = [
     "LAUNCH_ENV",
@@ -302,6 +308,27 @@ def _read_state_file(path: Path) -> RuntimeState | None:
     return state
 
 
+def _unlink(path: Path) -> bool:
+    """Delete *path*; ``False`` when it can't be deleted right now.
+
+    On Windows a file another process has open (a ``status`` or ``logs``
+    call reading it) can't be deleted, so retry briefly.  A file left
+    behind belongs to a dead process, which :func:`list_states` treats as
+    stale and removes later, so callers never need to fail over it.
+    """
+    for attempt in range(20):
+        try:
+            path.unlink()
+            return True
+        except FileNotFoundError:
+            return True
+        except PermissionError:
+            if not _WINDOWS or attempt == 19:
+                return False
+            time.sleep(0.05)
+    return False
+
+
 def remove_state(state: RuntimeState) -> None:
     """Remove *state*'s file, if it still belongs to *state*'s process."""
     try:
@@ -311,8 +338,8 @@ def remove_state(state: RuntimeState) -> None:
     current = _read_state_file(path)
     if current is not None and current.pid != state.pid:
         return
-    with contextlib.suppress(FileNotFoundError):
-        path.unlink()
+    if not _unlink(path):
+        logger.warning("Could not remove runtime state file %s; it is cleaned up later", path)
 
 
 def list_states(*, cleanup: bool = True) -> tuple[list[RuntimeState], list[str]]:
@@ -341,8 +368,7 @@ def list_states(*, cleanup: bool = True) -> tuple[list[RuntimeState], list[str]]
             continue
         stale.append(path.stem)
         if cleanup:
-            with contextlib.suppress(FileNotFoundError):
-                path.unlink()
+            _unlink(path)
     return live, stale
 
 

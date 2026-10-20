@@ -236,6 +236,40 @@ class TestStateFiles:
         with pytest.raises(StateError, match="owned by uid"):
             _cli_state.state_dir()
 
+    def test_remove_state_retries_a_file_held_open_on_windows(self, state_dir, monkeypatch):
+        # Windows can't delete a file another process has open (WinError 32);
+        # shutdown must retry and never fail over it.
+        state = _fake_state("busy")
+        real_unlink = Path.unlink
+        calls = {"n": 0}
+
+        def flaky_unlink(self, *args, **kwargs):
+            if self.name == "busy.json" and calls["n"] < 3:
+                calls["n"] += 1
+                raise PermissionError(32, "The process cannot access the file")
+            return real_unlink(self, *args, **kwargs)
+
+        monkeypatch.setattr(_cli_state, "_WINDOWS", True)
+        monkeypatch.setattr(_cli_state.time, "sleep", lambda _s: None)
+        monkeypatch.setattr(Path, "unlink", flaky_unlink)
+        _cli_state.remove_state(state)
+        assert calls["n"] == 3
+        assert not (state_dir / "busy.json").exists()
+
+    def test_remove_state_gives_up_quietly_when_the_file_stays_locked(
+        self, state_dir, monkeypatch, caplog
+    ):
+        state = _fake_state("locked")
+
+        def locked(self, *args, **kwargs):
+            raise PermissionError(32, "The process cannot access the file")
+
+        monkeypatch.setattr(_cli_state, "_WINDOWS", True)
+        monkeypatch.setattr(_cli_state.time, "sleep", lambda _s: None)
+        monkeypatch.setattr(Path, "unlink", locked)
+        _cli_state.remove_state(state)  # must not raise
+        assert "cleaned up later" in caplog.text
+
     def test_stale_state_file_is_removed(self, state_dir):
         _fake_state("ghost", pid=_dead_pid())
         result = runner.invoke(runtime_app, ["status"])
