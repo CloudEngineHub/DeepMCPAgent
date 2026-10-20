@@ -1,6 +1,6 @@
 ---
 title: "Multi-Agent Debate for Better LLM Reasoning"
-description: "Shows the Proposer-to-Critic-to-Judge graph and is upfront about the economics: debate roughly triples calls for marginal accuracy on capable models. It maps…"
+description: "Learn how proposer, critic and judge agents debate to improve LLM reasoning, how to tune the rounds, and why debate triples the calls for small accuracy gains."
 keywords: "multi-agent debate llm, debate reasoning pattern, proposer critic judge, multi-perspective reasoning agents, llm debate accuracy"
 date: 2026-07-16
 slug: multi-agent-debate-llm
@@ -13,9 +13,6 @@ categories:
 A multi-agent debate LLM setup runs the same question through three roles — one model proposes an answer, another attacks it, and a judge decides who was right — instead of trusting a single pass. The appeal is obvious: adversarial scrutiny catches mistakes that a lone model, confidently wrong, will happily ship. The catch is just as real: you pay for it in latency and tokens. By the end of this post you'll know exactly what the Proposer → Critic → Judge graph does in Promptise Foundry, how to stand one up in a few lines, and — just as importantly — the narrow set of queries where it earns its keep versus the far larger set where a single verify pass is the smarter buy.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 
 
 ## What the debate reasoning pattern actually does
@@ -94,7 +91,7 @@ Here's the part most write-ups skip. Debate is structurally expensive. A single-
 So don't reach for it by default. Debate earns its cost in a specific shape of problem:
 
 - **Ambiguous judgment calls** — questions with no clean lookup answer, where two defensible readings exist and you want them argued out.
-- **Adversarial correctness** — high-stakes claims where being confidently wrong is expensive: contract deadlines, compliance interpretations, financial thresholds, safety sign-offs.
+- **Adversarial correctness** — high-stakes claims where being confidently wrong is expensive: contract deadlines, policy interpretations, financial thresholds, safety sign-offs.
 - **Robust argument generation** — when you need the *strongest case on both sides* surfaced, not just a single answer.
 
 For everything else — tool-calling, retrieval, straightforward Q&A, arithmetic — the extra scrutiny is scrutiny you're paying for and not using. The pattern only pays back where a wrong answer costs more than three LLM calls.
@@ -112,7 +109,7 @@ agent = await build_agent(model="openai:gpt-5-mini", agent_pattern="verify")
 
 `verify` catches the same genre of slip debate is good at — bad arithmetic, a skipped constraint, an unchecked assumption — but at roughly a third of the cost. Its measurable gains show up most on weaker or cheaper models, where the forced self-check recovers errors a single pass would miss. Reach for debate only when you specifically need *two independent perspectives arguing*, not just one model checking itself. When you simply want a cheap self-check, `verify` wins; the tradeoff is laid out in full in the [reasoning patterns reference](../../core/agents/reasoning-patterns.md).
 
-A practical rule of thumb: route your traffic. Send the small slice of genuinely high-stakes, contestable queries to a `debate` agent, and let a `verify` or plain `react` agent handle the rest. Two agents, one gate — that's how you get debate's scrutiny without paying for it on every request. If you're deciding between patterns more broadly, [Agent Reasoning Patterns: The Complete Guide](agent-reasoning-patterns.md) compares all of Promptise's built-in graphs side by side.
+A practical rule of thumb: route your traffic. Send the small slice of genuinely high-stakes, contestable queries to a `debate` agent, and let a `verify` or plain `react` agent handle the rest. Two agents, one gate — that's how you get debate's scrutiny without paying for it on every request. If you're deciding between patterns more broadly, [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns) compares nine reasoning patterns side by side.
 
 ## Frequently asked questions
 

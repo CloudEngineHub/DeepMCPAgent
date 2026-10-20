@@ -1,6 +1,6 @@
 ---
 title: "Encrypt Your LLM Response Cache at Rest in Redis"
-description: "A semantic cache is a plaintext log of every prompt and answer sitting in Redis, so a snapshot or a rogue read leaks conversations. Mainstream LLM caches…"
+description: "Learn how to encrypt a semantic LLM response cache at rest in Redis with encrypt_values=True, and how to check that only ciphertext is stored in the database."
 keywords: "encrypt llm cache at rest, aes encrypt redis llm cache, encrypt semantic cache values, fernet cache key, secure llm response cache, llm cache encryption at rest"
 date: 2026-07-16
 slug: encrypt-llm-cache-at-rest
@@ -13,10 +13,6 @@ categories:
 Learning to **encrypt LLM cache at rest** starts with reckoning with what a semantic cache actually is on disk: a running log of every prompt a user typed and every answer your model gave back, sitting in Redis as plaintext JSON. The feature that makes the cache cheap — remembering answers so you can serve them again — is exactly what turns it into a liability. An RDB snapshot copied to a backup bucket, a replica tapped by a read-only credential, a `KEYS *` from a misconfigured `requirepass`, or an instance accidentally bound to a public interface: any one of those hands over conversations verbatim. Promptise Foundry ships a one-flag answer to this. Set `encrypt_values=True` on `SemanticCache` and the prompt-and-answer payload is encrypted application-side with AES (via Fernet) before it ever reaches Redis, keyed by `PROMPTISE_CACHE_KEY` so it stays readable across restarts. This post walks the threat, the exact toggle, and how to verify ciphertext is really what landed at rest.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## What actually sits in Redis when you cache LLM responses
 
@@ -39,7 +35,7 @@ Be precise and fair here, because the popular caches are competent at what they 
 - **GPTCache** — used directly, via LangChain's `GPTCache` wrapper, or through **LlamaIndex's** GPTCache integration — splits storage into a scalar store (SQLite or similar, holding the prompt and answer text) and a vector store. Encryption of that scalar store is left to whatever database you point it at; there is no built-in toggle that encrypts the cached answer text before it's written.
 - **LlamaIndex's** own KV/cache stores (`SimpleKVStore` and friends) persist plaintext JSON to disk. Again, encryption is delegated to the filesystem or database underneath.
 
-So the honest delta is not "these tools can't be encrypted" — they can, at the disk or database layer, and that's a legitimate design. The precise gap is that none of them, as far as their current cache APIs go, offer an **application-side toggle that makes the cached value ciphertext inside the store**. The plaintext is exposed to anything holding a database connection, and hardening it is separate infrastructure you remember to configure per environment. Promptise's edge is to make value-level encryption a first-class, one-parameter property of the cache object itself, so ciphertext-at-rest is a code decision that travels with the agent — not a checklist item on the Redis box. If you find a value-encryption flag has since shipped in one of these libraries, the delta narrows to "on by a single flag, and re-scanned by guardrails on read," which is where Promptise sits.
+So the real difference is not "these tools can't be encrypted" — they can, at the disk or database layer, and that's a legitimate design. The precise gap is that none of them, as far as their current cache APIs go, offer an **application-side toggle that makes the cached value ciphertext inside the store**. The plaintext is exposed to anything holding a database connection, and hardening it is separate infrastructure you remember to configure per environment. Promptise's edge is to make value-level encryption a first-class, one-parameter property of the cache object itself, so ciphertext-at-rest is a code decision that travels with the agent — not a checklist item on the Redis box. If a value-encryption flag has since shipped in one of these libraries, the difference narrows to "on by a single flag, and re-scanned by guardrails on read," which is where Promptise sits.
 
 ## Turn on encryption at rest with `encrypt_values=True`
 
@@ -131,7 +127,7 @@ At-rest encryption is one control among several the cache already applies, and t
 - **Output guardrails re-scan cached responses on the way out.** A cache hit isn't a bypass of your safety layer — the decrypted value passes back through output guardrails before it's returned, so a response that would be redacted today is redacted even if it was cached yesterday. The full ordering is in the [Semantic Cache docs](../../core/cache.md).
 - **Per-user isolation is the default.** Encryption protects the value; scoping controls *who can match it at all*. The default `per_user` scope keys every entry under the caller's partition, and the cache fails closed when no `CallerContext` is present. If your worry is a paraphrase surfacing another tenant's answer rather than a disk leak, that's a distinct failure mode covered in [Can a Paraphrase Leak Another Tenant's Cached Answer?](semantic-cache-cross-tenant-leak.md).
 - **The embedding runs locally.** `SemanticCache` uses the same on-device model as [tool optimization](../../core/tool-optimization.md), so encrypting the cache costs no extra API calls and query text never leaves your environment to be embedded by a third party — the plaintext exposure surface shrinks in transit as well as at rest.
-- **GDPR erase still works on ciphertext.** `await cache.purge_user("alice")` removes a user's entries whether or not they're encrypted; you don't have to decrypt to delete.
+- **Per-user deletion still works on ciphertext.** `await cache.purge_user("alice")` removes a user's entries whether or not they're encrypted; you don't have to decrypt to delete.
 
 If you turned encryption on because you're running one Redis across many customers, the cost and isolation levers reinforce each other — correct partitioning is exactly what lets you cache aggressively without turning the cache into a liability. [How to Cut Token Cost for a Multi-Tenant AI Agent](cut-token-cost-multi-tenant-ai-agent.md) covers the cache alongside the other savings levers.
 

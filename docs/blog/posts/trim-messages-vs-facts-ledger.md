@@ -1,6 +1,6 @@
 ---
 title: "Why trim_messages Drops Facts Your Agent Still Needs"
-description: "The stock fix for a bloated tool loop is 'trim the messages' or 'summarize the history' -- but trimming evicts by token or message count and can throw away…"
+description: "Learn why trim_messages and history summaries drop facts a tool-calling agent still needs, and how a deduplicated facts ledger keeps them at lower token cost."
 keywords: "trim_messages vs facts ledger, langgraph trim_messages token cost, deduplicated tool ledger, context_scope ledger vs summarization, bound tool loop without extra llm call, last-value-wins facts ledger"
 date: 2026-07-16
 slug: trim-messages-vs-facts-ledger

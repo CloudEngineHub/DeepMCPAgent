@@ -1,6 +1,6 @@
 ---
 title: "LangGraph vs Promptise: Long-Running Agents"
-description: "An honest split of concerns: LangGraph is the better choice when you need fine-grained graph orchestration and checkpointing inside a single invocation …"
+description: "Compare LangGraph and Promptise for long-running agents: graph orchestration and checkpoints versus a runtime with journals, crash recovery and governance."
 keywords: "LangGraph vs Promptise, LangGraph long-running agents, durable agent execution comparison, agent orchestration vs agent runtime, best framework for autonomous agents, agent checkpointing comparison"
 date: 2026-07-16
 slug: langgraph-vs-promptise-2
@@ -31,7 +31,7 @@ The gap opens the moment your agent has to run without a human holding the loop 
 - **Governance** — budgets on tool calls and cost, health checks for stuck or looping behavior, and mission tracking.
 - **Lifecycle** — a `created → running → suspended → stopped → failed` state machine you can inspect and control.
 
-None of that is a graph concern. It is orchestration at the *process* level, and with a bare graph library you assemble it yourself from a scheduler, a database, a supervisor, and glue. Promptise packages it as the fourth pillar of the framework — the [Agent Runtime](../../runtime/index.md). It wraps a Promptise agent in an `AgentProcess` (a lifecycle container with a trigger queue, heartbeat, and conversation buffer) and supervises many processes under one `AgentRuntime` on a shared event bus. Five trigger types ship in the box: cron, webhook, file-watch, event, and message. For the conceptual background on why this layer exists at all, see [What Is an Autonomous AI Agent Runtime?](autonomous-ai-agent-runtime.md).
+None of that is a graph concern. It is orchestration at the *process* level, and with a bare graph library you assemble it yourself from a scheduler, a database, a supervisor, and glue. Promptise packages it as the fourth pillar of the framework — the [Agent Runtime](../../runtime/index.md). It wraps a Promptise agent in an `AgentProcess` (a lifecycle container with a trigger queue, heartbeat, and conversation buffer) and supervises many processes under one `AgentRuntime` on a shared event bus. Five trigger types ship in the box: cron, webhook, file-watch, event, and message. For more on what this layer does, see [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime).
 
 ## Durable agent execution comparison: checkpoints vs journals
 
@@ -97,7 +97,7 @@ Notice what you did *not* write: no scheduler, no supervisor loop, no serializat
 
 ## Governance keeps a multi-day agent supervised
 
-An agent that lives for days is only safe if it cannot quietly run away. The `budget` block above is the [Autonomy Budget](../../runtime/governance/budget.md): explicit, enforced limits on tool calls, LLM turns, and cost, with per-tool cost weights and an `irreversible` flag for actions like restarting a service or issuing a refund. When the agent hits a limit, the runtime enforces your chosen action — `pause`, `stop`, or `escalate` (a webhook plus an event) — instead of letting the loop grind on. Budget is one of four opt-in governance subsystems, alongside behavioral health, the mission model, and secret scoping; all are disabled by default with zero overhead. This is the difference between an agent you *demo* and an agent you leave running over a weekend. For a full walkthrough of standing one up, follow [How to Build a Long-Running AI Agent](long-running-ai-agent.md).
+An agent that lives for days is only safe if it cannot quietly run away. The `budget` block above is the [Autonomy Budget](../../runtime/governance/budget.md): explicit, enforced limits on tool calls, LLM turns, and cost, with per-tool cost weights and an `irreversible` flag for actions like restarting a service or issuing a refund. When the agent hits a limit, the runtime enforces your chosen action — `pause`, `stop`, or `escalate` (a webhook plus an event) — instead of letting the loop grind on. Budget is one of four opt-in governance subsystems, alongside behavioral health, the mission model, and secret scoping; all are disabled by default with zero overhead. This is the difference between an agent you *demo* and an agent you leave running over a weekend. For running one in production, follow [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production).
 
 ## When LangGraph is the better fit
 

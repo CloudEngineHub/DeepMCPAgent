@@ -1,6 +1,6 @@
 ---
 title: "Cut Tool-Schema Tokens Without Per-Query Selection"
-description: "Semantic top-K tool selection is the headline token saver, but it needs per-query embedding and introduces per-request variance -- a non-starter for…"
+description: "Learn how to cut the tokens that tool schemas cost on every model call with static schema minification, without per-query tool selection or its variance."
 keywords: "reduce mcp tool schema tokens, tool schema minification, tool optimization levels, static schema optimization air-gapped, minify mcp tool definitions, shrink tool json schema tokens"
 date: 2026-07-16
 slug: reduce-mcp-tool-schema-tokens

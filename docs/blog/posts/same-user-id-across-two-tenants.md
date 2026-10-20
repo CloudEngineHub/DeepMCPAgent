@@ -1,6 +1,6 @@
 ---
 title: "Same user_id, Two Tenants: Why That Isn't Isolation"
-description: "Two customers can both have a user named 'alice', and if memory, cache, and threads key on user_id alone their data collides silently. Beyond that collision…"
+description: "Learn why keying memory, cache and threads on user_id alone mixes data when two tenants share a user name, and how an injective tenant key keeps them apart."
 keywords: "same user_id across two tenants, user id collision multi-tenant, why user_id isn't tenant isolation, injective isolation key tenant user, prevent tenant impersonation isolation key"
 date: 2026-07-16
 slug: same-user-id-across-two-tenants

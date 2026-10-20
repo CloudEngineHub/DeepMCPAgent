@@ -1,6 +1,6 @@
 ---
 title: "Air-Gapped AI Agent Framework: The On-Prem Guide"
-description: "The definitive hub for building agents that run with zero outbound internet: every layer — model inference, embeddings, vector memory, guardrails…"
+description: "Learn how to build AI agents that run with zero outbound internet: local models, embeddings, vector memory, guardrails and sandbox, and how to verify it."
 keywords: "air-gapped agent framework, on-prem AI agent framework, self-hosted AI agent, fully offline agent stack, local-first agent framework"
 date: 2026-07-16
 slug: air-gapped-agent-framework
@@ -10,12 +10,9 @@ categories:
 
 # Air-Gapped AI Agent Framework: The On-Prem Guide
 
-Choosing an **air-gapped agent framework** is not the same as choosing a framework that can talk to a local model — and that distinction is exactly where most on-prem projects stall. Swapping a hosted LLM for Ollama is the easy 20%. The hard 80% is every other layer of a modern agent: the embedding model behind your vector memory, the moderation call that scores toxic output, the injection classifier guarding your input, the code sandbox your agent executes in, and the telemetry exporter shipping traces somewhere for debugging. Each one is a potential outbound connection, and in an isolated network a single one breaks the whole system — or worse, quietly passes a compliance review it should have failed. This guide is the hub for the whole picture: it maps every layer of an agent to a local implementation, shows the exact configuration that keeps each layer on-box, and is honest about what a truly **fully offline agent stack** requires versus what "supports local models" actually buys you.
+Choosing an **air-gapped agent framework** is not the same as choosing a framework that can talk to a local model — and that distinction is exactly where most on-prem projects stall. Swapping a hosted LLM for Ollama is the easy 20%. The hard 80% is every other layer of a modern agent: the embedding model behind your vector memory, the moderation call that scores toxic output, the injection classifier guarding your input, the code sandbox your agent executes in, and the telemetry exporter shipping traces somewhere for debugging. Each one is a potential outbound connection, and in an isolated network a single one breaks the whole system — or worse, quietly passes a security review it should have failed. This guide covers the whole picture: it maps every layer of an agent to a local implementation, shows the exact configuration that keeps each layer on-box, and is clear about what a truly **fully offline agent stack** requires versus what "supports local models" actually buys you.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 
 
 ## The five layers that must go local
@@ -116,7 +113,7 @@ Read that block as a stack diagram. The `model` string keeps inference on-box. T
 
 ## Verifying zero egress
 
-"Runs offline" is a claim you have to be able to hand an auditor, not a vibe. Each layer above has a specific thing you verify.
+"Runs offline" is a claim you have to be able to hand a security reviewer, not a vibe. Each layer above has a specific thing you verify.
 
 - **Model inference** — the provider string is `ollama:...` or a `BaseChatModel` pointed at an on-box endpoint. The [model setup guide](../../getting-started/model-setup.md) documents all three ways to pass a model, including a pre-configured LangChain client with a custom `base_url` if your local endpoint isn't Ollama.
 - **Embeddings** — `ChromaProvider` defaults to `all-MiniLM-L6-v2`, which runs locally with no API key. No OpenAI/Cohere embedding key means no embedding egress by construction.

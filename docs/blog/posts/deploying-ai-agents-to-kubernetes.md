@@ -1,6 +1,6 @@
 ---
 title: "Deploying AI Agents to Kubernetes with Promptise"
-description: "A concrete, copy-paste path from local server to a K8s Deployment: liveness/readiness/startup probes wired to real health checks, a /metrics endpoint for…"
+description: "Deploy an MCP server and AI agent to Kubernetes step by step, with liveness, readiness and startup probes on real health checks and Prometheus metrics."
 keywords: "deploying AI agents to Kubernetes, MCP server Kubernetes deployment, liveness readiness startup probes, promptise serve http, Prometheus metrics for agents, K8s agent health checks"
 date: 2026-07-16
 slug: deploying-ai-agents-to-kubernetes
@@ -184,11 +184,11 @@ async def main():
 asyncio.run(main())
 ```
 
-The agent auto-discovers `search_orders` from the cluster Service and starts calling it. Before you go live, walk the [Production AI agent checklist](production-ai-agent-checklist.md) — auth, rate limits, and audit logging belong in the same manifest.
+The agent auto-discovers `search_orders` from the cluster Service and starts calling it. Before you go live, walk the [AI agent production checklist](https://www.promptise.com/guides/view/ai-agent-production-checklist) — auth, rate limits, and audit logging belong in the same manifest.
 
 ## When a managed agent platform is the better fit
 
-Kubernetes is the right home when you already run one — you have a platform team, a Prometheus stack, and GitOps. If you don't, be honest about the overhead: probes, HPAs, secrets, and a metrics pipeline are real operational surface. A managed serverless container runtime (Cloud Run, ECS, Fly, or a hosted MCP platform) can run the same `promptise serve --transport http` command with far less to maintain, and Promptise servers deploy there unchanged. Reach for Kubernetes when you need fine-grained scaling, multi-tenant isolation, or co-location with services already in the cluster — not because it is the default. If multi-tenancy is your driver, see [Multi-tenant AI agents](multi-tenant-ai-agent.md).
+Kubernetes is the right home when you already run one — you have a platform team, a Prometheus stack, and GitOps. If you don't, be honest about the overhead: probes, HPAs, secrets, and a metrics pipeline are real operational surface. A managed serverless container runtime (Cloud Run, ECS, Fly, or a hosted MCP platform) can run the same `promptise serve --transport http` command with far less to maintain, and Promptise servers deploy there unchanged. Reach for Kubernetes when you need fine-grained scaling, multi-tenant isolation, or co-location with services already in the cluster — not because it is the default. If multi-tenancy is your driver, see [Multi-Tenant AI Agents: Keep Each Customer's Data Apart](https://www.promptise.com/guides/view/multi-tenant-ai-agent).
 
 ## Frequently asked questions
 

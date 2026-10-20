@@ -1,6 +1,6 @@
 ---
 title: "Limit an AI Agent's Irreversible Actions Per Run"
-description: "The scariest autonomous failure isn't looping — it's ten wire transfers at 3am. Shows annotating delete/send/charge tools irreversible=True and capping…"
+description: "Learn how to mark delete, send and charge tools as irreversible and cap how many an autonomous agent may call per run, separately from its overall tool budget."
 keywords: "limit irreversible actions ai agent, cap destructive agent actions, irreversible action guardrail, agent delete send charge limit, max irreversible per run, limit destructive tool calls"
 date: 2026-07-16
 slug: limit-irreversible-actions-ai-agent
@@ -143,7 +143,7 @@ The ceiling is only as good as your annotations, so be deliberate. Mark a tool `
 - **Destructive data operations** — `delete_account`, `drop_table`, `revoke_access`, `merge_pull_request`.
 - **State the outside world reacts to** — `deploy_production`, `submit_order`, `file_ticket_with_vendor`.
 
-Leave everything read-shaped un-annotated (it defaults to reversible, `cost_weight=1.0`): `search_*`, `get_*`, `list_*`, `preview_*`. When in doubt, mark it irreversible — a too-conservative ceiling costs you an escalation and a manual approve; a too-loose one costs you the incident. This is a `cap destructive agent actions` policy, and like any guardrail it composes: pair the irreversible ceiling with the [Behavioral Health reference](../../runtime/governance/health.md) detectors so a *stuck* agent that keeps retrying the same destructive call is caught by both the health monitor and the destructive-action budget. Health stops the agent that does the *same cheap nothing forever* (walked through in [Catch an AI Agent Stuck Repeating the Same Tool Call](ai-agent-stuck-repeating-tool-call.md)); the irreversible ceiling stops the agent that does *a few unrecoverable somethings*. Different failures, independent trip wires.
+Leave everything read-shaped un-annotated (it defaults to reversible, `cost_weight=1.0`): `search_*`, `get_*`, `list_*`, `preview_*`. When in doubt, mark it irreversible — a too-conservative ceiling costs you an escalation and a manual approve; a too-loose one costs you the incident. This is a `cap destructive agent actions` policy, and like any guardrail it composes: pair the irreversible ceiling with the [Behavioral Health reference](../../runtime/governance/health.md) detectors so a *stuck* agent that keeps retrying the same destructive call is caught by both the health monitor and the destructive-action budget. Health stops the agent that does the *same cheap nothing forever* (walked through in [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop)); the irreversible ceiling stops the agent that does *a few unrecoverable somethings*. Different failures, independent trip wires.
 
 ## Frequently asked questions
 

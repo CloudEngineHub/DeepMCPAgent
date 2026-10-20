@@ -1,6 +1,6 @@
 ---
 title: "Add Budget + Health Kill-Switches to a Runtime Agent"
-description: "The copy-paste BOFU recipe: turn on per-run plus daily budget, irreversible caps, and the four health detectors on one ProcessConfig (or .agent YAML), pick…"
+description: "Copy one governance block to add per-run and daily budgets, irreversible-action caps and health detectors to a runtime agent, in Python or a .agent YAML file."
 keywords: "configure ai agent budget and health, add budget and health to agent, agent budget config python, ProcessConfig budget health, runtime governance setup, agent governance yaml manifest"
 date: 2026-07-16
 slug: configure-ai-agent-budget-and-health
@@ -14,7 +14,7 @@ To **configure AI agent budget and health** kill-switches you should not need a 
 
 <!-- more -->
 
-If you want the argument for *why* runtime enforcement beats a per-run counter that throws, read the companion post [How to Stop a Runaway AI Agent (Runtime Kill Switches)](stop-a-runaway-ai-agent.md). This post assumes you're sold and just want the block.
+If you want the argument for *why* runtime enforcement beats a per-run counter that throws, read [How to Stop a Runaway AI Agent (Runtime Kill Switches)](stop-a-runaway-ai-agent.md). This post assumes you're sold and just want the block.
 
 ## The one governance block you paste
 
@@ -97,7 +97,7 @@ The `max_irreversible_per_run` cap is the one you can't get from a plain step co
 
 **Health** (`HealthConfig`) is pure pattern matching over tool-call history with **zero LLM calls**, so it's free and instant. Four detectors:
 
-- **Stuck** — the same `(tool, args)` `stuck_threshold` times in a row. The insidious case walked through in [Catch an AI Agent Stuck Repeating the Same Tool Call](ai-agent-stuck-repeating-tool-call.md).
+- **Stuck** — the same `(tool, args)` `stuck_threshold` times in a row. The insidious case is walked through in [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop).
 - **Loop** — a repeating multi-tool sequence (`search → read → search → read`) within the last `loop_window` calls.
 - **Empty response** — `empty_threshold` consecutive responses shorter than `empty_max_chars`.
 - **Error rate** — failed-call fraction over a sliding window exceeding `error_rate_threshold`.
@@ -200,6 +200,6 @@ Copy the `ProcessConfig` governance block above, drop in your own per-run and da
 
 - Tune the weights and detectors against the [Autonomy Budget reference](../../runtime/governance/budget.md) and the [Behavioral Health reference](../../runtime/governance/health.md).
 - See how processes, triggers, and governance fit together in the [Agent Runtime overview](../../runtime/index.md).
-- Understand *why* this beats a per-run counter in [How to Stop a Runaway AI Agent](stop-a-runaway-ai-agent.md), and dig into the trickiest failure mode in [Catch an AI Agent Stuck Repeating the Same Tool Call](ai-agent-stuck-repeating-tool-call.md).
+- Understand *why* this beats a per-run counter in [How to Stop a Runaway AI Agent](stop-a-runaway-ai-agent.md), and dig into the trickiest failure mode in the [stuck-in-a-loop guide](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop).
 
 Flip `enabled: true` before your agent ever runs unattended — governance is cheapest to add on day one and most expensive to add after the first 3 a.m. incident.

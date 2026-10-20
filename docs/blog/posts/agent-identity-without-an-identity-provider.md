@@ -1,6 +1,6 @@
 ---
 title: "Can an AI agent have an identity without an IdP?"
-description: "Most agent-identity advice assumes an IdP, which is a non-starter for air-gapped or early-stage deployments. Promptise's two-tier model starts with a local…"
+description: "Learn how to give an AI agent a local identity with no identity provider, then upgrade it in place to a verifiable IdP-backed identity when you need one."
 keywords: "agent identity without an identity provider, local agent identity, air-gapped agent identity, agent_id attribution, zero-infrastructure agent identity, on-prem AI agent identity"
 date: 2026-07-16
 slug: agent-identity-without-an-identity-provider
@@ -87,7 +87,7 @@ Being fair matters here, because most mainstream frameworks *do* let you attach 
 - **AutoGen** gives each agent a `name` used to route messages between agents (and, in 0.4, across its distributed runtime). That name is an addressable handle for the conversation graph — routing metadata, not an identity a record is attributed to or a credential a resource verifies.
 - **LlamaIndex** agents and tools authenticate to backends with keys you provide; there's no first-class per-agent identity object stamped across every action.
 
-So the honest gap is not "nobody has anything." It's that a role, a name, a trace tag, and a metadata dict are conventions for *prompting and tracing*. To get an actual attributable principal in those frameworks, your practical options are to hand-wire a full IdP integration or to leave the agent effectively anonymous — there is no lightweight "local identity" step in between. Promptise makes that in-between step the **default first move**: `AgentIdentity("billing-bot", ...)` is a zero-infra object the framework guarantees onto every tool call, LLM turn, and audit entry, and it is the *same* object you later make verifiable. The edge is structural — the local tier and the verifiable tier are one primitive, not two systems you bridge. (For the credential side of the story — why a short-lived IdP token beats a static key — see [How does an AI agent authenticate to an API? (not API keys)](how-does-an-ai-agent-authenticate-to-an-api.md).)
+So the honest gap is not "nobody has anything." It's that a role, a name, a trace tag, and a metadata dict are conventions for *prompting and tracing*. To get an actual attributable principal in those frameworks, your practical options are to hand-wire a full IdP integration or to leave the agent effectively anonymous — there is no lightweight "local identity" step in between. Promptise makes that in-between step the **default first move**: `AgentIdentity("billing-bot", ...)` is a zero-infra object the framework guarantees onto every tool call, LLM turn, and audit entry, and it is the *same* object you later make verifiable. The edge is structural — the local tier and the verifiable tier are one primitive, not two systems you bridge. (For the credential side of the story, see [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication).)
 
 ## Tier two: upgrade in place to a verifiable, IdP-backed identity
 
@@ -108,7 +108,7 @@ identity = AgentIdentity.auto("billing-bot")
 
 Once verifiable, `identity.is_verifiable` is `True`, the authoritative id can come from the credential's `sub`/`oid` claim instead of the string you passed, and the signed credential is presented to your MCP servers automatically — each scoped to that server's `audience`. The server verifies it against the issuer's published keys with `JwksAuth` and authorizes specific agents on specific tools with guards like `RequireClientId` and `HasRole`. The full outbound-and-inbound wiring — one identity, two audiences, delegation, and a signed audit log — is laid out step by step in the [end-to-end identity guide](../../identity/guide.md).
 
-The two-tier design is the whole point: you don't choose between "anonymous prototype" and "full IdP rollout." You start with a name in two lines, get attribution immediately, and pay the cost of verifiable identity only when — and where — a resource actually demands it. And if you're already running several agents, giving each its *own* local identity is the same move that lets you later [give each AI agent its own identity, not a shared key](give-each-ai-agent-its-own-identity.md).
+The two-tier design is the whole point: you don't choose between "anonymous prototype" and "full IdP rollout." You start with a name in two lines, get attribution immediately, and pay the cost of verifiable identity only when — and where — a resource actually demands it. And if you're already running several agents, giving each its *own* local identity is the same move that lets you later [authenticate each agent to your MCP servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication).
 
 ## Frequently asked questions
 

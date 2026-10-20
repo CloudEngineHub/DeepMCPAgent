@@ -1,6 +1,6 @@
 ---
 title: "Why AI Agent Frameworks Fail in Air-Gapped Networks"
-description: "Most teams discover too late that 'model-agnostic' does not mean 'offline-capable': even when the LLM runs via Ollama, the default embedding calls…"
+description: "Learn why agents that use a local model still fail in air-gapped networks, which hidden cloud calls break them, and how to make every layer run fully offline."
 keywords: "air-gapped AI agent, run an AI agent fully offline, on-prem agent no internet, offline agent framework, no internet AI agent"
 date: 2026-07-16
 slug: air-gapped-ai-agent
@@ -37,7 +37,7 @@ The gap is not "can a layer run locally" — it's "does the assembled stack run 
 - **Security and moderation.** No mainstream agent framework bundles a local ML prompt-injection classifier plus content moderation into the agent's input/output path as a wired-in default. Detection is left to you, or the documented path is a hosted moderation API. NeMo Guardrails and Guardrails AI can run some rails locally, but you supply and host the models and wire them in yourself — they are separate libraries, not a default agent layer.
 - **Telemetry.** CrewAI emits anonymous telemetry by default (you opt out via an environment variable). The LangChain/LangGraph ecosystem steers teams toward LangSmith, and Pydantic AI toward Logfire — both hosted tracing services. These are opt-in, but they are the paved road, so the "happy path" your team copies from the docs sends run data off-host unless someone remembers to disable it.
 
-So the honest delta is not that competitors *lack* offline capability. It's that offline is an assembly project you perform per layer and re-verify at audit time. Promptise Foundry's edge is structural: local model, local embeddings, local guardrails, and local telemetry are the *wired-in default*, and the framework's "no fallbacks" design means nothing silently swaps to a hosted service behind your back. That is the difference between "possible to run offline" and being an **offline agent framework**.
+So the real difference is not that other frameworks *lack* offline capability. It's that offline is an assembly project you perform per layer and re-verify at audit time. Promptise Foundry's edge is structural: local model, local embeddings, local guardrails, and local telemetry are the *wired-in default*, and the framework's "no fallbacks" design means nothing silently swaps to a hosted service behind your back. That is the difference between "possible to run offline" and being an **offline agent framework**.
 
 ## The layers that must be local — and how Promptise wires them
 

@@ -1,6 +1,6 @@
 ---
 title: "Hot-Reload an Agent's Instructions Without Losing State"
-description: "Scoped to the state-preservation-and-undo mechanics, not a general open-mode tour: run an AgentProcess in ExecutionMode.OPEN, call modify_instructions and…"
+description: "Learn how to change a running agent's instructions without losing its conversation, roll back a bad change in one call, and cap how many reloads are allowed."
 keywords: "hot-reload agent instructions without losing state, roll back a self-modifying agent, modify agent instructions at runtime, langgraph checkpointing vs hot-reload"
 date: 2026-07-16
 slug: hot-reload-agent-instructions-without-losing-state
@@ -10,7 +10,7 @@ categories:
 
 # Hot-Reload an Agent's Instructions Without Losing State
 
-You can **hot-reload agent instructions without losing state** — rewrite a running agent's system prompt mid-conversation, let its graph rebuild around the new prompt, and keep every message the agent has already exchanged — and then undo the whole thing with a single `rollback()` call. This post is deliberately narrow. It isn't a tour of open mode's fourteen meta-tools; it's about the one mechanic that decides whether a self-modifying agent is safe to run in production: when the agent changes itself, does the live conversation survive, and can you get back? In Promptise Foundry the answer is yes on both counts, and the machinery that guarantees it — a preserved conversation buffer, a `max_rebuilds` cap, and one-call rollback — is what this article walks through.
+You can **hot-reload agent instructions without losing state** — rewrite a running agent's system prompt mid-conversation, let its graph rebuild around the new prompt, and keep every message the agent has already exchanged — and then undo the whole thing with a single `rollback()` call. This post focuses on the one mechanic that decides whether a self-modifying agent is safe to run in production: when the agent changes itself, does the live conversation survive, and can you get back? In Promptise Foundry the answer is yes on both counts, and the machinery that guarantees it — a preserved conversation buffer, a `max_rebuilds` cap, and one-call rollback — is what this article walks through.
 
 <!-- more -->
 

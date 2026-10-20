@@ -1,6 +1,6 @@
 ---
 title: "Build a PII-Safe Document Processing AI Agent"
-description: "Document pipelines leak sensitive data and run untrusted parsing code — the two failure modes this build closes. Every extracted output is scanned by 69 PII…"
+description: "Build a document processing AI agent that redacts PII in every extracted output and runs untrusted parsing code in a sandbox that has no network access."
 keywords: "document processing ai agent, ai document extraction agent, pii redaction agent, intelligent document processing llm, secure document ai"
 date: 2026-07-16
 slug: document-processing-ai-agent
@@ -10,13 +10,9 @@ categories:
 
 # Build a PII-Safe Document Processing AI Agent
 
-A document processing ai agent is one of the highest-value things you can build with an LLM — invoices, contracts, lab results, and onboarding forms are exactly the unstructured text that models are good at, and exactly the data your compliance team loses sleep over. Two failure modes break these pipelines in production: sensitive data leaks out in an extracted response, and generated parsing code runs with full access to your host. This build closes both. By the end you'll have a working pipeline where every extracted output is scanned for PII before it leaves the agent, and any code the agent writes to parse a file runs inside a locked-down Docker sandbox with no network.
+A document processing ai agent is one of the highest-value things you can build with an LLM — invoices, contracts, lab results, and onboarding forms are exactly the unstructured text that models are good at, and exactly the data your security team loses sleep over. Two failure modes break these pipelines in production: sensitive data leaks out in an extracted response, and generated parsing code runs with full access to your host. This build closes both. By the end you'll have a working pipeline where every extracted output is scanned for PII before it leaves the agent, and any code the agent writes to parse a file runs inside a locked-down Docker sandbox with no network.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## The two failure modes that break document pipelines
 
@@ -133,7 +129,7 @@ asyncio.run(main())
 
 Run it with your own `OPENAI_API_KEY` and a `.txt` file in `./inbox`. The agent discovers the two document tools, reads each file, extracts the fields, and — for anything irregular — writes a parser that executes with no network access. Whatever it produces passes through the scanner on the way out, so a stray SSN or address is redacted before it hits your logs. Because `observe=True`, you also get a full timeline you can inspect to confirm redaction actually fired.
 
-From here the pattern composes cleanly with the rest of Promptise. Point the same agent at additional MCP servers and it becomes one node in a larger system — the [multi-agent systems guide](multi-agent-systems-python.md) shows how a document extractor can hand off to a review agent, and the same guardrails scanner protects a conversational front end like the one in the [customer support agent build](customer-support-ai-agent.md).
+From here the pattern composes cleanly with the rest of Promptise. Point the same agent at additional MCP servers and it becomes one node in a larger system — a document extractor can hand off to a review agent (the [multi-agent system guide](https://www.promptise.com/guides/view/multi-agent-system-python) covers how to wire agents together), and the same guardrails scanner protects a conversational front end like the one in the [customer support agent build](customer-support-ai-agent.md).
 
 ## When a plain script is the better fit
 
@@ -143,7 +139,7 @@ Be honest about the tradeoff. If your documents are uniform — the same invoice
 
 ### Does the PII scanning send my documents to a third-party API?
 
-No. Every detector in `PromptiseSecurityScanner` runs locally on your infrastructure. The `PIIDetector` and `CredentialDetector` are pure regex plus Luhn validation, and the `NERDetector` uses a local GLiNER model. Document text never leaves your machine for classification, which is what makes the pipeline suitable for regulated data.
+No. Every detector in `PromptiseSecurityScanner` runs locally on your infrastructure. The `PIIDetector` and `CredentialDetector` are pure regex plus Luhn validation, and the `NERDetector` uses a local GLiNER model. Document text never leaves your machine for classification, which is what makes the pipeline usable for sensitive documents that must not leave your network.
 
 ### What stops generated parsing code from harming my host?
 

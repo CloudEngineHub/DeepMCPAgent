@@ -66,7 +66,104 @@ plugins:
         - blog/archive/*
         - blog/category/*
   - redirects:
-      redirect_maps: {}
+      # Pages merged into the promptise.com guides. Blog posts are keyed by their
+      # URL (blog/<slug>.md -> /blog/<slug>/), not by their source path.
+      redirect_maps:
+        blog/agent-reasoning-patterns.md: https://www.promptise.com/guides/view/ai-agent-reasoning-patterns
+        blog/agent-stuck-in-tool-loop.md: https://www.promptise.com/guides/view/ai-agent-stuck-in-loop
+        blog/agent-token-usage-observability.md: https://www.promptise.com/guides/view/ai-agent-cost-tracking
+        blog/ai-agent-audit-logging.md: https://www.promptise.com/guides/view/ai-agent-audit-log
+        blog/ai-agent-behavioral-anomaly-detection.md: https://www.promptise.com/guides/view/ai-agent-health-monitoring
+        blog/ai-agent-compliance-audit-trail.md: https://www.promptise.com/guides/view/ai-agent-audit-log
+        blog/ai-agent-crash-recovery.md: https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery
+        blog/ai-agent-duplicate-actions-after-restart.md: https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery
+        blog/ai-agent-identity.md: https://www.promptise.com/guides/view/ai-agent-identity-authentication
+        blog/ai-agent-memory.md: https://www.promptise.com/guides/view/ai-agent-memory-python
+        blog/ai-agent-observability-vs-audit-trail.md: https://www.promptise.com/guides/view/best-ai-agent-observability-tools
+        blog/ai-agent-stuck-repeating-tool-call.md: https://www.promptise.com/guides/view/ai-agent-stuck-in-loop
+        blog/api-keys-vs-jwt-for-ai-agents.md: https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth
+        blog/auto-stop-runaway-ai-agent.md: https://www.promptise.com/guides/view/ai-agent-health-monitoring
+        blog/autogen-docker-code-executor-isolation.md: https://www.promptise.com/guides/view/autogen-docker-code-executor
+        blog/autonomous-agent-goal-completion.md: https://www.promptise.com/guides/view/goal-driven-ai-agent-mission
+        blog/autonomous-ai-agent-runtime.md: https://www.promptise.com/guides/view/autonomous-ai-agent-runtime
+        blog/behavioral-anomaly-detection-for-ai-agents.md: https://www.promptise.com/guides/view/ai-agent-health-monitoring
+        blog/best-ai-agent-framework-2026.md: https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared
+        blog/best-llm-for-ai-agents.md: https://www.promptise.com/guides/view/best-llm-for-ai-agents
+        blog/cache-mcp-tool-results.md: https://www.promptise.com/guides/view/mcp-server-caching-circuit-breaker
+        blog/cap-ai-agent-tool-calls-per-run.md: https://www.promptise.com/guides/view/ai-agent-cost-control-budget
+        blog/category/compliance--audit.md: https://www.promptise.com/guides/view/ai-agent-audit-log
+        blog/choosing-an-agent-framework.md: https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared
+        blog/circuit-breakers-for-tools.md: https://www.promptise.com/guides/view/mcp-server-caching-circuit-breaker
+        blog/code-action-agent.md: https://www.promptise.com/guides/view/code-action-agent-python
+        blog/confidence-threshold-to-stop-ai-agent.md: https://www.promptise.com/guides/view/goal-driven-ai-agent-mission
+        blog/connect-ai-agent-to-mcp-tools.md: https://www.promptise.com/guides/view/connect-mcp-servers-to-ai-agent-python
+        blog/context-window-management.md: https://www.promptise.com/guides/view/context-engineering-ai-agents
+        blog/conversation-persistence.md: https://www.promptise.com/guides/view/ai-agent-memory-python
+        blog/crewai-alternative.md: https://www.promptise.com/guides/view/crewai-alternatives
+        blog/daily-budget-for-ai-agent.md: https://www.promptise.com/guides/view/ai-agent-cost-control-budget
+        blog/delete-one-tenant-s-data-gdpr.md: https://www.promptise.com/guides/view/multi-tenant-ai-agent
+        blog/detect-a-tampered-agent-audit-trail.md: https://www.promptise.com/guides/view/ai-agent-audit-log
+        blog/durable-execution-for-ai-agents.md: https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery
+        blog/escalate-ai-agent-to-human.md: https://www.promptise.com/guides/view/ai-agent-health-monitoring
+        blog/eu-ai-act-agent-logging.md: https://www.promptise.com/guides/view/ai-agent-audit-log
+        blog/event-driven-ai-agent.md: https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers
+        blog/fastmcp-alternative-for-production.md: https://www.promptise.com/guides/view/fastmcp-alternatives
+        blog/gdpr-delete-cached-llm-responses.md: https://www.promptise.com/guides/view/llm-semantic-cache-fallback-python
+        blog/gdpr-delete-user-data-ai-agent.md: https://www.promptise.com/guides/view/ai-agent-memory-python
+        blog/give-each-ai-agent-its-own-identity.md: https://www.promptise.com/guides/view/ai-agent-identity-authentication
+        blog/guardrails-ai-vs-nemo-guardrails.md: https://www.promptise.com/guides/view/guardrails-ai-vs-nemo-guardrails
+        blog/hipaa-ai-agent-audit.md: https://www.promptise.com/guides/view/ai-agent-audit-log
+        blog/how-does-an-ai-agent-authenticate-to-an-api.md: https://www.promptise.com/guides/view/ai-agent-identity-authentication
+        blog/how-to-build-an-ai-agent-in-python.md: https://www.promptise.com/guides/view/how-to-build-ai-agent-python
+        blog/human-in-the-loop-approval.md: https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval
+        blog/human-in-the-loop-llm-approval.md: https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval
+        blog/jwt-authentication-for-mcp-servers.md: https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth
+        blog/know-when-ai-agent-achieved-its-goal.md: https://www.promptise.com/guides/view/goal-driven-ai-agent-mission
+        blog/langchain-alternative.md: https://www.promptise.com/guides/view/langchain-alternatives
+        blog/llm-content-moderation.md: https://www.promptise.com/guides/view/best-llm-guardrails-tools
+        blog/llm-guardrails-python.md: https://www.promptise.com/guides/view/ai-agent-guardrails-python
+        blog/llm-long-term-memory.md: https://www.promptise.com/guides/view/ai-agent-memory-python
+        blog/llm-tool-rate-limiting.md: https://www.promptise.com/guides/view/mcp-rate-limiting-per-client
+        blog/long-running-agent-context-bloat.md: https://www.promptise.com/guides/view/context-engineering-ai-agents
+        blog/long-running-ai-agent.md: https://www.promptise.com/guides/view/deploy-ai-agents-in-production
+        blog/long-running-mcp-tool-job-queue.md: https://www.promptise.com/guides/view/mcp-long-running-tasks-background-jobs
+        blog/mcp-authentication.md: https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth
+        blog/mcp-client.md: https://www.promptise.com/guides/view/connect-mcp-servers-to-ai-agent-python
+        blog/mcp-server-python.md: https://www.promptise.com/guides/view/build-production-mcp-server-python
+        blog/migrating-off-langchain.md: https://www.promptise.com/guides/view/langchain-alternatives
+        blog/multi-agent-systems-python.md: https://www.promptise.com/guides/view/multi-agent-system-python
+        blog/multi-tenant-ai-agent.md: https://www.promptise.com/guides/view/multi-tenant-ai-agent
+        blog/openapi-to-mcp.md: https://www.promptise.com/guides/view/openapi-to-mcp-server-rest-api
+        blog/per-tenant-data-isolation.md: https://www.promptise.com/guides/view/multi-tenant-ai-agent
+        blog/pii-redaction-for-ai.md: https://www.promptise.com/guides/view/llm-pii-redaction
+        blog/plan-and-execute-agent.md: https://www.promptise.com/guides/view/plan-and-execute-agent-python
+        blog/production-ai-agent-checklist.md: https://www.promptise.com/guides/view/ai-agent-production-checklist
+        blog/production-mcp-server.md: https://www.promptise.com/guides/view/fastmcp-alternatives
+        blog/prompt-injection-detection.md: https://www.promptise.com/guides/view/ai-agent-prompt-injection-defense
+        blog/python-ai-agent-framework-comparison.md: https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared
+        blog/python-ai-agent-framework.md: https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared
+        blog/react-agent-pattern.md: https://www.promptise.com/guides/view/build-reliable-reason-and-act-agent-loops-react-from-scratch
+        blog/react-vs-plan-and-execute.md: https://www.promptise.com/guides/view/plan-and-execute-agent-python
+        blog/reduce-llm-token-cost.md: https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection
+        blog/rotate-ai-agent-secret-without-restart.md: https://www.promptise.com/guides/view/ai-agent-secrets-management
+        blog/route-ai-agent-approvals-to-slack.md: https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval
+        blog/run-ai-generated-code-safely.md: https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python
+        blog/sandboxed-code-execution-for-ai.md: https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python
+        blog/scheduled-ai-agent.md: https://www.promptise.com/guides/view/ai-agent-cron-schedule
+        blog/secure-mcp-server-on-public-internet.md: https://www.promptise.com/guides/view/mcp-security-best-practices
+        blog/self-modifying-ai-agent.md: https://www.promptise.com/guides/view/self-modifying-ai-agent-open-mode
+        blog/semantic-cache-for-llms.md: https://www.promptise.com/guides/view/llm-semantic-cache-fallback-python
+        blog/server-side-vs-agent-side-ai-approval.md: https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval
+        blog/single-agent-vs-multi-agent.md: https://www.promptise.com/guides/view/multi-agent-system-python
+        blog/soc-2-audit-trail-for-ai-agents.md: https://www.promptise.com/guides/view/ai-agent-audit-log
+        blog/sovereign-ai-agent-eu-data-residency.md: https://www.promptise.com/guides/view/ollama-ai-agent-mcp
+        blog/spiffe-svid-identity-for-ai-agents.md: https://www.promptise.com/guides/view/spiffe-ai-agent-identity
+        blog/testing-mcp-servers.md: https://www.promptise.com/guides/view/test-mcp-server-python
+        blog/tool-calling-in-python.md: https://www.promptise.com/guides/view/what-is-tool-calling
+        blog/verify-webhook-signature-ai-agent.md: https://www.promptise.com/guides/view/ai-agent-webhook-trigger
+        blog/watched-folder-ingestion-agent.md: https://www.promptise.com/guides/view/ai-agent-file-watcher
+        blog/what-is-mcp.md: https://www.promptise.com/guides/view/what-is-model-context-protocol
+        getting-started/best-llms-for-agents.md: https://www.promptise.com/guides/view/best-llm-for-ai-agents
   - blog:
       blog_dir: blog
       post_url_format: "{slug}"
@@ -127,7 +224,6 @@ nav:
       - Cookbook (Recipes): getting-started/cookbook.md
       - Why Promptise Foundry: getting-started/why-promptise.md
       - What is MCP?: getting-started/what-is-mcp.md
-      - Best LLMs for Agents: getting-started/best-llms-for-agents.md
       - Key Concepts: getting-started/concepts.md
       - Glossary: getting-started/glossary.md
 

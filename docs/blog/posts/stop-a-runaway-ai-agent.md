@@ -1,6 +1,6 @@
 ---
 title: "How to Stop a Runaway AI Agent (Runtime Kill Switches)"
-description: "A max_iterations or recursion_limit cap raises an exception inside a single ainvoke() that you must catch — which does nothing to halt an agent already…"
+description: "Learn why max_iterations can't stop an agent that runs on a schedule, and how runtime kill switches pause, stop or escalate a runaway agent from outside a run."
 keywords: "stop a runaway ai agent, runaway agent kill switch, ai agent kill switch, stop autonomous agent loop, ai agent runtime guardrails, runtime kill switch for llm agents"
 date: 2026-07-16
 slug: stop-a-runaway-ai-agent
@@ -138,9 +138,9 @@ The three subsystems are not redundant — each catches a runaway the others can
 
 **Budget** stops an agent that does *too much*. It caps total tool calls, weighted cost units, and — critically — irreversible actions separately, so you can grant a generous read budget while allowing only three refunds per run. Set `on_exceeded="stop"` and a cost blowout ends the process; set `"escalate"` and it pages a human first.
 
-**Health** stops an agent that does the *same useless thing cheaply forever* — the runaway a cost budget will happily fund. Detection is pure pattern matching over tool-call history with **no LLM calls**, so it is free and instant: the `stuck` detector fires after N identical calls, and the `loop` detector catches repeating multi-tool sequences. This is the surgical way to stop an autonomous agent loop; the mechanics are in the [Behavioral Health reference](../../runtime/governance/health.md), and the specific stuck case is walked through in [Catch an AI Agent Stuck Repeating the Same Tool Call](ai-agent-stuck-repeating-tool-call.md).
+**Health** stops an agent that does the *same useless thing cheaply forever* — the runaway a cost budget will happily fund. Detection is pure pattern matching over tool-call history with **no LLM calls**, so it is free and instant: the `stuck` detector fires after N identical calls, and the `loop` detector catches repeating multi-tool sequences. This is the surgical way to stop an autonomous agent loop; the mechanics are in the [Behavioral Health reference](../../runtime/governance/health.md), and the specific stuck case is walked through in [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop).
 
-**Mission** stops an agent whose every step looks fine but which has quietly drifted off the goal. An LLM-as-judge evaluates progress every `eval_every` invocations; if confidence drops below your threshold it escalates, and if the objective is met with `auto_complete=True` the process stops itself. When mission (or budget or health) escalates, it hands off cleanly to a human — the pattern in [Escalate to a Human When an AI Agent Keeps Failing](escalate-ai-agent-to-human.md).
+**Mission** stops an agent whose every step looks fine but which has quietly drifted off the goal. An LLM-as-judge evaluates progress every `eval_every` invocations; if confidence drops below your threshold it escalates, and if the objective is met with `auto_complete=True` the process stops itself. When mission (or budget or health) escalates, it hands off cleanly to a human. The monitoring side is covered in [AI Agent Health Monitoring: Catch Silent Failures](https://www.promptise.com/guides/view/ai-agent-health-monitoring).
 
 ## When a max-iteration cap is genuinely enough
 

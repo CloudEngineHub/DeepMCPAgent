@@ -1,6 +1,6 @@
 ---
 title: "Who Approved That AI Refund? Reviewer Attribution"
-description: "Scoped narrowly to approval-decision provenance, distinct from the general HMAC-chain audit hub (which owns tamper-evidence). When an agent issues a refund…"
+description: "Learn how to prove who approved an AI agent's $5,000 refund by recording a verified reviewer, separate from the caller, on every approval and denial."
 keywords: "who approved this ai agent action, approval reviewer attribution, approval_request_id audit, prove who signed off ai refund, approval_denied audited error"
 date: 2026-07-16
 slug: who-approved-this-ai-agent-action
@@ -10,14 +10,11 @@ categories:
 
 # Who Approved That AI Refund? Reviewer Attribution
 
-When compliance asks **who approved this ai agent action** — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post is scoped narrowly to one thing: the *provenance of an approval decision*. Not whether the audit log is tamper-evident (that question is settled elsewhere), but what actually lands on it when a human signs off, and whether that record can survive an auditor who does not trust your good intentions.
+When someone asks **who approved this ai agent action** — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post covers the *provenance of an approval decision*: what actually lands on a tamper-evident audit log when a human signs off, and whether that record can survive an incident reviewer who does not trust your good intentions.
 
 <!-- more -->
 
 The tamper-evidence of the chain — the HMAC links that prove no entry was edited after the fact — is a separate concern, covered in the [Production Features overview](../../mcp/server/production-features.md). Here we assume the chain is trustworthy and ask a sharper question: *given a trustworthy record, does an approval decision leave enough on it to defend the sign-off?*
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 
 
 ## The question that arrives six months later
@@ -28,7 +25,7 @@ A refund tool fires. Money moves. Later, a dispute, an audit, or an incident rev
 - **Were they someone other than the caller** — because a sign-off by the same identity that requested the action is not dual control; it is a rubber stamp with extra steps.
 - **Was it *this* call they approved** — tied to the exact arguments and request, not a different refund from the same minute.
 
-Most agent stacks can produce a decision *somewhere* — a webhook payload, an orchestrator log line, a row your driver code wrote when it remembered to. What they rarely produce is a decision bound to a verified reviewer, provably distinct from the caller, on a record you can hand to an auditor without a follow-up meeting. That binding is the whole job of approval reviewer attribution, and it is the part that is easy to skip until the day you can't.
+Most agent stacks can produce a decision *somewhere* — a webhook payload, an orchestrator log line, a row your driver code wrote when it remembered to. What they rarely produce is a decision bound to a verified reviewer, provably distinct from the caller, on a record you can hand to an incident reviewer without a follow-up meeting. That binding is the whole job of approval reviewer attribution, and it is the part that is easy to skip until the day you can't.
 
 ## Three things a defensible sign-off needs
 
@@ -129,7 +126,7 @@ Audit chain — one tamper-evident record of who did what:
 chain valid: True
 ```
 
-Read the chain. Each `refund` is issued by `clerk-1`; each decision is made by `manager-9`. Those are two different verified subjects, side by side on the *same* HMAC-linked chain, so the record shows not just that an approval happened but that a **different** principal made it — and `verify_chain()` proves nobody edited that ordering afterward. The tenant travels on every entry, so a per-tenant forensic slice ("show me every approval decision for `acme`") is a filter on a first-class field, not a log grep. This is what turns "we have approvals" into an answer you can hand to an auditor: the identity of the reviewer, distinct from the caller, is *on the record*, not in someone's memory of the incident.
+Read the chain. Each `refund` is issued by `clerk-1`; each decision is made by `manager-9`. Those are two different verified subjects, side by side on the *same* HMAC-linked chain, so the record shows not just that an approval happened but that a **different** principal made it — and `verify_chain()` proves nobody edited that ordering afterward. The tenant travels on every entry, so a per-tenant forensic slice ("show me every approval decision for `acme`") is a filter on a first-class field, not a log grep. This is what turns "we have approvals" into an answer you can hand to an incident reviewer: the identity of the reviewer, distinct from the caller, is *on the record*, not in someone's memory of the incident.
 
 ## The denial path is an audited outcome, not a swallowed exception
 

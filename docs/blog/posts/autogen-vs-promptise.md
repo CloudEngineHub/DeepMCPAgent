@@ -1,6 +1,6 @@
 ---
 title: "AutoGen vs Promptise Foundry: Multi-Agent, Honestly"
-description: "AutoGen shines for research-y, conversational multi-agent experiments in a notebook — we say so up front. The difference: Promptise's multi-agent layer is…"
+description: "Compare AutoGen and Promptise Foundry for multi-agent systems: where AutoGen fits best, and when governed services, HTTP+JWT calls and production limits matter."
 keywords: "AutoGen vs Promptise, AutoGen alternative, Microsoft AutoGen vs, multi-agent framework comparison, AutoGen in production"
 date: 2026-07-16
 slug: autogen-vs-promptise
@@ -118,7 +118,7 @@ The real test of any framework is what happens after the prototype works. Runnin
 
 Promptise treats those as first-class concerns. Agents ship as services, identity rides through delegation via `CallerContext`, and the MCP-native tool layer means your agents discover tools from servers automatically instead of hand-wiring function schemas. You spend your time on the agent's behavior, not on rebuilding the governance plumbing.
 
-If you're still choosing between several options rather than just these two, our [honest guide to the best AI agent framework in 2026](best-ai-agent-framework-2026.md) walks the broader field, and the [framework-choosing checklist](choosing-an-agent-framework.md) turns these trade-offs into concrete questions to ask about your own project.
+If you're still choosing between several options rather than just these two, our [comparison of Python AI agent frameworks](https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared) walks the broader field.
 
 ## Frequently asked questions
 

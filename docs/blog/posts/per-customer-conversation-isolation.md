@@ -1,6 +1,6 @@
 ---
 title: "Per-Customer Chat History: Enforcing Session Ownership"
-description: "Persisting chat threads is easy; stopping one customer from reading another's thread by guessing a session id is the hard part, and single-user ownership…"
+description: "Learn how to stop one customer from reading another customer's chat history by guessing a session id, with ownership checks on every read, write and delete."
 keywords: "per-customer conversation isolation, session ownership enforcement multi-tenant, stop guessing another customer's session id, sessionaccessdenied tenant, who owns this conversation thread"
 date: 2026-07-16
 slug: per-customer-conversation-isolation

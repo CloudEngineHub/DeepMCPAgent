@@ -1,6 +1,6 @@
 ---
 title: "Data Analysis AI Agent: Natural Language to SQL"
-description: "Generic ReAct agents hallucinate numbers when they cross-reference tables. This deep-dive uses a plan-execute-verify reasoning pattern that validates…"
+description: "Build a natural-language-to-SQL data analysis agent that plans, runs and verifies its queries, so it stops hallucinating numbers when it joins several tables."
 keywords: "data analysis ai agent, natural language to sql agent, nl2sql agent, analytics ai agent, llm sql agent"
 date: 2026-07-16
 slug: data-analysis-ai-agent
@@ -121,7 +121,7 @@ A plain text-to-SQL tool — one LLM call that emits one query you run yourself 
 - You need sub-second responses and can't spend turns on reflection.
 - The queries are templated, and you mostly need natural-language *slot-filling*, not open-ended analysis.
 
-For those cases, expose one query tool from an MCP server and let a default ReAct agent call it. The `peoatr`/`managed` machinery is for the deep, error-prone questions — the ones where a wrong number quietly costs someone a decision. If you're orchestrating several such analysts together — one per data domain, coordinated by a planner — the patterns in [How to Build Multi-Agent Systems in Python](multi-agent-systems-python.md) show how to compose them.
+For those cases, expose one query tool from an MCP server and let a default ReAct agent call it. The `peoatr`/`managed` machinery is for the deep, error-prone questions — the ones where a wrong number quietly costs someone a decision. If you're orchestrating several such analysts together — one per data domain, coordinated by a planner — [Build a Multi-Agent System in Python (and When Not To)](https://www.promptise.com/guides/view/multi-agent-system-python) covers how to compose them.
 
 ## Frequently asked questions
 

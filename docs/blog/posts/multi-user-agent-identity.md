@@ -1,6 +1,6 @@
 ---
 title: "Pass User Identity Through Agents to MCP Tools"
-description: "The concrete implementation query for anyone building a real multi-user product: how does Alice's identity reach the tool server without the client asserting…"
+description: "Learn how to pass each user's identity through an AI agent to MCP tools with bearer tokens, and enforce roles and tenant isolation on the tool server itself."
 keywords: "multi-user agent identity, CallerContext, propagate user identity to MCP server, per-user data isolation agents, tenant isolation MCP, bearer token propagation"
 date: 2026-07-16
 slug: multi-user-agent-identity
@@ -10,7 +10,7 @@ categories:
 
 # Pass User Identity Through Agents to MCP Tools
 
-Getting **multi-user agent identity** right is the difference between a demo and a product your auditors will sign off on. The moment two customers share one agent, you have to answer a hard question: when Alice asks "show my invoices," how does *her* identity reach the tool server so it returns *her* data and not Bob's — without the client simply asserting whatever roles it likes? This post traces the whole path in Promptise Foundry: from a per-request `CallerContext` in your app, to a bearer token on the wire, to server-side JWT extraction and role/tenant guards. By the end you'll be able to wire it end to end and know exactly where the trust boundary sits.
+Getting **multi-user agent identity** right is the difference between a demo and a product your security team will sign off on. The moment two customers share one agent, you have to answer a hard question: when Alice asks "show my invoices," how does *her* identity reach the tool server so it returns *her* data and not Bob's — without the client simply asserting whatever roles it likes? This post traces the whole path in Promptise Foundry: from a per-request `CallerContext` in your app, to a bearer token on the wire, to server-side JWT extraction and role/tenant guards. By the end you'll be able to wire it end to end and know exactly where the trust boundary sits.
 
 <!-- more -->
 
@@ -21,7 +21,7 @@ Multi-user systems actually carry two distinct identities, and conflating them i
 - **The human principal** — Alice, the logged-in user whose request the agent is currently serving. This is what scopes data access, memory, and per-user isolation. In Promptise it's a `CallerContext`.
 - **The acting agent** — the non-human service identity of the process itself, answering "which agent did this?" for attribution and least privilege. That's [Agent Identity](../../identity/overview.md), a separate, verifiable service-account-style identity you can attach with `AgentIdentity`.
 
-They solve different problems. Agent Identity says *which agent acted*; `CallerContext` says *on whose behalf*. A refund tool might require both: a trusted `billing-bot` agent **and** a caller with the `finance` role. For the rest of this post we focus on the human principal, because that's the isolation guarantee SaaS teams are usually evaluating. If you're weighing the broader picture of service accounts, tokens, and delegation, the [AI Agent Identity & Authentication guide](ai-agent-identity.md) covers how the two layers fit together.
+They solve different problems. Agent Identity says *which agent acted*; `CallerContext` says *on whose behalf*. A refund tool might require both: a trusted `billing-bot` agent **and** a caller with the `finance` role. For the rest of this post we focus on the human principal, because that's the isolation guarantee SaaS teams are usually evaluating. For the agent side, how an agent authenticates to MCP servers with its own credentials, see [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication).
 
 ## How bearer token propagation carries a user to your tools
 
@@ -77,7 +77,7 @@ Two things make this **tenant isolation MCP**-side rather than a hope:
 - `RequireTenant()` refuses any call that doesn't resolve a tenant, and `require_tenant=True` makes that a server invariant so you can't forget it on one tool.
 - `ctx.client.tenant_id` comes from the `org` claim inside the validated JWT. A client that hand-edits its roles or tenant gets a signature failure, not elevated access.
 
-The `roles=["analyst"]` shorthand on `@server.tool()` is just sugar for a `HasRole` guard, and when a guard denies, the error explains *why* — which roles were required versus what the client presented (a tenant denial names only the caller's own tenant, never the others that are allowed). The full guard catalog (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `RequireTenant`, `HasTenant`, and custom guards) and the enrichment hooks live in the [MCP auth & security reference](../../mcp/server/auth-security.md). If you haven't stood up token validation yet, the walkthrough in [JWT Authentication for MCP Servers](jwt-authentication-for-mcp-servers.md) is the fastest way to get a signed, verifiable token flowing.
+The `roles=["analyst"]` shorthand on `@server.tool()` is just sugar for a `HasRole` guard, and when a guard denies, the error explains *why* — which roles were required versus what the client presented (a tenant denial names only the caller's own tenant, never the others that are allowed). The full guard catalog (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `RequireTenant`, `HasTenant`, and custom guards) and the enrichment hooks live in the [MCP auth & security reference](../../mcp/server/auth-security.md). If you haven't stood up token validation yet, the walkthrough in [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth) is the fastest way to get a signed, verifiable token flowing.
 
 ## Wire CallerContext end to end
 
@@ -170,4 +170,4 @@ Attach a `CallerContext` with a valid `bearer_token` to each invocation via `cal
 
 ## Next steps
 
-Wire `CallerContext` end to end and ship per-user isolation your auditors will sign off on: give each request a caller, put a bearer token on the wire, and let `RequireTenant` and `HasRole` do the enforcing server-side. Start from the [Quick Start](../../getting-started/quickstart.md), then follow the field-by-field [Multi-User Identity guide](../../guides/multi-user-identity.md) to lock down the trust boundary.
+Wire `CallerContext` end to end and ship per-user isolation your security team will sign off on: give each request a caller, put a bearer token on the wire, and let `RequireTenant` and `HasRole` do the enforcing server-side. Start from the [Quick Start](../../getting-started/quickstart.md), then follow the field-by-field [Multi-User Identity guide](../../guides/multi-user-identity.md) to lock down the trust boundary.

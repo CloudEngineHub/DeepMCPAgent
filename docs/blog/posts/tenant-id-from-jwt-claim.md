@@ -1,6 +1,6 @@
 ---
 title: "Where Does tenant_id Come From? JWT Claim vs API Key"
-description: "Every multi-tenant post assumes a tenant_id is already present, but where does it actually come from? This how-to fills that gap: the two supported sources …"
+description: "Learn where a tenant_id should come from in a multi-tenant MCP server, a JWT claim or a tenant bound to an API key, and how requests without one fail closed."
 keywords: "tenant_id from jwt claim, source tenant_id in mcp server, configurable tenant claim jwt, bind tenant to api key, extract tenant from jwt claim, fail-closed missing tenant claim"
 date: 2026-07-16
 slug: tenant-id-from-jwt-claim
@@ -10,11 +10,11 @@ categories:
 
 # Where Does tenant_id Come From? JWT Claim vs API Key
 
-Every multi-tenant tutorial hands you a `tenant_id` and moves on, but the honest question is where that value comes from — and the two answers Promptise Foundry supports are a **tenant_id from jwt claim** and a tenant bound to each API key. Get that sourcing step right and the rest of your isolation story (tenant-qualified rate limits, per-tenant audit, cache scoping) follows for free. Get it wrong — a claim you forgot to read, a number where you expected a string, a request with no tenant at all — and a claim-less caller slips through as tenant-less, which is the one outcome a multi-customer platform can never afford.
+Multi-tenant code usually takes a `tenant_id` for granted, but the real question is where that value comes from — and the two answers Promptise Foundry supports are a **tenant_id from jwt claim** and a tenant bound to each API key. Get that sourcing step right and the rest of your isolation story (tenant-qualified rate limits, per-tenant audit, cache scoping) follows for free. Get it wrong — a claim you forgot to read, a number where you expected a string, a request with no tenant at all — and a claim-less caller slips through as tenant-less, which is the one outcome a multi-customer platform can never afford.
 
 <!-- more -->
 
-This post is the missing chapter: exactly how to **source `tenant_id` in an MCP server**, the two places it can legitimately originate, how the value is coerced, and what happens when it is absent under `require_tenant=True`.
+This post shows exactly how to **source `tenant_id` in an MCP server**, the two places it can legitimately originate, how the value is coerced, and what happens when it is absent under `require_tenant=True`.
 
 ## The two legitimate sources of a tenant_id
 

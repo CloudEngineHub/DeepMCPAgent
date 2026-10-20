@@ -1,6 +1,6 @@
 ---
 title: "Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?"
-description: "Both frameworks let the model write one program over your tools, so this is a precise-delta piece, not a 'they have nothing' one. In smolagents the tool…"
+description: "Compare smolagents CodeAgent and Promptise code-action: where each one runs the tool calls in a model-written program, and how approval gates still apply."
 keywords: "smolagents codeagent vs promptise code-action, where code-action tool calls run, governed tool bridge sandbox, code-action approval gates"
 date: 2026-07-16
 slug: smolagents-codeagent-vs-promptise-code-action
@@ -10,7 +10,7 @@ categories:
 
 # Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?
 
-The **smolagents codeagent vs promptise code-action** question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls `issue_refund()` or `delete_customer()`, *where does that call execute, and what governs it?* This is a precise-delta piece, not a "they have nothing" one. By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.
+The **smolagents codeagent vs promptise code-action** question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls `issue_refund()` or `delete_customer()`, *where does that call execute, and what governs it?* By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.
 
 <!-- more -->
 
@@ -119,7 +119,7 @@ Approval is the vivid example, but the same bridge carries the rest of your gove
 - **Health** — behavioral anomaly detection (stuck / loop / repeated-call patterns) evaluated across the bridged calls the program makes.
 - **Audit** — each bridged call is recorded in the tamper-evident journal with the caller identity, so "the sandbox did it" is never an unaudited black box.
 
-In smolagents you would place these controls inside each tool or in step-level callbacks that see a whole code block, not the individual call. Promptise makes them a property of the execution boundary itself: the program can only reach a tool by asking the host to run it, and the host runs it through the full hook chain every time. For the broader "where should model-written code run" decision, our field guide [How to Run AI-Generated Code Safely](run-ai-generated-code-safely.md) contrasts the three common setups, and [The Real Risks of Running AI-Generated Code In-Process](risks-of-running-ai-generated-code.md) shows what a permissive in-process executor gives away.
+In smolagents you would place these controls inside each tool or in step-level callbacks that see a whole code block, not the individual call. Promptise makes them a property of the execution boundary itself: the program can only reach a tool by asking the host to run it, and the host runs it through the full hook chain every time. For the broader "where should model-written code run" decision, see [AI Agent Code Execution Sandbox: Run LLM Code Safely](https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python), and [The Real Risks of Running AI-Generated Code In-Process](risks-of-running-ai-generated-code.md) shows what a permissive in-process executor gives away.
 
 ## Frequently asked questions
 

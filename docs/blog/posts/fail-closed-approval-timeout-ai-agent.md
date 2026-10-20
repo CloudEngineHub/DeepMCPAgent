@@ -1,6 +1,6 @@
 ---
 title: "Deny-on-Timeout: Fail-Closed Approval for AI Agents"
-description: "The definitive treatment of every deny path, not just the timeout. The invariant is that every ambiguous outcome resolves to denial: on_timeout='deny' by…"
+description: "Learn how to make AI agent approvals fail closed, so a timeout, error or missing reviewer always means deny, and how max_pending stops a flood of requests."
 keywords: "fail-closed approval timeout ai agent, deny by default on approval timeout, on_timeout deny mcp approval, handler crash denies approval, max_pending approval backpressure"
 date: 2026-07-16
 slug: fail-closed-approval-timeout-ai-agent

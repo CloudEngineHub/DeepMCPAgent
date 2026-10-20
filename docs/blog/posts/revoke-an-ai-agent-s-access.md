@@ -1,6 +1,6 @@
 ---
 title: "How do you revoke an AI agent's access instantly?"
-description: "A leaked static per-agent key is revoked only by rotating it and redeploying every service that trusts it — slow, error-prone, and you may not even know…"
+description: "Learn how to revoke an AI agent's access in one place by backing it with an identity provider, wiping the credentials it holds and using short-lived tokens."
 keywords: "revoke an AI agent's access, kill switch for AI agents, rotate agent credentials, disable a compromised agent, short-lived agent credential revocation, directory revocation for agents"
 date: 2026-07-16
 slug: revoke-an-ai-agent-s-access
@@ -23,7 +23,7 @@ Here is the kill switch most teams actually have. Each agent carries a static be
 - **Edit and redeploy each one.** Roll the new value into every config and restart, ideally with zero downtime for the agents that still need access.
 - **Guess who leaked it.** If the key was shared across a fleet, the audit log only ever saw "the key" act — so you can't even scope the damage to one agent.
 
-None of that is *instant*. It's a change-management project, run under incident pressure, with a long tail where the compromised key still works. And it's the same anti-pattern humans abandoned a decade ago when they stopped carrying passwords into every system and moved to directory-issued logins. Agents are simply the newest **non-human actor** that deserves the same treatment — the [Agent Identity overview](../../identity/overview.md) frames them exactly that way. The prerequisite for a real kill switch is a real identity, which is why [giving each AI agent its own identity, not a shared key](give-each-ai-agent-its-own-identity.md) comes first.
+None of that is *instant*. It's a change-management project, run under incident pressure, with a long tail where the compromised key still works. And it's the same anti-pattern humans abandoned a decade ago when they stopped carrying passwords into every system and moved to directory-issued logins. Agents are simply the newest **non-human actor** that deserves the same treatment — the [Agent Identity overview](../../identity/overview.md) frames them exactly that way. The prerequisite for a real kill switch is a real identity, which is why giving each agent its own identity comes first (see [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication)).
 
 ## Back the agent with an IdP identity — then revoke in one place
 
@@ -55,7 +55,7 @@ Because the directory is now the system of record — Promptise keeps **no ident
 1. **No new credentials can be minted.** The provider will not issue another JWT for a disabled identity, so the agent cannot re-authenticate anywhere.
 2. **Existing credentials expire out from under it.** The tokens already in flight are short-lived; as each reaches its `exp`, every resource that verifies it rejects it — no redeploy, no config edit, no per-server change.
 
-The whole revoke path is one operation in a directory you already govern. There is no fleet-wide key to rotate, and no service to reconfigure — server-side verification is stateless (see the next section), so the servers don't even need to know a revocation happened. The [end-to-end identity guide](../../identity/guide.md) wires this lifecycle from mint through revoke, and the credential side of the story — why a workload-identity JWT beats a static key in the first place — is in [How does an AI agent authenticate to an API? (not API keys)](how-does-an-ai-agent-authenticate-to-an-api.md).
+The whole revoke path is one operation in a directory you already govern. There is no fleet-wide key to rotate, and no service to reconfigure — server-side verification is stateless (see the next section), so the servers don't even need to know a revocation happened. The [end-to-end identity guide](../../identity/guide.md) wires this lifecycle from mint through revoke, and the [AI agent identity guide](https://www.promptise.com/guides/view/ai-agent-identity-authentication) covers the credential side: how an agent authenticates to the servers it calls.
 
 ## Zero-fill the credentials a running agent is holding
 
@@ -146,7 +146,7 @@ Be fair here: every mainstream framework can *authenticate* an agent to a resour
 - **LlamaIndex** tool specs take an API key or token you pass in at construction — again a static secret whose revocation is a rotation.
 - The **MCP specification itself** defines an OAuth 2.1 authorization framework for HTTP transports (2025 spec). This is the honest exception: a real authorization server *can* support token revocation (RFC 7009) and issues short-lived access tokens that expire on their own. But the spec standardizes the token *handoff* — it doesn't source the credential from the agent's managed identity, IRSA role, or SPIFFE SVID, and it leaves you to stand up and operate that authorization server yourself.
 
-So the honest delta isn't "nobody can revoke." Where the credential is a static secret (the common default), there is genuinely no single-place kill switch — you rotate and redeploy. Where an OAuth authorization server is in play, revocation is achievable, but it's infrastructure you run. Promptise makes the kill switch **structural** by consuming the IdP you already govern as the system of record: disabling one identity there stops future credentials and expires the ones in flight, with no server reconfiguration — and `revoke_on_stop` zero-fills whatever a running process still holds, which a config-file secret has no equivalent of.
+So the real difference isn't "nobody can revoke." Where the credential is a static secret (the common default), there is genuinely no single-place kill switch — you rotate and redeploy. Where an OAuth authorization server is in play, revocation is achievable, but it's infrastructure you run. Promptise makes the kill switch **structural** by consuming the IdP you already govern as the system of record: disabling one identity there stops future credentials and expires the ones in flight, with no server reconfiguration — and `revoke_on_stop` zero-fills whatever a running process still holds, which a config-file secret has no equivalent of.
 
 ## Frequently asked questions
 

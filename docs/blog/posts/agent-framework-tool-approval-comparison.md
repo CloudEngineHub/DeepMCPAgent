@@ -1,6 +1,6 @@
 ---
 title: "Which Agent Frameworks Actually Enforce Tool Approval?"
-description: "Every framework advertises 'human-in-the-loop,' but the question that matters is where the check actually runs. This side-by-side maps exactly where…"
+description: "Compare where LangGraph, CrewAI, AutoGen and Promptise actually enforce tool approval, and learn why a check at the tool boundary holds for every client."
 keywords: "agent framework tool approval comparison, which agent framework enforces tool approval, langgraph interrupt vs approval gate, crewai human_input approval, autogen userproxyagent approval, pydantic ai deferred tool approval"
 date: 2026-07-16
 slug: agent-framework-tool-approval-comparison

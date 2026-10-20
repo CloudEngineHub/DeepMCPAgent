@@ -1,6 +1,6 @@
 ---
 title: "RAG vs Agent Memory: Which Does Your Agent Need?"
-description: "An honest teardown of the conflation 'memory = RAG.' Memory is per-user facts injected automatically; RAG is a document-retrieval tool the agent chooses to…"
+description: "Learn the difference between agent memory and RAG, and decide whether your agent needs per-user facts, document retrieval or both, with a simple decision table."
 keywords: "RAG for agents, agent memory vs retrieval, when to use RAG, document retrieval for LLM agents, RAG vs vector memory"
 date: 2026-07-16
 slug: rag-for-agents
@@ -39,7 +39,7 @@ agent = await build_agent(
 )
 ```
 
-From then on, every `ainvoke` and `chat` call transparently searches that store scoped to the caller and prepends the top matches. Promptise ships three providers — `InMemoryProvider` for tests, `ChromaProvider` for local persistent vector search, and `Mem0Provider` for enterprise graph memory — all behind the same one-parameter interface. If you want the full mental model for how observed facts accumulate over a user's lifetime, the [AI Agent Memory: The Complete Guide for Python Devs](ai-agent-memory.md) post walks through it end to end.
+From then on, every `ainvoke` and `chat` call transparently searches that store scoped to the caller and prepends the top matches. Promptise ships three providers — `InMemoryProvider` for tests, `ChromaProvider` for local persistent vector search, and `Mem0Provider` for enterprise graph memory — all behind the same one-parameter interface. If you want the full mental model for how observed facts accumulate over a user's lifetime, [AI Agent Memory in Python: Short-Term and Long-Term](https://www.promptise.com/guides/view/ai-agent-memory-python) walks through it end to end.
 
 One more thing memory is *not*: it is not your conversation transcript. Short-term turn-by-turn history is handled separately by a [conversation store](../../core/conversations.md) (`chat()` loads, invokes, and persists automatically). Memory is the distilled, cross-session layer that sits on top. Three distinct systems, three distinct jobs.
 
@@ -160,7 +160,7 @@ Yes, and it is common. Pass a memory provider via the `memory=` parameter and on
 
 ### Do RAG tool calls count against my agent's budget?
 
-Yes. `rag_to_tool()` returns a standard tool, so a retrieval is an ordinary tool call — tracked by the budget, health-monitoring, and journal subsystems. That means a runaway retrieval loop trips the same governance guardrails as any other tool. See the [memory guide](ai-agent-memory.md) and the [long-term memory walkthrough](llm-long-term-memory.md) for how the pieces fit with persistence.
+Yes. `rag_to_tool()` returns a standard tool, so a retrieval is an ordinary tool call — tracked by the budget, health-monitoring, and journal subsystems. That means a runaway retrieval loop trips the same governance guardrails as any other tool. See the [AI agent memory guide](https://www.promptise.com/guides/view/ai-agent-memory-python) for how the pieces fit with persistence.
 
 ## Next steps
 

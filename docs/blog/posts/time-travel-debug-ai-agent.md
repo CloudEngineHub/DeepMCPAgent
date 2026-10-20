@@ -1,6 +1,6 @@
 ---
 title: "Time-Travel Debug an AI Agent by Rewinding State"
-description: "When an autonomous agent does something baffling, 'read the stdout' isn't a debugging strategy. This shows how the journal + ReplayEngine let you rewind a…"
+description: "Learn how to debug an autonomous AI agent by replaying its journal, rewinding to the moment before a bad decision, and fixing forward without losing good work."
 keywords: "time-travel debug ai agent, rewind ai agent state, replay agent decisions, agent postmortem debugging, reconstruct why agent did x, deterministic agent replay"
 date: 2026-07-16
 slug: time-travel-debug-ai-agent
@@ -18,7 +18,7 @@ To **time-travel debug an AI agent**, you rewind its recorded history to the exa
 
 Logs answer *what* the process printed. A postmortem needs *why it decided* — and those are different data structures. A log line like `applied hold on acme-42` tells you the outcome but not the state the agent held at the instant it chose the hold: which context keys were set, what the conversation looked like, which trigger had just fired. By the time you're reading logs, that state is gone. The process has moved on, mutated its counters, and overwritten the exact values that would explain the decision.
 
-Three properties of a [long-running agent](durable-execution-for-ai-agents.md) make plain logging a dead end for debugging:
+Three properties of a [long-running agent](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) make plain logging a dead end for debugging:
 
 - **The inputs aren't in the request.** The agent wasn't called by a user with a payload you can re-send. It was woken by a cron tick or a webhook, and its "input" was its own accumulated state.
 - **The decision isn't deterministic.** Re-running the same prompt against the LLM won't necessarily reproduce the choice, so "just run it again" doesn't reconstruct the incident.
@@ -131,7 +131,7 @@ Precision matters here, because the closest comparison genuinely has time-travel
 
 The delta is *what gets rewound*. A LangGraph checkpoint is the state of one graph run — the channel values of a thread. It is not a replayable journal of every lifecycle transition, every trigger firing, and every invocation of a long-lived, self-triggering process. In our example the root cause was a `webhook` trigger landing between two `cron`-driven steps; that inter-invocation event isn't part of a graph run's channel snapshot, so a thread's state history can't point at it. You can rewind *the state of a run*, but not to "the exact step before a bad decision" across a process's whole event history, because the triggers, the invocation boundaries, and the lifecycle transitions that frame the decision live outside the graph checkpoint.
 
-So Promptise's edge isn't "LangGraph can't time-travel" — it can. It's that Promptise journals the **whole process history**, which makes step-accurate postmortem replay a structural property rather than something scoped to one run. A rewind lands on any entry — a trigger, a transition, a tool call — not just a super-step boundary, and the reconstruction includes the triggers that woke the agent. For the mechanical side-by-side of per-thread checkpoints versus a process decision journal, see [LangGraph Checkpointing vs Journal-Replay Explained](langgraph-checkpointing-vs-journaling.md). (Durable-workflow engines like Temporal and DBOS also replay an event history, but to reconstruct deterministic *workflow* state, not to give you a rewind-and-inspect debugger over an agent's decisions — that landscape is covered in the [durable-execution hub](durable-execution-for-ai-agents.md).)
+So Promptise's edge isn't "LangGraph can't time-travel" — it can. It's that Promptise journals the **whole process history**, which makes step-accurate postmortem replay a structural property rather than something scoped to one run. A rewind lands on any entry — a trigger, a transition, a tool call — not just a super-step boundary, and the reconstruction includes the triggers that woke the agent. For the mechanical side-by-side of per-thread checkpoints versus a process decision journal, see [LangGraph Checkpointing vs Journal-Replay Explained](langgraph-checkpointing-vs-journaling.md). (Durable-workflow engines like Temporal and DBOS also replay an event history, but to reconstruct deterministic *workflow* state, not to give you a rewind-and-inspect debugger over an agent's decisions — crash recovery and safe resume are covered in [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery).)
 
 ## Fix forward without losing the good work
 

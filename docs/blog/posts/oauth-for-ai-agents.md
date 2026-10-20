@@ -1,6 +1,6 @@
 ---
 title: "OAuth for AI Agents: client_credentials & JWKS"
-description: "Cuts through OAuth confusion for the machine-to-machine (client_credentials) case that agents actually use — no user redirect, just a signed token verified…"
+description: "Learn how AI agents use OAuth client_credentials, and how an MCP server verifies their tokens with JWKS or RS256 public keys instead of a shared secret."
 keywords: "OAuth for AI agents, OAuth2 client credentials agents, JwksAuth, RS256 JWT verification, asymmetric JWT auth, verify agent tokens"
 date: 2026-07-16
 slug: oauth-for-ai-agents
@@ -130,7 +130,7 @@ Swap the hand-signed token for a real one from your IdP and change `AsymmetricJW
 
 ## The other side: agents that present verifiable identity
 
-Verification only means something if the agent presents a real, IdP-backed credential in the first place. Promptise agents can do that natively through [Agent Identity](../../identity/overview.md): `build_agent(..., identity=AgentIdentity.auto())` gives an agent a non-human, service-account-style identity from Entra, AWS, GCP, SPIFFE, or an OIDC source, and automatically attaches the right bearer token — minted per `audience` — to every MCP server it calls. The [Agent Identity guide](../../identity/guide.md) walks through wiring a specific provider and shows the inbound-verification counterpart with `JwksAuth`, so the outbound and inbound halves line up. For the identity concepts underneath all of this, the [AI Agent Identity & Authentication: The Complete Guide](ai-agent-identity.md) is the pillar to start from; if you're weighing HS256 shared secrets against the asymmetric route, [JWT Authentication for MCP Servers: Step by Step](jwt-authentication-for-mcp-servers.md) covers the symmetric case in depth.
+Verification only means something if the agent presents a real, IdP-backed credential in the first place. Promptise agents can do that natively through [Agent Identity](../../identity/overview.md): `build_agent(..., identity=AgentIdentity.auto())` gives an agent a non-human, service-account-style identity from Entra, AWS, GCP, SPIFFE, or an OIDC source, and automatically attaches the right bearer token — minted per `audience` — to every MCP server it calls. The [Agent Identity guide](../../identity/guide.md) walks through wiring a specific provider and shows the inbound-verification counterpart with `JwksAuth`, so the outbound and inbound halves line up. For the identity concepts underneath all of this, [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication) is the place to start; if you're weighing HS256 shared secrets against the asymmetric route, [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth) covers the server-side options.
 
 ## When a shared secret is the better fit
 

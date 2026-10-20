@@ -1,6 +1,6 @@
 ---
 title: "Build an AI Code Review Agent That Cuts False Positives"
-description: "The complaint every team has about LLM code review is noise. This build wires an adversarial self-critique pass so the agent challenges its own findings and…"
+description: "Build an AI code review agent that checks its own findings with a self-critique pass and per-node models, so it reports fewer false positives on pull requests."
 keywords: "ai code review agent, automated code review ai, llm code review, pull request review bot, security review agent"
 date: 2026-07-16
 slug: ai-code-review-agent
@@ -149,7 +149,7 @@ The graph structure is unchanged — you're just annotating which brain runs eac
 
 ## When a simpler tool is the better fit
 
-Be honest about scope. If all you want is a lint-style gate — "no `eval`, no hardcoded secrets, no `shell=True`" — a deterministic linter or a Semgrep ruleset is faster, cheaper, and more predictable than any ai code review agent. Rules don't hallucinate, and they cost nothing per run. Reach for an LLM reviewer when the value is in *judgment*: reasoning about auth flows across files, weighing whether a finding is exploitable in context, or explaining a subtle logic bug in prose a linter can't describe. The strongest setups run both — static analysis for the mechanical checks, an agent for the reasoning the rules can't encode. This reviewer is also a natural node inside a larger pipeline; see [how to build multi-agent systems in Python](multi-agent-systems-python.md) for wiring it alongside a fixer and a triage agent.
+Be honest about scope. If all you want is a lint-style gate — "no `eval`, no hardcoded secrets, no `shell=True`" — a deterministic linter or a Semgrep ruleset is faster, cheaper, and more predictable than any ai code review agent. Rules don't hallucinate, and they cost nothing per run. Reach for an LLM reviewer when the value is in *judgment*: reasoning about auth flows across files, weighing whether a finding is exploitable in context, or explaining a subtle logic bug in prose a linter can't describe. The strongest setups run both — static analysis for the mechanical checks, an agent for the reasoning the rules can't encode. This reviewer is also a natural node inside a larger pipeline, alongside a fixer and a triage agent; see [Build a Multi-Agent System in Python](https://www.promptise.com/guides/view/multi-agent-system-python) for how to wire agents together.
 
 ## Frequently asked questions
 

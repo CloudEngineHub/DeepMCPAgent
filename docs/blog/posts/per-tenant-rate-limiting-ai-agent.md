@@ -1,6 +1,6 @@
 ---
 title: "Noisy Neighbors: Per-Tenant Rate Limits for AI Agents"
-description: "In a shared agent deployment one tenant hammering a tool can starve everyone else. This post shows the noisy-neighbor failure mode and how Promptise…"
+description: "Learn how one tenant can starve the others in a shared AI agent deployment, and how tenant-qualified rate-limit buckets keep each tenant within its own limits."
 keywords: "per-tenant rate limiting ai agent, noisy neighbor multi-tenant rate limit, tenant-scoped rate limit, per-tenant quota llm, stop one tenant exhausting quota"
 date: 2026-07-16
 slug: per-tenant-rate-limiting-ai-agent
@@ -24,7 +24,7 @@ Now put several customers on the same server. Tenant `acme` and tenant `globex` 
 
 ## Why per-client and per-tool limits still leak
 
-The obvious fixes are real improvements, and Promptise ships both. You can limit *per tool* so a flood of cheap `lookup_customer` calls can't lock out the expensive `generate_report`. You can limit *per client* so one authenticated agent can't drain another's budget. The [per-client and per-tool rate limiting guide](llm-tool-rate-limiting.md) covers those two dimensions end to end.
+The obvious fixes are real improvements, and Promptise ships both. You can limit *per tool* so a flood of cheap `lookup_customer` calls can't lock out the expensive `generate_report`. You can limit *per client* so one authenticated agent can't drain another's budget. [LLM Tool Rate Limiting: Per-Client Limits for MCP Servers](https://www.promptise.com/guides/view/mcp-rate-limiting-per-client) covers those two dimensions end to end.
 
 But neither dimension is the tenant. Consider the case that breaks a naive setup: two tenants whose agents authenticate with the **same** `client_id` string. That is not exotic. If you provision one service identity per agent *role* rather than per *customer* — a single `report-agent` credential deployed into every tenant's workspace — then `acme`'s `report-agent` and `globex`'s `report-agent` present identical client IDs. A per-client bucket keyed on `client_id` alone sees one caller. `acme` burns the budget; `globex` gets the 429s. The isolation you thought you had evaporates on the one dimension that matters most for a SaaS product.
 
@@ -153,4 +153,4 @@ From the caller's credentials. With `JWTAuth`, `AuthMiddleware` reads it from a 
 
 ## Next steps
 
-Add a `rate_limit` to your busiest shared tool, make sure your tokens carry a tenant claim, and point `AuthMiddleware` at it — the buckets become tenant-qualified with no further code. Then read the [Build a Secure Multi-Tenant Agent Platform](../../guides/secure-multi-tenant-platform.md) guide to wire the same tenant identity through auth, tool guards, approval gates, and audit, and skim [Multi-Tenant AI Agents: Architecture for SaaS](multi-tenant-ai-agent.md) for how tenant identity flows through the rest of the stack. One tenant's bad day should never become everyone's.
+Add a `rate_limit` to your busiest shared tool, make sure your tokens carry a tenant claim, and point `AuthMiddleware` at it — the buckets become tenant-qualified with no further code. Then read the [Build a Secure Multi-Tenant Agent Platform](../../guides/secure-multi-tenant-platform.md) guide to wire the same tenant identity through auth, tool guards, approval gates, and audit, and skim [Multi-Tenant AI Agents: Keep Each Customer's Data Apart](https://www.promptise.com/guides/view/multi-tenant-ai-agent) for how tenant identity flows through the rest of the stack. One tenant's bad day should never become everyone's.

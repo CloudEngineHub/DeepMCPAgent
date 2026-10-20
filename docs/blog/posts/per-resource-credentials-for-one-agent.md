@@ -1,6 +1,6 @@
 ---
 title: "One agent, many APIs: per-resource credentials done right"
-description: "A real agent calls several backends — a billing server, a CRM — and each demands a token minted for its own audience. Hand-managing one static token per…"
+description: "Learn how one AI agent identity can get a separate short-lived token for each API it calls, and how audience checks on the server block token replay."
 keywords: "per-resource credentials for one agent, per-audience token minting, scoped credential per MCP server, token substitution prevention, audience-scoped agent token"
 date: 2026-07-16
 slug: per-resource-credentials-for-one-agent
@@ -33,7 +33,7 @@ Both servers verify JWTs. Both require the audience claim to name *them* — a b
 - **Rotation is *N* separate chores.** Each token expires or gets rotated on its own schedule, in its own place, and a missed one is a silent outage or a stale grant.
 - **Substitution is on you to prevent.** If the CRM's verification is sloppy about audience, a billing token works there too — and the only thing standing between you and that is server code you hand-wrote.
 
-The right shape is the one enterprises already use for service accounts: a single identity that *projects* the correct short-lived, audience-bound token to each resource on demand. That is what [give each AI agent its own identity, not a shared key](give-each-ai-agent-its-own-identity.md) argues for at the fleet level; this post is the mechanics for the multi-backend case.
+The right shape is the one enterprises already use for service accounts: a single identity that *projects* the correct short-lived, audience-bound token to each resource on demand. For the broader picture of how agents authenticate to MCP servers, see [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication); this post is the mechanics for the multi-backend case.
 
 ## One identity, a credential per audience
 
@@ -156,7 +156,7 @@ async def issue_refund(ctx, invoice_id: str, amount: float) -> str:
     return f"Refunded {amount} on {invoice_id}"
 ```
 
-The billing server declares `audience="api://billing"`, so a token whose `aud` is `api://crm` fails verification at the door — before any tool runs. The mint side scopes the token; the verify side refuses anything else. That is the closed loop: an `api://crm` token is worthless at billing not by convention but by two enforced invariants. Because the credential is a short-lived JWT from your IdP, key rotation needs no redeploy (`JwksAuth` re-fetches published keys on demand) and revocation is one switch (disable the agent in the directory; its tokens stop validating everywhere as they expire). The credential side of *why* a short-lived IdP token beats a static key is covered in [how does an AI agent authenticate to an API? (not API keys)](how-does-an-ai-agent-authenticate-to-an-api.md).
+The billing server declares `audience="api://billing"`, so a token whose `aud` is `api://crm` fails verification at the door — before any tool runs. The mint side scopes the token; the verify side refuses anything else. That is the closed loop: an `api://crm` token is worthless at billing not by convention but by two enforced invariants. Because the credential is a short-lived JWT from your IdP, key rotation needs no redeploy (`JwksAuth` re-fetches published keys on demand) and revocation is one switch (disable the agent in the directory; its tokens stop validating everywhere as they expire). How agents authenticate to the servers they call is covered in the [AI agent identity guide](https://www.promptise.com/guides/view/ai-agent-identity-authentication).
 
 ## What other frameworks do today
 

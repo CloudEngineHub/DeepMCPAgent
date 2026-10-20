@@ -1,6 +1,6 @@
 ---
 title: "Microsoft Entra Agent ID with Promptise Foundry"
-description: "A framework-specific walkthrough for teams already standardized on Entra: back an agent with a managed identity or Agent ID, present a resource-scoped token…"
+description: "Learn how to give an AI agent a Microsoft Entra identity, get resource-scoped tokens from IMDS or AKS workload identity, and verify them on your MCP server."
 keywords: "Entra agent identity, Microsoft Entra Agent ID, Azure managed identity for agents, AKS workload identity JWT, federated token agent, Entra MCP authentication"
 date: 2026-07-16
 slug: entra-agent-identity
@@ -125,7 +125,7 @@ async def issue_refund(ctx, invoice_id: str, amount: float) -> str:
     return f"Refunded {amount} on {invoice_id}"
 ```
 
-The credential is verified cryptographically against Entra's keys, and the validated subject lands on `ctx.client`, so guards like `RequireClientId` and `HasRole` decide *which* agent may call *which* tool. If you want the mechanics of JWKS-based verification in depth — issuer discovery, key caching, audience checks — the companion post [JWT Authentication for MCP Servers: Step by Step](jwt-authentication-for-mcp-servers.md) covers the server-side auth surface end to end.
+The credential is verified cryptographically against Entra's keys, and the validated subject lands on `ctx.client`, so guards like `RequireClientId` and `HasRole` decide *which* agent may call *which* tool. For the rest of the server-side auth surface, see [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth).
 
 ## When Entra is the right fit — and when it isn't
 
@@ -137,7 +137,7 @@ It is *not* the right fit in a few honest cases:
 - **You only need attribution, not authentication.** If your MCP servers are internal and don't verify callers yet, a local `AgentIdentity("billing-bot")` already tags the observability timeline — you don't need Entra to answer "which agent did this?" across a fleet.
 - **You're multi-cloud and don't want to pick.** `AgentIdentity.auto()` detects the platform from environment markers and dispatches to the right factory, which is often the better default for portable deployments.
 
-For the full decision matrix across providers and tiers, the pillar [AI Agent Identity & Authentication: The Complete Guide](ai-agent-identity.md) compares them side by side.
+For how agent identity works beyond Entra, read [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication).
 
 ## Frequently asked questions
 

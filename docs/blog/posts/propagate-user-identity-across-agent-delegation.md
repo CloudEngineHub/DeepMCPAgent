@@ -1,6 +1,6 @@
 ---
 title: "Does the user's identity survive agent delegation?"
-description: "When an orchestrator hands a task to a peer via ask_peer or broadcast, the human principal is usually dropped — the peer runs unattributed and its memory…"
+description: "Learn how to keep the human user's identity when an orchestrator agent hands work to a peer, so memory, data access and audit records stay tied to that user."
 keywords: "propagate user identity across agent delegation, caller context across sub-agents, multi-agent user isolation, principal survives delegation, ask_peer identity propagation, cross-tenant leakage delegation"
 date: 2026-07-16
 slug: propagate-user-identity-across-agent-delegation
@@ -109,9 +109,9 @@ Now stack the two facts together. The peer inherits the ambient `CallerContext` 
 
 Preserving the *human* principal keeps data isolation intact. There's a second identity in play, and Promptise carries it too: the *agent* that did the delegating.
 
-If you give the orchestrator an [agent identity](../../identity/guide.md) and wire the peer with `cross_agents=`, the delegating agent's identity claims ride along on a separate contextvar around the peer call. The peer's observability timeline then stamps **`delegated_by`** on every entry it records during that delegated run — the delegating agent's descriptors, no credential. So an auditor reading the researcher's timeline sees both facts: it ran on Alice's behalf (the principal), and it was *caused* by the `support-orchestrator` agent (the delegator). That answers "who caused this?", not just "who ran it?" — the accountability question that message-passing between anonymous agents can't cleanly reconstruct after the fact.
+If you give the orchestrator an [agent identity](../../identity/guide.md) and wire the peer with `cross_agents=`, the delegating agent's identity claims ride along on a separate contextvar around the peer call. The peer's observability timeline then stamps **`delegated_by`** on every entry it records during that delegated run — the delegating agent's descriptors, no credential. So anyone reviewing the researcher's timeline sees both facts: it ran on Alice's behalf (the principal), and it was *caused* by the `support-orchestrator` agent (the delegator). That answers "who caused this?", not just "who ran it?" — the accountability question that message-passing between anonymous agents can't cleanly reconstruct after the fact.
 
-Because the two identities travel on independent channels, they compose cleanly: the human principal re-scopes data, and `delegated_by` records provenance. For how the acting-agent identity itself is minted and presented, see [How does an AI agent authenticate to an API? (not API keys)](how-does-an-ai-agent-authenticate-to-an-api.md) and [Give each AI agent its own identity, not a shared key](give-each-ai-agent-its-own-identity.md).
+Because the two identities travel on independent channels, they compose cleanly: the human principal re-scopes data, and `delegated_by` records provenance. For how the acting-agent identity itself is minted and presented, see [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication).
 
 ## When you actually want a different principal on the peer
 

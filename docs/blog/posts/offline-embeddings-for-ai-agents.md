@@ -1,6 +1,6 @@
 ---
 title: "Your Vector Store Is Local — Are Your Embeddings?"
-description: "Teams stand up Chroma or FAISS locally and assume their retrieval is air-gapped — but if the embedding step calls a hosted embeddings API, every chunk of…"
+description: "Learn why a local vector store still sends your data out if embeddings come from a hosted API, and how to run a local embedding model pinned to a path on disk."
 keywords: "offline embeddings for AI agents, local embedding model RAG, air-gapped vector search, sentence-transformers offline agent, local embeddings without cloud API"
 date: 2026-07-16
 slug: offline-embeddings-for-ai-agents
@@ -14,10 +14,6 @@ Running **offline embeddings for AI agents** is the difference between retrieval
 
 <!-- more -->
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## The embedding-egress trap
 
 A vector store doesn't store text — it stores vectors. To put a document *into* the store, something has to turn "Q3 pipeline had a 5% error rate at 07:30" into a list of floats. To *query* the store, the same something has to embed the user's question so the database can compare it against what's indexed. That "something" is the embedding model, and where it runs decides whether your data leaves the building.
@@ -27,7 +23,7 @@ Here's the trap in one sentence: **your vector store being local tells you nothi
 - **At index time**, every chunk of every document you ingest is POSTed to a cloud endpoint. Your entire corpus, in plaintext, leaves the host once.
 - **At query time**, every user question — often containing the sensitive part, the account number, the patient detail, the deal name — is POSTed again, on every single retrieval.
 
-For a regulated, sovereign, or genuinely air-gapped deployment, that is the whole ballgame. It does not matter that Chroma is on local disk if the text that produced the vectors already round-tripped through someone else's data centre. The fix is not a bigger firewall; it's an embedding model that runs *in-process*, on your hardware, with no network dependency. That's the discipline this whole "Air-Gapped & Sovereign" series is built on — see [Air-Gapped AI Agent Framework: The On-Prem Guide](air-gapped-agent-framework.md) for the full deployment picture and [Why AI Agent Frameworks Fail in Air-Gapped Networks](air-gapped-ai-agent.md) for the failure modes that catch teams by surprise.
+For a sovereign or genuinely air-gapped deployment, that is the whole ballgame. It does not matter that Chroma is on local disk if the text that produced the vectors already round-tripped through someone else's data centre. The fix is not a bigger firewall; it's an embedding model that runs *in-process*, on your hardware, with no network dependency. That's the discipline this whole "Air-Gapped & Sovereign" series is built on — see [Air-Gapped AI Agent Framework: The On-Prem Guide](air-gapped-agent-framework.md) for the full deployment picture and [Why AI Agent Frameworks Fail in Air-Gapped Networks](air-gapped-ai-agent.md) for the failure modes that catch teams by surprise.
 
 ## One local model, two surfaces
 
@@ -145,7 +141,7 @@ agent = await build_agent(
 )
 ```
 
-`ChromaProvider.embedding_function` accepts any Chroma embedding function — here a Sentence Transformers one pointed at your directory — and `ToolOptimizationConfig.embedding_model` accepts a model name *or a local directory path*. Set them to the same `LOCAL_MODEL` and you've pinned the entire retrieval stack to one on-disk model. This is exactly the CTA of this article: point `ChromaProvider` and semantic tool optimization at a local embedding-model path and run retrieval with zero egress.
+`ChromaProvider.embedding_function` accepts any Chroma embedding function — here a Sentence Transformers one pointed at your directory — and `ToolOptimizationConfig.embedding_model` accepts a model name *or a local directory path*. Set them to the same `LOCAL_MODEL` and you've pinned the entire retrieval stack to one on-disk model. That is the one change this article asks you to make: point `ChromaProvider` and semantic tool optimization at a local embedding-model path and run retrieval with zero egress.
 
 ## What other frameworks do today
 

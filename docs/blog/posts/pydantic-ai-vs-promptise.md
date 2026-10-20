@@ -1,6 +1,6 @@
 ---
 title: "Pydantic AI vs Promptise Foundry: Typed Agents"
-description: "Pydantic AI nails typed, structured output with minimal ceremony, and for a typed wrapper it's a great pick. Promptise pulls ahead when structured output is…"
+description: "Compare Pydantic AI and Promptise Foundry for typed agents: when Pydantic AI is the leaner choice, and what a production stack adds around structured output."
 keywords: "Pydantic AI vs Promptise, Pydantic AI alternative, typed agent framework, structured output agents, Pydantic AI production"
 date: 2026-07-16
 slug: pydantic-ai-vs-promptise
@@ -130,7 +130,7 @@ Input scanning can *block* a malicious request; output scanning can *redact* lea
 | Multi-tenancy & identity | Bring your own | `CallerContext`, tenant isolation across the stack |
 | Sandbox for model code | Bring your own | Hardened Docker sandbox flag |
 
-Read that table honestly: if the right column is a list of things you *don't* need, the extra surface area is a cost, not a benefit, and Pydantic AI is the leaner choice. If it's a list of things you'd otherwise build, Promptise is the shorter path. For a broader field than just these two, our [honest guide to the best AI agent framework in 2026](best-ai-agent-framework-2026.md) puts both in context.
+Read that table honestly: if the right column is a list of things you *don't* need, the extra surface area is a cost, not a benefit, and Pydantic AI is the leaner choice. If it's a list of things you'd otherwise build, Promptise is the shorter path. For a broader field than just these two, [Best AI Agent Frameworks: Python Options Compared](https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared) covers the wider set of Python options.
 
 ## Frequently asked questions
 
@@ -148,4 +148,4 @@ Yes. Pydantic is a general data-validation library, not tied to any one agent fr
 
 ## Next steps
 
-Pick the typed wrapper or the full platform based on the table above, then try schema-strict guards on a real prompt — start with the [Quick Start](../../getting-started/quickstart.md) to get an agent running, then follow the [building agents guide](../../guides/building-agents.md) to add guards, retries, and guardrails. Still weighing options across the field? Work through our [2026 framework checklist](choosing-an-agent-framework.md) before you commit.
+Pick the typed wrapper or the full platform based on the table above, then try schema-strict guards on a real prompt — start with the [Quick Start](../../getting-started/quickstart.md) to get an agent running, then follow the [building agents guide](../../guides/building-agents.md) to add guards, retries, and guardrails. Still weighing options across the field? Read the [Python AI agent framework comparison](https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared) before you commit.

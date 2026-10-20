@@ -1,6 +1,6 @@
 ---
 title: "LangGraph Checkpointing vs Journal-Replay Explained"
-description: "LangGraph genuinely checkpoints and resumes, so the honest question isn't 'does it persist state' but 'what does a checkpoint capture versus a replayable…"
+description: "Compare LangGraph checkpoints with an append-only journal: what each one captures, how a crashed agent process replays from the journal, and when to use which."
 keywords: "langgraph checkpointing vs journaling, langgraph checkpointer durability, agent state checkpoint vs replay, langgraph resume after crash, replay engine vs checkpointer, langgraph durability limits"
 date: 2026-07-16
 slug: langgraph-checkpointing-vs-journaling
@@ -49,7 +49,7 @@ Here is the exact difference, stated fairly. A LangGraph checkpoint is the state
 
 **3. Governance and secrets wrap the run.** LangGraph checkpoints the graph; it does not ship budget limits, behavioral health checks, mission tracking, or per-process secret rotation around that run. Promptise makes those structural: budgets on tool calls and cost, health detection for stuck or looping behavior, mission evaluation, and TTL-scoped secrets — all opt-in on the same `ProcessConfig`, all observable in the same journal.
 
-So the delta is not durability. It is the *unit* (a graph run versus a self-triggering process) and the supervision Promptise makes first-class around it. That is why comparing a **replay engine vs checkpointer** is comparing two layers, not two implementations of one thing. For the broader treatment of this design philosophy, see [Durable Execution for AI Agents in Python](durable-execution-for-ai-agents.md).
+So the delta is not durability. It is the *unit* (a graph run versus a self-triggering process) and the supervision Promptise makes first-class around it. That is why comparing a **replay engine vs checkpointer** is comparing two layers, not two implementations of one thing. For more on crash recovery and safe resume, see [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery).
 
 ## Crash a process and replay it from the journal
 

@@ -1,6 +1,6 @@
 ---
 title: "Model-Agnostic AI Agents: Claude, GPT, Ollama & Local"
-description: "Shows that one string swaps the entire model — openai:gpt-5-mini to anthropic:claude-sonnet-4.5 to ollama:llama3 — with zero code rewrites, and that you can…"
+description: "Learn how to switch an AI agent between OpenAI, Anthropic, Ollama and other models by changing one string, run it fully local, or use a LangChain chat model."
 keywords: "model-agnostic ai agents, switch llm provider python, run agent with ollama local, swap claude gpt agent, air-gapped llm agent python"
 date: 2026-07-16
 slug: model-agnostic-ai-agents
@@ -13,10 +13,6 @@ categories:
 Model-agnostic AI agents let you change the model behind your agent without touching the rest of your code. In Promptise Foundry the model is just a string you pass to `build_agent()`, so the same agent — same tools, same memory, same guardrails — can run on `openai:gpt-5-mini` today, `anthropic:claude-sonnet-4.5` tomorrow, and a local `ollama:llama3` in an air-gapped deployment, with no rewrite in between. By the end of this post you'll know exactly how that swap works, how to run entirely offline, and when pinning to one provider is actually the smarter choice.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## One string swaps the entire model
 
@@ -48,7 +44,7 @@ async def main():
 asyncio.run(main())
 ```
 
-Notice what *didn't* change: the invocation, the message shape, the tool wiring, the shutdown. When you swap Claude for GPT for a local model, you edit one argument. That is the entire promise of model-agnostic AI agents, and it holds all the way from a toy script to a production agent with sandboxing, semantic caching, and observability enabled. If you're building your first agent from scratch, the [How to Build an AI Agent in Python: The Complete Guide](how-to-build-an-ai-agent-in-python.md) post walks the same factory from zero.
+Notice what *didn't* change: the invocation, the message shape, the tool wiring, the shutdown. When you swap Claude for GPT for a local model, you edit one argument. That is the entire promise of model-agnostic AI agents, and it holds all the way from a toy script to a production agent with sandboxing, semantic caching, and observability enabled. If you're building your first agent, [How to Build an AI Agent in Python](https://www.promptise.com/guides/view/how-to-build-ai-agent-python) walks through it from scratch.
 
 ## Switch your LLM provider in Python without a rewrite
 
@@ -63,7 +59,7 @@ Because the string carries the provider, to switch your LLM provider in Python y
 
 Set the environment variable for whichever provider you point at, and the agent authenticates itself. To swap a Claude agent for GPT, you flip `anthropic:...` to `openai:...` and make sure `OPENAI_API_KEY` is set — nothing about your tool servers, prompt blocks, or runtime governance moves.
 
-This portability is what makes provider choice a *configuration* decision instead of an *architecture* decision. You can develop against a cheap, fast model, run evals against a frontier model, and ship on whichever one wins — all from the same codebase. The full matrix of supported providers, formats, and environment variables lives in the [Model Setup](../../getting-started/model-setup.md) guide. If you're still deciding which model to standardize on, the [best LLMs for agents](../../getting-started/best-llms-for-agents.md) breakdown compares them on tool-calling reliability, latency, and cost.
+This portability is what makes provider choice a *configuration* decision instead of an *architecture* decision. You can develop against a cheap, fast model, run evals against a frontier model, and ship on whichever one wins — all from the same codebase. The full matrix of supported providers, formats, and environment variables lives in the [Model Setup](../../getting-started/model-setup.md) guide. If you're still deciding which model to standardize on, [Best LLM for AI Agents](https://www.promptise.com/guides/view/best-llm-for-ai-agents) covers picks, prices, and how to test them.
 
 ## Run an agent with Ollama locally — the air-gapped path
 
@@ -87,7 +83,7 @@ async def main():
 asyncio.run(main())
 ```
 
-With Ollama running on the same host, no request leaves the machine. That is the foundation for an air-gapped LLM agent in Python: the model is local, and Promptise's other production features are designed to stay local alongside it. Semantic tool optimization uses local embeddings, the guardrail scanner runs its detection heads locally, and the memory providers can persist to disk — so a full agent stack can operate with zero outbound network calls. This is the deployment mode regulated and offline environments actually need, and it's the same three-line change as any other provider.
+With Ollama running on the same host, no request leaves the machine. That is the foundation for an air-gapped LLM agent in Python: the model is local, and Promptise's other production features are designed to stay local alongside it. Semantic tool optimization uses local embeddings, the guardrail scanner runs its detection heads locally, and the memory providers can persist to disk — so a full agent stack can operate with zero outbound network calls. This is the deployment mode that teams with strict no-egress rules and offline environments actually need, and it's the same three-line change as any other provider.
 
 Because the abstraction is uniform, you can also mix modes across an agent's lifecycle: prototype against a hosted frontier model for quality, then move the exact same agent behind a local model for a sensitive workload. The agent definition doesn't know or care which side of the network boundary its model lives on.
 
@@ -143,4 +139,4 @@ Pass a LangChain `BaseChatModel` instance to the `model` parameter instead of a 
 
 ## Next steps
 
-Follow [Model Setup](../../getting-started/model-setup.md) to point the same agent at OpenAI, Anthropic, or a local model with a one-line change, then keep the [Quick Start](../../getting-started/quickstart.md) open as you build. If you're weighing whether an agent framework is even the right layer for your project, the [What Is a Python AI Agent Framework?](python-ai-agent-framework.md) post frames that decision honestly.
+Follow [Model Setup](../../getting-started/model-setup.md) to point the same agent at OpenAI, Anthropic, or a local model with a one-line change, then keep the [Quick Start](../../getting-started/quickstart.md) open as you build. If you're still weighing which agent framework fits your project, the [Python AI agent frameworks comparison](https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared) lays out the options.

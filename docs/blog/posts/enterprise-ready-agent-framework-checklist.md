@@ -1,6 +1,6 @@
 ---
 title: "Enterprise-Ready Agent Framework Checklist: What's Left to You"
-description: "Most 'production-ready?' roundups grade frameworks on GitHub stars and integration counts, not on the enterprise controls you actually get audited on. This…"
+description: "Use this checklist to test if an agent framework is enterprise ready: tenant isolation, server-side approval, identity across delegation, limits and audit logs."
 keywords: "enterprise-ready agent framework checklist, what agent frameworks leave to you, production agent framework comparison, agent framework security checklist, is my agent framework enterprise ready, agent framework gap analysis"
 date: 2026-07-16
 slug: enterprise-ready-agent-framework-checklist
@@ -10,15 +10,11 @@ categories:
 
 # Enterprise-Ready Agent Framework Checklist: What's Left to You
 
-An honest **enterprise-ready agent framework checklist** doesn't grade tools on GitHub stars or integration counts — it grades them on the controls a security or compliance reviewer will actually ask you to demonstrate. Stars measure enthusiasm; they say nothing about whether tenant A can reach tenant B's data, whether a refund tool paged a human before it ran, or whether your audit log can be edited without anyone noticing. This pillar walks five control areas — multi-tenancy, server-enforced approval, principal propagation across delegation, runtime governance, and tamper-evident audit — and says plainly, capability by capability, what LangChain, LangGraph, CrewAI, AutoGen, and Pydantic AI ship today versus what they leave you to build. You'll finish with a checklist you can score your own stack against, and a runnable file that proves three of the five controls in one process.
+A useful **enterprise-ready agent framework checklist** doesn't grade tools on GitHub stars or integration counts — it grades them on the controls a security reviewer will actually ask you to demonstrate. Stars measure enthusiasm; they say nothing about whether tenant A can reach tenant B's data, whether a refund tool paged a human before it ran, or whether your audit log can be edited without anyone noticing. This checklist walks five control areas — multi-tenancy, server-enforced approval, principal propagation across delegation, runtime governance, and tamper-evident audit — and says plainly, capability by capability, what LangChain, LangGraph, CrewAI, AutoGen, and Pydantic AI ship today versus what they leave you to build. You'll finish with a checklist you can score your own stack against, and a runnable file that proves three of the five controls in one process.
 
 <!-- more -->
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
-## The five controls an enterprise audit actually checks
+## The five controls an enterprise security review actually checks
 
 A demo agent and an audited production agent share almost no non-functional requirements. The demo needs a model and a loop. The audited version needs the boring stuff to be *default behavior*, because a reviewer will ask you to show it working, not describe it:
 
@@ -65,7 +61,7 @@ Score your current stack against these five rows. Every cell in the middle colum
 Checklists are easy to hand-wave. This file isn't a diagram — it's a complete, runnable Promptise MCP server that demonstrates **multi-tenancy**, **verified principal propagation**, and **tamper-evident audit** at once, using the in-process `TestClient` so there's no network to stand up. The principal is *checked* from a JWT, not asserted by the caller; the tenant is read from a claim; and the audit chain catches an insider edit.
 
 ```python
-# soc2_audit.py — least-privilege access control + a verifiable audit trail
+# audit_controls.py — least-privilege access control + a verifiable audit trail
 import asyncio
 import json
 
@@ -92,7 +88,7 @@ server.add_middleware(audit)
 # Capability-based per-tool guard: only a billing-clerk agent may issue refunds.
 @server.tool(auth=True, guards=[HasRole("billing-clerk")])
 async def refund(order_id: str, amount: float, ctx: RequestContext) -> dict:
-    """Issue a refund — a consequential action a SOC 2 reviewer scrutinizes."""
+    """Issue a refund — a consequential action a security reviewer scrutinizes."""
     return {"order_id": order_id, "refunded": amount, "by": ctx.client.subject}
 
 
@@ -141,7 +137,7 @@ The end-to-end version of this — a tenant-isolated platform with approval gate
 
 ### What makes an agent framework "enterprise-ready" versus just "production-capable"?
 
-Production-capable means it can serve real traffic. Enterprise-ready means it can pass an audit: you can *demonstrate* tenant isolation, prove a human approved a consequential action, show that a delegated call carried the original caller's identity, and hand a reviewer a tamper-evident record. The delta is almost never the model or the tool-calling loop — it's whether these five controls are structural invariants or homework.
+Production-capable means it can serve real traffic. Enterprise-ready means it can pass a security review: you can *demonstrate* tenant isolation, prove a human approved a consequential action, show that a delegated call carried the original caller's identity, and hand a reviewer a tamper-evident record. The delta is almost never the model or the tool-calling loop — it's whether these five controls are structural invariants or homework.
 
 ### Do LangChain, LangGraph, or CrewAI fail this checklist?
 

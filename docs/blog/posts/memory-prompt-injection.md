@@ -1,6 +1,6 @@
 ---
 title: "Is Your Agent's Retrieved Memory a Prompt-Injection Risk?"
-description: "A local vector store is easy to stand up, but the moment an agent auto-injects retrieved memories into the system prompt, that memory becomes an…"
+description: "Learn how retrieved agent memory can carry a prompt injection into a later conversation, and how to sanitize and scan memories before they reach the prompt."
 keywords: "memory prompt injection, RAG prompt injection defense, stored prompt injection agent, poisoned memory LLM, injection-safe agent memory"
 date: 2026-07-16
 slug: memory-prompt-injection

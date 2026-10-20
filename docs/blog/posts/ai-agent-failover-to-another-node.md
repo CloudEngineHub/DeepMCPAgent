@@ -1,6 +1,6 @@
 ---
 title: "Fail an AI Agent Over to Another Node After a Crash"
-description: "When the box running your agent dies, you don't just want a new agent to spin up — you want the specific crashed process rebuilt where it left off, on a…"
+description: "Learn how to rebuild a crashed AI agent process on a surviving node from its journal, so a long-running agent resumes where it stopped instead of starting over."
 keywords: "ai agent failover to another node, multi-node ai agent, distributed ai agent runtime, agent node failover, resume agent on different machine, high availability ai agent"
 date: 2026-07-16
 slug: ai-agent-failover-to-another-node
@@ -32,7 +32,7 @@ High-availability AI agent failover in Promptise is built from parts you can poi
 
 1. **Discovery** — nodes find each other. `StaticDiscovery` for a fixed topology, `RegistryDiscovery` for a dynamic one with TTL-based pruning. See [Service Discovery and Transport](../../runtime/distributed/discovery-transport.md).
 2. **Coordination** — the `RuntimeCoordinator` tracks nodes, health-checks them over plain HTTP, aggregates cluster status, and exposes remote start/stop/inject operations. See the [Distributed Coordinator](../../runtime/distributed/coordinator.md) reference.
-3. **Reconstruction** — the [journal system](../../runtime/journal/index.md) is the durable record that lets *any* node rebuild a process from its last checkpoint plus the entries after it. This is the same append-only journal behind single-node [durable execution for AI agents](durable-execution-for-ai-agents.md); the distributed case just puts it on shared storage.
+3. **Reconstruction** — the [journal system](../../runtime/journal/index.md) is the durable record that lets *any* node rebuild a process from its last checkpoint plus the entries after it. This is the same append-only journal behind single-node [durable execution for AI agents](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery); the distributed case just puts it on shared storage.
 
 The load-bearing idea: the journal is the source of truth, and it is portable. If node B can read node A's journal, node B can become node A for that process. The coordinator's job is to notice A is gone and to drive B; the journal's job is to make the rebuild deterministic.
 

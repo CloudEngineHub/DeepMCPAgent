@@ -1,7 +1,7 @@
 ---
 title: "Which AI agent did this? Attribution for agent fleets"
-description: "When a fleet shares one key, a SOC 2 or ISO reviewer asking 'who performed this action?' gets 'the model' as the answer. This piece frames attribution as a…"
-keywords: "AI agent action attribution, which AI agent did this, SOC 2 agent attribution, tamper-evident agent audit, who performed this action agent, verified principal audit"
+description: "Learn how to attribute every tool call in an agent fleet to a verified agent identity in a tamper-evident log, instead of one shared key that hides who acted."
+keywords: "AI agent action attribution, which AI agent did this, agent fleet attribution, tamper-evident agent audit, who performed this action agent, verified principal audit"
 date: 2026-07-16
 slug: ai-agent-action-attribution
 categories:
@@ -10,17 +10,13 @@ categories:
 
 # Which AI agent did this? Attribution for agent fleets
 
-AI agent action attribution is the forensic question every autonomous fleet eventually has to answer: when a refund was issued, a record was deleted, or a customer's data was exported, *which agent did it?* If your fleet shares one API key and one model credential, the honest answer is "the model" — and "the model did it" is not a sentence a SOC 2 or ISO reviewer will accept as attribution. This post frames attribution as a forensics problem rather than a logging convenience, and shows the two properties a record needs to actually survive an incident: the acting agent stamped on *every* action, and a *verified* principal landing in a *tamper-evident* log.
+AI agent action attribution is the forensic question every autonomous fleet eventually has to answer: when a refund was issued, a record was deleted, or a customer's data was exported, *which agent did it?* If your fleet shares one API key and one model credential, the honest answer is "the model" — and "the model did it" is not a sentence a security reviewer will accept as attribution. Treat attribution as a forensics problem rather than a logging convenience. This post shows the two properties a record needs to actually survive an incident: the acting agent stamped on *every* action, and a *verified* principal landing in a *tamper-evident* log.
 
 <!-- more -->
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## "The model did it" is not an answer
 
-Attribution breaks in a very specific place. A fleet of ten agents shares one key. Each one can call the same tools with the same authority. Post-incident, your logs faithfully record that `issue_refund` was called — but every line looks identical, because every agent presented the same credential. You can see *what* happened. You cannot see *who* did it. That is the shared-key anti-pattern that human identity abandoned decades ago, and it is exactly what most agent fleets still run. (For why each agent should carry its own identity rather than a shared secret, see [Give each AI agent its own identity, not a shared key](give-each-ai-agent-its-own-identity.md).)
+Attribution breaks in a very specific place. A fleet of ten agents shares one key. Each one can call the same tools with the same authority. Post-incident, your logs faithfully record that `issue_refund` was called — but every line looks identical, because every agent presented the same credential. You can see *what* happened. You cannot see *who* did it. That is the shared-key anti-pattern that human identity abandoned decades ago, and it is exactly what most agent fleets still run. (For how each agent authenticates with its own identity rather than a shared secret, see [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication).)
 
 Attribution is not the same as observability. Observability tells you a call happened and how long it took. Attribution has to hold up when someone disputes it — when a customer says "your agent charged me twice" or a reviewer asks you to prove that agent A, owned by team X, took an action three weeks ago. That standard raises two demands a debug log never has to meet:
 
@@ -47,7 +43,7 @@ Promptise closes both gaps at once, and in two places, so attribution is redunda
 
 **In the tamper-evident audit.** This is the part that survives a dispute. When an MCP server verifies the caller's token — with `JWTAuth` against a shared secret, or `JwksAuth` against your IdP's published keys — the *verified* descriptors of the acting agent (`subject`, `issuer`, `audience`, `roles`) land as a first-class `identity` block inside every audit entry. And because `AuditMiddleware(signed=True)` writes an HMAC-chained log — each entry hashes the one before it — editing, deleting, or reordering any entry breaks the chain at that point. An insider can't rewrite `subject` from `billing-bot` to `reporting-bot` without invalidating the signature.
 
-That combination is the answer competitors don't cleanly give: *who performed this action* is (a) checked server-side against an identity provider, not asserted by the caller, and (b) bound into a chain where any later edit is detectable. The principal reaches `ctx.client` on the server the same way a human user's identity does — through the [multi-user identity flow](../../guides/multi-user-identity.md), where `CallerContext` carries the bearer token to the server and roles/subject are extracted from the JWT server-side, never trusted from the client. How an agent obtains that token in the first place is covered in [How does an AI agent authenticate to an API? (not API keys)](how-does-an-ai-agent-authenticate-to-an-api.md).
+That combination is the answer competitors don't cleanly give: *who performed this action* is (a) checked server-side against an identity provider, not asserted by the caller, and (b) bound into a chain where any later edit is detectable. The principal reaches `ctx.client` on the server the same way a human user's identity does — through the [multi-user identity flow](../../guides/multi-user-identity.md), where `CallerContext` carries the bearer token to the server and roles/subject are extracted from the JWT server-side, never trusted from the client. How an agent obtains that token in the first place is covered in the [AI agent identity guide](https://www.promptise.com/guides/view/ai-agent-identity-authentication).
 
 ## See it run: from JWT to a signed identity block
 
@@ -108,7 +104,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-The `identity` block is not a string the agent typed about itself — it is what the server extracted *after* validating the token's signature, so it names the principal the resource actually authenticated. And because that block is part of the payload the HMAC covers, rewriting `subject` after the fact is exactly the edit `verify_chain()` is built to catch. That is attribution you can hand an auditor: they don't take your word for the "who," they check the math. Argument and result capture stay opt-in (`include_args`, `include_result`) so the trail records *who did what* without dragging PII into your logs by default.
+The `identity` block is not a string the agent typed about itself — it is what the server extracted *after* validating the token's signature, so it names the principal the resource actually authenticated. And because that block is part of the payload the HMAC covers, rewriting `subject` after the fact is exactly the edit `verify_chain()` is built to catch. That is attribution you can hand an incident reviewer: they don't take your word for the "who," they check the math. Argument and result capture stay opt-in (`include_args`, `include_result`) so the trail records *who did what* without dragging PII into your logs by default.
 
 ## What a verified subject proves — and what it doesn't
 

@@ -1,6 +1,6 @@
 ---
 title: "How to Pre-Load LLM Guardrail Models on an Air-Gapped Host"
-description: "An air-gapped host has no model-hub access at runtime, so a guardrail or embedding model that tries to auto-download on the first user message doesn't…"
+description: "Learn which guardrail and embedding models to download in advance for an air-gapped host, how to point detectors at local paths and prove nothing calls out."
 keywords: "offline guardrail models, air-gapped model provisioning, load ML models without internet, local model path guardrails, pre-download transformer models offline"
 date: 2026-07-16
 slug: offline-guardrail-models
@@ -14,7 +14,7 @@ Running **offline guardrail models** on an air-gapped host sounds like it should
 
 <!-- more -->
 
-This is the provisioning how-to that nobody writes. The fix is not a hack — Promptise Foundry lets you pass an explicit local path to every guardrail detector and to the embedding model, then load them all up front with a single `warmup()` call, so you can boot the process, prove it made zero outbound requests, and only then accept traffic.
+The fix is not a hack: Promptise Foundry lets you pass an explicit local path to every guardrail detector and to the embedding model, then load them all up front with a single `warmup()` call, so you can boot the process, prove it made zero outbound requests, and only then accept traffic.
 
 ## Why an offline guardrail model fails closed, not soft
 

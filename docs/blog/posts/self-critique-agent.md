@@ -1,6 +1,6 @@
 ---
 title: "Reflection, Self-Critique & Self-Consistency Agents"
-description: "Separates the introspection techniques that pay for themselves from the ones that just cost tokens. A cheap single-pass self-verification (verify)…"
+description: "Learn which reflection, self-critique and self-consistency techniques improve agent answers, which only cost tokens, and how to add self-verification cheaply."
 keywords: "self-critique agent, reflection agent llm, self-consistency llm, reflexion pattern, llm self-verification, chain-of-thought agents"
 date: 2026-07-16
 slug: self-critique-agent
@@ -26,7 +26,7 @@ All three are variations on the same idea — make the model examine its own rea
 
 ## The introspection techniques that pay for themselves
 
-Here's the part the listicles skip: a modern frontier model already does a great deal of reasoning internally. Wrapping it in a heavy reflection pipeline often just makes it restate its own reasoning across several turns — same answer, higher bill. Reflection earns its keep in two specific places:
+Here's the part that often gets skipped: a modern frontier model already does a great deal of reasoning internally. Wrapping it in a heavy reflection pipeline often just makes it restate its own reasoning across several turns — same answer, higher bill. Reflection earns its keep in two specific places:
 
 1. **Weaker or mainstream models** that don't reason strongly on their own. An explicit self-check recovers errors a single pass would miss.
 2. **Structurally hard tasks** — arithmetic, multi-hop logic, constraint satisfaction — where a quick second look catches a careless slip regardless of model size.
@@ -93,7 +93,7 @@ Self-consistency sits at the far end of the cost curve. Promptise doesn't ship a
 
 Reflection is a tool, not a virtue, so here's the fair counter-case. **If you're running a strong frontier model on straightforward tasks, skip the self-critique entirely.** A well-prompted single pass is faster, cheaper, and — on that class of model — usually just as accurate. Adding `verify` there buys you a modest safety check; adding `deliberate` there usually buys you a bigger bill and nothing else. The same goes for latency-sensitive paths: a chatbot that must answer in under a second can't afford a five-stage loop no matter how careful it is.
 
-The efficient default for the large majority of agents is the plain ReAct loop, escalating to `verify` when you can measure that a small model needs the safety net. We break the baseline loop down step by step in [The ReAct Agent Pattern Explained (with Code)](react-agent-pattern.md), and map every pattern to when it actually helps in [Agent Reasoning Patterns: The Complete Guide](agent-reasoning-patterns.md). Start cheap, add stages only when your own numbers justify them.
+The efficient default for the large majority of agents is the plain ReAct loop, escalating to `verify` when you can measure that a small model needs the safety net. We build the baseline loop from scratch in [ReAct Agent From Scratch in Python](https://www.promptise.com/guides/view/build-reliable-reason-and-act-agent-loops-react-from-scratch), and compare nine patterns in [AI Agent Reasoning Patterns in Python: 9 Patterns Tested](https://www.promptise.com/guides/view/ai-agent-reasoning-patterns). Start cheap, add stages only when your own numbers justify them.
 
 ## Frequently asked questions
 

@@ -1,6 +1,6 @@
 ---
 title: "Stop Secrets Leaking into LLM Prompts & Tool Calls"
-description: "A deep dive into the credential-exfiltration path nobody instruments: API keys, DB URLs, and private keys leaking through prompts, tool arguments, or…"
+description: "Learn how to stop API keys, database URLs and private keys from leaking through LLM prompts, tool arguments and sandboxed code with local secret detection."
 keywords: "secret detection for llm, credential detection ai, api key leak prevention llm, detect secrets in prompts, gitleaks for ai"
 date: 2026-07-16
 slug: secret-detection-for-llm
@@ -13,10 +13,6 @@ categories:
 Secret detection for LLM systems is the guardrail almost nobody instruments, and it is the one that quietly turns a helpful agent into an exfiltration channel. Everyone hardens the obvious surfaces — auth on the API, TLS on the wire, secrets in a vault — and then pipes raw user input, model output, and tool arguments straight past all of it. An API key pasted into a support chat, a `DATABASE_URL` echoed back in a debugging answer, an RSA private key baked into code the sandbox is about to run: each one is a credential leaving your trust boundary in plain text. By the end of this article you will know exactly where those leaks happen and how to layer a local, zero-network `CredentialDetector` over your agent so keys get caught the moment they appear.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## The credential-exfiltration path nobody instruments
 
@@ -104,7 +100,7 @@ A practical layered setup looks like this:
 - **On generated code:** run `await scanner.scan_text(code)` on any snippet before it reaches the executor, and refuse or redact when a credential pattern fires. This is your last line of `API key leak prevention` for LLM-authored code.
 - **On the sandbox itself:** keep network isolation set to `none` so that even a key that slips through cannot phone home. The sandbox's default posture — seccomp filtering, dropped capabilities, no network — means a leaked key inside the container has nowhere to go.
 
-Combining the two heads is the whole point of composable guardrails: `CredentialDetector` decides *what* is a secret, and the sandbox decides *what a leaked secret can do*. For the broader picture of how these detection heads fit together, the [LLM Guardrails in Python guide](llm-guardrails-python.md) walks through all six risk classes end to end.
+Combining the two heads is the whole point of composable guardrails: `CredentialDetector` decides *what* is a secret, and the sandbox decides *what a leaked secret can do*. For the broader picture of how these detection heads fit together, see [AI Agent Guardrails in Python: Block Injection, Redact PII](https://www.promptise.com/guides/view/ai-agent-guardrails-python).
 
 ## Tune categories, exclusions, and standalone scans
 
@@ -130,7 +126,7 @@ print(PromptiseSecurityScanner.list_credential_patterns())
 # ['aws_access_key', 'github_pat', 'stripe_live', 'openai_key', ...]
 ```
 
-Because the scanner also detects prompt injection with a local model, credential detection pairs naturally with the injection head — an attacker who tries to trick the agent into dumping its environment variables trips both. If injection is your primary concern, [How to Detect Prompt Injection Attacks in Python](prompt-injection-detection.md) covers that head in depth.
+Because the scanner also detects prompt injection with a local model, credential detection pairs naturally with the injection head — an attacker who tries to trick the agent into dumping its environment variables trips both. If injection is your primary concern, [AI Agent Prompt Injection: How to Defend Against It](https://www.promptise.com/guides/view/ai-agent-prompt-injection-defense) covers it in depth.
 
 ## When gitleaks or trufflehog is the better fit
 
@@ -142,7 +138,7 @@ Use both. CI scanning stops secrets from being committed; runtime detection stop
 
 ### Does scanning for secrets send my prompts to a third party?
 
-No. `CredentialDetector` is 96 local regex patterns with a 0 MB footprint, executed in-process. Nothing about a scan leaves your infrastructure — which is the entire point, since a hosted "secret checker" would have to receive the secret to inspect it. This makes it safe for air-gapped and regulated environments.
+No. `CredentialDetector` is 96 local regex patterns with a 0 MB footprint, executed in-process. Nothing about a scan leaves your infrastructure — which is the entire point, since a hosted "secret checker" would have to receive the secret to inspect it. This makes it safe for air-gapped and no-egress environments.
 
 ### What happens when a credential is detected?
 

@@ -1,22 +1,18 @@
 ---
 title: "LangGraph Checkpoints vs. an Audit Log: The Real Difference"
-description: "LangGraph checkpointing is often mistaken for an audit trail. It persists graph state to resume, replay and support human-in-the-loop, but it is not an…"
-keywords: "langgraph checkpoint vs audit log, langgraph checkpointing for compliance, durable state vs audit trail, is a checkpoint an audit log, langgraph persistence compliance"
+description: "Learn why a LangGraph checkpoint is not an audit log, what each one records, and how to add a tamper-evident hash chain for actions you need to prove later."
+keywords: "langgraph checkpoint vs audit log, langgraph checkpointing as an audit trail, durable state vs audit trail, is a checkpoint an audit log, langgraph persistence tamper-evidence"
 date: 2026-07-16
 slug: langgraph-checkpoint-vs-audit-log
 categories:
-  - Compliance & Audit
+  - Comparisons
 ---
 
 # LangGraph Checkpoints vs. an Audit Log: The Real Difference
 
-The **langgraph checkpoint vs audit log** confusion is one of the most expensive category errors in agent engineering: teams wire up a checkpointer, watch their graph resume cleanly after a crash, and quietly assume that same durable state will satisfy an auditor asking what the agent did and who authorized it. It won't. A checkpoint is a mutable snapshot of graph state built to *resume, replay, and pause for a human*. An audit log is an integrity-chained, attributable record built to *prove what happened*. Both are legitimate; they solve different problems, and using one where you need the other fails at the worst possible moment. This post draws the precise line, states exactly what LangGraph's checkpointers do and don't guarantee, and shows the one primitive a checkpoint can't give you.
+The **langgraph checkpoint vs audit log** confusion is one of the most expensive category errors in agent engineering: teams wire up a checkpointer, watch their graph resume cleanly after a crash, and quietly assume that same durable state will satisfy an incident reviewer asking what the agent did and who authorized it. It won't. A checkpoint is a mutable snapshot of graph state built to *resume, replay, and pause for a human*. An audit log is an integrity-chained, attributable record built to *prove what happened*. Both are legitimate; they solve different problems, and using one where you need the other fails at the worst possible moment. This post draws the precise line, states exactly what LangGraph's checkpointers do and don't guarantee, and shows the one primitive a checkpoint can't give you.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## Two jobs that look identical and aren't
 
@@ -43,7 +39,7 @@ Here is the exact delta, stated honestly. That provenance is node-level, not a v
 
 ## Is a checkpoint an audit log? The exact delta
 
-So, **is a checkpoint an audit log**? No — and the reason is structural, not a missing config flag. Line the two up on the properties an auditor actually cares about:
+So, **is a checkpoint an audit log**? No — and the reason is structural, not a missing config flag. Line the two up on the properties an incident reviewer actually cares about:
 
 | Property | LangGraph checkpoint | Tamper-evident audit log |
 |---|---|---|
@@ -53,9 +49,9 @@ So, **is a checkpoint an audit log**? No — and the reason is structural, not a
 | Provenance | Which graph **node** wrote state | Which authenticated **principal** acted |
 | Integrity | No signature, no hash chain | Per-entry HMAC over the entry + prior hash |
 | Tamper detection | None in the framework | A single `verify` pass returns a boolean |
-| Handed to an auditor | "Trust the state" | "Verify it yourself" |
+| Handed to a reviewer | "Trust the state" | "Verify it yourself" |
 
-The distinction that matters most for **langgraph checkpointing for compliance** is the last three rows. A checkpoint lets you *reconstruct* state; it does not let you *prove* that a specific state, or a specific action, is byte-for-byte what occurred and was caused by a specific identity. That is exactly the property compliance evidence is made of — and exactly the property a snapshot store was never built to provide. The same gap shows up in observability tooling, for the same reason, as [Why AI Agent Traces Aren't an Audit Trail (or SOC 2 Proof)](ai-agent-observability-vs-audit-trail.md) lays out: rich, mutable, queryable data is not the same as verifiable evidence.
+The distinction that matters most for **langgraph checkpointing as an audit trail** is the last three rows. A checkpoint lets you *reconstruct* state; it does not let you *prove* that a specific state, or a specific action, is byte-for-byte what occurred and was caused by a specific identity. That is exactly the property verifiable evidence is made of — and exactly the property a snapshot store was never built to provide. The same gap shows up in observability tooling, for the same reason, as the [AI agent audit logging guide](https://www.promptise.com/guides/view/ai-agent-audit-log) lays out: rich, mutable, queryable data is not the same as verifiable evidence.
 
 ## The primitive a checkpoint can't give you: a verifiable hash chain
 
@@ -93,7 +89,7 @@ server.add_middleware(audit)
 
 @server.tool()
 async def approve_disbursement(loan_id: str, amount: int) -> dict:
-    """Release funds — the action a regulator will ask you to prove."""
+    """Release funds — the action you will need to prove later."""
     return {"loan_id": loan_id, "amount": amount, "state": "disbursed"}
 
 
@@ -126,9 +122,9 @@ This isn't checkpoints *or* audit. A serious agent platform runs both, because t
 
 Keep durable state for what it's excellent at: crash-safe resume, human-in-the-loop pauses, conversational memory, and time-travel debugging. Promptise's own runtime offers the direct analog of checkpointing — journal backends with a replay engine and a rewind engine — so an agent process can recover from its last known-good state after a crash. There the properties you want are durability and mutability, exactly as with a LangGraph checkpointer.
 
-Add a tamper-evident audit trail specifically where the log is *evidence*: disbursements, deletions, privilege changes, anything a regulator or incident responder will scrutinize. There the properties invert — you want completeness, verified attribution, and an integrity proof, not editable snapshots. Turning one on is a single `add_middleware` call, and it captures every call, including ones later rejected by auth or a guard. Alongside it, keep your debugging telemetry — the transporters on the [core observability](../../core/observability.md) page (HTML, structured logs, Prometheus, OTLP) are for profiling and evals, which is a third, mutable-by-design layer.
+Add a tamper-evident audit trail specifically where the log is *evidence*: disbursements, deletions, privilege changes, anything an incident responder will scrutinize. There the properties invert — you want completeness, verified attribution, and an integrity proof, not editable snapshots. Turning one on is a single `add_middleware` call, and it captures every call, including ones later rejected by auth or a guard. Alongside it, keep your debugging telemetry — the transporters on the [core observability](../../core/observability.md) page (HTML, structured logs, Prometheus, OTLP) are for profiling and evals, which is a third, mutable-by-design layer.
 
-The mistake behind most **langgraph persistence compliance** questions is asking a recovery primitive to serve as an evidence primitive. Draw the line deliberately and you get all three: fast iteration from observability, crash-safe continuity from durable state, and a record you can defend from an audit trail.
+The mistake behind most questions about using LangGraph persistence as an audit trail is asking a recovery primitive to serve as an evidence primitive. Draw the line deliberately and you get all three: fast iteration from observability, crash-safe continuity from durable state, and a record you can defend from an audit trail.
 
 ## Frequently asked questions
 
@@ -136,9 +132,9 @@ The mistake behind most **langgraph persistence compliance** questions is asking
 
 No. A LangGraph checkpoint is a mutable snapshot of graph state keyed to a thread, built to resume, replay, and support human-in-the-loop. It records which graph node wrote which values, but it has no per-entry signature, no hash chain, no tamper detection, and no verified end-user or tenant attribution. An audit log inverts all of those: append-only, integrity-chained, attributed to an authenticated principal, and verifiable with a single deterministic pass.
 
-### Can I use LangGraph checkpointing for compliance evidence?
+### Can I use LangGraph checkpointing as an audit trail?
 
-Not on its own. As shipped, checkpointers persist state for recovery and time-travel — the snapshots are editable via `update_state` and directly in the SQLite/Postgres store, with no cryptographic linkage between them. You can't hand an auditor a checkpoint row and prove it's byte-for-byte what happened, or that a specific principal caused it. For that you add a tamper-evident audit trail alongside the checkpointer.
+Not on its own. As shipped, checkpointers persist state for recovery and time-travel — the snapshots are editable via `update_state` and directly in the SQLite/Postgres store, with no cryptographic linkage between them. You can't hand a reviewer a checkpoint row and prove it's byte-for-byte what happened, or that a specific principal caused it. For that you add a tamper-evident audit trail alongside the checkpointer.
 
 ### What's the difference between durable state and an audit trail?
 
@@ -150,4 +146,4 @@ Use `AuditMiddleware(signed=True)` with a managed `PROMPTISE_AUDIT_SECRET`, then
 
 ## Next steps
 
-Add `AuditMiddleware` to your MCP server and run `verify_chain()` — it's one `add_middleware` call to move a sensitive action from "the checkpoint says so" to "verify it yourself," and it sits happily alongside whatever checkpointer or journal you already use for recovery. The [MCP server observability](../../mcp/server/observability.md) page shows the configuration and middleware ordering, and the [core observability](../../core/observability.md) page covers the mutable traces you'll keep for debugging. To see how one verifiable trail feeds SOC 2, HIPAA, and the EU AI Act at once, read [One Audit Trail for SOC 2, HIPAA and the EU AI Act](ai-agent-compliance-audit-trail.md).
+Add `AuditMiddleware` to your MCP server and run `verify_chain()` — it's one `add_middleware` call to move a sensitive action from "the checkpoint says so" to "verify it yourself," and it sits happily alongside whatever checkpointer or journal you already use for recovery. The [MCP server observability](../../mcp/server/observability.md) page shows the configuration and middleware ordering, and the [core observability](../../core/observability.md) page covers the mutable traces you'll keep for debugging. For a full walkthrough of tamper-evident logging, read [AI Agent Audit Logging: Tamper-Evident Logs in Python](https://www.promptise.com/guides/view/ai-agent-audit-log).

@@ -1,6 +1,6 @@
 ---
 title: "Stop Rewriting Your Tools for Claude, Cursor, and ChatGPT"
-description: "Write a tool once and Claude Desktop, Cursor, and ChatGPT can all call it — yet agent frameworks make you author tools as framework-native Python objects…"
+description: "Learn how to write a tool once as an MCP server so Claude Desktop, Cursor, ChatGPT and your own agents can all call it, and how to harden that shared server."
 keywords: "one mcp tool every ai client, reuse tools across ai clients, native mcp client, claude desktop cursor chatgpt tools, mcp vs bespoke tool wiring"
 date: 2026-07-16
 slug: one-mcp-tool-every-ai-client

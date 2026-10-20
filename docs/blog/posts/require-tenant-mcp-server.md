@@ -1,6 +1,6 @@
 ---
 title: "Enforce Tenant Isolation with require_tenant=True"
-description: "Opt-in tenant checks fail the first time someone ships a tool without one. This how-to drills into the build-time mechanics of a single flag…"
+description: "Learn how require_tenant=True makes an MCP server check the tenant on every tool at build time, so one forgotten guard can't open a cross-tenant hole."
 keywords: "require_tenant mcp server, enforce tenant isolation mcp, server-wide tenant invariant, requiretenant guard build-time, reject ungated tool no tenant"
 date: 2026-07-16
 slug: require-tenant-mcp-server

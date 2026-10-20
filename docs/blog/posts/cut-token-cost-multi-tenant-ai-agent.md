@@ -1,6 +1,6 @@
 ---
 title: "How to Cut Token Cost for a Multi-Tenant AI Agent"
-description: "Running one agent for many tenants multiplies every inefficiency -- a leaky shared cache, unbounded tool-loop transcripts, and full tool schemas on every…"
+description: "Learn three ways to cut token cost when one AI agent serves many tenants: a tenant-safe cache, bounded tool loops and smaller tool schemas, with measurements."
 keywords: "cut token cost multi-tenant ai agent, reduce token cost saas ai agent, multi-tenant agent cost optimization, token efficiency agent at scale, lower agent api cost per tenant, cost optimization ai agent framework"
 date: 2026-07-16
 slug: cut-token-cost-multi-tenant-ai-agent
@@ -10,13 +10,9 @@ categories:
 
 # How to Cut Token Cost for a Multi-Tenant AI Agent
 
-To **cut token cost, multi-tenant AI agent** deployments have to fight three inefficiencies at once — a leaky shared cache, unbounded tool-loop transcripts, and the full set of tool schemas resent on every call — because one agent serving many customers multiplies each of them per tenant. A waste that is annoying for a single-user demo becomes the dominant line on your bill when a thousand tenants hit the same code path. This post is the hub that connects the three cost levers Promptise Foundry ships as first-class, composable primitives on one `build_agent()` call — a per-tenant semantic cache, a `context_scope="ledger"` transcript, and `optimize_tools` — and then shows you how to prove the savings with built-in observability rather than trust a marketing number.
+To **cut token cost, multi-tenant AI agent** deployments have to fight three inefficiencies at once — a leaky shared cache, unbounded tool-loop transcripts, and the full set of tool schemas resent on every call — because one agent serving many customers multiplies each of them per tenant. A waste that is annoying for a single-user demo becomes the dominant line on your bill when a thousand tenants hit the same code path. This post connects the three cost levers Promptise Foundry ships as first-class, composable primitives on one `build_agent()` call — a per-tenant semantic cache, a `context_scope="ledger"` transcript, and `optimize_tools` — and then shows you how to prove the savings with built-in observability rather than trust a marketing number.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## Why one agent for many tenants multiplies every wasted token
 
@@ -115,7 +111,7 @@ Work these in order and measure after each — layering cheap-and-safe first, th
 2. **Add `SemanticCache()` and always pass `CallerContext(user_id=..., tenant_id=...)`.** Keep the default `per_user` scope. Remember: no caller means no caching — that's the fail-closed guarantee, not a bug.
 3. **Switch your deepest tool chain to `agent_pattern="managed"`** (or set `context_scope="ledger"` on the node) so the transcript stays bounded as the task gets deep.
 4. **Turn on `observe=True` and diff `agent.get_stats()`** before and after each lever, on your real traffic. Ship the numbers you measured.
-5. **Wire GDPR cleanup once:** `await cache.purge_user(user_id, tenant_id=tenant)` removes exactly one tenant's cached entries.
+5. **Wire per-user data deletion once:** `await cache.purge_user(user_id, tenant_id=tenant)` removes exactly one tenant's cached entries.
 
 ## Frequently asked questions
 
@@ -141,4 +137,4 @@ Yes — `observe=True` captures prompt, completion, and total token counts autom
 
 ## Next steps
 
-Work the checklist and layer each lever on `build_agent()` — start with `per_user` cache and `optimize_tools`, then turn on observability to measure the drop before you add the ledger. Read the [semantic cache docs](../../core/cache.md) for scope and GDPR details, the [tool optimization guide](../../core/tool-optimization.md) for the preset levels, and the [context lifecycle guide](../../guides/context-lifecycle.md) for the full `context_scope` decision table. Then go deeper on the two levers that most repay attention in a multi-tenant system: [keeping the cache leak-proof](semantic-cache-cross-tenant-leak.md) and [bounding the transcript without dropping live facts](trim-messages-vs-facts-ledger.md).
+Work the checklist and layer each lever on `build_agent()` — start with `per_user` cache and `optimize_tools`, then turn on observability to measure the drop before you add the ledger. Read the [semantic cache docs](../../core/cache.md) for scope and per-user deletion details, the [tool optimization guide](../../core/tool-optimization.md) for the preset levels, and the [context lifecycle guide](../../guides/context-lifecycle.md) for the full `context_scope` decision table. Then go deeper on the two levers that most repay attention in a multi-tenant system: [keeping the cache leak-proof](semantic-cache-cross-tenant-leak.md) and [bounding the transcript without dropping live facts](trim-messages-vs-facts-ledger.md).

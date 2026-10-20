@@ -1,6 +1,6 @@
 ---
 title: "Multi-Tenant RAG: Isolate Customer Data in a Shared Store"
-description: "RAG multi-tenancy usually means one shared vector store and a hand-written metadata filter on every query, and the first query that forgets the filter leaks…"
+description: "Learn how to isolate each customer's documents in a shared vector store, so every retrieval is scoped to one tenant and a query with no owner returns nothing."
 keywords: "multi-tenant rag, isolate rag by customer, prevent cross-tenant data leak in a shared vector store, per-tenant vector store isolation, multi-tenant retrieval augmented generation, shared vector store tenant leak"
 date: 2026-07-16
 slug: multi-tenant-rag
@@ -13,10 +13,6 @@ categories:
 **Multi-tenant RAG** almost always ships as one shared vector store plus a hand-written metadata filter bolted onto every query — and the first query that forgets the filter quietly leaks Acme's documents into Globex's answer. There is no exception, no stack trace, no failing test. The retrieval just returns a neighbor from the wrong customer, the model summarizes it, and you find out when a support ticket arrives. This post is about the retrieval path specifically: why per-query filters are the wrong place to enforce a security boundary, what other frameworks hand you today, and how Promptise Foundry threads the tenant into retrieval automatically so a forgotten filter is structurally impossible.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## Why the shared vector store is the dangerous part of RAG
 
@@ -133,7 +129,7 @@ agent = await build_agent(
 )
 ```
 
-All tenants share one Chroma collection on disk, and every retrieval is still partitioned by the caller's isolation key. Because the whole customer's data hangs off one owner id, GDPR erasure is a single call — `await knowledge.purge_user("acme::alice")` deletes exactly that tenant-scoped Alice and nothing else. Where the tenant portion of that key actually comes from in production — a JWT claim on the server or an API-key binding — is covered in [Where Does tenant_id Come From? JWT Claim vs API Key](tenant-id-from-jwt-claim.md), and the full retrieval-and-memory reference lives in the [Memory guide](../../core/memory.md) alongside the broader [RAG for agents](../../core/rag.md) walkthrough.
+All tenants share one Chroma collection on disk, and every retrieval is still partitioned by the caller's isolation key. Because the whole customer's data hangs off one owner id, deleting one user's data on request is a single call — `await knowledge.purge_user("acme::alice")` deletes exactly that tenant-scoped Alice and nothing else. Where the tenant portion of that key actually comes from in production — a JWT claim on the server or an API-key binding — is covered in [Where Does tenant_id Come From? JWT Claim vs API Key](tenant-id-from-jwt-claim.md), and the full retrieval-and-memory reference lives in the [Memory guide](../../core/memory.md) alongside the broader [RAG for agents](../../core/rag.md) walkthrough.
 
 ## When a per-query filter is genuinely fine
 

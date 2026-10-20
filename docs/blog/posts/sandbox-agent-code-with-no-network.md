@@ -1,6 +1,6 @@
 ---
 title: "Can Your Agent Exfiltrate Data? Sandboxing Code With No Network"
-description: "A code-writing agent with network access can quietly POST your data anywhere. The honest problem: most sandboxes force a trade-off — leave egress on (and…"
+description: "Learn how to run agent-written code in a sandbox with no network, so it can't send your data anywhere, while your agent's tools stay reachable through a bridge."
 keywords: "sandbox agent code with no network, prevent agent data exfiltration, no-network code sandbox, run AI-generated code safely"
 date: 2026-07-16
 slug: sandbox-agent-code-with-no-network
@@ -135,7 +135,7 @@ A no-egress claim is worth what you can demonstrate, and with the network mode s
 - **Watch the connection table.** Run the code-action example under a network monitor. Outbound connections attributable to the sandboxed container should be zero, because the tool channel is a file on `/workspace`, not a socket.
 - **Grep the pattern, not a firewall rule.** Because `network="none"` is a config value on the run rather than an external network policy, "reject any sandbox config whose `network` isn't `none`" is a one-line check you can enforce in CI, per agent — not a cluster-wide rule someone has to remember to attach.
 
-One honest caveat, because it matters for untrusted or multi-tenant input: the bridge is a deliberate capability hole. The containment stops the model's *code* from escaping; it does not make your *tools* safe on its own — a program can call any tool the agent has. Keep the code-action tool set least-privilege, wrap mutating tools with an approval gate, set `max_tool_calls` conservatively, and prefer `sandbox={"backend": "gvisor", "network": "none"}` for kernel-level isolation. The end-to-end operational playbook — dependency pinning, resource sizing, and the rest of the production checklist — is in [How to Run AI-Generated Code Safely: The 2026 Field Guide](run-ai-generated-code-safely.md).
+One honest caveat, because it matters for untrusted or multi-tenant input: the bridge is a deliberate capability hole. The containment stops the model's *code* from escaping; it does not make your *tools* safe on its own — a program can call any tool the agent has. Keep the code-action tool set least-privilege, wrap mutating tools with an approval gate, set `max_tool_calls` conservatively, and prefer `sandbox={"backend": "gvisor", "network": "none"}` for kernel-level isolation. For more on running LLM-generated code safely, see [AI Agent Code Execution Sandbox: Run LLM Code Safely](https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python).
 
 ## Frequently asked questions
 

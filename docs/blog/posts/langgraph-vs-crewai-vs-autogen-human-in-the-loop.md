@@ -1,6 +1,6 @@
 ---
 title: "LangGraph vs CrewAI vs AutoGen: Where HITL Runs"
-description: "A capability matrix, not another retelling of the bypass argument. For each framework, state exactly where the approval physically executes and what that…"
+description: "Compare where human-in-the-loop approval runs in LangGraph, CrewAI, AutoGen and Promptise, and what that means when another client calls the same tool."
 keywords: "langgraph vs crewai vs autogen human in the loop, where does hitl approval execute, pydantic ai deferred tool approval, client-side vs server-side agent approval, mcp tool approval enforcement point"
 date: 2026-07-16
 slug: langgraph-vs-crewai-vs-autogen-human-in-the-loop
@@ -10,7 +10,7 @@ categories:
 
 # LangGraph vs CrewAI vs AutoGen: Where HITL Runs
 
-Read enough roundups and you get the same **LangGraph vs CrewAI vs AutoGen human in the loop** comparison — three feature checklists, all ticking the "supports HITL" box — while the question that actually decides your architecture goes unasked: *where does the approval physically execute?* This post is a capability matrix, not another retelling of the bypass argument. For each framework we state exactly where the check runs and what that implies, then show the one row that's structurally different: a gate that lives on the tool itself.
+A typical **LangGraph vs CrewAI vs AutoGen human in the loop** comparison is three feature checklists, all ticking the "supports HITL" box, while the question that actually decides your architecture goes unasked: *where does the approval physically execute?* This post is a capability matrix. For each framework we state exactly where the check runs and what that implies, then show the one row that's structurally different: a gate that lives on the tool itself.
 
 <!-- more -->
 

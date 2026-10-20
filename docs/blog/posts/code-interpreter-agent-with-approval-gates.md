@@ -1,6 +1,6 @@
 ---
 title: "Give a Code-Interpreter Agent Your Tools, Keep Approval Gates"
-description: "A build guide scoped to the governance you keep, not the codeact pattern itself: enable agent_pattern='code-action', wrap mutating tools with an approval…"
+description: "Learn how to let a code-action agent call your tools from generated code while every mutating tool still goes through an approval gate and the usual guards."
 keywords: "code interpreter agent with approval gates, give code interpreter my tools safely, max_tool_calls cap sandbox, human approval on generated code"
 date: 2026-07-16
 slug: code-interpreter-agent-with-approval-gates
@@ -10,7 +10,7 @@ categories:
 
 # Give a Code-Interpreter Agent Your Tools, Keep Approval Gates
 
-Building a **code interpreter agent with approval gates** means letting the model write and run one program over *your* tools while every mutating call it makes still stops at a human — and gets counted against a hard per-run budget. That combination is the whole point of this guide. The code-interpreter (codeact) pattern itself is easy; the interesting engineering is the governance you refuse to give up when you hand a model an execution surface. This post is scoped to exactly that: enable `agent_pattern="code-action"`, wrap the tools that change state with an approval gate, keep a hard `max_tool_calls` cap on the generated program, and pick the gVisor backend when the input is untrusted.
+Building a **code interpreter agent with approval gates** means letting the model write and run one program over *your* tools while every mutating call it makes still stops at a human — and gets counted against a hard per-run budget. That combination is the whole point of this guide. The code-interpreter (codeact) pattern itself is easy; the interesting engineering is the governance you refuse to give up when you hand a model an execution surface. This post covers exactly that: enable `agent_pattern="code-action"`, wrap the tools that change state with an approval gate, keep a hard `max_tool_calls` cap on the generated program, and pick the gVisor backend when the input is untrusted.
 
 <!-- more -->
 
@@ -26,7 +26,7 @@ Promptise Foundry's answer is a **governed tool bridge**. When you select `agent
 2. **A hard `max_tool_calls` cap per run.** The code-action node enforces its own hook-independent ceiling (default 50) so a generated loop can never hammer a tool unbounded.
 3. **Kernel-level isolation on demand.** Swap the container backend to gVisor for untrusted input.
 
-That is the delta this article is about: giving a code interpreter your tools *safely*, where "safely" is a policy you author, not a property of a vendor's closed sandbox.
+That is what this article is about: giving a code interpreter your tools *safely*, where "safely" is a policy you author, not a property of a vendor's closed sandbox.
 
 ## Build it: a code interpreter that still asks permission
 
@@ -141,7 +141,7 @@ This capability is worth situating honestly against the alternatives, because ea
 
 **DIY / bolt-on sandboxes (e2b, Riza, Modal, `langchain-sandbox`).** These give you a genuinely hardened boundary — e2b runs Firecracker microVMs, Riza uses WASM isolates, Modal spins serverless containers. Where they have a partial feature, say so: they isolate the *code* excellently. The precise delta is that they are **generic code executors, not tool-aware bridges.** If you want the sandboxed program to call your database or MCP tools, you expose those yourself over RPC, and any approval prompt, per-run cap, or audit entry on those bridged calls is integration work you build and maintain.
 
-Promptise's edge isn't "we have a sandbox and they don't" — several of these have excellent sandboxes. It's that the code-action bridge makes per-call governance **structural**: because each tool call the generated program makes runs back through the real host `BaseTool`, your `ApprovalPolicy` and the hard `max_tool_calls` cap apply to generated code as a first-class property of the pattern, with no closed toolset to accept and no RPC layer to stand up. For the fuller three-way comparison of in-process REPLs, bolt-on sandboxes, and governed bridges, see [How to Run AI-Generated Code Safely: The 2026 Field Guide](run-ai-generated-code-safely.md); for the threat model that motivates isolating this code in the first place, see [The Real Risks of Running AI-Generated Code In-Process](risks-of-running-ai-generated-code.md).
+Promptise's edge isn't "we have a sandbox and they don't" — several of these have excellent sandboxes. It's that the code-action bridge makes per-call governance **structural**: because each tool call the generated program makes runs back through the real host `BaseTool`, your `ApprovalPolicy` and the hard `max_tool_calls` cap apply to generated code as a first-class property of the pattern, with no closed toolset to accept and no RPC layer to stand up. For how to run model-written code in a sandbox, see [AI Agent Code Execution Sandbox: Run LLM Code Safely](https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python); for the threat model that motivates isolating this code in the first place, see [The Real Risks of Running AI-Generated Code In-Process](risks-of-running-ai-generated-code.md).
 
 ## When to reach for this — and when not
 

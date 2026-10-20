@@ -1,6 +1,6 @@
 ---
 title: "An MCP Approval Gate That Refuses to Ship Ungated"
-description: "The cluster anchor, deliberately re-scoped off the well-worn 'client-side is bypassable' premise (already owned by the existing human-in-the-loop-approval…"
+description: "Learn how an MCP server refuses to build when a tool requires approval but no approval gate is installed, so a human sign-off step can never quietly go missing."
 keywords: "build-time enforced approval gate mcp, requires_approval refuses to build, approval declaration that must enforce, argument tamper denial mcp approval, server-enforced approval invariant"
 date: 2026-07-16
 slug: build-time-enforced-approval-gate-mcp
@@ -150,7 +150,7 @@ No — the tool's guards are evaluated before the gate. An unauthenticated or un
 
 ### Is this the same as the client-side-is-bypassable argument?
 
-No. That argument (a rogue MCP client skips a confirmation prompt) is about *runtime* bypass and is covered elsewhere. This post is about *declaration drift*: an approval you correctly declared that never gets wired to an enforcer. The build-time invariant closes that specific hole regardless of which client calls the tool.
+No. That argument (a rogue MCP client skips a confirmation prompt) is about *runtime* bypass, which the [AI Agent Human in the Loop](https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval) guide covers. This post is about *declaration drift*: an approval you correctly declared that never gets wired to an enforcer. The build-time invariant closes that specific hole regardless of which client calls the tool.
 
 ## Next steps
 

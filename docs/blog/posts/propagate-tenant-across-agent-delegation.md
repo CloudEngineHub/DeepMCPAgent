@@ -1,6 +1,6 @@
 ---
 title: "Carry a User's Tenant Across Agent Delegation"
-description: "This is the data-isolation side of delegation, distinct from agent attribution: the moment an agent hands work to a peer, most frameworks drop the end-user's…"
+description: "Learn how to keep the user's tenant attached when one AI agent delegates work to another, so the peer agent reads and writes only that tenant's data."
 keywords: "propagate tenant across agent delegation, caller context tenant cross-agent, keep data isolation after ask_peer, tenant survives agent handoff, downstream isolation delegated agent"
 date: 2026-07-16
 slug: propagate-tenant-across-agent-delegation

@@ -1,6 +1,6 @@
 ---
 title: "One Stalled MCP Tool Can Exhaust Your Connection Pool"
-description: "A single slow downstream API doesn't just fail one call — its MCP tool keeps handler coroutines and pooled DB/HTTP connections open through every timeout…"
+description: "Learn how one slow downstream API can make an MCP tool exhaust a shared connection pool, how to reproduce the cascade, and which two caps isolate the slow tool."
 keywords: "mcp tool connection pool exhaustion, stalled mcp tool, per-tool concurrency limit mcp, connection pool starvation agent tools, isolate slow mcp tool"
 date: 2026-07-16
 slug: mcp-tool-connection-pool-exhaustion
@@ -141,7 +141,7 @@ Declaring `max_concurrent=2` on the tool is the load-bearing detail. It makes th
 
 Being precise here matters more than scoring points. Most agent frameworks — LangChain, LangGraph, CrewAI, AutoGen — model a tool as a plain callable. They give you excellent *orchestration*, but tool-failure isolation is left to your handler code: if you want a slow tool bounded, you write the `try`/`except`, the `asyncio.Semaphore`, and the failure-counting state machine yourself, per tool, and keep them in sync. There is no framework-level object that says "this tool may hold at most N connections and should be cut off after M failures." That's not a bug in those frameworks; it's a layer they don't claim to own.
 
-FastMCP is closer, because it ships a real middleware system with built-in middleware for logging, timing, rate limiting, and error handling. But as of its documented middleware toolkit, it does not include a circuit breaker, and it does not include a per-tool concurrency cap keyed off the tool definition. So the specific combination that stops connection pool exhaustion — a per-tool in-flight limit paired with a per-tool breaker that trips on timeouts — is still something you assemble and maintain yourself. If you're weighing the two stacks feature by feature, [FastMCP vs Promptise: The Production MCP Stack Compared](fastmcp-alternative-for-production.md) lays out where each one draws the line.
+FastMCP is closer, because it ships a real middleware system with built-in middleware for logging, timing, rate limiting, and error handling. But as of its documented middleware toolkit, it does not include a circuit breaker, and it does not include a per-tool concurrency cap keyed off the tool definition. So the specific combination that stops connection pool exhaustion — a per-tool in-flight limit paired with a per-tool breaker that trips on timeouts — is still something you assemble and maintain yourself. If you're weighing your options, [FastMCP Alternatives for Production MCP Servers](https://www.promptise.com/guides/view/fastmcp-alternatives) compares them.
 
 Promptise's edge is not that isolation is *possible* — it's possible anywhere with enough handler code. The edge is that isolation is **structural**: a declared `max_concurrent` on the tool plus two stock middlewares, with no per-handler plumbing. The cap lives next to the tool, travels with it, and shows up in the same declaration your team already reads. That "isolate the slow MCP tool by declaring it" property is the whole design goal.
 

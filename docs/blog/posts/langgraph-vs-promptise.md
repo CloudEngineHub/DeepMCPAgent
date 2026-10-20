@@ -1,6 +1,6 @@
 ---
 title: "Promptise Foundry vs LangGraph: Graph vs Runtime"
-description: "LangGraph gives you a graph; you still build persistence, triggers and crash recovery yourself. The honest take: LangGraph's checkpointing is excellent for…"
+description: "Compare LangGraph and Promptise Foundry: what a graph gives you, what you still build for persistence, triggers and crash recovery, and when LangGraph fits."
 keywords: "LangGraph vs Promptise, LangGraph alternative, LangGraph vs Promptise Foundry, stateful agent orchestration, LangGraph checkpointing"
 date: 2026-07-16
 slug: langgraph-vs-promptise
@@ -112,7 +112,7 @@ Being honest about the boundary matters more than winning a comparison.
 - You want governance (budgets, health checks, missions) and MCP-native tool discovery as first-class, not add-ons.
 - You would rather configure a manifest than hand-roll process lifecycle and crash recovery.
 
-If you are still narrowing the field, our [2026 checklist for choosing an agent framework](choosing-an-agent-framework.md) and the broader [honest guide to the best AI agent framework](best-ai-agent-framework-2026.md) walk through the same trade-offs across more tools. Neither is a sales pitch — a graph library is often the right answer.
+If you are still narrowing the field, [Best AI Agent Frameworks (2026): Python Options Compared](https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared) walks through the same trade-offs across more tools. A graph library is often the right answer.
 
 ## Frequently asked questions
 

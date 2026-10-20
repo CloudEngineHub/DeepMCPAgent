@@ -1,6 +1,6 @@
 ---
 title: "MCP vs Function Calling: What's the Difference?"
-description: "An honest breakdown: raw function calling is the right call for a handful of hardcoded tools in one process — MCP earns its keep once tools live behind a…"
+description: "Learn the difference between MCP and function calling, when a few hardcoded tools in one process are enough, and when serving tools from an MCP server pays off."
 keywords: "mcp vs function calling, mcp vs tool calling, model context protocol vs function calling, when to use mcp, function calling alternatives"
 date: 2026-07-16
 slug: mcp-vs-function-calling
@@ -30,7 +30,7 @@ For a handful of tools that live in one script, this is the correct design. Ther
 
 MCP doesn't replace function calling — it standardizes the layer *above* it. Instead of hardcoding tool schemas into every agent, you expose your tools from an MCP server, and any MCP-compatible client discovers them at runtime by calling `tools/list`. The client still uses ordinary function calling under the hood to invoke them.
 
-The practical difference is who owns the tool definition. With raw function calling, the definition is copy-pasted into each agent that needs it. With MCP, the definition lives in one server and every agent — yours, Claude Desktop, Cursor, an internal support bot — reads the same source of truth. If you're new to the protocol, the [What Is MCP? Model Context Protocol Explained](what-is-mcp.md) post and the [What is MCP](../../getting-started/what-is-mcp.md) guide walk through the wire format and the discovery handshake.
+The practical difference is who owns the tool definition. With raw function calling, the definition is copy-pasted into each agent that needs it. With MCP, the definition lives in one server and every agent — yours, Claude Desktop, Cursor, an internal support bot — reads the same source of truth. If you're new to the protocol, the [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol) and the [What is MCP](../../getting-started/what-is-mcp.md) docs page walk through the wire format and the discovery handshake.
 
 This is why the honest framing isn't "MCP vs tool calling." It's *inline tools vs served tools*. Function calling is the mechanism; MCP is the deployment model.
 
@@ -138,7 +138,7 @@ async def check():
     print(result)
 ```
 
-That `refund` tool is now discoverable by any MCP client, and you can layer auth, roles, rate limits, and approval gates onto it without changing the agent code. The [Building MCP Servers](../../mcp/server/building-servers.md) guide covers decorators, guards, and middleware; the [native MCP client](../../mcp/client/index.md) shows how an agent consumes servers over stdio, HTTP, and SSE. For a full walkthrough of building one from scratch, see [How to Build an MCP Server in Python (Tutorial)](mcp-server-python.md).
+That `refund` tool is now discoverable by any MCP client, and you can layer auth, roles, rate limits, and approval gates onto it without changing the agent code. The [Building MCP Servers](../../mcp/server/building-servers.md) guide covers decorators, guards, and middleware; the [native MCP client](../../mcp/client/index.md) shows how an agent consumes servers over stdio, HTTP, and SSE. For a full walkthrough of building one from scratch, see [Build a Production MCP Server in Python (Step by Step)](https://www.promptise.com/guides/view/build-production-mcp-server-python).
 
 ## Frequently asked questions
 

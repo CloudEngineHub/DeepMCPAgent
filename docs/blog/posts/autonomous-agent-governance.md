@@ -1,6 +1,6 @@
 ---
 title: "Governing Autonomous Agents: Budget & Health"
-description: "The question every tech lead asks before shipping an autonomous agent: what stops it from looping forever or draining my tool budget? Covers the concrete…"
+description: "Learn how to keep an unattended AI agent in check with per-run and daily budgets, health anomaly detection, and missions that know when the goal is done."
 keywords: "autonomous agent governance, AI agent budget limits, agent guardrails runtime, stop agent infinite loop, agent health anomaly detection, mission-oriented agent"
 date: 2026-07-16
 slug: autonomous-agent-governance
@@ -130,7 +130,7 @@ Full runtime governance is worth it for agents that run unattended and take real
 - **Short, one-shot tasks.** A single tool call behind an API endpoint does not need per-day budgets or mission evaluation. The ceremony outweighs the benefit.
 - **You already own an external orchestrator.** If Temporal, Airflow, or a similar system already enforces retries, timeouts, and spend limits around the agent, layering Promptise's budget on top can duplicate controls. Use health and mission for the behavior it can see, and let the orchestrator own scheduling.
 
-Governance earns its keep exactly when an agent runs on triggers, calls tools that cost money or cannot be undone, and needs to keep going until a goal is met. If none of that is true, start lighter. For the broader picture of when you cross that line, see [What Is an Autonomous AI Agent Runtime?](autonomous-ai-agent-runtime.md).
+Governance earns its keep exactly when an agent runs on triggers, calls tools that cost money or cannot be undone, and needs to keep going until a goal is met. If none of that is true, start lighter. For the broader picture of when you cross that line, see the [autonomous AI agent runtime guide](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime).
 
 ## Frequently asked questions
 
@@ -148,4 +148,4 @@ A budget is a hard ceiling on *how much* an agent may do; a mission defines *wha
 
 ## Next steps
 
-Wrap your agent in a budget plus a health policy and set your first hard stop before production — start from the runnable process above, then tune the thresholds to your tools. Read the [Quick Start](../../getting-started/quickstart.md) to build the underlying agent, follow [How to Build a Long-Running AI Agent](long-running-ai-agent.md) to put it on a trigger, and use the [Mission-Oriented Process reference](../../runtime/governance/mission.md) to make it run until the job is genuinely done.
+Wrap your agent in a budget plus a health policy and set your first hard stop before production — start from the runnable process above, then tune the thresholds to your tools. Read the [Quick Start](../../getting-started/quickstart.md) to build the underlying agent, follow [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production) to put it on a trigger, and use the [Mission-Oriented Process reference](../../runtime/governance/mission.md) to make it run until the job is genuinely done.

@@ -1,6 +1,6 @@
 ---
 title: "What Is Workload Identity for AI Agents?"
-description: "Explains why the shared-API-key anti-pattern that humans abandoned is exactly what most agent fleets still run, and maps agents onto the workload-identity…"
+description: "Learn what workload identity means for AI agents, why shared API keys are risky, and how to map your agents onto the identity provider you already run."
 keywords: "workload identity for AI agents, non-human workload identity, verifiable agent identity, IdP-minted agent credentials, short-lived JWT for agents, least privilege agents"
 date: 2026-07-16
 slug: workload-identity-for-ai-agents
@@ -14,10 +14,6 @@ Workload identity for AI agents is the practice of giving every agent a stable, 
 
 <!-- more -->
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## The shared-API-key anti-pattern humans already abandoned
 
 Think back to how service-to-service auth used to work: one long-lived secret, copied into every box, rotated approximately never. The industry abandoned that for humans and services alike, and replaced it with workload identity — short-lived, provider-minted credentials scoped to a single principal. Microsoft Entra, AWS IAM, GCP service accounts, and SPIFFE/SPIRE all exist to answer one question reliably: *which workload did this?*
@@ -27,7 +23,7 @@ Agent fleets have quietly reintroduced the anti-pattern. An agent is a new kind 
 - **A shared LLM or API key**, so every agent has identical access and nothing to distinguish them after the fact.
 - **A self-asserted name** — a string a process prints about itself in a log, which anyone or anything can print too.
 
-That breaks down on exactly the axes reviewers care about: attribution ("which agent did this?" has no trustworthy answer), least privilege (you can't scope one agent to billing and another to read-only when they share a key), and audit ("the model did it" is not a SOC 2 answer). The good news is that you do not need a new system to fix it. You need to plug agents into the workload-identity model you already trust.
+That breaks down on exactly the axes reviewers care about: attribution ("which agent did this?" has no trustworthy answer), least privilege (you can't scope one agent to billing and another to read-only when they share a key), and audit ("the model did it" is not an answer anyone reviewing an incident can use). The good news is that you do not need a new system to fix it. You need to plug agents into the workload-identity model you already trust.
 
 ## What workload identity for AI agents actually means
 
@@ -97,7 +93,7 @@ Swap the local `AgentIdentity(...)` for `AgentIdentity.auto("billing-bot")` once
 
 Attribution is the first win; **least privilege agents** is the second. Once each agent presents a verifiable identity, the resources it calls can authorize *that* principal instead of trusting a shared key that grants everyone everything.
 
-On the receiving side, an MCP server verifies the IdP-signed token with asymmetric verification (RS256/ES256 via `AsymmetricJWTAuth`) and gates tools per role — `billing-bot` gets the billing tools, a read-only reporting agent gets none of the mutating ones. That server-side half is a short step if you have set up token auth before; the walkthrough in [JWT Authentication for MCP Servers: Step by Step](jwt-authentication-for-mcp-servers.md) covers the verification and guard wiring. The result is a system where compromising one agent's short-lived credential exposes only that agent's scope — not the entire fleet — and every mutating action is attributable to a subject your IdP vouches for.
+On the receiving side, an MCP server verifies the IdP-signed token with asymmetric verification (RS256/ES256 via `AsymmetricJWTAuth`) and gates tools per role — `billing-bot` gets the billing tools, a read-only reporting agent gets none of the mutating ones. That server-side half is a short step if you have set up token auth before; [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth) covers token verification on the server. The result is a system where compromising one agent's short-lived credential exposes only that agent's scope — not the entire fleet — and every mutating action is attributable to a subject your IdP vouches for.
 
 The end-to-end recipe, from minting the credential to recording the verified subject in the tamper-evident audit log, lives in the [Agent Identity guide](../../identity/guide.md).
 
@@ -127,4 +123,4 @@ A local identity is a stable `agent_id` used for attribution across your own log
 
 ## Next steps
 
-See which provider fits your infrastructure and mint your agent's first short-lived credential: pick your platform in the [Agent Identity guide](../../identity/guide.md), then wire it into `build_agent`. If you want the broader picture of how identity, authentication, and MCP auth fit together, read [AI Agent Identity & Authentication: The Complete Guide](ai-agent-identity.md), and if you are new to the framework, start with the [Quick Start](../../getting-started/quickstart.md).
+See which provider fits your infrastructure and mint your agent's first short-lived credential: pick your platform in the [Agent Identity guide](../../identity/guide.md), then wire it into `build_agent`. If you want the broader picture of how identity, authentication, and MCP auth fit together, read [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication), and if you are new to the framework, start with the [Quick Start](../../getting-started/quickstart.md).

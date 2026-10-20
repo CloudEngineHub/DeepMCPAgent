@@ -1,6 +1,6 @@
 ---
 title: "Elicitation vs Four-Eyes: Two Ways to Approve AI Actions"
-description: "A decision guide between two legitimate approval models built on one shared handler: confirm with the human behind the calling client mid-run…"
+description: "Compare two ways to approve AI actions on an MCP server: confirming with the user behind the client, or a four-eyes queue drained by an independent reviewer."
 keywords: "mcp elicitation approval vs four-eyes review, elicitation approval mid-run, independent reviewer vs self-confirm ai, pending approval queue vs client confirm, when to use elicitationapprover"
 date: 2026-07-16
 slug: mcp-elicitation-approval-vs-four-eyes-review

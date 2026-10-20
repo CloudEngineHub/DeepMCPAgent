@@ -1,6 +1,6 @@
 ---
 title: "DevOps AI Agent: Autonomous CI/CD Pipeline Monitoring"
-description: "Goes past chat demos into the daemon pattern real SRE teams use: a long-lived process triggered by pipeline webhooks that classifies events, auto-remediates…"
+description: "Build a DevOps AI agent that watches CI/CD pipelines through webhooks, classifies failures, fixes what it safely can within budgets and recovers from crashes."
 keywords: "devops ai agent, ci/cd monitoring agent, autonomous sre agent, pipeline observer agent, ai on-call automation"
 date: 2026-07-16
 slug: devops-ai-agent
@@ -135,13 +135,13 @@ async def inspect_recovery():
     print("context:", recovered["context_state"])
 ```
 
-One honest caveat: replay reconstructs **state**, not side effects. It applies recorded state mutations in order, so the same journal always rebuilds the same context — but it never re-executes tool calls. A resume will not re-restart a stage or re-page an engineer, which is exactly what you want. For the deeper mechanics, see the sibling walkthrough on [AI agent crash recovery](ai-agent-crash-recovery.md).
+One honest caveat: replay reconstructs **state**, not side effects. It applies recorded state mutations in order, so the same journal always rebuilds the same context — but it never re-executes tool calls. A resume will not re-restart a stage or re-page an engineer, which is exactly what you want. For the deeper mechanics, see the [durable AI agent crash recovery guide](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery).
 
 ## Classify, remediate, escalate — and when to hand off to a team
 
 The observer's decision loop is deliberately narrow: classify the event, attempt safe remediation, and escalate only what it can't handle. INFO gets an acknowledgment and zero tool calls. WARNING gets an investigation and a retry. CRITICAL gets a restart attempt, a formal incident, and a page. That tiered policy is what keeps AI on-call automation from either doing too much or waking humans for noise.
 
-When an incident spans services — a bad deploy that needs a rollback, a triage lead, and a comms owner — a single observer is the wrong shape. That's where you compose specialists that delegate over HTTP and coordinate through an event bus, the topology covered in the [multi-agent coordination guide](../../guides/multi-agent-teams.md) and the broader [multi-agent systems in Python guide](multi-agent-systems-python.md). Real deployments of this daemon pattern, including the pipeline observer, are collected in the [showcase gallery](../../resources/showcase.md).
+When an incident spans services — a bad deploy that needs a rollback, a triage lead, and a comms owner — a single observer is the wrong shape. That's where you compose specialists that delegate over HTTP and coordinate through an event bus, the topology covered in the [multi-agent coordination guide](../../guides/multi-agent-teams.md) and the broader [multi-agent systems in Python guide](https://www.promptise.com/guides/view/multi-agent-system-python). Real deployments of this daemon pattern, including the pipeline observer, are collected in the [showcase gallery](../../resources/showcase.md).
 
 ## When another approach is the better fit
 

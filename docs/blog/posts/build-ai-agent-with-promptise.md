@@ -1,6 +1,6 @@
 ---
 title: "Build Your First AI Agent with Promptise in 10 Minutes"
-description: "The fastest possible on-ramp: pip install, set one API key, and go from empty file to a running tool-using agent in under ten minutes — every step…"
+description: "Install Promptise, write your first tool-using AI agent in Python, give it tools through an MCP server and run it from the CLI, all in about ten minutes."
 keywords: "build ai agent with promptise, promptise quickstart, promptise tutorial, first ai agent python, pip install promptise"
 date: 2026-07-16
 slug: build-ai-agent-with-promptise
@@ -144,7 +144,7 @@ The `chat()` method loads the session, invokes the agent, and persists the resul
 
 ## When another framework is a better fit
 
-Promptise is opinionated, and that's worth being honest about. If all you need is a single LLM call with no tools, no memory, and no governance, the provider's own SDK is lighter and has one less dependency — reach for Promptise when the agent has to *do* work safely, not just answer once. And if your team has already invested heavily in a specific orchestration ecosystem with a lot of existing graph or chain code, migrating for a greenfield feature may be more churn than it's worth; Promptise interoperates through MCP, so you can expose tools to your current stack instead of rewriting it. Where Promptise wins is the combination this tutorial showed: MCP-native tool discovery, secure-by-default production features behind single parameters, and a CLI that gets you running in minutes. For a deeper, framework-agnostic look at the tradeoffs, see [What Is a Python AI Agent Framework? (And When You Need One)](python-ai-agent-framework.md).
+Promptise is opinionated, and that's worth being honest about. If all you need is a single LLM call with no tools, no memory, and no governance, the provider's own SDK is lighter and has one less dependency — reach for Promptise when the agent has to *do* work safely, not just answer once. And if your team has already invested heavily in a specific orchestration ecosystem with a lot of existing graph or chain code, migrating for a greenfield feature may be more churn than it's worth; Promptise interoperates through MCP, so you can expose tools to your current stack instead of rewriting it. Where Promptise wins is the combination this tutorial showed: MCP-native tool discovery, secure-by-default production features behind single parameters, and a CLI that gets you running in minutes. For a broader look at the tradeoffs across frameworks, see [Best AI Agent Frameworks: Python Options Compared](https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared).
 
 ## Frequently asked questions
 
@@ -162,4 +162,4 @@ Yes. The `model` argument is a provider-prefixed string, so `anthropic:claude-so
 
 ## Next steps
 
-Run `pip install promptise` and follow the Quickstart to ship your first agent today — the [Quick Start](../../getting-started/quickstart.md) expands each step above with runnable variations, and when you're ready to go deeper, [How to Build an AI Agent in Python: The Complete Guide](how-to-build-an-ai-agent-in-python.md) takes you from this ten-minute agent to a production deployment.
+Run `pip install promptise` and follow the Quickstart to ship your first agent today — the [Quick Start](../../getting-started/quickstart.md) expands each step above with runnable variations, and when you're ready to go deeper, [How to Build an AI Agent in Python](https://www.promptise.com/guides/view/how-to-build-ai-agent-python) is the longer walkthrough.

@@ -1,6 +1,6 @@
 ---
 title: "Add a Four-Eyes Approval Queue to Your MCP Server"
-description: "The reviewer-side build tutorial. Stand up an independent queue with PendingApprover: it auto-registers role-guarded approvals_list and approvals_decide…"
+description: "Learn how to add a four-eyes approval queue to an MCP server with PendingApprover, so a second person reviews and decides on risky tool calls before they run."
 keywords: "add approval queue to mcp server, pendingapprover setup, approvals_list approvals_decide, role-guarded approval admin tools, reviewer role rbac mcp"
 date: 2026-07-16
 slug: add-approval-queue-to-mcp-server
@@ -10,7 +10,7 @@ categories:
 
 # Add a Four-Eyes Approval Queue to Your MCP Server
 
-Search **add approval queue to MCP server** and you'll find plenty on gating a tool, but almost nothing on the reviewer side — and the reviewer side is four separate chores: a pending store that holds a blocked call, admin endpoints a human can drive to release it, role-based access so only reviewers can touch those endpoints, and a separation-of-duties check so the person who *made* the call can't rubber-stamp their own request. This is the reviewer-side build — not "how do I gate a tool" (a gate that runs a policy or a webhook is covered elsewhere), but "how do I stand up an independent human queue that a *different* person drains." In Promptise Foundry it is one object: `PendingApprover`. This post shows the whole flow end to end, then covers the honest edges so you deploy it knowing exactly what it does and doesn't survive.
+To **add an approval queue to an MCP server**, gating the tool is only half the job. The reviewer side is four separate chores: a pending store that holds a blocked call, admin endpoints a human can drive to release it, role-based access so only reviewers can touch those endpoints, and a separation-of-duties check so the person who *made* the call can't rubber-stamp their own request. The question here is not "how do I gate a tool" but "how do I stand up an independent human queue that a *different* person drains." In Promptise Foundry it is one object: `PendingApprover`. This post shows the whole flow end to end, then covers its limits so you deploy it knowing exactly what it does and doesn't survive.
 
 <!-- more -->
 
@@ -135,7 +135,7 @@ These are the correct trade-offs for a control that fails closed: the worst case
 
 ## What other frameworks do today
 
-Human-in-the-loop is not a Promptise invention, and the major frameworks each ship a real HITL primitive. The honest delta here is narrow and specific: it's about the *reviewer-side queue* — the store, the admin endpoints, the reviewer RBAC, and the separation-of-duties check — not about whether a human can approve at all.
+Human-in-the-loop is not a Promptise invention, and the major frameworks each ship a real HITL primitive. The difference here is narrow and specific: it's about the *reviewer-side queue* — the store, the admin endpoints, the reviewer RBAC, and the separation-of-duties check — not about whether a human can approve at all.
 
 - **LangGraph** has genuinely durable HITL: `interrupt()` plus a configured checkpointer saves graph state and resumes via `Command(resume=...)`. That checkpointing is an area where LangGraph is *ahead* of `PendingApprover`'s process-local store — a LangGraph interrupt can survive a restart, which the in-memory queue above cannot. What LangGraph doesn't hand you is the *reviewer* half: there's no built-in `approvals_list`/`approvals_decide` surface, no role guard on who may resume, and no check that the resumer isn't the requester. You build those around the resume call.
 - **CrewAI** has `human_input=True` on a `Task`, which prompts for feedback on that task's output — real and easy, but a console/stdin prompt in the driving process, not a queryable queue with per-reviewer RBAC or a distinct-reviewer rule.

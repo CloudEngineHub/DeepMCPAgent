@@ -1,6 +1,6 @@
 ---
 title: "Migrate a Single-Tenant Agent to Multi-Tenant"
-description: "Retrofitting tenancy onto a LangChain or LlamaIndex app means touching every vector query, cache lookup, and thread id by hand. This how-to walks the…"
+description: "Migrate a single-tenant AI agent to multi-tenant step by step: add tenant_id once, move cache, memory and conversations onto it, and test tenant separation."
 keywords: "migrate single-tenant agent to multi-tenant, retrofit tenant isolation ai agent, add multi-tenancy without rewrite, single-tenant to multi-tenant saas agent, tenant_id one seam"
 date: 2026-07-16
 slug: migrate-single-tenant-agent-to-multi-tenant
@@ -13,9 +13,6 @@ categories:
 To **migrate a single-tenant agent to multi-tenant**, you don't have to rewrite it — you have to find the one place where identity enters the system and make the tenant part of it. The trap is believing there are many such places. In a typical agent, per-customer state lives in at least three stores — long-term memory (a vector index), a semantic cache, and conversation history — and the naive migration path is to hunt down every read and write against all three and splice in a tenant filter. That's the retrofit tax, and it's where cross-tenant leaks come from: not the filters you add, but the one you forget. This how-to walks the Promptise Foundry migration seam end to end, where adding a tenant means setting a single field.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 
 
 ## The retrofit tax in a single-tenant agent
@@ -170,7 +167,7 @@ From a trusted claim, not from user input. On the MCP server side, `AuthMiddlewa
 
 ### Is the semantic cache still safe if two tenants share a user_id?
 
-Yes. The cache derives its scope key from a length-prefixed hash of `(tenant_id, user_id)`, which is injective — two distinct tenants can't collide even if their user ids are identical, and the tenanted keyspace is disjoint from the untenanted one. See the [cache reference](../../core/cache.md) for the scope model, and note that `purge_user()` takes the same `tenant_id` so a per-tenant GDPR purge matches exactly what was stored.
+Yes. The cache derives its scope key from a length-prefixed hash of `(tenant_id, user_id)`, which is injective — two distinct tenants can't collide even if their user ids are identical, and the tenanted keyspace is disjoint from the untenanted one. See the [cache reference](../../core/cache.md) for the scope model, and note that `purge_user()` takes the same `tenant_id` so a request to delete one user's data in one tenant purges exactly what was stored.
 
 ## Next steps
 

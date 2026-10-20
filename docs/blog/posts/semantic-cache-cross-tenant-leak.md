@@ -1,6 +1,6 @@
 ---
 title: "Can a Paraphrase Leak Another Tenant's Cached Answer?"
-description: "A semantic cache does the one thing an exact-match cache can't: it matches by meaning. Tenant B types a paraphrase of a question tenant A already asked, the…"
+description: "Learn how a semantic cache can serve one tenant's cached answer to another tenant's paraphrased question, and how to confine every match to a single tenant."
 keywords: "semantic cache cross-tenant leak, cache leak between customers, per-tenant semantic cache isolation, paraphrase cache hit wrong tenant, fail-closed llm cache, isolate llm cache per tenant"
 date: 2026-07-16
 slug: semantic-cache-cross-tenant-leak

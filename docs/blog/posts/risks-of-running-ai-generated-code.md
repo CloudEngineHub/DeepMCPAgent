@@ -1,6 +1,6 @@
 ---
 title: "The Real Risks of Running AI-Generated Code In-Process"
-description: "A threat-model walkthrough, not another isolation-layer reference: what model-written Python can actually reach when it executes in your process — the…"
+description: "Learn what model-written Python can reach when it runs inside your process, from secrets to files and the network, and how a hardened container closes each."
 keywords: "risks of running AI-generated code, python repl tool security, run llm-generated code without a sandbox, code interpreter agent isolated"
 date: 2026-07-16
 slug: risks-of-running-ai-generated-code
@@ -10,7 +10,7 @@ categories:
 
 # The Real Risks of Running AI-Generated Code In-Process
 
-The risks of running AI-generated code are easy to underestimate, because the failure mode is invisible right up until the day it isn't: the program runs, prints a plausible answer, and only later do you notice it also read your `.env`, listed `/`, and made an outbound request you never authorized. This post is a threat-model walkthrough rather than another isolation-layer reference. We are going to trace exactly what a model-written Python snippet can reach when it executes inside your process — the working directory and everything around it, environment-variable secrets, and the open network — using LangChain's `PythonREPLTool` as the worked example, and then show why Promptise Foundry treats a hardened container as the default path instead of something you remember to bolt on.
+The risks of running AI-generated code are easy to underestimate, because the failure mode is invisible right up until the day it isn't: the program runs, prints a plausible answer, and only later do you notice it also read your `.env`, listed `/`, and made an outbound request you never authorized. This post is a threat-model walkthrough. We trace exactly what a model-written Python snippet can reach when it executes inside your process — the working directory and everything around it, environment-variable secrets, and the open network — using LangChain's `PythonREPLTool` as the worked example, and then show why Promptise Foundry treats a hardened container as the default path instead of something you remember to bolt on.
 
 <!-- more -->
 
@@ -117,7 +117,7 @@ agent = await build_agent(
 )
 ```
 
-This is also why the [code-action pattern](../../guides/code-action.md) — where the model writes one program over your tools instead of chaining calls — is safe to reach for: it *requires* a sandbox, auto-sets `network="none"`, and raises a clear error rather than silently running model code on the host if a container can't be initialized. There is no quiet fallback to the dangerous path. For the end-to-end operational playbook of building on top of this, see [How to Run AI-Generated Code Safely: The 2026 Field Guide](run-ai-generated-code-safely.md).
+This is also why the [code-action pattern](../../guides/code-action.md) — where the model writes one program over your tools instead of chaining calls — is safe to reach for: it *requires* a sandbox, auto-sets `network="none"`, and raises a clear error rather than silently running model code on the host if a container can't be initialized. There is no quiet fallback to the dangerous path. For the end-to-end operational playbook of building on top of this, see [AI Agent Code Execution Sandbox: Run LLM Code Safely](https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python).
 
 ## Frequently asked questions
 
@@ -139,4 +139,4 @@ The isolation is structural rather than a bolt-on. Selecting `sandbox=True` (or 
 
 ## Next steps
 
-Turn on `sandbox=True` in `build_agent` and let model-written code run in a container instead of your interpreter — that one change closes every reach in the table above. Start from the [sandbox reference](../../core/sandbox.md) for the full layer-by-layer configuration, wire an aggregation workload through the [code-action guide](../../guides/code-action.md) to get network-isolation for free, and read [How to Run AI-Generated Code Safely: The 2026 Field Guide](run-ai-generated-code-safely.md) for the production checklist.
+Turn on `sandbox=True` in `build_agent` and let model-written code run in a container instead of your interpreter — that one change closes every reach in the table above. Start from the [sandbox reference](../../core/sandbox.md) for the full layer-by-layer configuration, wire an aggregation workload through the [code-action guide](../../guides/code-action.md) to get network-isolation for free, and read the [AI agent code execution sandbox guide](https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python) for the end-to-end setup.

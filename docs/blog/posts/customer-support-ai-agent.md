@@ -1,6 +1,6 @@
 ---
 title: "How to Build a Customer Support AI Agent, Step by Step"
-description: "Most tutorials stop at a single-turn RAG bot. This one ships the hard parts real support needs: conversation phases that change behavior (greet to classify…"
+description: "Build a customer support AI agent step by step: a knowledge base over MCP, conversation phases, history that survives restarts and handoff rules to a human."
 keywords: "customer support ai agent, build a support chatbot, ai customer service agent, support agent with knowledge base, escalation ai agent"
 date: 2026-07-16
 slug: customer-support-ai-agent
@@ -137,7 +137,7 @@ async def main():
 asyncio.run(main())
 ```
 
-Set `OPENAI_API_KEY`, run it once, then run it again: the second process still answers correctly because the transcript lives in `support.db`, not in memory. When you outgrow a single node, switching to `PostgresConversationStore` or `RedisConversationStore` is a one-line constructor change — the `chat()` calls and ownership checks are identical. The [conversation persistence deep dive](conversation-persistence.md) covers the backend trade-offs and the ownership model in full.
+Set `OPENAI_API_KEY`, run it once, then run it again: the second process still answers correctly because the transcript lives in `support.db`, not in memory. When you outgrow a single node, switching to `PostgresConversationStore` or `RedisConversationStore` is a one-line constructor change — the `chat()` calls and ownership checks are identical. For how this conversation history fits alongside long-term memory, see [AI Agent Memory in Python: Short-Term and Long-Term](https://www.promptise.com/guides/view/ai-agent-memory-python).
 
 ## Escalation ai agent rules: validate, then hand off
 
@@ -146,7 +146,7 @@ The last mile of any ai customer service agent is knowing when *not* to answer. 
 - **Validate before sending.** Turning on `guardrails=True` (above) runs six local detection heads, redacting PII a model might echo back and blocking prompt-injection attempts hidden in a customer message. Nothing leaves without passing those checks.
 - **Escalate out of scope.** For sensitive actions — issuing a refund, deleting an account — you gate the tool behind human approval rather than letting the model act unilaterally. And when an issue genuinely needs a specialist, hand it to another agent instead of forcing one model to know everything.
 
-That hand-off is where a single support bot grows into a small team: a front-line agent that triages, a billing agent that owns refunds, a technical agent that reads logs. Promptise's [multi-agent coordination guide](../../guides/multi-agent-teams.md) shows the `ask_peer()` and shared-server patterns for exactly this, and the companion post [How to Build Multi-Agent Systems in Python: 2026 Guide](multi-agent-systems-python.md) walks the topology end to end. For the broader menu of what you can assemble from these pieces — from a 30-minute build to a full platform — skim the [showcase](../../resources/showcase.md).
+That hand-off is where a single support bot grows into a small team: a front-line agent that triages, a billing agent that owns refunds, a technical agent that reads logs. Promptise's [multi-agent coordination guide](../../guides/multi-agent-teams.md) shows the `ask_peer()` and shared-server patterns for exactly this, and [Build a Multi-Agent System in Python (and When Not To)](https://www.promptise.com/guides/view/multi-agent-system-python) covers when splitting work across agents pays off. For the broader menu of what you can assemble from these pieces — from a 30-minute build to a full platform — skim the [showcase](../../resources/showcase.md).
 
 ## When a plain RAG bot is the better fit
 

@@ -1,6 +1,6 @@
 ---
 title: "Secure Agent-to-Agent Authentication in Practice"
-description: "When one agent hands work to another, 'the LLM did it' breaks attribution entirely. This deep-dive shows delegation over HTTP+JWT where the peer verifies the…"
+description: "Learn how to authenticate agent-to-agent calls over HTTP with JWTs, verify the calling agent on the peer and record who delegated to whom in the audit log."
 keywords: "secure agent-to-agent communication, agent delegation authentication, ask_peer JWT, multi-agent trust, who delegated attribution, cross-agent auth"
 date: 2026-07-16
 slug: secure-agent-to-agent-communication
@@ -13,9 +13,6 @@ categories:
 Secure agent-to-agent communication is the part of every multi-agent demo that quietly gets skipped: one agent delegates a task to another, the second agent acts, and when you open the log the only actor recorded is "the assistant." That is not an audit trail — it is a shrug. If a planner agent asks a payments agent to issue a refund, you need to know *which* agent asked, whether the callee was allowed to trust it, and where that decision landed in a tamper-evident record. By the end of this article you will know how Promptise Foundry propagates a verifiable caller identity through a delegation call and lands the answer to "who delegated to whom" in an HMAC-chained audit log.
 
 <!-- more -->
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
 
 
 ## Why "the LLM did it" breaks attribution
@@ -59,7 +56,7 @@ async def main():
     )
 
     result = await planner.ainvoke(
-        {"messages": [{"role": "user", "content": "Summarize the EU AI Act's tiers."}]},
+        {"messages": [{"role": "user", "content": "Summarize this week's research on MCP security."}]},
         caller=CallerContext(user_id="alice", roles=["analyst"], tenant_id="acme"),
     )
     print(result["messages"][-1].content)
@@ -140,4 +137,4 @@ No. In-process delegation passes identity *claims* for attribution. The JWT come
 
 ## Next steps
 
-Wire a verifiable identity through a delegation call and watch attribution land in the audit trail — start from the [Quick Start](../../getting-started/quickstart.md), then follow the end-to-end [identity guide](../../identity/guide.md) to take an agent from a bare label to an IdP-backed credential your servers can verify. For the wider picture of how identity, tokens, and audit fit together across a fleet, read [AI Agent Identity & Authentication: The Complete Guide](ai-agent-identity.md) and the step-by-step walkthrough in [JWT Authentication for MCP Servers](jwt-authentication-for-mcp-servers.md).
+Wire a verifiable identity through a delegation call and watch attribution land in the audit trail — start from the [Quick Start](../../getting-started/quickstart.md), then follow the end-to-end [identity guide](../../identity/guide.md) to take an agent from a bare label to an IdP-backed credential your servers can verify. For how an agent's identity and tokens reach your MCP servers, read [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication), and for the server side, [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth).

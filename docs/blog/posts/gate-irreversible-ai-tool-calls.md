@@ -1,6 +1,6 @@
 ---
 title: "Human Approval + Budget Caps for Irreversible AI Calls"
-description: "The distinct angle is composition across two pillars: the server-side requires_approval gate (per-call human sign-off that holds for any MCP client) layered…"
+description: "Learn how to protect irreversible AI tool calls with two locks: a human approval on each call and a cap on how many destructive actions a single run can take."
 keywords: "gate irreversible ai tool calls, approval plus budget for destructive actions, max_irreversible_per_run, block payments and deletes ai agent, two-layer control irreversible tools"
 date: 2026-07-16
 slug: gate-irreversible-ai-tool-calls

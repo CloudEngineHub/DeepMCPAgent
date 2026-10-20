@@ -1,6 +1,6 @@
 ---
 title: "Should an AI Agent Approve Its Own Action?"
-description: "A deep dive on separation of duties that goes well past the two sentences the general approval post spends on it. Explain what dual control means in audit…"
+description: "Learn why an AI agent, or the user who triggered it, should never approve its own action, and how to make the reviewer differ from the caller on the server."
 keywords: "separation of duties for ai agents, four-eyes approval for ai actions, can an agent approve its own tool call, self-approval rejected mcp, dual control ai agent"
 date: 2026-07-16
 slug: separation-of-duties-for-ai-agents
@@ -10,25 +10,15 @@ categories:
 
 # Should an AI Agent Approve Its Own Action?
 
-Separation of duties for AI agents is the rule that the principal who *requests* a sensitive action can never be the one who *approves* it — and it is exactly the control that quietly collapses the moment whoever drives an agent can also click "approve" on the agent's own request. Most human-in-the-loop wiring stops one step short of this. It pauses before a risky tool call and asks a human to decide, which feels like dual control. But if the human answering the prompt is the same person (or the same service identity) that triggered the call, you have a rubber stamp with extra latency, not a second set of eyes. This post goes past the two sentences a general approval overview can spare and works through what dual control actually means, why the reviewer has to be a *different* principal, and how Promptise Foundry makes `reviewer client_id != caller client_id` a server-enforced default instead of a policy you hope everyone remembers to build.
+Separation of duties for AI agents is the rule that the principal who *requests* a sensitive action can never be the one who *approves* it — and it is exactly the control that quietly collapses the moment whoever drives an agent can also click "approve" on the agent's own request. Most human-in-the-loop wiring stops one step short of this. It pauses before a risky tool call and asks a human to decide, which feels like dual control. But if the human answering the prompt is the same person (or the same service identity) that triggered the call, you have a rubber stamp with extra latency, not a second set of eyes. This post works through what dual control actually means, why the reviewer has to be a *different* principal, and how Promptise Foundry makes `reviewer client_id != caller client_id` a server-enforced default instead of a policy you hope everyone remembers to build.
 
 <!-- more -->
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
-## Separation of duties, in the language auditors use
+## Separation of duties, in plain terms
 
 Separation of duties (SoD) — also called dual control, four-eyes, or maker-checker — predates AI by decades. It's the accounting principle that no single actor should control every step of a high-impact transaction. The person who submits a payment can't be the person who releases it; the engineer who writes a change can't be the sole approver of its deploy. The point isn't distrust of any one person. It's that a single compromised, mistaken, or coerced actor shouldn't be able to complete a damaging action alone.
 
-Every serious audit framework encodes this:
-
-- **SOX** (Sarbanes-Oxley) requires SoD over financial reporting so that no one individual can both initiate and conceal a fraudulent transaction.
-- **PCI DSS** mandates dual control and split knowledge for cardholder-data key management, and separation of duties between roles that develop and roles that operate.
-- **SOC 2** auditors look for SoD as a Common Criteria control — evidence that privileged actions require an independent approver, and that the approval is *attributable* to someone other than the requester.
-
-When you put an autonomous agent in the middle of a workflow that used to have a maker and a checker, the agent becomes the maker. The checker still has to be a human — and, critically, a *different* human from the one whose identity the agent is acting under. An approval step that a SOC 2 auditor will accept has to answer one question in the logs: *who, other than the requester, released this?* If the answer can be "the requester themselves," the control has failed on its own terms.
+When you put an autonomous agent in the middle of a workflow that used to have a maker and a checker, the agent becomes the maker. The checker still has to be a human — and, critically, a *different* human from the one whose identity the agent is acting under. An approval step worth having has to answer one question in the logs: *who, other than the requester, released this?* If the answer can be "the requester themselves," the control has failed on its own terms.
 
 ## The failure mode almost every agent stack shares
 
@@ -131,7 +121,7 @@ Two details make this hold under scrutiny. First, `AuthMiddleware` runs before t
 
 ### What is separation of duties for AI agents?
 
-It's applying the maker-checker principle to autonomous systems: the agent (acting as the maker) can *request* a sensitive action, but a *different* human principal has to approve it before it runs. Concretely, it means the identity that approves a tool call must not be the identity that triggered it — the same SoD control SOX, PCI DSS, and SOC 2 require for privileged human actions.
+It's applying the maker-checker principle to autonomous systems: the agent (acting as the maker) can *request* a sensitive action, but a *different* human principal has to approve it before it runs. Concretely, it means the identity that approves a tool call must not be the identity that triggered it — the same control teams already apply to privileged human actions.
 
 ### Can an agent approve its own tool call in Promptise?
 
