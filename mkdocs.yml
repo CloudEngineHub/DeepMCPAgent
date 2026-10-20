@@ -61,6 +61,10 @@ plugins:
       enable_creation_date: true
       type: iso_date
       fallback_to_build_date: true
+      # Pages the blog plugin generates have no git history of their own.
+      exclude:
+        - blog/archive/*
+        - blog/category/*
   - redirects:
       redirect_maps: {}
   - blog:
