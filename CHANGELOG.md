@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 — 2026-10-20
 
 The Agent Runtime now does what its documentation says: unwired features (lifecycle hooks, rewind, distributed mode, the `promptise runtime stop | status | restart` commands) work, and the runtime docs were rewritten against the code.
 
