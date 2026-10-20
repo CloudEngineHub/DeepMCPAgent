@@ -99,7 +99,7 @@ What an `AgentProcess` writes:
 | `tool_call` | full | The agent called a tool | `tool`, `args` (redacted) |
 | `tool_result` | full | A tool returned | `tool`, `result` (first 2000 characters). Results of `get_secret` are never journaled |
 
-`secret_access` and `mission_evaluation` entries currently have an empty `entry_id`, so they can't be used as a rewind target; pick a neighboring entry.
+Every entry has an `entry_id`, so any entry can be a rewind target.
 
 Your own code can append any other type with `journal.append(JournalEntry(...))`. Entries serialize with `entry.to_dict()` and `JournalEntry.from_dict(data)`.
 

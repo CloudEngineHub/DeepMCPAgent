@@ -207,17 +207,17 @@ $ promptise runtime logs notes
 $ promptise runtime rewind notes 7c7bee77-f518-41de-b250-d1b586819d7a --plan
 Rewind plan for notes: back to just before entry 7c7bee77-f518-41de-b250-d1b586819d7a (invocation_result, 2026-10-19T20:25:03.585572+00:00)
   Mode:      both (rewinds the conversation and the context state)
-  Affected:  2 of 6 journal entries after it (1 conversation, 0 state/tool)
+  Affected:  2 of 6 journal entries: the target and the 1 after it (1 conversation, 0 state/tool)
   Summary:   rewind (both): 2 entries affected (1 conversation, 0 code/state).
 The journal itself is kept (a rewind entry is appended), so a rewind can be rewound.
 
 $ promptise runtime rewind notes 7c7bee77-f518-41de-b250-d1b586819d7a --yes
 ...
-Rewound notes to just before 7c7bee77-f518-41de-b250-d1b586819d7a (both): 3 entries undone, 2 conversation messages kept, state running
+Rewound notes to just before 7c7bee77-f518-41de-b250-d1b586819d7a (both): 2 entries undone, 2 conversation messages kept, state running
 Journal entry of this rewind: rewind-0764e40877f84f1992def63cb066927d
 ```
 
-The conversation is back to the two messages of the first run, the process is running again, and the journal now ends with the suspension, the `rewind` entry, a checkpoint of the rewound state, the resume and the `api_request` audit entry. ("3 entries undone" counts the suspension the rewind itself journaled after the target.)
+The conversation is back to the two messages of the first run, the process is running again, and the journal now ends with the suspension, the `rewind` entry, the resume, a checkpoint of the rewound state and the `api_request` audit entry. "2 entries undone" is the plan's count: the target and the one entry after it. The suspension the rewind journals itself is not counted.
 
 ---
 
@@ -258,7 +258,6 @@ print(result.context_state, len(result.conversation))
 - **Expecting the budget back.** Spent runs, tool calls and cost stay counted.
 - **Expecting the world to be rewound.** Files written, messages sent and API calls made by tools stay done. Rewind is for the agent's own state and history.
 - **A long run in flight.** The rewind waits up to `wait_timeout` (60 seconds) for it, then gives up with `TimeoutError` / `409 REWIND_BUSY` and changes nothing. Retry when the run is done, or suspend the process first.
-- **Entries without an ID.** `secret_access` and `mission_evaluation` entries have an empty `entry_id`; target a neighboring entry.
 - **A memory journal.** `backend: memory` lives only as long as the Python process, and so does its rewind history.
 
 ---

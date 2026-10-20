@@ -309,10 +309,10 @@ The webhook URL must resolve to a public address (SSRF protection). The host is 
 | Event | Severity | When | Payload |
 |---|---|---|---|
 | `budget.warning` | warning | After a run, for each limit at `warning_threshold` (default 80%) or more of its value (and not over it) at the run's last budget check | `process_name`, `limit_type`, `current`, `limit`, `percentage` |
-| `budget.exceeded` | critical | After a run with a violation (once per run, for the first one) | `process_name`, `limit_type`, `current`, `limit` |
+| `budget.exceeded` | critical | After a run with a violation (once per run, for the first one), and when a run is refused by `max_runs_per_day` | `process_name`, `limit_type`, `current`, `limit` |
 | `budget.daily_reset` | info | When a run start resets the daily counters | `process_name` |
 
-`limit_type` is the `BudgetConfig` field name, for example `max_tool_calls_per_day`. The threshold is `warning_threshold` (default `0.8`). A run refused by `max_runs_per_day` applies `on_exceeded` but emits no `budget.exceeded` event; watch for `process.suspended` with `reason: "budget"` to catch it. Events reach the runtime's [event notifier](../../core/events.md) sinks.
+`limit_type` is the `BudgetConfig` field name, for example `max_tool_calls_per_day`. The threshold is `warning_threshold` (default `0.8`). A run refused by `max_runs_per_day` emits `budget.exceeded` with `limit_type: "max_runs_per_day"` and then applies `on_exceeded`; when `on_exceeded` suspends the process (`"pause"` or `"escalate"`), `process.suspended` follows with `reason: "budget"`. Events reach the runtime's [event notifier](../../core/events.md) sinks.
 
 ---
 
