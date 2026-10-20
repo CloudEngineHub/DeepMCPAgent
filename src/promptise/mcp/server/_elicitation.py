@@ -88,15 +88,19 @@ class Elicitor:
 
         effective_timeout = self._timeout if timeout is None else timeout
         requested_schema = schema or {"type": "object", "properties": {}}
+        from .._compat import MCP_V2
+
+        # The schema keyword is requestedSchema in mcp 1.x, requested_schema in 2.x.
+        schema_kwarg = {("requested_schema" if MCP_V2 else "requestedSchema"): requested_schema}
         try:
             # ``ServerSession.elicit`` is the SDK entry point for form-mode
-            # elicitation across the pinned mcp range; the contract test in
+            # elicitation across the supported mcp range; the contract test in
             # tests/test_approval_gate.py fails loudly if the SDK renames it.
             result = await asyncio.wait_for(
                 self._session.elicit(
                     message=message,
-                    requestedSchema=requested_schema,
                     related_request_id=self._request_id,
+                    **schema_kwarg,
                 ),
                 timeout=effective_timeout,
             )

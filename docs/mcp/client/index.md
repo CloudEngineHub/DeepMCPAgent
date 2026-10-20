@@ -413,7 +413,7 @@ async with MCPClient(url="http://localhost:8080/mcp", api_key="sk-docs") as clie
 
     result = await client.read_resource("docs://pages/refunds")
     item = result.contents[0]
-    print(item.mimeType)        # e.g. "text/markdown"
+    print(item.mime_type)       # e.g. "text/markdown" (item.mimeType with mcp 1.x)
     print(item.text)            # TextResourceContents; binary data arrives
                                 # base64-encoded in BlobResourceContents.blob
 

@@ -12,9 +12,14 @@ and answered ``-32602 Invalid params``. The client then fell back to
 JSON-RPC answer for an unknown method) without the warning; the 2.x client
 falls back exactly as before, and mcp 1.x clients are unaffected.
 
+With the mcp 2.x SDK (supported since 1.5.1) the server knows
+``server/discover`` and answers it with the protocol versions it speaks,
+2026-07-28 included, so a 2.x client negotiates the current revision; a
+request for a method neither SDK knows still gets ``-32601`` quietly.
+
 The stdio test starts the server as a subprocess with this checkout on
 ``PYTHONPATH`` and speaks newline-delimited JSON-RPC to it, as a 2.x client
-does.  No mcp 2.x install is needed.
+does.
 """
 
 from __future__ import annotations
@@ -31,8 +36,9 @@ from typing import Any
 import anyio
 import pytest
 from mcp.shared.message import SessionMessage
-from mcp.types import METHOD_NOT_FOUND, JSONRPCMessage, JSONRPCNotification, JSONRPCRequest
+from mcp.types import METHOD_NOT_FOUND, JSONRPCNotification, JSONRPCRequest
 
+from promptise.mcp._compat import MCP_V2
 from promptise.mcp.server import MCPServer
 
 SRC = Path(__file__).resolve().parents[1] / "src"
@@ -55,6 +61,7 @@ INITIALIZE: dict[str, Any] = {
     },
 }
 INITIALIZED = {"jsonrpc": "2.0", "method": "notifications/initialized"}
+UNKNOWN: dict[str, Any] = {"jsonrpc": "2.0", "id": 0, "method": "nope/nope", "params": {}}
 CALL = {
     "jsonrpc": "2.0",
     "id": 2,
@@ -75,6 +82,12 @@ def _server() -> MCPServer:
 
 
 def _msg(payload: dict[str, Any]) -> SessionMessage:
+    if MCP_V2:
+        from mcp.types import jsonrpc_message_adapter
+
+        return SessionMessage(message=jsonrpc_message_adapter.validate_python(payload))
+    from mcp.types import JSONRPCMessage
+
     return SessionMessage(message=JSONRPCMessage.model_validate(payload))
 
 
@@ -95,11 +108,14 @@ async def test_unknown_request_gets_method_not_found_without_a_warning(
     caplog.set_level(logging.DEBUG)
     async with anyio.create_task_group() as tg:
         tg.start_soon(ll.run, to_server_recv, from_server_send, ll.create_initialization_options())
-        await to_server_send.send(_msg(DISCOVER))
+        # mcp 1.x knows no server/discover; with 2.x (which does) an
+        # unknown method stands in for it.
+        await to_server_send.send(_msg(UNKNOWN if MCP_V2 else DISCOVER))
         discovered = await reply()
         assert discovered["id"] == 0
         assert discovered["error"]["code"] == METHOD_NOT_FOUND
-        assert discovered["error"]["data"] == "server/discover"
+        if not MCP_V2:
+            assert discovered["error"]["data"] == "server/discover"
 
         # An unknown notification is ignored; the session carries on
         await to_server_send.send(_msg({"jsonrpc": "2.0", "method": "notifications/nope"}))
@@ -117,6 +133,32 @@ async def test_unknown_request_gets_method_not_found_without_a_warning(
     assert warnings == [], [r.getMessage()[:200] for r in warnings]
 
 
+@pytest.mark.asyncio
+@pytest.mark.skipif(not MCP_V2, reason="mcp 2.x: server/discover is answered by the SDK")
+async def test_discover_offers_the_2026_protocol() -> None:
+    """A 2.x client's server/discover gets a result: it can use 2026-07-28."""
+    server = _server()
+    ll = server._build_lowlevel_server()
+    to_server_send, to_server_recv = anyio.create_memory_object_stream[Any](10)
+    from_server_send, from_server_recv = anyio.create_memory_object_stream[Any](10)
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(ll.run, to_server_recv, from_server_send, ll.create_initialization_options())
+        # The full 2026-07-28 request envelope, as the 2.x client sends it
+        meta = {
+            "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+            "io.modelcontextprotocol/clientInfo": {"name": "test", "version": "0"},
+            "io.modelcontextprotocol/clientCapabilities": {},
+        }
+        await to_server_send.send(_msg({**DISCOVER, "params": {"_meta": meta}}))
+        with anyio.fail_after(5):
+            message = await from_server_recv.receive()
+        await to_server_send.aclose()
+    discovered = message.message.model_dump(by_alias=True, mode="json", exclude_none=True)
+    assert "2026-07-28" in discovered["result"]["supportedVersions"]
+    assert "tools" in discovered["result"]["capabilities"]
+
+
+@pytest.mark.skipif(MCP_V2, reason="mcp 1.x only: the unknown-method shim is not used with 2.x")
 def test_known_methods_pass_through() -> None:
     from promptise.mcp.server._app import _unknown_method_reply
 
@@ -171,9 +213,13 @@ async def test_stdio_server_answers_discover_quietly(tmp_path: Path) -> None:
         return json.loads(line)
 
     try:
-        await send(DISCOVER)
-        discovered = await receive()
-        assert discovered["error"]["code"] == METHOD_NOT_FOUND
+        if MCP_V2:
+            await send(UNKNOWN)
+            assert (await receive())["error"]["code"] == METHOD_NOT_FOUND
+        else:
+            await send(DISCOVER)
+            discovered = await receive()
+            assert discovered["error"]["code"] == METHOD_NOT_FOUND
         await send(INITIALIZE)
         assert "result" in await receive()
         await send(INITIALIZED)

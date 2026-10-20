@@ -22,8 +22,9 @@ import anyio
 import pytest
 from _live_server import serve_mcp
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
-from mcp.types import CancelledNotification, CancelledNotificationParams, ClientNotification
+from mcp.types import CancelledNotification, CancelledNotificationParams
+
+from promptise.mcp._compat import MCP_V2
 
 from promptise.mcp.client import MCPClient
 from promptise.mcp.server import (
@@ -225,6 +226,27 @@ class TestCancellationOverHTTP:
             reasons.append(cancel.reason)
             stopped.set()
             return {"stopped_by": "token"}
+
+        if MCP_V2:
+            from mcp.client.streamable_http import streamable_http_client
+
+            # mcp 2.x sends notifications/cancelled itself when the call is
+            # cancelled, and the cancelled request gets no answer.
+            async with (
+                _serve(server) as url,
+                streamable_http_client(url) as (read, write),
+                ClientSession(read, write) as session,
+            ):
+                await session.initialize()
+                call = asyncio.create_task(session.call_tool("watch_feed", {}))
+                await asyncio.wait_for(started.wait(), TIMEOUT)
+                call.cancel()
+                await asyncio.wait_for(stopped.wait(), TIMEOUT)
+            assert reasons == ["Request cancelled by the client"]
+            return
+
+        from mcp.client.streamable_http import streamablehttp_client
+        from mcp.types import ClientNotification
 
         async with (
             _serve(server) as url,

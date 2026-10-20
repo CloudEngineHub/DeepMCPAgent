@@ -23,6 +23,7 @@ from typing import Any
 
 import pytest
 
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.server import (
     APIKeyAuth,
     AuthMiddleware,
@@ -565,7 +566,7 @@ class TestAdvertisedTools:
             "type": "object",
         }
         assert "- ping: ping args schema: " in submit.description
-        props = submit.inputSchema["properties"]
+        props = mcp_field(submit, "input_schema")["properties"]
         assert props["job_type"]["enum"] == ["generate_report", "ping"]
         assert props["priority"]["enum"] == ["low", "normal", "high", "critical"]
 
@@ -578,7 +579,9 @@ class TestAdvertisedTools:
             return "pong"
 
         tools = await self._tools(server)
-        assert tools["jobs_submit"].inputSchema["properties"]["job_type"]["enum"] == ["ping"]
+        assert mcp_field(tools["jobs_submit"], "input_schema")["properties"]["job_type"][
+            "enum"
+        ] == ["ping"]
         assert "jobs_status" in tools["jobs_submit"].description
 
     async def test_status_describes_progress_as_a_fraction(self):

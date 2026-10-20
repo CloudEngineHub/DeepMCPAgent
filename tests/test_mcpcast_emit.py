@@ -16,6 +16,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.server import TestClient
 from promptise.mcpcast import MCPcastPlan, load_generated_server, mcpcast, write_project
 from promptise.mcpcast.emit import (
@@ -284,7 +285,7 @@ class TestGeneratedServerRuns:
                 "weird_op_name",
                 "upload_form",
             }
-            assert tools["get_pet_by_id"].inputSchema["required"] == ["petId"]
+            assert mcp_field(tools["get_pet_by_id"], "input_schema")["required"] == ["petId"]
             assert "Parameters:" in tools["add_pet"].description
             assert "Example:" in tools["add_pet"].description
 
@@ -526,7 +527,9 @@ class TestRegenerateFromEditedPlan:
             )
             tools = {t.name: t for t in await client.list_tools()}
             assert "list_pets" in tools and "find_pets_by_status" not in tools
-            assert tools["list_pets"].inputSchema.get("properties", {}) == {}  # hidden
+            assert (
+                mcp_field(tools["list_pets"], "input_schema").get("properties", {}) == {}
+            )  # hidden
             assert tools["list_pets"].description.startswith("List pets, optionally")
             await client.call_tool("list_pets", {})
         assert str(upstream.requests[0].url).endswith("/pet/findByStatus?status=available")
@@ -696,7 +699,7 @@ class TestWireAliases:
         async with upstream.client() as http:
             client = TestClient(mod.build_server(approval_handler=lambda r: True, http_client=http))
             tools = {t.name: t for t in await client.list_tools()}
-            assert set(tools["update_user"].inputSchema["properties"]) == {
+            assert set(mcp_field(tools["update_user"], "input_schema")["properties"]) == {
                 "username",
                 "query_username",
                 "body_username",
@@ -1365,7 +1368,9 @@ class TestNullableParams:
         mod = _import(out / "server.py")
         client = TestClient(mod.build_server())
         (tool,) = await client.list_tools()
-        assert tool.inputSchema["properties"]["author"]["anyOf"][0] == {"type": "string"}
+        assert mcp_field(tool, "input_schema")["properties"]["author"]["anyOf"][0] == {
+            "type": "string"
+        }
         assert "author (string): Exact author" in tool.description
         assert "limit (integer)" in tool.description
 
@@ -2170,7 +2175,10 @@ class TestNames:
         async with upstream.client() as http:
             client = TestClient(mod.build_server(http_client=http))
             tools = {t.name: t for t in await client.list_tools()}
-            assert set(tools["get_thing"].inputSchema["properties"]) == {"ROUTES_", "select_route_"}
+            assert set(mcp_field(tools["get_thing"], "input_schema")["properties"]) == {
+                "ROUTES_",
+                "select_route_",
+            }
             (r,) = await client.call_tool("select_route_op", {})
             assert "error" not in r.text
             (r,) = await client.call_tool("get_thing", {"ROUTES_": "a", "select_route_": "b"})

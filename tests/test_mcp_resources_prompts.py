@@ -16,16 +16,17 @@ from typing import Any
 
 import pytest
 from _live_server import serve_mcp
-from mcp.shared.exceptions import McpError
-from mcp.shared.memory import create_connected_server_and_client_session
+from _mcp_memory import connected_session
 from mcp.types import (
     BlobResourceContents,
     PromptMessage,
     TextContent,
     TextResourceContents,
 )
-from pydantic import AnyUrl, BaseModel
+from pydantic import BaseModel
 
+from promptise.mcp._compat import McpError
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.client import MCPClient, MCPClientError, MCPMultiClient
 from promptise.mcp.server import (
     APIKeyAuth,
@@ -267,12 +268,12 @@ class TestAccessControl:
         """In memory, no credentials reach the server: the read is refused."""
         server = _guarded_server()
         ll = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(ll) as session:
+        async with connected_session(ll) as session:
             with pytest.raises(McpError) as info:
-                await session.read_resource(AnyUrl("secrets://payroll"))
+                await session.read_resource("secrets://payroll")
             assert info.value.error.data["code"] == "AUTHENTICATION_ERROR"
             assert "payroll" not in str(info.value) and "alice" not in str(info.value)
-            ok = await session.read_resource(AnyUrl("public://hello"))
+            ok = await session.read_resource("public://hello")
             assert ok.contents[0].text == "hello"
             with pytest.raises(McpError):
                 await session.get_prompt("fire", {"name": "x"})
@@ -290,8 +291,8 @@ class _Model(BaseModel):
 class TestSerialisation:
     async def _contents(self, server: MCPServer, uri: str) -> Any:
         ll = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(ll) as session:
-            return (await session.read_resource(AnyUrl(uri))).contents
+        async with connected_session(ll) as session:
+            return (await session.read_resource(uri)).contents
 
     async def test_dict_is_json_with_inferred_mime(self):
         server = MCPServer(name="s")
@@ -303,7 +304,7 @@ class TestSerialisation:
         (item,) = await self._contents(server, "x://d")
         assert isinstance(item, TextResourceContents)
         assert json.loads(item.text) == {"a": 1, "b": [1, 2]}
-        assert item.mimeType == "application/json"
+        assert mcp_field(item, "mime_type") == "application/json"
 
     async def test_declared_mime_type_is_kept(self):
         server = MCPServer(name="s")
@@ -313,7 +314,7 @@ class TestSerialisation:
             return {"a": 1}
 
         (item,) = await self._contents(server, "x://d")
-        assert item.mimeType == "application/vnd.custom+json"
+        assert mcp_field(item, "mime_type") == "application/vnd.custom+json"
         assert json.loads(item.text) == {"a": 1}
 
     async def test_unannotated_list_is_json(self):
@@ -325,7 +326,7 @@ class TestSerialisation:
 
         (item,) = await self._contents(server, "x://l")
         assert json.loads(item.text) == [1, "two"]
-        assert item.mimeType == "application/json"
+        assert mcp_field(item, "mime_type") == "application/json"
 
     async def test_bytes_are_a_base64_blob(self):
         server = MCPServer(name="s")
@@ -337,7 +338,7 @@ class TestSerialisation:
 
         (item,) = await self._contents(server, "x://img")
         assert isinstance(item, BlobResourceContents)
-        assert item.mimeType == "image/png"
+        assert mcp_field(item, "mime_type") == "image/png"
         assert base64.b64decode(item.blob) == payload
 
     async def test_bytes_without_mime_are_octet_stream(self):
@@ -348,7 +349,7 @@ class TestSerialisation:
             return b"abc"
 
         (item,) = await self._contents(server, "x://bin")
-        assert item.mimeType == "application/octet-stream"
+        assert mcp_field(item, "mime_type") == "application/octet-stream"
         client = TestClient(server)
         assert await client.read_resource("x://bin") == b"abc"
 
@@ -361,7 +362,7 @@ class TestSerialisation:
 
         (item,) = await self._contents(server, "x://m")
         assert json.loads(item.text) == {"a": 3}
-        assert item.mimeType == "application/json"
+        assert mcp_field(item, "mime_type") == "application/json"
 
     async def test_text_keeps_text_plain(self):
         server = MCPServer(name="s")
@@ -372,14 +373,14 @@ class TestSerialisation:
 
         (item,) = await self._contents(server, "x://t")
         assert item.text == "plain"
-        assert item.mimeType == "text/plain"
+        assert mcp_field(item, "mime_type") == "text/plain"
 
     async def test_unknown_uri_is_a_protocol_error(self):
         server = MCPServer(name="s")
         ll = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(ll) as session:
+        async with connected_session(ll) as session:
             with pytest.raises(McpError) as info:
-                await session.read_resource(AnyUrl("x://missing"))
+                await session.read_resource("x://missing")
             assert info.value.error.code == -32002
 
     async def test_handler_exception_is_not_leaked(self):
@@ -390,9 +391,9 @@ class TestSerialisation:
             raise RuntimeError("postgres://user:secret@db")
 
         ll = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(ll) as session:
+        async with connected_session(ll) as session:
             with pytest.raises(McpError) as info:
-                await session.read_resource(AnyUrl("x://boom"))
+                await session.read_resource("x://boom")
             assert "secret" not in str(info.value)
 
 
@@ -415,7 +416,7 @@ class TestPrompts:
             ]
 
         ll = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(ll) as session:
+        async with connected_session(ll) as session:
             result = await session.get_prompt("convo", {"topic": "x"})
         assert [m.role for m in result.messages] == ["user", "assistant"]
         assert result.messages[0].content.text == "Tell me x"
@@ -465,7 +466,7 @@ class TestPrompts:
             return "ok"
 
         ll = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(ll) as session:
+        async with connected_session(ll) as session:
             await session.get_prompt(
                 "typed",
                 {"count": "3", "ratio": "0.5", "verbose": "true", "tags": '["a", "b"]'},
@@ -579,10 +580,12 @@ class TestListChanged:
             return "p"
 
         ll = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(ll) as session:
-            caps = session.get_server_capabilities()
-        assert caps.resources.listChanged is True
-        assert caps.prompts.listChanged is True
+        async with connected_session(ll) as session:
+            caps = getattr(session, "server_capabilities", None) or (
+                session.get_server_capabilities()
+            )
+        assert mcp_field(caps.resources, "list_changed") is True
+        assert mcp_field(caps.prompts, "list_changed") is True
 
     async def test_registration_while_serving_notifies(self):
         server = MCPServer(name="s")
@@ -595,14 +598,15 @@ class TestListChanged:
         got = asyncio.Event()
 
         async def handler(message: Any) -> None:
-            root = getattr(message, "root", None)
+            # mcp 1.x wraps the notification (.root); 2.x passes it as is
+            root = getattr(message, "root", message)
             method = getattr(root, "method", None)
             if method:
                 received.append(method)
                 got.set()
 
         ll = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(
+        async with connected_session(
             ll, message_handler=handler
         ) as session:
             await session.list_prompts()  # the server now knows the session
@@ -708,7 +712,9 @@ class TestLiveClient:
             async with MCPClient(url=url, api_key="sk-user") as user:
                 resources = {str(r.uri) for r in await user.list_resources()}
                 assert {"secrets://payroll", "public://hello", "docs://manifest"} <= resources
-                templates = {t.uriTemplate for t in await user.list_resource_templates()}
+                templates = {
+                    mcp_field(t, "uri_template") for t in await user.list_resource_templates()
+                }
                 assert "files://{path*}" in templates
                 prompts = {p.name for p in await user.list_prompts()}
                 assert {"fire", "greet", "review"} <= prompts
@@ -721,11 +727,11 @@ class TestLiveClient:
 
                 md = await user.read_resource("files://guides/setup.md")
                 assert md.contents[0].text == "# guides/setup.md"
-                assert md.contents[0].mimeType == "text/markdown"
+                assert mcp_field(md.contents[0], "mime_type") == "text/markdown"
 
                 blob = (await user.read_resource("img://logo")).contents[0]
                 assert base64.b64decode(blob.blob) == b"\x89PNG"
-                assert blob.mimeType == "image/png"
+                assert mcp_field(blob, "mime_type") == "image/png"
 
                 result = await user.get_prompt("review", {"code": "x = 1", "strict": True})
                 assert [m.role for m in result.messages] == ["user", "assistant"]
@@ -734,7 +740,7 @@ class TestLiveClient:
             async with MCPClient(url=url, api_key="sk-admin") as admin:
                 payroll = await admin.read_resource("secrets://payroll")
                 assert json.loads(payroll.contents[0].text)["alice"] == 100
-                assert payroll.contents[0].mimeType == "application/json"
+                assert mcp_field(payroll.contents[0], "mime_type") == "application/json"
                 emp = await admin.read_resource("secrets://employees/7")
                 assert json.loads(emp.contents[0].text) == {"id": 7}
 
@@ -988,10 +994,10 @@ class TestHideUnauthorized:
         assert "secrets://payroll" in {str(r.uri) for r in await admin.list_resources()}
         assert "secrets://payroll" not in {str(r.uri) for r in await anonymous.list_resources()}
 
-        assert {t.uriTemplate for t in await user.list_resource_templates()} == {
+        assert {mcp_field(t, "uri_template") for t in await user.list_resource_templates()} == {
             "public://pages/{slug}"
         }
-        assert {t.uriTemplate for t in await admin.list_resource_templates()} == {
+        assert {mcp_field(t, "uri_template") for t in await admin.list_resource_templates()} == {
             "public://pages/{slug}",
             "secrets://employees/{emp_id}",
         }
@@ -1006,7 +1012,9 @@ class TestHideUnauthorized:
         async with _serve(_hidden_server()) as url:
             async with MCPClient(url=url, api_key="sk-user") as user:
                 uris = {str(r.uri) for r in await user.list_resources()}
-                templates = {t.uriTemplate for t in await user.list_resource_templates()}
+                templates = {
+                    mcp_field(t, "uri_template") for t in await user.list_resource_templates()
+                }
                 prompts = {p.name for p in await user.list_prompts()}
             async with MCPClient(url=url, api_key="sk-admin") as admin:
                 admin_uris = {str(r.uri) for r in await admin.list_resources()}

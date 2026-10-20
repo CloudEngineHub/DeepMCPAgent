@@ -23,6 +23,7 @@ from mcp.types import (
     Tool,
 )
 
+from .._compat import field as mcp_field
 from ._caller_sessions import CallerSessionPool
 from ._client import (
     MCPClient,
@@ -403,9 +404,10 @@ class MCPMultiClient:
                 logger.debug("Server '%s' lists no resource templates: %s", server_name, exc)
                 continue
             for template in templates:
-                pattern = _template_pattern(template.uriTemplate)
+                uri_template = mcp_field(template, "uri_template")
+                pattern = _template_pattern(uri_template)
                 if pattern is not None:
-                    self._templates.append((pattern, template.uriTemplate, server_name))
+                    self._templates.append((pattern, uri_template, server_name))
                 found.append(template)
         return found
 

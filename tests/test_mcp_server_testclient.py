@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.server import (
     Depends,
     HasRole,
@@ -456,7 +457,7 @@ class TestResources:
         client = TestClient(server)
         templates = await client.list_resource_templates()
         assert len(templates) == 1
-        assert str(templates[0].uriTemplate) == "users://{id}"
+        assert str(mcp_field(templates[0], "uri_template")) == "users://{id}"
 
 
 # =====================================================================

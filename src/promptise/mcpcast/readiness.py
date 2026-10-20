@@ -31,6 +31,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from ..mcp._compat import field as mcp_field
 from ._llm import Completer, completer_for, extract_json_object, final_text
 from .emit import trimmed_schemas
 from .parse import Operation
@@ -401,7 +402,7 @@ async def tools_from_server(
                 name=name,
                 description=mcp_tool.description or name,
                 args_schema=_jsonschema_to_pydantic(
-                    mcp_tool.inputSchema or {}, model_name=f"{name}_args"
+                    mcp_field(mcp_tool, "input_schema") or {}, model_name=f"{name}_args"
                 ),
                 handle_validation_error=on_validation_error,
             )

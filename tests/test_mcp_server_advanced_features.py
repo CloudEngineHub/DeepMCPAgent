@@ -10,11 +10,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from mcp.types import ElicitResult
 
+from promptise.mcp._compat import MCP_V2
 from promptise.mcp.server._elicitation import Elicitor
 from promptise.mcp.server._openapi import OpenAPIProvider
 from promptise.mcp.server._redis_cache import RedisCache
 from promptise.mcp.server._sampling import Sampler
 from promptise.mcp.server._serve_cli import build_serve_parser, resolve_server
+
+# ServerSession.elicit's schema keyword: requestedSchema (mcp 1.x), requested_schema (2.x)
+SCHEMA_KWARG = "requested_schema" if MCP_V2 else "requestedSchema"
 
 # ===========================================================================
 # Elicitor
@@ -49,7 +53,7 @@ class TestElicitor:
         result = await elicitor.ask("Confirm?", schema=schema)
         assert result == {"confirm": True}
         mock_session.elicit.assert_awaited_once_with(
-            message="Confirm?", requestedSchema=schema, related_request_id="req-1"
+            message="Confirm?", related_request_id="req-1", **{SCHEMA_KWARG: schema}
         )
 
     @pytest.mark.asyncio
@@ -61,7 +65,7 @@ class TestElicitor:
 
         assert await elicitor.ask("Confirm?") == {}
         kwargs = mock_session.elicit.await_args.kwargs
-        assert kwargs["requestedSchema"] == {"type": "object", "properties": {}}
+        assert kwargs[SCHEMA_KWARG] == {"type": "object", "properties": {}}
         assert kwargs["related_request_id"] is None
 
     @pytest.mark.asyncio
@@ -85,14 +89,13 @@ class TestElicitor:
     async def test_ask_returns_none_when_client_rejects_request(self) -> None:
         """A client without the elicitation capability answers with a JSON-RPC
         error, which the SDK raises as McpError — treated as a decline."""
-        from mcp.shared.exceptions import McpError
-        from mcp.types import INVALID_REQUEST, ErrorData
+        from mcp.types import INVALID_REQUEST
+
+        from promptise.mcp._compat import mcp_error
 
         elicitor = Elicitor()
         mock_session = AsyncMock()
-        mock_session.elicit = AsyncMock(
-            side_effect=McpError(ErrorData(code=INVALID_REQUEST, message="not supported"))
-        )
+        mock_session.elicit = AsyncMock(side_effect=mcp_error(INVALID_REQUEST, "not supported"))
         elicitor._bind(mock_session)
         assert await elicitor.ask("Confirm?") is None
 
@@ -163,7 +166,7 @@ class TestElicitor:
 
         assert hasattr(ServerSession, "elicit")
         inspect.signature(ServerSession.elicit).bind(
-            None, message="m", requestedSchema={"type": "object"}, related_request_id=1
+            None, message="m", related_request_id=1, **{SCHEMA_KWARG: {"type": "object"}}
         )
 
 

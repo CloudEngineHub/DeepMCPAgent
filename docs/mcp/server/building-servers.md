@@ -433,7 +433,9 @@ HTTP and SSE bind `127.0.0.1` unless you pass `host`, and also serve `GET /healt
 
 For async code, use `await server.run_async(...)` instead.
 
-A Promptise server runs on the 1.x MCP SDK and serves clients of both SDK generations. Clients built on mcp 2.x (current Pydantic AI and OpenAI Agents SDK releases, for example) open each connection with `server/discover`; the server answers `-32601 Method not found`, and the client falls back to the `initialize` handshake. Any request for a method the server does not implement gets the same answer, without a log warning, and a notification of an unknown method is ignored.
+A Promptise server runs on the MCP SDK you have installed, 1.x (`mcp>=1.9`) or 2.x (see [MCP SDK versions](../../getting-started/installation-extras.md#mcp-sdk-versions)), and serves clients of both SDK generations. On the 2.x SDK it answers `server/discover`, so a 2.x client (current Pydantic AI and OpenAI Agents SDK releases, for example) uses the 2026-07-28 protocol revision, and 1.x clients use the `initialize` handshake as before. On the 1.x SDK, which doesn't know `server/discover`, the server answers it with `-32601 Method not found` and a 2.x client falls back to the `initialize` handshake. On either, a request for a method the server does not implement gets `-32601` without a log warning, and a notification of an unknown method is ignored.
+
+On a 2026-07-28 connection the server cannot send requests to the client, so features that ask the client mid-call (elicitation, including the [approval gate](../../core/approval.md)'s elicitation approver, and sampling) fail closed there; a client that needs them connects with the handshake (the 2.x SDK's `Client(..., mode="legacy")`; Promptise's `MCPClient` always does).
 
 ## Complete Example
 

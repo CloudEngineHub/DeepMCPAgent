@@ -30,7 +30,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import jwt as pyjwt
 import pytest
 from _live_server import serve_mcp
@@ -218,15 +217,18 @@ class _RecordingTransport:
     """Records the ``Authorization`` header of every request the client sends."""
 
     def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # The MCP SDK's HTTP client: httpx with mcp 1.x, httpx2 with 2.x
+        from promptise.mcp._compat import sdk_httpx
+
         self.authorizations: list[str | None] = []
-        original = httpx.AsyncHTTPTransport.handle_async_request
+        original = sdk_httpx.AsyncHTTPTransport.handle_async_request
         recorder = self
 
-        async def handle(transport: Any, request: httpx.Request) -> httpx.Response:
+        async def handle(transport: Any, request: Any) -> Any:
             recorder.authorizations.append(request.headers.get("authorization"))
             return await original(transport, request)
 
-        monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", handle)
+        monkeypatch.setattr(sdk_httpx.AsyncHTTPTransport, "handle_async_request", handle)
 
 
 @asynccontextmanager

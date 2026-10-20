@@ -8,6 +8,7 @@ MCP transports.
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 from pydantic import BaseModel
@@ -144,13 +145,11 @@ class TestMCPMultiClient:
 class TestMCPToolAdapter:
     """Tests for MCPToolAdapter — MCP tool to LangChain BaseTool conversion."""
 
-    def _make_mcp_tool(self, name: str, description: str, schema: dict) -> MagicMock:
-        """Create a mock MCP Tool object."""
-        tool = MagicMock()
-        tool.name = name
-        tool.description = description
-        tool.inputSchema = schema
-        return tool
+    def _make_mcp_tool(self, name: str, description: str, schema: dict) -> Any:
+        """Create an MCP Tool object (the camelCase keyword works with mcp 1.x and 2.x)."""
+        from mcp.types import Tool
+
+        return Tool(name=name, description=description, inputSchema=schema)
 
     async def test_adapt_simple_tool_preserves_name_and_description(self):
         """Adapted tool should preserve the original name and description."""

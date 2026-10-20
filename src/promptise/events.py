@@ -1070,7 +1070,9 @@ def _tool_result_error(output: Any) -> dict[str, Any] | None:
         return _error_envelope(json.dumps(output, default=str))
     # A raw MCP CallToolResult, or a ToolMessage from a tool that handled
     # its own exception (status="error").
-    if getattr(output, "isError", False) is True or getattr(output, "status", None) == "error":
+    # (is_error with mcp 2.x, isError with 1.x)
+    is_error = getattr(output, "is_error", None) is True or getattr(output, "isError", None) is True
+    if is_error or getattr(output, "status", None) == "error":
         text = _content_text(getattr(output, "content", ""))
         return _error_envelope(text) or {"error": text[:200], "error_type": "ToolError"}
     return _error_envelope(_content_text(getattr(output, "content", None)))

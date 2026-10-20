@@ -1482,7 +1482,9 @@ def approval_elicitation_callback(
                 mode,
             )
             return decline
-        schema = getattr(params, "requestedSchema", None)
+        from .mcp._compat import field as mcp_field
+
+        schema = mcp_field(params, "requested_schema")
         if _confirmation_content(schema, None) is None:
             logger.warning(
                 "Approval: %s asked for input that is not a confirmation (%r) — declined",

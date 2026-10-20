@@ -51,6 +51,7 @@ from mcp.types import (
     ToolAnnotations as MCPToolAnnotations,
 )
 
+from . import _sdk
 from ._context import RequestContext, _current_context, clear_context, set_context
 from ._decorators import build_prompt_def, build_resource_def, build_tool_def
 from ._di import DependencyResolver
@@ -188,7 +189,7 @@ def _unknown_method_reply(message: Any) -> Any:
             id=root.id,
             error=ErrorData(code=METHOD_NOT_FOUND, message="Method not found", data=root.method),
         )
-        return type(message)(message=JSONRPCMessage(error))
+        return type(message)(message=JSONRPCMessage(error))  # type: ignore[operator]
     if isinstance(root, JSONRPCNotification):
         if _CLIENT_NOTIFICATION_METHODS is None or root.method in _CLIENT_NOTIFICATION_METHODS:
             return None
@@ -197,25 +198,12 @@ def _unknown_method_reply(message: Any) -> Any:
     return None
 
 
-# The MCP SDK (1.10+) validates tool arguments against ``inputSchema`` with
-# jsonschema before calling our handler. A call rejected there never reaches
-# Promptise's pipeline (no auth, rate limit or audit) and gets a plain-text
-# error that quotes the offending value in full. Promptise validates every
-# call itself, inside the pipeline, with a bounded VALIDATION_ERROR envelope,
-# so the SDK's check is turned off where the SDK offers the switch (1.9.x
-# has neither the check nor the switch).
-_SDK_CALL_TOOL_OPTIONS: dict[str, Any] = (
-    {"validate_input": False}
-    if "validate_input" in inspect.signature(LowLevelServer.call_tool).parameters
-    else {}
-)
-
-
 class _ToolErrorResult(Exception):
     """A tool call that failed; its message is the error payload (JSON text).
 
-    Raised from the low-level ``call_tool`` handler, which the MCP SDK turns
-    into ``CallToolResult(content=[TextContent(text=<message>)], isError=True)``
+    Raised from the low-level ``call_tool`` handler, which the MCP SDK (or,
+    with ``mcp`` 2.x, :mod:`._sdk`) turns into
+    ``CallToolResult(content=[TextContent(text=<message>)], isError=True)``
     -- the spec's tool-execution error, so clients can tell a failure from a
     result.  (Returning a ``CallToolResult`` directly needs a newer SDK than
     the supported ``mcp>=1.9``.)
@@ -1153,7 +1141,7 @@ class MCPServer:
             self._lifecycle.add_shutdown(self._drain_background_tasks)
             self._background_drain_registered = True
 
-        ll = _LowLevelServer(self.name, self.version, instructions=self.instructions)
+        ll = _LowLevelServer(self.name, version=self.version, instructions=self.instructions)
         self._register_tool_handlers(ll)
         self._register_resource_handlers(ll)
         self._register_prompt_handlers(ll)
@@ -1278,10 +1266,10 @@ class MCPServer:
     def _note_session(self, ll: LowLevelServer) -> Any:
         """Remember the MCP session of the current request; return it (or None)."""
         try:
-            session = ll.request_context.session
+            session = _sdk.request_context(ll).session
         except LookupError:
             return None
-        self._sessions.add(session)
+        self._sessions.add(_sdk.connection_of(session))
         if self._loop is None:
             self._loop = asyncio.get_running_loop()
         return session
@@ -1397,7 +1385,7 @@ class MCPServer:
         note_session = self._note_session
         hide_unauthorized = self._hide_unauthorized_tools
 
-        @ll.list_tools()
+        @_sdk.handler(ll, "list_tools")
         async def list_tools() -> list[Tool]:
             note_session(ll)
             tdefs = tool_reg.list_all()
@@ -1412,7 +1400,7 @@ class MCPServer:
                 # Build MCP ToolAnnotations from our ToolAnnotations
                 mcp_annotations = None
                 if tdef.annotations is not None:
-                    mcp_annotations = MCPToolAnnotations(
+                    mcp_annotations = MCPToolAnnotations(  # type: ignore[call-arg]
                         title=tdef.annotations.title,
                         readOnlyHint=tdef.annotations.read_only_hint,
                         destructiveHint=tdef.annotations.destructive_hint,
@@ -1420,7 +1408,7 @@ class MCPServer:
                         openWorldHint=tdef.annotations.open_world_hint,
                     )
                 tools.append(
-                    Tool(
+                    Tool(  # type: ignore[call-arg]
                         name=tdef.name,
                         description=tdef.description,
                         inputSchema=tdef.input_schema,
@@ -1429,7 +1417,7 @@ class MCPServer:
                 )
             return tools
 
-        @ll.call_tool(**_SDK_CALL_TOOL_OPTIONS)
+        @_sdk.handler(ll, "call_tool", **_sdk.CALL_TOOL_OPTIONS)
         async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[Any]:
             note_session(ll)
             tdef = tool_reg.get(name)
@@ -1457,7 +1445,7 @@ class MCPServer:
             from ._context import bind_transport_request
 
             try:
-                mcp_request = getattr(ll.request_context, "request", None)
+                mcp_request = getattr(_sdk.request_context(ll), "request", None)
             except LookupError:
                 mcp_request = None
             http_headers, _ = bind_transport_request(mcp_request)
@@ -1477,7 +1465,7 @@ class MCPServer:
             # elicitation approver). None when unavailable — consumers must
             # fail closed.
             try:
-                ctx.state["_mcp_session"] = ll.request_context.session
+                ctx.state["_mcp_session"] = _sdk.request_context(ll).session
             except Exception:
                 ctx.state["_mcp_session"] = None
             set_context(ctx)
@@ -1533,11 +1521,11 @@ class MCPServer:
                         _progress_token = None
                         _mcp_request_id = None
                         try:
-                            mcp_ctx = ll.request_context
+                            mcp_ctx = _sdk.request_context(ll)
                             _mcp_session = mcp_ctx.session
                             _mcp_request_id = getattr(mcp_ctx, "request_id", None)
                             if hasattr(mcp_ctx, "meta") and mcp_ctx.meta:
-                                _progress_token = getattr(mcp_ctx.meta, "progressToken", None)
+                                _progress_token = _sdk.progress_token(mcp_ctx.meta)
                         except Exception:
                             logger.debug(
                                 "Error extracting MCP request context for progress/logger binding",
@@ -1556,7 +1544,7 @@ class MCPServer:
                         _mcp_session = None
                         _mcp_request_id = None
                         try:
-                            mcp_ctx = ll.request_context
+                            mcp_ctx = _sdk.request_context(ll)
                             _mcp_session = mcp_ctx.session
                             _mcp_request_id = getattr(mcp_ctx, "request_id", None)
                         except Exception:
@@ -1569,9 +1557,9 @@ class MCPServer:
                         # Populate from SessionManager using MCP session ID
                         _session_id = ctx.request_id  # fallback
                         try:
-                            mcp_ctx = ll.request_context
+                            mcp_ctx = _sdk.request_context(ll)
                             if hasattr(mcp_ctx, "session"):
-                                _session_id = str(id(mcp_ctx.session))
+                                _session_id = str(id(_sdk.connection_of(mcp_ctx.session)))
                         except Exception:
                             logger.debug(
                                 "Error extracting MCP session ID for session state", exc_info=True
@@ -1695,14 +1683,14 @@ class MCPServer:
         note_session = self._note_session
         visible = self._visible
 
-        @ll.list_resources()
+        @_sdk.handler(ll, "list_resources")
         async def list_resources() -> list[Resource]:
             note_session(ll)
             resources: list[Resource] = []
             for rdef in await visible(ll, res_reg.list_all(), "resource"):
                 resources.append(
-                    Resource(
-                        uri=cast("AnyUrl", rdef.uri),
+                    Resource(  # type: ignore[call-arg]
+                        uri=cast(Any, rdef.uri),  # AnyUrl with mcp 1.x, str with 2.x
                         name=rdef.name,
                         description=rdef.description,
                         mimeType=rdef.mime_type,
@@ -1710,13 +1698,13 @@ class MCPServer:
                 )
             return resources
 
-        @ll.list_resource_templates()
+        @_sdk.handler(ll, "list_resource_templates")
         async def list_resource_templates() -> list[ResourceTemplate]:
             note_session(ll)
             templates: list[ResourceTemplate] = []
             for rdef in await visible(ll, res_reg.list_templates(), "resource"):
                 templates.append(
-                    ResourceTemplate(
+                    ResourceTemplate(  # type: ignore[call-arg]
                         uriTemplate=rdef.uri,
                         name=rdef.name,
                         description=rdef.description,
@@ -1725,7 +1713,7 @@ class MCPServer:
                 )
             return templates
 
-        @ll.read_resource()
+        @_sdk.handler(ll, "read_resource")
         async def read_resource(uri: AnyUrl) -> list[ReadResourceContents]:
             from . import _dispatch
 
@@ -1746,7 +1734,7 @@ class MCPServer:
         note_session = self._note_session
         visible = self._visible
 
-        @ll.list_prompts()
+        @_sdk.handler(ll, "list_prompts")
         async def list_prompts() -> list[Any]:
             from mcp.types import Prompt as MCPPrompt
 
@@ -1770,7 +1758,7 @@ class MCPServer:
                 )
             return prompts
 
-        @ll.get_prompt()
+        @_sdk.handler(ll, "get_prompt")
         async def get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptResult:
             from . import _dispatch
 
@@ -1858,7 +1846,7 @@ def _request_headers(ll: LowLevelServer) -> dict[str, str]:
     from ._context import bind_transport_request
 
     try:
-        mcp_request = getattr(ll.request_context, "request", None)
+        mcp_request = getattr(_sdk.request_context(ll), "request", None)
     except LookupError:
         mcp_request = None
     headers, _ = bind_transport_request(mcp_request)

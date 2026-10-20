@@ -18,6 +18,7 @@ from typing import Annotated, Optional
 
 from pydantic import BaseModel, Field
 
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.client import MCPClient
 from promptise.mcp.server import MCPServer, TestClient
 from promptise.mcp.server._decorators import (
@@ -55,10 +56,10 @@ class TestAnnotatedField:
             return {"order_id": order_id}
 
         tool = await _tool(server, "get_order_status")
-        prop = tool.inputSchema["properties"]["order_id"]
+        prop = mcp_field(tool, "input_schema")["properties"]["order_id"]
         assert prop["description"] == 'The order ID, for example "A-1001".'
         assert prop["type"] == "string"
-        assert tool.inputSchema["required"] == ["order_id"]
+        assert mcp_field(tool, "input_schema")["required"] == ["order_id"]
 
     async def test_annotated_constraints_reach_schema_and_are_enforced(self):
         server = MCPServer(name="t")
@@ -72,13 +73,15 @@ class TestAnnotatedField:
             return {"limit": limit, "status": status}
 
         tool = await _tool(server, "list_orders")
-        limit = tool.inputSchema["properties"]["limit"]
+        limit = mcp_field(tool, "input_schema")["properties"]["limit"]
         assert limit["minimum"] == 1
         assert limit["maximum"] == 100
         assert limit["default"] == 10
         assert limit["description"] == "Max orders."
-        assert tool.inputSchema["properties"]["status"]["pattern"] == r"^(open|closed)$"
-        assert "required" not in tool.inputSchema
+        assert (
+            mcp_field(tool, "input_schema")["properties"]["status"]["pattern"] == r"^(open|closed)$"
+        )
+        assert "required" not in mcp_field(tool, "input_schema")
 
         client = TestClient(server)
         ok = await client.call_tool("list_orders", {"limit": 5})
@@ -100,7 +103,7 @@ class TestAnnotatedField:
             return {"query": query, "limit": limit}
 
         tool = await _tool(server, "search")
-        props = tool.inputSchema["properties"]
+        props = mcp_field(tool, "input_schema")["properties"]
         assert props["query"]["description"] == "Search text."
         assert props["query"]["minLength"] == 1
         assert props["limit"] == {
@@ -109,7 +112,7 @@ class TestAnnotatedField:
             "title": "Limit",
             "type": "integer",
         }
-        assert tool.inputSchema["required"] == ["query"]
+        assert mcp_field(tool, "input_schema")["required"] == ["query"]
 
         result = await TestClient(server).call_tool("search", {"query": "x"})
         assert '"limit": 5' in result[0].text
@@ -125,7 +128,7 @@ class TestAnnotatedField:
             return {"customer": customer}
 
         tool = await _tool(server, "find")
-        prop = tool.inputSchema["properties"]["customer"]
+        prop = mcp_field(tool, "input_schema")["properties"]["customer"]
         assert prop["description"] == "Customer ID."
         assert prop["default"] is None
 
@@ -154,7 +157,7 @@ class TestDocstringArgs:
             return {}
 
         tool = await _tool(server, "get_order_status")
-        props = tool.inputSchema["properties"]
+        props = mcp_field(tool, "input_schema")["properties"]
         assert props["order_id"]["description"] == (
             'The order ID, for example "A-1001". Case sensitive.'
         )
@@ -174,7 +177,7 @@ class TestDocstringArgs:
             """
             return {}
 
-        props = (await _tool(server, "refund")).inputSchema["properties"]
+        props = mcp_field(await _tool(server, "refund"), "input_schema")["properties"]
         assert props["order_id"]["description"] == "The order to refund."
         assert props["amount"]["description"] == "Amount in EUR."
 
@@ -196,7 +199,7 @@ class TestDocstringArgs:
             """
             return {}
 
-        props = (await _tool(server, "lookup")).inputSchema["properties"]
+        props = mcp_field(await _tool(server, "lookup"), "input_schema")["properties"]
         assert props["a"]["description"] == "From Field."
         assert props["b"]["description"] == "From default Field."
         assert props["c"]["description"] == "From docstring, constraints kept."
@@ -214,7 +217,7 @@ class TestDocstringArgs:
             """
             return {}
 
-        prop = (await _tool(server, "ship")).inputSchema["properties"]["to"]
+        prop = mcp_field(await _tool(server, "ship"), "input_schema")["properties"]["to"]
         assert prop["description"] == "Where the parcel goes."
         assert prop["properties"]["city"]["description"] == "City name"
 
@@ -226,7 +229,7 @@ class TestDocstringArgs:
             """Ping a host."""
             return host
 
-        prop = (await _tool(server, "ping")).inputSchema["properties"]["host"]
+        prop = mcp_field(await _tool(server, "ping"), "input_schema")["properties"]["host"]
         assert "description" not in prop
 
     async def test_excluded_params_are_not_documented_into_schema(self):
@@ -248,7 +251,7 @@ class TestDocstringArgs:
             """
             return sql
 
-        schema = (await _tool(server, "query")).inputSchema
+        schema = mcp_field(await _tool(server, "query"), "input_schema")
         assert list(schema["properties"]) == ["sql"]
         assert schema["properties"]["sql"]["description"] == "The statement."
 
@@ -293,7 +296,7 @@ class TestToolDescription:
 
         tool = await _tool(server, "f")
         assert tool.description == "Do the thing."
-        assert tool.inputSchema["properties"]["x"]["description"] == "The input."
+        assert mcp_field(tool, "input_schema")["properties"]["x"]["description"] == "The input."
 
     async def test_explicit_description_wins(self):
         server = MCPServer(name="t")
@@ -409,7 +412,7 @@ class TestStdioRoundTrip:
 
         tool = next(t for t in tools if t.name == "get_order_status")
         assert tool.description == "Get the status of an order and its shipping events."
-        props = tool.inputSchema["properties"]
+        props = mcp_field(tool, "input_schema")["properties"]
         assert props["order_id"]["description"] == 'The order ID, for example "A-1001".'
         assert props["limit"]["description"] == "Max shipping events to return."
         assert props["limit"]["minimum"] == 1

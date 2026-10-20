@@ -57,7 +57,7 @@ class ImageContent:
 
     def to_mcp(self) -> MCPImageContent:
         """Convert to an MCP ``ImageContent`` message."""
-        return MCPImageContent(
+        return MCPImageContent(  # type: ignore[call-arg]
             type="image",
             data=base64.b64encode(self.data).decode(),
             mimeType=self.mime_type,

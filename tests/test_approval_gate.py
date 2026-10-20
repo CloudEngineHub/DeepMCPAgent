@@ -16,8 +16,11 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+from _mcp_memory import call_tool_directly, connected_session
 
 from promptise.approval import ApprovalDecision, ApprovalRequest
+from promptise.mcp._compat import MCP_V2
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.server import (
     ApprovalGateMiddleware,
     AuthMiddleware,
@@ -28,6 +31,9 @@ from promptise.mcp.server import (
 )
 from promptise.mcp.server._auth import APIKeyAuth
 from promptise.mcp.server._context import ClientContext, RequestContext
+
+# ServerSession.elicit's schema keyword: requestedSchema (mcp 1.x), requested_schema (2.x)
+SCHEMA_KWARG = "requested_schema" if MCP_V2 else "requestedSchema"
 
 
 def _server_with_gate(handler, **gate_kwargs) -> MCPServer:
@@ -652,7 +658,7 @@ class TestElicitationApprover:
         session.elicit.assert_awaited_once()
         kwargs = session.elicit.await_args.kwargs
         assert "refund" in kwargs["message"]
-        assert kwargs["requestedSchema"]["required"] == ["approve"]
+        assert kwargs[SCHEMA_KWARG]["required"] == ["approve"]
 
         session.elicit = AsyncMock(
             return_value=ElicitResult(action="accept", content={"approve": False, "reason": "no"})
@@ -665,10 +671,10 @@ class TestElicitationApprover:
     async def test_decline_cancel_and_failure_deny(self):
         from unittest.mock import AsyncMock
 
-        from mcp.shared.exceptions import McpError
-        from mcp.types import INVALID_REQUEST, ElicitResult, ErrorData
+        from mcp.types import INVALID_REQUEST, ElicitResult
 
         from promptise.approval import ApprovalRequest
+        from promptise.mcp._compat import mcp_error
 
         approver = ElicitationApprover()
         req = ApprovalRequest(request_id="r1", tool_name="refund", arguments={})
@@ -689,9 +695,7 @@ class TestElicitationApprover:
         # the client rejected the request (no elicitation capability)
         session = AsyncMock()
         session.elicit = AsyncMock(
-            side_effect=McpError(
-                ErrorData(code=INVALID_REQUEST, message="Elicitation not supported")
-            )
+            side_effect=mcp_error(INVALID_REQUEST, "Elicitation not supported")
         )
         decision = await approver.request_approval_ctx(req, self._ctx_with_session(session))
         assert decision.approved is False
@@ -710,8 +714,8 @@ class TestElicitationApprover:
         signature.bind(
             None,
             message="Approve?",
-            requestedSchema={"type": "object", "properties": {}},
             related_request_id="req-1",
+            **{SCHEMA_KWARG: {"type": "object", "properties": {}}},
         )
 
 
@@ -734,12 +738,8 @@ class TestElicitationRoundTrip:
 
     @staticmethod
     async def _call(server: MCPServer, elicitation_callback=None) -> str:
-        from mcp.shared.memory import create_connected_server_and_client_session
-
         lowlevel = server._build_lowlevel_server()
-        async with create_connected_server_and_client_session(
-            lowlevel, elicitation_callback=elicitation_callback
-        ) as client:
+        async with connected_session(lowlevel, elicitation_callback=elicitation_callback) as client:
             result = await client.call_tool("refund", {"order_id": "o1"})
             return result.content[0].text
 
@@ -756,7 +756,7 @@ class TestElicitationRoundTrip:
         assert await self._call(self._server(), accept) == "refunded o1"
         assert len(prompts) == 1
         assert "refund" in prompts[0].message
-        assert prompts[0].requestedSchema["required"] == ["approve"]
+        assert mcp_field(prompts[0], "requested_schema")["required"] == ["approve"]
 
     @pytest.mark.asyncio
     async def test_client_declines_then_denied(self):
@@ -958,20 +958,14 @@ class TestReviewerIdentityOnLivePath:
     so on live it was always 'unknown-reviewer' and SoD was bypassed."""
 
     async def _live_call(self, server, name, args, api_key):
-        import mcp.types as t
 
         from promptise.mcp.server._context import set_request_headers
 
         ll = server._build_lowlevel_server()
-        handler = ll.request_handlers[t.CallToolRequest]
         set_request_headers({"x-api-key": api_key})
         try:
-            req = t.CallToolRequest(
-                method="tools/call",
-                params=t.CallToolRequestParams(name=name, arguments=args),
-            )
-            res = await handler(req)
-            return res.root.content[0].text
+            res = await call_tool_directly(ll, name, args)
+            return res.content[0].text
         finally:
             set_request_headers({})
 
@@ -1039,7 +1033,6 @@ class TestLiveContextParamInjection:
 
     @pytest.mark.asyncio
     async def test_ctx_param_injected_on_live_path(self):
-        import mcp.types as t
 
         server = MCPServer(name="ctx-probe")
 
@@ -1049,13 +1042,8 @@ class TestLiveContextParamInjection:
             return "injected" if ctx is not None else "NONE"
 
         ll = server._build_lowlevel_server()
-        handler = ll.request_handlers[t.CallToolRequest]
-        req = t.CallToolRequest(
-            method="tools/call",
-            params=t.CallToolRequestParams(name="whoami", arguments={"x": 1}),
-        )
-        res = await handler(req)
-        assert res.root.content[0].text == "injected"
+        res = await call_tool_directly(ll, "whoami", {"x": 1})
+        assert res.content[0].text == "injected"
 
 
 class TestRouterLevelGate:
@@ -1121,7 +1109,6 @@ class TestOptionalRequestContextInjection:
 
     @pytest.mark.asyncio
     async def test_optional_ctx_param_injected_on_live_path(self):
-        import mcp.types as mt
 
         # `RequestContext` is a MODULE-level import (test handlers resolve type
         # hints against module globals, not local aliases). `... | None = None`
@@ -1135,11 +1122,5 @@ class TestOptionalRequestContextInjection:
             return "injected" if ctx is not None else "NONE"
 
         ll = server._build_lowlevel_server()
-        handler = ll.request_handlers[mt.CallToolRequest]
-        res = await handler(
-            mt.CallToolRequest(
-                method="tools/call",
-                params=mt.CallToolRequestParams(name="whoami", arguments={"x": 1}),
-            )
-        )
-        assert res.root.content[0].text == "injected"
+        res = await call_tool_directly(ll, "whoami", {"x": 1})
+        assert res.content[0].text == "injected"

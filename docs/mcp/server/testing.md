@@ -249,7 +249,7 @@ async def test_resources():
 
     # The MIME type and raw MCP contents, as a client receives them
     (item,) = await client.read_resource_contents("config://app")
-    assert item.mimeType == "application/json"
+    assert item.mime_type == "application/json"  # item.mimeType with the mcp 1.x SDK
 
     # List resources (includes the auto-registered docs://manifest)
     resources = await client.list_resources()

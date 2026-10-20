@@ -189,3 +189,52 @@ class TestRejectedErrorMessage:
         named = err.for_server("orders")
         assert (named.status_code, named.url, named.server_name) == (401, "http://h/mcp", "orders")
         assert str(named).startswith("Server 'orders' rejected the connection: 401.")
+
+
+class TestTransportClosedUnderACall:
+    """A call whose transport closes reports the lost connection, whichever
+    side notices first (CI flake on 1.5.0: the request's own error, an
+    ``anyio`` stream error with no message, became "Failed to call tool 'x': ").
+    """
+
+    @staticmethod
+    def _client_with_dying_runner(reason: str | None) -> MCPClient:
+        client = MCPClient(url="http://127.0.0.1:9/mcp", auto_reconnect=False)
+
+        async def runner() -> None:
+            await asyncio.sleep(0.05)
+            if reason is not None:
+                client._failure = MCPClientError(reason)
+
+        client._runner = asyncio.create_task(runner())
+        client._closing = asyncio.Event()
+        return client
+
+    @pytest.mark.parametrize("closed", ["stream", "jsonrpc"])
+    async def test_request_noticing_first_reports_the_runners_reason(self, closed: str) -> None:
+        import anyio
+
+        from promptise.mcp._compat import mcp_error
+
+        client = self._client_with_dying_runner(
+            "Connection to http://127.0.0.1:9/mcp was lost (ConnectError: refused)"
+        )
+
+        async def request() -> None:
+            if closed == "stream":
+                raise anyio.BrokenResourceError()
+            raise mcp_error(-32000, "Connection closed")
+
+        with pytest.raises(MCPClientError, match=r"was lost \(ConnectError: refused\)"):
+            await client._on_current_session(request())
+
+    async def test_without_a_reason_it_still_says_the_connection_was_lost(self) -> None:
+        import anyio
+
+        client = self._client_with_dying_runner(None)
+
+        async def request() -> None:
+            raise anyio.ClosedResourceError()
+
+        with pytest.raises(MCPClientError, match=r"was lost \(ClosedResourceError\)"):
+            await client._on_current_session(request())

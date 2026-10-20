@@ -55,6 +55,54 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # The main matrix resolves to the mcp 2.x SDK. Promptise also supports
+  # mcp>=1.9,<2 (promptise.mcp._compat); this job keeps 1.x tested.
+  test-mcp-v1:
+    name: MCP tests with the mcp 1.x SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies (mcp 1.x)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" "mcp>=1.9,<2"
+          python -c "import importlib.metadata as m; v = m.version('mcp'); print('mcp', v); assert v.startswith('1.'), v"
+
+      - name: Run type checking (mypy) against mcp 1.x
+        run: mypy src
+
+      - name: Run the MCP tests
+        run: |
+          pytest -v \
+            tests/test_mcp_*.py \
+            tests/test_e2e_mcp_client.py \
+            tests/test_e2e_mcp_server.py \
+            tests/test_engine_mcp_integration.py \
+            tests/test_approval_gate.py \
+            tests/test_approval_agent_gate.py \
+            tests/test_identity_token_refresh_e2e.py \
+            tests/test_caller_token_forwarding.py \
+            tests/test_cross_agent.py \
+            tests/test_cross_agent_limits.py \
+            tests/test_superagent_loader.py \
+            tests/test_superagent_team.py \
+            tests/test_runtime_process.py \
+            tests/test_events_agent.py \
+            tests/test_observability_fixes.py \
+            tests/test_streaming_tool_turns.py \
+            tests/test_mcpcast_emit.py \
+            tests/test_mcpcast_schema_fidelity.py
+
   test-superagent:
     name: SuperAgent Feature Tests
     runs-on: ubuntu-latest
@@ -167,7 +215,7 @@ jobs:
 
   all-tests-passed:
     name: All Tests Passed
-    needs: [test, test-superagent, lint-docs, security]
+    needs: [test, test-mcp-v1, test-superagent, lint-docs, security]
     runs-on: ubuntu-latest
     if: always()
 
@@ -175,6 +223,7 @@ jobs:
       - name: Check all jobs status
         run: |
           if [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.test-mcp-v1.result }}" != "success" ]] || \
              [[ "${{ needs.test-superagent.result }}" != "success" ]] || \
              [[ "${{ needs.lint-docs.result }}" != "success" ]] || \
              [[ "${{ needs.security.result }}" != "success" ]]; then

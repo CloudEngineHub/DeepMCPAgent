@@ -26,10 +26,13 @@ classifiers = [
 
 dependencies = [
   # Core agent framework
-  # Capped below 2.0: mcp 2.0 changed the low-level Server() signature and
-  # renamed ResourceTemplate.uriTemplate -> uri_template, which breaks the
-  # server SDK. Lift the cap once the SDK is ported to the 2.0 API.
-  "mcp>=1.9.0,<2.0",
+  # Both SDK majors are supported: the differences (MCPError, snake_case type
+  # fields, httpx2, the lowlevel server's handler registration) go through
+  # promptise.mcp._compat and promptise.mcp.server._sdk. CI tests 1.x in the
+  # test-mcp-v1 job. Check 3.0 before lifting the cap.
+  "mcp>=1.9.0,<3",
+  # ServerSettings (env-driven server config). mcp 1.x installed it; 2.x does not.
+  "pydantic-settings>=2.5.2",
   "langchain>=0.3.27",
   "pydantic>=2.13.3",
   "typer>=0.15.2",

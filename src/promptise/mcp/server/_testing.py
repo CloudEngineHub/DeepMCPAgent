@@ -348,7 +348,7 @@ class TestClient:
         for tdef in tdefs:
             mcp_annotations = None
             if tdef.annotations is not None:
-                mcp_annotations = MCPToolAnnotations(
+                mcp_annotations = MCPToolAnnotations(  # type: ignore[call-arg]
                     title=tdef.annotations.title,
                     readOnlyHint=tdef.annotations.read_only_hint,
                     destructiveHint=tdef.annotations.destructive_hint,
@@ -356,7 +356,7 @@ class TestClient:
                     openWorldHint=tdef.annotations.open_world_hint,
                 )
             tools.append(
-                Tool(
+                Tool(  # type: ignore[call-arg]
                     name=tdef.name,
                     description=tdef.description,
                     inputSchema=tdef.input_schema,
@@ -455,7 +455,7 @@ class TestClient:
         for item in contents:
             if isinstance(item.content, bytes):
                 out.append(
-                    BlobResourceContents(
+                    BlobResourceContents(  # type: ignore[call-arg]
                         uri=uri,  # type: ignore[arg-type]
                         blob=base64.b64encode(item.content).decode(),
                         mimeType=item.mime_type or "application/octet-stream",
@@ -463,7 +463,7 @@ class TestClient:
                 )
             else:
                 out.append(
-                    TextResourceContents(
+                    TextResourceContents(  # type: ignore[call-arg]
                         uri=uri,  # type: ignore[arg-type]
                         text=item.content,
                         mimeType=item.mime_type or "text/plain",
@@ -514,7 +514,7 @@ class TestClient:
         self._ensure_manifest()
         rdefs = await self._visible(self._server._resource_registry.list_all(), "resource", headers)
         return [
-            Resource(
+            Resource(  # type: ignore[call-arg]
                 uri=rdef.uri,  # type: ignore[arg-type]
                 name=rdef.name,
                 description=rdef.description,
@@ -531,7 +531,7 @@ class TestClient:
             self._server._resource_registry.list_templates(), "resource", headers
         )
         return [
-            ResourceTemplate(
+            ResourceTemplate(  # type: ignore[call-arg]
                 uriTemplate=rdef.uri,
                 name=rdef.name,
                 description=rdef.description,

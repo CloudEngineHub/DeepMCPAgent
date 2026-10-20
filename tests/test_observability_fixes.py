@@ -28,11 +28,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from _mcp_memory import call_tool_directly
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, LLMResult
 
 from promptise.agent import CallerContext, PromptiseAgent, build_agent
 from promptise.callback_handler import PromptiseCallbackHandler
+from promptise.mcp._compat import field as mcp_field
 from promptise.observability import (
     AgentRun,
     ObservabilityCollector,
@@ -501,14 +503,9 @@ class TestServerToolErrors:
 
     @staticmethod
     async def _call(server: Any, name: str, args: dict[str, Any]) -> Any:
-        import mcp.types as t
 
         ll = server._build_lowlevel_server()
-        handler = ll.request_handlers[t.CallToolRequest]
-        req = t.CallToolRequest(
-            method="tools/call", params=t.CallToolRequestParams(name=name, arguments=args)
-        )
-        return (await handler(req)).root
+        return await call_tool_directly(ll, name, args)
 
     @pytest.mark.asyncio
     async def test_tool_error_sets_is_error(self) -> None:
@@ -524,9 +521,9 @@ class TestServerToolErrors:
             return {"units": 6}
 
         ok = await self._call(server, "check_stock", {"sku": "MS-30"})
-        assert ok.isError is False
+        assert mcp_field(ok, "is_error") is False
         failed = await self._call(server, "check_stock", {"sku": "XX-999"})
-        assert failed.isError is True
+        assert mcp_field(failed, "is_error") is True
         body = json.loads(failed.content[0].text)
         assert body["error"]["code"] == "TOOL_ERROR"
         assert body["error"]["message"] == "Unknown SKU XX-999."
@@ -543,7 +540,7 @@ class TestServerToolErrors:
             raise RuntimeError("postgres://secret@db")
 
         res = await self._call(server, "broken", {})
-        assert res.isError is True
+        assert mcp_field(res, "is_error") is True
         assert "secret" not in res.content[0].text
         assert json.loads(res.content[0].text)["error"]["code"] == "INTERNAL_ERROR"
 
@@ -552,7 +549,7 @@ class TestServerToolErrors:
         from promptise.mcp.server import MCPServer
 
         res = await self._call(MCPServer("shop"), "nope", {})
-        assert res.isError is True
+        assert mcp_field(res, "is_error") is True
         assert json.loads(res.content[0].text)["error"]["code"] == "TOOL_NOT_FOUND"
 
 

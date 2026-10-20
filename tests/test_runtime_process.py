@@ -331,7 +331,10 @@ class TestAgentProcessBuildFailure:
 
 _TINY_SERVER = """
 import os, sys, time
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp import FastMCP  # mcp 1.x
+except ModuleNotFoundError:
+    from mcp.server.mcpserver import MCPServer as FastMCP  # mcp 2.x
 
 with open(sys.argv[1], "a") as f:
     f.write(f"{os.getpid()}\\n")

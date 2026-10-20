@@ -16,6 +16,7 @@ from typing import Any
 import httpx
 import pytest
 
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.server import TestClient
 from promptise.mcpcast import load_generated_server, mcpcast, write_project
 from promptise.mcpcast.emit import _clean_schema, render_project, trimmed_schemas
@@ -175,7 +176,7 @@ async def _schemas(module, http: httpx.AsyncClient) -> dict[str, dict[str, Any]]
     client = TestClient(
         module.build_server(approval_handler=lambda request: True, http_client=http)
     )
-    return {t.name: t.inputSchema for t in await client.list_tools()}
+    return {t.name: mcp_field(t, "input_schema") for t in await client.list_tools()}
 
 
 class TestAdvertisedSchema:

@@ -50,6 +50,35 @@ Only the Docker client, for the code-execution sandbox (`build_agent(sandbox=...
 and `agent_pattern="code-action"`) without the rest of `[all]`. Docker itself must
 be installed and running. See [Sandbox](../core/sandbox.md).
 
+### `pip install "promptise[identity-aws]"`, `[identity-spiffe]`, `[identity-all]`
+
+Cloud SDKs for some [agent identity](../identity/overview.md) modes: `boto3` for AWS STS
+federation, and [py-spiffe](https://github.com/HewlettPackard/py-spiffe) (the `spiffe`
+package) for the SPIFFE Workload API (`AgentIdentity.from_spiffe(mode="sdk")`, and
+`AgentIdentity.auto()` when `SPIFFE_ENDPOINT_SOCKET` is set). `[identity-all]` installs
+both. Before 1.5.1 the SPIFFE extra named a `pyspiffe` package that is not on PyPI, so it
+could not be installed.
+
+## MCP SDK versions
+
+Promptise works with both major versions of the official MCP Python SDK, `mcp>=1.9,<3`.
+A new install gets the current 2.x SDK, so Promptise installs next to other packages
+that need it, and MCP 2.x clients reach a Promptise server with the 2026-07-28 protocol
+revision (1.x clients still use the 2025 handshake). Promptise 1.5.0 and earlier
+required `mcp<2`.
+
+To stay on the 1.x SDK, pin it:
+
+```bash
+pip install promptise "mcp>=1.9,<2"
+```
+
+Promptise's own APIs are the same with either SDK. Your own code that reads MCP SDK
+objects, such as the `Tool` and `CallToolResult` objects `MCPClient` and `TestClient`
+return, follows the SDK: 2.x names the fields in snake_case (`tool.input_schema`,
+`result.is_error`) where 1.x has the wire names (`tool.inputSchema`, `result.isError`).
+See the SDK's [migration guide](https://py.sdk.modelcontextprotocol.io/migration/).
+
 ## Contributors
 
 ```bash

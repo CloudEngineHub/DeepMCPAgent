@@ -24,6 +24,7 @@ import pytest
 from _live_server import serve_mcp
 from pydantic import Field
 
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.client import MCPClient
 from promptise.mcp.server import (
     APIKeyAuth,
@@ -70,7 +71,7 @@ class _Wire:
 
     async def call(self, name: str, args: dict[str, Any]) -> tuple[bool, str]:
         result = await self._client.call_tool(name, args)
-        return bool(result.isError), result.content[0].text
+        return bool(mcp_field(result, "is_error")), result.content[0].text
 
 
 class _InProcess:

@@ -26,6 +26,7 @@ from langchain_core.tools import BaseTool, StructuredTool
 from mcp.types import GetPromptResult, ReadResourceResult
 from pydantic import BaseModel, Field
 
+from .._compat import field as mcp_field
 from ._multi import MCPMultiClient
 from ._tool_adapter import OnAfter, OnBefore, OnError
 
@@ -114,13 +115,16 @@ async def _resource_catalogue(multi: MCPMultiClient) -> list[str]:
     lines: list[str] = []
     for r in resources:
         where = f" [server: {by_uri.get(str(r.uri), '?')}]" if multi_server else ""
-        mime = f" ({r.mimeType})" if r.mimeType else ""
+        mime_type = mcp_field(r, "mime_type")
+        mime = f" ({mime_type})" if mime_type else ""
         lines.append(f"- {r.uri}{mime}{where}: {_line(r.description) or r.name}")
     for t in templates:
-        where = f" [server: {by_template.get(t.uriTemplate, '?')}]" if multi_server else ""
-        mime = f" ({t.mimeType})" if t.mimeType else ""
+        uri_template = mcp_field(t, "uri_template")
+        where = f" [server: {by_template.get(uri_template, '?')}]" if multi_server else ""
+        mime_type = mcp_field(t, "mime_type")
+        mime = f" ({mime_type})" if mime_type else ""
         lines.append(
-            f"- {t.uriTemplate}{mime}{where}: {_line(t.description) or t.name} "
+            f"- {uri_template}{mime}{where}: {_line(t.description) or t.name} "
             "(a template: replace each {placeholder})"
         )
     return lines
@@ -136,7 +140,8 @@ def _resource_text(result: ReadResourceResult) -> str:
             blob = getattr(item, "blob", "") or ""
             size = len(blob) * 3 // 4  # base64 → approximate byte count
             parts.append(
-                f"[binary resource {item.uri}: {item.mimeType or 'application/octet-stream'}, "
+                f"[binary resource {item.uri}: "
+                f"{mcp_field(item, 'mime_type') or 'application/octet-stream'}, "
                 f"about {size} bytes — not shown]"
             )
     return "\n\n".join(parts)

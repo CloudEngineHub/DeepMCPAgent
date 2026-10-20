@@ -28,6 +28,7 @@ from ...tools import (
     parse_tool_arguments,
     plain_arguments,
 )
+from .._compat import field as mcp_field
 from ._client import MCPClientError
 from ._multi import MCPMultiClient
 
@@ -132,7 +133,7 @@ def _tool_error(tool_name: str, result: CallToolResult) -> MCPToolError | None:
     if envelope is not None:
         code, message, retryable = envelope
         return MCPToolError(tool_name, message, code=code, retryable=retryable, text=text)
-    if getattr(result, "isError", False):
+    if mcp_field(result, "is_error", False):
         return MCPToolError(tool_name, text or f"Tool '{tool_name}' failed", text=text)
     return None
 
@@ -146,7 +147,8 @@ def _annotation_metadata(tool: Any) -> dict[str, Any] | None:
     annotations = getattr(tool, "annotations", None)
     if not isinstance(annotations, ToolAnnotations):
         return None
-    data = annotations.model_dump(exclude_none=True)
+    # by_alias: the camelCase names (mcp 2.x fields are snake_case)
+    data = annotations.model_dump(exclude_none=True, by_alias=True)
     return data or None
 
 
@@ -402,7 +404,7 @@ class MCPToolAdapter:
             else:
                 forward = tool_to_server.get(name) in forward_servers
             desc = t.description or ""
-            schema = t.inputSchema or {}
+            schema = mcp_field(t, "input_schema") or {}
             model = _jsonschema_to_pydantic(
                 schema,
                 model_name=f"Args_{name}",
@@ -441,7 +443,7 @@ class MCPToolAdapter:
                 server_guess=self._multi.tool_to_server.get(t.name, ""),
                 name=t.name,
                 description=t.description or "",
-                input_schema=t.inputSchema or {},
+                input_schema=mcp_field(t, "input_schema") or {},
             )
             for t in tools
         ]

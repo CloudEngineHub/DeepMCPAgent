@@ -37,6 +37,8 @@ import jwt as pyjwt
 import pytest
 from _live_server import serve_asgi, serve_mcp
 
+from promptise.mcp._compat import MCP_V2
+
 from promptise.mcp.client import (
     MCPClient,
     MCPClientError,
@@ -356,7 +358,13 @@ class TestReconnectAfterRestart:
             await client.__aenter__()
         try:
             async with _serve(_inventory(), port=port):
-                with pytest.raises(MCPClientError, match="no longer knows this MCP session"):
+                # The new server answers 404 for the old session; or, when the
+                # client's transport hit the restart (the server was down for
+                # a moment), the call reports the lost connection and why.
+                with pytest.raises(
+                    MCPClientError,
+                    match=r"no longer knows this MCP session|Connection to .+ was lost \(.+\)",
+                ):
                     await asyncio.wait_for(client.call_tool("check_stock", {"sku": "A"}), TIMEOUT)
                 assert client.session_generation == 1
         finally:
@@ -617,7 +625,8 @@ class TestHealthRoutes:
         assert live.json() == {"status": "alive"}
         assert ready.status_code == 200
         assert ready.json() == {"status": "ready", "checks": {}}
-        assert bare_mcp.status_code == 406  # why /mcp is no probe target
+        # why /mcp is no probe target (406 with mcp 1.x, 400 with 2.x)
+        assert bare_mcp.status_code in (400, 406)
 
     async def test_readiness_follows_the_health_check(self, monkeypatch):
         state = {"ok": True}
@@ -685,6 +694,70 @@ class TestHealthRoutes:
 # =====================================================================
 # ASGI app
 # =====================================================================
+
+
+@pytest.mark.skipif(not MCP_V2, reason="needs the mcp 2.x client")
+class TestMcp2Client:
+    """The official mcp 2.x client against a Promptise server (1.5.1)."""
+
+    async def test_modern_client_negotiates_2026_07_28(self):
+        from mcp.client import Client
+
+        async with serve_asgi(_inventory().asgi_app()) as port:
+            async with Client(f"http://127.0.0.1:{port}/mcp") as client:
+                assert client.protocol_version == "2026-07-28"
+                tools = await asyncio.wait_for(client.list_tools(), TIMEOUT)
+                assert [t.name for t in tools.tools] == ["check_stock"]
+                result = await asyncio.wait_for(
+                    client.call_tool("check_stock", {"sku": "A"}), TIMEOUT
+                )
+                assert '"in_stock": 42' in _text(result)
+                assert result.is_error is False
+
+    @pytest.mark.parametrize("mode", ["auto", "legacy"])
+    async def test_elicitation_approval_with_a_modern_client(self, mode):
+        """At 2026-07-28 the server can't ask the client, so a gated call is
+        denied (fail closed); with the handshake the client approves it."""
+        from mcp.client import Client
+        from mcp.types import ElicitResult
+
+        from promptise.mcp.server import ApprovalGateMiddleware, ElicitationApprover
+
+        server = MCPServer("payments")
+        server.add_middleware(ApprovalGateMiddleware(ElicitationApprover(), timeout=5))
+
+        @server.tool(requires_approval=True)
+        async def refund(order_id: str) -> str:
+            """Refund an order."""
+            return f"refunded {order_id}"
+
+        async def approve(context, params):
+            return ElicitResult(action="accept", content={"approve": True, "reason": "ok"})
+
+        async with serve_asgi(server.asgi_app()) as port:
+            async with Client(
+                f"http://127.0.0.1:{port}/mcp", mode=mode, elicitation_callback=approve
+            ) as client:
+                version = client.protocol_version
+                result = await asyncio.wait_for(
+                    client.call_tool("refund", {"order_id": "o1"}), TIMEOUT
+                )
+        if mode == "legacy":
+            assert _text(result) == "refunded o1"
+        else:
+            assert version == "2026-07-28"
+            assert result.is_error is True and "refunded" not in _text(result)
+
+    async def test_legacy_mode_still_uses_the_handshake(self):
+        from mcp.client import Client
+
+        async with serve_asgi(_inventory().asgi_app()) as port:
+            async with Client(f"http://127.0.0.1:{port}/mcp", mode="legacy") as client:
+                assert client.protocol_version == "2025-11-25"
+                result = await asyncio.wait_for(
+                    client.call_tool("check_stock", {"sku": "B"}), TIMEOUT
+                )
+                assert '"sku": "B"' in _text(result)
 
 
 class TestASGIApp:
@@ -804,6 +877,7 @@ class TestStreamableHttpClientApi:
         assert asked  # the token came from the provider, per request
         assert _sdk_transport_deprecations(caught) == []
 
+    @pytest.mark.skipif(MCP_V2, reason="mcp 1.x only: 2.x has no streamablehttp_client")
     async def test_an_older_sdk_without_the_new_api_still_connects(self, monkeypatch):
         """mcp >= 1.9 is supported; releases before ``streamable_http_client``
         only have ``streamablehttp_client``."""

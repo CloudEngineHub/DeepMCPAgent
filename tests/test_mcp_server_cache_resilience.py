@@ -25,6 +25,7 @@ import time
 from unittest.mock import AsyncMock
 
 import pytest
+from _mcp_memory import call_tool_directly
 
 from promptise.mcp.server import (
     APIKeyAuth,
@@ -74,14 +75,9 @@ def _code(result) -> str | None:
 
 async def _live_call(server: MCPServer, name: str, args: dict | None = None):
     """Call through the real lowlevel handler (not TestClient)."""
-    import mcp.types as t
 
     ll = server._build_lowlevel_server()
-    handler = ll.request_handlers[t.CallToolRequest]
-    req = t.CallToolRequest(
-        method="tools/call", params=t.CallToolRequestParams(name=name, arguments=args or {})
-    )
-    text = (await handler(req)).root.content[0].text
+    text = (await call_tool_directly(ll, name, args)).content[0].text
     try:
         return json.loads(text)
     except json.JSONDecodeError:

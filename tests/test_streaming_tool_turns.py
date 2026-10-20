@@ -16,6 +16,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
+from _mcp_memory import call_tool_directly
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
@@ -27,6 +28,7 @@ from promptise.engine import PromptGraph, PromptGraphEngine, PromptNode
 from promptise.engine.base import BaseNode
 from promptise.engine.execution import GraphExecutionError
 from promptise.engine.state import NodeEvent, NodeResult
+from promptise.mcp._compat import field as mcp_field
 from promptise.mcp.client import MCPToolError
 from promptise.mcp.client._tool_adapter import _PromptiseMCPTool
 from promptise.mcp.server import MCPServer, ToolError
@@ -480,15 +482,8 @@ class TestToolErrors:
 class TestServerToolErrors:
     @staticmethod
     async def _call(server: MCPServer, name: str, args: dict[str, Any]) -> CallToolResult:
-        import mcp.types as t
 
-        handler = server._build_lowlevel_server().request_handlers[t.CallToolRequest]
-        res = await handler(
-            t.CallToolRequest(
-                method="tools/call", params=t.CallToolRequestParams(name=name, arguments=args)
-            )
-        )
-        return res.root
+        return await call_tool_directly(server._build_lowlevel_server(), name, args)
 
     @pytest.mark.asyncio
     async def test_tool_error_is_an_is_error_result(self):
@@ -502,7 +497,7 @@ class TestServerToolErrors:
             return ORDERS[order_id]
 
         failed = await self._call(server, "get_order_status", {"order_id": "Z-9"})
-        assert failed.isError is True
+        assert mcp_field(failed, "is_error") is True
         error = json.loads(failed.content[0].text)["error"]
         assert error == {
             "code": "TOOL_ERROR",
@@ -511,7 +506,7 @@ class TestServerToolErrors:
         }
 
         ok = await self._call(server, "get_order_status", {"order_id": "A-1001"})
-        assert ok.isError is False
+        assert mcp_field(ok, "is_error") is False
         assert json.loads(ok.content[0].text)["status"] == "shipped"
 
     @pytest.mark.asyncio
@@ -524,7 +519,7 @@ class TestServerToolErrors:
             raise RuntimeError("password=hunter2")
 
         failed = await self._call(server, "get_order_status", {"order_id": "A-1"})
-        assert failed.isError is True
+        assert mcp_field(failed, "is_error") is True
         assert "hunter2" not in failed.content[0].text
         assert json.loads(failed.content[0].text)["error"]["code"] == "INTERNAL_ERROR"
 
@@ -538,7 +533,7 @@ class TestServerToolErrors:
             return "pong"
 
         failed = await self._call(server, "nope", {})
-        assert failed.isError is True
+        assert mcp_field(failed, "is_error") is True
         assert json.loads(failed.content[0].text)["error"]["code"] == "TOOL_NOT_FOUND"
 
 

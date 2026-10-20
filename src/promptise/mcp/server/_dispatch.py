@@ -313,8 +313,7 @@ def to_protocol_error(exc: MCPError) -> Exception:
     (code, retryable, suggestion, details) that tool errors carry in their
     text content.
     """
-    from mcp.shared.exceptions import McpError
-    from mcp.types import ErrorData
+    from .._compat import mcp_error
 
     if exc.code == RESOURCE_NOT_FOUND:
         rpc_code = _RESOURCE_NOT_FOUND
@@ -324,22 +323,19 @@ def to_protocol_error(exc: MCPError) -> Exception:
         rpc_code = _INTERNAL_ERROR
     else:
         rpc_code = _SERVER_ERROR
-    return McpError(ErrorData(code=rpc_code, message=str(exc), data=exc.detail.to_dict()))
+    return mcp_error(rpc_code, str(exc), exc.detail.to_dict())
 
 
 def internal_protocol_error() -> Exception:
     """A generic error for an unhandled exception — never leaks its text."""
-    from mcp.shared.exceptions import McpError
-    from mcp.types import ErrorData
+    from .._compat import mcp_error
 
-    return McpError(
-        ErrorData(
-            code=_INTERNAL_ERROR,
-            message="An internal error occurred.",
-            data={
-                "code": "INTERNAL_ERROR",
-                "message": "An internal error occurred.",
-                "retryable": False,
-            },
-        )
+    return mcp_error(
+        _INTERNAL_ERROR,
+        "An internal error occurred.",
+        {
+            "code": "INTERNAL_ERROR",
+            "message": "An internal error occurred.",
+            "retryable": False,
+        },
     )

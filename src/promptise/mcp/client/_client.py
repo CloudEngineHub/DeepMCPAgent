@@ -44,7 +44,6 @@ from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import httpx
 from mcp.client.session import ClientSession
-from mcp.shared.exceptions import McpError
 from mcp.types import (
     CallToolResult,
     GetPromptResult,
@@ -55,6 +54,9 @@ from mcp.types import (
     ResourceTemplate,
     Tool,
 )
+
+from .._compat import MCP_V2, McpError, mcp_error_code, mcp_error_message, sdk_httpx
+from .._compat import field as mcp_field
 
 if TYPE_CHECKING:
     from mcp.client.session import ElicitationFnT
@@ -76,8 +78,11 @@ BearerTokenProvider = Callable[[bool], Union[str, None, Awaitable[Union[str, Non
 # The MCP SDK's Streamable HTTP client turns an HTTP 404 answer to a request
 # into a JSON-RPC error with this message: the server does not know the
 # session (it restarted, was redeployed, or the request reached another
-# replica), or — during ``initialize`` — the URL is not an MCP endpoint.
+# replica), or — during ``initialize`` with mcp 1.x — the URL is not an MCP
+# endpoint.  mcp 2.x answers a 404 before any session with -32601
+# "Not Found", and every other 4xx/5xx with -32603 (see _HttpStatus).
 _SESSION_TERMINATED = "Session terminated"
+_NOT_FOUND = (-32601, "Not Found")
 
 _NETWORK_TRANSPORTS = ("http", "streamable-http", "sse")
 
@@ -228,7 +233,53 @@ class _SessionReplaced(Exception):
 
 def _is_session_terminated(exc: BaseException) -> bool:
     """True when *exc* is the SDK's report of an HTTP 404 for a request."""
-    return isinstance(exc, McpError) and exc.error.message == _SESSION_TERMINATED
+    return mcp_error_message(exc) == _SESSION_TERMINATED
+
+
+#: JSON-RPC code both SDKs answer pending requests with when the transport closed.
+_CONNECTION_CLOSED = -32000
+
+
+def _is_connection_closed(exc: BaseException) -> bool:
+    """True when a request failed because its session's transport went away.
+
+    Depending on timing, the SDK reports it as a JSON-RPC error
+    (``Connection closed``) or as the closed stream the request was
+    written to (an ``anyio`` error with no message).
+    """
+    import anyio
+
+    if isinstance(exc, (anyio.ClosedResourceError, anyio.BrokenResourceError, anyio.EndOfStream)):
+        return True
+    return mcp_error_code(exc) == _CONNECTION_CLOSED
+
+
+def _is_not_found(exc: BaseException) -> bool:
+    """True when *exc* is mcp 2.x's report of an HTTP 404 before any session."""
+    return (mcp_error_code(exc), mcp_error_message(exc)) == _NOT_FOUND
+
+
+class _HttpStatus:
+    """The last HTTP error status of one connection (mcp 2.x only).
+
+    mcp 2.x no longer raises ``HTTPStatusError`` from the Streamable HTTP
+    transport: a 401 or 403 becomes a JSON-RPC error (-32603) with no
+    status in it.  This response hook keeps the status, so a rejected
+    handshake or credential is still reported as
+    :class:`MCPConnectionRejectedError`.
+    """
+
+    def __init__(self) -> None:
+        self.status: int | None = None
+        self.reason: str = ""
+
+    async def hook(self, response: Any) -> None:
+        if response.status_code >= 400:
+            self.status = response.status_code
+            self.reason = response.reason_phrase or ""
+        elif response.request.method == "POST":
+            self.status = None
+            self.reason = ""
 
 
 def _leaf_exceptions(exc: BaseException) -> list[BaseException]:
@@ -292,7 +343,7 @@ class _TokenSource:
             return self._latest
 
 
-class _BearerAuth(httpx.Auth):
+class _BearerAuth(sdk_httpx.Auth):  # type: ignore[misc,name-defined]
     """Per-connection httpx auth hook: a current token on every request.
 
     On ``401`` the token is refreshed once and the request re-sent.  The
@@ -307,23 +358,24 @@ class _BearerAuth(httpx.Auth):
         self._source = source
         self.opened_with: str | None = None
         self.retired = False
+        # The provider's failure on the last request (mcp 2.x reports the
+        # request as "Connection closed" and drops the cause).
+        self.credential_error: MCPCredentialError | None = None
 
-    def sync_auth_flow(self, request: httpx.Request) -> Any:
+    def sync_auth_flow(self, request: Any) -> Any:
         raise RuntimeError("MCPClient's bearer_token_provider only supports async transports")
 
-    async def async_auth_flow(
-        self, request: httpx.Request
-    ) -> AsyncGenerator[httpx.Request, httpx.Response]:
+    async def async_auth_flow(self, request: Any) -> AsyncGenerator[Any, Any]:
         if self.retired:
             token = self.opened_with
         else:
-            token = await self._source.current()
+            token = await self._acquire(self._source.current())
         _set_bearer(request, token)
         response = yield request
         if response.status_code != 401 or self.retired:
             self._note_opened(token, response)
             return
-        fresh = await self._source.refresh(rejected=token)
+        fresh = await self._acquire(self._source.refresh(rejected=token))
         if fresh is None or fresh == token:
             return  # nothing better to offer: the 401 stands
         logger.info("Server at %s answered 401; retrying once with a refreshed token", request.url)
@@ -331,7 +383,17 @@ class _BearerAuth(httpx.Auth):
         response = yield request
         self._note_opened(fresh, response)
 
-    def _note_opened(self, token: str | None, response: httpx.Response) -> None:
+    async def _acquire(self, pending: Awaitable[str | None]) -> str | None:
+        """Await a token, remembering a provider failure (it is re-raised)."""
+        try:
+            token = await pending
+        except MCPCredentialError as exc:
+            self.credential_error = exc
+            raise
+        self.credential_error = None
+        return token
+
+    def _note_opened(self, token: str | None, response: Any) -> None:
         """Remember the token the server accepted to open the session.
 
         Only the first accepted request (``initialize``) counts, so a
@@ -342,7 +404,7 @@ class _BearerAuth(httpx.Auth):
             self.opened_with = token
 
 
-def _set_bearer(request: httpx.Request, token: str | None) -> None:
+def _set_bearer(request: Any, token: str | None) -> None:
     if token:
         request.headers["Authorization"] = f"Bearer {token}"
     else:
@@ -366,7 +428,7 @@ def _jwt_expired(token: str | None) -> bool:
     return isinstance(exp, (int, float)) and exp <= time.time()
 
 
-class _RetiredSessionTransport(httpx.AsyncBaseTransport):
+class _RetiredSessionTransport(sdk_httpx.AsyncBaseTransport):  # type: ignore[misc,name-defined]
     """Skips the closing ``DELETE`` of a replaced session whose token expired.
 
     The server would refuse it (and the SDK would log a warning on every
@@ -375,15 +437,15 @@ class _RetiredSessionTransport(httpx.AsyncBaseTransport):
 
     def __init__(self, auth: _BearerAuth) -> None:
         self._auth = auth
-        self._inner = httpx.AsyncHTTPTransport()
+        self._inner = sdk_httpx.AsyncHTTPTransport()
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+    async def handle_async_request(self, request: Any) -> Any:
         if (
             request.method == "DELETE"
             and self._auth.retired
             and _jwt_expired(self._auth.opened_with)
         ):
-            return httpx.Response(204, request=request)
+            return sdk_httpx.Response(204, request=request)
         return await self._inner.handle_async_request(request)
 
     async def aclose(self) -> None:
@@ -426,6 +488,7 @@ def _streamable_http_opener(
     headers: dict[str, str] | None,
     timeout: float,
     bearer: _BearerAuth | None,
+    http_status: _HttpStatus | None = None,
 ) -> Callable[[], Any]:
     """A factory for the streamable HTTP transport's async context manager.
 
@@ -435,29 +498,35 @@ def _streamable_http_opener(
     supports is 1.9) only have the latter.  Both get the same
     httpx client: *headers*, a *timeout* with the SDK's 300 s read timeout
     for open streams, and, with a *bearer*, the per-request token hook and
-    the transport that tells a retired session apart.
+    the transport that tells a retired session apart.  With mcp 2.x these
+    are ``httpx2`` objects, and *http_status* records error statuses.
     """
     from mcp.client import streamable_http as _sh
 
     def _http_client(
         headers: dict[str, str] | None = None,
-        timeout: httpx.Timeout | None = None,
-        auth: httpx.Auth | None = None,
-    ) -> httpx.AsyncClient:
+        timeout: Any = None,
+        auth: Any = None,
+    ) -> Any:
+        client: Any
         if bearer is not None:
-            return httpx.AsyncClient(
+            client = sdk_httpx.AsyncClient(
                 headers=headers,
                 timeout=timeout,
                 auth=auth,
                 transport=_RetiredSessionTransport(bearer),
             )
-        from mcp.shared._httpx_utils import create_mcp_http_client
+        else:
+            from mcp.shared._httpx_utils import create_mcp_http_client
 
-        return create_mcp_http_client(headers=headers, timeout=timeout, auth=auth)
+            client = create_mcp_http_client(headers=headers, timeout=timeout, auth=auth)
+        if http_status is not None:
+            client.event_hooks["response"].append(http_status.hook)
+        return client
 
     new_api = getattr(_sh, "streamable_http_client", None)
     if new_api is None:  # an older SDK
-        legacy = _sh.streamablehttp_client
+        legacy = _sh.streamablehttp_client  # type: ignore[attr-defined]
         factory: dict[str, Any] = {}
         if bearer is not None:
             factory = {"auth": bearer, "httpx_client_factory": _http_client}
@@ -467,7 +536,7 @@ def _streamable_http_opener(
     async def _open() -> AsyncGenerator[Any, None]:
         client = _http_client(
             headers=headers,
-            timeout=httpx.Timeout(timeout, read=_SSE_READ_TIMEOUT),
+            timeout=sdk_httpx.Timeout(timeout, read=_SSE_READ_TIMEOUT),
             auth=bearer,
         )
         async with client, new_api(url, http_client=client) as streams:
@@ -652,6 +721,8 @@ class MCPClient:
             self._token_source = _TokenSource(bearer_token_provider)
             self._headers = {k: v for k, v in self._headers.items() if k.lower() != "authorization"}
         self._auth: _BearerAuth | None = None
+        # mcp 2.x: the last HTTP error status of the current connection
+        self._http_status: _HttpStatus | None = None
         self._retired: dict[asyncio.Task[None], _RetiredSession] = {}
         self._runner_calls: dict[asyncio.Task[None], int] = {}
         self._closers: set[asyncio.Task[None]] = set()
@@ -780,6 +851,9 @@ class MCPClient:
     async def _open(self) -> None:
         """Start the runner and wait for the ``initialize`` handshake."""
         self._auth = _BearerAuth(self._token_source) if self._token_source is not None else None
+        self._http_status = (
+            _HttpStatus() if MCP_V2 and self._transport in ("http", "streamable-http") else None
+        )
         open_transport = self._transport_opener(self._auth)
         ready: asyncio.Future[None] = asyncio.get_running_loop().create_future()
         self._closing = asyncio.Event()
@@ -815,7 +889,9 @@ class MCPClient:
         if self._transport in ("http", "streamable-http"):
             if not self._url:
                 raise MCPClientError("url is required for HTTP transport")
-            return _streamable_http_opener(self._url, self._headers or None, self._timeout, auth)
+            return _streamable_http_opener(
+                self._url, self._headers or None, self._timeout, auth, self._http_status
+            )
         if self._transport == "sse":
             if not self._url:
                 raise MCPClientError("url is required for SSE transport")
@@ -915,7 +991,12 @@ class MCPClient:
     def _connect_error(self, exc: BaseException, *, connected: bool = False) -> MCPClientError:
         """Translate a transport failure into a typed, readable error."""
         leaves = _leaf_exceptions(exc)
-        if not connected and any(_is_session_terminated(leaf) for leaf in leaves):
+        rejected = self._rejected_status(leaves, connected=connected)
+        if rejected is not None:
+            return rejected
+        if not connected and any(
+            _is_session_terminated(leaf) or _is_not_found(leaf) for leaf in leaves
+        ):
             # The SDK reports a 404 answer to ``initialize`` as a terminated
             # session; with no session yet, it means nothing serves MCP here.
             not_found = MCPConnectionRejectedError(
@@ -924,7 +1005,7 @@ class MCPClient:
             not_found.__cause__ = exc
             return not_found
         for leaf in leaves:
-            if isinstance(leaf, httpx.HTTPStatusError):
+            if isinstance(leaf, sdk_httpx.HTTPStatusError):
                 response = leaf.response
                 if not connected and 400 <= response.status_code < 500:
                     error: MCPClientError = MCPConnectionRejectedError(
@@ -958,6 +1039,84 @@ class MCPClient:
             error = MCPClientError(f"Failed to connect to {self._target} ({detail})")
         error.__cause__ = cause
         return error
+
+    def _rejected_status(
+        self, leaves: list[BaseException], *, connected: bool
+    ) -> MCPConnectionRejectedError | None:
+        """mcp 2.x: a JSON-RPC error that stands for an HTTP 4xx rejection.
+
+        mcp 2.x reports a 4xx answer as a JSON-RPC error without the status
+        (see :class:`_HttpStatus`); the recorded status makes it the same
+        :class:`MCPConnectionRejectedError` mcp 1.x leads to: any 4xx for
+        the handshake, 401/403 for an established session.
+        """
+        recorded = self._http_status
+        if recorded is None or recorded.status is None:
+            return None
+        if not any(isinstance(leaf, McpError) for leaf in leaves):
+            return None
+        status = recorded.status
+        if not connected and 400 <= status < 500:
+            error = MCPConnectionRejectedError(
+                status_code=status, reason=recorded.reason or "", url=str(self._url)
+            )
+        elif connected and status in (401, 403):
+            error = MCPConnectionRejectedError(
+                status_code=status,
+                reason=recorded.reason,
+                url=str(self._url),
+                mid_session=True,
+                refreshable=self._token_source is not None,
+            )
+        else:
+            return None
+        error.__cause__ = leaves[0]
+        return error
+
+    def _sdk_error_cause(self, exc: BaseException) -> MCPClientError | None:
+        """mcp 2.x: the client error a request's JSON-RPC error stands for.
+
+        mcp 1.x lets these escape the transport (and they end the session);
+        2.x answers the one request with a JSON-RPC error instead: a
+        ``bearer_token_provider`` that failed (:class:`MCPCredentialError`),
+        or a 401/403 for the session (:meth:`_rejected_status`).
+        """
+        if not MCP_V2 or not isinstance(exc, McpError):
+            return None
+        auth = self._auth
+        if auth is not None and auth.credential_error is not None:
+            return auth.credential_error
+        return self._rejected_status([exc], connected=True)
+
+    async def _lost_connection(
+        self, runner: asyncio.Task[None], exc: BaseException
+    ) -> MCPClientError:
+        """The error for a request whose transport closed under it.
+
+        Whether the request or the session's runner notices first depends on
+        timing; either way the call reports the same thing: the connection
+        was lost, with the runner's reason when it has one (for example
+        ``ConnectError: All connection attempts failed``).
+        """
+        if not runner.done():
+            await asyncio.wait({runner}, timeout=1.0)
+        failure = self._failure
+        if runner.done() and failure is not None:
+            return failure
+        detail = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+        return MCPClientError(f"Connection to {self._target} was lost ({detail})")
+
+    def _lost_session(self, exc: BaseException) -> bool:
+        """Whether *exc* says the server no longer knows the session (HTTP 404).
+
+        mcp 1.x reports that as "Session terminated"; mcp 2.x passes on the
+        server's own JSON-RPC error (a Promptise server says "Session not
+        found"), so the recorded status decides.
+        """
+        if _is_session_terminated(exc):
+            return True
+        recorded = self._http_status
+        return recorded is not None and recorded.status == 404 and isinstance(exc, McpError)
 
     async def _shutdown(self) -> None:
         """Ask the runner to close the session and wait for it to finish."""
@@ -1099,7 +1258,10 @@ class MCPClient:
             # forgotten too — the request was never processed.
             pass
         except Exception as exc:
-            if not (self._auto_reconnect and self._active and _is_session_terminated(exc)):
+            mapped = self._sdk_error_cause(exc)
+            if mapped is not None:
+                raise mapped from (mapped.__cause__ if mapped.__cause__ is not None else exc)
+            if not (self._auto_reconnect and self._active and self._lost_session(exc)):
                 raise
             # The server answered 404 for the session: it never processed the
             # request, so it is safe to send it again on a new session.
@@ -1111,6 +1273,11 @@ class MCPClient:
             return await self._on_current_session(operation(session))
         except _SessionReplaced:
             raise MCPClientError(f"The MCP session to {self._target} was replaced again") from None
+        except McpError as exc:
+            mapped = self._sdk_error_cause(exc)
+            if mapped is not None:
+                raise mapped from (mapped.__cause__ if mapped.__cause__ is not None else exc)
+            raise
 
     async def _on_current_session(self, request: Awaitable[_T]) -> _T:
         """Await *request*, failing fast if the session's runner ends first.
@@ -1131,6 +1298,14 @@ class MCPClient:
                 pending.cancel()
                 raise
             if pending.done():
+                exc = None if pending.cancelled() else pending.exception()
+                if exc is not None and _is_connection_closed(exc):
+                    lost = await self._lost_connection(runner, exc)
+                    if self._active and closing is not None and closing.is_set():
+                        # The session was closed to open a new one (another
+                        # call found it gone): this request is retried there.
+                        raise _SessionReplaced
+                    raise lost from (lost.__cause__ or exc)
                 return pending.result()
             pending.cancel()
             await asyncio.gather(pending, return_exceptions=True)
@@ -1275,7 +1450,7 @@ class MCPClient:
 
     def _describe(self, exc: Exception) -> str:
         """Readable detail for a failed request."""
-        if not _is_session_terminated(exc):
+        if not self._lost_session(exc):
             return str(exc)
         if not self._auto_reconnect:
             return f"the server at {self._target} no longer knows this MCP session (HTTP 404)"
@@ -1300,8 +1475,8 @@ class MCPClient:
         try:
             while True:
                 page = await self._with_session(_page_fetcher(method, cursor))
-                items.extend(getattr(page, field))
-                cursor = page.nextCursor
+                items.extend(mcp_field(page, field))
+                cursor = mcp_field(page, "next_cursor")
                 if not cursor:
                     return items
         except MCPClientError:
@@ -1326,7 +1501,7 @@ class MCPClient:
             ``description`` and ``mimeType``.
         """
         return await self._list_all(
-            "list_resource_templates", "resourceTemplates", "resource templates"
+            "list_resource_templates", "resource_templates", "resource templates"
         )
 
     async def read_resource(self, uri: str) -> ReadResourceResult:
@@ -1344,9 +1519,11 @@ class MCPClient:
             MCPClientError: The server refused the read (unknown URI, denied
                 by auth or a guard, ...) or the connection failed.
         """
-        from pydantic import AnyUrl
+        target: Any = uri
+        if not MCP_V2:  # 1.x types the URI as AnyUrl; 2.x takes the string
+            from pydantic import AnyUrl
 
-        target = AnyUrl(uri)
+            target = AnyUrl(uri)
         try:
             return await self._with_session(lambda s: s.read_resource(target))
         except MCPClientError:
@@ -1417,6 +1594,12 @@ def _page_fetcher(method: str, cursor: str | None) -> Callable[[ClientSession], 
 
     async def fetch(session: ClientSession) -> Any:
         list_page = getattr(session, method)
-        return await (list_page() if cursor is None else list_page(cursor))
+        if cursor is None:
+            return await list_page()
+        if MCP_V2:  # the cursor travels in PaginatedRequestParams (keyword-only)
+            from mcp.types import PaginatedRequestParams
+
+            return await list_page(params=PaginatedRequestParams(cursor=cursor))
+        return await list_page(cursor)
 
     return fetch
