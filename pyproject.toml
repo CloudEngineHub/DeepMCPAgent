@@ -110,10 +110,11 @@ tool-optimization = ["sentence-transformers>=2.2.0"]
 identity-aws = ["boto3>=1.34"]
 
 # pip install promptise[identity-spiffe]
-# SPIFFE / SPIRE federation via the Workload API. Only needed for the
+# SPIFFE / SPIRE federation via the Workload API, with py-spiffe (published
+# on PyPI as `spiffe`, imported as `spiffe`). Only needed for the
 # SpiffeSdkProvider; the spiffe-helper file mode and every other provider
 # work without it.
-identity-spiffe = ["pyspiffe>=1.0"]
+identity-spiffe = ["spiffe>=0.2,<1"]
 
 # pip install promptise[identity-all]
 # Every optional cloud SDK used by the identity providers. Convenience
@@ -128,9 +129,9 @@ identity-all = [
 dev = [
   "promptise[all]",
   # Only boto3 is needed to run the identity tests (test_aws imports it).
-  # pyspiffe is intentionally NOT installed for dev/CI — the SPIFFE tests inject
-  # a fake module — and it drags in grpcio, which blows up pip's resolver
-  # ("resolution-too-deep"). Real SPIFFE users install promptise[identity-spiffe].
+  # py-spiffe (`spiffe`) is intentionally NOT installed for dev/CI — the SPIFFE
+  # tests inject a fake module with its API — and it drags in grpcio and
+  # protobuf. Real SPIFFE users install promptise[identity-spiffe].
   "promptise[identity-aws]",
   # Tests
   "pytest>=8.4",

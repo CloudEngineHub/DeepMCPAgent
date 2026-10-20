@@ -149,8 +149,8 @@ workload runs**:
 | GitHub Actions, GitLab CI, or any OIDC issuer | `from_oidc()` | env var / file / callable |
 | Local laptop, tests, or "just attribution" | `AgentIdentity("id")` | **local** — no provider |
 
-Optional cloud SDKs are needed only for some modes (boto3 for AWS STS, `pyspiffe`
-for the SPIFFE SDK); the metadata/IMDS/projected-token and OIDC paths need none.
+Optional cloud SDKs are needed only for some modes (boto3 for AWS STS, py-spiffe
+(`spiffe`) for the SPIFFE SDK); the metadata/IMDS/projected-token and OIDC paths need none.
 See the per-provider pages linked in the table above for setup and prerequisites.
 
 ## Persistence lives in your IdP

@@ -5,7 +5,7 @@ Used by:
 * AWS STS ``get_web_identity_token`` (wrapped in a callable inside
   :class:`AwsStsProvider`).
 * GCP metadata server ``identity`` endpoint.
-* SPIFFE Workload API via :mod:`pyspiffe`.
+* SPIFFE Workload API via :mod:`spiffe` (py-spiffe).
 * Generic OIDC callable mode.
 
 Any exception raised by the user-supplied callable is wrapped in

@@ -4,22 +4,22 @@ Mints a verifiable identity JWT-SVID for an agent, in two acquisition
 modes:
 
 * **File mode** — reads a JWT-SVID written to disk by ``spiffe-helper``.
-  A thin alias over :class:`FileTokenProvider`; needs no pyspiffe.
-* **SDK mode** — lazily imports :mod:`pyspiffe`, connects to the SPIRE
-  agent's Workload API Unix socket, and fetches a JWT-SVID for the
-  configured audience.
+  A thin alias over :class:`FileTokenProvider`; needs no SPIFFE library.
+* **SDK mode** — lazily imports :mod:`spiffe` (the py-spiffe library,
+  ``pip install spiffe``), connects to the SPIRE agent's Workload API
+  Unix socket, and fetches a JWT-SVID for the configured audience.
 
-pyspiffe is an *optional* dependency (``pip install
+py-spiffe is an *optional* dependency (``pip install
 promptise[identity-spiffe]``). The SDK provider imports it inside the
 acquisition method, never at module top, so a workload that uses
 ``spiffe-helper`` file output — or a different cloud — does not need
-pyspiffe installed. When the import fails the provider raises
+it installed. When the import fails the provider raises
 :class:`ProviderConfigError` naming the exact install command.
 
-The pyspiffe Workload-API call is coded against the documented
-``pyspiffe>=1.0`` surface (``WorkloadApiClient.fetch_jwt_svid``). The
-serialized-token accessor and client teardown are handled defensively
-because their exact form has varied across pyspiffe releases.
+The Workload-API call is coded against py-spiffe's public surface
+(``spiffe>=0.2``): ``spiffe.WorkloadApiClient(socket_path=...)``,
+``fetch_jwt_svid(audience={...})`` and the serialized token on
+``JwtSvid.token``.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ DEFAULT_SPIFFE_ENDPOINT_SOCKET: str = "unix:///tmp/spire-agent/public/api.sock"
 #: authenticates to. Override with the audience your resource expects.
 _DEFAULT_AUDIENCE: str = "api://promptise-agent"
 
-#: The exact install command surfaced when pyspiffe is missing.
+#: The exact install command surfaced when py-spiffe is missing.
 _INSTALL_HINT: str = "pip install promptise[identity-spiffe]"
 
 
@@ -66,7 +66,7 @@ class SpiffeFileProvider(FileTokenProvider):
 
 
 class SpiffeSdkProvider(CallableTokenProvider):
-    """SPIFFE credential source using the Workload API via pyspiffe.
+    """SPIFFE credential source using the Workload API via py-spiffe.
 
     Args:
         socket_path: SPIRE agent Workload API socket. Falls back to
@@ -98,28 +98,30 @@ class SpiffeSdkProvider(CallableTokenProvider):
         """Fetch a JWT-SVID from the SPIRE Workload API.
 
         Requests ``audience`` when given, otherwise the configured default.
-        Lazily imports pyspiffe. Raises :class:`ProviderConfigError`
-        when pyspiffe is missing and :class:`CredentialAcquisitionError`
-        when the Workload API call fails; both propagate through the
-        base unchanged.
+        Lazily imports py-spiffe. Raises :class:`ProviderConfigError`
+        when it is missing and :class:`CredentialAcquisitionError`
+        when connecting to or calling the Workload API fails; both
+        propagate through the base unchanged.
         """
         try:
-            from pyspiffe.workloadapi.workload_api_client import (  # noqa: E402
-                WorkloadApiClient,
-            )
+            from spiffe import WorkloadApiClient  # noqa: E402
         except ImportError as exc:
             raise ProviderConfigError(
-                f"[spiffe-sdk] SPIFFE SDK mode requires pyspiffe, which is "
-                f"not installed. Install it with: {_INSTALL_HINT}. "
+                f"[spiffe-sdk] SPIFFE SDK mode requires the py-spiffe "
+                f"library (the 'spiffe' package), which is not installed. "
+                f"Install it with: {_INSTALL_HINT}. "
                 f"Alternatively use file mode "
                 f"(from_spiffe(token_file=...)) with spiffe-helper, which "
-                f"needs no pyspiffe."
+                f"needs no SPIFFE library."
             ) from exc
 
-        client = WorkloadApiClient(spiffe_socket_path=self._socket_path)
+        client: Any = None
         try:
+            # The client validates the socket address and checks that the
+            # socket exists, so constructing it can fail too.
+            client = WorkloadApiClient(socket_path=self._socket_path)
             jwt_svid = retry_call(
-                lambda: client.fetch_jwt_svid(audiences={audience or self._audience}),
+                lambda: client.fetch_jwt_svid(audience={audience or self._audience}),
                 is_transient=lambda _exc: True,
             )
         except Exception as exc:
@@ -130,17 +132,17 @@ class SpiffeSdkProvider(CallableTokenProvider):
                 f"socket, or this workload has no registration entry."
             ) from exc
         finally:
-            _close_quietly(client)
+            if client is not None:
+                _close_quietly(client)
 
         return _extract_serialized_token(jwt_svid, socket_path=self._socket_path)
 
 
 def _close_quietly(client: Any) -> None:
-    """Best-effort close of a pyspiffe client.
+    """Best-effort close of a Workload API client.
 
-    The teardown method has varied across pyspiffe releases; close it
-    if a ``close`` callable exists and swallow any teardown error so it
-    does not mask the fetch result.
+    Closes it if a ``close`` callable exists and swallows any teardown
+    error so it does not mask the fetch result.
     """
     close = getattr(client, "close", None)
     if callable(close):
@@ -151,11 +153,11 @@ def _close_quietly(client: Any) -> None:
 
 
 def _extract_serialized_token(jwt_svid: Any, *, socket_path: str) -> str:
-    """Extract the serialized JWT string from a pyspiffe JwtSvid.
+    """Extract the serialized JWT string from a ``spiffe.JwtSvid``.
 
-    The serialized-token accessor differs across pyspiffe versions —
-    an attribute on some, a method on others. Try the documented forms
-    in order and raise a precise error if none yields a non-empty string.
+    py-spiffe exposes it as the ``token`` property. The other accessors
+    are tried as a fallback for other Workload API clients; a precise
+    error is raised if none yields a non-empty string.
     """
     for attr in ("token", "token_str", "marshal", "serialize"):
         candidate = getattr(jwt_svid, attr, None)
@@ -169,7 +171,7 @@ def _extract_serialized_token(jwt_svid: Any, *, socket_path: str) -> str:
     raise CredentialAcquisitionError(
         f"[spiffe-sdk] the Workload API at {socket_path} returned a "
         f"JwtSvid, but the serialized token could not be extracted from "
-        f"it. Most common cause: the installed pyspiffe version exposes "
+        f"it. Most common cause: the installed py-spiffe version exposes "
         f"the token under an unexpected accessor."
     )
 

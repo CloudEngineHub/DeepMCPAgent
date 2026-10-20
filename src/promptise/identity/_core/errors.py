@@ -46,7 +46,7 @@ class ProviderConfigError(IdentityError):
     * Conflicting arguments were supplied (for example, both
       ``token_file`` and ``token_fn`` to the OIDC credential).
     * A required optional dependency is missing — boto3 for AWS, or
-      pyspiffe for SPIFFE SDK mode. The exception message names the
+      py-spiffe (the ``spiffe`` package) for SPIFFE SDK mode. The exception message names the
       exact ``pip install`` command that resolves it.
     """
 

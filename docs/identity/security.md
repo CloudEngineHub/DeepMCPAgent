@@ -54,7 +54,7 @@ touches — a verifiable identity's short-lived credential.
 ## Optional dependencies
 
 The cloud SDKs are never imported at module load. `boto3` (AWS STS) and
-`pyspiffe` (SPIFFE SDK) are imported *inside* the acquisition method, so
+py-spiffe (`spiffe`, SPIFFE SDK) are imported *inside* the acquisition method, so
 file-based modes need neither installed. A missing SDK raises
 [`ProviderConfigError`](#errors) naming the exact install command.
 
@@ -91,7 +91,7 @@ In the spirit of honest production claims, here is exactly what is verified:
   extraction, per-audience caching, refresh/expiry math, error classification,
   transient-retry behaviour, and concurrency (N threads collapse to one
   acquisition) are covered by the offline test suite. The cloud calls are mocked
-  (monkeypatched boto3 / `httpx` / `pyspiffe`), so the **logic** is proven.
+  (monkeypatched boto3 / `httpx` / `spiffe`), so the **logic** is proven.
 - **Live-smoke-tested:** the generic OIDC path is exercised end-to-end against a
   **real token** in CI (`.github/workflows/identity-integration.yml`). The other
   providers ship opt-in live smoke tests (`tests/identity/integration/`, marked
