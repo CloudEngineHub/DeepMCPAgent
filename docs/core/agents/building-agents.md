@@ -442,7 +442,7 @@ async with AgentRuntime() as runtime:
 
 The **FileJournal** records every state transition, trigger event, invocation, and tool call to an append-only JSONL file on disk. On crash, the **ReplayEngine** reconstructs the last known state so the agent can pick up where it left off.
 
-The journal is also your compliance audit trail. Every decision the agent made is timestamped, structured, and greppable.
+The journal is also your audit trail. Every decision the agent made is timestamped, structured, and greppable.
 
 ### When to use the runtime
 

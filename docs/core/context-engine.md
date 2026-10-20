@@ -6,7 +6,7 @@ Unified context assembly with token budgeting. Controls exactly what the LLM see
 from promptise import build_agent, ContextEngine
 
 engine = ContextEngine(model="openai:gpt-5-mini")
-engine.add_layer("company_policy", priority=7, content="We follow GDPR strictly.")
+engine.add_layer("company_policy", priority=7, content="Never share customer data outside the company.")
 
 agent = await build_agent(
     servers=servers, model="openai:gpt-5-mini", context_engine=engine,
@@ -14,10 +14,6 @@ agent = await build_agent(
 ```
 
 ---
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## Why
 
@@ -89,7 +85,7 @@ Add domain-specific context at any priority level:
 engine = ContextEngine(model="openai:gpt-5-mini")
 
 # Company knowledge — high priority, always included
-engine.add_layer("company_policy", priority=7, content="We follow GDPR...", required=True)
+engine.add_layer("company_policy", priority=7, content="Never share customer data outside the company...", required=True)
 
 # Seasonal context — medium priority, may be trimmed if window is tight
 engine.add_layer("seasonal", priority=4, content="It's Q4 — focus on year-end reports.")

@@ -22,10 +22,6 @@ agent = await build_agent(
 
 ---
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## Concepts
 
 Promptise memory has two layers:
@@ -61,7 +57,7 @@ class MemoryProvider(Protocol):
 | `search(query, limit=5, user_id=None)` | `list[MemoryResult]` | Search for memories relevant to the query. In `PER_USER` scope, results are filtered to that user. |
 | `add(content, metadata=None, user_id=None)` | `str` | Store a new memory, returns its ID. In `PER_USER` scope, stamps ownership. |
 | `delete(memory_id, user_id=None)` | `bool` | Delete a memory by ID. In `PER_USER` scope, only the owner can delete. |
-| `purge_user(user_id)` | `int` | Delete every entry owned by `user_id`. Returns the count removed. GDPR "right to erasure". |
+| `purge_user(user_id)` | `int` | Delete every entry owned by `user_id`. Returns the count removed. Use it to delete one user's data on request. |
 | `close()` | `None` | Release resources (connections, file handles) |
 
 The built-in providers also implement an optional method that is not part of the protocol:
@@ -81,7 +77,7 @@ Every built-in provider supports two isolation modes controlled by the `scope` p
 | Scope | Behavior | Use case |
 |---|---|---|
 | `MemoryScope.SHARED` (default) | Legacy global pool. `user_id` is ignored. All callers read/write the same entries. | Knowledge-base bots, shared org memory, public FAQ agents |
-| `MemoryScope.PER_USER` | Every operation is scoped to a `user_id`. Users cannot read or delete each other's entries. | Personal assistants, multi-tenant SaaS, compliance-sensitive workloads |
+| `MemoryScope.PER_USER` | Every operation is scoped to a `user_id`. Users cannot read or delete each other's entries. | Personal assistants, multi-tenant SaaS, workloads that hold sensitive personal data |
 
 ```python
 from promptise.memory import InMemoryProvider, MemoryScope, MemoryIsolationError
@@ -117,7 +113,7 @@ await agent.chat("What do I like to eat?", session_id=sid, user_id="alice")
 
 If no caller is set (e.g., background tasks), a `PER_USER` provider raises `MemoryIsolationError` during the auto-search; the agent logs it as `Memory search failed` and runs without memory context.
 
-### GDPR purge
+### Deleting one user's data
 
 ```python
 removed = await provider.purge_user("alice")   # → int count of deleted entries

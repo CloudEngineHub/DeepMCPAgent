@@ -2,10 +2,6 @@
 
 Track what your MCP server is doing in production with built-in metrics, distributed tracing, Prometheus export, structured logging, audit trails, and a live terminal dashboard.
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## Built-in Metrics
 
 ### `MetricsCollector`
@@ -268,7 +264,7 @@ On error:
 
 ### When you need it
 
-Your compliance team requires a tamper-evident record of every tool call -- who called what, when, with what arguments, and what happened. HIPAA, SOC 2, and GDPR compliance often require audit trails.
+You need a tamper-evident record of every tool call -- who called what, when, with what arguments, and what happened -- so a security or incident reviewer can trace any action later. Some uses of AI are regulated in some places; ask your legal and compliance team what applies to you.
 
 ### `AuditMiddleware`
 
@@ -281,7 +277,7 @@ server.add_middleware(AuditMiddleware(
     signed=True,               # HMAC chain for tamper detection
     hmac_secret="your-secret", # Or set PROMPTISE_AUDIT_SECRET env var
     include_args=True,         # Log tool arguments
-    include_result=False,      # Don't log results (may contain PHI)
+    include_result=False,      # Don't log results (may contain patient data)
 ))
 ```
 
@@ -498,7 +494,7 @@ metrics = MetricsCollector()
 
 # Observability stack (order matters)
 server.add_middleware(StructuredLoggingMiddleware())    # JSON logs for every call
-server.add_middleware(AuditMiddleware(                  # Compliance audit trail
+server.add_middleware(AuditMiddleware(                  # Tamper-evident audit trail
     log_path="/var/log/mcp-audit.jsonl",
     signed=True,
 ))

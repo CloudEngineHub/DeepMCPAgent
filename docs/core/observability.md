@@ -22,10 +22,6 @@ await agent.shutdown()                 # also writes ./reports/promptise-report-
 
 ---
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## Concepts
 
 Promptise observability is plug-and-play. Set `observe=True` and every agent invocation, LLM turn, tool call, token count, latency, retry, cache hit, and error is captured automatically: the agent records each invocation itself, and a LangChain callback handler records what happens inside it. Events are routed to one or more **transporters** -- HTML reports, structured logs, console output, Prometheus metrics, OpenTelemetry traces, or custom webhooks.
@@ -371,7 +367,7 @@ assert entry.session_id == "sess-1"
 | `collector.query(user_ids=[...], session_ids=[...])` | `list[TimelineEntry]` | Filter the ring buffer by user, session, event type, or time window |
 | `collector.for_user(user_id)` | `list[TimelineEntry]` | Shorthand for a single tenant's events |
 | `collector.get_users()` | `list[str]` | Unique sorted `user_id`s present in the buffer |
-| `collector.purge_user(user_id)` | `int` | GDPR "right to erasure" — drops every entry owned by that user |
+| `collector.purge_user(user_id)` | `int` | Deletes one user's data on request — drops every entry owned by that user |
 
 Entries without a caller (system events like `HEALTH_CHECK`) keep `user_id=None` and `session_id=None`; `purge_user` never touches them.
 

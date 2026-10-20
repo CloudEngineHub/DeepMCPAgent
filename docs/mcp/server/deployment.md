@@ -614,7 +614,7 @@ Before deploying to production:
 - [ ] **Observability**: Add `MetricsMiddleware` or `OTelMiddleware` for monitoring
 - [ ] **Rate limiting**: Add `RateLimitMiddleware` to prevent abuse
 - [ ] **Circuit breakers**: Protect against flaky downstream dependencies
-- [ ] **Audit logging**: Add `AuditMiddleware` for compliance
+- [ ] **Audit logging**: Add `AuditMiddleware` for a tamper-evident record of every tool call
 - [ ] **Process management**: Use systemd, supervisord, or Kubernetes — not `hot_reload`
 
 ## API Summary

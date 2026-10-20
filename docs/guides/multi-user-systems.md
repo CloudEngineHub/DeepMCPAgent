@@ -6,10 +6,6 @@ keywords: multi-user AI agent, multi-tenant AI agent, AI agent authentication, J
 
 # Building Agentic Multi-User Systems
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## What You'll Build
 
 A production-ready multi-user AI application where authenticated users each get isolated conversations, personalized memory, scoped cache, and guardrailed responses — backed by MCP servers with JWT authentication, role-based access control, tamper-evident audit logging, and per-user session state. The full stack: user authenticates → agent processes their request with their identity → MCP tools enforce their permissions → response is guardrailed → conversation persists to their session.
@@ -622,7 +618,7 @@ Three isolation levels:
 | `per_session` | Each session has own cache | Context-heavy conversations |
 | `shared` | Everyone shares cache | Public FAQ, documentation bots |
 
-GDPR compliance: `await cache.purge_user("user-42")` removes all cached entries for that user.
+To delete one user's data on request, `await cache.purge_user("user-42")` removes all cached entries for that user.
 
 ---
 
@@ -694,7 +690,7 @@ agent = await build_agent(..., memory=memory, memory_auto_store=True)
 
 The agent automatically reads `caller.user_id` from `CallerContext` and scopes every `search`/`add`/`delete` to that tenant. Users cannot read or delete each other's entries. If a per-user operation runs without a `user_id`, it raises `MemoryIsolationError`; the `MemoryAgent` wrapper catches this during auto-search so background tasks degrade gracefully (skip memory injection) rather than crash.
 
-GDPR compliance is built in: `await memory.purge_user("user-42")` removes every entry owned by that user across all three providers.
+To delete one user's data on request, `await memory.purge_user("user-42")` removes every entry owned by that user. It works on all three providers.
 
 ---
 
@@ -898,7 +894,7 @@ request (four-eyes). Full guide:
 **Reference documentation:**
 
 - [Guardrails](../core/guardrails.md) — all detector types, 165+ patterns, ML models, content safety
-- [Semantic Cache](../core/cache.md) — backends, embedding providers, scope modes, GDPR purge
+- [Semantic Cache](../core/cache.md) — backends, embedding providers, scope modes, per-user purge
 - [Conversations](../core/conversations.md) — all 4 stores, ownership model, custom stores
 - [Memory](../core/memory.md) — 3 providers, auto-injection, sanitization
 

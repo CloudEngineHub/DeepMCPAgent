@@ -27,7 +27,7 @@ keywords: Promptise Foundry FAQ, Python AI agent framework, MCP server framework
     {"@type":"Question","name":"How does Promptise Foundry handle prompt injection and security?","acceptedAnswer":{"@type":"Answer","text":"PromptiseSecurityScanner with six detection heads — DeBERTa-based prompt injection detection, PII detection (69 regex patterns), credential detection (96 patterns), GLiNER NER, content safety via Llama Guard or Azure AI, and custom rules. All models run locally."}},
     {"@type":"Question","name":"What memory backends does Promptise Foundry support?","acceptedAnswer":{"@type":"Answer","text":"Three providers — InMemoryProvider (testing), ChromaProvider (local vector search, persistent), and Mem0Provider (enterprise-grade graph search). The agent auto-searches memory before every invocation and injects relevant results with prompt-injection mitigation."}},
     {"@type":"Question","name":"Does Promptise Foundry support conversation persistence?","acceptedAnswer":{"@type":"Answer","text":"Yes. ConversationStore protocol with four backends — InMemoryConversationStore, SQLiteConversationStore, PostgresConversationStore, RedisConversationStore. The chat() method handles load, invoke, and persist automatically with session ownership enforcement."}},
-    {"@type":"Question","name":"Does Promptise Foundry support semantic caching?","acceptedAnswer":{"@type":"Answer","text":"Yes. SemanticCache with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for semantically similar queries — typically 30-50% cost reduction. GDPR purge_user() supported. Encrypted-at-rest option for Redis."}},
+    {"@type":"Question","name":"Does Promptise Foundry support semantic caching?","acceptedAnswer":{"@type":"Answer","text":"Yes. SemanticCache with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for semantically similar queries — typically 30-50% cost reduction. purge_user() deletes one user's cached entries on request. Encrypted-at-rest option for Redis."}},
     {"@type":"Question","name":"Can I sandbox code execution in Promptise Foundry?","acceptedAnswer":{"@type":"Answer","text":"Yes. Docker-based sandbox with seccomp syscall filtering, capability dropping, read-only rootfs, resource limits, and network isolation. Optional gVisor kernel. Five agent tools auto-injected when sandbox is enabled. Path traversal and shell injection prevention built in."}},
     {"@type":"Question","name":"How does observability work?","acceptedAnswer":{"@type":"Answer","text":"Four levels — OFF, BASIC, STANDARD, FULL. Every LLM turn, tool call, token count, latency, retry, cache hit/miss is recorded. Eight transporters — HTML report, JSON file, structured log, console, Prometheus, OpenTelemetry, webhook, callback."}},
     {"@type":"Question","name":"What governance does the Agent Runtime provide?","acceptedAnswer":{"@type":"Answer","text":"Four governance subsystems — Budget (tool calls, LLM turns, cost units, irreversible actions), Health (anomaly detection), Mission (LLM-as-judge evaluation against success criteria), and Secrets (per-process credential context with TTL expiry, rotation, zero-fill revocation)."}},
@@ -48,10 +48,6 @@ keywords: Promptise Foundry FAQ, Python AI agent framework, MCP server framework
 # Frequently Asked Questions
 
 Honest, complete answers about Promptise Foundry — the production Python framework for building AI agents, MCP servers, and autonomous runtimes.
-
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
 
 ## Foundations
 
@@ -233,7 +229,7 @@ The `chat()` method handles load → invoke → persist automatically. Session o
 
 ### Does Promptise Foundry support semantic caching?
 
-Yes. `SemanticCache` with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for **semantically similar queries** — typically 30–50% cost reduction. Output guardrails re-scan cached responses. GDPR `purge_user()` supported. Encrypted-at-rest option available for Redis.
+Yes. `SemanticCache` with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for **semantically similar queries** — typically 30–50% cost reduction. Output guardrails re-scan cached responses. `purge_user()` deletes one user's cached entries on request. Encrypted-at-rest option available for Redis.
 
 ## Prompt Engineering
 

@@ -20,10 +20,6 @@ agent = await build_agent(
 
 ---
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## Event Taxonomy
 
 25 event types across 9 categories. Events marked *runtime* come from an [`AgentProcess`](../runtime/index.md); the rest come from any agent built with `events=`.
@@ -54,7 +50,7 @@ agent = await build_agent(
 | | `process.stopped` | info | Agent process stopped |
 | | `process.failed` | critical | Agent process entered FAILED state (failed start, or `max_consecutive_failures` reached) |
 | | `process.restarted` | warning | Restart policy is restarting the process (`attempt`, `max_restarts`, `reason`) |
-| **Cache** | `cache.purged` | info | User cache purged (GDPR) |
+| **Cache** | `cache.purged` | info | A user's cached entries were deleted with `purge_user()` |
 
 `tool.error` and `tool.slow` are emitted whenever `events=` is set — they don't need `observe=True`.
 

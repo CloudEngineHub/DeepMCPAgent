@@ -26,10 +26,6 @@ This is **not** about the LLM credential. The model keeps its own
 authentication; identity is about *who is acting*, for attribution and
 authorization.
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## Why this matters
 
 Agents are a new class of **non-human actor** — they call tools, hit APIs, and
@@ -43,7 +39,7 @@ log. That breaks down fast:
 - **Least privilege** — without a verifiable identity, every agent holding the
   shared key has the **same** access. You can't scope one agent to billing and
   another to read-only.
-- **Audit & compliance** — SOC 2 / ISO / internal review ask *who* performed
+- **Audit** — security and incident reviewers ask *who* performed
   each action. "The model" is not an answer; "`billing-bot`, verified by your
   IdP" is.
 - **Blast radius** — an over-privileged or unattributable agent is exactly the
@@ -61,7 +57,7 @@ authenticate and authorize the agent with **no new secrets to manage**.
 |---|---|
 | Run more than one agent, or one across a fleet | a **local identity** for attribution — start today, zero infrastructure |
 | Have agents call protected MCP servers / internal APIs | a **verifiable identity** backed by your IdP |
-| Have audit/compliance requirements (who did what) | a **verifiable identity** (the verified subject is recorded in the tamper-evident audit log) |
+| Need an audit record of who did what | a **verifiable identity** (the verified subject is recorded in the tamper-evident audit log) |
 | Run multi-tenant or accept untrusted input | a **verifiable identity** + least-privilege scoping — the control that bounds the blast radius |
 
 ## Two tiers of identity

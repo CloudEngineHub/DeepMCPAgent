@@ -13,7 +13,7 @@ Build a production-ready AI agent in 9 incremental steps. Each step adds one cap
 
 ## What You'll Build
 
-An AI agent that connects to MCP servers, discovers tools automatically, remembers context across conversations, executes code safely in a sandbox, observes every action for debugging and compliance, and delegates work to peer agents. One function call creates it. Every capability is opt-in.
+An AI agent that connects to MCP servers, discovers tools automatically, remembers context across conversations, executes code safely in a sandbox, observes every action for debugging and audit, and delegates work to peer agents. One function call creates it. Every capability is opt-in.
 
 ## Concepts
 

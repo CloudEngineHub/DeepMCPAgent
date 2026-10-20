@@ -744,7 +744,7 @@ journal=JournalConfig(
 
 **Two purposes:**
 
-1. **Audit trail** — compliance teams want to know every decision the agent made. The journal is append-only JSONL on disk. You can grep it.
+1. **Audit trail** — reviewers want to know every decision the agent made. The journal is append-only JSONL on disk. You can grep it.
 2. **Crash recovery** — if the process dies (OOM kill, server restart, power failure), it restarts from the last checkpoint. No events lost, no duplicate actions taken.
 
 **Format:** JSONL files in `./pipeline_journal/<process-id>.jsonl` — one line per event, timestamped, structured.

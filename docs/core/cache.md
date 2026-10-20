@@ -24,10 +24,6 @@ result = await agent.ainvoke(input, caller=CallerContext(user_id="user-42"))
 
 ---
 
-!!! warning "Not legal or compliance advice"
-    The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.
-
-
 ## How It Works
 
 1. User sends a message
@@ -143,7 +139,7 @@ await agent.ainvoke(input, caller=CallerContext(user_id="bob"))    # Bob's cache
 - With `CallerContext(tenant_id="acme")` the key is tenant-qualified — an injective, colon-prefixed hash (`user:t:<sha256>`) disjoint from the untenanted namespace, so two tenants with the same `user_id` can never share a cache partition
 - Similarity search only runs within a user's own partition — no cross-user matching possible
 - If no `CallerContext` is provided, caching is silently disabled for that request (with a debug log: `"Cache: no CallerContext or user_id provided"`)
-- `purge_user("alice")` removes all of Alice's cached entries (GDPR compliance)
+- `purge_user("alice")` removes all of Alice's cached entries, for example when she asks you to delete her data
 
 **Per-session mode** isolates even further — each of a user's sessions has its own cache:
 
@@ -313,7 +309,7 @@ Disable with `invalidate_on_write=False` if your tools don't affect query result
 
 ---
 
-## GDPR Compliance
+## Deleting One User's Cached Data
 
 ```python
 # Delete all cached data for a user

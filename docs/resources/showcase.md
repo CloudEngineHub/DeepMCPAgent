@@ -229,7 +229,7 @@ async def run_migration(migration_name: str) -> str:
 #### 2. Payment processing server with audit logging
 
 **The scenario**
-Your agent needs to process Stripe payments. Every charge must be logged with tamper-evident audit records for compliance. Rate limiting prevents runaway agents from charging thousands of times.
+Your agent needs to process Stripe payments. Every charge must be logged with tamper-evident audit records so it can be traced later. Rate limiting prevents runaway agents from charging thousands of times.
 
 ```python
 import os
