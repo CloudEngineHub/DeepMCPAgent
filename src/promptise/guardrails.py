@@ -392,6 +392,50 @@ class GuardrailViolation(Exception):
 # ═══════════════════════════════════════════════════════════════════════
 
 
+def _iban_valid(iban: str) -> bool:
+    """IBAN mod-97 check (ISO 13616) of a compact IBAN."""
+    if not 15 <= len(iban) <= 34:
+        return False
+    rearranged = iban[4:] + iban[:4]
+    try:
+        return int("".join(str(int(c, 36)) for c in rearranged)) % 97 == 1
+    except ValueError:
+        return False
+
+
+def _iban_length(matched: str) -> int | None:
+    """Length of the IBAN that *matched* (printed in groups of four) starts with.
+
+    The grouped form can run on into a following word of four capitals or
+    digits ("ES91 2100 0418 4502 0005 1332 THEN"), so groups are dropped
+    from the end until the checksum holds.  ``None`` when no prefix is a
+    valid IBAN.
+    """
+    groups = matched.split(" ")
+    for count in range(len(groups), 2, -1):
+        candidate = " ".join(groups[:count])
+        if _iban_valid(candidate.replace(" ", "")):
+            return len(candidate)
+    return None
+
+
+def _drop_findings_inside_iban(findings: list[SecurityFinding]) -> list[SecurityFinding]:
+    """Drop PII findings that lie inside an IBAN finding.
+
+    The digits of an IBAN also read as other identifiers (Aadhaar, My
+    Number, a card, a tax number); the IBAN is what the text contains, so
+    it alone is reported and redacted.
+    """
+    ibans = [(f.start, f.end) for f in findings if f.category == "iban"]
+    if not ibans:
+        return findings
+    return [
+        f
+        for f in findings
+        if f.category == "iban" or not any(s <= f.start and f.end <= e for s, e in ibans)
+    ]
+
+
 def _luhn_check(number: str) -> bool:
     """Validate a number string using the Luhn algorithm."""
     digits = [int(d) for d in number if d.isdigit()]
@@ -414,6 +458,16 @@ def _luhn_check(number: str) -> bool:
 
 # Each pattern: (name, category, compiled_re, severity, description, group)
 _PII_PATTERNS: list[tuple[str, str, re.Pattern[str], Severity, str, str]] = []
+
+# Number patterns match a whole token or nothing: a match that starts or ends
+# inside a longer run of digits redacts part of it and leaves the rest in the
+# text ("Order 2024-118-5521" became "Order 2[PHONE]").  ``\b`` is not enough
+# where the pattern's own separators also join the longer number, so these
+# reject a digit (plus that separator) on either side.
+_NO_DIGIT_DASH_BEFORE = r"(?<!\d-)"
+_NO_DASH_DIGIT_AFTER = r"(?!-\d)"
+_NO_DIGIT_GROUP_BEFORE = r"(?<!\d )"
+_NO_DIGIT_GROUP_AFTER = r"(?! \d)"
 
 
 def _pii(
@@ -514,7 +568,7 @@ _pii(
 _pii(
     "cc_expiry",
     "card_expiry",
-    r"(?i)(?:exp(?:ir(?:y|ation))?|valid\s*(?:thru|through|until))\s*[:=]?\s*(?:0[1-9]|1[0-2])\s*[/\-]\s*(?:\d{2}|\d{4})",
+    r"(?i)(?:exp(?:ir(?:y|ation))?|valid\s*(?:thru|through|until))\s*[:=]?\s*(?:0[1-9]|1[0-2])\s*[/\-]\s*(?:\d{4}|\d{2})(?!\d)",
     Severity.HIGH,
     "Card expiration date",
     group="card_expiry",
@@ -524,7 +578,9 @@ _pii(
 _pii(
     "ssn",
     "ssn",
-    r"\b(?!666|000|9\d{2})\d{3}-(?!00)\d{2}-(?!0{4})\d{4}\b",
+    _NO_DIGIT_DASH_BEFORE
+    + r"\b(?!666|000|9\d{2})\d{3}-(?!00)\d{2}-(?!0{4})\d{4}\b"
+    + _NO_DASH_DIGIT_AFTER,
     Severity.CRITICAL,
     "US Social Security Number",
     group="ssn",
@@ -540,7 +596,7 @@ _pii(
 _pii(
     "us_passport",
     "passport",
-    r"(?i)(?:passport)\s*#?\s*[:=]?\s*([A-Z]{1,2}[0-9]{6,9})",
+    r"(?i)(?:passport)\s*#?\s*[:=]?\s*([A-Z]{1,2}[0-9]{6,9})\b",
     Severity.HIGH,
     "US passport number (contextual)",
     group="us_passport",
@@ -548,7 +604,7 @@ _pii(
 _pii(
     "us_itin",
     "itin",
-    r"\b9\d{2}-[7-9]\d-\d{4}\b",
+    _NO_DIGIT_DASH_BEFORE + r"\b9\d{2}-[7-9]\d-\d{4}\b" + _NO_DASH_DIGIT_AFTER,
     Severity.CRITICAL,
     "US Individual Taxpayer Identification Number (ITIN)",
     group="itin",
@@ -556,7 +612,7 @@ _pii(
 _pii(
     "us_ein",
     "ein",
-    r"(?i)(?:ein|employer\s*id(?:entification)?)\s*#?\s*[:=]?\s*(\d{2}-\d{7})",
+    r"(?i)(?:ein|employer\s*id(?:entification)?)\s*#?\s*[:=]?\s*(\d{2}-\d{7})(?!\d)",
     Severity.HIGH,
     "US Employer ID (contextual)",
     group="ein",
@@ -590,7 +646,7 @@ _pii(
 _pii(
     "uk_nhs",
     "nhs_number",
-    r"(?i)(?:nhs)\s*#?\s*[:=]?\s*(\d{3}\s?\d{3}\s?\d{4})",
+    r"(?i)(?:nhs)\s*#?\s*[:=]?\s*(\d{3}\s?\d{3}\s?\d{4})(?!\d)",
     Severity.HIGH,
     "UK NHS number (contextual)",
     group="uk_ids",
@@ -598,7 +654,7 @@ _pii(
 _pii(
     "ca_sin",
     "social_insurance",
-    r"\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b",
+    _NO_DIGIT_DASH_BEFORE + r"\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b" + _NO_DASH_DIGIT_AFTER,
     Severity.CRITICAL,
     "Canadian Social Insurance Number (SIN)",
     group="ca_sin",
@@ -633,7 +689,7 @@ _pii(
 _pii(
     "nl_bsn",
     "national_id",
-    r"(?i)(?:bsn|burgerservicenummer)\s*#?\s*[:=]?\s*(\d{9})",
+    r"(?i)(?:bsn|burgerservicenummer)\s*#?\s*[:=]?\s*(\d{9})(?!\d)",
     Severity.MEDIUM,
     "Dutch BSN (contextual)",
     group="nl_bsn",
@@ -649,7 +705,7 @@ _pii(
 _pii(
     "au_medicare",
     "medicare",
-    r"(?i)(?:medicare)\s*#?\s*[:=]?\s*([2-6]\d{3}\s?\d{5}\s?\d)",
+    r"(?i)(?:medicare)\s*#?\s*[:=]?\s*([2-6]\d{3}\s?\d{5}\s?\d)(?!\d)",
     Severity.HIGH,
     "Australian Medicare number (contextual)",
     group="au_ids",
@@ -673,7 +729,7 @@ _pii(
 _pii(
     "in_aadhaar",
     "aadhaar",
-    r"\b[2-9]\d{3}\s?\d{4}\s?\d{4}\b",
+    _NO_DIGIT_GROUP_BEFORE + r"\b[2-9]\d{3}\s?\d{4}\s?\d{4}\b" + _NO_DIGIT_GROUP_AFTER,
     Severity.CRITICAL,
     "Indian Aadhaar number",
     group="in_ids",
@@ -681,7 +737,7 @@ _pii(
 _pii(
     "in_pan",
     "pan_card",
-    r"(?i)(?:pan|permanent\s*account)\s*#?\s*[:=]?\s*([A-Z]{5}\d{4}[A-Z])",
+    r"(?i)(?:pan|permanent\s*account)\s*#?\s*[:=]?\s*([A-Z]{5}\d{4}[A-Z])\b",
     Severity.HIGH,
     "Indian PAN card (contextual)",
     group="in_ids",
@@ -697,7 +753,7 @@ _pii(
 _pii(
     "kr_rrn",
     "resident_registration",
-    r"\b\d{6}-[1-4]\d{6}\b",
+    _NO_DIGIT_DASH_BEFORE + r"\b\d{6}-[1-4]\d{6}\b" + _NO_DASH_DIGIT_AFTER,
     Severity.CRITICAL,
     "South Korean Resident Registration Number",
     group="kr_rrn",
@@ -705,7 +761,7 @@ _pii(
 _pii(
     "jp_my_number",
     "my_number",
-    r"\b\d{4}\s?\d{4}\s?\d{4}\b",
+    _NO_DIGIT_GROUP_BEFORE + r"\b\d{4}\s?\d{4}\s?\d{4}\b" + _NO_DIGIT_GROUP_AFTER,
     Severity.CRITICAL,
     "Japanese My Number (Individual Number)",
     group="jp_my_number",
@@ -739,7 +795,7 @@ _pii(
 _pii(
     "dl_new_york",
     "drivers_license",
-    r"(?i)(?:driver'?s?\s*(?:license|licence|lic)|DL)\s*#?\s*[:=]?\s*(\d{3}\s?\d{3}\s?\d{3})",
+    r"(?i)(?:driver'?s?\s*(?:license|licence|lic)|DL)\s*#?\s*[:=]?\s*(\d{3}\s?\d{3}\s?\d{3})(?!\d)",
     Severity.MEDIUM,
     "New York driver's license (contextual)",
     group="drivers_license",
@@ -780,11 +836,13 @@ _pii(
     group="phone",
 )
 # US specific (high precision — area code + 7 digits)
-# US phone — requires at least one separator (dash, dot, space, parens) to avoid matching bare 10-digit numbers
+# US phone — requires at least one separator (dash, dot, space, parens) to avoid matching bare 10-digit numbers.
+# Not inside a longer number: no word character, and no digit plus a dash
+# or dot, on either side ("2024-118-5521" is an order number, not a phone).
 _pii(
     "phone_us",
     "phone",
-    r"(?:\+?1[-.\s])?\(?\d{3}\)?[-.\s]\d{3}[-.\s]?\d{4}\b",
+    r"(?<!\w)(?<!\d[-.])(?:\+?1[-.\s])?\(?\d{3}\)?[-.\s]\d{3}[-.\s]?\d{4}(?!\w)(?![-.]\d)",
     Severity.MEDIUM,
     "US phone number",
     group="phone",
@@ -817,10 +875,15 @@ _pii(
 )
 
 # ── Financial ──
+# Compact ("DE89370400440532013000") or printed in groups of four
+# ("DE89 3704 0044 0532 0130 00").  The grouped form is checked with the
+# IBAN mod-97 checksum (see _iban_length); it would otherwise be read as an
+# Aadhaar / My Number / card number and only partly redacted.
 _pii(
     "iban",
     "iban",
-    r"\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}(?:[A-Z0-9]{0,18})?\b",
+    r"\b[A-Z]{2}\d{2}(?:[A-Z0-9]{4}\d{7}(?:[A-Z0-9]{0,18})?"
+    r"|(?: [A-Z0-9]{4}){2,7}(?: [A-Z0-9]{1,4})?)\b",
     Severity.HIGH,
     "International Bank Account Number (IBAN)",
     group="iban",
@@ -828,7 +891,7 @@ _pii(
 _pii(
     "swift",
     "swift_bic",
-    r"(?i)(?:swift|bic)\s*(?:code)?\s*[:=]\s*([A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?)",
+    r"(?i)(?:swift|bic)\s*(?:code)?\s*[:=]\s*([A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?)\b",
     Severity.MEDIUM,
     "SWIFT/BIC code (contextual)",
     group="swift",
@@ -844,7 +907,7 @@ _pii(
 _pii(
     "us_bank_account",
     "bank_account",
-    r"(?i)(?:account|acct)\s*#?\s*[:=]?\s*\d{8,17}",
+    r"(?i)(?:account|acct)\s*#?\s*[:=]?\s*\d{8,34}(?!\d)",
     Severity.HIGH,
     "US bank account number (contextual)",
     group="bank_account",
@@ -870,7 +933,7 @@ _pii(
 _pii(
     "npi",
     "npi",
-    r"(?i)(?:npi|national\s*provider)\s*#?\s*[:=]?\s*\d{10}",
+    r"(?i)(?:npi|national\s*provider)\s*#?\s*[:=]?\s*\d{10}(?!\d)",
     Severity.HIGH,
     "National Provider Identifier (NPI)",
     group="npi",
@@ -878,7 +941,7 @@ _pii(
 _pii(
     "dea",
     "dea_number",
-    r"(?i)(?:dea)\s*#?\s*[:=]?\s*([ABCDEFGHJKLMNPRSTUX][A-Z9]\d{7})",
+    r"(?i)(?:dea)\s*#?\s*[:=]?\s*([ABCDEFGHJKLMNPRSTUX][A-Z9]\d{7})(?!\d)",
     Severity.HIGH,
     "DEA registration number (contextual)",
     group="dea",
@@ -886,7 +949,7 @@ _pii(
 _pii(
     "mrn",
     "medical_record",
-    r"(?i)(?:mrn|medical\s*record)\s*#?\s*[:=]?\s*[A-Z0-9\-]{6,20}",
+    r"(?i)(?:mrn|medical\s*record)\s*#?\s*[:=]?\s*[A-Z0-9\-]{6,32}(?![A-Z0-9\-])",
     Severity.HIGH,
     "Medical record number (contextual)",
     group="medical_record",
@@ -902,7 +965,7 @@ _pii(
 _pii(
     "ndc",
     "drug_code",
-    r"\b\d{4,5}-\d{3,4}-\d{1,2}\b",
+    _NO_DIGIT_DASH_BEFORE + r"\b\d{4,5}-\d{3,4}-\d{1,2}\b" + _NO_DASH_DIGIT_AFTER,
     Severity.MEDIUM,
     "National Drug Code (NDC)",
     group="drug_code",
@@ -923,7 +986,7 @@ _pii(
 _pii(
     "dob_us",
     "date_of_birth",
-    r"(?i)(?:dob|date\s*of\s*birth|birth\s*date|born)\s*[:=]?\s*(?:0[1-9]|1[0-2])[/\-](?:0[1-9]|[12]\d|3[01])[/\-](?:19|20)\d{2}",
+    r"(?i)(?:dob|date\s*of\s*birth|birth\s*date|born)\s*[:=]?\s*(?:0[1-9]|1[0-2])[/\-](?:0[1-9]|[12]\d|3[01])[/\-](?:19|20)\d{2}(?!\d)",
     Severity.HIGH,
     "Date of birth (US format MM/DD/YYYY)",
     group="date_of_birth",
@@ -931,7 +994,7 @@ _pii(
 _pii(
     "dob_eu",
     "date_of_birth",
-    r"(?i)(?:dob|date\s*of\s*birth|birth\s*date|born)\s*[:=]?\s*(?:0[1-9]|[12]\d|3[01])[/\-.](?:0[1-9]|1[0-2])[/\-.](?:19|20)\d{2}",
+    r"(?i)(?:dob|date\s*of\s*birth|birth\s*date|born)\s*[:=]?\s*(?:0[1-9]|[12]\d|3[01])[/\-.](?:0[1-9]|1[0-2])[/\-.](?:19|20)\d{2}(?!\d)",
     Severity.HIGH,
     "Date of birth (EU format DD/MM/YYYY)",
     group="date_of_birth",
@@ -941,7 +1004,7 @@ _pii(
 _pii(
     "ipv4",
     "ip_address",
-    r"\b(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)){3}\b",
+    r"(?<![\d.])\b(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)){3}\b(?!\.\d)",
     Severity.LOW,
     "IPv4 address",
     group="ip_address",
@@ -993,7 +1056,7 @@ _pii(
 _pii(
     "vin",
     "vehicle_id",
-    r"(?i)(?:vin|vehicle\s*id)\s*#?\s*[:=]?\s*([A-HJ-NPR-Z0-9]{17})",
+    r"(?i)(?:vin|vehicle\s*id)\s*#?\s*[:=]?\s*([A-HJ-NPR-Z0-9]{17})\b",
     Severity.MEDIUM,
     "Vehicle Identification Number (contextual)",
     group="vin",
@@ -2892,12 +2955,21 @@ class PromptiseSecurityScanner:
 
             for m in pattern.finditer(text):
                 matched = m.group()
+                end = m.end()
 
                 # Credit card patterns require Luhn validation
                 if "credit_card" in category:
                     digits_only = re.sub(r"[\s\-]", "", matched)
                     if not _luhn_check(digits_only):
                         continue
+
+                # An IBAN printed in groups must pass the mod-97 check
+                if name == "iban" and " " in matched:
+                    length = _iban_length(matched)
+                    if length is None:
+                        continue
+                    matched = matched[:length]
+                    end = m.start() + length
 
                 findings.append(
                     SecurityFinding(
@@ -2907,13 +2979,13 @@ class PromptiseSecurityScanner:
                         confidence=1.0,
                         matched_text=matched,
                         start=m.start(),
-                        end=m.end(),
+                        end=end,
                         action=action,
                         description=f"{desc} detected",
                         metadata={"pattern": name, "luhn_valid": "credit_card" in category},
                     )
                 )
-        return findings
+        return _drop_findings_inside_iban(findings)
 
     def _scan_credentials(self, text: str, direction: str) -> list[SecurityFinding]:
         """Regex patterns for credential/secret detection."""

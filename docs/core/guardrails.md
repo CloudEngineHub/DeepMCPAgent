@@ -213,7 +213,7 @@ PIIDetector(exclude={"blood_type", "ip_address"})                 # exclude nois
 | Driver's licenses | `DRIVERS_LICENSE` | California, New York, Florida, Texas (contextual) |
 | Contact | `EMAIL`, `PHONE` | Email addresses, US + international phone numbers |
 | Postal | `POSTAL_CODE` | US ZIP, UK postcode, Canadian postal (contextual) |
-| Financial | `IBAN`, `SWIFT`, `BANK_ACCOUNT`, `ROUTING_NUMBER`, `CRYPTO_WALLET` | IBAN, SWIFT/BIC (contextual), bank accounts (contextual), Bitcoin, Ethereum |
+| Financial | `IBAN`, `SWIFT`, `BANK_ACCOUNT`, `ROUTING_NUMBER`, `CRYPTO_WALLET` | IBAN (compact, or printed in groups of four and checksum-validated), SWIFT/BIC (contextual), bank accounts (contextual), Bitcoin, Ethereum |
 | Healthcare | `NPI`, `DEA`, `MEDICAL_RECORD`, `DIAGNOSIS_CODE`, `DRUG_CODE`, `BLOOD_TYPE` | All contextual |
 | Biographic | `DATE_OF_BIRTH` | US and EU formats (contextual) |
 | Network | `IP_ADDRESS`, `MAC_ADDRESS` | IPv4, IPv6, MAC |
@@ -222,6 +222,9 @@ PIIDetector(exclude={"blood_type", "ip_address"})                 # exclude nois
 
 !!! info "Contextual patterns"
     Patterns marked "contextual" require a keyword before the data (e.g., "passport: AB1234567" matches, but "reference: AB1234567" does not). This prevents false positives on normal numbers and codes.
+
+!!! info "Whole numbers only"
+    A number pattern matches a whole number or nothing. Digits that are part of a longer number are left alone: the order number `2024-118-5521` is not a phone number, and a 14-digit value after `NPI` is not an NPI. When an IBAN's digits also read as another identifier (an Aadhaar or My Number, for example), only the IBAN is reported and redacted.
 
 ---
 
