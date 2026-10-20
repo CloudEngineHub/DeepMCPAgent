@@ -2075,7 +2075,8 @@ class AgentProcess:
             last start; ``None`` while stopped or failed), ``triggers``
             (``id``, ``type`` — the config type, e.g. ``"cron"`` —,
             ``source`` and, for a file watch, ``dropped_events``
-            and ``pending_events``), ``recovered`` (after a journal
+            and ``pending_events``; for an event or message trigger,
+            ``dropped_events``), ``recovered`` (after a journal
             recovery) and, per enabled subsystem, ``budget``,
             ``health_anomalies`` and ``health``
             (:meth:`HealthMonitor.health_status`), ``mission_state`` and
@@ -2762,6 +2763,11 @@ class AgentProcess:
         set_check = getattr(trigger, "set_availability_check", None)
         if callable(set_check):
             set_check(self._availability_reason)
+        set_overflow = getattr(trigger, "set_overflow_handler", None)
+        if callable(set_overflow):
+            # Event and message triggers: an event their full buffer drops
+            # is dead-lettered (and counted in status()), not lost silently.
+            set_overflow(lambda event: self._dead_letter(event, "trigger buffer full"))
         event_filter = self._trigger_filters.get(trigger.trigger_id)
         errors = 0
         # The event between wait_for_next() and the queue, and whether it
@@ -2915,6 +2921,9 @@ class AgentProcess:
                 keep.append(entry)
         self._dead_letters.clear()
         self._dead_letters.extend(keep)
+        if requeued:
+            # Like inject(): an idle-suspended process wakes for them.
+            await self._wake_if_idle()
         return requeued
 
     def _schedule_retry(self, event: TriggerEvent, attempt: int) -> None:

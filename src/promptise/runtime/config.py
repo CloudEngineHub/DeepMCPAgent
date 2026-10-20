@@ -443,6 +443,10 @@ class TriggerConfig(BaseModel):
             from .triggers.filters import validate_filter_expression
 
             validate_filter_expression(self.filter_expression)
+        elif self.filter_expression is not None:
+            from .triggers.filters import compile_filter
+
+            compile_filter(self.filter_expression)  # rejects an async function
         return self
 
     def _reject_options_of_other_types(self) -> None:

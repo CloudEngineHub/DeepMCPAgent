@@ -20,7 +20,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-from collections.abc import Iterable
+import re
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Protocol, runtime_checkable
@@ -131,13 +132,76 @@ class BaseTrigger(Protocol):
 # ----------------------------------------------------------------------
 
 
+#: ``custom_config`` keys whose values are masked (in trigger IDs and in
+#: ``GET .../triggers``).
+CREDENTIAL_KEY = re.compile(
+    r"secret|token|passw|pwd|api[-_]?key|auth|credential|private[-_]?key|signature|cookie",
+    re.I,
+)
+
+#: The user-info part of a URL (``scheme://user:password@``).
+_URL_USERINFO = re.compile(r"(?P<scheme>\b[A-Za-z][A-Za-z0-9+.\-]*://)[^/@\s]+@")
+
+MASK = "**********"
+
+
+def mask_secret_values(value: Any, *, by_key: bool = True) -> Any:
+    """*value* with credential-looking keys and URL user info masked.
+
+    The value of a key that looks like a credential (``token``,
+    ``secret``, ``password``, ``api_key``, ``auth``...) becomes
+    ``**********`` (unless *by_key* is false), and so does the user info
+    of a URL in any string (``postgres://app:pw@db/x`` becomes
+    ``postgres://**********@db/x``).
+    """
+    if isinstance(value, Mapping):
+        return {
+            k: MASK
+            if by_key and isinstance(k, str) and CREDENTIAL_KEY.search(k) and v not in (None, "")
+            else mask_secret_values(v, by_key=by_key)
+            for k, v in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [mask_secret_values(v, by_key=by_key) for v in value]
+    if isinstance(value, str) and "@" in value:
+        return _URL_USERINFO.sub(lambda m: f"{m.group('scheme')}{MASK}@", value)
+    return value
+
+
+def mask_trigger_config(data: Mapping[str, Any]) -> dict[str, Any]:
+    """A dumped :class:`TriggerConfig` with its secrets masked.
+
+    ``custom_config`` is masked by key name and URL user info; the
+    trigger's own fields by URL user info only (``hmac_secret`` is a
+    ``SecretStr``, already masked when dumped).
+    """
+    masked = {k: mask_secret_values(v, by_key=False) for k, v in data.items()}
+    if data.get("custom_config"):
+        masked["custom_config"] = mask_secret_values(data["custom_config"])
+    return masked
+
+
+def _callable_name(func: Any) -> str:
+    """``module.qualname`` of a filter callable: the same in every program run.
+
+    ``repr()`` of a function includes its memory address, which changes
+    every time the program starts.
+    """
+    target = func if hasattr(func, "__qualname__") else type(func)
+    module = getattr(target, "__module__", None) or ""
+    name = getattr(target, "__qualname__", None) or getattr(target, "__name__", None)
+    return f"{module}.{name}" if name else type(func).__name__
+
+
 def _trigger_fingerprint(trigger_config: Any) -> str:
     """A digest of a trigger config's content (secrets masked)."""
     try:
         data = trigger_config.model_dump(mode="json", exclude={"filter_expression"})
         expr = getattr(trigger_config, "filter_expression", None)
-        data["filter_expression"] = expr if isinstance(expr, str) or expr is None else repr(expr)
-        text = json.dumps(data, sort_keys=True, default=str)
+        data["filter_expression"] = (
+            expr if isinstance(expr, str) or expr is None else f"callable:{_callable_name(expr)}"
+        )
+        text = json.dumps(mask_trigger_config(data), sort_keys=True, default=str)
     except Exception:
         text = repr(trigger_config)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:10]

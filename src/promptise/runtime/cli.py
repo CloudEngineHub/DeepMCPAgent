@@ -409,6 +409,18 @@ def start(
             ),
         ),
     ] = None,
+    import_modules: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--import",
+            "-i",
+            metavar="MODULE",
+            help=(
+                "Import this Python module first, e.g. one that registers custom trigger "
+                "types with register_trigger_type() (repeatable)"
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Start agent process(es) from a .agent manifest or directory.
 
@@ -425,6 +437,8 @@ def start(
 
     if not path.exists():
         _fail(f"Not found: {manifest}")
+    modules = list(import_modules or [])
+    _import_modules(modules)
     if name is not None and path.is_dir():
         _fail(
             "--name renames the process of a single manifest file and can't apply to a "
@@ -464,6 +478,7 @@ def start(
             allow_command_deploys,
             allow_env_references=allow_env_references,
             allowed_env_vars=env_vars,
+            import_modules=modules,
         )
         return
 
@@ -493,6 +508,46 @@ def start(
         raise typer.Exit(code)
 
 
+def _import_modules(modules: list[str]) -> None:
+    """Import *modules* (``--import``), so what they register is available.
+
+    Custom trigger types are registered with
+    :func:`~promptise.runtime.triggers.register_trigger_type` when their
+    module is imported; without it a manifest that uses one passes nothing
+    to start it with.  The current directory is importable, as with
+    ``python -m``.
+    """
+    if not modules:
+        return
+    import importlib
+
+    cwd = os.getcwd()
+    if cwd not in sys.path:
+        sys.path.insert(0, cwd)
+    for module in modules:
+        try:
+            importlib.import_module(module)
+        except Exception as exc:
+            _fail(f"--import {module}: {type(exc).__name__}: {exc}")
+
+
+def _unknown_trigger_types(manifest: Any) -> list[str]:
+    """Problems for the manifest's triggers whose type nothing registered."""
+    from .triggers import registered_trigger_types
+
+    known = set(registered_trigger_types())
+    problems = []
+    for index, trigger in enumerate(manifest.triggers):
+        kind = trigger.get("type") if isinstance(trigger, dict) else None
+        if kind is not None and kind not in known:
+            problems.append(
+                f"triggers[{index}]: unknown trigger type {kind!r} (registered: "
+                f"{', '.join(sorted(known))}). Register it with register_trigger_type() in "
+                "a module and pass it with --import MODULE"
+            )
+    return problems
+
+
 def _check_manifests(path: Path) -> None:
     """Load every manifest *path* names before anything starts.
 
@@ -505,7 +560,8 @@ def _check_manifests(path: Path) -> None:
     problems: list[str] = []
     for file in files:
         try:
-            load_manifest(file)
+            for problem in _unknown_trigger_types(load_manifest(file)):
+                problems.append(f"{file}: {problem}")
         except ManifestValidationError as exc:
             problems.append(f"{file}: {exc}")
         except ManifestError as exc:
@@ -876,6 +932,7 @@ def _start_detached(
     *,
     allow_env_references: bool = False,
     allowed_env_vars: list[str] | None = None,
+    import_modules: list[str] | None = None,
 ) -> None:
     """Start the runtime as a detached background process and wait until it is ready."""
     import secrets
@@ -903,6 +960,8 @@ def _start_detached(
     ]
     if name is not None:
         cmd += ["--name", name]
+    for module in import_modules or []:
+        cmd += ["--import", module]
     if allow_command_deploys:
         cmd.append("--allow-command-deploys")
     if allow_env_references:
@@ -1629,9 +1688,22 @@ def validate(
         str,
         typer.Argument(help="Path to a .agent manifest file, or a directory of them"),
     ],
+    import_modules: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--import",
+            "-i",
+            metavar="MODULE",
+            help=(
+                "Import this Python module first, e.g. one that registers custom trigger "
+                "types with register_trigger_type() (repeatable)"
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Validate a .agent manifest file (or every .agent file in a directory)."""
     file_path = Path(path)
+    _import_modules(list(import_modules or []))
 
     if not file_path.exists():
         console.print(f"[red]Not found: {path}[/red]")
@@ -1662,6 +1734,11 @@ def _validate_one(file_path: Path) -> bool:
 
     try:
         warnings = validate_manifest(file_path)
+        unknown = _unknown_trigger_types(load_manifest(file_path))
+        if unknown:
+            for problem in unknown:
+                console.print(f"[red]✗[/red] {escape(problem)}")
+            return False
         console.print("[green]✓[/green] Schema validation passed")
 
         if warnings:

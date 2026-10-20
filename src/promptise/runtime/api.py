@@ -288,25 +288,11 @@ def command_features(config: Any) -> list[str]:
     return found
 
 
-#: ``custom_config`` keys whose values ``GET .../triggers`` masks.
-_CREDENTIAL_KEY = re.compile(
-    r"secret|token|passw|pwd|api[-_]?key|auth|credential|private[-_]?key|signature|cookie",
-    re.I,
-)
+def _mask_trigger_config(config: dict[str, Any]) -> dict[str, Any]:
+    """A dumped trigger config with credential-looking keys and URL user info masked."""
+    from .triggers.base import mask_trigger_config
 
-
-def _mask_custom_config(value: Any) -> Any:
-    """*value* with the values of credential-looking keys masked."""
-    if isinstance(value, Mapping):
-        return {
-            k: "**********"
-            if isinstance(k, str) and _CREDENTIAL_KEY.search(k) and v not in (None, "")
-            else _mask_custom_config(v)
-            for k, v in value.items()
-        }
-    if isinstance(value, list):
-        return [_mask_custom_config(v) for v in value]
-    return value
+    return mask_trigger_config(config)
 
 
 def _failure_response(
@@ -1664,7 +1650,8 @@ class OrchestrationAPI:
         Config triggers have stable IDs (see :func:`config_trigger_ids`);
         ``hmac_secret`` is masked, and so are the values of
         ``custom_config`` keys that look like credentials (``token``,
-        ``secret``, ``password``, ``api_key``, ``auth``...).
+        ``secret``, ``password``, ``api_key``, ``auth``...) and the user
+        info of any URL (``scheme://user:password@host``).
         """
         auth_err = self._require_auth(request)
         if auth_err:
@@ -1682,8 +1669,8 @@ class OrchestrationAPI:
                 config = tc.model_dump(mode="json", exclude={"filter_expression"})
             except Exception:
                 config = {"type": tc.type}
-            if config.get("custom_config"):
-                config["custom_config"] = _mask_custom_config(config["custom_config"])
+            # Credential-looking custom_config keys, and URL user info anywhere
+            config = _mask_trigger_config(config)
             triggers.append({"id": tid, "type": tc.type, "source": "config", "config": config})
         for t in getattr(process, "_dynamic_triggers", []):
             tid = getattr(t, "trigger_id", None) or str(id(t))

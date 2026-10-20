@@ -494,7 +494,7 @@ promptise runtime stop                                  # stop the runtime
 | `promptise runtime restart [NAME]` | Restart every process of a runtime, or one process |
 | `promptise runtime logs NAME` | Show the newest journal entries of a process (`--lines`, `--follow`, `--journal-path`) |
 | `promptise runtime rewind PROCESS [ENTRY_ID]` | Roll a process back to just before a journal entry (`--mode`, `--plan`, `--yes`) |
-| `promptise runtime validate PATH` | Validate a `.agent` file or every `.agent` file in a directory |
+| `promptise runtime validate PATH` | Validate a `.agent` file or every `.agent` file in a directory (`--import MODULE` imports a module that registers custom trigger types first) |
 | `promptise runtime init` | Generate a template `.agent` file (`--template basic\|cron\|webhook\|full`) |
 
 `start` runs its processes on one runtime with an in-process event bus (`InProcessEventBus`), so `event` triggers and escalations with an `event_type` reach the other processes of that runtime. It serves the [control API](../runtime/api.md) on `127.0.0.1` with a random bearer token and records the runtime in a private state directory, `~/.promptise/runtime` (`0700`; one `0600` file per runtime; `PROMPTISE_RUNTIME_STATE_DIR` moves it). The other commands find the runtime there, so with one runtime running they need no name. `--url` (with `$PROMPTISE_RUNTIME_TOKEN` or `--token`) targets an Orchestration API on another machine instead.
@@ -510,6 +510,7 @@ promptise runtime stop                                  # stop the runtime
 | `--api-host` | `127.0.0.1` | Address of the control API |
 | `--api-port` | `0` (a free port) | Port of the control API |
 | `--allow-command-deploys` | off | Let the control API deploy processes with stdio MCP servers or command hooks (refused with `403 COMMANDS_NOT_ALLOWED` otherwise) |
+| `--import`, `-i` | -- | Import a Python module before loading the manifests, e.g. one that registers custom trigger types with `register_trigger_type()` (repeatable; the current directory is importable) |
 
 A foreground runtime stops gracefully on Ctrl+C, on SIGTERM (`docker stop`) and on `promptise runtime stop`. `stop` asks over the control API first, falls back to SIGTERM, and kills the runtime only with `--force`.
 

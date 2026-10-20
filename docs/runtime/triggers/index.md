@@ -119,7 +119,7 @@ restored = TriggerEvent.from_dict(data)
 
 ## Trigger IDs
 
-Inside a process, each trigger in `config.triggers` gets a stable ID of the form `<type>-<digest>`, for example `cron-6d904fd75c`. The digest is a hash of the trigger's config (secret values are masked before hashing), so:
+Inside a process, each trigger in `config.triggers` gets a stable ID of the form `<type>-<digest>`, for example `cron-6d904fd75c`. The digest is a hash of the trigger's config (secret values are masked before hashing: `hmac_secret`, `custom_config` keys that look like credentials, and the user info of URLs; a function `filter_expression` counts by its module and name), so:
 
 - the ID does not depend on the trigger's position: removing one trigger leaves the others' IDs unchanged;
 - the ID is the same after a restart, and the same in every process with that trigger config;
@@ -292,6 +292,8 @@ trigger = create_trigger(config)
 
 The factory callable must accept `(config: TriggerConfig, *, event_bus=None, broker=None)` and return a `BaseTrigger` instance. Use `config.custom_config` to pass parameters to your trigger.
 
+A manifest started from the CLI can use a custom type when the module that registers it is imported first: `promptise runtime start agents/ --import myapp.triggers` (and `promptise runtime validate agents/ --import myapp.triggers`; repeat `--import` for several modules, and the current directory is importable). Without it, `validate` and `start` report `unknown trigger type 'sqs'` before anything starts.
+
 ### Registry API
 
 | Function | Description |
@@ -389,7 +391,7 @@ The expression is parsed once, when the `TriggerConfig` is created, and evaluate
 
 Anything else (arithmetic, comprehensions, lambdas, slices, dunder names, attribute access on non-dict objects, other calls) is rejected with a `ValidationError`. If an expression fails at evaluation time (say it compares `None < 3`), the event counts as *not matching* and a warning is logged.
 
-For logic that doesn't fit, pass a callable. It receives the `TriggerEvent`:
+For logic that doesn't fit, pass a callable. It receives the `TriggerEvent` and is called synchronously, so it must be a regular `def` function: an `async def` filter is rejected when the `TriggerConfig` is created (it would never be awaited, and every event would pass):
 
 ```python
 def is_new_bug(event) -> bool:

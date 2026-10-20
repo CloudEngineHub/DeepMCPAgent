@@ -25,6 +25,49 @@ from .base import TriggerEvent, drain_queue
 
 logger = logging.getLogger(__name__)
 
+#: Events a trigger buffers until the process takes them.
+_BUFFER_SIZE = 100
+
+
+class _OverflowCounter:
+    """Counts the events a full buffer dropped and hands them on (mixin).
+
+    The process sets an overflow handler (:meth:`set_overflow_handler`)
+    that dead-letters them, so a dropped event is visible in
+    ``dead_letters`` and ``status()["triggers"][i]["dropped_events"]``.
+    """
+
+    trigger_id: str
+    _dropped_events: int
+    _on_overflow: Callable[[TriggerEvent], Any] | None
+
+    @property
+    def dropped_events(self) -> int:
+        """Events dropped because the trigger's buffer was full."""
+        return self._dropped_events
+
+    def set_overflow_handler(self, handler: Callable[[TriggerEvent], Any] | None) -> None:
+        """Call *handler* with each event dropped because the buffer was full."""
+        self._on_overflow = handler
+
+    def _overflow(self, event: TriggerEvent, what: str) -> None:
+        self._dropped_events += 1
+        if self._dropped_events == 1 or self._dropped_events % 100 == 0:
+            logger.warning(
+                "%s %s: buffer full (%d), dropped the %s (%d dropped so far)",
+                type(self).__name__,
+                self.trigger_id,
+                _BUFFER_SIZE,
+                what,
+                self._dropped_events,
+            )
+        handler = self._on_overflow
+        if handler is not None:
+            try:
+                handler(event)
+            except Exception:
+                logger.debug("Overflow handler failed", exc_info=True)
+
 
 @dataclass
 class BusEvent:
@@ -94,7 +137,7 @@ class InProcessEventBus:
         return delivered
 
 
-class EventTrigger:
+class EventTrigger(_OverflowCounter):
     """Trigger that fires when an EventBus event matches.
 
     Wraps an EventBus subscription and converts matching events into
@@ -120,8 +163,10 @@ class EventTrigger:
         self._event_bus = event_bus
         self._event_type = event_type
         self._source_filter = source_filter
-        self._queue: asyncio.Queue[TriggerEvent] = asyncio.Queue(maxsize=100)
+        self._queue: asyncio.Queue[TriggerEvent] = asyncio.Queue(maxsize=_BUFFER_SIZE)
         self._running = False
+        self._dropped_events = 0
+        self._on_overflow = None
 
     async def _handler(self, event: Any) -> None:
         """EventBus subscriber callback."""
@@ -143,7 +188,7 @@ class EventTrigger:
         try:
             self._queue.put_nowait(trigger_event)
         except asyncio.QueueFull:
-            logger.warning("EventTrigger %s: queue full, dropping event", self.trigger_id)
+            self._overflow(trigger_event, "event")
 
     async def start(self) -> None:
         """Subscribe to the EventBus."""
@@ -200,7 +245,7 @@ class EventTrigger:
         )
 
 
-class MessageTrigger:
+class MessageTrigger(_OverflowCounter):
     """Trigger that fires when a message arrives on a broker topic.
 
     Wraps a message broker subscription.
@@ -221,9 +266,11 @@ class MessageTrigger:
         self.trigger_id = trigger_id or f"message-{uuid4().hex[:8]}"
         self._broker = broker
         self._topic = topic
-        self._queue: asyncio.Queue[TriggerEvent] = asyncio.Queue(maxsize=100)
+        self._queue: asyncio.Queue[TriggerEvent] = asyncio.Queue(maxsize=_BUFFER_SIZE)
         self._running = False
         self._subscription_id: str | None = None
+        self._dropped_events = 0
+        self._on_overflow = None
 
     async def _handler(self, message: Any) -> None:
         """MessageBroker subscriber callback."""
@@ -243,10 +290,7 @@ class MessageTrigger:
         try:
             self._queue.put_nowait(trigger_event)
         except asyncio.QueueFull:
-            logger.warning(
-                "MessageTrigger %s: queue full, dropping message",
-                self.trigger_id,
-            )
+            self._overflow(trigger_event, "message")
 
     async def start(self) -> None:
         """Subscribe to the MessageBroker topic."""

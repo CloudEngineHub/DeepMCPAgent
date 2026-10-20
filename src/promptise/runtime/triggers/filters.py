@@ -42,6 +42,7 @@ Example::
 from __future__ import annotations
 
 import ast
+import inspect
 import logging
 from collections.abc import Callable
 from typing import Any
@@ -299,17 +300,38 @@ def compile_filter(expression: str | Callable[[TriggerEvent], Any]) -> EventFilt
         *no match*: the event is skipped and a warning is logged.
 
     Raises:
-        FilterExpressionError: If a string expression is invalid.
+        FilterExpressionError: If a string expression is invalid, or the
+            callable is an ``async def`` function (filters run synchronously;
+            a coroutine would be truthy, so every event would pass).
     """
     if callable(expression):
         func = expression
+        call = getattr(func, "__call__", None)  # noqa: B004 - a callable object's method
+        if inspect.iscoroutinefunction(func) or inspect.iscoroutinefunction(call):
+            raise FilterExpressionError(
+                f"filter_expression {getattr(func, '__qualname__', func)!r} is an async "
+                "function; filters are called synchronously, so it would never be awaited "
+                "and every event would pass. Use a regular (def) function."
+            )
 
         def _call(event: TriggerEvent) -> bool:
             try:
-                return bool(func(event))
+                result = func(event)
             except Exception as exc:
                 logger.warning("filter callable raised %r; skipping event %s", exc, event.event_id)
                 return False
+            if inspect.isawaitable(result):
+                # e.g. a functools.partial of an async function: never awaited,
+                # so the event is skipped instead of passing unchecked.
+                close = getattr(result, "close", None)
+                if callable(close):
+                    close()
+                logger.warning(
+                    "filter callable returned an awaitable (an async function?); skipping event %s",
+                    event.event_id,
+                )
+                return False
+            return bool(result)
 
         return _call
 

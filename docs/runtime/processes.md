@@ -167,6 +167,7 @@ A run that raises is retried when `trigger_delivery.max_retries` is above 0 (def
 | `"process failed"` | Queued when the process failed, or arriving while it is `FAILED` |
 | `"retries exhausted"` | The run raised and used up `trigger_delivery.max_retries` |
 | `"queue full"` | `inject()` or a retry found the queue full |
+| `"trigger buffer full"` | An event or message trigger's 100-event buffer was full (also counted in the trigger's `dropped_events`) |
 | `"flagged by payload scan"` | `trigger_delivery.scan_payloads` flagged the payload |
 | `"blocked by guardrails"` | The guardrail scanner blocked the run |
 | `"blocked by hook"` | A `user_prompt_submit` hook refused the run |
@@ -180,7 +181,7 @@ requeued = await process.redeliver_dead_letters()  # or event_ids=[...]
 process.clear_dead_letters()
 ```
 
-`redeliver_dead_letters(event_ids=None)` puts the events back on the queue and returns how many it re-queued; events that don't fit stay in the list.
+`redeliver_dead_letters(event_ids=None)` puts the events back on the queue and returns how many it re-queued; events that don't fit stay in the list. Like `inject()`, it wakes a process suspended for `idle_timeout`.
 
 ---
 
@@ -199,7 +200,7 @@ process.clear_dead_letters()
 | `restart_count` | Automatic restart attempts in the current failure streak |
 | `journal_enabled` | Whether the process has a journal |
 | `trigger_count`, `dynamic_trigger_count` | Running config triggers, agent-added triggers |
-| `triggers` | One dict per trigger: `id`, `type`, `source` (`"config"` or `"dynamic"`), and for a file watch `dropped_events` and `pending_events` |
+| `triggers` | One dict per trigger: `id`, `type`, `source` (`"config"` or `"dynamic"`), for a file watch `dropped_events` and `pending_events`, and for an event or message trigger `dropped_events` |
 | `custom_tool_count`, `rebuild_count`, `spawned_process_count` | Open-mode counters |
 | `conversation_messages` | Messages in the conversation buffer |
 | `has_memory` | Whether a long-term memory provider is configured |
