@@ -551,7 +551,10 @@ async def test_child_source_feeds_stdin_and_shows_prompts(project: Path) -> None
                 outputs.append(event["text"])
                 if event["text"] == "Name: ":
                     await source.send({"cmd": "stdin", "text": "Ada"})
-            if event["kind"] == "run.exit":
+            # Not run.exit: the child sends that over its channel, which can
+            # arrive before the pipes hand over the last line.  "exited"
+            # comes after the process ended and both pipes were read.
+            if event["kind"] == "state" and event.get("state") == "exited":
                 return
 
     try:
