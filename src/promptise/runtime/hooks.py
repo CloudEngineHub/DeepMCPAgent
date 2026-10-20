@@ -61,6 +61,7 @@ Example::
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 import logging
 import uuid
@@ -280,6 +281,29 @@ def _is_async_callable(callback: Any) -> bool:
         return True
     call = getattr(callback, "__call__", None)  # noqa: B004 - async __call__ objects
     return call is not None and inspect.iscoroutinefunction(call)
+
+
+async def _run_with_timeout(awaitable: Awaitable[Any], timeout: float) -> None:
+    """Await *awaitable*, raising :class:`asyncio.TimeoutError` after *timeout* s.
+
+    Not :func:`asyncio.wait_for`: before Python 3.12 it can swallow a
+    cancellation of the calling task when the awaitable finishes at the
+    same moment, so a worker cancelled by ``AgentProcess.stop()`` while a
+    hook ran kept running and ``stop()`` waited forever.  ``asyncio.wait``
+    always lets the caller's cancellation through.
+    """
+    task = asyncio.ensure_future(awaitable)
+    try:
+        done, _ = await asyncio.wait({task}, timeout=timeout)
+    except asyncio.CancelledError:
+        task.cancel()
+        raise
+    if not done:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            await task
+        raise asyncio.TimeoutError
+    task.result()
 
 
 class HookManager:
@@ -534,7 +558,7 @@ class HookManager:
                 if timeout is None:
                     await reg.callback(ctx)
                 else:
-                    await asyncio.wait_for(reg.callback(ctx), timeout=timeout)
+                    await _run_with_timeout(reg.callback(ctx), timeout)
                 result.fired += 1
             except HookBlocked as exc:
                 result.fired += 1

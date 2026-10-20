@@ -361,6 +361,26 @@ def _final_reply_text(result: Any) -> str | None:
     return fallback
 
 
+async def _cancel_and_wait(tasks: list[asyncio.Task[Any]]) -> None:
+    """Cancel *tasks* and wait until every one of them has ended.
+
+    A single ``cancel()`` is not enough to rely on: code that swallows a
+    cancellation (``asyncio.wait_for`` before Python 3.12 does when the
+    awaited call finishes at the same moment) lets a task carry on, and
+    awaiting it then waits forever.  Cancel again until the task is done.
+    """
+    pending = {t for t in tasks if not t.done()}
+    for task in pending:
+        task.cancel()
+    while pending:
+        _done, pending = await asyncio.wait(pending, timeout=1.0)
+        for task in pending:
+            task.cancel()
+    for task in tasks:
+        if task.done() and not task.cancelled():
+            task.exception()  # retrieve it, so asyncio doesn't log it as never retrieved
+
+
 class AgentProcess:
     """Lifecycle container for a long-running agent process.
 
@@ -1687,28 +1707,14 @@ class AgentProcess:
             ran = task in self._running_workers
             self._dead_letter(event, reason, error="run cancelled" if ran else None)
             self._worker_events.pop(task, None)
-        for task in self._worker_tasks:
-            if task is not current:
-                task.cancel()
-        for task in self._worker_tasks:
-            if task is not current:
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
+        await _cancel_and_wait([t for t in self._worker_tasks if t is not current])
 
         # 2. Cancel trigger listeners
-        for task in self._trigger_listener_tasks:
-            if task is not current:
-                task.cancel()
-        for task in self._trigger_listener_tasks:
-            if task is not current:
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
+        await _cancel_and_wait([t for t in self._trigger_listener_tasks if t is not current])
 
         # 3. Cancel heartbeat
         if self._heartbeat_task and self._heartbeat_task is not current:
-            self._heartbeat_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._heartbeat_task
+            await _cancel_and_wait([self._heartbeat_task])
 
         # 4. Stop triggers (static + dynamic), then take the events still
         # inside them (a file watch's backlog, a webhook's queue).
