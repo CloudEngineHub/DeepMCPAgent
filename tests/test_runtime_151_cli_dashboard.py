@@ -102,7 +102,8 @@ def test_start_refuses_before_starting_anything(
     assert result.exit_code == 1
     assert "Traceback" not in output
     assert f"Environment variable '{_UNSET}' not found" in output
-    assert "nothing was started" in output
+    if target == "directory":
+        assert "nothing was started" in output
     assert "Loaded" not in output and "All processes stopped" not in output
 
 

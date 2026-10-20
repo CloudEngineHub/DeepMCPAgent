@@ -433,7 +433,6 @@ def start(
     if detach and dashboard:
         _fail("--dashboard needs a terminal and can't be combined with --detach")
 
-    _check_manifests(path)
     try:
         rname = _runtime_name_for(path, name, runtime_name)
         existing = find_state(rname)
@@ -454,6 +453,7 @@ def start(
     for var in env_vars:
         if not _ENV_VAR_NAME.match(var):
             _fail(f"--allow-env-var {var!r} is not an environment variable name")
+    _check_manifests(path)
     if detach:
         _start_detached(
             path,
