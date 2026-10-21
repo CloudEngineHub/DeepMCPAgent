@@ -4,6 +4,19 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
+## v1.5.2 — Unreleased
+
+Two runtime fixes: `get_node_status()` reports an unreachable node as `NodeUnreachableError`, and an event or message trigger dead-letters every event its full buffer drops, also before its listener runs.
+
+### Fixed
+
+- **`RuntimeCoordinator.get_node_status()` raised a plain `RuntimeError` for an unreachable node**, so failover code catching `NodeUnreachableError` missed it. It raises `NodeUnreachableError` (a `RuntimeError` subclass, with the `node_id`), as documented; `except RuntimeError` still catches it, and the message still starts with `Status request failed:`. `start_process_on_node()`, `stop_process_on_node()` and `inject_event_on_node()` already raised it.
+- **Events an event or message trigger dropped before its listener ran were counted but not dead-lettered.** The overflow handler was only set when the trigger's listener started, so a burst (or a bus that replays a backlog on subscribe) that filled the 100-event buffer during `start()`, `add_trigger()` or an agent's `add_trigger` was only counted in `dropped_events`. The handler is now set when the trigger is created, so every dropped event is dead-lettered with reason `"trigger buffer full"`.
+
+### Changed
+
+- Docs: the event, message and webhook trigger page no longer says a full event or message buffer drops events "with a warning"; it describes the 1.5.1 behavior (counted in `dropped_events` and dead-lettered). The triggers overview lists the `trigger buffer full` dead-letter reason and the `set_overflow_handler()` member of custom triggers, and the coordinator page says which errors `get_node_status()` raises.
+
 ## v1.5.1 — 2026-10-21
 
 Promptise now works with the MCP Python SDK 2.x as well as 1.x, the SPIFFE extra installs, sandboxed code no longer runs as root, PII patterns stop redacting parts of numbers, and a set of runtime fixes, among them a stop() race that could run a finished run again.
