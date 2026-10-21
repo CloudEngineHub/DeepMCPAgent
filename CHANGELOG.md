@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.2 — Unreleased
+## 1.5.2 — 2026-10-21
 
 `MCPClient` no longer reports a server's own error as a lost connection (a regression in 1.5.1), a stdio server answers the requests still running when its client closes stdin, `get_node_status()` reports an unreachable node as `NodeUnreachableError`, and an event or message trigger dead-letters every event its full buffer drops, also before its listener runs.
 
