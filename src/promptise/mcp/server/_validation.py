@@ -24,6 +24,9 @@ description, a plain string in the ``Annotated`` metadata
 (``Annotated[str, "The order ID"]``) is used, else the one from the
 docstring's ``Args:`` section (passed in as *param_docs*).
 
+:func:`build_input_model` is shared with :func:`promptise.tool`, so a
+function gets the same schema as a local tool and as an MCP tool.
+
 **Performance note:** ``build_input_model`` detects at build time whether
 any parameter is a ``BaseModel`` subclass.  When all fields are primitives
 the faster ``model_dump()`` path is used; otherwise the ``getattr()`` loop

@@ -170,15 +170,17 @@ async def _report_to_callbacks(
 
 
 def _checks_own_arguments(tool: BaseTool) -> bool:
-    """Whether *tool* is a Promptise MCP tool, bare or behind Promptise's
-    wrappers (approval gate, guardrail scanning, tool tracing).
+    """Whether *tool* is a Promptise MCP tool or a native ``@tool``, bare or
+    behind Promptise's wrappers (approval gate, guardrail scanning, tool
+    tracing).
 
-    Since 1.3.1 such a tool checks its own arguments the way
-    :func:`_checked_arguments` does, answers invalid ones with the same
+    Such a tool checks its own arguments the way :func:`_checked_arguments`
+    does (MCP tools since 1.3.1), answers invalid ones with the same
     ``ToolArgumentError``, and reports the rejected call through its own
     trace hooks (``trace_tools``, ``observer``), which a check before the
     call would bypass.
     """
+    from promptise.function_tools import FunctionTool
     from promptise.mcp.client._tool_adapter import _PromptiseMCPTool
     from promptise.tools import WrappingTool
 
@@ -187,7 +189,7 @@ def _checks_own_arguments(tool: BaseTool) -> bool:
         if not isinstance(inner, WrappingTool):
             break
         inner = getattr(inner, "_inner", None)
-    return isinstance(inner, _PromptiseMCPTool)
+    return isinstance(inner, (_PromptiseMCPTool, FunctionTool))
 
 
 def _checked_arguments(tool: BaseTool, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:

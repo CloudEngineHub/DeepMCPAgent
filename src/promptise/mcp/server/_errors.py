@@ -82,7 +82,13 @@ class MCPError(Exception):
 
 
 class ToolError(MCPError):
-    """Error raised inside a tool handler."""
+    """Error raised inside a tool handler.
+
+    Raise it in an ``@server.tool()`` handler, or in a function made a tool
+    with :func:`promptise.tool` (``from promptise import ToolError``): the
+    model gets the ``{"error": {"code", "message", ...}}`` envelope as the
+    tool's result and can act on it.
+    """
 
     def __init__(self, message: str, **kwargs: Any) -> None:
         kwargs.setdefault("code", "TOOL_ERROR")

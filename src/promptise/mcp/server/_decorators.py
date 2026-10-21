@@ -9,6 +9,9 @@ Introspects function signatures at registration time:
   becomes the tool/resource/prompt description, and the ``Args:`` section
   (Google style, a NumPy ``Parameters`` section, or Sphinx ``:param name:``
   fields) describes parameters
+
+The docstring helpers are shared with :func:`promptise.tool`, so a function
+gets the same parameter descriptions as a local tool and as an MCP tool.
 """
 
 from __future__ import annotations
@@ -156,6 +159,60 @@ def _docstring_summary(doc: str) -> str:
             break
         parts.append(stripped)
     return " ".join(parts)
+
+
+# Sphinx fields that document parameters (``:param x:``, ``:type x:`` ...).
+_SPHINX_PARAM_FIELD = re.compile(r"^:(?:param|parameter|arg|argument|key|keyword|type)\b[^:]*:")
+
+
+def _docstring_without_params(doc: str) -> str:
+    """An ``inspect.getdoc()``-cleaned docstring without its parameter docs.
+
+    Removes Google-style parameter sections (``Args:`` ...), NumPy-style
+    ``Parameters`` sections and Sphinx ``:param:`` / ``:type:`` fields,
+    which describe parameters in the schema instead.  Everything else
+    (the summary, later paragraphs, ``Returns:``, ``Raises:``, examples)
+    is kept as written.
+    """
+    lines = doc.splitlines()
+    out: list[str] = []
+    skip_indent: int | None = None  # inside a Google parameter section
+    sphinx_indent: int | None = None  # inside a Sphinx parameter field
+    in_numpy_params = False
+    index = 0
+    while index < len(lines):
+        section = _numpy_section(lines, index)
+        if section is not None:
+            in_numpy_params = section in _PARAM_SECTIONS
+            skip_indent = sphinx_indent = None
+            if not in_numpy_params:
+                out.extend(lines[index : index + 2])
+            index += 2
+            continue
+        line = lines[index]
+        index += 1
+        if in_numpy_params:
+            continue
+        stripped = line.strip()
+        indent = len(line) - len(line.lstrip())
+        if skip_indent is not None:
+            if not stripped or indent > skip_indent:
+                continue
+            skip_indent = None
+        if sphinx_indent is not None:
+            if stripped and indent > sphinx_indent:
+                continue
+            sphinx_indent = None
+        if _section_header(line) in _PARAM_SECTIONS:
+            skip_indent = indent
+            continue
+        if _SPHINX_PARAM_FIELD.match(stripped):
+            sphinx_indent = indent
+            continue
+        if not stripped and (not out or not out[-1].strip()):
+            continue  # one blank line between paragraphs
+        out.append(line.rstrip())
+    return "\n".join(out).strip()
 
 
 def _get_description(func: Callable[..., Any], explicit: str | None) -> str:

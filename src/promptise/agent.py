@@ -3017,7 +3017,7 @@ async def build_agent(
     memory_max_results: int = 5,
     memory_min_score: float = 0.0,
     memory_timeout: float = 5.0,
-    extra_tools: list[BaseTool] | None = None,
+    extra_tools: Sequence[BaseTool | Callable[..., Any]] | None = None,
     flow: Any | None = None,
     conversation_store: Any | None = None,
     conversation_max_messages: int = 0,
@@ -3138,9 +3138,11 @@ async def build_agent(
             - A dict of :class:`ObservabilityConfig` fields (as in a
               ``.superagent`` file's ``observability:`` section).
             - ``None``/``False``: Disabled (default).
-        extra_tools: Optional additional :class:`BaseTool` instances to
-            include alongside MCP-discovered tools.  Used by the runtime
-            for meta-tools (open mode) and custom agent-created tools.
+        extra_tools: Tools the agent can call next to the MCP-discovered
+            ones: functions made tools with :func:`promptise.tool`, plain
+            functions (made tools as if decorated with ``@tool``), and
+            LangChain ``BaseTool`` instances.  Anything else raises
+            ``TypeError`` before any server is connected.
         expose_resources: Also give the agent the MCP servers' resources:
             adds a ``read_resource`` tool (its description lists the
             available resources and URI templates) and a ``list_resources``
@@ -3295,6 +3297,11 @@ async def build_agent(
 
     # Reject an unknown pattern name before connecting to any MCP server.
     _check_agent_pattern(agent_pattern or pattern)
+    # Plain functions become tools; anything that is not a tool fails here,
+    # before any server is connected.
+    from .function_tools import as_tools
+
+    _extra_tools = as_tools(extra_tools)
     # Validate the flow before any server connects: a template that can't be
     # copied per conversation fails here, not after resources are open.
     _flow_sessions = FlowSessions(flow) if flow is not None else None
@@ -3733,9 +3740,8 @@ async def build_agent(
                 f"Expected a MemoryProvider instance or config dict."
             )
 
-    # Append extra tools (meta-tools, custom tools from runtime open mode)
-    if extra_tools:
-        tools.extend(extra_tools)
+    # Append extra tools (native and LangChain tools, runtime meta-tools)
+    tools.extend(_extra_tools)
 
     # MCP and cross-agent tools report to trace_tools / observer themselves;
     # give every other tool (sandbox, extra_tools) the same callbacks.

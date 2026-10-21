@@ -527,6 +527,8 @@ class CodeActionNode(BaseNode):
             return {"error": self._budget_message(name), "budget_exceeded": True}
         budget.used += 1
 
+        from promptise.function_tools import _JSONText
+
         hooks = config.get("_engine_hooks", [])
         tool = tool_map.get(name)
         call_start = time.perf_counter()
@@ -544,6 +546,11 @@ class CodeActionNode(BaseNode):
                 # data (lists, dicts, numbers) as the docs promise.
                 text = output
                 output = _parse_mcp_text(name, output)
+            elif isinstance(output, _JSONText):
+                # A native tool's return value, as JSON for the model: the
+                # program gets the value back.
+                text = str(output)
+                output = json.loads(output)
             # Preserve JSON-serializable structure so the program receives real
             # Python objects (dict/list/number/str), not a stringified blob.
             try:

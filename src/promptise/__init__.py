@@ -78,6 +78,7 @@ from .exceptions import (
     SuperAgentValidationError,
 )
 from .fallback import FallbackChain
+from .function_tools import ToolError, tool
 
 # Guardrails
 from .guardrails import (
@@ -206,6 +207,9 @@ __all__ = [
     "servers_to_mcp_config",
     "ToolInfo",
     "build_agent",
+    # Native tools
+    "tool",
+    "ToolError",
     # Models (bring your own provider)
     "Model",
     "PROVIDERS",
