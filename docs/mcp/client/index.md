@@ -378,7 +378,7 @@ Check the URL (http://localhost:8080); Promptise servers serve MCP at /mcp.
 
 Retrying with the same configuration fails the same way, so fix the credentials or URL instead of retrying.
 
-Other connection failures (server down, connection refused) raise a plain `MCPClientError` such as `Failed to connect to http://localhost:8080/mcp (ConnectError: ...)`. If an established connection drops during a call, that call raises `MCPClientError` (`Connection to ... was lost`) at once. The failure never cancels the task that opened the client, because the client owns its transport in a task of its own. That also makes it safe to close a client from a different task than the one that opened it.
+Other connection failures (server down, connection refused) raise a plain `MCPClientError` such as `Failed to connect to http://localhost:8080/mcp (ConnectError: ...)`. If an established connection drops during a call, that call raises `MCPClientError` (`Connection to ... was lost`) at once. An error the server answers with is not a lost connection, whatever its JSON-RPC code: reading a resource whose handler raised `ToolError` raises `MCPClientError: Failed to read resource 'docs://pages/holidays': There is no handbook page 'holidays'.`, and the session keeps working. The failure never cancels the task that opened the client, because the client owns its transport in a task of its own. That also makes it safe to close a client from a different task than the one that opened it.
 
 ### Reconnecting after a server restart
 

@@ -370,7 +370,7 @@ async def shutdown():
     print("Database disconnected")
 ```
 
-Startup hooks run before the server begins accepting requests. Shutdown hooks run during graceful shutdown (configurable via `shutdown_timeout`).
+Startup hooks run before the server begins accepting requests. Shutdown hooks run during graceful shutdown (configurable via `shutdown_timeout`). Over stdio, when the client closes stdin, the server first answers the requests still running, waiting at most `shutdown_timeout` seconds for them.
 
 ## Server Configuration
 

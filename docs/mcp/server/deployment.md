@@ -30,6 +30,8 @@ server.run(transport="stdio")
 
 Best for Claude Desktop integration. The MCP client spawns your server as a subprocess and communicates via stdin/stdout. No network configuration needed.
 
+When the client closes stdin, the server answers the requests it is still running before it exits, waiting at most `shutdown_timeout` seconds (30 by default), and then runs its shutdown hooks. So a script that writes a `tools/call` and closes stdin right away gets the answer. A request that waits on the client (an elicitation) can no longer be answered, so the server stops waiting for it. A client that terminates the process ends it sooner: the MCP SDK's stdio client does, 2 seconds after closing stdin.
+
 ```json title="Claude Desktop config"
 {
   "mcpServers": {

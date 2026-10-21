@@ -6,16 +6,18 @@ All notable changes to Promptise Foundry are documented here.
 
 ## v1.5.2 — Unreleased
 
-Two runtime fixes: `get_node_status()` reports an unreachable node as `NodeUnreachableError`, and an event or message trigger dead-letters every event its full buffer drops, also before its listener runs.
+`MCPClient` no longer reports a server's own error as a lost connection (a regression in 1.5.1), a stdio server answers the requests still running when its client closes stdin, `get_node_status()` reports an unreachable node as `NodeUnreachableError`, and an event or message trigger dead-letters every event its full buffer drops, also before its listener runs.
 
 ### Fixed
 
+- **`MCPClient` reported a server's JSON-RPC error with code -32000 as a lost connection** (new in 1.5.1, with mcp 1.x and 2.x). The client took every -32000 error for the SDK's "Connection closed", but -32000 is also the generic server-error code, and a Promptise server answers a `ToolError` raised in a resource or prompt handler with it. Reading a missing resource raised `Connection to ... was lost (MCPError: There is no handbook page 'holidays'.)` although the connection was fine and later calls worked. Only the SDK's own error (code -32000, message `Connection closed`, no data) and a closed stream count as a lost connection now; a server's error is reported as such again, as in 1.5.0: `Failed to read resource 'docs://pages/holidays': There is no handbook page 'holidays'.`
+- **A stdio server exited without answering a request when the client closed stdin right after sending it** (a shell pipe, a one-shot script; with mcp 1.x the `tools/call` answer was almost always missing, with 2.x sometimes). Both SDKs cancel the requests still running when the read side ends. The server now keeps the session open after stdin's EOF until those requests are answered and written to stdout, waiting at most `shutdown_timeout` seconds (30 by default), and stops waiting at once for a request that waits on the client (an elicitation).
 - **`RuntimeCoordinator.get_node_status()` raised a plain `RuntimeError` for an unreachable node**, so failover code catching `NodeUnreachableError` missed it. It raises `NodeUnreachableError` (a `RuntimeError` subclass, with the `node_id`), as documented; `except RuntimeError` still catches it, and the message still starts with `Status request failed:`. `start_process_on_node()`, `stop_process_on_node()` and `inject_event_on_node()` already raised it.
 - **Events an event or message trigger dropped before its listener ran were counted but not dead-lettered.** The overflow handler was only set when the trigger's listener started, so a burst (or a bus that replays a backlog on subscribe) that filled the 100-event buffer during `start()`, `add_trigger()` or an agent's `add_trigger` was only counted in `dropped_events`. The handler is now set when the trigger is created, so every dropped event is dead-lettered with reason `"trigger buffer full"`.
 
 ### Changed
 
-- Docs: the event, message and webhook trigger page no longer says a full event or message buffer drops events "with a warning"; it describes the 1.5.1 behavior (counted in `dropped_events` and dead-lettered). The triggers overview lists the `trigger buffer full` dead-letter reason and the `set_overflow_handler()` member of custom triggers, and the coordinator page says which errors `get_node_status()` raises.
+- Docs: the event, message and webhook trigger page no longer says a full event or message buffer drops events "with a warning"; it describes the 1.5.1 behavior (counted in `dropped_events` and dead-lettered). The triggers overview lists the `trigger buffer full` dead-letter reason and the `set_overflow_handler()` member of custom triggers, and the coordinator page says which errors `get_node_status()` raises. The MCP deployment and building-servers pages describe what a stdio server does when stdin closes, and the client page says a server's error is not a lost connection.
 
 ## v1.5.1 — 2026-10-21
 
