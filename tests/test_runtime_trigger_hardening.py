@@ -234,6 +234,11 @@ class TestFilterExpressions:
 
 
 async def _drain(trigger, timeout: float) -> list[dict]:
+    """The events arriving until none comes for *timeout* seconds.
+
+    Only for checking that nothing arrives: an expected event can miss a
+    short window on a busy machine (see :func:`_next_payload`).
+    """
     out = []
     try:
         while True:
@@ -242,6 +247,22 @@ async def _drain(trigger, timeout: float) -> list[dict]:
     except asyncio.TimeoutError:
         pass
     return out
+
+
+async def _next_payload(trigger, timeout: float = 10.0) -> dict:
+    """The payload of the next event.
+
+    The timeout is generous: when the event loop stalls (a slow CI runner,
+    a long garbage collection), the debounce timer and a short timeout fall
+    due together, and the timeout wins although the event is queued.
+    """
+    event = await asyncio.wait_for(trigger.wait_for_next(), timeout)
+    return event.payload
+
+
+def _nothing_waiting(trigger) -> bool:
+    """No event is queued and no debounce window is open: none can follow."""
+    return trigger.pending_events == 0 and not trigger._pending
 
 
 class TestFileWatchEvents:
@@ -253,10 +274,12 @@ class TestFileWatchEvents:
         trigger._emit_event(str(path), "created")
         trigger._emit_event(str(path), "modified")
         trigger._emit_event(str(path), "modified")
-        events = await _drain(trigger, 0.5)
-        assert len(events) == 1
-        assert events[0]["event_type"] == "created"
-        assert events[0]["event_types"] == ["created", "modified"]
+        payload = await _next_payload(trigger)
+        assert payload["event_type"] == "created"
+        assert payload["event_types"] == ["created", "modified"]
+        # The three raw events were all recorded before the window closed,
+        # so this one event is all there is.
+        assert _nothing_waiting(trigger)
 
     async def test_watch_events_filter_applies_to_net_event(self, tmp_path) -> None:
         # Built from config: the factory used to drop watch_events entirely.
@@ -279,8 +302,8 @@ class TestFileWatchEvents:
 
         path.unlink()
         trigger._emit_event(str(path), "deleted")
-        events = await _drain(trigger, 0.3)
-        assert [e["event_type"] for e in events] == ["deleted"]
+        assert (await _next_payload(trigger))["event_type"] == "deleted"
+        assert _nothing_waiting(trigger)
 
     async def test_created_then_deleted_inside_window_is_dropped(self, tmp_path) -> None:
         trigger = FileWatchTrigger(
@@ -324,12 +347,13 @@ class TestFileWatchEvents:
         try:
             await asyncio.sleep(0.3)
             (tmp_path / "report.md").write_text("hello")
-            events = await _drain(trigger, 1.5)
+            payload = await _next_payload(trigger)
+            later = await _drain(trigger, 1.0)  # a second event would come by now
         finally:
             await trigger.stop()
-        assert len(events) == 1
-        assert events[0]["filename"] == "report.md"
-        assert events[0]["event_type"] == "created"
+        assert payload["filename"] == "report.md"
+        assert payload["event_type"] == "created"
+        assert later == []
 
 
 # =========================================================================
