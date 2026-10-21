@@ -1,3 +1,8 @@
+---
+seo_title: "LangChain Callback Handler for Observability"
+description: "PromptiseCallbackHandler records LLM turns, tool calls, tokens, latency, retries and errors from LangChain and forwards them to the observability collector."
+---
+
 # Callback Handler
 
 The `PromptiseCallbackHandler` is a LangChain callback handler that captures

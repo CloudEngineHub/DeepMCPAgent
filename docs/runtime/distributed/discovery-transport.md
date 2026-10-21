@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Runtime Service Discovery and Transport"
+description: "How distributed runtime nodes find each other with static or registry discovery, and the HTTP transport routes used to manage agent processes across machines."
+---
+
 # Service Discovery and Transport
 
 The distributed runtime uses two complementary systems: **service discovery** for nodes to find each other, and **transport** for remote management via HTTP. Together, they enable multi-node agent deployments where processes can be started, stopped, monitored, and triggered across machines.

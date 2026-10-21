@@ -1,4 +1,9 @@
-# Architecture
+---
+seo_title: "Agent Identity Architecture and Credentials"
+description: "How Agent Identity attributes actions to an agent and presents verifiable credentials: attribution path, two tiers, credential lifecycle, MCP integration."
+---
+
+# Agent Identity Architecture
 
 Agent Identity has two jobs: **attribute** every action to the acting
 agent, and (optionally) **present** a verifiable credential to the

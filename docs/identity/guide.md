@@ -1,3 +1,8 @@
+---
+seo_title: "End-to-End Agent Identity for MCP Servers"
+description: "Give an autonomous agent a non-human identity, present it to MCP servers, verify it server-side, attribute delegated work and handle rotation and revocation."
+---
+
 # Guide: End-to-end agent identity
 
 This guide walks one realistic enterprise scenario from start to finish:

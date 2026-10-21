@@ -1,3 +1,8 @@
+---
+seo_title: "Cross-Agent Delegation API Reference"
+description: "API reference for CrossAgent and make_cross_agent_tools, which expose in-process peer agents as LangChain tools for per-peer ask calls and parallel broadcast."
+---
+
 # Cross-Agent API Reference
 
 Cross-agent communication utilities for Promptise Foundry. Exposes other in-process agents as standard LangChain tools so a primary agent can delegate to them during planning and execution. Supports per-peer ask tools and parallel broadcast to multiple peers.

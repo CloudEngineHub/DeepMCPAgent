@@ -1,3 +1,8 @@
+---
+seo_title: "Lab: Autonomous Pipeline Monitoring Agent"
+description: "Build an autonomous agent that watches a data pipeline, fixes recoverable issues, escalates critical ones and runs under budget, health and mission limits."
+---
+
 # Lab: Pipeline Observer Agent
 
 Build an autonomous agent that **watches a data pipeline, detects anomalies, fixes recoverable issues, and escalates critical problems** — all without human intervention.

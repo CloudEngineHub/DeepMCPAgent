@@ -1,3 +1,8 @@
+---
+seo_title: "Lab: Build a Code Review Agent"
+description: "Build a code review agent that finds security, performance and style issues, uses adversarial self-critique against false positives and cites line evidence."
+---
+
 # Lab: Code Review Agent
 
 Build an agent that reviews code for security vulnerabilities, performance issues, and best practices — using adversarial self-critique to catch false positives. Every finding must be justified with specific evidence.

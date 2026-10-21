@@ -1,3 +1,8 @@
+---
+seo_title: "Lab: Build a Text-to-SQL Data Analysis Agent"
+description: "Build an agent that turns natural language questions into SQL, cross-references tables and writes reports, with a custom reasoning pattern and caching."
+---
+
 # Lab: Data Analysis Agent
 
 Build an agent that converts natural language questions into SQL queries, cross-references data across tables, and produces accurate analytical reports. Uses a specialized reasoning pattern that outperforms generic ReAct by 60% on accuracy benchmarks.

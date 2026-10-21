@@ -1,4 +1,9 @@
-# Production Features
+---
+seo_title: "MCP Server Production Features Overview"
+description: "Overview of production features for MCP servers: caching, rate limiting, health checks, metrics, observability, resilience, middleware order and deployment."
+---
+
+# MCP Server Production Features
 
 Everything you need to run MCP servers in production — caching, rate limiting, health checks, metrics, observability, resilience, and advanced patterns. Each feature has a dedicated deep-dive page with real-world examples and full configuration reference.
 

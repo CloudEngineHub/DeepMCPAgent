@@ -1,6 +1,7 @@
 ---
 title: Key Concepts — How Promptise Foundry works
-description: Learn the core concepts of Promptise Foundry — agents, MCP servers, autonomous runtime, prompt engineering, memory, governance, and security. Understand the production agentic stack in one place.
+seo_title: "Key Concepts: How Promptise Foundry Works"
+description: "The core concepts of Promptise Foundry: agents, MCP servers, prompt and context engineering, the agent runtime, design principles and core abstractions."
 keywords: Promptise concepts, agentic AI architecture, MCP architecture, AI agent design, agent runtime, prompt engineering concepts
 ---
 

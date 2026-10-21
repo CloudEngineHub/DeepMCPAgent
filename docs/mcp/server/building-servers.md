@@ -1,4 +1,9 @@
-# Server Fundamentals
+---
+seo_title: "Build an MCP Server: Tools, Resources, Prompts"
+description: "Build an MCP server in Python: register tools with decorators and Pydantic validation, add resources, templates and prompts, lifecycle hooks, then run it."
+---
+
+# MCP Server Fundamentals
 
 Full reference for building MCP servers with decorator-based tool registration, Pydantic validation, and lifecycle hooks.
 

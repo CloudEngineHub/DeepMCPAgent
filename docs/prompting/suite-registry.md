@@ -1,4 +1,9 @@
-# Suite & Registry
+---
+seo_title: "Prompt Versioning: Suites and Registry"
+description: "Group related prompts with shared settings in a PromptSuite, and register, retrieve and roll back semantic prompt versions with PromptRegistry."
+---
+
+# Prompt Suite & Registry
 
 Group related prompts with shared configuration via `PromptSuite`, and version-control prompts with `PromptRegistry`.
 

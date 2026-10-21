@@ -1,3 +1,8 @@
+---
+seo_title: "Add Agent Identity to Existing Agents"
+description: "Add Agent Identity to existing agents with a one-line change: name your agents, pass identity= to build_agent, make it verifiable where needed, roll it out."
+---
+
 # Adding identity to existing agents
 
 Agent Identity is **additive**. It does not change how your agents are

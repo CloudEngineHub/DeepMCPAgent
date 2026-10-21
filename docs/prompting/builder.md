@@ -1,3 +1,8 @@
+---
+seo_title: "PromptBuilder: Build Prompts at Runtime"
+description: "Construct prompts at runtime with the fluent PromptBuilder API: templates, model, context providers, strategy, perspective, guards, hooks and output types."
+---
+
 # PromptBuilder
 
 Fluent API for constructing prompts programmatically at runtime. Use `PromptBuilder` when prompt configuration depends on runtime conditions -- user input, feature flags, A/B tests, or dynamic model selection.

@@ -1,3 +1,8 @@
+---
+seo_title: "Lab: Build a Customer Support Agent"
+description: "Build a customer support agent with a knowledge base MCP server, a custom reasoning pattern, conversation persistence, escalation rules and guardrails."
+---
+
 # Lab: Customer Support Agent
 
 Build a production customer support agent with multi-turn conversations, knowledge base integration, conversation phases, quality validation, and escalation rules. Complete, runnable code at every step.

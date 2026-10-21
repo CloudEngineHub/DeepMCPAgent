@@ -1,3 +1,8 @@
+---
+seo_title: "LLM Fallback Across Model Providers"
+description: "Fail over between LLM providers with FallbackChain: circuit breakers per model, which errors fall back, tools, streaming, caching and notifications."
+---
+
 # Model Fallback
 
 Automatic failover across multiple LLM providers. If the primary model fails, the next one in the chain handles the request — no downtime, no manual switching.

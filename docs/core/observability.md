@@ -1,4 +1,9 @@
-# Observability
+---
+seo_title: "Agent Observability: Token Usage and Traces"
+description: "Record agent runs, LLM turns, tool calls and token usage with observe=True, and export them as HTML reports, logs, Prometheus metrics or OpenTelemetry traces."
+---
+
+# Agent Observability
 
 Track token usage and export execution traces across your agent systems.
 

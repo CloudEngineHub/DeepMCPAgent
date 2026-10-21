@@ -1,3 +1,8 @@
+---
+seo_title: "Scoped Secrets for Agent Processes"
+description: "Give each agent process its own secrets with expiry, rotation without restarts, an access log and revocation, kept out of journals, history and API responses."
+---
+
 # Secret Scoping
 
 Secret scoping gives each agent process its own credentials, with expiry, rotation without a restart, an access log and revocation. Environment variables are shared by every agent on a host; a secret scope holds only the secrets one process needs, keeps them encrypted in memory, and makes sure their values never reach the journal, checkpoints, the conversation history or API responses in plain text.

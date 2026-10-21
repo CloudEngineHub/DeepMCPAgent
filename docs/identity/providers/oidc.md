@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Identity with Any OIDC Issuer"
+description: "Back an agent's identity with any OIDC issuer, such as GitLab CI, GitHub Actions, Keycloak or Dex, reading the JWT from a file, a callable or an env variable."
+---
+
 # Generic OIDC
 
 Back an agent's identity with any standards-compliant OIDC issuer —

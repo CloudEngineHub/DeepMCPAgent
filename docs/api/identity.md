@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Identity and Credentials API Reference"
+description: "API reference for AgentIdentity, the Entra, AWS, GCP, SPIFFE and OIDC credential providers, the credential cache, JWT claim helpers and identity exceptions."
+---
+
 # Agent Identity API Reference
 
 Identity, tracing, and attribution for agents — every public class,

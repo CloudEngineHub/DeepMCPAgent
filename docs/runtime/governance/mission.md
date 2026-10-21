@@ -1,3 +1,8 @@
+---
+seo_title: "Mission-Driven Agents with an LLM Judge"
+description: "Give an agent process an objective and success criteria; an LLM judge or your own check decides when the mission is achieved, with run limits and escalation."
+---
+
 # Mission-Oriented Process Model
 
 A mission turns an agent process from "run when triggered" into "work toward a goal until it is done". You give the process an objective and success criteria; after its runs, an LLM judge (or your own check) decides whether the mission is achieved, how confident it is, and whether to pause and escalate. The process completes, fails on a time or run limit, or is failed by an operator, and the mission's progress survives restarts when the process has a journal.

@@ -1,4 +1,9 @@
-# Strategies & Perspectives
+---
+seo_title: "Prompt Strategies: Chain of Thought and More"
+description: "Chain of thought, self-critique, plan-and-execute and decompose strategies control how an agent reasons; analyst and critic perspectives set its viewpoint."
+---
+
+# Prompt Strategies & Perspectives
 
 Strategies control **how** the agent reasons. Perspectives control **from where** the agent reasons. They are orthogonal and composable -- any strategy pairs with any perspective, and strategies compose via the `+` operator.
 

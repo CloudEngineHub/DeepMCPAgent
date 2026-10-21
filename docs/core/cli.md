@@ -1,4 +1,9 @@
-# CLI Reference
+---
+seo_title: "Promptise CLI Reference: Commands and Flags"
+description: "Every promptise CLI command: run, init, list-tools, agent, validate, serve an MCP server, mcpcast an API, check models, verify audit logs, manage runtimes."
+---
+
+# Promptise CLI Reference
 
 The `promptise` CLI provides commands for running your project (`run`), creating one (`init --project`), listing tools, running interactive agent sessions, serving an MCP server from a module (`serve`), turning an existing API into an MCP server (`mcpcast`), checking model providers (`models`), verifying audit logs (`audit verify`), and managing runtime processes.
 

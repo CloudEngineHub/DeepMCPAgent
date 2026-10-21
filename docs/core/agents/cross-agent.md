@@ -1,3 +1,8 @@
+---
+seo_title: "Cross-Agent Delegation Between AI Agents"
+description: "Let an agent delegate tasks to peer agents through auto-generated ask_agent tools and an opt-in broadcast tool, with timeouts, delegation limits and tracing."
+---
+
 # Cross-Agent Delegation
 
 Enable agents to delegate tasks to peer agents using auto-generated tools like `ask_agent_researcher` (and, opt-in, `broadcast_to_agents`).

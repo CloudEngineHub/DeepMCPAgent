@@ -1,3 +1,8 @@
+---
+seo_title: "Human-in-the-Loop Approval for Agent Tools"
+description: "Require human approval before an agent runs sensitive tools: approval policies, callback, webhook and queue handlers, denials and HMAC request signing."
+---
+
 # Human-in-the-Loop Approval
 
 Require human approval before executing sensitive tool calls. The agent pauses, sends an approval request to a human reviewer, and waits for a decision before proceeding or adapting.

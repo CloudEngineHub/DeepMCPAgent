@@ -1,3 +1,8 @@
+---
+seo_title: "Pass User Identity from Agent to MCP Server"
+description: "Carry user identity from your app through the agent to MCP tools with CallerContext: JWT propagation, server-side auth, role guards and per-user isolation."
+---
+
 # Multi-User Identity: CallerContext to MCP Server
 
 How user identity flows from your application through the agent to MCP tool servers — end to end. Covers CallerContext, JWT token propagation, server-side auth, role guards, and per-user data isolation.

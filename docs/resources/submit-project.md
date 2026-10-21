@@ -1,3 +1,8 @@
+---
+seo_title: "Submit a Project Built with Promptise"
+description: "Built something with Promptise Foundry? What the showcase looks for, the submission requirements, review criteria, how to submit and how to update a project."
+---
+
 # Submit your project
 
 Built something with Promptise Foundry? We want to see it. We feature standout projects in our showcase, documentation, social channels, and community highlights. Submitting is free, open to everyone, and takes 5 minutes.

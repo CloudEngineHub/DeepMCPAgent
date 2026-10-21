@@ -1,4 +1,9 @@
-# Serialization & YAML
+---
+seo_title: "Save and Load Reasoning Graphs as YAML"
+description: "Save a reasoning graph to YAML or a Python dict and load it back: what round-trips, what cannot be saved, the YAML format and custom node types."
+---
+
+# Graph Serialization & YAML
 
 Save and load graphs as YAML files or Python dicts. A saved graph loads back as the same graph: every node setting round-trips, or saving refuses with an error that names the node and the setting.
 

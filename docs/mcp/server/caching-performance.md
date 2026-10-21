@@ -1,4 +1,9 @@
-# Caching & Performance
+---
+seo_title: "MCP Server Caching and Rate Limiting"
+description: "Keep an MCP server fast and affordable with cached tool results, in-memory or Redis caches, rate limiting, token buckets, concurrency limits and timeouts."
+---
+
+# MCP Server Caching & Performance
 
 Control costs, protect downstream services, and keep your server responsive with caching, rate limiting, concurrency limits, and timeouts.
 

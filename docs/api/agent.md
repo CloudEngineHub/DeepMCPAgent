@@ -1,3 +1,8 @@
+---
+seo_title: "Agent and Reasoning Engine API Reference"
+description: "API reference for build_agent, PromptiseAgent, CallerContext and the reasoning graph engine: node types, graph state, hooks, processors and conversations."
+---
+
 # Agent API Reference
 
 Core agent creation, invocation, identity, conversations, and the full reasoning engine — every public class across `promptise.agent`, `promptise.engine`, and `promptise.conversations`.

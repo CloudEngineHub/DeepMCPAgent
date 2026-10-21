@@ -1,3 +1,8 @@
+---
+seo_title: "Shell Command Context in Prompt Templates"
+description: "Inject live system context into prompt templates by running shell commands at render time, off by default, with an allowlist, timeouts and custom executors."
+---
+
 # Shell Context Injection in Templates
 
 Inject live system context into prompt templates by running shell commands at render time. The `!`cmd`` syntax executes a command and replaces itself with stdout.

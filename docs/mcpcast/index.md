@@ -1,6 +1,7 @@
 ---
 title: MCPcast — turn your existing API into a real MCP server, end to end
-description: The complete MCPcast walkthrough. How an MCP server actually works, what MCPcast generates and why, a real run from a running FastAPI app to an agent using it over MCP, the approval gate stopping a write, and the review checklist — because the model designs the tool surface and it will misread things. Never ship it blindly.
+seo_title: "MCPcast: Turn Your API into an MCP Server"
+description: "The complete MCPcast walkthrough: how an MCP server works, what MCPcast generates, a real run from a Python API to an agent, the approval gate and the review."
 keywords: MCPcast, OpenAPI to MCP server, turn API into MCP, MCP server generator Python, how MCP works, MCP tools list call, FastAPI MCP, review generated MCP server
 ---
 

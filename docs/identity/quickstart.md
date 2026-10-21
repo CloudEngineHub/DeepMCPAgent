@@ -1,4 +1,9 @@
-# Quickstart
+---
+seo_title: "Agent Identity Quickstart in Five Minutes"
+description: "Give an agent a traceable identity in five minutes with no infrastructure, see it on the agent's timeline, make it verifiable and present it to an MCP server."
+---
+
+# Agent Identity Quickstart
 
 Give an agent a traceable identity in five minutes — no infrastructure
 required. Then, optionally, make it verifiable.

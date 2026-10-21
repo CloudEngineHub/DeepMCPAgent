@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Process Lifecycle and States"
+description: "The states every agent process moves through, from created to running, suspended, stopped or failed, the valid transitions, lifecycle events and StateError."
+---
+
 # Process Lifecycle
 
 Every `AgentProcess` moves through a fixed set of states: created, starting, running, suspended, stopping, stopped and failed. The `ProcessLifecycle` state machine checks every transition against a transition map, rejects invalid ones with a `StateError`, and records each change with a timestamp and a reason. Use this page to know what a state means, what moves a process between states, and which event each change emits.

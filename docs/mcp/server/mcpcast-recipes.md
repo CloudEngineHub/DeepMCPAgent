@@ -1,6 +1,7 @@
 ---
 title: MCPcast a Real API — Stripe, GitHub, Swagger 2 and your own app
-description: Recipes for running `promptise mcpcast` against the APIs people actually have — the Stripe OpenAPI spec, the 1,225-operation GitHub REST spec, a legacy Swagger 2.0 document, and your own FastAPI or Django app. Real commands, real output, measured numbers, and the gotchas each spec produces.
+seo_title: "MCPcast Recipes: Stripe, GitHub, Swagger 2"
+description: "Run promptise mcpcast on real APIs: the Stripe spec, the 1,225-operation GitHub spec, legacy Swagger 2.0 and your own FastAPI app, with real output and fixes."
 keywords: Stripe MCP server, GitHub MCP server from OpenAPI, Swagger 2 to MCP, MCPcast FastAPI, OpenAPI MCP server generator, MCP server from Swagger, Django OpenAPI MCP, large OpenAPI spec MCP
 ---
 

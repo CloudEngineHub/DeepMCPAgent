@@ -1,3 +1,8 @@
+---
+seo_title: "Stream Agent Output with Tool Events"
+description: "Stream agent runs with real-time tool activity and token-by-token text, serve them as Server-Sent Events from FastAPI and show tool names and summaries."
+---
+
 # Streaming with Tool Visibility
 
 Stream agent execution with real-time tool activity — see which tools are being called, their results, and the LLM generating text token by token.

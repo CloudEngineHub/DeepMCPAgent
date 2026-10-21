@@ -1,3 +1,8 @@
+---
+seo_title: "SuperAgent YAML File API Reference"
+description: "API reference for SuperAgentLoader, load_superagent_file and the .superagent schema: agent, identity, server, model, memory, sandbox, cross-agent sections."
+---
+
 # SuperAgent API Reference
 
 SuperAgent file loader, validator, and schema definitions. Handles loading, parsing, validating, and resolving `.superagent` configuration files, including cross-agent reference resolution with cycle detection and environment variable substitution.

@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Manifests: YAML for Agent Processes"
+description: "Declare an agent process in a .agent YAML manifest: model, instructions, MCP servers, triggers, state, governance and hooks, with strict validation and a CLI."
+---
+
 # Agent Manifests
 
 A `.agent` manifest is a YAML file that declares one agent process: model, instructions, MCP servers, triggers, initial state, governance, hooks and process settings. Manifests let you review and version an agent's definition like any other config, validate it before deploying, and start it from the CLI without writing Python. The loader is strict: an unknown key anywhere fails with the list of valid keys, so a typo never silently keeps a default.

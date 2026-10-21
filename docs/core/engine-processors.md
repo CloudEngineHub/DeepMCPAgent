@@ -1,4 +1,9 @@
-# Processors
+---
+seo_title: "Node Preprocessors and Postprocessors"
+description: "Functions that run before or after a PromptNode's LLM call: context enrichment, input checks, JSON extraction, confidence scoring, truncation and chaining."
+---
+
+# Node Processors
 
 Processors are functions that run before (preprocessors) or after (postprocessors) a PromptNode's LLM call. They transform state, validate inputs, parse outputs, and enrich results.
 

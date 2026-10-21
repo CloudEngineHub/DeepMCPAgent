@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Journal: Audit Trail and Recovery"
+description: "An agent process's append-only journal of state changes, runs and errors, with checkpoints for crash recovery, rewind and promptise runtime logs."
+---
+
 # Journal System
 
 The journal is a process's durable, append-only record: state transitions, context writes, run results, errors, restarts, and a checkpoint of the recoverable state after every run. It powers three things: you can see what a process did (`promptise runtime logs`, `GET /processes/{name}/journal`), a process picks up where it left off after a crash or restart, and you can [rewind](rewind.md) a process to an earlier point.

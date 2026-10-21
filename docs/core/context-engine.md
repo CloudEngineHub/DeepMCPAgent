@@ -1,3 +1,8 @@
+---
+seo_title: "Context Engine: LLM Token Budgeting"
+description: "Assemble what the LLM sees from priority-ranked context layers, with exact token counting, context window detection and trimming when the budget is exceeded."
+---
+
 # Context Engine
 
 Unified context assembly with token budgeting. Controls exactly what the LLM sees, in what order, with how many tokens — and trims gracefully when the context window is tight.

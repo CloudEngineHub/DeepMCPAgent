@@ -1,4 +1,9 @@
-# Routers & Middleware
+---
+seo_title: "MCP Server Routers and Middleware"
+description: "Group MCP tools, resources and prompts into routers with prefixes, and add logging, timeouts and other cross-cutting behaviour with middleware."
+---
+
+# MCP Server Routers & Middleware
 
 Organize tools into modular routers and add cross-cutting concerns like logging and timeouts via middleware.
 

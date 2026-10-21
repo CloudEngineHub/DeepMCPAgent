@@ -1,3 +1,8 @@
+---
+seo_title: "Code-Action Agents: Tools Called from Code"
+description: "Use the code-action pattern: the model writes one Python program over your tools and runs it in a sandbox, for tasks that gather many facts and then compute."
+---
+
 # Code-Action: one program beats a 20-call tool loop
 
 For tasks that **gather many facts and then compute** — sum a department's

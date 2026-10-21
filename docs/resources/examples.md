@@ -1,4 +1,9 @@
-# Examples Gallery
+---
+seo_title: "Runnable Examples: Agents, MCP and Runtime"
+description: "Runnable examples for Promptise Foundry with real LLM calls: MCP servers and clients, agent identity, prompt engineering, the agent runtime and hands-on labs."
+---
+
+# Promptise Foundry Examples
 
 Complete, runnable examples demonstrating every capability of Promptise Foundry. All examples use real LLM calls -- no mocks or stubs.
 

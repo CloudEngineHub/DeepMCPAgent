@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Orchestration REST API and Client"
+description: "Control a running agent runtime over HTTP: deploy and stop processes, change instructions, budgets and triggers, send messages, rotate secrets, read journals."
+---
+
 # Orchestration API
 
 `OrchestrationAPI` is a REST API for a running `AgentRuntime`. Use it to deploy, start, stop and remove agent processes, change their instructions, budgets and triggers while they run, send them messages, rotate their secrets and read their journals, all over HTTP. `OrchestrationClient` is the matching typed Python client. `promptise runtime start` serves this API for you (see [CLI Commands](cli.md)); in your own program you start it yourself.

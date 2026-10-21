@@ -1,3 +1,8 @@
+---
+seo_title: "Conversation Buffer for Agent Processes"
+description: "ConversationBuffer, an agent process's short-term memory: a rolling window of recent messages replayed each run, kept across restarts with secrets redacted."
+---
+
 # Conversation Buffer
 
 `ConversationBuffer` is an agent process's short-term memory: a rolling window of the last messages exchanged, replayed to the agent on every run so it remembers what it saw and said on earlier runs. Each `AgentProcess` owns one. It keeps its history across `stop()` / `start()` and restarts, can be checkpointed and recovered with a journal, and never stores a secret value in plain text.

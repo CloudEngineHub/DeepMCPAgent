@@ -1,3 +1,8 @@
+---
+seo_title: "Cron Trigger: Schedule AI Agent Runs"
+description: "Run an agent on a cron schedule for monitoring, pipeline checks and reports: cron expressions, time zones and DST, how ticks become runs, the event payload."
+---
+
 # Cron Trigger
 
 The `CronTrigger` runs an agent on a schedule defined by a cron expression. Use it for periodic monitoring, pipeline checks, daily digests and scheduled reports. Each tick becomes one agent run.

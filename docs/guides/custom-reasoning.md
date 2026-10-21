@@ -1,3 +1,8 @@
+---
+seo_title: "Build Custom Agent Reasoning Patterns"
+description: "Build your own agent reasoning patterns on the reasoning graph: pipelines, quality gates, parallel research, LLM routing, custom nodes and debugging."
+---
+
 # Building Custom Agentic Reasoning Patterns
 
 This guide shows how to build your own agent reasoning strategies using the Reasoning Graph — from simple tool-calling agents to sophisticated multi-stage reasoning systems.

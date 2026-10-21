@@ -1,3 +1,8 @@
+---
+seo_title: "Approval, Cache and Guardrails API Reference"
+description: "API reference for approval, semantic cache, events, model fallback, guardrails, streaming, tool optimization, the context engine, env resolution and types."
+---
+
 # Utilities API Reference
 
 Root-level modules: approval, cache, events, fallback, guardrails, streaming, tool optimization, adaptive strategy, context engine, env resolution, types, and exceptions.

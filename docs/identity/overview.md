@@ -1,3 +1,8 @@
+---
+seo_title: "AI Agent Identity and Action Attribution"
+description: "Give every AI agent a stable, traceable non-human identity, stamped on its tool calls, LLM turns and audit entries, optionally verifiable by servers it calls."
+---
+
 # Agent Identity
 
 **Know, trace, and identify the agent that acts.**

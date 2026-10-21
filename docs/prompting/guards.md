@@ -1,4 +1,9 @@
-# Guards
+---
+seo_title: "Prompt Guards: Validate LLM Input and Output"
+description: "Validate and transform prompt input before the LLM call and output after it with content, length, schema and custom guards, and handle GuardError."
+---
+
+# Prompt Guards
 
 Runtime enforcers that validate and transform input before the LLM call and output after it. Guards protect your prompts from bad data going in and bad data coming out.
 

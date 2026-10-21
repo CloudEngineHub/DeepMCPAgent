@@ -1,6 +1,7 @@
 ---
 title: Build a Production MCP Server in Python — 12-step guide
-description: Build a production-grade MCP (Model Context Protocol) server in Python from scratch with Promptise Foundry in 12 incremental steps. Covers tools, resources, prompts, JWT authentication, capability-based authorization, middleware, caching, rate limiting, audit logging, and deployment.
+seo_title: "Build a Production MCP Server in Python"
+description: "Build a production MCP server in 12 steps: tools, Pydantic validation, resources, prompts, JWT auth, guards, routers, middleware, caching and job queues."
 keywords: build MCP server, MCP server tutorial, production MCP server, MCP server Python, Model Context Protocol server, JWT MCP server, MCP authentication
 ---
 

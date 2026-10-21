@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Context Management for Long Tool Loops"
+description: "Stop context bloat in long tool loops: how compaction works, context_scope modes on PromptNode, the verify and managed patterns, and which one to use."
+---
+
 # Context Lifecycle Management
 
 The single biggest reason long-running agents get slow, expensive, and *wrong*

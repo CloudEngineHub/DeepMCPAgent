@@ -1,4 +1,9 @@
-# Prebuilt Patterns
+---
+seo_title: "Prebuilt Reasoning Graph Factories"
+description: "Ten ready-made reasoning graphs: ReAct, verify, managed, code-action, PEOATR, research, autonomous, deliberate, debate and pipeline, and what each one does."
+---
+
+# Prebuilt Reasoning Patterns
 
 Ten ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
 

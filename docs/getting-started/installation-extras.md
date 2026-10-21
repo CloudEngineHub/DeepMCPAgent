@@ -1,10 +1,11 @@
 ---
 title: Install Promptise Foundry — pip install with optional extras
-description: Install Promptise Foundry with pip. Python 3.10+. Optional extras for memory backends (Chroma, Mem0), sandboxing (Docker, gVisor), observability (Prometheus, OpenTelemetry), and more. The base install ships a complete framework.
+seo_title: "Install Promptise with pip: Optional Extras"
+description: "Install Promptise Foundry with pip: what the base install includes, what the all, sandbox and identity extras add, MCP SDK versions and air-gapped installs."
 keywords: install promptise, pip install promptise, Promptise Foundry install, Python AI agent install
 ---
 
-# Installation
+# Install Promptise Foundry
 
 Promptise ships a complete framework in the base install. You only need an extra when you want the full production stack.
 

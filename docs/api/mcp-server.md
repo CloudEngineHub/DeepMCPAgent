@@ -1,3 +1,8 @@
+---
+seo_title: "Python MCP Server SDK API Reference"
+description: "API reference for the MCP server SDK: MCPServer, routers, auth, guards, middleware, caching, job queue, approval gates, multi-tenancy and TestClient."
+---
+
 # MCP Server API Reference
 
 Production framework for building MCP-compliant tool servers. Every middleware, auth provider, guard, transform, and utility is documented here.

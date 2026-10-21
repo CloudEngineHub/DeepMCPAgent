@@ -1,6 +1,7 @@
 ---
 title: Promptise Foundry Blog — building production AI agents & MCP servers
-description: Tutorials and deep dives on building production AI agents, MCP servers, and autonomous agent runtimes in Python with Promptise Foundry — MCP-native, secure by default.
+seo_title: "Promptise Foundry Blog: AI Agents and MCP Servers"
+description: "Tutorials and deep dives on building production AI agents, MCP servers and autonomous agent runtimes in Python with Promptise Foundry."
 ---
 
 # Blog

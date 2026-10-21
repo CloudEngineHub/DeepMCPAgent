@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Runtime Dashboard in the Terminal"
+description: "Watch a running agent runtime in a terminal UI: process states, triggers, context state and logs, started from the CLI or Python, with its data collector."
+---
+
 # Runtime Dashboard
 
 `RuntimeDashboard` is a full-screen terminal UI for watching a running `AgentRuntime`: process states and counters, configured triggers, each process's context state, and captured log output, refreshed several times a second. It is built on `rich` and is meant for local development and demos; for remote or scripted control use the [Orchestration API](api.md) or the [CLI](cli.md).

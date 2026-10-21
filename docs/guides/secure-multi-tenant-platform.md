@@ -1,6 +1,7 @@
 ---
 title: Build a Secure Multi-Tenant Agent Platform — Promptise Foundry
-description: Build a multi-tenant SaaS AI platform with Promptise Foundry — per-tenant data isolation, role-based access, server-side human-in-the-loop approval for destructive tools, and a tamper-evident audit trail. The enterprise capstone, end to end.
+seo_title: "Build a Secure Multi-Tenant Agent Platform"
+description: "Build the AI backend of a multi-tenant SaaS: tenant isolation, role-based access, server-side approval for destructive tools and a tamper-evident audit log."
 keywords: multi-tenant AI platform, SaaS AI agent, tenant isolation, human-in-the-loop approval, four-eyes approval, MCP server security, enterprise AI agent, audit trail AI
 ---
 

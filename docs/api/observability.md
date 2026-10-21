@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Observability API Reference"
+description: "API reference for agent observability: ObservabilityCollector, ObservabilityConfig, observe levels, HTML, Prometheus, OTLP and webhook transporters."
+---
+
 # Observability API Reference
 
 Plug-and-play observability system for Promptise agents. Controls what gets observed, how much detail is captured, and where events are sent. Includes configurable transporters and a callback handler that bridges LangChain events into the observability collector.

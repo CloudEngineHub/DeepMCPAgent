@@ -1,3 +1,8 @@
+---
+seo_title: "MCP Tool Discovery and Schema Conversion"
+description: "How Promptise discovers MCP tools and converts their JSON Schemas into typed Pydantic models and LangChain tools, including nested objects, unions and $ref."
+---
+
 # Tools & Schema Helpers
 
 The `tools` module is responsible for discovering MCP tools and converting them

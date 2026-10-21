@@ -1,3 +1,8 @@
+---
+seo_title: "Default System Prompt for build_agent"
+description: "The default system prompt every build_agent agent receives: tool-first behaviour, schema awareness and citing tool results, and how to override or extend it."
+---
+
 # Default System Prompt
 
 Every agent built with `build_agent` receives a system prompt that

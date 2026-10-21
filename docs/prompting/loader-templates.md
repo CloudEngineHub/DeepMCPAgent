@@ -1,4 +1,9 @@
-# Loader & Templates
+---
+seo_title: "Prompt YAML Loader and Template Engine"
+description: "Load prompts from .prompt YAML files, from URLs or directories, save them back, and use the template engine for variables, conditionals, loops and includes."
+---
+
+# Prompt Loader & Templates
 
 Load prompts from `.prompt` YAML files, save prompts back to YAML, and use the built-in template engine for variable interpolation, conditionals, loops, and includes.
 

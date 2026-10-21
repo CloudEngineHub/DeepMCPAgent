@@ -1,4 +1,9 @@
-# Exceptions
+---
+seo_title: "Configuration Exceptions: SuperAgentError"
+description: "The Promptise exception hierarchy for configuration loading: SuperAgentError, SuperAgentValidationError and EnvVarNotFoundError, and when each one is raised."
+---
+
+# Configuration Exceptions
 
 Promptise defines a focused hierarchy of custom exceptions for configuration
 loading and validation errors.  All exceptions extend `RuntimeError` so they can

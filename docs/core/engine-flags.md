@@ -1,3 +1,8 @@
+---
+seo_title: "Reasoning Graph Node Flags Reference"
+description: "Typed node flags that control execution, caching, context, model selection, observability and output processing in a reasoning graph, and how to add your own."
+---
+
 # Node Flags
 
 Every node in a Reasoning Graph declares its capabilities and behaviors through **typed flags**. Flags are checked by the engine at runtime to control execution flow, caching, error handling, and observability.

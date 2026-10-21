@@ -1,4 +1,9 @@
-# Context System
+---
+seo_title: "Prompt Context Providers and Variables"
+description: "Give prompts awareness of their world: BaseContext and predefined user, environment and error contexts, PromptContext and context providers that inject text."
+---
+
+# Prompt Context System
 
 The context system gives your prompts dynamic awareness of their world -- who the user is, what tools are available, what errors occurred previously, and any custom data you need. Context providers fire on every invocation and inject relevant text into the prompt automatically.
 

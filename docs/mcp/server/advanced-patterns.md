@@ -1,4 +1,9 @@
-# Advanced Patterns
+---
+seo_title: "MCP Tool Versioning, Transforms, Composition"
+description: "Advanced MCP server patterns: tool versioning, transforms, server composition, an OpenAPI bridge, batch calls, streaming results, elicitation and sampling."
+---
+
+# Advanced MCP Server Patterns
 
 Patterns for evolving, composing, and extending MCP servers — tool versioning for backwards compatibility, transforms for dynamic tool visibility, server composition for microservice gateways, OpenAPI bridging, batch execution, streaming results, elicitation, and sampling.
 

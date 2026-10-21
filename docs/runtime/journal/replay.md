@@ -1,3 +1,8 @@
+---
+seo_title: "Crash Recovery with the Replay Engine"
+description: "ReplayEngine rebuilds an agent process from its journal by loading the last checkpoint and replaying later entries, so a crashed process carries on."
+---
+
 # Replay Engine
 
 `ReplayEngine` rebuilds a process's state from its journal: it loads the last checkpoint and replays the entries written after it. An `AgentProcess` uses it on its first `start()` when `JournalConfig.recover_on_start` is on (the default), so a process that crashed or was redeployed continues with its context state, conversation, budget counters and mission. Use the engine directly to inspect what a process would recover, or to build your own tooling on a journal.

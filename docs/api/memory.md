@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Memory API Reference: Chroma, Mem0"
+description: "API reference for MemoryProvider, InMemoryProvider, ChromaProvider, Mem0Provider, MemoryAgent and sanitize_memory_content, the agent memory layer."
+---
+
 # Memory API Reference
 
 Agent memory integration layer with auto-injection. Provides a `MemoryProvider` protocol and adapters for external memory backends (Mem0, ChromaDB) plus a lightweight `InMemoryProvider` for testing. The key feature is auto-injection: `MemoryAgent` wraps any LangGraph agent and transparently prepends relevant memories to every invocation.

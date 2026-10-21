@@ -1,4 +1,9 @@
-# Nodes
+---
+seo_title: "Reasoning Graph Nodes: Built-in and Custom"
+description: "The 20 built-in reasoning graph node types, from ThinkNode and PlanNode to ToolNode, RouterNode and AutonomousNode, and three ways to write custom nodes."
+---
+
+# Reasoning Graph Nodes
 
 Every node in a Reasoning Graph is a complete processing pipeline. Promptise ships with **20 built-in node types** — plus three ways to create custom ones.
 

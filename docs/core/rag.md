@@ -1,3 +1,8 @@
+---
+seo_title: "RAG Pipeline: Retrieval for AI Agents"
+description: "Add document retrieval to agents: loader, chunker, embedder and vector store base classes, RAGPipeline, the rag_to_tool adapter and production patterns."
+---
+
 # RAG (Retrieval-Augmented Generation)
 
 A small, pluggable foundation for adding document retrieval to Promptise agents. The framework ships with base classes you subclass for your own loader, chunker, embedder, and vector store — plus a batteries-included reference implementation (in-memory store + recursive text chunker) you can use immediately or swap out piece by piece as you productionise.

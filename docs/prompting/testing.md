@@ -1,3 +1,8 @@
+---
+seo_title: "Prompt Testing: Mock LLMs and Assertions"
+description: "Test prompts with PromptTestCase: mock LLM calls and context, and assert on content, output schema, latency, context providers and guard behaviour."
+---
+
 # Prompt Testing
 
 A purpose-built test framework for validating prompt behavior. `PromptTestCase` provides mocked LLM calls, context injection, and specialized assertions for latency, schema compliance, and guard behavior.

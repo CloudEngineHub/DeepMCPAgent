@@ -1,3 +1,8 @@
+---
+seo_title: "Prompt Blocks: Composable System Prompts"
+description: "Build system prompts from typed, priority-ranked blocks: identity, rules, output format, context slots and examples, assembled in order under a token budget."
+---
+
 # Layer 1: PromptBlocks
 
 Build prompts from composable, priority-ranked blocks with intelligent assembly.

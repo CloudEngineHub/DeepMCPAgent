@@ -1,3 +1,8 @@
+---
+seo_title: "Multi-Agent Coordination Patterns"
+description: "Build multi-agent systems where agents share MCP servers, delegate tasks, use an event bus and share state, with fan-out, supervisor and pipeline patterns."
+---
+
 # Multi-Agent Coordination
 
 Build systems where multiple agents collaborate — sharing tools, delegating tasks, communicating through events, and coordinating through shared state.

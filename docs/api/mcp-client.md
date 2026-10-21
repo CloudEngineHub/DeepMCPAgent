@@ -1,3 +1,8 @@
+---
+seo_title: "Python MCP Client API Reference"
+description: "API reference for MCPClient, MCPMultiClient, MCPToolAdapter, InFlightToolCall and the client errors: the classes that connect to MCP servers and call tools."
+---
+
 # MCP Client API Reference
 
 Client libraries for connecting to MCP servers.

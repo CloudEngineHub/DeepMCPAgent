@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Identity with Microsoft Entra ID"
+description: "Back an agent's identity with Microsoft Entra ID through Azure IMDS managed identity or AKS Workload Identity, so the resources it calls can verify it."
+---
+
 # Microsoft Entra ID
 
 Back an agent's identity with Microsoft Entra so resources can verify

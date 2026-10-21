@@ -1,3 +1,8 @@
+---
+seo_title: "Human Approval Gates for MCP Server Tools"
+description: "Enforce human approval on the MCP server: tools with requires_approval=True wait for a reviewer before they run, for any MCP client, and deny on timeout."
+---
+
 # Approval Gates (Server-Side HITL)
 
 Human-in-the-loop enforced **where the tool lives**. A tool declared with

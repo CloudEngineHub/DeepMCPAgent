@@ -1,4 +1,9 @@
-# Migration Guide
+---
+seo_title: "Migrate from deepmcpagent to Promptise"
+description: "Migrate from deepmcpagent to promptise 1.0: uninstall the old package, install the new one, update imports, CLI commands and dependency files, then verify."
+---
+
+# Migrate from deepmcpagent to Promptise
 
 Migrate from `deepmcpagent` to `promptise` -- the v1.0.0 release.
 

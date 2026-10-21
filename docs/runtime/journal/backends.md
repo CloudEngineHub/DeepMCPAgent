@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Journal Backends: File and Memory"
+description: "Store agent process journals in FileJournal JSONL files or InMemoryJournal for tests, strip secrets with RedactingJournal, or write your own journal backend."
+---
+
 # Journal Backends
 
 A journal backend stores a process's entries and its latest checkpoint. Promptise ships `FileJournal` (append-only JSONL files, for anything that must survive a restart) and `InMemoryJournal` (a Python list, for tests), plus `RedactingJournal`, a wrapper that removes secret values before either one writes. A process picks its backend from `JournalConfig.backend`; you use the classes directly to read a journal, write tools around it, or test.

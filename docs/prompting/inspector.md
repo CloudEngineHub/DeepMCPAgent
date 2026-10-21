@@ -1,4 +1,9 @@
-# Inspector & Observability
+---
+seo_title: "Prompt Inspector: Debug Prompt Assembly"
+description: "See how a prompt was assembled: blocks included, token estimates, what was dropped, guard results and the exact text sent, plus PromptObserver telemetry."
+---
+
+# Prompt Inspector & Observability
 
 See exactly how your prompts are assembled, which blocks made it in, token estimates, what was dropped, guard results, and the exact text sent to the LLM. No other framework gives you this level of visibility.
 

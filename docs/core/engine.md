@@ -1,3 +1,8 @@
+---
+seo_title: "Reasoning Graph: The Agent Execution Engine"
+description: "The engine behind every Promptise agent: a graph of composable nodes, autonomous and static modes, streaming, failure handling, tool injection and mutation."
+---
+
 # Reasoning Graph
 
 The Reasoning Graph is Promptise's agent execution engine — a directed graph of composable reasoning nodes where every node is a complete processing pipeline with its own blocks, tools, guards, strategy, context layers, and data flow ports.

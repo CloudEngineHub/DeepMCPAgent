@@ -1,3 +1,8 @@
+---
+seo_title: "Autonomous Agent Runtime API Reference"
+description: "API reference for AgentProcess, AgentRuntime, config, triggers, budget, health, mission and secrets governance, journals, manifests and the orchestration API."
+---
+
 # Runtime API Reference
 
 Agent process lifecycle, triggers, governance (budget, health, mission, secrets), journals, distributed coordination, and the orchestration API.

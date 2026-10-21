@@ -1,4 +1,9 @@
-# Events & Notifications
+---
+seo_title: "Agent Events and Webhook Notifications"
+description: "Emit structured agent events for runs, tool errors, guardrails, approvals and budgets, and route them to webhooks, callbacks, logs or the runtime event bus."
+---
+
+# Agent Events & Notifications
 
 Emit structured notifications when significant things happen during agent execution. Route events to webhooks, callbacks, logs, or the runtime's event bus.
 

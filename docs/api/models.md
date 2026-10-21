@@ -1,3 +1,8 @@
+---
+seo_title: "LLM Provider and Model API Reference"
+description: "API reference for promptise.models: resolve_model, Model, check_model, model string parsing, the provider registry with its environment variables and the CLI."
+---
+
 # Models API Reference
 
 Bring your own model: `promptise.models` is the one place that turns a model

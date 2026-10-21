@@ -1,4 +1,9 @@
-# Memory
+---
+seo_title: "Agent Memory: Vector Search, Chroma and Mem0"
+description: "Give agents persistent memory with vector search: the MemoryProvider protocol, in-memory, ChromaDB and Mem0 providers, per-user scopes and auto-injection."
+---
+
+# Agent Memory
 
 Give agents persistent memory with vector search, enabling context-aware responses across conversations.
 

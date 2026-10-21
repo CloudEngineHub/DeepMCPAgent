@@ -1,6 +1,7 @@
 ---
 title: What is MCP? — Model Context Protocol explained for Python developers
-description: A practical guide to the Model Context Protocol (MCP) — what it is, how it works, why agent frameworks use it, and how Promptise Foundry implements both client and server. Covers transports, tools, resources, prompts, sampling, and elicitation.
+seo_title: "What Is MCP? Model Context Protocol Explained"
+description: "What the Model Context Protocol is, its tool, resource, prompt and sampling primitives, how it works, and how Promptise implements an MCP client and server."
 keywords: Model Context Protocol, MCP, MCP server, MCP client, MCP Python, what is MCP, MCP tutorial, MCP framework, agentic AI tools
 schema: TechArticle
 ---

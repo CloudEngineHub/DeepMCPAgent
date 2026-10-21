@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Identity on Google Cloud with OIDC"
+description: "Back an agent's identity with a Google Cloud OIDC token from the metadata server on Compute Engine, GKE, Cloud Run or Cloud Functions, then verify it."
+---
+
 # Google Cloud
 
 Back an agent's identity with Google Cloud by reading an OIDC identity

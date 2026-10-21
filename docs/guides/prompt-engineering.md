@@ -1,3 +1,8 @@
+---
+seo_title: "Prompt Engineering Tutorial: System Prompts"
+description: "Build testable, versioned system prompts in 9 steps: typed blocks, token budgets, strategies, perspectives, guards, context providers, flows and tests."
+---
+
 # Prompt Engineering
 
 Build reliable, testable, versioned system prompts in 9 incremental steps. Each step adds one concept -- from simple typed blocks to composable reasoning strategies, runtime guards, and prompt pipelines.

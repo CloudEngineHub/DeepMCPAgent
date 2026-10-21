@@ -1,3 +1,8 @@
+---
+seo_title: "build_agent Reference: Create AI Agents"
+description: "Reference for build_agent() and PromptiseAgent: connect to MCP servers, discover tools, combine capabilities and pass per-request identity with CallerContext."
+---
+
 # Building Agents
 
 Create intelligent agents that connect to MCP servers, discover tools automatically, and execute tasks with full observability.

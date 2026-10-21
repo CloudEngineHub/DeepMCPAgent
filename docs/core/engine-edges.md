@@ -1,4 +1,9 @@
-# Edges & Transitions
+---
+seo_title: "Reasoning Graph Edges and Transitions"
+description: "Define how a reasoning graph moves between nodes: edge helpers for conditions, tool calls, errors and confidence, transition priority and LLM routing."
+---
+
+# Graph Edges & Transitions
 
 Edges define how the graph flows from one node to another. The engine resolves transitions dynamically at runtime using a 7-step priority system.
 

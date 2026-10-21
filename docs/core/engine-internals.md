@@ -1,4 +1,9 @@
-# Engine Internals
+---
+seo_title: "Reasoning Engine Internals: How It Works"
+description: "How the reasoning engine works under the hood: the execution loop, transition resolution, autonomous path building, caching, flag processing and data flow."
+---
+
+# Reasoning Engine Internals
 
 How the Reasoning Engine works under the hood — execution flow, transition resolution, autonomous path building, caching, flag processing, and the complete data flow from `build_agent()` to tool response.
 

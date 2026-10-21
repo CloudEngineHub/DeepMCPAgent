@@ -1,3 +1,8 @@
+---
+seo_title: "Auto-Approval Classifier for Tool Calls"
+description: "Decide which agent tool calls need a human with six ordered layers: deny, ask and allow rules, read-only detection, an optional LLM classifier and a fallback."
+---
+
 # AutoApprovalClassifier
 
 An explicit decision hierarchy that sits in front of your approval handler. Instead of sending every tool call to a human, the classifier evaluates six ordered layers — deny rules, ask rules, allow rules, read-only detection, an optional LLM classifier, and finally the fallback handler — and returns the first definitive answer.

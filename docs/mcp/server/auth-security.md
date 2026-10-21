@@ -1,4 +1,9 @@
-# Authentication & Security
+---
+seo_title: "MCP Server Authentication: JWT and API Keys"
+description: "Secure an MCP server with JWT, asymmetric JWT, JWKS and API key auth, role and scope guards, client context, request tracing and dependency injection."
+---
+
+# MCP Server Authentication & Security
 
 Secure your MCP servers with JWT tokens, API keys, role-based guards, and dependency injection.
 

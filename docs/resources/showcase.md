@@ -1,3 +1,8 @@
+---
+seo_title: "What You Can Build with Promptise Foundry"
+description: "Build ideas for each Promptise module: agent, MCP server, agent runtime, prompt and context engineering, at three sizes, with code sketches and combinations."
+---
+
 # What you can build
 
 Promptise Foundry is not a chatbot wrapper. It is the infrastructure for building AI systems that do real work — systems that discover tools, remember context, guard against attacks, recover from crashes, and operate autonomously. This page exists to show you the full surface area of what is possible. Use it as a jumping-off point, not a ceiling.

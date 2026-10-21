@@ -1,4 +1,9 @@
-# Configuration
+---
+seo_title: "Agent Runtime Configuration Reference"
+description: "Every runtime config field with its type and default: RuntimeConfig, ProcessConfig, triggers, journal, context, hooks, secrets, budget, health and mission."
+---
+
+# Runtime Configuration
 
 All runtime configuration is Pydantic models with defaults for every optional field. Small section configs (`TriggerConfig`, `JournalConfig`, `BudgetConfig`, ...) are composed into a `ProcessConfig` for one process, and `ProcessConfig`s into a `RuntimeConfig` for an [`AgentRuntime`](runtime-manager.md). This page lists every field with its exact type and default. You only set what you want to change.
 

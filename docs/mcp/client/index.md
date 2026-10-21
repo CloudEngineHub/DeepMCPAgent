@@ -1,6 +1,7 @@
 ---
 title: MCP Client — Native Python client for the Model Context Protocol
-description: Promptise Foundry's native MCP client connects to one or many MCP servers, auto-discovers tools, and invokes them with full schema typing. Single-server, multi-server, and LangChain BaseTool adapter variants. HTTP, SSE, and stdio transports. Bearer token and API key authentication. No third-party MCP dependencies.
+seo_title: "Python MCP Client: Connect to MCP Servers"
+description: "Connect to one or many MCP servers with MCPClient and MCPMultiClient: bearer token and API key auth, HTTP, SSE and stdio, tool calls, resources and prompts."
 keywords: MCP client Python, Model Context Protocol client, MCP client SDK, MCPMultiClient, MCPClient, MCP tool adapter, LangChain MCP
 ---
 

@@ -1,11 +1,12 @@
 ---
 title: Agentic AI Glossary — Promptise Foundry terms and concepts
-description: Definitions for the core concepts in Promptise Foundry and the broader agentic AI ecosystem — agents, MCP, tools, memory, runtime, governance, sandboxing, and more.
+seo_title: "Agentic AI Glossary: Agent and MCP Terms"
+description: "Definitions of the terms used in Promptise Foundry and agentic AI: agents, MCP, tools, memory, triggers, journals, governance, guardrails and sandboxing."
 keywords: AI agent glossary, agentic AI terms, MCP glossary, Promptise terms, autonomous agent definitions, AI agent vocabulary
 schema: DefinedTermSet
 ---
 
-# Glossary
+# Agentic AI Glossary
 
 Definitions for the terms used throughout Promptise Foundry and the broader agentic AI ecosystem. Sorted alphabetically.
 

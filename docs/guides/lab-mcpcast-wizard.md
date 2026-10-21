@@ -1,6 +1,7 @@
 ---
 title: Lab — Turn a Running API into an MCP Server with the Guided Setup, Then Prove It Works
-description: A hands-on lab for promptise mcpcast's terminal wizard. Start a real Helpdesk API, walk through the seven steps, review what the model decided (it names tools that do not exist), then watch a real agent drive the generated server, the approval gate deny a write, and the Agent Readiness Score tell you what to fix.
+seo_title: "Lab: API to MCP Server with the MCPcast Wizard"
+description: "Hands-on lab for the mcpcast terminal wizard: generate an MCP server from a running Helpdesk API, review the model's tools, test the approval gate, score it."
 keywords: promptise mcpcast wizard lab, MCP server from FastAPI, guided setup MCP, review generated MCP tools, agent readiness score, approval gate MCP
 ---
 

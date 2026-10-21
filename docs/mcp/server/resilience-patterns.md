@@ -1,4 +1,9 @@
-# Resilience Patterns
+---
+seo_title: "MCP Server Resilience: Circuit Breakers"
+description: "Keep an MCP server reliable when dependencies fail: circuit breakers, health checks, webhook alerts, background tasks, exception handlers and cancellation."
+---
+
+# MCP Server Resilience Patterns
 
 Keep your MCP server running reliably when things go wrong -- circuit breakers for flaky dependencies, health checks for monitoring, webhooks for alerting, background tasks for deferred work, and exception handlers for clean error responses.
 

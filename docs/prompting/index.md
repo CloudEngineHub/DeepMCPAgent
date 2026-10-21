@@ -1,6 +1,7 @@
 ---
 title: Prompt Engineering — Composable, versioned, testable prompts in Python
-description: Promptise Foundry's prompt engineering framework treats prompts as software components. Compose from 8 prompt block types, evolve across conversation phases, layer 5 reasoning strategies, 4 perspectives, 14 context providers, schema-strict guards, and a registry with semantic versioning.
+seo_title: "Prompt Engineering Framework for Python"
+description: "Treat prompts as software: compose them from blocks, evolve them across conversation phases, add strategies, perspectives, guards and context, inspect them."
 keywords: prompt engineering Python, composable prompts, prompt versioning, prompt strategies, chain of thought, structured reasoning, prompt blocks, system prompt framework
 ---
 

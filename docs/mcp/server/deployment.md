@@ -1,4 +1,9 @@
-# Deployment
+---
+seo_title: "Deploy an MCP Server: Transports, Docker"
+description: "Run an MCP server in production: choose stdio, HTTP or SSE, validate Host and Origin, configure CORS, run behind a reverse proxy, in Docker or under uvicorn."
+---
+
+# MCP Server Deployment
 
 Run your MCP server in production — choose the right transport, validate `Host` and `Origin`, configure CORS for browser clients, deploy behind a reverse proxy, containerize with Docker, probe it from Kubernetes, run it under uvicorn or gunicorn, and use the CLI for zero-boilerplate startup.
 

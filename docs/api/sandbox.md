@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Code Sandbox API Reference"
+description: "API reference for SandboxConfig, SandboxManager, SandboxSession, the Docker backend and the tools agents use to run commands and edit files in containers."
+---
+
 # Sandbox API Reference
 
 Secure sandbox for agent code execution. Provides a zero-configuration sandbox environment for agents to safely execute arbitrary commands and code using container technology with multiple security layers.

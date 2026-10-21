@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Reasoning Patterns: ReAct to Debate"
+description: "Choose how an agent reasons: the default ReAct graph, verify, managed, code-action, PEOATR, research, deliberate and debate patterns, or a custom graph."
+---
+
 # Reasoning Patterns
 
 Every Promptise agent is powered by a Reasoning Graph. By default, `build_agent()` creates a ReAct graph (single node with tools) — and that default is **smart by default**: it manages context automatically (`context_scope="auto"`), so simple tasks are unchanged and deep tool loops stay token-efficient without you choosing anything.

@@ -1,3 +1,8 @@
+---
+seo_title: "File Watch Trigger: Run Agents on File Changes"
+description: "Run an agent when files are created, modified, deleted or moved: glob patterns, debouncing, back-pressure and watchdog or polling backends for network shares."
+---
+
 # File Watch Trigger
 
 The `FileWatchTrigger` runs an agent when files in a directory are created, modified, deleted or moved. Use it for drop folders, data ingestion and file-based workflows. It uses native OS notifications through `watchdog`, or scans the directory on an interval when you choose polling (network shares, bind mounts).

@@ -1,3 +1,8 @@
+---
+seo_title: "Environment Variable Resolver for Configs"
+description: "Resolve ${VAR} and ${VAR:-default} placeholders in config strings and nested dicts from environment variables, and check for missing variables at startup."
+---
+
 # Environment Resolver
 
 The environment resolver lets you embed `${VAR_NAME}` placeholders in

@@ -1,3 +1,8 @@
+---
+seo_title: "ModelLike and Core Type Aliases"
+description: "The types module: ModelLike, the type for every way to specify a language model for build_agent, plus the ServerSpec and CrossAgent types it re-exports."
+---
+
 # Types & ModelLike
 
 The `types` module provides the central type aliases and re-exports used across

@@ -1,4 +1,9 @@
-# Hooks & Observability
+---
+seo_title: "Reasoning Graph Hooks and Tool Hooks"
+description: "Hook into the reasoning engine's execution loop for logging, timing, cycle detection, metrics, budgets and tool calls, and read the execution report."
+---
+
+# Graph Hooks & Observability
 
 Hooks intercept the engine's execution loop at defined points. Use them for logging, metrics, budget enforcement, cycle detection, and custom behavior.
 

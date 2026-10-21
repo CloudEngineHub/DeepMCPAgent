@@ -1,3 +1,8 @@
+---
+seo_title: "Distributed Agent Runtime Coordinator"
+description: "RuntimeCoordinator keeps a registry of runtime nodes, checks their health, aggregates cluster status and starts, stops or triggers processes on remote nodes."
+---
+
 # Distributed Coordinator
 
 The `RuntimeCoordinator` is the part of a cluster that knows every node: it keeps a registry of runtime nodes, checks their health periodically, aggregates their status, and runs remote operations (start, stop, inject events) on them. It does not move processes on its own: when a node fails, your code picks a healthy node (`healthy_nodes`) and starts the process there (`start_process_on_node`).

@@ -1,6 +1,7 @@
 ---
 title: Lab — Build an MCP Server for Your SaaS API so Customers Can Use Any AI With It
-description: Turn an existing OpenAPI spec into a curated, safe MCP server with promptise mcpcast — risk-classified tools, server-side human approval for refunds, per-tenant upstream credentials, and an Agent Readiness Score that tells you exactly what to fix. A complete, runnable lab.
+seo_title: "Lab: MCP Server for Your SaaS API"
+description: "Turn a SaaS OpenAPI spec into an MCP server with promptise mcpcast: risk-classified tools, approval for refunds, per-tenant credentials and a readiness score."
 keywords: MCP server for your SaaS API, let customers use AI with your product, human approval AI agent, OpenAPI to MCP server, agent readiness score, four-eyes approval, MCP server from REST API
 ---
 

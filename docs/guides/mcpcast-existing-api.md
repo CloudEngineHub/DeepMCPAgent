@@ -1,6 +1,7 @@
 ---
 title: MCPcast Your Existing API — turn an OpenAPI spec into an MCP server any AI can use
-description: A step-by-step guide to turning an existing HTTP API into a curated, safe, agent-ready MCP server with `promptise mcpcast`. From one command to a reviewed tool plan, human-approved writes, a real AI connected over stdio, an Agent Readiness Score, and a shipped deployment.
+seo_title: "Turn an OpenAPI Spec into an MCP Server"
+description: "Turn an existing HTTP API into an MCP server with promptise mcpcast, step by step: review the tool plan, gate writes with approval, score it and ship it."
 keywords: MCPcast your API, OpenAPI to MCP server, make my API work with Claude, let customers use AI with our product, Swagger to MCP, MCP server from OpenAPI, Claude Desktop MCP server, agent-ready API, MCP server tutorial
 ---
 

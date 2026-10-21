@@ -1,3 +1,8 @@
+---
+seo_title: "promptise runtime CLI: Run Agent Processes"
+description: "Run agent processes from .agent manifests and control them from another shell: promptise runtime start, status, stop, restart, logs, rewind, validate, init."
+---
+
 # Runtime CLI
 
 The `promptise runtime` command group runs agent processes from `.agent` manifests and controls them from another terminal. `start` runs a runtime (in the foreground or in the background); `status`, `stop`, `restart`, `logs` and `rewind` find it on their own and talk to its control API. `validate` and `init` work on manifest files.

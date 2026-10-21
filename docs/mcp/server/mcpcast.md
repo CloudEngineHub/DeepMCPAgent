@@ -1,6 +1,7 @@
 ---
 title: MCPcast an Existing API — OpenAPI to MCP server with Promptise Foundry
-description: Turn an OpenAPI 3.x or Swagger 2 spec into a curated, safe, agent-ready MCP server with `promptise mcpcast` — deterministic risk classification, safety profiles, LLM curation with code-enforced post-conditions, server-side human approval, and an Agent Readiness Score. Emitted as editable code that Claude Desktop, Claude Code, Cursor or any MCP client can use.
+seo_title: "MCPcast: OpenAPI to MCP Server Generator"
+description: "Generate an MCP server from an OpenAPI or Swagger spec with promptise mcpcast: risk classification, safety profiles, LLM curation, approval and scoring."
 keywords: MCP server from OpenAPI, MCPcast your API, OpenAPI to MCP, agent-ready API, Swagger to MCP, MCP server generator Python, Claude Desktop MCP server, Cursor MCP server, OpenAPI MCP tools
 ---
 

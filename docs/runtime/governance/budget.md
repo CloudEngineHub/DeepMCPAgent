@@ -1,3 +1,8 @@
+---
+seo_title: "Autonomy Budget: Limit Agent Actions and Cost"
+description: "Limit what an autonomous agent does on its own: tool calls, LLM turns, cost units and irreversible actions per run and per day, enforced before each call."
+---
+
 # Autonomy Budget
 
 An autonomy budget puts explicit limits on what an agent may do on its own: tool calls, LLM turns, abstract cost units and irreversible actions, per run and per day. The runtime refuses a tool call that would cross a limit before the tool runs, and then pauses, stops or escalates the process. The agent can see what is left of its budget, so it can plan around it.

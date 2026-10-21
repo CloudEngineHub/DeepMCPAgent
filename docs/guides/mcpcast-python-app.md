@@ -1,6 +1,7 @@
 ---
 title: Make Your Python API MCP-Ready — FastAPI, Django, Flask or Litestar to an MCP server for Claude, Cursor and every AI
-description: The exact steps to make your own Python API usable by Claude Desktop, Claude Code, Cursor and any MCP client — from the OpenAPI document your FastAPI, Django Ninja, DRF, Flask or Litestar app already serves, through `promptise mcpcast`, to a shipped MCP server with human-approved writes. Real commands, real output, a runnable example.
+seo_title: "FastAPI, Django or Flask API to MCP Server"
+description: "Make your FastAPI, Django, Flask or Litestar API usable from Claude, Cursor and any MCP client: improve the spec, generate a server, map auth, gate writes."
 keywords: FastAPI MCP server, make my Python API MCP ready, Django REST MCP, Flask MCP, expose my API to Claude, Litestar MCP server, Django Ninja MCP, FastAPI Claude Desktop, OpenAPI to MCP Python, Cursor MCP server from FastAPI
 ---
 

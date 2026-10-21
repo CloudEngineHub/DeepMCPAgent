@@ -1,3 +1,8 @@
+---
+seo_title: "Test MCP Servers In-Process with TestClient"
+description: "Test an MCP server without a network transport: TestClient runs validation, dependency injection, guards, middleware and handlers in-process."
+---
+
 # MCP Server Testing
 
 The `TestClient` class lets you exercise the **full** MCP server pipeline --

@@ -1,3 +1,8 @@
+---
+seo_title: "MCPcast API Reference: OpenAPI to MCP"
+description: "API reference for promptise.mcpcast: mcpcast, curate, write_project and evaluate, the plan schema, spec parsing, risk classification and code generation."
+---
+
 # MCPcast API Reference
 
 `promptise mcpcast` turns an existing API (OpenAPI 3.x or Swagger 2) into a curated, safe, agent-ready MCP server, emitted as an editable project: `mcpcast.plan.yaml` (the source of truth), an installable `<name>_mcp/` package with its own tests (regenerated from the plan), a `server.py` launcher, a README and the packaging scaffold. The pipeline is parse → classify (risk) → curate (LLM, optional) → review (human) → emit (code) → eval (Agent Readiness Score). Every public symbol of `promptise.mcpcast` is documented here; for the walkthrough, safety profiles, auth modes and the generated server's runtime contract see the [MCPcast guide](../mcp/server/mcpcast.md).

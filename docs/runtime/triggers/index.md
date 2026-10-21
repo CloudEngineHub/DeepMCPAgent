@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Triggers: Cron, Webhook, File, Events"
+description: "How triggers decide when an agent process runs: the five built-in types, TriggerEvent, custom triggers, event filters, untrusted payloads and concurrency."
+---
+
 # Triggers Overview
 
 Triggers decide when an agent process runs. Each trigger produces `TriggerEvent` objects; the `AgentProcess` queues them and invokes its agent once per event. The runtime ships with five trigger types: cron schedules, HTTP webhooks, file-system changes, events on an event bus, and messages on a broker topic. You can register your own.

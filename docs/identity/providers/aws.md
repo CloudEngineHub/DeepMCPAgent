@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Identity on AWS IAM: STS and EKS"
+description: "Back an agent's identity with AWS IAM, using STS GetWebIdentityToken on Lambda, EC2, ECS and EKS or an EKS-projected token file, and verify it."
+---
+
 # AWS IAM
 
 Back an agent's identity with AWS IAM. Two modes, with `mode="auto"`

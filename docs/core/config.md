@@ -1,3 +1,8 @@
+---
+seo_title: "ServerSpec Types for MCP Connections"
+description: "Reference for StdioServerSpec, HTTPServerSpec, the ServerSpec union and servers_to_mcp_config: how Promptise starts local MCP servers or connects over HTTP."
+---
+
 # Config & Server Specs
 
 Server specifications tell Promptise *how* to connect to each MCP server your

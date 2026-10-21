@@ -1,3 +1,8 @@
+---
+seo_title: "Prompt Engineering API Reference"
+description: "API reference for the prompt framework: the @prompt decorator, blocks, PromptBuilder, conversation flows, strategies, guards, context providers and testing."
+---
+
 # Prompts API Reference
 
 Prompt engineering framework — decorators, blocks, flows, strategies, guards, context providers, chaining, loading, versioning, and testing.

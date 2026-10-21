@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Context: State, Memory, Environment"
+description: "AgentContext gives each agent process key-value state with an audit trail, optional long-term memory, a filtered environment view and named file mounts."
+---
+
 # Agent Context
 
 `AgentContext` is the context every `AgentProcess` gives its agent: key-value **state** with an audit trail, optional long-term **memory**, a filtered view of the **environment**, and named **file mounts**. The state is how an agent keeps facts between runs (progress markers, counters, flags an operator sets): it is shown to the agent at the start of every run, written by the system, triggers, the [control API](api.md) and, if you allow it, the agent itself, and with a journal it survives a crash or a restart.

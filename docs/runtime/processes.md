@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Processes: Long-Running AI Agents"
+description: "AgentProcess turns an agent into a long-running process: it starts triggers, runs the agent per event, keeps state between runs and restarts after failures."
+---
+
 # Agent Processes
 
 `AgentProcess` turns an agent into a long-running process. It builds the agent, connects its MCP servers, starts its triggers, runs the agent once per trigger event, and keeps state, memory and conversation history between runs. It also restarts itself after failures when you ask it to. It is the core unit of the Agent Runtime; [`AgentRuntime`](runtime-manager.md) manages many of them.

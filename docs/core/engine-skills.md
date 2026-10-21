@@ -1,3 +1,8 @@
+---
+seo_title: "Reasoning Skills Library: Node Factories"
+description: "Pre-configured node factories for agent tasks such as web research, code review, data analysis, fact checking, planning and summarizing, all overridable."
+---
+
 # Skills Library
 
 Pre-configured node factories for common agent tasks. Each function returns a fully configured node with domain-specific instructions, default flags, and sensible settings. All parameters can be overridden.

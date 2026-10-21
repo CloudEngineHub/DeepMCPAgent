@@ -1,4 +1,9 @@
-# Multi-Tenancy
+---
+seo_title: "Multi-Tenant MCP Servers and Agents"
+description: "Isolate tenants across the stack: tenant_id from the JWT, tenant guards on MCP tools, and tenant-scoped cache, memory, conversations, rate limits and audit."
+---
+
+# Multi-Tenancy for MCP Servers and Agents
 
 First-class tenant isolation across the whole stack. When a caller carries a
 `tenant_id`, it becomes part of **every isolation key** — semantic cache,

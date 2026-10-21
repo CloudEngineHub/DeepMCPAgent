@@ -1,4 +1,9 @@
-# Sandbox
+---
+seo_title: "Code Sandbox for Agents: Docker Isolation"
+description: "Run agent-generated code in isolated Docker containers with resource limits, network modes, a read-only root, dropped capabilities and optional gVisor."
+---
+
+# Code Sandbox for Agents
 
 Execute untrusted code safely in isolated Docker containers with resource limits and network controls.
 

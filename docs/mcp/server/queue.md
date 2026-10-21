@@ -1,4 +1,9 @@
-# Queue & Background Jobs
+---
+seo_title: "MCP Job Queue for Long-Running Tools"
+description: "Run long jobs behind MCP tools with MCPQueue: agents submit and poll jobs, with progress, cancellation, ownership, priorities, retries with backoff and tests."
+---
+
+# MCP Server Job Queue & Background Jobs
 
 MCP tool calls are synchronous -- the agent sends a request and blocks until the response. This breaks down for long-running work like report generation, data pipelines, or model training. MCPQueue lets server authors define async job types that agents submit and poll for results, turning any long operation into a non-blocking workflow.
 

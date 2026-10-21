@@ -1,3 +1,8 @@
+---
+seo_title: "Run Many Agents with AgentRuntime"
+description: "AgentRuntime runs several agent processes in one Python process: register or load them, start and stop them, share an event bus and shut down cleanly."
+---
+
 # Runtime Manager
 
 `AgentRuntime` runs several agent processes together in one Python process. It keeps a registry of named `AgentProcess` instances, starts and stops them together or one by one, shares an event notifier, hooks and an event bus between them, and shuts everything down cleanly on `SIGTERM` or Ctrl+C. Use it when you have more than one agent, or when one agent should run as a long-lived service.

@@ -1,10 +1,11 @@
 ---
 title: Guides — Build production AI agents and MCP servers with Promptise Foundry
-description: Practical, end-to-end guides for building real systems with Promptise Foundry — AI agents, production MCP servers, autonomous runtimes, prompt engineering, multi-user systems, and multi-agent coordination. From concept to working code.
+seo_title: "Guides: AI Agents, MCP Servers, Runtimes"
+description: "End-to-end guides for building with Promptise Foundry: AI agents, production MCP servers, MCPcast, multi-user systems, agent runtimes and hands-on labs."
 keywords: AI agent tutorials, MCP server tutorial, build AI agent guide, agent runtime tutorial, multi-agent Python, multi-user AI system
 ---
 
-# Guides
+# Promptise Foundry Guides
 
 Practical, end-to-end guides for building real systems with Promptise Foundry.
 Each takes you from concept to working code — architecture decisions,

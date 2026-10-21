@@ -1,4 +1,9 @@
-# Security
+---
+seo_title: "Agent Identity Security and Threat Model"
+description: "What Agent Identity guarantees and what it does not: the threat model, how short-lived credentials stay in memory and are never logged, errors and logging."
+---
+
+# Agent Identity Security
 
 Agent Identity is about knowing *who acted*. This page states what it
 guarantees, what it does not, and how it handles the one secret it

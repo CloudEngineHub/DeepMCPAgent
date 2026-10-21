@@ -1,10 +1,11 @@
 ---
 title: Cookbook — Recipes for common Promptise Foundry tasks
-description: Copy-paste recipes for the most common Promptise Foundry tasks — add memory, cache, guardrails, streaming, per-user identity, multi-tenancy, human approval, rate limits, sandboxed code, and more. Each recipe links to the full guide.
+seo_title: "AI Agent and MCP Server Recipes"
+description: "Copy-paste recipes: add memory, cache, guardrails, identity, tenancy and sandboxing to agents, and auth, rate limits and approval to MCP servers."
 keywords: Promptise recipes, AI agent cookbook, build_agent examples, MCP server recipes, how to add memory AI agent, human approval AI tool
 ---
 
-# Cookbook
+# Agent and MCP Server Cookbook
 
 Short, copy-paste recipes for the tasks you'll reach for most. Each is the
 minimal correct form; follow the link for the full guide.

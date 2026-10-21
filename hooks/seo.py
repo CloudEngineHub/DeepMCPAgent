@@ -42,7 +42,8 @@ def _first_heading(markdown: str) -> str | None:
 
 def on_page_markdown(markdown, page, config, files):
     meta = page.meta
-    if page.is_homepage:
+    # page.is_homepage is False here: index.md sits under "Getting Started" in the nav.
+    if page.file.src_uri == "index.md":
         base = str(meta.get("seo_title") or HOME_TITLE)
         full = base
     else:

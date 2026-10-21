@@ -1,3 +1,8 @@
+---
+seo_title: "Prompt Chaining: Sequential and Parallel"
+description: "Compose prompts into multi-step pipelines with chain, parallel, branch, retry with exponential backoff and fallback operators, and combine them freely."
+---
+
 # Prompt Chaining
 
 Compose prompts into multi-step pipelines with sequential chains, concurrent execution, conditional branching, retry logic, and fallback strategies.

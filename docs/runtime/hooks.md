@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Runtime Lifecycle Hooks and Events"
+description: "React to what happens to an agent process with hooks on 13 lifecycle events: audit prompts, add context, notify channels, block actions or run shell commands."
+---
+
 # Runtime Lifecycle Hooks
 
 Runtime hooks let you react to what happens *to* an agent process -- a session starting, a prompt about to reach the model, a tool approval being denied, a trigger event entering or leaving the queue -- without changing the agent. Use them to audit prompts, add standing context, notify a chat channel, or refuse an action by policy. Every `AgentProcess` dispatches the 13 lifecycle events itself; you only register the hooks.

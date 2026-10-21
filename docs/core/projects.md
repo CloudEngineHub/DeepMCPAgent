@@ -1,3 +1,8 @@
+---
+seo_title: "promptise run: Projects Like npm for Agents"
+description: "Run agent projects with promptise.toml and promptise run: scripts, env vars, dev tools, watch mode, terminal UI, production mode, HTTP serve mode and Docker."
+---
+
 # Projects & promptise run
 
 A Promptise project works like a Node project. `promptise.toml` plays the part of `package.json`: it names the program (`main`), lists named commands (`[scripts]`), and says which environment variables the project needs (`[env]`). `promptise run` runs your program the way `node` or `npm start` would.

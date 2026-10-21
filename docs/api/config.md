@@ -1,3 +1,8 @@
+---
+seo_title: "Server Spec API Reference: Stdio and HTTP"
+description: "API reference for StdioServerSpec, HTTPServerSpec, the ServerSpec union and servers_to_mcp_config, the types that tell an agent how to reach MCP servers."
+---
+
 # Configuration API Reference
 
 Server specifications and configuration types.

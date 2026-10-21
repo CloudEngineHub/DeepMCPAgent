@@ -1,4 +1,9 @@
-# Rewind
+---
+seo_title: "Rewind an Agent Process to Earlier State"
+description: "Roll a live agent process back to before a journal entry: its context state, conversation history or both, from Python, the orchestration API or the CLI."
+---
+
+# Agent Process Rewind
 
 Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off track -- a bad tool result written into its state, a conversation that drifted -- and you want it to continue from an earlier point instead of starting over. It is non-destructive: the journal is only appended to, so a rewind can itself be rewound.
 

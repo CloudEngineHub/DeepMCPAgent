@@ -1,3 +1,8 @@
+---
+seo_title: "ConversationFlow: Multi-Phase System Prompts"
+description: "Build agents whose system prompt changes across the phases of a conversation: define phases, swap blocks per turn, handle transitions, use with build_agent."
+---
+
 # Layer 2: ConversationFlow
 
 Build conversation agents where the system prompt evolves across phases -- different blocks activate as the conversation progresses.

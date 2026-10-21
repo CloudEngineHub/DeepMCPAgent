@@ -1,3 +1,8 @@
+---
+seo_title: "Agent Identity with SPIFFE and SPIRE"
+description: "Back an agent's identity with a SPIFFE JWT-SVID, read from a file written by spiffe-helper or fetched from the SPIRE agent's Workload API with py-spiffe."
+---
+
 # SPIFFE / SPIRE
 
 Back an agent's identity with a SPIFFE / SPIRE JWT-SVID. Two modes, with

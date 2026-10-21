@@ -1,3 +1,8 @@
+---
+seo_title: "MCP Tools as LangChain Tools: Tool Adapter"
+description: "MCPToolAdapter discovers tools on MCP servers and turns them into typed LangChain BaseTool objects, building Pydantic models from their JSON Schemas."
+---
+
 # MCP Tool Adapter
 
 The `MCPToolAdapter` discovers tools from connected MCP servers and converts

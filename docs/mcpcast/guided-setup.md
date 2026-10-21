@@ -1,10 +1,11 @@
 ---
 title: MCPcast guided setup — turn your API into an MCP server from a terminal wizard
-description: Run `promptise mcpcast` with no arguments and a full-screen terminal wizard walks you through the seven decisions — API spec, model, safety profile, auth, project, review, write — with the explanation each choice needs, live tool counts from your own spec, a review workspace, and the exact non-interactive command it ends up running.
+seo_title: "MCPcast Wizard: API to MCP Server Setup"
+description: "Run promptise mcpcast with no arguments for a terminal wizard: choose spec, model, safety profile and auth, review the model's decisions, write the server."
 keywords: promptise mcpcast wizard, MCP server generator terminal UI, OpenAPI to MCP guided setup, Textual wizard, detect local API openapi.json
 ---
 
-# The guided setup
+# MCPcast Guided Setup
 
 `promptise mcpcast` with no arguments opens a full-screen terminal wizard. It
 asks the seven questions the CLI flags answer, explains each one next to the

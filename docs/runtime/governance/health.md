@@ -1,3 +1,8 @@
+---
+seo_title: "Behavioral Health Monitoring for AI Agents"
+description: "Behavioral health monitoring catches agents that are stuck, looping, giving empty replies or failing repeatedly, using pattern matching, with no LLM calls."
+---
+
 # Behavioral Health Monitoring
 
 Behavioral health monitoring catches an agent that runs but no longer does useful work: stuck on the same tool call, looping through the same sequence, giving empty replies, or failing run after run. Detection is pure pattern matching on the tool calls, final replies and run outcomes the process records; it makes no LLM calls. When it finds an anomaly, the process logs it, pauses, escalates or stops, as you configure.

@@ -1,3 +1,8 @@
+---
+seo_title: "Inject MCP Tools into Graph Nodes"
+description: "How MCP tools found by build_agent reach reasoning graph nodes at runtime with inject_tools, how they merge with node tools, and how to pass them yourself."
+---
+
 # Runtime Tool Injection
 
 When you use `build_agent(servers=...)`, MCP tools are discovered at startup. For the default ReAct pattern, these tools are automatically available. For custom graphs, you control which nodes get tools.

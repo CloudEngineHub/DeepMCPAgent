@@ -1,3 +1,8 @@
+---
+seo_title: "SuperAgent Files: Define Agents in YAML"
+description: "Define an agent in a .superagent YAML file: model, MCP servers, memory, sandbox and cross-agent teams, with ${VAR} environment variable resolution."
+---
+
 # SuperAgent Files
 
 Define agents declaratively using `.superagent` YAML files -- configure model, servers, memory, sandbox, and cross-agent references in a single file.

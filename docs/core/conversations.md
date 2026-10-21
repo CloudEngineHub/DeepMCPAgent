@@ -1,3 +1,8 @@
+---
+seo_title: "Conversation History: Postgres, SQLite, Redis"
+description: "Persist agent conversation history across sessions with Postgres, SQLite, Redis or in-memory stores, the chat() API, per-user ownership and custom stores."
+---
+
 # Conversation Persistence
 
 Persist conversation history across sessions with pluggable database backends. Every chat application needs this — Promptise makes it one line of configuration.

@@ -1,3 +1,8 @@
+---
+seo_title: "Semantic Cache for LLM Responses"
+description: "Cache LLM responses by query similarity, with per-user isolation, in-memory or Redis backends, local or OpenAI embeddings and write invalidation."
+---
+
 # Semantic Cache
 
 Cache LLM responses by query similarity. Save 30-50% on API costs by serving cached responses for semantically similar queries. All embedding runs locally by default.

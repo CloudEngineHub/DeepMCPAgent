@@ -1,6 +1,7 @@
 ---
 title: Agent Runtime — Autonomous AI agents in Python with crash recovery
-description: The Agent Runtime is the operating system for autonomous AI agents — lifecycle management, cron / event / message / webhook / file-watch triggers, journaled state with crash recovery, governance (budget, health, mission, secrets), and distributed multi-node coordination. Built into Promptise Foundry.
+seo_title: "Agent Runtime for Autonomous AI Agents"
+description: "The Agent Runtime runs autonomous AI agents as processes: triggers, persistent state, crash recovery, governance, hooks, an HTTP API, a CLI and clustering."
 keywords: autonomous AI agents, agent runtime, AI agent scheduler, agent crash recovery, AI agent governance, Python agent process, cron AI agent
 ---
 

@@ -1,3 +1,8 @@
+---
+seo_title: "Webhook and Event Triggers for AI Agents"
+description: "Run an agent when something happens elsewhere: WebhookTrigger with HMAC signatures for GitHub, Stripe or CI, and event bus and message broker triggers."
+---
+
 # Event and Webhook Triggers
 
 These three triggers run an agent when something happens elsewhere. `WebhookTrigger` exposes an HTTP endpoint for external systems (GitHub, Stripe, CI, monitoring). `EventTrigger` and `MessageTrigger` listen to an event bus or a message broker that you share between processes, so one process can wake another.

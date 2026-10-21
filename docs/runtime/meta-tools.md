@@ -1,4 +1,9 @@
-# Meta-Tools
+---
+seo_title: "Self-Modifying Agents: Open Mode Meta-Tools"
+description: "In open mode an agent process gets meta-tools to rewrite its instructions, create tools, connect MCP servers, manage triggers and memory and spawn processes."
+---
+
+# Open Mode Meta-Tools
 
 In open mode (`execution_mode=ExecutionMode.OPEN`) an agent process gets meta-tools: tools that change the process itself instead of the outside world. With them the agent can rewrite its instructions, write new Python tools, connect MCP servers, add and remove its own triggers, manage long-term memory and spawn helper processes. Every meta-tool goes through the same process methods an operator would use, so the limits in `OpenModeConfig` and your [hooks](hooks.md) apply to each change.
 

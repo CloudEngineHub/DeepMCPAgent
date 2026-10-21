@@ -1,3 +1,8 @@
+---
+seo_title: "Adaptive Strategy: Agents Learn From Failures"
+description: "Let agents learn from failed tool calls: failures are classified, lessons are synthesized by LLM reflection and injected on later runs, scoped per caller."
+---
+
 # Adaptive Strategy
 
 Agents that learn from their mistakes: failed tool calls are captured and classified, lessons about how to call the failing tools are synthesized, and relevant lessons are injected on later invocations. Every caller learns in their own partition by default.

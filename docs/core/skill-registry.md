@@ -1,3 +1,8 @@
+---
+seo_title: "Path-Scoped Skills for Reasoning Graphs"
+description: "Register reasoning graph skills with glob patterns so each one only activates when the agent works in a matching directory, and load skills from files."
+---
+
 # Path-Scoped Skill Activation
 
 Register reasoning-graph skills with glob patterns so they only activate when the agent is working in a matching directory. A TypeScript review skill stays hidden when the agent operates in a Python repo.

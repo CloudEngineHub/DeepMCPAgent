@@ -1,4 +1,9 @@
-# Changelog
+---
+seo_title: "Promptise Foundry Changelog and Releases"
+description: "Release notes for every Promptise Foundry version: fixes, additions, changes, security notes, deprecations and upgrade notes, with the newest release first."
+---
+
+# Promptise Foundry Changelog
 
 All notable changes to Promptise Foundry are documented here.
 

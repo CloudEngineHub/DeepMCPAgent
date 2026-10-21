@@ -1,3 +1,8 @@
+---
+seo_title: "RAG API Reference: Loaders to Vector Stores"
+description: "API reference for promptise.rag: Document and Chunk types, loader, chunker, embedder and vector store base classes, RAGPipeline and the rag_to_tool adapter."
+---
+
 # RAG API Reference
 
 The `promptise.rag` module provides a pluggable foundation for retrieval-augmented generation: base classes you subclass for your loader, chunker, embedder, and vector store, plus a pipeline orchestrator and LangChain tool adapter.

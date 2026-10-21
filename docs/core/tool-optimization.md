@@ -1,3 +1,8 @@
+---
+seo_title: "Tool Optimization: Cut MCP Tool Token Cost"
+description: "Reduce the tokens MCP tool definitions cost on every LLM call with schema minification, description truncation and semantic tool selection at three levels."
+---
+
 # Tool Optimization
 
 Reduce the token cost of MCP tool definitions sent to the LLM with every invocation.

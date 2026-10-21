@@ -1,4 +1,9 @@
-# Observability & Monitoring
+---
+seo_title: "MCP Server Monitoring: Metrics and Tracing"
+description: "Monitor an MCP server with built-in metrics, a live dashboard, OpenTelemetry tracing, Prometheus export, structured logs and HMAC-chained audit logs."
+---
+
+# MCP Server Observability & Monitoring
 
 Track what your MCP server is doing in production with built-in metrics, distributed tracing, Prometheus export, structured logging, audit trails, and a live terminal dashboard.
 

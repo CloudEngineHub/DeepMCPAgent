@@ -1,4 +1,9 @@
-# Contributing
+---
+seo_title: "Contributing to Promptise Foundry"
+description: "How to contribute to Promptise Foundry: environment setup, package structure, type hints, docstrings, tests, examples, pull requests and commit messages."
+---
+
+# Contributing to Promptise Foundry
 
 Guidelines for contributing to Promptise Foundry.
 

@@ -1,4 +1,9 @@
-# Server Configuration
+---
+seo_title: "Connect Agents to MCP Servers: Stdio, HTTP"
+description: "Configure how an agent connects to MCP servers with StdioServerSpec for local processes and HTTPServerSpec for remote ones, with auth and per-user tokens."
+---
+
+# MCP Server Configuration for Agents
 
 Configure how agents connect to MCP servers using `StdioServerSpec` for local servers and `HTTPServerSpec` for remote ones.
 
