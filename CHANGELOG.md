@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.6.0 — 2026-10-21
+
+Python functions are tools: `from promptise import tool` declares one, with its schema taken from the type hints and the docstring and no `langchain_core` import. `MCPClient` reuses its HTTP connections over Streamable HTTP instead of opening one per request, `promptise runtime start --detach` on Windows no longer loses track of a runtime that has started, a `promptise run --tui` run ends after its program's last output line, and every page of docs.promptise.com has a title and description that say what it covers.
+
+### Added
+
+- **Native tools: `@tool`** -- `from promptise import tool` makes a Python function a tool for `build_agent(extra_tools=[...])`, without importing `langchain_core`:
+
+  ```python
+  from promptise import CallerContext, ToolError, build_agent, tool
+
+  @tool
+  async def get_order(order_id: str, caller: CallerContext) -> dict:
+      """Look up an order by its ID.
+
+      Args:
+          order_id: The order ID, for example "A-1001".
+      """
+      order = await orders.get(order_id, owner=caller.user_id)
+      if order is None:
+          raise ToolError(f"No order {order_id}.")
+      return order
+
+  agent = await build_agent(model="openai:gpt-5-mini", extra_tools=[get_order])
+  ```
+
+  The tool's name is the function's name, its description the docstring without the parameter section, and its parameter schema comes from the type hints (defaults, `Optional`, `Literal`, enums, lists, dicts, nested Pydantic models, `Field` constraints), with each parameter described by `Annotated[..., Field(description=...)]`, `Annotated[..., "text"]` or the docstring (Google `Args:`, NumPy `Parameters` or Sphinx `:param:`). It is the schema `@server.tool()` builds for the same function, and for a simple function the one LangChain's `@tool` builds, so switching the import changes nothing the model sees. Arguments are validated before the function runs; invalid ones reach the model as a tool error that lists what to correct. A `CallerContext` parameter receives the caller of `ainvoke(..., caller=...)` and is hidden from the model. Raising `ToolError` (now also importable as `promptise.ToolError`) sends the model the error envelope an MCP server sends, and `timeout=` answers a call that runs longer with a retryable `TIMEOUT` error. Sync functions run in a worker thread, so they never block the event loop. Results reach the model as text: a string as it is, `None` as an empty result, anything else (dicts, lists, Pydantic models, dataclasses) as JSON. The tool is a LangChain `BaseTool` (`promptise.function_tools.FunctionTool`), so approval policies, guardrails, tracing, events, tool optimization, cross-agent delegation and code-action treat it like any other tool, and it stays callable like the function for unit tests (`await get_order("A-1001")`). `extra_tools` also accepts plain functions (made tools as if decorated) and still takes LangChain tools; anything else raises `TypeError` before a server is connected. See docs/core/tools.md.
+
+### Fixed
+
+- **A `promptise run --tui` run could say it had exited before its program's last lines.** `ChildRunSource` gets the child's run events over its IPC channel and its output over the stdout/stderr pipes, and forwarded both as they arrived. The child publishes `state: exited` and `run.exit` just before it exits, so on a busy machine the stream said the run had ended before its last printed lines, and every run had two `exited` states. It now holds the child's `run.exit`, reads both pipes to the end once the process has ended, waits for the channel to deliver `run.exit` or close (each wait at most 2 s, as before), then publishes `run.exit` and a single `exited`. A restart ends the old run the same way, so the old run's last lines no longer show up after the new run started.
+- **`MCPClient` opened a new TCP connection for every Streamable HTTP request** (with mcp 1.x and 2.x). The MCP SDK closes the event stream that answers a request as soon as it has the JSON-RPC response, before the end of the stream has been read, and an HTTP/1.1 connection closed in the middle of a response can't be reused. Each closed connection kept a local port in `TIME_WAIT`, so an agent calling a server many times ran out of ports (`Can't assign requested address`, seen on macOS). The client now reads the rest of that stream when it is closed (at most 1 s and 64 KiB; the server ends it right after the response), so the connection goes back to the pool: in a local test, 50 calls in a row opened 3 connections (the handshake, the session's event stream and one for the calls) instead of 54. Per-caller sessions keep connections of their own, so a connection never carries two callers' tokens. The SSE transport already reused its connections.
+- **`promptise runtime start --detach` on Windows could report "still starting after 60s" for a runtime that had started.** While it waited, the command read the runtime's state file every 0.2 s. On Windows that read fails while the runtime replaces the file to record that it is ready, and the command took the unreadable file for a stale one and deleted it: the runtime kept running without a state file, so `status` and `stop` could not find it. `status`, `stop` and the other commands could delete it the same way, and a second `start` with the same name could take the name over in that moment. A state file that can't be read is now read again (for up to 1 s on Windows) and never removed; only a file whose process is gone, or that is not a valid state file, is stale.
+
+### Changed
+
+- **MCP server: more parameter descriptions.** `@server.tool()` (and `@server.prompt()`) also read NumPy-style `Parameters` sections, and `@server.tool()` reads a plain string in `Annotated[...]` (`Annotated[str, "The order ID."]`) as the parameter's description, as `@tool` does. A `Field` description still wins over both, and the `Annotated` string over the docstring.
+- Docs: the Tools page starts with declaring tools with `@tool`, and the Building Agents, RAG, code-action and projects pages, three blog posts, the `promptise init --project` template and the examples use `from promptise import tool`.
+- Docs: the MCP client page describes how a client uses its HTTP connections, and the runtime CLI page says that a state file which can't be read is left alone.
+- Docs: every page on docs.promptise.com has a title that names what it covers ("Agent Memory: Vector Search, Chroma and Mem0" rather than "Memory"), followed by "| Promptise Docs", and a description; generic page headings are more specific.
+- Docs: the `InjectionDetector` page no longer says it detects jailbreaks. Its default model's card says it handles English only and does not detect jailbreak attacks, and the model's project is archived; the page says so and how to pass another classifier.
+- Development: `ruff` may be up to 0.17 and `pymdown-extensions` up to 12.2 in the `dev`/`docs` extras.
+
+
 ## 1.5.2 — 2026-10-21
 
 `MCPClient` no longer reports a server's own error as a lost connection (a regression in 1.5.1), a stdio server answers the requests still running when its client closes stdin, `get_node_status()` reports an unreachable node as `NodeUnreachableError`, and an event or message trigger dead-letters every event its full buffer drops, also before its listener runs.
