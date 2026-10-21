@@ -1,25 +1,37 @@
 {% extends "base.html" %}
 
+{# One search title per page, built by hooks/seo.py from the page itself (its #}
+{# seo_title or title front matter, else its first heading) plus the site     #}
+{# suffix. Material's default uses the nav label, e.g. "Runtime".             #}
+{% block htmltitle %}
+  {% if page and page.meta and page.meta.seo_title_full %}
+    <title>{{ page.meta.seo_title_full | striptags }}</title>
+  {% else %}
+    <title>{{ config.site_name }}</title>
+  {% endif %}
+{% endblock %}
+
 {# ---------------------------------------------------------------- #}
 {# Extra <head> SEO: canonical, Open Graph, Twitter, JSON-LD         #}
 {# ---------------------------------------------------------------- #}
 {% block extrahead %}
   {% set has_page = page is defined and page is not none %}
   {% if has_page %}
-    {% set page_title = page.meta.title or page.title or config.site_name %}
+    {% set page_title = page.meta.seo_title_full or page.title or config.site_name %}
+    {% set page_headline = page.meta.seo_title or page.title or config.site_name %}
     {% set page_description = page.meta.description or config.site_description %}
     {% set page_url = page.canonical_url or config.site_url %}
     {% set page_src = page.file.src_path or "" %}
   {% else %}
     {% set page_title = config.site_name %}
+    {% set page_headline = config.site_name %}
     {% set page_description = config.site_description %}
     {% set page_url = config.site_url %}
     {% set page_src = "" %}
   {% endif %}
   {% set og_image = config.site_url ~ "/assets/social-preview.png" %}
 
-  {# Canonical #}
-  <link rel="canonical" href="{{ page_url }}">
+  {# Canonical: base.html already emits it from page.canonical_url. #}
 
   {# Robots — let everything index unless page front-matter says otherwise #}
   {% if has_page and page.meta.noindex %}
@@ -38,8 +50,8 @@
   {% endif %}
 
   {# Open Graph #}
-  <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
+  <meta property="og:type" content="{{ 'website' if has_page and page.is_homepage else 'article' }}">
+  <meta property="og:site_name" content="Promptise Docs">
   <meta property="og:title" content="{{ page_title }}">
   <meta property="og:description" content="{{ page_description }}">
   <meta property="og:url" content="{{ page_url }}">
@@ -131,8 +143,8 @@
     {
       "@context": "https://schema.org",
       "@type": "{{ page_schema }}",
-      "headline": {{ page_title | tojson }},
-      "name": {{ page_title | tojson }},
+      "headline": {{ page_headline | tojson }},
+      "name": {{ page_headline | tojson }},
       "description": {{ page_description | tojson }},
       "url": "{{ page_url }}",
       "image": "{{ og_image }}",
@@ -216,7 +228,7 @@
       ,{
         "@type": "ListItem",
         "position": {{ page.ancestors | length + 2 }},
-        "name": {{ page_title | tojson }},
+        "name": {{ page_headline | tojson }},
         "item": "{{ page_url }}"
       }
     ]

@@ -1,7 +1,11 @@
 site_name: Promptise Foundry
-site_description: Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes — secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.
+site_description: "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference."
 site_url: https://docs.promptise.com
 site_author: Manser Ventures
+
+hooks:
+  # Search titles from each page's own heading, not its nav label.
+  - hooks/seo.py
 
 theme:
   name: material
