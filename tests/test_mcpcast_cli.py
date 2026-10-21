@@ -1331,7 +1331,11 @@ class TestMalformedDocuments:
         assert spec.stat().st_size < 1024
         started = time.monotonic()
         result = runner.invoke(app, ["mcpcast", str(spec), "--no-curate"])
-        assert time.monotonic() - started < 3
+        # Expanded, the document has 10**9 nodes; the cap stops it at 2M. That
+        # takes ~0.1 s alone, but several seconds late in a full suite run on a
+        # loaded CI runner (garbage collection over a large heap), so the bound
+        # only has to tell a capped parse from an unbounded one.
+        assert time.monotonic() - started < 20
         assert result.exit_code == 1 and "Traceback" not in _out(result)
         assert f"Error: {spec}: document expands to more than 2000000 nodes" in _out(result)
         assert "MCPCAST_MAX_SPEC_NODES" in _out(result)
