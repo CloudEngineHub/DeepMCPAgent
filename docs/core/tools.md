@@ -1,20 +1,249 @@
 ---
-seo_title: "MCP Tool Discovery and Schema Conversion"
-description: "How Promptise discovers MCP tools and converts their JSON Schemas into typed Pydantic models and LangChain tools, including nested objects, unions and $ref."
+seo_title: "Tools: @tool Functions, MCP Tool Discovery and Schemas"
+description: "Give a Promptise agent a Python function as a tool with @tool: schema from type hints and docstrings, validation, CallerContext, ToolError and timeouts. Plus how MCP tools are discovered and converted."
 ---
 
-# Tools & Schema Helpers
+# Tools
 
-The `tools` module is responsible for discovering MCP tools and converting them
-into fully-typed LangChain `BaseTool` instances.  Its centrepiece is the
-recursive JSON Schema to Pydantic converter that ensures LLMs see rich,
-described parameter types -- including nested objects, arrays, unions, enums,
-and `$ref`/`$defs` -- so they can generate correct tool calls on the first
-attempt.
+An agent calls two kinds of tools: Python functions you declare with `@tool`
+and pass to `build_agent(extra_tools=[...])`, and the tools of the MCP servers
+it connects to.  This page covers both: first how to declare a tool, then how
+MCP tools are discovered and their JSON Schemas converted.
 
-**Source:** `src/promptise/tools.py`
+**Source:** `src/promptise/function_tools.py` (`@tool`), `src/promptise/tools.py` (MCP tools)
 
-## Quick example
+## Declare tools with `@tool`
+
+Decorate a function with `@tool` and give it to the agent:
+
+```python
+import asyncio
+from typing import Annotated
+
+from pydantic import Field
+
+from promptise import CallerContext, ToolError, build_agent, tool
+
+ORDERS = {"A-1001": {"order_id": "A-1001", "status": "shipped", "total": 120.0}}
+
+
+@tool
+async def get_order(order_id: str, include_lines: bool = False) -> dict:
+    """Look up an order by its ID.
+
+    Args:
+        order_id: The order ID, for example "A-1001".
+        include_lines: Also return the order lines.
+    """
+    order = ORDERS.get(order_id)
+    if order is None:
+        raise ToolError(f"No order {order_id}. Check the ID with the customer.")
+    return order
+
+
+@tool(name="refund_order", timeout=10)
+def refund(
+    order_id: str,
+    amount: Annotated[float, Field(gt=0, description="Amount to refund, in EUR.")],
+    caller: CallerContext,
+) -> str:
+    """Refund part of an order."""
+    return f"Refunded {amount:.2f} EUR on {order_id} for {caller.user_id}."
+
+
+async def main():
+    agent = await build_agent(model="openai:gpt-5-mini", extra_tools=[get_order, refund])
+    result = await agent.ainvoke(
+        {"messages": [{"role": "user", "content": "Refund 20 EUR on order A-1001."}]},
+        caller=CallerContext(user_id="alice"),
+    )
+    print(result["messages"][-1].content)
+    await agent.shutdown()
+
+
+asyncio.run(main())
+```
+
+`@tool` works bare, with options (`@tool(name=..., description=..., timeout=...)`)
+and with the name alone (`@tool("get_order")`), on `async def` and plain `def`
+functions.  `extra_tools` also takes a plain function as it is (it is made a
+tool as if decorated) and LangChain tools.
+
+### What the model sees
+
+The tool's **name** is the function's name.  Its **description** is the
+docstring without the parameter section; the parameter section describes the
+parameters instead.  The **parameters** come from the type hints, defaults
+and `Field` constraints.  For `get_order` the model is offered:
+
+```json
+{
+  "name": "get_order",
+  "description": "Look up an order by its ID.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "order_id": {"type": "string", "description": "The order ID, for example \"A-1001\"."},
+      "include_lines": {"type": "boolean", "default": false, "description": "Also return the order lines."}
+    },
+    "required": ["order_id"]
+  }
+}
+```
+
+`refund_order` takes `order_id` (a string) and `amount`, both required:
+
+```json
+{"type": "number", "exclusiveMinimum": 0, "description": "Amount to refund, in EUR."}
+```
+
+`caller` is not in the schema: the agent fills it in (see
+[The caller](#the-caller)).  A function decorated with `@server.tool()` on a
+Promptise MCP server gets the same parameter schema, built by the same code,
+so a tool keeps its parameters when it moves between your agent and an MCP
+server.  (An MCP server describes the tool with the docstring's first
+paragraph only.)
+
+### Describing parameters
+
+A parameter's description comes from the first of these that is present:
+
+| Source | Example |
+|---|---|
+| `Field(description=...)` in `Annotated` or as the default | `amount: Annotated[float, Field(gt=0, description="Amount to refund.")]` |
+| A string in `Annotated` | `reason: Annotated[str, "Why the customer wants a refund."]` |
+| The docstring, Google style | `Args:` then `order_id: The order ID.` |
+| The docstring, NumPy style | `Parameters` / `----------` then `order_id : str` and an indented description |
+| The docstring, Sphinx style | `:param order_id: The order ID.` |
+
+Pass `description=` to `@tool` to send the model a different tool
+description.  A function without a docstring is described by its name, so
+write one: the model decides when to call a tool from its description.
+
+### Types and validation
+
+Every type Pydantic understands works: `str`, `int`, `float`, `bool`,
+`Optional[...]` / `X | None`, `Literal[...]`, `Enum`, `list[...]`,
+`dict[str, ...]`, `datetime` / `date`, nested Pydantic models (inlined into
+the schema, without `$ref`), and constraints such as `Field(ge=1, le=100)`,
+`max_length` or `pattern`.  A parameter without a type hint is a string.
+
+The arguments are validated before the function runs.  The function gets
+them in its own types (a nested model as an instance, an enum as its member,
+defaults filled in), and lax conversions apply (`"12.5"` for a `float`).  An
+explicit `null` for an optional parameter that can't be `None` counts as not
+given, and a nested object the model sent as JSON text is decoded.  When the
+arguments don't fit, the function does not run and the model gets a tool
+error it can correct:
+
+```text
+Invalid arguments for tool 'refund_order':
+- amount: Input should be greater than 0 (got -20)
+Correct the arguments and call the tool again.
+```
+
+### The caller
+
+A parameter annotated `CallerContext` receives the caller of the current
+`agent.ainvoke(..., caller=...)` or `agent.chat(..., caller=...)`: the user's
+id, tenant, roles, scopes and metadata, to scope a query or check a
+permission.  It is never part of the schema, so the model can't set it.
+Without a caller the parameter gets an empty `CallerContext()` (no user, no
+roles); annotate it `CallerContext | None` to get `None` instead.  It works
+in sync and async tools, and in a peer agent the caller is the one the first
+agent was invoked with.
+
+```python
+@tool
+async def my_orders(status: str, caller: CallerContext) -> list:
+    """List the caller's orders with a status."""
+    if "support" not in caller.roles:
+        raise ToolError("Only support staff can list orders.")
+    return await db.orders.list(owner=caller.user_id, status=status)
+```
+
+### Errors
+
+Raise `ToolError` (from `promptise`, the same class MCP server tools raise) to
+give the model an error it can act on.  The model gets the error envelope a
+Promptise MCP server sends, and the call counts as failed in events,
+observability and streaming:
+
+```json
+{"error": {"code": "TOOL_ERROR", "message": "No order A-9999. Check the ID with the customer.", "retryable": false}}
+```
+
+`ToolError` takes `code=`, `retryable=` and `suggestion=` as well, and the
+other `MCPError` subclasses (`RateLimitError`, `ValidationError` ...) are
+reported the same way.  Any other exception is a tool that failed, as for
+every tool: the model reads `Error: <type>: <message>`, so don't put secrets
+in exception messages.
+
+With `timeout=` a call that runs longer is answered with a retryable `TIMEOUT`
+error (`Tool 'refund_order' timed out after 10s`).  An async function is
+cancelled; a sync function's thread can't be stopped, so it finishes in the
+background and its result is dropped.
+
+### Results
+
+| The function returns | The model reads |
+|---|---|
+| `str` | The string as it is |
+| `None` | An empty result |
+| `dict`, `list`, `tuple`, numbers, `bool` | JSON (`{"status": "shipped"}`, `["a", "b"]`, `42`, `true`) |
+| A Pydantic model or dataclass | Its fields as JSON |
+| `datetime`, `Enum`, `set` inside the value | ISO strings, the enum's value, a list |
+
+Non-ASCII text stays readable (`"Zürich"`, not `"Z\u00fcrich"`).  With
+`agent_pattern="code-action"` the program gets the value back as data (a
+dict, a list), not as JSON text.
+
+### Sync and async functions
+
+An `async def` tool runs on the event loop.  A plain `def` tool runs in a
+worker thread, so a blocking call (a database driver, `requests`) never
+stalls the agent or other tool calls running in parallel.
+
+### Testing a tool
+
+A tool stays callable like the function it was made from, so unit tests call
+it directly, without validation or an agent:
+
+```python
+assert (await get_order("A-1001"))["status"] == "shipped"
+assert refund("A-1001", 20.0, CallerContext(user_id="alice")).startswith("Refunded")
+```
+
+`await get_order.ainvoke({"order_id": "A-1001"})` runs it the way the agent
+does (validated, with the caller injected) and returns the text the model
+reads.
+
+### Approval, guardrails and tracing
+
+A `@tool` is a LangChain `BaseTool`, so everything that applies to tools
+applies to it, by its name: `ApprovalPolicy(tools=["refund_*"])` gates it
+(invalid arguments are rejected before a reviewer is asked), guardrails with
+`scan_tool_results=True` scan its result before the model reads it, and
+`trace_tools`, `observe`, `events` and `optimize_tools` include it.
+
+!!! note "LangChain tools still work"
+    `extra_tools` accepts LangChain tools as well (`@tool` from
+    `langchain_core.tools`, `StructuredTool`, any `BaseTool`), so existing
+    code keeps working.  Switching a simple tool to `from promptise import
+    tool` changes nothing the model sees: the name, description and
+    parameter schema are the same.  For a docstring with an `Args:` section
+    the parameter descriptions move from the tool description into the
+    parameters, as with LangChain's `parse_docstring=True`.
+
+## MCP tools
+
+The `tools` module discovers MCP tools and converts them into fully-typed
+LangChain `BaseTool` instances.  Its centrepiece is the recursive JSON Schema
+to Pydantic converter that ensures LLMs see rich, described parameter types
+-- including nested objects, arrays, unions, enums, and `$ref`/`$defs` -- so
+they can generate correct tool calls on the first attempt.
+
+### Discovering MCP tools
 
 ```python
 import asyncio
@@ -40,9 +269,9 @@ async def main():
 asyncio.run(main())
 ```
 
-## Concepts
+### Concepts
 
-### ToolInfo
+#### ToolInfo
 
 A frozen dataclass that holds human-friendly metadata about a discovered MCP
 tool.  Useful for introspection, debugging, and building tool registries.
@@ -67,7 +296,7 @@ print(info.name)          # "add"
 print(info.description)   # "Add two numbers"
 ```
 
-### MCPClientError
+#### MCPClientError
 
 Raised when communication with the MCP client fails -- for example, when
 listing tools or calling a tool over a broken connection.
@@ -82,7 +311,7 @@ except MCPClientError as exc:
     print(f"MCP communication failed: {exc}")
 ```
 
-### JSON Schema to Pydantic conversion
+#### JSON Schema to Pydantic conversion
 
 The core of the module is the `_jsonschema_to_pydantic` function (internal) that
 recursively converts a JSON Schema dict into a Pydantic model.  This is critical
@@ -140,7 +369,7 @@ schema = {
 #     tags: list[str] | None = None
 ```
 
-### MCPToolAdapter
+#### MCPToolAdapter
 
 For direct tool discovery and conversion outside of `build_agent`, use
 `MCPToolAdapter` from the Promptise MCP Client.  It connects to MCP servers
@@ -171,7 +400,7 @@ async def main():
 asyncio.run(main())
 ```
 
-### Callback hooks
+#### Callback hooks
 
 `MCPToolAdapter` supports three callback hooks for tracing tool calls:
 
@@ -196,9 +425,9 @@ adapter = MCPToolAdapter(
 )
 ```
 
-## API summary
+### API summary
 
-### ToolInfo
+#### ToolInfo
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
@@ -207,13 +436,13 @@ adapter = MCPToolAdapter(
 | `description` | `str` | Human-readable tool description |
 | `input_schema` | `dict[str, Any]` | Raw JSON Schema for the tool's input |
 
-### MCPClientError
+#### MCPClientError
 
 | Base class | Description |
 |------------|-------------|
 | `RuntimeError` | Raised when MCP client communication fails |
 
-### MCPToolAdapter
+#### MCPToolAdapter
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -227,7 +456,7 @@ adapter = MCPToolAdapter(
 | `as_langchain_tools()` | `list[BaseTool]` | Discover all tools and return as LangChain tools |
 | `list_tool_info()` | `list[ToolInfo]` | Return tool metadata for introspection |
 
-### Callback types
+#### Callback types
 
 | Type | Signature |
 |------|-----------|
@@ -235,7 +464,7 @@ adapter = MCPToolAdapter(
 | `OnAfter` | `Callable[[str, Any], None]` |
 | `OnError` | `Callable[[str, Exception], None]` |
 
-## Tips and gotchas
+### Tips and gotchas
 
 !!! tip
     You rarely need to use `MCPToolAdapter` directly.  `build_agent` handles
@@ -260,6 +489,10 @@ adapter = MCPToolAdapter(
 
 ## What's next
 
+- [Approval (HITL)](approval.md) -- gate tool calls behind a human decision
+- [Guardrails](guardrails.md) -- scan tool results before the model reads them
+- [CallerContext: Agent to MCP Identity](../guides/multi-user-identity.md) -- per-request identity end to end
+- [Server Fundamentals](../mcp/server/building-servers.md) -- serve the same functions to any MCP client
 - [MCP Tool Adapter](../mcp/client/tool-adapter.md) -- the newer adapter using the Promptise MCP Client
 - [Config & Server Specs](config.md) -- define the servers that tools are discovered from
 - [Callback Handler](callback-handler.md) -- observe tool calls via the observability pipeline

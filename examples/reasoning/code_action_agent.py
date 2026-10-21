@@ -25,7 +25,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from langchain_core.tools import tool  # noqa: E402
+from promptise import tool  # noqa: E402
 
 DIM = "\033[2m"
 BOLD = "\033[1m"

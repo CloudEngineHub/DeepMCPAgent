@@ -57,8 +57,7 @@ Here is the delta as runnable code. The program the model writes will call `issu
 
 ```python
 import asyncio
-from langchain_core.tools import tool
-from promptise import build_agent, ApprovalPolicy, CallbackApprovalHandler, ApprovalDecision
+from promptise import build_agent, tool, ApprovalPolicy, CallbackApprovalHandler, ApprovalDecision
 
 ORDERS = {
     "O-1001": {"customer": "acme", "total": 42.0,  "status": "shipped"},

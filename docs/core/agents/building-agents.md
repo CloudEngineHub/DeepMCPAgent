@@ -70,7 +70,7 @@ agent = await build_agent(
     observer=None,                      # shared ObservabilityCollector
     observer_agent_id=None,             # agent id for shared observer
     cross_agents=None,                  # peer agents for delegation
-    extra_tools=[],                     # additional BaseTool instances
+    extra_tools=[],                     # @tool functions, plain functions, LangChain tools
     flow=None,                          # ConversationFlow for multi-turn prompts
 )
 ```
@@ -93,7 +93,7 @@ agent = await build_agent(
 | `cross_agents` | `Mapping[str, CrossAgent] \| None` | `None` | Peer agents exposed as `ask_agent_<name>` tools. See [Cross-Agent Delegation](cross-agent.md). |
 | `expose_resources` | `bool` | `False` | Give the agent the MCP servers' resources: adds `read_resource` (its description lists the resources and URI templates) and `list_resources`. |
 | `expose_prompts` | `bool` | `False` | Give the agent the MCP servers' prompts: adds `get_prompt` (its description lists the prompts and their arguments), which returns the rendered prompt for the agent to follow. Like MCP tool calls, both send the invoking caller's bearer token to servers with `forward_caller_token` (the default), so the server's roles and guards judge the user, not the agent. |
-| `extra_tools` | `list[BaseTool] \| None` | `None` | Additional LangChain tools appended alongside MCP-discovered tools. |
+| `extra_tools` | `Sequence[BaseTool \| Callable] \| None` | `None` | Your own tools, next to the MCP-discovered ones: functions decorated with `@tool` (`from promptise import tool`), plain functions (made tools as if decorated), and LangChain tools. Anything else raises `TypeError` before any server is connected. See [Your own tools](#your-own-tools-extra_tools). |
 | `flow` | `ConversationFlow \| type \| Callable \| None` | `None` | A conversation flow that evolves the system prompt across turns: an instance (used as a template), a subclass, or a factory. Each session or caller gets its own copy. See [ConversationFlow](../../prompting/flows.md#integration-with-build_agent). |
 | `guardrails` | `PromptiseSecurityScanner \| None` | `None` | Security scanner for input/output. Blocks injection attacks, redacts PII and credentials. See [Guardrails](../guardrails.md). |
 | `optimize_tools` | `str \| ToolOptimizationConfig \| None` | `None` | Semantic tool selection to reduce token costs. Pass `"semantic"` for defaults. See [Tool Optimization](../tool-optimization.md). |
@@ -104,6 +104,42 @@ agent = await build_agent(
 | `events` | `EventNotifier \| None` | `None` | Webhook/event notifications. Emits structured events on invocation, tool, guardrail, budget, and process events. See [Events](../events.md). |
 | `on_tool_progress` | `Callable \| None` | `None` | Called as `(tool_name, progress, total, message)` for each progress notification an MCP tool sends during a call; sync or async. Progress is also emitted as `tool.progress` events when `events` is set. See [Progress Reporting](../../mcp/server/resilience-patterns.md#receiving-progress-in-a-promptise-client-or-agent). |
 | `max_invocation_time` | `float` | `0` | Maximum seconds per invocation. Raises `TimeoutError` and emits `invocation.timeout` event when exceeded. `0` = unlimited. |
+
+### Your own tools: `extra_tools`
+
+Give the agent Python functions as tools with `@tool`.  The name, description
+and parameter schema come from the function's name, docstring and type hints,
+arguments are validated before the function runs, and a `CallerContext`
+parameter receives the caller of the current invocation:
+
+```python
+from promptise import CallerContext, ToolError, build_agent, tool
+from promptise.config import HTTPServerSpec
+
+
+@tool
+async def get_order(order_id: str, caller: CallerContext) -> dict:
+    """Look up an order by its ID.
+
+    Args:
+        order_id: The order ID, for example "A-1001".
+    """
+    order = await orders.get(order_id, owner=caller.user_id)
+    if order is None:
+        raise ToolError(f"No order {order_id}.")
+    return order
+
+
+agent = await build_agent(
+    servers={"crm": HTTPServerSpec(url="http://localhost:8000/mcp")},
+    model="openai:gpt-5-mini",
+    extra_tools=[get_order],
+)
+```
+
+`ToolError` sends the model an error it can act on; the dict is sent as JSON.
+See [Tools](../tools.md#declare-tools-with-tool) for parameter descriptions,
+validation, results, timeouts and testing.
 
 ### The `PromptiseAgent` Class
 
@@ -359,12 +395,16 @@ await agent.chat("question", session_id="s2", caller=bob_ctx)
 ```python
 from promptise.agent import get_current_caller
 
-# Inside guardrails, hooks, or custom tools:
+# Inside guardrails, hooks, or other code running in an invocation:
 caller = get_current_caller()
 if caller:
     print(caller.user_id)    # "user-alice-001"
     print(caller.roles)      # {"analyst", "viewer"}
 ```
+
+A `@tool` function takes the caller as a parameter instead: annotate one
+`CallerContext` and the agent fills it in, hidden from the model (see
+[Tools → The caller](../tools.md#the-caller)).
 
 See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) for the complete end-to-end guide with JWT structure, guard reference, and server-side handler examples.
 
@@ -470,6 +510,8 @@ See the full [Agent Runtime](../../runtime/index.md) docs for architecture, stat
 | Symbol | Import | Description |
 |---|---|---|
 | `build_agent()` | `from promptise import build_agent` | Async factory that discovers tools and returns a `PromptiseAgent`. |
+| `tool` | `from promptise import tool` | Decorator that makes a Python function a tool for `extra_tools`. |
+| `ToolError` | `from promptise import ToolError` | Raise in a tool to send the model an error it can act on. |
 | `PromptiseAgent` | `from promptise.agent import PromptiseAgent` | Unified agent with `ainvoke()`, `astream()`, `invoke()`, `shutdown()`, `get_stats()`, `generate_report()`. |
 | `ServerSpec` | `from promptise.config import ServerSpec` | Union type: `StdioServerSpec \| HTTPServerSpec`. |
 | `CrossAgent` | `from promptise.cross_agent import CrossAgent` | Peer agent wrapper with `agent` and `description` fields. |

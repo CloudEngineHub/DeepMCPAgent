@@ -339,28 +339,24 @@ results = await store.search(
 
 A `RAGPipeline` is one shared corpus, and `rag_to_tool()` does not scope results to the caller: every caller of an agent that has the tool can retrieve every document in the pipeline. Index only documents that every caller may read. For per-user facts, use a [memory provider](memory.md) with `MemoryScope.PER_USER`, which is scoped to the caller automatically.
 
-To keep several tenants' documents in one store, tag each document with its owner and write the tool yourself, filtering on the caller of the current request. `get_current_caller()` returns the `CallerContext` passed to `ainvoke()` / `chat()`, and the tool must refuse when there is none:
+To keep several tenants' documents in one store, tag each document with its owner and write the tool yourself with [`@tool`](tools.md#declare-tools-with-tool), filtering on the caller of the current request. A `CallerContext | None` parameter receives the `CallerContext` passed to `ainvoke()` / `chat()` (`None` when there is none, and the model never sees or sets it), and the tool must refuse when there is none:
 
 ```python
-from langchain_core.tools import StructuredTool
-from promptise import get_current_caller
+from promptise import CallerContext, tool
 
 await pipeline.index(documents=[
     Document(id="acme-sla", text="Our SLA is 4 hours.", metadata={"tenant_id": "acme"}),
 ])
 
-async def search_my_docs(query: str) -> str:
-    caller = get_current_caller()
+@tool
+async def search_my_docs(query: str, caller: CallerContext | None) -> str:
+    """Search the documents of the caller's organisation."""
     if caller is None or caller.tenant_id is None:
         return "No tenant for this request; search refused."
     hits = await pipeline.retrieve(query, limit=5, filter={"tenant_id": caller.tenant_id})
     return "\n\n".join(h.text for h in hits) or "No relevant results found."
 
-docs_tool = StructuredTool.from_function(
-    coroutine=search_my_docs,
-    name="search_my_docs",
-    description="Search the documents of the caller's organisation.",
-)
+agent = await build_agent(model="openai:gpt-5-mini", extra_tools=[search_my_docs])
 ```
 
 A tool you write yourself doesn't get `rag_to_tool()`'s untrusted-data block; add the same kind of notice to its output.

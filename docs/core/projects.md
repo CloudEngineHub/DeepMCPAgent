@@ -106,8 +106,7 @@ required = ["OPENAI_API_KEY"]
 ```python
 from __future__ import annotations
 
-from langchain_core.tools import tool
-from promptise import PromptiseAgent, build_agent
+from promptise import PromptiseAgent, build_agent, tool
 from promptise.run import RunContext
 
 MODEL = "openai:gpt-5-mini"

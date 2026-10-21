@@ -23,8 +23,7 @@ deterministic, cheap, and fast.
 ## Quick start
 
 ```python
-from promptise import build_agent
-from langchain_core.tools import tool
+from promptise import build_agent, tool
 
 @tool("list_employees")
 def list_employees() -> list:
@@ -75,10 +74,10 @@ def get_employee(name: str) -> str:           # ⚠️ program must parse prose
     return f"{name}: department=Engineering; salary=210000"
 ```
 
-The bridge preserves JSON-serializable return values, so a tool that returns a
-`dict` arrives in the program as a `dict` (not a stringified blob). Prose-string
-tools still work — the model is told to parse them — but structured returns are
-more reliable.
+The bridge preserves the return values, so a `@tool` that returns a `dict`
+arrives in the program as a `dict` (not a stringified blob), and a list as a
+list. Prose-string tools still work — the model is told to parse them — but
+structured returns are more reliable.
 
 **MCP tools** (`servers=...`) answer with the text of the server's result, and a
 server sends lists and dicts as JSON text. The bridge decodes it: when an MCP
@@ -87,7 +86,9 @@ returns a `list`, a number returns an `int` or `float`); any other text arrives
 as a `str`. A tool error (an MCP error result, or a Promptise
 `{"error": {"code": ..., "message": ...}}` envelope) raises in the program, with
 the server's code and message (`RuntimeError: MCPToolError: NOT_FOUND: ...`).
-Python tools are not decoded: a `str` they return stays a `str`.
+Python tools are not decoded: a `str` they return stays a `str`. A `ToolError`
+raised by a `@tool` raises in the program the same way
+(`RuntimeError: FunctionToolError: TOOL_ERROR: ...`).
 
 ## The security model
 

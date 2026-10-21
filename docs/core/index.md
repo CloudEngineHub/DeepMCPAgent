@@ -46,6 +46,7 @@ build_agent()
 ├─ Core (always active)
 │   model ─────────────── LLM provider ("openai:gpt-5-mini", "anthropic:claude-sonnet-4-5", etc.)
 │   servers ───────────── MCP tool servers (StdioServerSpec, HttpServerSpec)
+│   extra_tools ───────── Your own Python functions as tools (@tool)
 │   instructions ──────── System prompt
 │
 ├─ Reasoning ──────────── What pattern does the agent use to think?
@@ -81,6 +82,7 @@ build_agent()
 | I want to... | Use this |
 |---|---|
 | Connect to MCP tool servers | `servers=` with `StdioServerSpec` or `HttpServerSpec` |
+| Give the agent my own Python functions | `extra_tools=` with `@tool` — see [Tools](tools.md) |
 | Change how the agent reasons | `agent_pattern=` — see [Reasoning Patterns](agents/reasoning-patterns.md) |
 | Give the agent memory across sessions | `memory=` — see [Memory](memory.md) |
 | Persist conversations | `conversation_store=` — see [Conversations](conversations.md) |
@@ -119,7 +121,7 @@ graph TD
 | [Exceptions](exceptions.md) | Custom error hierarchy for configuration and runtime errors | `SuperAgentError`, `SuperAgentValidationError` |
 | [Default System Prompt](default-prompt.md) | The default instructions given to every agent | `DEFAULT_SYSTEM_PROMPT` |
 | [Callback Handler](callback-handler.md) | Bridge LangChain events into the observability pipeline | `PromptiseCallbackHandler` |
-| [Tools & Schema Helpers](tools.md) | Convert MCP tool schemas to LangChain tools | `ToolInfo`, `MCPClientError` |
+| [Tools](tools.md) | Declare Python functions as tools with `@tool`; convert MCP tool schemas to LangChain tools | `tool`, `ToolError`, `ToolInfo`, `MCPClientError` |
 
 ## What's Next
 

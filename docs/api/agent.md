@@ -5,7 +5,7 @@ description: "API reference for build_agent, PromptiseAgent, CallerContext and t
 
 # Agent API Reference
 
-Core agent creation, invocation, identity, conversations, and the full reasoning engine — every public class across `promptise.agent`, `promptise.engine`, and `promptise.conversations`.
+Core agent creation, native tools, invocation, identity, conversations, and the full reasoning engine — every public class across `promptise.agent`, `promptise.function_tools`, `promptise.engine`, and `promptise.conversations`.
 
 ## Building Agents
 
@@ -15,6 +15,33 @@ Core agent creation, invocation, identity, conversations, and the full reasoning
     options:
       show_source: false
       heading_level: 3
+
+### tool
+
+::: promptise.function_tools.tool
+    options:
+      show_source: false
+      heading_level: 3
+
+### FunctionTool
+
+::: promptise.function_tools.FunctionTool
+    options:
+      show_source: false
+      heading_level: 3
+      members:
+        - from_function
+        - func
+        - timeout
+
+### FunctionToolError
+
+::: promptise.function_tools.FunctionToolError
+    options:
+      show_source: false
+      heading_level: 3
+
+`ToolError` (`from promptise import ToolError`) is the MCP server's error class; see [ToolError](mcp-server.md#toolerror).
 
 ### PromptiseAgent
 

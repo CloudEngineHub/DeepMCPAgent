@@ -268,6 +268,7 @@ nav:
       - core/index.md
       - Setup:
           - Building Agents: core/agents/building-agents.md
+          - "Tools (@tool)": core/tools.md
           - Models & Providers: core/agents/models.md
           - Server Configuration: core/agents/server-specs.md
           - Network Server: core/agents/network-server.md
@@ -298,7 +299,6 @@ nav:
           - Types & ModelLike: core/types.md
           - Default System Prompt: core/default-prompt.md
           - Callback Handler: core/callback-handler.md
-          - Tools & Schema Helpers: core/tools.md
           - Environment Resolver: core/env-resolver.md
           - Exceptions: core/exceptions.md
       - "Projects & promptise run": core/projects.md

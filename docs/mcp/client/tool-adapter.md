@@ -299,7 +299,7 @@ return the error text to the model instead of raising.
 ## What's next
 
 - [MCP Client](index.md) -- the `MCPClient` and `MCPMultiClient` that power the adapter
-- [Tools & Schema Helpers](../../core/tools.md) -- the schema conversion logic shared with the legacy loader
+- [Tools](../../core/tools.md) -- `@tool` functions, and the schema conversion logic shared with the legacy loader
 - [Building Agents](../../core/agents/building-agents.md) -- use adapted tools with `build_agent`
 
 !!! tip "Learn the concept"

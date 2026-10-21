@@ -34,8 +34,7 @@ The example below is runnable end-to-end — set `OPENAI_API_KEY` and have Docke
 
 ```python
 import asyncio
-from langchain_core.tools import tool
-from promptise import build_agent, ApprovalPolicy, ApprovalDecision
+from promptise import build_agent, tool, ApprovalPolicy, ApprovalDecision
 
 EMPLOYEES = {
     "Ada":   {"department": "Engineering", "salary": 210000},

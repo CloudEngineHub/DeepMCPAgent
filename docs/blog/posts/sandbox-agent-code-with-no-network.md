@@ -56,8 +56,7 @@ In Promptise Foundry the pairing is one argument. `agent_pattern="code-action"` 
 ```python
 import asyncio
 
-from promptise import build_agent
-from langchain_core.tools import tool
+from promptise import build_agent, tool
 
 
 @tool("list_invoices")

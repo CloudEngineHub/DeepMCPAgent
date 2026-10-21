@@ -57,8 +57,8 @@ _EMPLOYEES: dict[str, tuple[str, int]] = {
 
 
 def _make_company_tools() -> list:
-    """Return LangChain tools over the company dataset (structured lookups)."""
-    from langchain_core.tools import tool
+    """Return tools over the company dataset (structured lookups)."""
+    from promptise import tool
 
     @tool("list_employees")
     def list_employees() -> str:
