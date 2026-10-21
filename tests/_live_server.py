@@ -140,9 +140,16 @@ async def serve_mcp(
 
 
 @asynccontextmanager
-async def serve_asgi(app: Any, *, graceful_timeout: float = 2.0) -> AsyncIterator[int]:
-    """Run an ASGI *app* under uvicorn on ``127.0.0.1:<ephemeral>``; yield the port."""
-    server = _TestServer(uvicorn.Config(app, host="127.0.0.1", port=0, log_level="warning"))
+async def serve_asgi(
+    app: Any, *, graceful_timeout: float = 2.0, **config: Any
+) -> AsyncIterator[int]:
+    """Run an ASGI *app* under uvicorn on ``127.0.0.1:<ephemeral>``; yield the port.
+
+    Extra keyword arguments go to ``uvicorn.Config`` (``timeout_keep_alive=``, ...).
+    """
+    server = _TestServer(
+        uvicorn.Config(app, host="127.0.0.1", port=0, log_level="warning", **config)
+    )
     task = asyncio.ensure_future(server.serve())
     try:
         bound = await _wait_started(server, task)

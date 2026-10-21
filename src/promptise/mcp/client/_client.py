@@ -37,7 +37,7 @@ import contextvars
 import inspect
 import itertools
 import logging
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TypeVar, Union
@@ -492,6 +492,68 @@ def _asks_for_json_body(resp: httpx.Response) -> bool:
 #: streams (the SDK's own default).
 _SSE_READ_TIMEOUT = 300.0
 
+#: How long closing a request's event-stream answer waits for the end of the
+#: stream, and how much of the rest it reads, to keep the connection reusable.
+_SSE_DRAIN_SECONDS = 1.0
+_SSE_DRAIN_BYTES = 64 * 1024
+
+
+class _ReusableEventStream(sdk_httpx.AsyncByteStream):  # type: ignore[misc,name-defined]
+    """The event stream answering one request; closing it reads it to the end.
+
+    The SDK closes the stream that answers a POST as soon as it has the
+    JSON-RPC response, before the server's end of the stream has been read.
+    An HTTP/1.1 connection closed in the middle of a response cannot be
+    reused, so every request opened a new TCP connection, and each closed
+    one held a local port in ``TIME_WAIT``: a busy client ran out of ports
+    ("Can't assign requested address").  The server ends the stream right
+    after the response, so reading those last bytes on close returns the
+    connection to the pool.  A stream that does not end within
+    :data:`_SSE_DRAIN_SECONDS` (or :data:`_SSE_DRAIN_BYTES`) is closed as
+    before.
+    """
+
+    def __init__(self, stream: Any) -> None:
+        self._stream = stream
+        # One iterator for the whole body: close() continues where the
+        # reader stopped.
+        self._chunks: Any = None
+
+    def _body(self) -> Any:
+        if self._chunks is None:
+            self._chunks = self._stream.__aiter__()
+        return self._chunks
+
+    async def __aiter__(self) -> AsyncIterator[bytes]:
+        async for chunk in self._body():
+            yield chunk
+
+    async def aclose(self) -> None:
+        try:
+            await self._read_to_end()
+        finally:
+            await self._stream.aclose()
+
+    async def _read_to_end(self) -> None:
+        import anyio
+
+        budget = _SSE_DRAIN_BYTES
+        with anyio.move_on_after(_SSE_DRAIN_SECONDS):
+            try:
+                async for chunk in self._body():
+                    budget -= len(chunk)
+                    if budget < 0:
+                        return
+            except Exception:  # the connection is closed below, as before
+                logger.debug("Could not read the rest of an MCP event stream", exc_info=True)
+
+
+async def _reuse_connection(response: Any) -> None:
+    """Response hook: an event stream answering a POST keeps its connection reusable."""
+    content_type = response.headers.get("content-type", "").lower()
+    if response.request.method == "POST" and content_type.startswith("text/event-stream"):
+        response.stream = _ReusableEventStream(response.stream)
+
 
 def _streamable_http_opener(
     url: str,
@@ -507,9 +569,12 @@ def _streamable_http_opener(
     connection as of mcp 1.30); older SDKs (the minimum this package
     supports is 1.9) only have the latter.  Both get the same
     httpx client: *headers*, a *timeout* with the SDK's 300 s read timeout
-    for open streams, and, with a *bearer*, the per-request token hook and
-    the transport that tells a retired session apart.  With mcp 2.x these
-    are ``httpx2`` objects, and *http_status* records error statuses.
+    for open streams, the hook that keeps connections reusable (see
+    :class:`_ReusableEventStream`), and, with a *bearer*, the per-request
+    token hook and the transport that tells a retired session apart.  With
+    mcp 2.x these are ``httpx2`` objects, and *http_status* records error
+    statuses.  mcp 1.9.0 and 1.9.1 build their own httpx client, without
+    the hook.
     """
     from mcp.client import streamable_http as _sh
 
@@ -530,6 +595,7 @@ def _streamable_http_opener(
             from mcp.shared._httpx_utils import create_mcp_http_client
 
             client = create_mcp_http_client(headers=headers, timeout=timeout, auth=auth)
+        client.event_hooks["response"].append(_reuse_connection)
         if http_status is not None:
             client.event_hooks["response"].append(http_status.hook)
         return client
@@ -540,6 +606,8 @@ def _streamable_http_opener(
         factory: dict[str, Any] = {}
         if bearer is not None:
             factory = {"auth": bearer, "httpx_client_factory": _http_client}
+        elif "httpx_client_factory" in inspect.signature(legacy).parameters:
+            factory = {"httpx_client_factory": _http_client}
         return lambda: legacy(url=url, headers=headers, timeout=timeout, **factory)
 
     @asynccontextmanager

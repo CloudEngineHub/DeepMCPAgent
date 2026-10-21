@@ -326,8 +326,8 @@ Each distinct token gets its own MCP session to the server: opened on first
 use, reused by later calls with the same token, and closed after
 `caller_session_idle_timeout` seconds unused (default 300). At most
 `max_caller_sessions` idle sessions stay open (default 256; least recently
-used first). Concurrent calls with different tokens never share a session
-or a header, and a session in use is never closed. The token replaces any
+used first). Concurrent calls with different tokens never share a session,
+a header or an HTTP connection, and a session in use is never closed. The token replaces any
 `Authorization` header the client was configured with; other headers,
 including `x-api-key`, are kept. A server that rejects the token raises
 `MCPConnectionRejectedError` for that call only.
@@ -402,6 +402,12 @@ async with MCPClient(url="http://localhost:8080/mcp") as client:
 If the retry is answered `404` as well, the request reached a process that does not hold the brand-new session either — typically several replicas or workers behind a load balancer without sticky sessions. The error says so; route each `mcp-session-id` to one process, or serve the app stateless (see [Deployment — Sessions, restarts and replicas](../server/deployment.md#sessions-restarts-and-replicas)).
 
 The legacy SSE transport has no session-level `404`: when its stream breaks, the call in progress fails and the next call opens a new session.
+
+### Connections
+
+An `MCPClient` keeps one MCP session while it is open, and its HTTP requests share keep-alive connections: calls made one after another reuse one connection, and concurrent calls take one each. A Streamable HTTP session also holds one connection for the event stream the server sends on. Idle connections stay open for 5 seconds (at most 20 of them); one that the server has closed meanwhile is replaced on the next call, on the same session.
+
+With a busy agent this matters: a client that opened a new TCP connection per request would leave each closed one in `TIME_WAIT` for 30 seconds or more, and at a few hundred calls per second the machine would run out of local ports (`Can't assign requested address`).
 
 ## Resources and prompts
 
