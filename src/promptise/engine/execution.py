@@ -201,6 +201,14 @@ class CodeActionBudgetError(GraphExecutionError):
         self.attempts = attempts
 
 
+def _unseen_calls(names: list[str]) -> str:
+    """'a call to x whose result ...' or 'calls to x and y whose results ...'."""
+    if len(names) == 1:
+        return f"a call to {names[0]} whose result the model never saw"
+    listed = ", ".join(names[:-1]) + f" and {names[-1]}"
+    return f"calls to {listed} whose results the model never saw"
+
+
 def _pending_tools(messages: list[Any]) -> list[str] | None:
     """Tools whose results end *messages* unanswered, or ``None`` when the
     conversation ends on an answer (anything but a tool exchange).
@@ -718,17 +726,15 @@ class PromptGraphEngine:
         pending = _pending_tools(state.messages) if run_stopped else None
         limit_error: str | None = None
         if limit_stop is not None and pending is not None:
-            what = ", ".join(pending)
             limit_error = (
                 f"{limit_stop[2]} before the model gave an answer; the run stopped "
-                f"after a call to {what} whose result the model never saw"
+                f"after {_unseen_calls(pending)}"
             )
             logger.warning("Graph %r at node %r: %s", live_graph.name, limit_stop[0], limit_error)
         elif hook_stop is not None and pending is not None:
-            what = ", ".join(pending)
             limit_error = (
                 f"{hook_stop[2]}; {hook_stop[1]} stopped the run before the model gave "
-                f"an answer, after a call to {what} whose result the model never saw"
+                f"an answer, after {_unseen_calls(pending)}"
             )
             logger.warning("Graph %r at node %r: %s", live_graph.name, hook_stop[0], limit_error)
 

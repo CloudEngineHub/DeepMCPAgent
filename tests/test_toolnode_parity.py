@@ -791,3 +791,13 @@ async def test_a_selector_after_an_answer_names_the_selected_tool_not_an_earlier
         await engine.ainvoke(_ask("Who is u1?"))
 
     assert info.value.pending_tools == ["job_status"]
+
+
+def test_unseen_calls_wording() -> None:
+    from promptise.engine.execution import _unseen_calls
+
+    assert _unseen_calls(["job_status"]) == "a call to job_status whose result the model never saw"
+    assert _unseen_calls(["get_stock", "get_open_po"]) == (
+        "calls to get_stock and get_open_po whose results the model never saw"
+    )
+    assert _unseen_calls(["a", "b", "c"]) == "calls to a, b and c whose results the model never saw"

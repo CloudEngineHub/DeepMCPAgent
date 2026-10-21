@@ -37,6 +37,7 @@ Python functions are tools: `from promptise import tool` declares one, with its 
 
 ### Changed
 
+- A run stopped by a limit with more than one tool call pending reports them as "calls to `a` and `b` whose results the model never saw" (it said "a call to a, b whose result").
 - **MCP server: more parameter descriptions.** `@server.tool()` (and `@server.prompt()`) also read NumPy-style `Parameters` sections, and `@server.tool()` reads a plain string in `Annotated[...]` (`Annotated[str, "The order ID."]`) as the parameter's description, as `@tool` does. A `Field` description still wins over both, and the `Annotated` string over the docstring.
 - Docs: the Tools page starts with declaring tools with `@tool`, and the Building Agents, RAG, code-action and projects pages, three blog posts, the `promptise init --project` template and the examples use `from promptise import tool`.
 - Docs: the MCP client page describes how a client uses its HTTP connections, and the runtime CLI page says that a state file which can't be read is left alone.
