@@ -7,7 +7,8 @@ Introspects function signatures at registration time:
 - Builds Pydantic models for input validation
 - Uses docstrings as descriptions when none provided: the summary paragraph
   becomes the tool/resource/prompt description, and the ``Args:`` section
-  (Google style, or Sphinx ``:param name:`` fields) describes parameters
+  (Google style, a NumPy ``Parameters`` section, or Sphinx ``:param name:``
+  fields) describes parameters
 """
 
 from __future__ import annotations
@@ -71,6 +72,64 @@ _SECTIONS = _PARAM_SECTIONS | {
 _GOOGLE_PARAM = re.compile(r"^\*{0,2}(\w+)\s*(?:\([^)]*\))?\s*:(.*)$")
 # ``:param name: text`` or ``:param type name: text``.
 _SPHINX_PARAM = re.compile(r"^:param\s+(?:[^:]*\s)?\*{0,2}(\w+)\s*:(.*)$")
+# The dashes under a NumPy-style section header (``Parameters`` / ``----------``).
+_NUMPY_UNDERLINE = re.compile(r"^-{3,}$")
+# ``name : type``, ``name``, or ``x, y : type`` inside a NumPy Parameters section.
+_NUMPY_PARAM = re.compile(r"^(\*{0,2}\w+(?:\s*,\s*\*{0,2}\w+)*)\s*(?::.*)?$")
+
+
+def _numpy_section(lines: list[str], index: int) -> str | None:
+    """The lower-cased section name if ``lines[index]`` starts a NumPy section.
+
+    A NumPy section is a known section name on its own line, underlined
+    with dashes on the next line.
+    """
+    if index + 1 >= len(lines) or not _NUMPY_UNDERLINE.match(lines[index + 1].strip()):
+        return None
+    name = lines[index].strip().lower()
+    return name if name in _SECTIONS else None
+
+
+def _parse_numpy_param_docs(docstring: str) -> dict[str, str]:
+    """Parameter descriptions from NumPy-style ``Parameters`` sections.
+
+    Each entry is ``name : type`` (or a bare ``name``, or ``x, y : type``
+    for parameters that share a description) followed by an indented
+    description.  The section ends at the next underlined section header.
+    """
+    docs: dict[str, str] = {}
+    lines = docstring.splitlines()
+    in_params = False
+    entry_indent: int | None = None
+    current: list[str] = []
+    index = 0
+    while index < len(lines):
+        section = _numpy_section(lines, index)
+        if section is not None:
+            in_params = section in _PARAM_SECTIONS
+            entry_indent = None
+            current = []
+            index += 2
+            continue
+        line = lines[index]
+        index += 1
+        stripped = line.strip()
+        if not in_params or not stripped:
+            continue
+        indent = len(line) - len(line.lstrip())
+        if entry_indent is None:
+            entry_indent = indent
+        if indent <= entry_indent:
+            match = _NUMPY_PARAM.match(stripped)
+            current = (
+                [name.strip().lstrip("*") for name in match.group(1).split(",")] if match else []
+            )
+            for name in current:
+                docs.setdefault(name, "")
+            continue
+        for name in current:
+            docs[name] = f"{docs[name]} {stripped}".strip()
+    return docs
 
 
 def _section_header(line: str) -> str | None:
@@ -122,11 +181,13 @@ def _parse_param_docs(docstring: str) -> dict[str, str]:
 
     Understands the Google style (an ``Args:`` / ``Arguments:`` /
     ``Parameters:`` section with ``name: text`` or ``name (type): text``
-    entries) and Sphinx ``:param name:`` fields.  Continuation lines
-    indented under an entry are joined with single spaces.  ``*args`` and
-    ``**kwargs`` entries are keyed without their stars.
+    entries), the NumPy style (an underlined ``Parameters`` section with
+    ``name : type`` entries) and Sphinx ``:param name:`` fields.
+    Continuation lines indented under an entry are joined with single
+    spaces.  ``*args`` and ``**kwargs`` entries are keyed without their
+    stars.
     """
-    docs: dict[str, str] = {}
+    docs: dict[str, str] = _parse_numpy_param_docs(docstring)
     current: str | None = None  # parameter whose description is being read
     current_indent = 0  # indentation of that parameter's entry line
     section_indent: int | None = None  # indentation of the open Args header

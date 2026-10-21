@@ -20,8 +20,9 @@ the string back before Pydantic validation.
 **Parameter metadata:** ``Annotated[T, Field(...)]`` metadata (``description``,
 ``ge``, ``pattern``, ``examples``, ...) is kept, and a ``Field(...)`` used as
 the parameter default works the same way.  When neither carries a
-description, the one from the docstring's ``Args:`` section (passed in as
-*param_docs*) is used.
+description, a plain string in the ``Annotated`` metadata
+(``Annotated[str, "The order ID"]``) is used, else the one from the
+docstring's ``Args:`` section (passed in as *param_docs*).
 
 **Performance note:** ``build_input_model`` detects at build time whether
 any parameter is a ``BaseModel`` subclass.  When all fields are primitives
@@ -269,6 +270,19 @@ def _has_description(annotation: Any, field_info: FieldInfo) -> bool:
     return False
 
 
+def _annotated_text(annotation: Any) -> str | None:
+    """The first non-empty string in ``Annotated[...]`` metadata, if any.
+
+    ``Annotated[str, "The order ID"]`` describes a parameter the way
+    LangChain's ``@tool`` reads it.
+    """
+    if get_origin(annotation) is Annotated:
+        for meta in annotation.__metadata__:
+            if isinstance(meta, str) and meta.strip():
+                return meta.strip()
+    return None
+
+
 # ------------------------------------------------------------------
 # Public API
 # ------------------------------------------------------------------
@@ -287,9 +301,10 @@ def build_input_model(
     params or ``RequestContext``) are skipped.
 
     Field metadata is taken from ``Annotated[T, Field(...)]`` and from a
-    ``Field(...)`` default.  *param_docs* maps parameter names to
-    descriptions (usually parsed from the docstring's ``Args:`` section);
-    an entry is used only when the parameter has no ``Field`` description.
+    ``Field(...)`` default.  A parameter without a ``Field`` description is
+    described by a plain string in its ``Annotated`` metadata, else by its
+    entry in *param_docs*, which maps parameter names to descriptions
+    (usually parsed from the docstring's ``Args:`` section).
     *untyped* is the type assumed for parameters without an annotation.
 
     The returned schema has all ``$ref`` / ``$defs`` inlined for maximum
@@ -329,7 +344,7 @@ def build_input_model(
         else:
             field_info = Field(default=param.default)
 
-        doc = param_docs.get(name)
+        doc = _annotated_text(annotation) or param_docs.get(name)
         if doc and not _has_description(annotation, field_info):
             # Annotated metadata merges with the assigned FieldInfo, so this
             # adds the description without touching other constraints.

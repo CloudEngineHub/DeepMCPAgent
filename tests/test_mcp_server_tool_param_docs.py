@@ -4,7 +4,8 @@ Covers:
 - ``Annotated[T, Field(...)]`` metadata (description and constraints) reaching
   the schema, and enforced at call time
 - ``Field(...)`` used as a parameter default
-- Fallback to the docstring ``Args:`` section (Google and Sphinx styles)
+- Fallback to a string in ``Annotated[...]``, then to the docstring's
+  parameter section (Google, NumPy and Sphinx styles)
 - Precedence: a ``Field`` description wins over the docstring
 - The summary paragraph as the tool description
 - The same schema over a real stdio ``MCPClient`` connection
@@ -181,6 +182,58 @@ class TestDocstringArgs:
         assert props["order_id"]["description"] == "The order to refund."
         assert props["amount"]["description"] == "Amount in EUR."
 
+    async def test_numpy_parameters_reach_schema(self):
+        server = MCPServer(name="t")
+
+        @server.tool()
+        async def search(query: str, limit: int = 10, offset: int = 0) -> list:
+            """Search the catalog.
+
+            Parameters
+            ----------
+            query : str
+                What to look for. Product names
+                and SKUs both work.
+            limit, offset : int, optional
+                Paging.
+
+            Returns
+            -------
+            list
+                The matches.
+            """
+            return []
+
+        tool = await _tool(server, "search")
+        props = mcp_field(tool, "input_schema")["properties"]
+        assert (
+            props["query"]["description"] == "What to look for. Product names and SKUs both work."
+        )
+        assert props["limit"]["description"] == "Paging."
+        assert props["offset"]["description"] == "Paging."
+        assert tool.description == "Search the catalog."
+
+    async def test_annotated_string_reaches_schema(self):
+        server = MCPServer(name="t")
+
+        @server.tool()
+        async def refund(
+            order_id: Annotated[str, "The order to refund."],
+            reason: Annotated[str, "From Annotated."] = "",
+            note: Annotated[str, "From Annotated.", Field(description="From Field.")] = "",
+        ) -> dict:
+            """Refund an order.
+
+            Args:
+                reason: From the docstring.
+            """
+            return {}
+
+        props = mcp_field(await _tool(server, "refund"), "input_schema")["properties"]
+        assert props["order_id"]["description"] == "The order to refund."
+        assert props["reason"]["description"] == "From Annotated."
+        assert props["note"]["description"] == "From Field."
+
     async def test_field_description_wins_over_docstring(self):
         server = MCPServer(name="t")
 
@@ -341,6 +394,14 @@ class TestParser:
     def test_other_sections_are_not_params(self):
         doc = "S.\n\nReturns:\n    x: not a param.\n\nRaises:\n    ValueError: bad.\n"
         assert _parse_param_docs(doc) == {}
+
+    def test_numpy_section_ends_at_the_next_section(self):
+        doc = "S.\n\nParameters\n----------\nx : int\n    X.\n\nReturns\n-------\ny : int\n    Y.\n"
+        assert _parse_param_docs(doc) == {"x": "X."}
+
+    def test_numpy_entry_without_a_type(self):
+        doc = "S.\n\nParameters\n----------\nx\n    X value.\n*args\n    Rest.\n"
+        assert _parse_param_docs(doc) == {"x": "X value.", "args": "Rest."}
 
     def test_extract_param_doc_still_works(self):
         doc = "S.\n\nArgs:\n    text: The text\n        to summarize.\n"
