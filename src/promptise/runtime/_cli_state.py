@@ -290,11 +290,36 @@ def write_state(state: RuntimeState, *, exclusive: bool) -> Path:
                 tmp.unlink()
 
 
+def _read_text(path: Path) -> str | None:
+    """The text of *path*; ``None`` when it is gone or can't be read.
+
+    On Windows a file can't be opened while another process replaces it
+    (a runtime updating its state file), so retry briefly: that failure
+    says nothing about the file itself.
+    """
+    for attempt in range(20):
+        try:
+            return path.read_text(encoding="utf-8")
+        except PermissionError:
+            if not _WINDOWS or attempt == 19:
+                return None
+            time.sleep(0.05)
+        except OSError:
+            return None
+    return None
+
+
 def _read_state_file(path: Path) -> RuntimeState | None:
-    """Parse a state file; ``None`` when it is unreadable or malformed."""
+    """Parse a state file; ``None`` when it is gone, unreadable or malformed."""
+    text = _read_text(path)
+    return None if text is None else _parse_state(text)
+
+
+def _parse_state(text: str) -> RuntimeState | None:
+    """Parse the text of a state file; ``None`` when it is malformed."""
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        raw = json.loads(text)
+    except ValueError:
         return None
     if not isinstance(raw, dict):
         return None
@@ -347,7 +372,8 @@ def list_states(*, cleanup: bool = True) -> tuple[list[RuntimeState], list[str]]
 
     Args:
         cleanup: Remove stale files (their process is gone, or they can't
-            be parsed).
+            be parsed).  A file that can't be read is skipped, never
+            removed: it may belong to a runtime that is rewriting it.
 
     Returns:
         ``(live states sorted by name, names of the stale files removed)``.
@@ -362,7 +388,10 @@ def list_states(*, cleanup: bool = True) -> tuple[list[RuntimeState], list[str]]
     stale: list[str] = []
     for path in sorted(directory.glob("*.json")):
         _check_private(path, is_dir=False)
-        state = _read_state_file(path)
+        text = _read_text(path)
+        if text is None:
+            continue
+        state = _parse_state(text)
         if state is not None and state.name == path.stem and pid_alive(state.pid):
             live.append(state)
             continue

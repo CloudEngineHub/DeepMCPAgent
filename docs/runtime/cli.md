@@ -28,7 +28,7 @@ The state directory holds tokens, so it is private:
 
 - the directory is created with mode `0700`, each file with `0600`;
 - on POSIX, a directory or file owned by another user is refused, and so is a state file that other users can read or write; a directory you own that is too open is tightened to `0700`;
-- a state file whose process is gone (a crash, `kill -9`) is stale and removed the next time a command lists the directory;
+- a state file whose process is gone (a crash, `kill -9`) is stale and removed the next time a command lists the directory, and so is one that is not a valid state file; a file that can't be read at that moment (on Windows, while its runtime rewrites it) is left alone;
 - the runtime removes its own file when it exits.
 
 | Environment variable | Effect |

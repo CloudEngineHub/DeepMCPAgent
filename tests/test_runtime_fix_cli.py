@@ -270,6 +270,59 @@ class TestStateFiles:
         _cli_state.remove_state(state)  # must not raise
         assert "cleaned up later" in caplog.text
 
+    @staticmethod
+    def _unreadable(monkeypatch, name: str, times: int | None) -> dict[str, int]:
+        """Make reading *name* fail *times* times (``None``: always), as on
+        Windows while the runtime replaces the file (WinError 32)."""
+        real_read_text = Path.read_text
+        calls = {"n": 0}
+
+        def flaky_read_text(self, *args, **kwargs):
+            if self.name == name and (times is None or calls["n"] < times):
+                calls["n"] += 1
+                raise PermissionError(32, "The process cannot access the file")
+            return real_read_text(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", flaky_read_text)
+        return calls
+
+    def test_a_state_file_being_replaced_is_read_after_a_retry_on_windows(
+        self, state_dir, monkeypatch
+    ):
+        # `start --detach` polls the file while the runtime replaces it to
+        # say it is ready: a read in that moment fails on Windows.
+        _fake_state("busy")
+        monkeypatch.setattr(_cli_state, "_WINDOWS", True)
+        monkeypatch.setattr(_cli_state.time, "sleep", lambda _s: None)
+        calls = self._unreadable(monkeypatch, "busy.json", times=3)
+        found = _cli_state.find_state("busy")
+        assert found is not None and found.ready
+        assert calls["n"] == 3
+        assert (state_dir / "busy.json").exists()
+
+    @pytest.mark.parametrize("windows", [True, False])
+    def test_an_unreadable_state_file_is_never_removed(self, state_dir, monkeypatch, windows):
+        _fake_state("busy")
+        _fake_state("ghost", pid=_dead_pid())
+        monkeypatch.setattr(_cli_state, "_WINDOWS", windows)
+        monkeypatch.setattr(_cli_state.time, "sleep", lambda _s: None)
+        self._unreadable(monkeypatch, "busy.json", times=None)
+        live, stale = _cli_state.list_states()
+        assert live == [] and stale == ["ghost"]
+        assert (state_dir / "busy.json").exists()  # it may be a live runtime's
+
+    def test_a_name_is_not_claimed_while_its_file_is_being_replaced(self, state_dir, monkeypatch):
+        _fake_state("taken")
+        monkeypatch.setattr(_cli_state, "_WINDOWS", True)
+        monkeypatch.setattr(_cli_state.time, "sleep", lambda _s: None)
+        self._unreadable(monkeypatch, "taken.json", times=2)
+        with pytest.raises(StateError, match="already running"):
+            _cli_state.write_state(
+                RuntimeState(name="taken", pid=os.getpid(), host="h", port=1, token="t"),
+                exclusive=True,
+            )
+        assert _cli_state.find_state("taken") is not None
+
     def test_stale_state_file_is_removed(self, state_dir):
         _fake_state("ghost", pid=_dead_pid())
         result = runner.invoke(runtime_app, ["status"])
