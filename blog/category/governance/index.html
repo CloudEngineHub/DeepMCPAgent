@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,170 +9257,6 @@
           
           <li class="md-meta__item">
             
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="catch-an-ai-agent-stuck-repeating-the-same-tool-call"><a class="toclink" href="../../ai-agent-stuck-repeating-tool-call/">Catch an AI Agent Stuck Repeating the Same Tool Call</a></h2>
-<p>An <strong>AI agent stuck repeating tool call</strong> after identical tool call — say, <code>get_status(id=42)</code> on every single turn — burns its entire iteration budget without making a shred of progress, and most frameworks will not tell you it is happening until the budget is spent. This is one of the cheapest, most insidious ways an autonomous agent fails: it is not crashing, it is not erroring, it is confidently doing the exact same nothing over and over. By the end of this post you will know precisely why an iteration counter catches this late (or never), how a purpose-built <strong>stuck detector</strong> trips after N identical consecutive calls with zero extra LLM calls, and how to wire pause / stop / escalate around it in a few lines.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../ai-agent-stuck-repeating-tool-call/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="behavioral-anomaly-detection-for-ai-agents-no-llm"><a class="toclink" href="../../behavioral-anomaly-detection-for-ai-agents/">Behavioral Anomaly Detection for AI Agents (No LLM)</a></h2>
-<p>Behavioral anomaly detection for AI agents is the difference between knowing an agent took <em>too many</em> steps and knowing it is stuck in a <code>search → read → search → read</code> loop, emitting empty responses, or failing half its tool calls. A turn cap or iteration limit answers exactly one question — "how many steps?" — and nothing about <em>what kind</em> of trouble the agent is in. This post maps four lightweight detectors to the four failures they catch, and shows why they cost zero extra tokens: detection is pure pattern matching over the agent's own call-and-response history, gated by cooldowns so it never turns into an alert storm.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../behavioral-anomaly-detection-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="cap-tool-calls-and-cost-per-ai-agent-run"><a class="toclink" href="../../cap-ai-agent-tool-calls-per-run/">Cap Tool Calls and Cost Per AI Agent Run</a></h2>
-<p>To cap AI agent tool calls per run in a way that actually reflects risk, you have to stop counting calls and start pricing them — because a plain iteration cap treats a <code>search</code> and a <code>stripe_charge</code> as the same event. Set <code>max_iterations=20</code> and an agent can do twenty harmless lookups, or it can do nineteen lookups and one wire transfer, and your "safety limit" registers both runs as identical. The count is the wrong unit. What you want is a per-run <em>envelope</em> where a read costs almost nothing, an irreversible action costs a lot, and — crucially — the agent can see how much of the envelope it has left and spend accordingly. This post shows how to build that with Promptise Foundry's <code>BudgetConfig</code>: relative-risk <code>cost_weight</code> per tool, a separate cap on irreversible actions, and <code>inject_remaining</code> so the model self-prioritizes toward cheap tools first.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../cap-ai-agent-tool-calls-per-run/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="set-a-confidence-threshold-to-stop-or-escalate-an-agent"><a class="toclink" href="../../confidence-threshold-to-stop-ai-agent/">Set a Confidence Threshold to Stop or Escalate an Agent</a></h2>
-<p>A useful confidence threshold to stop an AI agent is only trustworthy when the confidence comes from an <em>independent judge</em>, not from the agent's own claim that it finished. That distinction is the whole game. The moment you let an agent stop itself the instant it says "done," you have built a rubber stamp: the model declares victory, the loop halts, and nobody checks whether the mission was actually accomplished. Flip the failure around and it is just as bad — an agent with no completion signal at all runs on its trigger forever, re-doing finished work and burning tokens. This post shows the middle path Promptise Foundry makes first-class: a mission whose completion and escalation are both <strong>gated on a separate evaluator's numeric confidence</strong> — <code>auto_complete</code> on a confident success, <code>escalate</code> below your threshold, and a hard <code>timeout_hours</code> backstop so a shaky agent gets a human, not a rubber stamp.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../confidence-threshold-to-stop-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               9 min read
             
           </li>
@@ -9486,129 +9273,6 @@
     
       <nav class="md-post__action">
         <a href="../../configure-ai-agent-budget-and-health/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="set-a-daily-budget-for-an-autonomous-ai-agent"><a class="toclink" href="../../daily-budget-for-ai-agent/">Set a Daily Budget for an Autonomous AI Agent</a></h2>
-<p>Setting a real daily budget for AI agents means capping what an agent does across a whole day, not what it does inside one function call — and that distinction is the entire problem with the guardrails most frameworks ship. A per-run cap like <code>max_iterations</code> counts to N and resets to zero the moment the next invocation starts. That is fine for a chatbot a human is watching. It is worthless for an agent on a five-minute cron, because the thing you actually want to bound — total tool calls, total cost units, total runs — is spread across hundreds of invocations that never see each other's counters. This post shows how Promptise Foundry's <code>BudgetConfig</code> daily scope gives a long-lived, trigger-driven process a genuine 24-hour ceiling: <code>max_tool_calls_per_day</code>, <code>max_cost_per_day</code>, <code>max_runs_per_day</code>, and a configurable <code>daily_reset_hour_utc</code>, all tracked across every cron-, webhook-, and event-driven run.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../daily-budget-for-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="escalate-to-a-human-when-an-ai-agent-keeps-failing"><a class="toclink" href="../../escalate-ai-agent-to-human/">Escalate to a Human When an AI Agent Keeps Failing</a></h2>
-<p>The moment to <strong>escalate an AI agent to a human</strong> is not when it throws one exception — it is when a downstream tool has quietly degraded and the agent has been failing, retrying, and failing again on a loop that no caller is watching. That is the runaway nobody sees coming. A single failed tool call is easy: it raises, something catches it, maybe it retries. But when an API you depend on starts returning 500s across the board, an unattended agent does not stop. It keeps invoking, keeps burning tokens and compute, and keeps producing nothing — and because each trigger fires a fresh run, there is no exception bubbling up to anyone. You find out at the end of the month, on the bill. This post is about closing that gap with a first-class escalation path: a sliding-window error-rate detector that decides <em>the tool is down, get a human</em>, pages your on-call channel, and suspends the process — automatically.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../escalate-ai-agent-to-human/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="know-when-your-ai-agent-hit-its-goal-llm-judge"><a class="toclink" href="../../know-when-ai-agent-achieved-its-goal/">Know When Your AI Agent Hit Its Goal (LLM Judge)</a></h2>
-<p>To <strong>know when your AI agent achieved its goal</strong> — not merely that it stopped — you need something that evaluates the objective, because a turn cap only proves a counter ran out. This is the quiet failure mode of every long-running agent: it exits cleanly, your logs go green, and nobody notices that the migration is half-done, the queue still has open items, or the research brief never actually answered the question. "Stopped" and "succeeded" are different facts, and almost every framework only measures the first one. This post shows the difference between a hard limit and an evaluated judgment, and how Promptise Foundry wires a separate judge model into the runtime so a supervised process ends when the mission is genuinely met.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../know-when-ai-agent-achieved-its-goal/">
           Continue reading
         </a>
       </nav>

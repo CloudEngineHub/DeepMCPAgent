@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Most teams discover too late that 'model-agnostic' does not mean 'offline-capable': even when the LLM runs via Ollama, the default embedding calls…">
+        <meta name="description" content="Learn why agents that use a local model still fail in air-gapped networks, which hidden cloud calls break them, and how to make every layer run fully offline.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/air-gapped-ai-agent/">
       
       
-        <link rel="prev" href="../api-keys-vs-jwt-for-ai-agents/">
+        <link rel="prev" href="../autogen-vs-promptise/">
       
       
         <link rel="next" href="../air-gapped-agent-framework/">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Why AI Agent Frameworks Fail in Air-Gapped Networks">
-  <meta property="og:description" content="Most teams discover too late that 'model-agnostic' does not mean 'offline-capable': even when the LLM runs via Ollama, the default embedding calls…">
+  <meta property="og:description" content="Learn why agents that use a local model still fail in air-gapped networks, which hidden cloud calls break them, and how to make every layer run fully offline.">
   <meta property="og:url" content="https://docs.promptise.com/blog/air-gapped-ai-agent/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Why AI Agent Frameworks Fail in Air-Gapped Networks">
-  <meta name="twitter:description" content="Most teams discover too late that 'model-agnostic' does not mean 'offline-capable': even when the LLM runs via Ollama, the default embedding calls…">
+  <meta name="twitter:description" content="Learn why agents that use a local model still fail in air-gapped networks, which hidden cloud calls break them, and how to make every layer run fully offline.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Why AI Agent Frameworks Fail in Air-Gapped Networks",
       "name": "Why AI Agent Frameworks Fail in Air-Gapped Networks",
-      "description": "Most teams discover too late that \u0027model-agnostic\u0027 does not mean \u0027offline-capable\u0027: even when the LLM runs via Ollama, the default embedding calls\u2026",
+      "description": "Learn why agents that use a local model still fail in air-gapped networks, which hidden cloud calls break them, and how to make every layer run fully offline.",
       "url": "https://docs.promptise.com/blog/air-gapped-ai-agent/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9509,7 +9460,7 @@
 <li><strong>Security and moderation.</strong> No mainstream agent framework bundles a local ML prompt-injection classifier plus content moderation into the agent's input/output path as a wired-in default. Detection is left to you, or the documented path is a hosted moderation API. NeMo Guardrails and Guardrails AI can run some rails locally, but you supply and host the models and wire them in yourself — they are separate libraries, not a default agent layer.</li>
 <li><strong>Telemetry.</strong> CrewAI emits anonymous telemetry by default (you opt out via an environment variable). The LangChain/LangGraph ecosystem steers teams toward LangSmith, and Pydantic AI toward Logfire — both hosted tracing services. These are opt-in, but they are the paved road, so the "happy path" your team copies from the docs sends run data off-host unless someone remembers to disable it.</li>
 </ul>
-<p>So the honest delta is not that competitors <em>lack</em> offline capability. It's that offline is an assembly project you perform per layer and re-verify at audit time. Promptise Foundry's edge is structural: local model, local embeddings, local guardrails, and local telemetry are the <em>wired-in default</em>, and the framework's "no fallbacks" design means nothing silently swaps to a hosted service behind your back. That is the difference between "possible to run offline" and being an <strong>offline agent framework</strong>.</p>
+<p>So the real difference is not that other frameworks <em>lack</em> offline capability. It's that offline is an assembly project you perform per layer and re-verify at audit time. Promptise Foundry's edge is structural: local model, local embeddings, local guardrails, and local telemetry are the <em>wired-in default</em>, and the framework's "no fallbacks" design means nothing silently swaps to a hosted service behind your back. That is the difference between "possible to run offline" and being an <strong>offline agent framework</strong>.</p>
 <h2 id="the-layers-that-must-be-local-and-how-promptise-wires-them">The layers that must be local — and how Promptise wires them<a class="headerlink" href="#the-layers-that-must-be-local-and-how-promptise-wires-them" title="Link to this section">&para;</a></h2>
 <p>Here is a single agent with all four risky layers pinned local: the model via Ollama, memory embeddings via a local sentence-transformers model, a persistent local vector store, and a security scanner whose detection heads run on-device. Nothing in this pipeline makes an outbound request.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
@@ -9612,7 +9563,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:41:49 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

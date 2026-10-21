@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Most 'production-ready?' roundups grade frameworks on GitHub stars and integration counts, not on the enterprise controls you actually get audited on. This…">
+        <meta name="description" content="Use this checklist to test if an agent framework is enterprise ready: tenant isolation, server-side approval, identity across delegation, limits and audit logs.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Enterprise-Ready Agent Framework Checklist: What's Left to You">
-  <meta property="og:description" content="Most 'production-ready?' roundups grade frameworks on GitHub stars and integration counts, not on the enterprise controls you actually get audited on. This…">
+  <meta property="og:description" content="Use this checklist to test if an agent framework is enterprise ready: tenant isolation, server-side approval, identity across delegation, limits and audit logs.">
   <meta property="og:url" content="https://docs.promptise.com/blog/enterprise-ready-agent-framework-checklist/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Enterprise-Ready Agent Framework Checklist: What's Left to You">
-  <meta name="twitter:description" content="Most 'production-ready?' roundups grade frameworks on GitHub stars and integration counts, not on the enterprise controls you actually get audited on. This…">
+  <meta name="twitter:description" content="Use this checklist to test if an agent framework is enterprise ready: tenant isolation, server-side approval, identity across delegation, limits and audit logs.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Enterprise-Ready Agent Framework Checklist: What\u0027s Left to You",
       "name": "Enterprise-Ready Agent Framework Checklist: What\u0027s Left to You",
-      "description": "Most \u0027production-ready?\u0027 roundups grade frameworks on GitHub stars and integration counts, not on the enterprise controls you actually get audited on. This\u2026",
+      "description": "Use this checklist to test if an agent framework is enterprise ready: tenant isolation, server-side approval, identity across delegation, limits and audit logs.",
       "url": "https://docs.promptise.com/blog/enterprise-ready-agent-framework-checklist/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9275,10 +9226,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-five-controls-an-enterprise-audit-actually-checks" class="md-nav__link">
+  <a href="#the-five-controls-an-enterprise-security-review-actually-checks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The five controls an enterprise audit actually checks
+        The five controls an enterprise security review actually checks
       
     </span>
   </a>
@@ -9488,14 +9439,10 @@
 
 
 <h1 id="enterprise-ready-agent-framework-checklist-whats-left-to-you">Enterprise-Ready Agent Framework Checklist: What's Left to You<a class="headerlink" href="#enterprise-ready-agent-framework-checklist-whats-left-to-you" title="Link to this section">&para;</a></h1>
-<p>An honest <strong>enterprise-ready agent framework checklist</strong> doesn't grade tools on GitHub stars or integration counts — it grades them on the controls a security or compliance reviewer will actually ask you to demonstrate. Stars measure enthusiasm; they say nothing about whether tenant A can reach tenant B's data, whether a refund tool paged a human before it ran, or whether your audit log can be edited without anyone noticing. This pillar walks five control areas — multi-tenancy, server-enforced approval, principal propagation across delegation, runtime governance, and tamper-evident audit — and says plainly, capability by capability, what LangChain, LangGraph, CrewAI, AutoGen, and Pydantic AI ship today versus what they leave you to build. You'll finish with a checklist you can score your own stack against, and a runnable file that proves three of the five controls in one process.</p>
+<p>A useful <strong>enterprise-ready agent framework checklist</strong> doesn't grade tools on GitHub stars or integration counts — it grades them on the controls a security reviewer will actually ask you to demonstrate. Stars measure enthusiasm; they say nothing about whether tenant A can reach tenant B's data, whether a refund tool paged a human before it ran, or whether your audit log can be edited without anyone noticing. This checklist walks five control areas — multi-tenancy, server-enforced approval, principal propagation across delegation, runtime governance, and tamper-evident audit — and says plainly, capability by capability, what LangChain, LangGraph, CrewAI, AutoGen, and Pydantic AI ship today versus what they leave you to build. You'll finish with a checklist you can score your own stack against, and a runnable file that proves three of the five controls in one process.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
-<h2 id="the-five-controls-an-enterprise-audit-actually-checks">The five controls an enterprise audit actually checks<a class="headerlink" href="#the-five-controls-an-enterprise-audit-actually-checks" title="Link to this section">&para;</a></h2>
+<h2 id="the-five-controls-an-enterprise-security-review-actually-checks">The five controls an enterprise security review actually checks<a class="headerlink" href="#the-five-controls-an-enterprise-security-review-actually-checks" title="Link to this section">&para;</a></h2>
 <p>A demo agent and an audited production agent share almost no non-functional requirements. The demo needs a model and a loop. The audited version needs the boring stuff to be <em>default behavior</em>, because a reviewer will ask you to show it working, not describe it:</p>
 <ul>
 <li><strong>Multi-tenancy.</strong> Is <code>tenant_id</code> a real isolation boundary across cache, memory, rate limits, and audit — or a field you promise to thread through everywhere by hand?</li>
@@ -9554,7 +9501,7 @@
 <p>Score your current stack against these five rows. Every cell in the middle column that reads "yours to build" is a subproject with an owner, a backlog, and an on-call rotation — before you've written a line of agent behavior.</p>
 <h2 id="three-of-the-five-controls-in-one-runnable-file">Three of the five controls in one runnable file<a class="headerlink" href="#three-of-the-five-controls-in-one-runnable-file" title="Link to this section">&para;</a></h2>
 <p>Checklists are easy to hand-wave. This file isn't a diagram — it's a complete, runnable Promptise MCP server that demonstrates <strong>multi-tenancy</strong>, <strong>verified principal propagation</strong>, and <strong>tamper-evident audit</strong> at once, using the in-process <code>TestClient</code> so there's no network to stand up. The principal is <em>checked</em> from a JWT, not asserted by the caller; the tenant is read from a claim; and the audit chain catches an insider edit.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># soc2_audit.py — least-privilege access control + a verifiable audit trail</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># audit_controls.py — least-privilege access control + a verifiable audit trail</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -9581,7 +9528,7 @@
 </span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="c1"># Capability-based per-tool guard: only a billing-clerk agent may issue refunds.</span>
 </span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="nd">@server</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="n">auth</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">guards</span><span class="o">=</span><span class="p">[</span><span class="n">HasRole</span><span class="p">(</span><span class="s2">"billing-clerk"</span><span class="p">)])</span>
 </span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">refund</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">RequestContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span><span class="sd">"""Issue a refund — a consequential action a SOC 2 reviewer scrutinizes."""</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span><span class="sd">"""Issue a refund — a consequential action a security reviewer scrutinizes."""</span>
 </span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">"order_id"</span><span class="p">:</span> <span class="n">order_id</span><span class="p">,</span> <span class="s2">"refunded"</span><span class="p">:</span> <span class="n">amount</span><span class="p">,</span> <span class="s2">"by"</span><span class="p">:</span> <span class="n">ctx</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">subject</span><span class="p">}</span>
 </span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
 </span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
@@ -9623,7 +9570,7 @@
 <p>The end-to-end version of this — a tenant-isolated platform with approval gates, propagated identity, and a verifiable trail — is the <a href="../../guides/secure-multi-tenant-platform/">Secure Multi-Tenant Platform guide</a>. Two of the five controls have their own deep dives worth reading alongside this checklist: our honest look at <a href="../agent-framework-tool-approval-comparison/">which agent frameworks actually enforce tool approval</a> unpacks the server-enforced-vs-in-process distinction, and if you're coming from another framework, the <a href="../../resources/migration/">migration guide</a> maps your existing agents, tools, and stores onto Promptise's primitives so you're not rewriting from scratch to gain the controls.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="what-makes-an-agent-framework-enterprise-ready-versus-just-production-capable">What makes an agent framework "enterprise-ready" versus just "production-capable"?<a class="headerlink" href="#what-makes-an-agent-framework-enterprise-ready-versus-just-production-capable" title="Link to this section">&para;</a></h3>
-<p>Production-capable means it can serve real traffic. Enterprise-ready means it can pass an audit: you can <em>demonstrate</em> tenant isolation, prove a human approved a consequential action, show that a delegated call carried the original caller's identity, and hand a reviewer a tamper-evident record. The delta is almost never the model or the tool-calling loop — it's whether these five controls are structural invariants or homework.</p>
+<p>Production-capable means it can serve real traffic. Enterprise-ready means it can pass a security review: you can <em>demonstrate</em> tenant isolation, prove a human approved a consequential action, show that a delegated call carried the original caller's identity, and hand a reviewer a tamper-evident record. The delta is almost never the model or the tool-calling loop — it's whether these five controls are structural invariants or homework.</p>
 <h3 id="do-langchain-langgraph-or-crewai-fail-this-checklist">Do LangChain, LangGraph, or CrewAI fail this checklist?<a class="headerlink" href="#do-langchain-langgraph-or-crewai-fail-this-checklist" title="Link to this section">&para;</a></h3>
 <p>No — "fail" is the wrong frame, and this checklist isn't a pass/fail exam. They're strong tools that draw their scope differently. LangGraph genuinely ships durable checkpointing and an in-process <code>interrupt()</code>; CrewAI genuinely ships <code>max_iter</code> and <code>max_rpm</code> throttles; LangChain ships unmatched integration breadth. The precise point is that none of them makes tenant isolation, principal propagation, server-enforced approval, tamper-evident audit, and cost/irreversible governance <em>first-class and default</em> — each is left to you to build and own. Promptise's contribution is bundling all five into one install.</p>
 <h3 id="cant-i-just-build-these-five-controls-myself-on-top-of-any-framework">Can't I just build these five controls myself on top of any framework?<a class="headerlink" href="#cant-i-just-build-these-five-controls-myself-on-top-of-any-framework" title="Link to this section">&para;</a></h3>
@@ -9654,7 +9601,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

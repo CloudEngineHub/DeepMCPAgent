@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The journal system ships with two backends: FileJournal for production use with persistent append-only JSONL files, and InMemoryJournal for testing and">
+        <meta name="description" content="A journal backend stores a process&#x27;s entries and its latest checkpoint. Promptise ships FileJournal (append-only JSONL files, for anything that must">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Backends">
-  <meta property="og:description" content="The journal system ships with two backends: FileJournal for production use with persistent append-only JSONL files, and InMemoryJournal for testing and">
+  <meta property="og:description" content="A journal backend stores a process&#x27;s entries and its latest checkpoint. Promptise ships FileJournal (append-only JSONL files, for anything that must">
   <meta property="og:url" content="https://docs.promptise.com/runtime/journal/backends/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Backends">
-  <meta name="twitter:description" content="The journal system ships with two backends: FileJournal for production use with persistent append-only JSONL files, and InMemoryJournal for testing and">
+  <meta name="twitter:description" content="A journal backend stores a process&#x27;s entries and its latest checkpoint. Promptise ships FileJournal (append-only JSONL files, for anything that must">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Backends",
       "name": "Backends",
-      "description": "The journal system ships with two backends: FileJournal for production use with persistent append-only JSONL files, and InMemoryJournal for testing and",
+      "description": "A journal backend stores a process\u0026#x27;s entries and its latest checkpoint. Promptise ships FileJournal (append-only JSONL files, for anything that must",
       "url": "https://docs.promptise.com/runtime/journal/backends/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5898,89 +5868,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="FileJournal">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#file-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        File layout
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#creating-a-filejournal" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Creating a FileJournal
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#appending-entries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Appending entries
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#reading-entries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reading entries
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#checkpointing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Checkpointing
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#error-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error handling
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#closing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Closing
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -5992,44 +5879,16 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="InMemoryJournal">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#creating-an-inmemoryjournal" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redactingjournal" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating an InMemoryJournal
+        RedactingJournal
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#internal-access-testing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Internal access (testing)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -6037,7 +5896,7 @@
   <a href="#comparing-backends" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Comparing Backends
+        Comparing backends
       
     </span>
   </a>
@@ -6045,49 +5904,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
+  <a href="#writing-your-own-backend" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        Writing your own backend
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="API Summary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#filejournal_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        FileJournal
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#inmemoryjournal_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        InMemoryJournal
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -6188,6 +6019,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6210,8 +6045,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6225,8 +6061,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6238,6 +6080,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8484,8 +8328,6 @@
       
         
       
-        
-      
     
     
     
@@ -8638,36 +8480,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9554,89 +9366,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="FileJournal">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#file-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        File layout
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#creating-a-filejournal" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Creating a FileJournal
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#appending-entries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Appending entries
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#reading-entries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reading entries
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#checkpointing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Checkpointing
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#error-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error handling
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#closing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Closing
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -9648,44 +9377,16 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="InMemoryJournal">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#creating-an-inmemoryjournal" class="md-nav__link">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redactingjournal" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating an InMemoryJournal
+        RedactingJournal
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#internal-access-testing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Internal access (testing)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -9693,7 +9394,7 @@
   <a href="#comparing-backends" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Comparing Backends
+        Comparing backends
       
     </span>
   </a>
@@ -9701,49 +9402,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
+  <a href="#writing-your-own-backend" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        Writing your own backend
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="API Summary">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#filejournal_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        FileJournal
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#inmemoryjournal_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        InMemoryJournal
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9831,299 +9504,194 @@
 
 
 <h1 id="journal-backends">Journal Backends<a class="headerlink" href="#journal-backends" title="Link to this section">&para;</a></h1>
-<p>The journal system ships with two backends: <code>FileJournal</code> for production use with persistent append-only JSONL files, and <code>InMemoryJournal</code> for testing and development.</p>
+<p>A journal backend stores a process's entries and its latest checkpoint. Promptise ships <code>FileJournal</code> (append-only JSONL files, for anything that must survive a restart) and <code>InMemoryJournal</code> (a Python list, for tests), plus <code>RedactingJournal</code>, a wrapper that removes secret values before either one writes. A process picks its backend from <code>JournalConfig.backend</code>; you use the classes directly to read a journal, write tools around it, or test.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileJournal</span><span class="p">,</span> <span class="n">InMemoryJournal</span><span class="p">,</span> <span class="n">JournalEntry</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Production: file-based persistence</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">FileJournal</span><span class="p">(</span><span class="n">base_path</span><span class="o">=</span><span class="s2">".promptise/journal"</span><span class="p">)</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Testing: in-memory, no persistence</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">InMemoryJournal</span><span class="p">()</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># Both implement the same JournalProvider protocol</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JournalEntry</span><span class="p">(</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">process_id</span><span class="o">=</span><span class="s2">"my-process"</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">entry_type</span><span class="o">=</span><span class="s2">"state_transition"</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">"from_state"</span><span class="p">:</span> <span class="s2">"created"</span><span class="p">,</span> <span class="s2">"to_state"</span><span class="p">:</span> <span class="s2">"running"</span><span class="p">},</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">))</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"my-process"</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">FileJournal</span><span class="p">(</span><span class="s2">".promptise/journal"</span><span class="p">)</span>   <span class="c1"># or InMemoryJournal()</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JournalEntry</span><span class="p">(</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">process_id</span><span class="o">=</span><span class="s2">"notes"</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">entry_type</span><span class="o">=</span><span class="s2">"state_transition"</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">"from_state"</span><span class="p">:</span> <span class="s2">"created"</span><span class="p">,</span> <span class="s2">"to_state"</span><span class="p">:</span> <span class="s2">"starting"</span><span class="p">},</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">))</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"context_state"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"stage"</span><span class="p">:</span> <span class="s2">"draft"</span><span class="p">},</span> <span class="s2">"lifecycle_state"</span><span class="p">:</span> <span class="s2">"running"</span><span class="p">})</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">)</span>          <span class="c1"># both entries, oldest first</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">latest</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">last_checkpoint</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">)</span>
 </span></code></pre></div>
+<p>Both backends implement the same <code>JournalProvider</code> protocol (<code>append</code>, <code>read</code>, <code>checkpoint</code>, <code>last_checkpoint</code>, <code>close</code>), so code written against one works with the other.</p>
 <hr />
 <h2 id="filejournal">FileJournal<a class="headerlink" href="#filejournal" title="Link to this section">&para;</a></h2>
-<p>The <code>FileJournal</code> stores journal entries as append-only JSONL (JSON Lines) files on disk, one file per process. Checkpoints are stored in separate JSON files.</p>
-<h3 id="file-layout">File layout<a class="headerlink" href="#file-layout" title="Link to this section">&para;</a></h3>
+<p><code>FileJournal(base_path=".promptise/journal")</code> keeps one JSONL file per process and a separate checkpoint file. The directory is created if it is missing.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>.promptise/journal/
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  my-process.jsonl              # Journal entries (one JSON object per line)
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  my-process.checkpoint.json    # Latest checkpoint state
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  another-process.jsonl
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  another-process.checkpoint.json
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  notes.jsonl              # every entry, one JSON object per line
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  notes.checkpoint.json    # the latest checkpoint
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  watcher.jsonl
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  watcher.checkpoint.json
 </span></code></pre></div>
-<h3 id="creating-a-filejournal">Creating a FileJournal<a class="headerlink" href="#creating-a-filejournal" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileJournal</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Default path</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">FileJournal</span><span class="p">()</span>  <span class="c1"># .promptise/journal/</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Custom path</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">FileJournal</span><span class="p">(</span><span class="n">base_path</span><span class="o">=</span><span class="s2">"/var/log/agents/journal"</span><span class="p">)</span>
-</span></code></pre></div>
-<p>The <code>base_path</code> directory is created automatically if it does not exist.</p>
-<h3 id="appending-entries">Appending entries<a class="headerlink" href="#appending-entries" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">JournalEntry</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JournalEntry</span><span class="p">(</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">process_id</span><span class="o">=</span><span class="s2">"data-watcher"</span><span class="p">,</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">entry_type</span><span class="o">=</span><span class="s2">"trigger_event"</span><span class="p">,</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">"trigger_type"</span><span class="p">:</span> <span class="s2">"cron"</span><span class="p">,</span> <span class="s2">"scheduled_time"</span><span class="p">:</span> <span class="s2">"2026-03-04T10:05:00"</span><span class="p">},</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">))</span>
-</span></code></pre></div>
-<p>Each entry is serialized to a single JSON line and appended to the process's JSONL file. File handles are opened and closed per operation -- no persistent handles are held.</p>
-<h3 id="reading-entries">Reading entries<a class="headerlink" href="#reading-entries" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Read all entries</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Filter by time</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">UTC</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="s2">"data-watcher"</span><span class="p">,</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">since</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">UTC</span><span class="p">),</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">)</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># Filter by entry type</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="s2">"data-watcher"</span><span class="p">,</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="n">entry_type</span><span class="o">=</span><span class="s2">"state_transition"</span><span class="p">,</span>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="p">)</span>
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1"># Limit results</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1"># Combine filters</span>
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
-</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>    <span class="s2">"data-watcher"</span><span class="p">,</span>
-</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>    <span class="n">since</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">UTC</span><span class="p">),</span>
-</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>    <span class="n">entry_type</span><span class="o">=</span><span class="s2">"trigger_event"</span><span class="p">,</span>
-</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>    <span class="n">limit</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
-</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="p">)</span>
-</span></code></pre></div>
-<p>Malformed lines in the JSONL file are skipped with a warning, allowing the journal to tolerate partial writes from crashes.</p>
-<h3 id="checkpointing">Checkpointing<a class="headerlink" href="#checkpointing" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Store a checkpoint</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">,</span> <span class="p">{</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">"context_state"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"pipeline_status"</span><span class="p">:</span> <span class="s2">"healthy"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">:</span> <span class="mi">42</span><span class="p">},</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="s2">"lifecycle_state"</span><span class="p">:</span> <span class="s2">"running"</span><span class="p">,</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">})</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Read the last checkpoint</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">checkpoint</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">last_checkpoint</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1"># {"context_state": {...}, "lifecycle_state": "running"}</span>
-</span></code></pre></div>
-<p>The checkpoint is written as a complete JSON file (overwriting the previous checkpoint) and also appended to the journal as an entry with <code>entry_type="checkpoint"</code>.</p>
-<h3 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Link to this section">&para;</a></h3>
-<p>File I/O errors raise <code>JournalError</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">JournalError</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">try</span><span class="p">:</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">except</span> <span class="n">JournalError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Failed to write: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="closing">Closing<a class="headerlink" href="#closing" title="Link to this section">&para;</a></h3>
-<p><code>FileJournal.close()</code> is a no-op since file handles are not held open. It is provided for protocol compatibility.</p>
-<hr />
-<h2 id="inmemoryjournal">InMemoryJournal<a class="headerlink" href="#inmemoryjournal" title="Link to this section">&para;</a></h2>
-<p>The <code>InMemoryJournal</code> stores all entries in a Python list. Nothing is persisted to disk. This backend is intended for testing and development.</p>
-<h3 id="creating-an-inmemoryjournal">Creating an InMemoryJournal<a class="headerlink" href="#creating-an-inmemoryjournal" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryJournal</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">InMemoryJournal</span><span class="p">()</span>
-</span></code></pre></div>
-<h3 id="usage">Usage<a class="headerlink" href="#usage" title="Link to this section">&para;</a></h3>
-<p>The API is identical to <code>FileJournal</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">JournalEntry</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># Append</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JournalEntry</span><span class="p">(</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">process_id</span><span class="o">=</span><span class="s2">"test-process"</span><span class="p">,</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">entry_type</span><span class="o">=</span><span class="s2">"test_event"</span><span class="p">,</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">"key"</span><span class="p">:</span> <span class="s2">"value"</span><span class="p">},</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="p">))</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># Read</span>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"test-process"</span><span class="p">)</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>
-</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="c1"># Checkpoint</span>
-</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="s2">"test-process"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"state"</span><span class="p">:</span> <span class="s2">"running"</span><span class="p">})</span>
-</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">checkpoint</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">last_checkpoint</span><span class="p">(</span><span class="s2">"test-process"</span><span class="p">)</span>
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="k">assert</span> <span class="n">checkpoint</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"state"</span><span class="p">:</span> <span class="s2">"running"</span><span class="p">}</span>
-</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="c1"># Close (no-op)</span>
-</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span></code></pre></div>
-<h3 id="internal-access-testing">Internal access (testing)<a class="headerlink" href="#internal-access-testing" title="Link to this section">&para;</a></h3>
-<p>For test assertions, the internal state is accessible:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># All entries</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">journal</span><span class="o">.</span><span class="n">_entries</span>  <span class="c1"># list[JournalEntry]</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># All checkpoints</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">journal</span><span class="o">.</span><span class="n">_checkpoints</span>  <span class="c1"># dict[str, dict[str, Any]]</span>
-</span></code></pre></div>
-<hr />
-<h2 id="comparing-backends">Comparing Backends<a class="headerlink" href="#comparing-backends" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Feature</th>
+<th>Behavior</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Append</td>
+<td>Each entry is one JSON line (<code>default=str</code> for values JSON can't encode). The file is opened and closed per write; no handle stays open</td>
+</tr>
+<tr>
+<td>Read</td>
+<td>Oldest first. <code>since</code> skips entries older than it, <code>entry_type</code> keeps one type, <code>limit</code> stops after that many matches. A malformed line (a write cut off by a crash) is skipped with a warning</td>
+</tr>
+<tr>
+<td>Checkpoint</td>
+<td>Written to a temporary file, flushed with <code>fsync</code>, then renamed over the old one, so a crash mid-write leaves the previous checkpoint intact. Also appended to the JSONL file as a <code>checkpoint</code> entry with <code>data={"state": state}</code></td>
+</tr>
+<tr>
+<td>Last checkpoint</td>
+<td>Read from the <code>.checkpoint.json</code> file; <code>None</code> when it is missing or unreadable (logged)</td>
+</tr>
+<tr>
+<td>File names</td>
+<td><code>/</code> and <code>\</code> in the process ID become <code>_</code>, IDs are cut to 200 characters, and a null byte raises <code>ValueError</code></td>
+</tr>
+<tr>
+<td>Errors</td>
+<td>A failed write or read raises <code>JournalError</code> (<code>promptise.runtime.exceptions</code>)</td>
+</tr>
+<tr>
+<td><code>close()</code></td>
+<td>Does nothing (no handles are held)</td>
+</tr>
+</tbody>
+</table>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">JournalError</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">recent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="s2">"notes"</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">since</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">entry_type</span><span class="o">=</span><span class="s2">"invocation_result"</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">limit</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">)</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="k">except</span> <span class="n">JournalError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Journal write failed: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+<p>An <code>AgentProcess</code> catches journal errors itself: they are logged and the process keeps running.</p>
+<p>The JSONL files work with standard tools:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">5</span><span class="w"> </span>.promptise/journal/notes.jsonl<span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>json.tool<span class="w"> </span>--json-lines
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>jq<span class="w"> </span>-c<span class="w"> </span><span class="s1">'select(.entry_type == "error") | .data'</span><span class="w"> </span>.promptise/journal/notes.jsonl
+</span></code></pre></div>
+<hr />
+<h2 id="inmemoryjournal">InMemoryJournal<a class="headerlink" href="#inmemoryjournal" title="Link to this section">&para;</a></h2>
+<p><code>InMemoryJournal()</code> keeps entries in a list and checkpoints in a dict. Nothing is persisted, so it is for tests and short experiments; <code>JournalConfig(backend="memory")</code> gives a process one.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryJournal</span><span class="p">,</span> <span class="n">JournalEntry</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">InMemoryJournal</span><span class="p">()</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JournalEntry</span><span class="p">(</span><span class="n">process_id</span><span class="o">=</span><span class="s2">"test"</span><span class="p">,</span> <span class="n">entry_type</span><span class="o">=</span><span class="s2">"test_event"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">"k"</span><span class="p">:</span> <span class="s2">"v"</span><span class="p">}))</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"test"</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">(</span><span class="s2">"test"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"lifecycle_state"</span><span class="p">:</span> <span class="s2">"running"</span><span class="p">})</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">assert</span> <span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">last_checkpoint</span><span class="p">(</span><span class="s2">"test"</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"lifecycle_state"</span><span class="p">:</span> <span class="s2">"running"</span><span class="p">}</span>
+</span></code></pre></div>
+<p><code>checkpoint()</code> stores a copy of the state, and the <code>checkpoint</code> entry it appends holds its own copy, so changing your dict afterwards changes neither. In tests, <code>journal._entries</code> (a <code>list[JournalEntry]</code>) and <code>journal._checkpoints</code> (a <code>dict</code>) expose the raw contents.</p>
+<hr />
+<h2 id="redactingjournal">RedactingJournal<a class="headerlink" href="#redactingjournal" title="Link to this section">&para;</a></h2>
+<p><code>RedactingJournal(inner, redact)</code> wraps any backend. Every entry's <code>data</code> and every checkpoint state passes through <code>redact</code> before <code>inner</code> stores it; reads go straight to <code>inner</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileJournal</span><span class="p">,</span> <span class="n">RedactingJournal</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">RedactingJournal</span><span class="p">(</span><span class="n">FileJournal</span><span class="p">(</span><span class="s2">".promptise/journal"</span><span class="p">),</span> <span class="n">scope</span><span class="o">.</span><span class="n">sanitize</span><span class="p">)</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">await</span> <span class="n">journal</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">JournalEntry</span><span class="p">(</span><span class="n">process_id</span><span class="o">=</span><span class="s2">"bot"</span><span class="p">,</span> <span class="n">entry_type</span><span class="o">=</span><span class="s2">"note"</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>                                  <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">"text"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"token is </span><span class="si">{</span><span class="n">token</span><span class="si">}</span><span class="s2">"</span><span class="p">}))</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># stored as {"text": "token is [REDACTED]"}</span>
+</span></code></pre></div>
+<p><code>redact</code> takes a (nested) value and returns a redacted copy; it must not modify its input. <code>SecretScope.sanitize</code> is the usual choice: it knows the current and rotated secret values. An <code>AgentProcess</code> with secret scoping enabled wraps its journal this way automatically. <code>journal.inner</code> is the wrapped backend.</p>
+<hr />
+<h2 id="comparing-backends">Comparing backends<a class="headerlink" href="#comparing-backends" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
 <th>FileJournal</th>
 <th>InMemoryJournal</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Persistence</td>
-<td>Append-only JSONL files</td>
-<td>None (lost on process exit)</td>
+<td>Survives a restart</td>
+<td>Yes</td>
+<td>No</td>
 </tr>
 <tr>
-<td>Crash recovery</td>
-<td>Supports replay from disk</td>
-<td>Not applicable</td>
-</tr>
-<tr>
-<td>Performance</td>
-<td>Disk I/O per operation</td>
-<td>Instant (memory)</td>
+<td>Recovery and rewind across Python processes</td>
+<td>Yes</td>
+<td>Only within the same Python process</td>
 </tr>
 <tr>
 <td>Checkpoint storage</td>
-<td>Separate <code>.checkpoint.json</code> file</td>
-<td>In-memory dict</td>
+<td><code>.checkpoint.json</code>, replaced atomically</td>
+<td>A dict</td>
 </tr>
 <tr>
-<td>Malformed entry handling</td>
-<td>Skips with warning</td>
+<td>Malformed data</td>
+<td>Skipped with a warning</td>
 <td>Not applicable</td>
 </tr>
 <tr>
-<td>Concurrent safety</td>
-<td>File-level (OS)</td>
-<td>Single-process</td>
+<td>Readable by other programs</td>
+<td>Yes (JSONL)</td>
+<td>No</td>
 </tr>
 <tr>
-<td>Close behavior</td>
+<td><code>close()</code></td>
 <td>No-op</td>
 <td>No-op</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
-<h3 id="filejournal_1">FileJournal<a class="headerlink" href="#filejournal_1" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>FileJournal(base_path)</code></td>
-<td>Create with base directory (default: <code>.promptise/journal</code>)</td>
-</tr>
-<tr>
-<td><code>await append(entry)</code></td>
-<td>Append a <code>JournalEntry</code> to the JSONL file</td>
-</tr>
-<tr>
-<td><code>await read(process_id, since, entry_type, limit)</code></td>
-<td>Read entries with optional filters</td>
-</tr>
-<tr>
-<td><code>await checkpoint(process_id, state)</code></td>
-<td>Store a checkpoint and record in journal</td>
-</tr>
-<tr>
-<td><code>await last_checkpoint(process_id)</code></td>
-<td>Read the last checkpoint, or <code>None</code></td>
-</tr>
-<tr>
-<td><code>await close()</code></td>
-<td>No-op (protocol compatibility)</td>
-</tr>
-</tbody>
-</table>
-<h3 id="inmemoryjournal_1">InMemoryJournal<a class="headerlink" href="#inmemoryjournal_1" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>InMemoryJournal()</code></td>
-<td>Create an empty in-memory journal</td>
-</tr>
-<tr>
-<td><code>await append(entry)</code></td>
-<td>Append to internal list</td>
-</tr>
-<tr>
-<td><code>await read(process_id, since, entry_type, limit)</code></td>
-<td>Read with filters</td>
-</tr>
-<tr>
-<td><code>await checkpoint(process_id, state)</code></td>
-<td>Store checkpoint and record entry</td>
-</tr>
-<tr>
-<td><code>await last_checkpoint(process_id)</code></td>
-<td>Read the last checkpoint, or <code>None</code></td>
-</tr>
-<tr>
-<td><code>await close()</code></td>
-<td>No-op</td>
-</tr>
-</tbody>
-</table>
+<h2 id="writing-your-own-backend">Writing your own backend<a class="headerlink" href="#writing-your-own-backend" title="Link to this section">&para;</a></h2>
+<p>Implement the <code>JournalProvider</code> protocol:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">JournalEntry</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">PostgresJournal</span><span class="p">:</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">JournalEntry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">process_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">since</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>                   <span class="n">entry_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">JournalEntry</span><span class="p">]:</span> <span class="o">...</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">process_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">last_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">process_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span></code></pre></div>
+<p>Keep two rules the built-in backends follow, because recovery and rewind depend on them: <code>read()</code> returns entries oldest first, and <code>checkpoint()</code> also appends a <code>checkpoint</code> entry whose <code>data</code> is <code>{"state": state}</code>. <code>ProcessConfig.journal</code> only selects the built-in backends; to give a process your own, pass it to the code that reads it (<code>ReplayEngine</code>, <code>RewindEngine</code>).</p>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Use FileJournal in production</p>
-<p>Even for non-critical processes, the file journal provides valuable observability. The JSONL format is human-readable and can be processed with standard tools like <code>jq</code>.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Process ID sanitization</p>
-<p><code>FileJournal</code> sanitizes process IDs for filesystem safety: forward slashes and backslashes are replaced with underscores in filenames.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">View journal files directly</p>
-<p>JSONL files can be inspected with standard tools:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># View last 10 entries</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">10</span><span class="w"> </span>.promptise/journal/data-watcher.jsonl<span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>json.tool
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Filter by entry type</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>jq<span class="w"> </span><span class="s1">'select(.entry_type == "trigger_event")'</span><span class="w"> </span>.promptise/journal/data-watcher.jsonl
-</span></code></pre></div></p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Checkpoints overwrite</p>
-<p>Each <code>checkpoint()</code> call overwrites the previous checkpoint file. Only the most recent checkpoint is available via <code>last_checkpoint()</code>. The full checkpoint history is preserved in the JSONL journal entries.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">No entry deletion</p>
-<p>Neither backend supports deleting individual entries. JSONL files grow indefinitely. Implement log rotation externally for long-running processes.</p>
-</div>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>Unbounded files.</strong> JSONL files only grow. Rotate or archive them outside Promptise for long-running processes; keep the newest file and the <code>.checkpoint.json</code> together.</li>
+<li><strong>Deleting only the JSONL file.</strong> Recovery reads the <code>.checkpoint.json</code> too. To reset a process, delete both files (or point <code>path</code> at a new directory).</li>
+<li><strong>Sharing a directory between processes with the same name.</strong> Files are named after the process, so they collide.</li>
+<li><strong>Assuming <code>limit</code> returns the newest entries.</strong> <code>read(limit=n)</code> returns the <em>first</em> n matches; take <code>entries[-n:]</code> for the newest (the API and <code>promptise runtime logs</code> do).</li>
+</ul>
 <hr />
 <h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../">Journal Overview</a> -- journal concepts and entry types</li>
-<li><a href="../replay/">Replay Engine</a> -- crash recovery from journal entries</li>
+<li><a href="../">Journal Overview</a> -- entry types, levels and recovery on start</li>
+<li><a href="../replay/">Replay Engine</a> -- how recovery rebuilds state</li>
+<li><a href="../rewind/">Rewind</a> -- roll a process back to an earlier entry</li>
 <li><a href="../../configuration/">Configuration</a> -- <code>JournalConfig</code> reference</li>
 </ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a> -- Journal progress and resume so side effects never run twice.</li>
+</ul>
+</div>
 
 
 
@@ -10146,7 +9714,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 9, 2026 17:46:06 UTC">2026-04-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
   </span>
 
     

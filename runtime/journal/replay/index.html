@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The ReplayEngine reconstructs agent process state from journal entries after a crash. It reads the journal, finds the last checkpoint, and replays subsequent">
+        <meta name="description" content="ReplayEngine rebuilds a process&#x27;s state from its journal: it loads the last checkpoint and replays the entries written after it. An AgentProcess uses it on">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Replay Engine">
-  <meta property="og:description" content="The ReplayEngine reconstructs agent process state from journal entries after a crash. It reads the journal, finds the last checkpoint, and replays subsequent">
+  <meta property="og:description" content="ReplayEngine rebuilds a process&#x27;s state from its journal: it loads the last checkpoint and replays the entries written after it. An AgentProcess uses it on">
   <meta property="og:url" content="https://docs.promptise.com/runtime/journal/replay/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Replay Engine">
-  <meta name="twitter:description" content="The ReplayEngine reconstructs agent process state from journal entries after a crash. It reads the journal, finds the last checkpoint, and replays subsequent">
+  <meta name="twitter:description" content="ReplayEngine rebuilds a process&#x27;s state from its journal: it loads the last checkpoint and replays the entries written after it. An AgentProcess uses it on">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Replay Engine",
       "name": "Replay Engine",
-      "description": "The ReplayEngine reconstructs agent process state from journal entries after a crash. It reads the journal, finds the last checkpoint, and replays subsequent",
+      "description": "ReplayEngine rebuilds a process\u0026#x27;s state from its journal: it loads the last checkpoint and replays the entries written after it. An AgentProcess uses it on",
       "url": "https://docs.promptise.com/runtime/journal/replay/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5918,113 +5888,24 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Concepts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#how-recovery-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How Recovery Works
+        How recovery works
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="How Recovery Works">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-load-the-last-checkpoint" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 1: Load the last checkpoint
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-find-entries-after-the-checkpoint" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 2: Find entries after the checkpoint
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-3-replay-entries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 3: Replay entries
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-the-replayengine" class="md-nav__link">
+  <a href="#what-the-process-does-with-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using the ReplayEngine
+        What the process does with it
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Using the ReplayEngine">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#basic-recovery" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic recovery
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#recovery-result" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recovery result
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#applying-recovered-state" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Applying recovered state
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -6032,19 +5913,19 @@
   <a href="#recovery-scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Recovery Scenarios
+        Recovery scenarios
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Recovery Scenarios">
+    <nav class="md-nav" aria-label="Recovery scenarios">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#scenario-1-crash-after-several-invocations" class="md-nav__link">
+  <a href="#a-crash-after-a-few-runs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario 1: Crash after several invocations
+        A crash after a few runs
       
     </span>
   </a>
@@ -6052,10 +5933,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scenario-2-crash-with-no-checkpoint" class="md-nav__link">
+  <a href="#a-crash-before-the-first-run-finished" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario 2: Crash with no checkpoint
+        A crash before the first run finished
       
     </span>
   </a>
@@ -6063,10 +5944,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scenario-3-no-journal-entries" class="md-nav__link">
+  <a href="#a-new-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario 3: No journal entries
+        A new process
       
     </span>
   </a>
@@ -6079,21 +5960,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -6166,6 +6036,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6188,8 +6062,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6203,8 +6078,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6216,6 +6097,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8462,8 +8345,6 @@
       
         
       
-        
-      
     
     
     
@@ -8616,36 +8497,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9524,113 +9375,24 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Concepts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#how-recovery-works" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How Recovery Works
+        How recovery works
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="How Recovery Works">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#step-1-load-the-last-checkpoint" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 1: Load the last checkpoint
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-2-find-entries-after-the-checkpoint" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 2: Find entries after the checkpoint
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#step-3-replay-entries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 3: Replay entries
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-the-replayengine" class="md-nav__link">
+  <a href="#what-the-process-does-with-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using the ReplayEngine
+        What the process does with it
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Using the ReplayEngine">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#basic-recovery" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Basic recovery
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#recovery-result" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recovery result
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#applying-recovered-state" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Applying recovered state
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -9638,19 +9400,19 @@
   <a href="#recovery-scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Recovery Scenarios
+        Recovery scenarios
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Recovery Scenarios">
+    <nav class="md-nav" aria-label="Recovery scenarios">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#scenario-1-crash-after-several-invocations" class="md-nav__link">
+  <a href="#a-crash-after-a-few-runs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario 1: Crash after several invocations
+        A crash after a few runs
       
     </span>
   </a>
@@ -9658,10 +9420,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scenario-2-crash-with-no-checkpoint" class="md-nav__link">
+  <a href="#a-crash-before-the-first-run-finished" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario 2: Crash with no checkpoint
+        A crash before the first run finished
       
     </span>
   </a>
@@ -9669,10 +9431,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#scenario-3-no-journal-entries" class="md-nav__link">
+  <a href="#a-new-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scenario 3: No journal entries
+        A new process
       
     </span>
   </a>
@@ -9685,21 +9447,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9787,70 +9538,35 @@
 
 
 <h1 id="replay-engine">Replay Engine<a class="headerlink" href="#replay-engine" title="Link to this section">&para;</a></h1>
-<p>The <code>ReplayEngine</code> reconstructs agent process state from journal entries after a crash. It reads the journal, finds the last checkpoint, and replays subsequent entries to rebuild the context state and lifecycle state -- enabling the process to resume where it left off.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReplayEngine</span><span class="p">,</span> <span class="n">FileJournal</span>
+<p><code>ReplayEngine</code> rebuilds a process's state from its journal: it loads the last checkpoint and replays the entries written after it. An <code>AgentProcess</code> uses it on its first <code>start()</code> when <code>JournalConfig.recover_on_start</code> is on (the default), so a process that crashed or was redeployed continues with its context state, conversation, budget counters and mission. Use the engine directly to inspect what a process would recover, or to build your own tooling on a journal.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileJournal</span><span class="p">,</span> <span class="n">ReplayEngine</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">FileJournal</span><span class="p">()</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">engine</span> <span class="o">=</span> <span class="n">ReplayEngine</span><span class="p">(</span><span class="n">journal</span><span class="p">)</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">recovered</span> <span class="o">=</span> <span class="k">await</span> <span class="n">engine</span><span class="o">.</span><span class="n">recover</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># {</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1">#     "context_state": {"pipeline_status": "degraded", "check_count": 42},</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1">#     "lifecycle_state": "running",</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1">#     "last_entry_type": "invocation_result",</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1">#     "entries_replayed": 7,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># }</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">engine</span> <span class="o">=</span> <span class="n">ReplayEngine</span><span class="p">(</span><span class="n">FileJournal</span><span class="p">(</span><span class="s2">".promptise/journal"</span><span class="p">))</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">recovered</span> <span class="o">=</span> <span class="k">await</span> <span class="n">engine</span><span class="o">.</span><span class="n">recover</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># {</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1">#     "context_state": {"stage": "draft"},</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1">#     "lifecycle_state": "stopped",</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1">#     "last_entry_type": "state_transition",</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1">#     "entries_replayed": 1,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1">#     "mission": None,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1">#     "checkpoint": {"context_state": {...}, "lifecycle_state": "running", "invocation_count": 2,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1">#                    "conversation": [...]},</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># }</span>
 </span></code></pre></div>
+<p><code>recover()</code> only reads. It changes neither the journal nor any process.</p>
 <hr />
-<h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>Long-running agent processes may crash due to hardware failures, OOM kills, or bugs. Without recovery, the process would restart from scratch, losing all accumulated state. The replay engine solves this by reconstructing state from the durable journal:</p>
+<h2 id="how-recovery-works">How recovery works<a class="headerlink" href="#how-recovery-works" title="Link to this section">&para;</a></h2>
 <ol>
-<li><strong>Load the last checkpoint</strong> -- the most recent full state snapshot.</li>
-<li><strong>Read entries after the checkpoint</strong> -- incremental changes since the snapshot.</li>
-<li><strong>Replay entries sequentially</strong> -- apply state transitions and context updates to rebuild the current state.</li>
-</ol>
-<p>This is a classic <strong>event sourcing</strong> recovery pattern: the checkpoint is the snapshot, and journal entries are the event log.</p>
-<hr />
-<h2 id="how-recovery-works">How Recovery Works<a class="headerlink" href="#how-recovery-works" title="Link to this section">&para;</a></h2>
-<h3 id="step-1-load-the-last-checkpoint">Step 1: Load the last checkpoint<a class="headerlink" href="#step-1-load-the-last-checkpoint" title="Link to this section">&para;</a></h3>
-<p>The engine calls <code>journal.last_checkpoint(process_id)</code>. If a checkpoint exists, it provides the starting state:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="s2">"context_state"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"pipeline_status"</span><span class="p">:</span> <span class="s2">"healthy"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">:</span> <span class="mi">40</span><span class="p">},</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="s2">"lifecycle_state"</span><span class="p">:</span> <span class="s2">"running"</span><span class="p">,</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">}</span>
-</span></code></pre></div>
-<p>If no checkpoint exists, recovery starts from an empty state (<code>context_state={}</code>, <code>lifecycle_state="created"</code>).</p>
-<h3 id="step-2-find-entries-after-the-checkpoint">Step 2: Find entries after the checkpoint<a class="headerlink" href="#step-2-find-entries-after-the-checkpoint" title="Link to this section">&para;</a></h3>
-<p>The engine reads all journal entries for the process and locates the <strong>last</strong> <code>checkpoint</code> entry. Only the entries after that point are collected for replay; entries before it (older checkpoints included) are already part of the snapshot. The checkpoint returned by the backend is copied, so replay never modifies the stored snapshot.</p>
-<div class="admonition note">
-<p class="admonition-title">Fixed in 1.3.0</p>
-<p>Earlier versions replayed everything after the <em>first</em> checkpoint, so with several checkpoints stale <code>context_update</code> values overwrote the newer snapshot.</p>
-</div>
-<h3 id="step-3-replay-entries">Step 3: Replay entries<a class="headerlink" href="#step-3-replay-entries" title="Link to this section">&para;</a></h3>
-<p>Each entry is applied in chronological order:</p>
-<ul>
-<li><strong><code>state_transition</code></strong> entries update the <code>lifecycle_state</code> from the <code>to_state</code> field.</li>
-<li><strong><code>context_update</code></strong> entries update <code>context_state</code> by setting the <code>key</code> to <code>value</code>.</li>
-<li>Other entry types are noted (the last entry type is tracked) but do not modify the recovered state.</li>
+<li><strong>Load the last checkpoint</strong> with <code>journal.last_checkpoint(process_id)</code>. Its <code>context_state</code> and <code>lifecycle_state</code> are the starting point (the checkpoint is copied, so the stored one is never modified). Without a checkpoint, recovery starts from <code>context_state={}</code> and <code>lifecycle_state="created"</code>.</li>
+<li><strong>Find the entries after it.</strong> The engine reads every entry and keeps only those after the <strong>last</strong> <code>checkpoint</code> entry; older entries, older checkpoints included, are already part of the snapshot. Without a checkpoint, every entry is replayed.</li>
+<li><strong>Replay them in order:</strong><ul>
+<li><code>state_transition</code> sets <code>lifecycle_state</code> to its <code>to_state</code>;</li>
+<li><code>context_update</code> sets <code>context_state[key] = value</code>;</li>
+<li>every other type only updates <code>last_entry_type</code>.</li>
 </ul>
-<hr />
-<h2 id="using-the-replayengine">Using the ReplayEngine<a class="headerlink" href="#using-the-replayengine" title="Link to this section">&para;</a></h2>
-<h3 id="basic-recovery">Basic recovery<a class="headerlink" href="#basic-recovery" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReplayEngine</span><span class="p">,</span> <span class="n">FileJournal</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">journal</span> <span class="o">=</span> <span class="n">FileJournal</span><span class="p">(</span><span class="n">base_path</span><span class="o">=</span><span class="s2">".promptise/journal"</span><span class="p">)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">engine</span> <span class="o">=</span> <span class="n">ReplayEngine</span><span class="p">(</span><span class="n">journal</span><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Recover state for a process</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">recovered</span> <span class="o">=</span> <span class="k">await</span> <span class="n">engine</span><span class="o">.</span><span class="n">recover</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Lifecycle state: </span><span class="si">{</span><span class="n">recovered</span><span class="p">[</span><span class="s1">'lifecycle_state'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Context state:   </span><span class="si">{</span><span class="n">recovered</span><span class="p">[</span><span class="s1">'context_state'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Last entry type: </span><span class="si">{</span><span class="n">recovered</span><span class="p">[</span><span class="s1">'last_entry_type'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Entries replayed: </span><span class="si">{</span><span class="n">recovered</span><span class="p">[</span><span class="s1">'entries_replayed'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="recovery-result">Recovery result<a class="headerlink" href="#recovery-result" title="Link to this section">&para;</a></h3>
-<p>The <code>recover</code> method returns a dict with:</p>
+</li>
+</ol>
+<p>The result:</p>
 <table>
 <thead>
 <tr>
@@ -9863,129 +9579,120 @@
 <tr>
 <td><code>context_state</code></td>
 <td><code>dict[str, Any]</code></td>
-<td>Reconstructed context key-value state</td>
+<td>The rebuilt context state</td>
 </tr>
 <tr>
 <td><code>lifecycle_state</code></td>
 <td><code>str</code></td>
-<td>Final lifecycle state (<code>"running"</code>, <code>"suspended"</code>, etc.)</td>
+<td>The last recorded process state (<code>"stopped"</code> after a clean stop, <code>"running"</code> after a crash)</td>
 </tr>
 <tr>
 <td><code>last_entry_type</code></td>
 <td><code>str</code></td>
-<td>Type of the last replayed entry</td>
+<td>Type of the last replayed entry (<code>""</code> when nothing was replayed)</td>
 </tr>
 <tr>
 <td><code>entries_replayed</code></td>
 <td><code>int</code></td>
-<td>Number of entries replayed after the checkpoint</td>
+<td>Entries replayed after the checkpoint</td>
+</tr>
+<tr>
+<td><code>mission</code></td>
+<td><code>dict \| None</code></td>
+<td>The checkpoint's mission state (<code>MissionTracker.to_dict()</code>), for <code>MissionTracker.restore()</code></td>
+</tr>
+<tr>
+<td><code>checkpoint</code></td>
+<td><code>dict</code></td>
+<td>The raw last checkpoint (<code>{}</code> when there is none): <code>conversation</code>, <code>invocation_count</code>, <code>budget</code>, ...</td>
 </tr>
 </tbody>
 </table>
-<h3 id="applying-recovered-state">Applying recovered state<a class="headerlink" href="#applying-recovered-state" title="Link to this section">&para;</a></h3>
-<p>After recovery, apply the state to a new <code>AgentContext</code> and <code>ProcessLifecycle</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentContext</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.lifecycle</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessLifecycle</span><span class="p">,</span> <span class="n">ProcessState</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">recovered</span> <span class="o">=</span> <span class="k">await</span> <span class="n">engine</span><span class="o">.</span><span class="n">recover</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Restore context</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span><span class="n">initial_state</span><span class="o">=</span><span class="n">recovered</span><span class="p">[</span><span class="s2">"context_state"</span><span class="p">])</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Restore lifecycle</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">lc</span> <span class="o">=</span> <span class="n">ProcessLifecycle</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="n">ProcessState</span><span class="p">(</span><span class="n">recovered</span><span class="p">[</span><span class="s2">"lifecycle_state"</span><span class="p">]))</span>
-</span></code></pre></div>
 <hr />
-<h2 id="recovery-scenarios">Recovery Scenarios<a class="headerlink" href="#recovery-scenarios" title="Link to this section">&para;</a></h2>
-<h3 id="scenario-1-crash-after-several-invocations">Scenario 1: Crash after several invocations<a class="headerlink" href="#scenario-1-crash-after-several-invocations" title="Link to this section">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Journal entries:
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  1. state_transition: created -&gt; starting
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  2. state_transition: starting -&gt; running
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  3. trigger_event: cron fired
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  4. invocation_result: success
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>  5. checkpoint: {check_count: 10, lifecycle: "running"}
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>  6. trigger_event: cron fired
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>  7. context_update: check_count = 11
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>  8. invocation_result: success
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>  --- CRASH ---
-</span></code></pre></div>
-<p>Recovery:</p>
-<ol>
-<li>Loads checkpoint from entry 5: <code>check_count=10</code>, <code>lifecycle="running"</code></li>
-<li>Replays entries 6-8: <code>context_update</code> sets <code>check_count=11</code></li>
-<li>Returns <code>context_state={"check_count": 11}</code>, <code>lifecycle_state="running"</code>, <code>entries_replayed=3</code></li>
-</ol>
-<h3 id="scenario-2-crash-with-no-checkpoint">Scenario 2: Crash with no checkpoint<a class="headerlink" href="#scenario-2-crash-with-no-checkpoint" title="Link to this section">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Journal entries:
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  1. state_transition: created -&gt; starting
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>  2. state_transition: starting -&gt; running
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  3. context_update: pipeline_status = "degraded"
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  --- CRASH ---
-</span></code></pre></div>
-<p>Recovery:</p>
-<ol>
-<li>No checkpoint found. Start from empty state.</li>
-<li>Replay all 3 entries.</li>
-<li>Returns <code>context_state={"pipeline_status": "degraded"}</code>, <code>lifecycle_state="running"</code>, <code>entries_replayed=3</code></li>
-</ol>
-<h3 id="scenario-3-no-journal-entries">Scenario 3: No journal entries<a class="headerlink" href="#scenario-3-no-journal-entries" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">recovered</span> <span class="o">=</span> <span class="k">await</span> <span class="n">engine</span><span class="o">.</span><span class="n">recover</span><span class="p">(</span><span class="s2">"new-process"</span><span class="p">)</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># {"context_state": {}, "lifecycle_state": "created", "last_entry_type": "", "entries_replayed": 0}</span>
-</span></code></pre></div>
-<hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<h2 id="what-the-process-does-with-it">What the process does with it<a class="headerlink" href="#what-the-process-does-with-it" title="Link to this section">&para;</a></h2>
+<p>On its first <code>start()</code>, an <code>AgentProcess</code> with a journal and <code>recover_on_start=True</code> calls <code>recover(name)</code> and applies the result before it journals its own first transition:</p>
 <table>
 <thead>
 <tr>
-<th>Method</th>
-<th>Description</th>
+<th>Restored</th>
+<th>From</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>ReplayEngine(journal)</code></td>
-<td>Create with a <code>JournalProvider</code></td>
+<td>Context state</td>
+<td><code>context_state</code> (recovered keys replace the same keys of <code>context.initial_state</code>)</td>
 </tr>
 <tr>
-<td><code>await recover(process_id)</code></td>
-<td>Recover state from journal entries</td>
+<td>Mission progress and history</td>
+<td><code>mission</code>, when the process has a mission</td>
+</tr>
+<tr>
+<td>Budget counters</td>
+<td><code>checkpoint["budget"]</code>, when the process has a budget (a restart can't reset the daily limits)</td>
+</tr>
+<tr>
+<td>Conversation history</td>
+<td><code>checkpoint["conversation"]</code>, when <code>context.conversation_history</code> is on</td>
+</tr>
+<tr>
+<td>Invocation count</td>
+<td><code>checkpoint["invocation_count"]</code></td>
 </tr>
 </tbody>
 </table>
+<p><code>process.recovered</code> then reports what was restored, and a <code>recovered</code> entry is journaled. A journal with neither a checkpoint nor context writes restores nothing; a journal that can't be read is logged and the process starts fresh. See <a href="../#recovery-on-start">Recovery on start</a>.</p>
+<p>You don't need the engine to recover a process. Use it to look before you start one:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">recovered</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ReplayEngine</span><span class="p">(</span><span class="n">journal</span><span class="p">)</span><span class="o">.</span><span class="n">recover</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">if</span> <span class="n">recovered</span><span class="p">[</span><span class="s2">"lifecycle_state"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"running"</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"notes crashed last time; it will resume with"</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">recovered</span><span class="p">[</span><span class="s2">"context_state"</span><span class="p">]))</span>
+</span></code></pre></div>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Frequent checkpoints reduce replay time</p>
-<p>The replay engine only needs to process entries after the last checkpoint. More frequent checkpoints mean fewer entries to replay, but more disk writes. The default <code>"checkpoint"</code> journal level creates a checkpoint after each trigger-invoke-result cycle.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Use full journal level for detailed recovery</p>
-<p>An <code>AgentProcess</code> checkpoints its context state after every invocation (both levels), and <code>level="full"</code> adds trigger events and tool calls for auditing. The process does not write <code>context_update</code> entries itself; append them from your own code when you need state reconstruction between checkpoints.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Replay does not restore memory providers</p>
-<p>The replay engine reconstructs <code>context_state</code> (key-value store) but does not restore the <code>MemoryProvider</code>. Long-term memory is managed by its own persistence layer (ChromaDB, Mem0, etc.) and does not need journal-based recovery.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Replay does not restore conversation buffer</p>
-<p>The conversation buffer (short-term message history) is not replayed from journal entries. If you need conversation persistence across crashes, include it in checkpoint data.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Idempotency matters</p>
-<p>The replay engine assumes entries can be applied sequentially. If your journal contains entries with side effects beyond state mutations (e.g., external API calls), those side effects are not replayed -- only the state changes recorded in the journal.</p>
-</div>
+<h2 id="recovery-scenarios">Recovery scenarios<a class="headerlink" href="#recovery-scenarios" title="Link to this section">&para;</a></h2>
+<h3 id="a-crash-after-a-few-runs">A crash after a few runs<a class="headerlink" href="#a-crash-after-a-few-runs" title="Link to this section">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>1. state_transition   created -&gt; starting
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>2. state_transition   starting -&gt; running
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>3. context_update     stage = "draft"
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>4. invocation_result  invocation 1
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>5. checkpoint         {context_state: {stage: "draft"}, lifecycle_state: "running", ...}
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>6. context_update     stage = "published"
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>--- crash ---
+</span></code></pre></div>
+<p>Recovery loads the checkpoint (entry 5), replays entry 6, and returns <code>context_state={"stage": "published"}</code>, <code>lifecycle_state="running"</code>, <code>entries_replayed=1</code>. The process restores the conversation and invocation count from the checkpoint, so the run that was cut off is the only thing lost.</p>
+<h3 id="a-crash-before-the-first-run-finished">A crash before the first run finished<a class="headerlink" href="#a-crash-before-the-first-run-finished" title="Link to this section">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>1. state_transition   created -&gt; starting
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>2. state_transition   starting -&gt; running
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>3. context_update     stage = "draft"
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>--- crash ---
+</span></code></pre></div>
+<p>No checkpoint: all three entries are replayed. The result is <code>context_state={"stage": "draft"}</code>, <code>lifecycle_state="running"</code>, <code>entries_replayed=3</code>, <code>checkpoint={}</code>.</p>
+<h3 id="a-new-process">A new process<a class="headerlink" href="#a-new-process" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">await</span> <span class="n">engine</span><span class="o">.</span><span class="n">recover</span><span class="p">(</span><span class="s2">"new-process"</span><span class="p">)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># {"context_state": {}, "lifecycle_state": "created", "last_entry_type": "",</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1">#  "entries_replayed": 0, "mission": None, "checkpoint": {}}</span>
+</span></code></pre></div>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>Expecting side effects to be replayed.</strong> Replay rebuilds state only. A tool call that sent an email is not repeated, and one that was cut off by the crash is not resumed. Make external actions idempotent (for example with an idempotency key stored in the context).</li>
+<li><strong>Expecting long-term memory from the journal.</strong> Memory providers (ChromaDB, Mem0, ...) persist on their own; the journal holds the context state and the conversation buffer.</li>
+<li><strong>Values stored redacted.</strong> With secret scoping, secrets were journaled as <code>[REDACTED]</code> and come back that way. Keep secrets in the secret scope, not in the context state.</li>
+<li><strong>Custom entry types.</strong> Only <code>state_transition</code> and <code>context_update</code> change the replayed state. Record your own state as <code>context_update</code> entries (<code>data={"key": ..., "value": ...}</code>), or write it through <code>process.context.put()</code>, which does this for you.</li>
+</ul>
 <hr />
 <h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../">Journal Overview</a> -- journal concepts and entry types</li>
+<li><a href="../">Journal Overview</a> -- entry types, levels and recovery on start</li>
 <li><a href="../backends/">Journal Backends</a> -- <code>FileJournal</code> and <code>InMemoryJournal</code></li>
-<li><a href="../../lifecycle/">Lifecycle</a> -- the state machine that produces <code>state_transition</code> entries</li>
-<li><a href="../../context/">Context</a> -- the state layer that produces <code>context_update</code> entries</li>
+<li><a href="../rewind/">Rewind</a> -- go back to an earlier point instead of the latest one</li>
+<li><a href="../../lifecycle/">Lifecycle</a> -- the state machine behind <code>state_transition</code> entries</li>
+<li><a href="../../context/">Context</a> -- the state layer behind <code>context_update</code> entries</li>
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
 <li><a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a> -- Resume from the last step after a crash, with idempotency keys.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-state-between-runs">AI Agent State Between Runs: Context, Keys and Audit</a> -- What a process keeps between runs and how it is restored.</li>
 </ul>
 </div>
 
@@ -10010,7 +9717,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
   </span>
 
     

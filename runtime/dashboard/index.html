@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The RuntimeDashboard provides a live, full-screen terminal UI for monitoring running agent processes in real time. Built on rich, it offers tabbed views">
+        <meta name="description" content="RuntimeDashboard is a full-screen terminal UI for watching a running AgentRuntime: process states and counters, configured triggers, each process&#x27;s context">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Dashboard">
-  <meta property="og:description" content="The RuntimeDashboard provides a live, full-screen terminal UI for monitoring running agent processes in real time. Built on rich, it offers tabbed views">
+  <meta property="og:description" content="RuntimeDashboard is a full-screen terminal UI for watching a running AgentRuntime: process states and counters, configured triggers, each process&#x27;s context">
   <meta property="og:url" content="https://docs.promptise.com/runtime/dashboard/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Dashboard">
-  <meta name="twitter:description" content="The RuntimeDashboard provides a live, full-screen terminal UI for monitoring running agent processes in real time. Built on rich, it offers tabbed views">
+  <meta name="twitter:description" content="RuntimeDashboard is a full-screen terminal UI for watching a running AgentRuntime: process states and counters, configured triggers, each process&#x27;s context">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Dashboard",
       "name": "Dashboard",
-      "description": "The RuntimeDashboard provides a live, full-screen terminal UI for monitoring running agent processes in real time. Built on rich, it offers tabbed views",
+      "description": "RuntimeDashboard is a full-screen terminal UI for watching a running AgentRuntime: process states and counters, configured triggers, each process\u0026#x27;s context",
       "url": "https://docs.promptise.com/runtime/dashboard/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -769,8 +769,6 @@
       
         
       
-        
-      
     
     
     
@@ -1008,34 +1006,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5917,6 +5887,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5939,8 +5913,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5954,8 +5929,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5967,6 +5948,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -6110,10 +6093,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#dashboard-tabs" class="md-nav__link">
+  <a href="#tabs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Dashboard Tabs
+        Tabs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
       
     </span>
   </a>
@@ -6124,19 +6118,19 @@
   <a href="#starting-the-dashboard" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Starting the Dashboard
+        Starting the dashboard
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Starting the Dashboard">
+    <nav class="md-nav" aria-label="Starting the dashboard">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#via-cli" class="md-nav__link">
+  <a href="#via-the-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Via CLI
+        Via the CLI
       
     </span>
   </a>
@@ -6163,13 +6157,24 @@
   <a href="#data-types" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Data Types
+        Data types
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Data Types">
+    <nav class="md-nav" aria-label="Data types">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#runtimedashboardstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RuntimeDashboardState
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#processsnapshot" class="md-nav__link">
@@ -6193,30 +6198,30 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#contextsnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ContextSnapshot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#log-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log records
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#state-colors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        State Colors
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#runtimedashboardstate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RuntimeDashboardState
-      
-    </span>
-  </a>
   
 </li>
       
@@ -6235,7 +6240,7 @@
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
       
     </span>
   </a>
@@ -6243,10 +6248,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -6257,7 +6262,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -8426,8 +8431,6 @@
       
         
       
-        
-      
     
     
     
@@ -8580,36 +8583,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9499,10 +9472,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#dashboard-tabs" class="md-nav__link">
+  <a href="#tabs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Dashboard Tabs
+        Tabs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commands
       
     </span>
   </a>
@@ -9513,19 +9497,19 @@
   <a href="#starting-the-dashboard" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Starting the Dashboard
+        Starting the dashboard
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Starting the Dashboard">
+    <nav class="md-nav" aria-label="Starting the dashboard">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#via-cli" class="md-nav__link">
+  <a href="#via-the-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Via CLI
+        Via the CLI
       
     </span>
   </a>
@@ -9552,13 +9536,24 @@
   <a href="#data-types" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Data Types
+        Data types
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Data Types">
+    <nav class="md-nav" aria-label="Data types">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#runtimedashboardstate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RuntimeDashboardState
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#processsnapshot" class="md-nav__link">
@@ -9582,30 +9577,30 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#contextsnapshot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ContextSnapshot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#log-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log records
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#state-colors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        State Colors
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#runtimedashboardstate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        RuntimeDashboardState
-      
-    </span>
-  </a>
   
 </li>
       
@@ -9624,7 +9619,7 @@
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
       
     </span>
   </a>
@@ -9632,10 +9627,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9646,7 +9641,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -9680,251 +9675,80 @@
 
 
 <h1 id="runtime-dashboard">Runtime Dashboard<a class="headerlink" href="#runtime-dashboard" title="Link to this section">&para;</a></h1>
-<p>The <code>RuntimeDashboard</code> provides a live, full-screen terminal UI for monitoring running agent processes in real time. Built on <code>rich</code>, it offers tabbed views covering every aspect of your runtime -- from process states and trigger activity to interactive commands.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Start from the CLI</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--dashboard
+<p><code>RuntimeDashboard</code> is a full-screen terminal UI for watching a running <code>AgentRuntime</code>: process states and counters, configured triggers, each process's context state, and captured log output, refreshed several times a second. It is built on <code>rich</code> and is meant for local development and demos; for remote or scripted control use the <a href="../api/">Orchestration API</a> or the <a href="../cli/">CLI</a>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--dashboard
 </span></code></pre></div>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Or programmatically</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">RuntimeDashboard</span><span class="p">,</span> <span class="n">RuntimeDashboardState</span><span class="p">,</span> <span class="n">RuntimeDataCollector</span><span class="p">,</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">)</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">state</span> <span class="o">=</span> <span class="n">RuntimeDashboardState</span><span class="p">(</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">runtime_name</span><span class="o">=</span><span class="s2">"my-runtime"</span><span class="p">,</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">manifest_names</span><span class="o">=</span><span class="p">[</span><span class="s2">"data-watcher"</span><span class="p">,</span> <span class="s2">"alert-handler"</span><span class="p">],</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">collector</span> <span class="o">=</span> <span class="n">RuntimeDataCollector</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">collector</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">dashboard</span> <span class="o">=</span> <span class="n">RuntimeDashboard</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">runtime</span><span class="o">=</span><span class="n">runtime</span><span class="p">)</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">dashboard</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeDashboard</span><span class="p">,</span> <span class="n">RuntimeDashboardState</span><span class="p">,</span> <span class="n">RuntimeDataCollector</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">state</span> <span class="o">=</span> <span class="n">RuntimeDashboardState</span><span class="p">(</span><span class="n">runtime_name</span><span class="o">=</span><span class="s2">"my-runtime"</span><span class="p">,</span> <span class="n">manifest_names</span><span class="o">=</span><span class="p">[</span><span class="s2">"data-watcher"</span><span class="p">])</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">collector</span> <span class="o">=</span> <span class="n">RuntimeDataCollector</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># runtime: your AgentRuntime</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">collector</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">dashboard</span> <span class="o">=</span> <span class="n">RuntimeDashboard</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">runtime</span><span class="o">=</span><span class="n">runtime</span><span class="p">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">dashboard</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>   <span class="c1"># takes over the terminal</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="o">...</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">dashboard</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>    <span class="c1"># restores the terminal</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">collector</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
 <hr />
 <h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>The dashboard replaces static CLI status output with a continuously refreshing terminal display. It consists of three layers:</p>
+<p>The dashboard has three parts:</p>
 <ol>
-<li><strong>RuntimeDashboardState</strong> -- a shared data structure that holds all display state (process snapshots, trigger info, logs, events).</li>
-<li><strong>RuntimeDataCollector</strong> -- a background thread that periodically reads from the <code>AgentRuntime</code> and updates the state.</li>
-<li><strong>RuntimeDashboard</strong> -- the terminal renderer that uses <code>rich.Live</code> to draw tabbed panels from the state.</li>
+<li><strong><code>RuntimeDashboardState</code></strong> -- the data the dashboard shows: process, trigger and context snapshots, plus ring buffers for invocations, events, commands and journal entries.</li>
+<li><strong><code>RuntimeDataCollector</code></strong> -- a background thread that reads the <code>AgentRuntime</code> every <code>interval</code> seconds and refreshes the process, trigger and context snapshots in the state. It also registers <code>task_created</code> / <code>task_completed</code> <a href="../hooks/">hooks</a> on every process (for the event and run panels and the trigger fire counts) and reads each process's journal for the Logs tab.</li>
+<li><strong><code>RuntimeDashboard</code></strong> -- the renderer. It draws the state with <code>rich.Live</code> in the terminal's alternate screen, reads keys in a background thread, and captures Python log output for the Logs tab.</li>
 </ol>
+<p>The collector fills every panel. Trigger events and finished runs arrive through the hooks it registers (removed again by <code>collector.stop()</code>); journal entries are read from each process's journal every fourth snapshot, on the runtime's event loop. Context values are shown with secret values <code>[REDACTED]</code>, as in the journal. Create the collector on the runtime's loop (or pass <code>loop=</code>): without a loop the journal panel stays empty. <code>state.record_invocation()</code>, <code>state.record_event()</code> and <code>state.record_journal()</code> remain available to add records of your own.</p>
 <hr />
-<h2 id="dashboard-tabs">Dashboard Tabs<a class="headerlink" href="#dashboard-tabs" title="Link to this section">&para;</a></h2>
-<p>Switch between tabs using the number keys (1-7), arrow keys, or Tab.</p>
+<h2 id="tabs">Tabs<a class="headerlink" href="#tabs" title="Link to this section">&para;</a></h2>
+<p>Switch tabs with the number keys <code>1</code>-<code>7</code>, the left and right arrow keys, or <code>Tab</code>.</p>
 <table>
 <thead>
 <tr>
 <th>#</th>
 <th>Tab</th>
-<th>Description</th>
+<th>What it shows</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>1</td>
 <td><strong>Overview</strong></td>
-<td>Runtime summary: process count, uptime, global metrics, logo</td>
+<td>Counters (processes, running, failed, triggers, invocations, errors, throughput, uptime), a table of processes, and recent invocations (from <code>state.invocations</code>)</td>
 </tr>
 <tr>
 <td>2</td>
 <td><strong>Processes</strong></td>
-<td>Per-process details: state, invocations, queue depth, uptime, concurrency</td>
+<td>Per process: name, state, process ID, model, invocations, failures, triggers, queue size, concurrency, heartbeat interval, uptime. On a narrow terminal the least important columns are left out first (heartbeat, process ID, concurrency, uptime...); name, state and model always show</td>
 </tr>
 <tr>
 <td>3</td>
 <td><strong>Triggers</strong></td>
-<td>All triggers with type, configuration summary, and fire count</td>
+<td>Every config trigger: process, type, a configuration summary (cron expression, webhook port and path, watched path, event type or topic), fire count and last fire time (counted from <code>task_created</code>)</td>
 </tr>
 <tr>
 <td>4</td>
 <td><strong>Context</strong></td>
-<td>World state keys/values, writable keys, and audit trail</td>
+<td>Per process: each state key, its value (secret values redacted, cut at 50 characters), whether it is writable and how many writes it has had, plus the number of environment variables, file mounts and whether memory is on</td>
 </tr>
 <tr>
 <td>5</td>
 <td><strong>Logs</strong></td>
-<td>Journal entries from all processes (most recent first)</td>
+<td>Captured Python log records (runtime logs) and <code>state.journal_entries</code>, each in its own panel with a share of the height (newest first)</td>
 </tr>
 <tr>
 <td>6</td>
 <td><strong>Events</strong></td>
-<td>Trigger event log: received, processed, and queued events</td>
+<td><code>state.events</code> (trigger events, with a one-line payload preview) and <code>state.invocations</code> (invocation results)</td>
 </tr>
 <tr>
 <td>7</td>
 <td><strong>Commands</strong></td>
-<td>Interactive command panel for process control</td>
+<td>The command line and the history of commands run</td>
 </tr>
 </tbody>
 </table>
-<hr />
-<h2 id="starting-the-dashboard">Starting the Dashboard<a class="headerlink" href="#starting-the-dashboard" title="Link to this section">&para;</a></h2>
-<h3 id="via-cli">Via CLI<a class="headerlink" href="#via-cli" title="Link to this section">&para;</a></h3>
-<p>The simplest way to use the dashboard is through the CLI:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Start a single agent with the dashboard</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--dashboard
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Start a directory of agents with the dashboard</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--dashboard
-</span></code></pre></div>
-<p>The <code>--dashboard</code> flag is incompatible with <code>--detach</code> (background mode).</p>
-<h3 id="via-python">Via Python<a class="headerlink" href="#via-python" title="Link to this section">&para;</a></h3>
-<p>For programmatic control, create the dashboard components manually:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime._dashboard</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">RuntimeDashboard</span><span class="p">,</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">RuntimeDashboardState</span><span class="p">,</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">RuntimeDataCollector</span><span class="p">,</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">()</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"watcher"</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor pipelines."</span><span class="p">,</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="n">triggers</span><span class="o">=</span><span class="p">[</span><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">)],</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="p">))</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    <span class="c1"># Create dashboard state</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">RuntimeDashboardState</span><span class="p">(</span>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>        <span class="n">runtime_name</span><span class="o">=</span><span class="s2">"production"</span><span class="p">,</span>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>        <span class="n">manifest_names</span><span class="o">=</span><span class="p">[</span><span class="s2">"watcher"</span><span class="p">],</span>
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>    <span class="p">)</span>
-</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>
-</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>    <span class="c1"># Start data collector (reads from runtime every 0.5s)</span>
-</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>    <span class="n">collector</span> <span class="o">=</span> <span class="n">RuntimeDataCollector</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>    <span class="n">collector</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>
-</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>    <span class="c1"># Start dashboard (blocks the terminal)</span>
-</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>    <span class="n">dashboard</span> <span class="o">=</span> <span class="n">RuntimeDashboard</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">runtime</span><span class="o">=</span><span class="n">runtime</span><span class="p">)</span>
-</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>    <span class="n">dashboard</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>
-</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="__span-3-34"><a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-3-35"><a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
-</span><span id="__span-3-36"><a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>        <span class="n">dashboard</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
-</span><span id="__span-3-37"><a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a>        <span class="n">collector</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
-</span><span id="__span-3-38"><a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>        <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">stop_all</span><span class="p">()</span>
-</span><span id="__span-3-39"><a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a>
-</span><span id="__span-3-40"><a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
-</span></code></pre></div>
-<hr />
-<h2 id="data-types">Data Types<a class="headerlink" href="#data-types" title="Link to this section">&para;</a></h2>
-<p>The dashboard uses several snapshot dataclasses for display:</p>
-<h3 id="processsnapshot">ProcessSnapshot<a class="headerlink" href="#processsnapshot" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>name</code></td>
-<td><code>str</code></td>
-<td>Process name</td>
-</tr>
-<tr>
-<td><code>process_id</code></td>
-<td><code>str</code></td>
-<td>Unique process ID</td>
-</tr>
-<tr>
-<td><code>state</code></td>
-<td><code>str</code></td>
-<td>Current lifecycle state</td>
-</tr>
-<tr>
-<td><code>model</code></td>
-<td><code>str</code></td>
-<td>LLM model identifier</td>
-</tr>
-<tr>
-<td><code>invocation_count</code></td>
-<td><code>int</code></td>
-<td>Total invocations</td>
-</tr>
-<tr>
-<td><code>consecutive_failures</code></td>
-<td><code>int</code></td>
-<td>Current failure streak</td>
-</tr>
-<tr>
-<td><code>trigger_count</code></td>
-<td><code>int</code></td>
-<td>Number of configured triggers</td>
-</tr>
-<tr>
-<td><code>queue_size</code></td>
-<td><code>int</code></td>
-<td>Pending events in queue</td>
-</tr>
-<tr>
-<td><code>uptime_seconds</code></td>
-<td><code>float \| None</code></td>
-<td>Time since process started</td>
-</tr>
-<tr>
-<td><code>concurrency</code></td>
-<td><code>int</code></td>
-<td>Max concurrent invocations</td>
-</tr>
-<tr>
-<td><code>heartbeat_interval</code></td>
-<td><code>float</code></td>
-<td>Heartbeat period</td>
-</tr>
-</tbody>
-</table>
-<h3 id="triggerinfo">TriggerInfo<a class="headerlink" href="#triggerinfo" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>process_name</code></td>
-<td><code>str</code></td>
-<td>Owning process</td>
-</tr>
-<tr>
-<td><code>trigger_id</code></td>
-<td><code>str</code></td>
-<td>Trigger identifier</td>
-</tr>
-<tr>
-<td><code>trigger_type</code></td>
-<td><code>str</code></td>
-<td><code>cron</code>, <code>webhook</code>, <code>event</code>, etc.</td>
-</tr>
-<tr>
-<td><code>config_summary</code></td>
-<td><code>str</code></td>
-<td>Human-readable config</td>
-</tr>
-<tr>
-<td><code>fire_count</code></td>
-<td><code>int</code></td>
-<td>Times fired</td>
-</tr>
-<tr>
-<td><code>last_fired</code></td>
-<td><code>float \| None</code></td>
-<td>Last fire timestamp</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="state-colors">State Colors<a class="headerlink" href="#state-colors" title="Link to this section">&para;</a></h2>
-<p>Process states are color-coded in the dashboard:</p>
+<p>Process states are color-coded:</p>
 <table>
 <thead>
 <tr>
@@ -9968,29 +9792,349 @@
 </tbody>
 </table>
 <hr />
-<h2 id="runtimedashboardstate">RuntimeDashboardState<a class="headerlink" href="#runtimedashboardstate" title="Link to this section">&para;</a></h2>
-<p>The shared data structure that holds all display information:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime._dashboard</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeDashboardState</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">state</span> <span class="o">=</span> <span class="n">RuntimeDashboardState</span><span class="p">(</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">runtime_name</span><span class="o">=</span><span class="s2">"my-runtime"</span><span class="p">,</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">manifest_names</span><span class="o">=</span><span class="p">[</span><span class="s2">"watcher"</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">],</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Link to this section">&para;</a></h2>
+<p>Press <code>:</code> or <code>/</code> to type a command (the Commands tab opens), <code>Enter</code> to run it, <code>Esc</code> to cancel, <code>Backspace</code> to delete.</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>help</code></td>
+<td>List the commands</td>
+</tr>
+<tr>
+<td><code>list</code></td>
+<td>Names of the processes in the dashboard state</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Process count and how many are running</td>
+</tr>
+<tr>
+<td><code>status &lt;name&gt;</code></td>
+<td>One process's state, invocations and queue size</td>
+</tr>
+<tr>
+<td><code>start &lt;name&gt;</code>, <code>stop &lt;name&gt;</code>, <code>restart &lt;name&gt;</code>, <code>suspend &lt;name&gt;</code>, <code>resume &lt;name&gt;</code></td>
+<td>Lifecycle commands, run on the runtime's event loop (<code>restart</code> is <code>AgentRuntime.restart_process()</code>)</td>
+</tr>
+<tr>
+<td><code>inject &lt;name&gt; [payload_json]</code></td>
+<td>Inject a <code>manual</code> trigger event with the payload (non-JSON text becomes <code>{"raw": "..."}</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Lifecycle and inject commands are submitted to the runtime's event loop, which <code>dashboard.start()</code> captures, so call <code>start()</code> from that loop (as <code>promptise runtime start --dashboard</code> does). The command history shows <code>Stopping &lt;name&gt;...</code> at once; if the action then fails, a <code>(result)</code> entry with the error follows. Without a loop (or without <code>runtime=</code>), the command answers with an error and nothing runs.</p>
+<hr />
+<h2 id="starting-the-dashboard">Starting the dashboard<a class="headerlink" href="#starting-the-dashboard" title="Link to this section">&para;</a></h2>
+<h3 id="via-the-cli">Via the CLI<a class="headerlink" href="#via-the-cli" title="Link to this section">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># One manifest</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--dashboard
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># A directory of manifests</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--dashboard
 </span></code></pre></div>
-<p>The <code>RuntimeDataCollector</code> populates this state periodically, and the <code>RuntimeDashboard</code> reads from it to render the display.</p>
+<p>The dashboard's title is the manifest file or directory name. Everything else <code>promptise runtime start</code> does still happens: the control API is served on loopback and the runtime is recorded, so <code>promptise runtime status</code> and <code>promptise runtime stop</code> work from another terminal. Press <code>Ctrl+C</code> to stop all processes and leave the dashboard. <code>--dashboard</code> can't be combined with <code>--detach</code>: the dashboard needs a terminal.</p>
+<h3 id="via-python">Via Python<a class="headerlink" href="#via-python" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">AgentRuntime</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">ProcessConfig</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">RuntimeDashboard</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">RuntimeDashboardState</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">RuntimeDataCollector</span><span class="p">,</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">TriggerConfig</span><span class="p">,</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">)</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">()</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"watcher"</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor pipelines."</span><span class="p">,</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        <span class="n">triggers</span><span class="o">=</span><span class="p">[</span><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">)],</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="p">))</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>    <span class="n">state</span> <span class="o">=</span> <span class="n">RuntimeDashboardState</span><span class="p">(</span><span class="n">runtime_name</span><span class="o">=</span><span class="s2">"production"</span><span class="p">,</span> <span class="n">manifest_names</span><span class="o">=</span><span class="p">[</span><span class="s2">"watcher"</span><span class="p">])</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>    <span class="n">collector</span> <span class="o">=</span> <span class="n">RuntimeDataCollector</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>    <span class="n">dashboard</span> <span class="o">=</span> <span class="n">RuntimeDashboard</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">runtime</span><span class="o">=</span><span class="n">runtime</span><span class="p">)</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>    <span class="n">collector</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>    <span class="n">dashboard</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>        <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>  <span class="c1"># starts all processes; returns on Ctrl+C or SIGTERM</span>
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>    <span class="k">finally</span><span class="p">:</span>
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>        <span class="n">dashboard</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>        <span class="n">collector</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>
+</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>
+</span><span id="__span-3-34"><a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</span></code></pre></div>
+<p><code>runtime.run_forever()</code> starts every process and, on <code>Ctrl+C</code> or <code>SIGTERM</code>, stops and closes them before it returns.</p>
+<hr />
+<h2 id="data-types">Data types<a class="headerlink" href="#data-types" title="Link to this section">&para;</a></h2>
+<p>All of these are dataclasses in <code>promptise.runtime._dashboard</code>; the three main classes are also exported from <code>promptise.runtime</code>.</p>
+<h3 id="runtimedashboardstate">RuntimeDashboardState<a class="headerlink" href="#runtimedashboardstate" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>runtime_name</code></td>
+<td><code>"Agent Runtime"</code></td>
+<td>Title shown in the header</td>
+</tr>
+<tr>
+<td><code>started_at</code></td>
+<td>now</td>
+<td>Unix time the dashboard state was created (uptime)</td>
+</tr>
+<tr>
+<td><code>processes</code></td>
+<td><code>{}</code></td>
+<td><code>ProcessSnapshot</code> per process name</td>
+</tr>
+<tr>
+<td><code>triggers</code></td>
+<td><code>[]</code></td>
+<td><code>TriggerInfo</code> list</td>
+</tr>
+<tr>
+<td><code>contexts</code></td>
+<td><code>{}</code></td>
+<td><code>ContextSnapshot</code> per process name</td>
+</tr>
+<tr>
+<td><code>invocations</code></td>
+<td>ring buffer (200)</td>
+<td><code>InvocationLog</code> records</td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td>ring buffer (200)</td>
+<td><code>EventLog</code> records</td>
+</tr>
+<tr>
+<td><code>commands</code></td>
+<td>ring buffer (100)</td>
+<td><code>CommandResult</code> records</td>
+</tr>
+<tr>
+<td><code>journal_entries</code></td>
+<td>ring buffer (500)</td>
+<td>Journal entry dicts</td>
+</tr>
+<tr>
+<td><code>total_invocations</code>, <code>total_errors</code>, <code>total_events</code></td>
+<td><code>0</code></td>
+<td>Counters updated by the <code>record_*</code> methods</td>
+</tr>
+<tr>
+<td><code>manifest_names</code></td>
+<td><code>[]</code></td>
+<td>Names of the loaded manifests</td>
+</tr>
+</tbody>
+</table>
+<p>Methods: <code>record_invocation(log)</code> (also counts errors), <code>record_event(event)</code>, <code>record_command(result)</code>, <code>record_journal(entry)</code>.</p>
+<h3 id="processsnapshot">ProcessSnapshot<a class="headerlink" href="#processsnapshot" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td><code>str</code></td>
+<td>Process name</td>
+</tr>
+<tr>
+<td><code>process_id</code></td>
+<td><code>str</code></td>
+<td>Unique process ID</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td><code>str</code></td>
+<td>Current lifecycle state</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td><code>str</code></td>
+<td>LLM model identifier</td>
+</tr>
+<tr>
+<td><code>invocation_count</code></td>
+<td><code>int</code></td>
+<td>Total invocations</td>
+</tr>
+<tr>
+<td><code>consecutive_failures</code></td>
+<td><code>int</code></td>
+<td>Current failure streak</td>
+</tr>
+<tr>
+<td><code>trigger_count</code></td>
+<td><code>int</code></td>
+<td>Number of running config triggers</td>
+</tr>
+<tr>
+<td><code>queue_size</code></td>
+<td><code>int</code></td>
+<td>Pending events in the queue</td>
+</tr>
+<tr>
+<td><code>uptime_seconds</code></td>
+<td><code>float \| None</code></td>
+<td>Time since the process started; <code>None</code> while it is not up (created, stopped, failed)</td>
+</tr>
+<tr>
+<td><code>concurrency</code></td>
+<td><code>int</code></td>
+<td>Max concurrent invocations</td>
+</tr>
+<tr>
+<td><code>heartbeat_interval</code></td>
+<td><code>float</code></td>
+<td>Heartbeat period</td>
+</tr>
+</tbody>
+</table>
+<h3 id="triggerinfo">TriggerInfo<a class="headerlink" href="#triggerinfo" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>process_name</code></td>
+<td><code>str</code></td>
+<td>Owning process</td>
+</tr>
+<tr>
+<td><code>trigger_id</code></td>
+<td><code>str</code></td>
+<td>The trigger's stable ID, the same as the API's (for example <code>cron-2721f2b845</code>)</td>
+</tr>
+<tr>
+<td><code>trigger_type</code></td>
+<td><code>str</code></td>
+<td><code>cron</code>, <code>webhook</code>, <code>file_watch</code>, <code>event</code>, <code>message</code>, ...</td>
+</tr>
+<tr>
+<td><code>config_summary</code></td>
+<td><code>str</code></td>
+<td>Short configuration text, or <code>-</code></td>
+</tr>
+<tr>
+<td><code>fire_count</code></td>
+<td><code>int</code></td>
+<td>Times fired (default <code>0</code>)</td>
+</tr>
+<tr>
+<td><code>last_fired</code></td>
+<td><code>float \| None</code></td>
+<td>Last fire time (default <code>None</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="contextsnapshot">ContextSnapshot<a class="headerlink" href="#contextsnapshot" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>process_name</code></td>
+<td><code>str</code></td>
+<td>Owning process</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td><code>dict</code></td>
+<td>The context state</td>
+</tr>
+<tr>
+<td><code>writable_keys</code></td>
+<td><code>list[str] \| None</code></td>
+<td>Writable keys, <code>None</code> when all are writable</td>
+</tr>
+<tr>
+<td><code>env_count</code></td>
+<td><code>int</code></td>
+<td>Environment variables exposed to the context</td>
+</tr>
+<tr>
+<td><code>file_mount_count</code></td>
+<td><code>int</code></td>
+<td>File mounts</td>
+</tr>
+<tr>
+<td><code>has_memory</code></td>
+<td><code>bool</code></td>
+<td>Whether a memory provider is set</td>
+</tr>
+<tr>
+<td><code>history_counts</code></td>
+<td><code>dict[str, int]</code></td>
+<td>Writes per key</td>
+</tr>
+</tbody>
+</table>
+<h3 id="log-records">Log records<a class="headerlink" href="#log-records" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>InvocationLog</code></td>
+<td><code>timestamp</code>, <code>process_name</code>, <code>trigger_type</code>, <code>trigger_id</code>, <code>success</code>, <code>duration_ms</code>, <code>error</code></td>
+</tr>
+<tr>
+<td><code>EventLog</code></td>
+<td><code>timestamp</code>, <code>process_name</code>, <code>trigger_type</code>, <code>trigger_id</code>, <code>event_id</code>, <code>payload_summary</code></td>
+</tr>
+<tr>
+<td><code>CommandResult</code></td>
+<td><code>timestamp</code>, <code>command</code>, <code>result</code>, <code>success</code></td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="runtimedatacollector">RuntimeDataCollector<a class="headerlink" href="#runtimedatacollector" title="Link to this section">&para;</a></h2>
-<p>A background thread that reads from the <code>AgentRuntime</code> and updates the <code>RuntimeDashboardState</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime._dashboard</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeDataCollector</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">collector</span> <span class="o">=</span> <span class="n">RuntimeDataCollector</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">collector</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># ... dashboard runs ...</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">collector</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">collector</span> <span class="o">=</span> <span class="n">RuntimeDataCollector</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">collector</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>   <span class="c1"># daemon thread</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">collector</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>    <span class="c1"># ends the loop after the current sleep</span>
 </span></code></pre></div>
-<p>The <code>interval</code> parameter controls the refresh rate in seconds (default: 0.5).</p>
+<p>Every <code>interval</code> seconds (default <code>0.5</code>) it calls <code>status()</code> on each process of <code>runtime.processes</code>, reads its config and context, rebuilds the trigger list from the config triggers (with their stable IDs and the fire counts its hooks counted), and drops snapshots of processes that are no longer in the runtime. On each new process it registers a <code>task_created</code> and a <code>task_completed</code> hook (priority <code>-1000</code>, tag <code>promptise-dashboard</code>); every fourth snapshot it reads the newest 100 journal entries of each process. <code>stop()</code> ends the loop after the current sleep and removes the hooks.</p>
 <hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<h2 id="api-summary">API summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -10001,62 +10145,51 @@
 <tbody>
 <tr>
 <td><code>RuntimeDashboardState</code></td>
-<td>Shared data container for all dashboard display state</td>
+<td>Data container for everything the dashboard shows</td>
 </tr>
 <tr>
-<td><code>RuntimeDataCollector</code></td>
-<td>Background thread that populates state from the runtime</td>
+<td><code>RuntimeDataCollector(runtime, state, interval=0.5, loop=None)</code></td>
+<td>Background thread that refreshes the snapshots from the runtime, registers the event/run hooks and reads the journals. <code>loop</code> defaults to the running loop when it is created</td>
 </tr>
 <tr>
-<td><code>RuntimeDashboard</code></td>
-<td>Terminal renderer using <code>rich.Live</code></td>
+<td><code>RuntimeDashboard(state, runtime=None)</code></td>
+<td>Terminal renderer: <code>start()</code> (call it on the runtime's loop) takes over the terminal, <code>stop()</code> restores it. <code>runtime</code> is used by the commands</td>
 </tr>
 <tr>
-<td><code>ProcessSnapshot</code></td>
-<td>Process status snapshot for display</td>
+<td><code>ProcessSnapshot</code>, <code>TriggerInfo</code>, <code>ContextSnapshot</code></td>
+<td>Snapshots for display</td>
 </tr>
 <tr>
-<td><code>TriggerInfo</code></td>
-<td>Trigger configuration and fire status</td>
-</tr>
-<tr>
-<td><code>InvocationLog</code></td>
-<td>Record of a single agent invocation</td>
-</tr>
-<tr>
-<td><code>EventLog</code></td>
-<td>Record of a trigger event received</td>
-</tr>
-<tr>
-<td><code>CommandResult</code></td>
-<td>Record of a command executed via the dashboard</td>
+<td><code>InvocationLog</code>, <code>EventLog</code>, <code>CommandResult</code></td>
+<td>Records for the ring buffers</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Requires rich&gt;=13</p>
-<p>The dashboard depends on <code>rich</code>, which is already a framework dependency. No extra installation is needed.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Adjust collector interval</p>
-<p>For high-throughput runtimes, use a shorter interval (e.g., <code>0.25</code>). For low-activity runtimes, a longer interval (e.g., <code>2.0</code>) reduces overhead.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Dashboard blocks the terminal</p>
-<p>The dashboard takes over the terminal with <code>rich.Live</code>. You cannot use the same terminal for other commands while it is running. Use <code>Ctrl+C</code> to exit.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Not compatible with --detach</p>
-<p>The <code>--dashboard</code> flag requires a foreground terminal. It cannot be combined with <code>--detach</code> for background operation.</p>
-</div>
-<hr />
-<h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../cli/">CLI Commands</a> -- all runtime CLI commands including <code>--dashboard</code></li>
-<li><a href="../runtime-manager/">Runtime Manager</a> -- the <code>AgentRuntime</code> that powers the dashboard</li>
+<li><strong>The dashboard takes over the terminal.</strong> It draws in the alternate screen and reads keys directly; you can't use the same terminal for other commands. Always call <code>dashboard.stop()</code> (in a <code>finally</code>) so the terminal is restored.</li>
+<li><strong>Log output moves into the Logs tab.</strong> While the dashboard runs, the root logger is set to <code>DEBUG</code> and existing console handlers of the root, <code>promptise.runtime</code>, <code>httpx</code>, <code>uvicorn</code> and <code>asyncio</code> loggers are muted; <code>stop()</code> restores them.</li>
+<li><strong>An empty journal panel.</strong> The collector reads the journal on the runtime's event loop; create it there (or pass <code>loop=</code>), and give the process a <code>journal</code>.</li>
+<li><strong>Starting the dashboard off the runtime's loop.</strong> Commands then can't run and the journal panel stays empty; create the collector and call <code>dashboard.start()</code> inside the coroutine that runs the runtime.</li>
+<li><strong>Shorter intervals cost more.</strong> The collector polls every process each <code>interval</code>; <code>2.0</code> is plenty for a quiet runtime.</li>
+<li><strong>Not with <code>--detach</code>.</strong> The dashboard needs a foreground terminal.</li>
 </ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../cli/">CLI Commands</a> -- <code>promptise runtime start --dashboard</code> and the other commands</li>
+<li><a href="../runtime-manager/">Runtime Manager</a> -- the <code>AgentRuntime</code> the dashboard watches</li>
+<li><a href="../api/">Orchestration API</a> -- control the runtime while you watch it</li>
+<li><a href="../context/">Agent Context</a> -- what the Context tab shows</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/run-multiple-ai-agents">Run Multiple AI Agents: One Runtime, Many Processes</a> -- Run and watch several agent processes in one runtime.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-health-monitoring">AI Agent Health Monitoring: Catch Silent Failures</a> -- What to watch in a running agent besides its state.</li>
+</ul>
+</div>
 
 
 
@@ -10079,7 +10212,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 9, 2026 17:46:06 UTC">2026-04-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 21:16:04 UTC">2026-10-20</span>
   </span>
 
     

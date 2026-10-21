@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/category/cost--efficiency/">
       
       
-        <link rel="prev" href="../compliance--audit/">
+        <link rel="prev" href="../comparisons/">
       
       
         <link rel="next" href="../governance/">
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,88 +9257,6 @@
           
           <li class="md-meta__item">
             
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="where-are-your-agents-tokens-actually-going"><a class="toclink" href="../../agent-token-usage-observability/">Where Are Your Agent's Tokens Actually Going?</a></h2>
-<p><strong>Agent token usage observability</strong> is the difference between guessing at your token bill and knowing, turn by turn, exactly where it goes. Most teams reach for a fix — a semantic cache, a facts ledger, tool selection — before they have a single number telling them which part of the agent is actually expensive. That's backwards. You can't cut what you can't see, and the tokens are almost never spread evenly: a couple of fat tool schemas and one or two long reasoning turns usually dominate, while your cache quietly misses more often than you think. This post shows how to attribute token usage across every LLM turn and every tool call with Promptise Foundry's built-in observability — no external tracing service, no code beyond one flag.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../agent-token-usage-observability/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Cost &amp; Efficiency</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="cache-mcp-tool-results-to-cut-redundant-api-calls"><a class="toclink" href="../../cache-mcp-tool-results/">Cache MCP Tool Results to Cut Redundant API Calls</a></h2>
-<p>You can <strong>cache MCP tool results</strong> at the server so that the same expensive lookup — a database query, a paid pricing API, an Elasticsearch scan — runs once per TTL window instead of five times in one conversation. An agent-side semantic cache is a great lever, but it only saves <em>LLM tokens</em>: it stops the model re-reasoning over a paraphrased question. It does nothing for the <em>other</em> repeated cost, which is your tool handler re-hitting the backend every time the model decides it needs that fact again. Those are two different bills, and they need two different caches.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../cache-mcp-tool-results/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Cost &amp; Efficiency</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               9 min read
             
           </li>
@@ -9399,7 +9268,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="how-to-cut-token-cost-for-a-multi-tenant-ai-agent"><a class="toclink" href="../../cut-token-cost-multi-tenant-ai-agent/">How to Cut Token Cost for a Multi-Tenant AI Agent</a></h2>
-<p>To <strong>cut token cost, multi-tenant AI agent</strong> deployments have to fight three inefficiencies at once — a leaky shared cache, unbounded tool-loop transcripts, and the full set of tool schemas resent on every call — because one agent serving many customers multiplies each of them per tenant. A waste that is annoying for a single-user demo becomes the dominant line on your bill when a thousand tenants hit the same code path. This post is the hub that connects the three cost levers Promptise Foundry ships as first-class, composable primitives on one <code>build_agent()</code> call — a per-tenant semantic cache, a <code>context_scope="ledger"</code> transcript, and <code>optimize_tools</code> — and then shows you how to prove the savings with built-in observability rather than trust a marketing number.</p>
+<p>To <strong>cut token cost, multi-tenant AI agent</strong> deployments have to fight three inefficiencies at once — a leaky shared cache, unbounded tool-loop transcripts, and the full set of tool schemas resent on every call — because one agent serving many customers multiplies each of them per tenant. A waste that is annoying for a single-user demo becomes the dominant line on your bill when a thousand tenants hit the same code path. This post connects the three cost levers Promptise Foundry ships as first-class, composable primitives on one <code>build_agent()</code> call — a per-tenant semantic cache, a <code>context_scope="ledger"</code> transcript, and <code>optimize_tools</code> — and then shows you how to prove the savings with built-in observability rather than trust a marketing number.</p>
 
     
       <nav class="md-post__action">
@@ -9445,47 +9314,6 @@
     
       <nav class="md-post__action">
         <a href="../../encrypt-llm-cache-at-rest/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Cost &amp; Efficiency</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-gdpr-delete-one-users-cached-llm-answers"><a class="toclink" href="../../gdpr-delete-cached-llm-responses/">How to GDPR-Delete One User's Cached LLM Answers</a></h2>
-<p>To <strong>gdpr delete cached llm responses</strong> for a single data subject, you should be able to name the user, call one function, and be done — without touching any other customer's cached data. That is not how most LLM caches work. A semantic cache keys each entry by a prompt or content hash so it can serve a saved answer for a similar query, and that hash carries no notion of <em>who</em> asked. So when a user exercises their Article 17 right to erasure, you are left with two bad options: flush the entire cache and destroy every customer's hit rate to erase one person, or write and maintain a bespoke key-scanning script that walks the store looking for entries that "belong" to that subject — entries the cache never labelled as theirs in the first place. Promptise Foundry closes that gap structurally: each subject lives in its own cache partition, and <code>SemanticCache.purge_user(user_id, tenant_id=...)</code> drops exactly that partition and nothing else.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../gdpr-delete-cached-llm-responses/">
           Continue reading
         </a>
       </nav>

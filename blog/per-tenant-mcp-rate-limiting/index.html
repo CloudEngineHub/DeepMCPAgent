@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Per-client rate limiting isn't tenant isolation. On a shared MCP server, two tenants that happen to share a user_id land in the same bucket, and a single…">
+        <meta name="description" content="Learn why per-client rate limits do not isolate tenants on a shared MCP server, and how tenant-qualified rate-limit keys stop one tenant draining the quota.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../per-tenant-rate-limiting-ai-agent/">
       
       
-        <link rel="next" href="../per-tenant-data-isolation/">
+        <link rel="next" href="../per-resource-credentials-for-one-agent/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Stop One Tenant Draining a Shared MCP Server's Quota">
-  <meta property="og:description" content="Per-client rate limiting isn't tenant isolation. On a shared MCP server, two tenants that happen to share a user_id land in the same bucket, and a single…">
+  <meta property="og:description" content="Learn why per-client rate limits do not isolate tenants on a shared MCP server, and how tenant-qualified rate-limit keys stop one tenant draining the quota.">
   <meta property="og:url" content="https://docs.promptise.com/blog/per-tenant-mcp-rate-limiting/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Stop One Tenant Draining a Shared MCP Server's Quota">
-  <meta name="twitter:description" content="Per-client rate limiting isn't tenant isolation. On a shared MCP server, two tenants that happen to share a user_id land in the same bucket, and a single…">
+  <meta name="twitter:description" content="Learn why per-client rate limits do not isolate tenants on a shared MCP server, and how tenant-qualified rate-limit keys stop one tenant draining the quota.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Stop One Tenant Draining a Shared MCP Server\u0027s Quota",
       "name": "Stop One Tenant Draining a Shared MCP Server\u0027s Quota",
-      "description": "Per-client rate limiting isn\u0027t tenant isolation. On a shared MCP server, two tenants that happen to share a user_id land in the same bucket, and a single\u2026",
+      "description": "Learn why per-client rate limits do not isolate tenants on a shared MCP server, and how tenant-qualified rate-limit keys stop one tenant draining the quota.",
       "url": "https://docs.promptise.com/blog/per-tenant-mcp-rate-limiting/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9460,7 +9411,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
                           <span class="md-ellipsis">
                             
-                              10 min read
+                              9 min read
                             
                           </span>
                         </div>
@@ -9503,7 +9454,7 @@
 <h2 id="what-other-frameworks-do-today">What other frameworks do today<a class="headerlink" href="#what-other-frameworks-do-today" title="Link to this section">&para;</a></h2>
 <p>It is worth being precise here, because the gap is narrow and the competitors are not careless.</p>
 <p><strong>FastMCP</strong> ships real, built-in rate limiting — a <code>RateLimitingMiddleware</code> backed by a token bucket, plus a <code>SlidingWindowRateLimitingMiddleware</code>. By default the bucket is global: every client shares one limiter. To partition it, you pass a <code>get_client_id</code> callable that returns a key per request, and now you have per-client buckets. That is a genuine, useful feature. What it does not carry is a first-class <em>tenant</em> or <em>per-tool</em> dimension. The key is a single flat string you produce, so to get tenant isolation you would fold the tenant into what <code>get_client_id</code> returns — and to get per-tool separation you would fold the tool name in too. You can approximate both. The delta is that you now own the composition and its collision-safety: concatenating <code>f"{tenant}:{client}"</code> re-introduces exactly the ambiguity you were trying to remove (a tenant <code>"a"</code> with client <code>"b:c"</code> collides with tenant <code>"a:b"</code> client <code>"c"</code>), and there is no built-in notion of "this key is a <code>(tenant, client, tool)</code> triple." It is reachable by convention, not structural.</p>
-<p><strong>In-process agent frameworks</strong> — LangChain, CrewAI, AutoGen — sit on the other side of the wire entirely. Their tools are ordinary Python callables invoked inside the agent process; there is no MCP server layer to rate-limit, so per-tenant throttling of a shared tool service is not a question they answer at the tool boundary at all. You would enforce it wherever the tool's backend lives. The moment those agents consume tools over MCP, the rate-limiting question moves to the MCP server — which is where this whole discussion belongs. For a fuller side-by-side of where each stack draws the production line, see <a href="../fastmcp-alternative-for-production/">FastMCP vs Promptise: The Production MCP Stack Compared</a>.</p>
+<p><strong>In-process agent frameworks</strong> — LangChain, CrewAI, AutoGen — sit on the other side of the wire entirely. Their tools are ordinary Python callables invoked inside the agent process; there is no MCP server layer to rate-limit, so per-tenant throttling of a shared tool service is not a question they answer at the tool boundary at all. You would enforce it wherever the tool's backend lives. The moment those agents consume tools over MCP, the rate-limiting question moves to the MCP server — which is where this whole discussion belongs. For a broader look at production MCP server options, see <a href="https://www.promptise.com/guides/view/fastmcp-alternatives">FastMCP Alternatives for Production MCP Servers</a>.</p>
 <p>Promptise's contribution is to make the tenant dimension part of the bucket key derivation itself, in one place, with a join that cannot collide.</p>
 <h2 id="tenant-qualify-every-bucket-with-an-injective-key">Tenant-qualify every bucket with an injective key<a class="headerlink" href="#tenant-qualify-every-bucket-with-an-injective-key" title="Link to this section">&para;</a></h2>
 <p><code>RateLimitMiddleware</code> derives its bucket key from the request context. When the authenticated client carries a <code>tenant_id</code> — populated by <code>AuthMiddleware</code> from a JWT claim or an API-key config — the tenant becomes part of the key automatically. No per-tool wiring, no custom extractor: two requests with the same <code>client_id</code> but different tenants land in different buckets, period.</p>
@@ -9589,11 +9540,11 @@
 <h3 id="how-does-promptise-get-the-tenant-onto-the-request-in-the-first-place">How does Promptise get the tenant onto the request in the first place?<a class="headerlink" href="#how-does-promptise-get-the-tenant-onto-the-request-in-the-first-place" title="Link to this section">&para;</a></h3>
 <p><code>AuthMiddleware</code> extracts it. For JWT auth it reads a configurable claim (default <code>tenant_id</code>, or <code>org</code> / <code>org_id</code> / whatever your IdP uses) and only accepts a string value — anything else leaves the tenant unset and tenant guards fail closed. For API-key auth the tenant comes from the key's config dict. Either way it lands on <code>ctx.client.tenant_id</code>, which is exactly the field <code>RateLimitMiddleware</code> folds into the bucket key. The <a href="../../mcp/server/multi-tenancy/">Multi-Tenancy guide</a> shows the full token-to-storage flow.</p>
 <h3 id="can-i-do-this-with-fastmcps-built-in-rate-limiting">Can I do this with FastMCP's built-in rate limiting?<a class="headerlink" href="#can-i-do-this-with-fastmcps-built-in-rate-limiting" title="Link to this section">&para;</a></h3>
-<p>You can approximate it. FastMCP's <code>RateLimitingMiddleware</code> is global by default and becomes per-client when you supply a <code>get_client_id</code> callable. To get tenant isolation you would return a tenant-inclusive key from that callable, and to get per-tool separation you would fold the tool name in as well — but you own the key composition and its collision-safety, and a single flat string gives you one dimension rather than a <code>(tenant, client, tool)</code> triple. Promptise's difference is that the tenant is part of the key derivation structurally, joined injectively so hostile ids cannot collide, with <code>per_tool</code> as a first-class flag. See the <a href="../fastmcp-alternative-for-production/">FastMCP vs Promptise</a> comparison for where this sits in the broader stack.</p>
+<p>You can approximate it. FastMCP's <code>RateLimitingMiddleware</code> is global by default and becomes per-client when you supply a <code>get_client_id</code> callable. To get tenant isolation you would return a tenant-inclusive key from that callable, and to get per-tool separation you would fold the tool name in as well — but you own the key composition and its collision-safety, and a single flat string gives you one dimension rather than a <code>(tenant, client, tool)</code> triple. Promptise's difference is that the tenant is part of the key derivation structurally, joined injectively so hostile ids cannot collide, with <code>per_tool</code> as a first-class flag. See the <a href="https://www.promptise.com/guides/view/fastmcp-alternatives">FastMCP alternatives guide</a> for other production MCP server options.</p>
 <h3 id="what-happens-to-a-request-that-exceeds-its-tenants-limit">What happens to a request that exceeds its tenant's limit?<a class="headerlink" href="#what-happens-to-a-request-that-exceeds-its-tenants-limit" title="Link to this section">&para;</a></h3>
 <p>It is rejected with a <code>RateLimitError</code> before the handler runs. The error carries <code>retry_after_seconds</code> and a "wait N seconds before retrying" suggestion in its structured details, so agents can honor a backoff rather than retry-storming. The tenant that hit its ceiling is the only one affected — every other tenant's bucket is untouched, which is the entire point.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>If you run a shared MCP server, audit your limiter for the collision today: if its bucket key is the client id (or a hand-concatenated tenant prefix), two tenants with a shared <code>user_id</code> are one incident away from spending each other's quota. Switch to tenant-qualified buckets by giving your clients a tenant claim and letting <code>RateLimitMiddleware</code> fold it in — turn on <code>per_tool=True</code> where one heavy tool shouldn't starve the rest, and declare <code>rate_limit</code> contracts on the tools that need their own ceiling. Start from the <a href="../../mcp/server/multi-tenancy/">Multi-Tenancy guide</a> to wire tenant identity end to end, fit rate limiting into the wider hardening story with the <a href="../../mcp/server/production-features/">Production Features</a> overview and the <a href="../../mcp/server/resilience-patterns/">Resilience Patterns</a> guide, and if you are choosing a stack, read <a href="../fastmcp-alternative-for-production/">FastMCP vs Promptise: The Production MCP Stack Compared</a> to see where first-class tenant isolation changes the math.</p>
+<p>If you run a shared MCP server, audit your limiter for the collision today: if its bucket key is the client id (or a hand-concatenated tenant prefix), two tenants with a shared <code>user_id</code> are one incident away from spending each other's quota. Switch to tenant-qualified buckets by giving your clients a tenant claim and letting <code>RateLimitMiddleware</code> fold it in — turn on <code>per_tool=True</code> where one heavy tool shouldn't starve the rest, and declare <code>rate_limit</code> contracts on the tools that need their own ceiling. Start from the <a href="../../mcp/server/multi-tenancy/">Multi-Tenancy guide</a> to wire tenant identity end to end, fit rate limiting into the wider hardening story with the <a href="../../mcp/server/production-features/">Production Features</a> overview and the <a href="../../mcp/server/resilience-patterns/">Resilience Patterns</a> guide, and if you are choosing a stack, read <a href="https://www.promptise.com/guides/view/fastmcp-alternatives">FastMCP Alternatives for Production MCP Servers</a> to compare the options.</p>
 
 
 
@@ -9616,7 +9567,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

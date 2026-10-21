@@ -769,8 +769,6 @@
       
         
       
-        
-      
     
     
     
@@ -1008,34 +1006,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -6426,6 +6396,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6445,8 +6419,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6460,8 +6435,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6473,6 +6454,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8719,8 +8702,6 @@
       
         
       
-        
-      
     
     
     
@@ -8873,36 +8854,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -10279,6 +10230,10 @@
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>promptise<span class="w"> </span>run<span class="w"> </span>--prod<span class="w">                </span><span class="c1"># JSON logs, preflight checks, graceful SIGTERM</span>
 </span></code></pre></div>
 <p>A complete example project is in <a href="https://github.com/promptise-com/foundry/tree/main/examples/run/support_bot"><code>examples/run/support_bot/</code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title"><code>promptise run</code> and <code>promptise runtime</code></p>
+<p><code>promptise run</code> runs your Python program. For long-running agents that react to triggers (cron, webhooks, file changes) and are declared in <code>.agent</code> manifests, use the <a href="../../runtime/">Agent Runtime</a>: <code>promptise runtime start agents/ --detach</code>, then <code>promptise runtime status</code>, <code>logs</code>, <code>rewind</code> and <code>stop</code> from any terminal. See the <a href="../../runtime/cli/">Runtime CLI</a>.</p>
+</div>
 <hr />
 <h2 id="how-it-maps-to-npm">How it maps to npm<a class="headerlink" href="#how-it-maps-to-npm" title="Link to this section">&para;</a></h2>
 <table>
@@ -11546,6 +11501,7 @@
 <h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
 <ul>
 <li><a href="../cli/">CLI reference</a>: every <code>promptise</code> command</li>
+<li><a href="../../runtime/cli/">Runtime CLI</a>: <code>promptise runtime</code> for long-running, trigger-driven agents</li>
 <li><a href="../observability/">Observability</a>: what the recorded timeline holds</li>
 <li><a href="../streaming/">Streaming</a>: the events <code>/v1/stream</code> sends</li>
 <li><a href="../events/">Events &amp; Notifications</a>: agent events and sinks</li>
@@ -11580,7 +11536,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
   </span>
 
     

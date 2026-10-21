@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A single renamed field in an MCP tool silently breaks every agent already calling it, because the schema is the contract. Agent-framework tools are…">
+        <meta name="description" content="Learn why renaming one field in an MCP tool breaks every connected agent, and how to serve old and new tool versions side by side during a safe deprecation.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/version-mcp-tools-without-breaking-clients/">
       
       
-        <link rel="prev" href="../watched-folder-ingestion-agent/">
+        <link rel="prev" href="../who-approved-this-ai-agent-action/">
       
       
-        <link rel="next" href="../verify-webhook-signature-ai-agent/">
+        <link rel="next" href="../verify-the-calling-agent-server-side/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Why a Small MCP Tool Change Broke Every Connected Agent">
-  <meta property="og:description" content="A single renamed field in an MCP tool silently breaks every agent already calling it, because the schema is the contract. Agent-framework tools are…">
+  <meta property="og:description" content="Learn why renaming one field in an MCP tool breaks every connected agent, and how to serve old and new tool versions side by side during a safe deprecation.">
   <meta property="og:url" content="https://docs.promptise.com/blog/version-mcp-tools-without-breaking-clients/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Why a Small MCP Tool Change Broke Every Connected Agent">
-  <meta name="twitter:description" content="A single renamed field in an MCP tool silently breaks every agent already calling it, because the schema is the contract. Agent-framework tools are…">
+  <meta name="twitter:description" content="Learn why renaming one field in an MCP tool breaks every connected agent, and how to serve old and new tool versions side by side during a safe deprecation.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Why a Small MCP Tool Change Broke Every Connected Agent",
       "name": "Why a Small MCP Tool Change Broke Every Connected Agent",
-      "description": "A single renamed field in an MCP tool silently breaks every agent already calling it, because the schema is the contract. Agent-framework tools are\u2026",
+      "description": "Learn why renaming one field in an MCP tool breaks every connected agent, and how to serve old and new tool versions side by side during a safe deprecation.",
       "url": "https://docs.promptise.com/blog/version-mcp-tools-without-breaking-clients/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9505,7 +9456,7 @@
 <h2 id="what-other-frameworks-do-today">What other frameworks do today<a class="headerlink" href="#what-other-frameworks-do-today" title="Link to this section">&para;</a></h2>
 <p>It is worth being precise about where the gap actually is, because it is not that competitors are careless.</p>
 <p>In <strong>LangChain</strong>, <strong>CrewAI</strong>, and <strong>AutoGen</strong>, tools are ordinary in-process Python callables — a <code>@tool</code>-decorated function, a <code>BaseTool</code> subclass, a <code>FunctionTool</code>. The agent imports them and invokes them directly inside its own process. There is no wire protocol between the tool and the caller, so there is nothing to version-negotiate: when you change the function signature, the calling code either matches the new signature or it does not, and you find out at your next deploy. That is not a defect — it is what in-process functions are. But it also means these frameworks give you no protocol-level mechanism to keep an old tool shape reachable for callers that already bound to it. The moment any of them consume a tool over MCP instead (LangChain via <code>langchain-mcp-adapters</code>, AutoGen via <code>mcp_server_tools</code>), the versioning question doesn't disappear — it moves to the MCP server, which is where it belongs and where this whole discussion lives.</p>
-<p>On the server side, <strong>FastMCP</strong> registers each tool by name: <code>@mcp.tool()</code> maps one name to one function, and the MCP protocol itself lists tools by unique name with no per-tool version field in the base spec. You can absolutely emulate versioning by registering two separately named functions — <code>search_v1</code> and <code>search_v2</code> — and that works. What FastMCP has no first-class primitive for is serving <code>search</code> (an alias that always points at the latest) alongside <code>search@1.0</code> (a pinned older contract) from a single base name, with semantic-version resolution deciding which one "latest" means. You would hand-roll the alias, own the "which version is newest" logic, and keep the two names from drifting yourself. That is the exact delta: the capability is reachable by convention, but it is not structural. For a broader head-to-head, the <a href="../fastmcp-alternative-for-production/">FastMCP vs Promptise: The Production MCP Stack Compared</a> post lays out where each framework draws the line.</p>
+<p>On the server side, <strong>FastMCP</strong> registers each tool by name: <code>@mcp.tool()</code> maps one name to one function, and the MCP protocol itself lists tools by unique name with no per-tool version field in the base spec. You can absolutely emulate versioning by registering two separately named functions — <code>search_v1</code> and <code>search_v2</code> — and that works. What FastMCP has no first-class primitive for is serving <code>search</code> (an alias that always points at the latest) alongside <code>search@1.0</code> (a pinned older contract) from a single base name, with semantic-version resolution deciding which one "latest" means. You would hand-roll the alias, own the "which version is newest" logic, and keep the two names from drifting yourself. That is the exact delta: the capability is reachable by convention, but it is not structural. For a broader look at the options, see <a href="https://www.promptise.com/guides/view/fastmcp-alternatives">FastMCP Alternatives for Production MCP Servers</a>.</p>
 <p>Promptise's contribution is to make that convention a real registry primitive so you don't reinvent it per project.</p>
 <h2 id="serve-search-and-search10-side-by-side">Serve <code>search</code> and <code>search@1.0</code> side by side<a class="headerlink" href="#serve-search-and-search10-side-by-side" title="Link to this section">&para;</a></h2>
 <p><code>VersionedToolRegistry</code> is an overlay registry: you register multiple <code>ToolDef</code>s under one base name with explicit version strings, and it resolves <code>search</code> to the newest one while keeping every pinned <code>name@version</code> reachable. The following example is fully self-contained and runs as-is against the public <code>promptise.mcp.server</code> API:</p>
@@ -9605,7 +9556,7 @@
 <h3 id="how-does-latest-decide-which-version-wins">How does <code>latest</code> decide which version wins?<a class="headerlink" href="#how-does-latest-decide-which-version-wins" title="Link to this section">&para;</a></h3>
 <p>By semantic numeric comparison of the version strings, not registration order or string sorting. Each version is split on <code>.</code> into integer segments, so <code>1.10</code> correctly ranks above <code>1.9</code>, and <code>2.0</code> above <code>1.0</code>. <code>registry.get("search")</code> returns the highest; <code>registry.list_versions("search")</code> returns all of them in that same ascending order.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Start by auditing your own server for the trap: any tool whose schema you have edited in place since it shipped is a latent break waiting for the next agent that pinned the old shape. Move those changes behind versions, ship v2 as the new latest, and keep v1 live until your callers have migrated. See coexisting tool versions in action in the <a href="../../mcp/server/advanced-patterns/">Advanced Patterns</a> guide, fit versioning into the rest of your hardening work with the <a href="../../mcp/server/production-features/">Production Features</a> overview, and if you are weighing your stack, read the <a href="../fastmcp-alternative-for-production/">FastMCP vs Promptise: The Production MCP Stack Compared</a> comparison to see where first-class tool versioning changes the calculus.</p>
+<p>Start by auditing your own server for the trap: any tool whose schema you have edited in place since it shipped is a latent break waiting for the next agent that pinned the old shape. Move those changes behind versions, ship v2 as the new latest, and keep v1 live until your callers have migrated. See coexisting tool versions in action in the <a href="../../mcp/server/advanced-patterns/">Advanced Patterns</a> guide, fit versioning into the rest of your hardening work with the <a href="../../mcp/server/production-features/">Production Features</a> overview, and if you are weighing your stack, read the <a href="https://www.promptise.com/guides/view/fastmcp-alternatives">FastMCP alternatives guide</a> to compare production MCP server options.</p>
 
 
 
@@ -9628,7 +9579,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

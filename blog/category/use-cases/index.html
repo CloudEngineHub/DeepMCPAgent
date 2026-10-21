@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9470,7 +9421,7 @@
           
           <li class="md-meta__item">
             
-              7 min read
+              6 min read
             
           </li>
         
@@ -9481,7 +9432,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="build-a-pii-safe-document-processing-ai-agent"><a class="toclink" href="../../document-processing-ai-agent/">Build a PII-Safe Document Processing AI Agent</a></h2>
-<p>A document processing ai agent is one of the highest-value things you can build with an LLM — invoices, contracts, lab results, and onboarding forms are exactly the unstructured text that models are good at, and exactly the data your compliance team loses sleep over. Two failure modes break these pipelines in production: sensitive data leaks out in an extracted response, and generated parsing code runs with full access to your host. This build closes both. By the end you'll have a working pipeline where every extracted output is scanned for PII before it leaves the agent, and any code the agent writes to parse a file runs inside a locked-down Docker sandbox with no network.</p>
+<p>A document processing ai agent is one of the highest-value things you can build with an LLM — invoices, contracts, lab results, and onboarding forms are exactly the unstructured text that models are good at, and exactly the data your security team loses sleep over. Two failure modes break these pipelines in production: sensitive data leaks out in an extracted response, and generated parsing code runs with full access to your host. This build closes both. By the end you'll have a working pipeline where every extracted output is scanned for PII before it leaves the agent, and any code the agent writes to parse a file runs inside a locked-down Docker sandbox with no network.</p>
 
     
       <nav class="md-post__action">
@@ -9527,88 +9478,6 @@
     
       <nav class="md-post__action">
         <a href="../../enterprise-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Use Cases</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-build-multi-agent-systems-in-python-2026-guide"><a class="toclink" href="../../multi-agent-systems-python/">How to Build Multi-Agent Systems in Python: 2026 Guide</a></h2>
-<p>Building multi-agent systems in Python is rarely blocked by the modeling — the hard part is coordinating several agents without turning your codebase into a tangle of ad-hoc HTTP calls and shared globals. Most guides stop at the word "orchestration" and hand you a box diagram. This one skips the hand-waving: you'll learn the four concrete coordination primitives Promptise Foundry gives you, see runnable code for cross-agent delegation over HTTP+JWT, and leave with a decision table so you can pick a topology instead of copying someone else's.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../multi-agent-systems-python/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Use Cases</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="single-agent-vs-multi-agent-when-to-actually-split"><a class="toclink" href="../../single-agent-vs-multi-agent/">Single-Agent vs Multi-Agent: When to Actually Split</a></h2>
-<p>The single agent vs multi-agent decision gets made too early and for the wrong reasons — usually a diagram in a slide deck rather than a signal in your workload. Splitting one agent into several feels like progress, but it buys you a coordination layer, extra token overhead, and a new class of failures before it buys you any capability. This guide gives you the concrete signals that actually justify a split, the cost governance you should put in place first, and runnable code for adding delegation to Promptise Foundry only when the signals fire.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../single-agent-vs-multi-agent/">
           Continue reading
         </a>
       </nav>

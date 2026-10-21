@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Scoped narrowly to approval-decision provenance, distinct from the general HMAC-chain audit hub (which owns tamper-evidence). When an agent issues a refund…">
+        <meta name="description" content="Learn how to prove who approved an AI agent's $5,000 refund by recording a verified reviewer, separate from the caller, on every approval and denial.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../workload-identity-for-ai-agents/">
       
       
-        <link rel="next" href="../what-is-mcp/">
+        <link rel="next" href="../version-mcp-tools-without-breaking-clients/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Who Approved That AI Refund? Reviewer Attribution">
-  <meta property="og:description" content="Scoped narrowly to approval-decision provenance, distinct from the general HMAC-chain audit hub (which owns tamper-evidence). When an agent issues a refund…">
+  <meta property="og:description" content="Learn how to prove who approved an AI agent's $5,000 refund by recording a verified reviewer, separate from the caller, on every approval and denial.">
   <meta property="og:url" content="https://docs.promptise.com/blog/who-approved-this-ai-agent-action/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Who Approved That AI Refund? Reviewer Attribution">
-  <meta name="twitter:description" content="Scoped narrowly to approval-decision provenance, distinct from the general HMAC-chain audit hub (which owns tamper-evidence). When an agent issues a refund…">
+  <meta name="twitter:description" content="Learn how to prove who approved an AI agent's $5,000 refund by recording a verified reviewer, separate from the caller, on every approval and denial.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Who Approved That AI Refund? Reviewer Attribution",
       "name": "Who Approved That AI Refund? Reviewer Attribution",
-      "description": "Scoped narrowly to approval-decision provenance, distinct from the general HMAC-chain audit hub (which owns tamper-evidence). When an agent issues a refund\u2026",
+      "description": "Learn how to prove who approved an AI agent\u0027s $5,000 refund by recording a verified reviewer, separate from the caller, on every approval and denial.",
       "url": "https://docs.promptise.com/blog/who-approved-this-ai-agent-action/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9488,14 +9439,10 @@
 
 
 <h1 id="who-approved-that-ai-refund-reviewer-attribution">Who Approved That AI Refund? Reviewer Attribution<a class="headerlink" href="#who-approved-that-ai-refund-reviewer-attribution" title="Link to this section">&para;</a></h1>
-<p>When compliance asks <strong>who approved this ai agent action</strong> — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post is scoped narrowly to one thing: the <em>provenance of an approval decision</em>. Not whether the audit log is tamper-evident (that question is settled elsewhere), but what actually lands on it when a human signs off, and whether that record can survive an auditor who does not trust your good intentions.</p>
+<p>When someone asks <strong>who approved this ai agent action</strong> — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post covers the <em>provenance of an approval decision</em>: what actually lands on a tamper-evident audit log when a human signs off, and whether that record can survive an incident reviewer who does not trust your good intentions.</p>
 <!-- more -->
 
 <p>The tamper-evidence of the chain — the HMAC links that prove no entry was edited after the fact — is a separate concern, covered in the <a href="../../mcp/server/production-features/">Production Features overview</a>. Here we assume the chain is trustworthy and ask a sharper question: <em>given a trustworthy record, does an approval decision leave enough on it to defend the sign-off?</em></p>
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="the-question-that-arrives-six-months-later">The question that arrives six months later<a class="headerlink" href="#the-question-that-arrives-six-months-later" title="Link to this section">&para;</a></h2>
 <p>A refund tool fires. Money moves. Later, a dispute, an audit, or an incident review lands on your desk with a deceptively simple ask: <strong>prove who signed off on this refund.</strong> Three sub-questions hide inside it, and a "successful call" log answers none of them:</p>
 <ul>
@@ -9503,7 +9450,7 @@
 <li><strong>Were they someone other than the caller</strong> — because a sign-off by the same identity that requested the action is not dual control; it is a rubber stamp with extra steps.</li>
 <li><strong>Was it <em>this</em> call they approved</strong> — tied to the exact arguments and request, not a different refund from the same minute.</li>
 </ul>
-<p>Most agent stacks can produce a decision <em>somewhere</em> — a webhook payload, an orchestrator log line, a row your driver code wrote when it remembered to. What they rarely produce is a decision bound to a verified reviewer, provably distinct from the caller, on a record you can hand to an auditor without a follow-up meeting. That binding is the whole job of approval reviewer attribution, and it is the part that is easy to skip until the day you can't.</p>
+<p>Most agent stacks can produce a decision <em>somewhere</em> — a webhook payload, an orchestrator log line, a row your driver code wrote when it remembered to. What they rarely produce is a decision bound to a verified reviewer, provably distinct from the caller, on a record you can hand to an incident reviewer without a follow-up meeting. That binding is the whole job of approval reviewer attribution, and it is the part that is easy to skip until the day you can't.</p>
 <h2 id="three-things-a-defensible-sign-off-needs">Three things a defensible sign-off needs<a class="headerlink" href="#three-things-a-defensible-sign-off-needs" title="Link to this section">&para;</a></h2>
 <p>A record you can defend has exactly three properties. Promptise Foundry's server-side <a href="../../mcp/server/approval-gates/">approval gate</a> produces all three as a structural consequence of how the gate is wired — you do not assemble them by hand.</p>
 <ol>
@@ -9594,7 +9541,7 @@
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>chain valid: True
 </span></code></pre></div>
-<p>Read the chain. Each <code>refund</code> is issued by <code>clerk-1</code>; each decision is made by <code>manager-9</code>. Those are two different verified subjects, side by side on the <em>same</em> HMAC-linked chain, so the record shows not just that an approval happened but that a <strong>different</strong> principal made it — and <code>verify_chain()</code> proves nobody edited that ordering afterward. The tenant travels on every entry, so a per-tenant forensic slice ("show me every approval decision for <code>acme</code>") is a filter on a first-class field, not a log grep. This is what turns "we have approvals" into an answer you can hand to an auditor: the identity of the reviewer, distinct from the caller, is <em>on the record</em>, not in someone's memory of the incident.</p>
+<p>Read the chain. Each <code>refund</code> is issued by <code>clerk-1</code>; each decision is made by <code>manager-9</code>. Those are two different verified subjects, side by side on the <em>same</em> HMAC-linked chain, so the record shows not just that an approval happened but that a <strong>different</strong> principal made it — and <code>verify_chain()</code> proves nobody edited that ordering afterward. The tenant travels on every entry, so a per-tenant forensic slice ("show me every approval decision for <code>acme</code>") is a filter on a first-class field, not a log grep. This is what turns "we have approvals" into an answer you can hand to an incident reviewer: the identity of the reviewer, distinct from the caller, is <em>on the record</em>, not in someone's memory of the incident.</p>
 <h2 id="the-denial-path-is-an-audited-outcome-not-a-swallowed-exception">The denial path is an audited outcome, not a swallowed exception<a class="headerlink" href="#the-denial-path-is-an-audited-outcome-not-a-swallowed-exception" title="Link to this section">&para;</a></h2>
 <p>Look again at the last line of the chain: the denied <code>refund</code> is <code>status=error</code>, not a missing entry. This is the part most home-grown approval code gets wrong. A denial is a <em>decision</em> — arguably the more important one to keep — and it deserves a record at least as durable as a grant. In Promptise the gate raises a structured <code>ApprovalDeniedError</code> (<code>code="APPROVAL_DENIED"</code>, <code>retryable=false</code>) whose <code>details</code> carry the <code>approval_request_id</code> and the <code>reviewer_id</code>. The caller receives it as structured content:</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
@@ -9648,7 +9595,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

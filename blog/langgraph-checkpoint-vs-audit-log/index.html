@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="LangGraph checkpointing is often mistaken for an audit trail. It persists graph state to resume, replay and support human-in-the-loop, but it is not an…">
+        <meta name="description" content="Learn why a LangGraph checkpoint is not an audit log, what each one records, and how to add a tamper-evident hash chain for actions you need to prove later.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../langgraph-checkpointing-vs-journaling/">
       
       
-        <link rel="next" href="../langchain-alternative/">
+        <link rel="next" href="../is-autogen-production-secure/">
       
       
         
@@ -88,14 +88,14 @@
 
   
   
-    <meta name="keywords" content="langgraph checkpoint vs audit log, langgraph checkpointing for compliance, durable state vs audit trail, is a checkpoint an audit log, langgraph persistence compliance">
+    <meta name="keywords" content="langgraph checkpoint vs audit log, langgraph checkpointing as an audit trail, durable state vs audit trail, is a checkpoint an audit log, langgraph persistence tamper-evidence">
   
 
   
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="LangGraph Checkpoints vs. an Audit Log: The Real Difference">
-  <meta property="og:description" content="LangGraph checkpointing is often mistaken for an audit trail. It persists graph state to resume, replay and support human-in-the-loop, but it is not an…">
+  <meta property="og:description" content="Learn why a LangGraph checkpoint is not an audit log, what each one records, and how to add a tamper-evident hash chain for actions you need to prove later.">
   <meta property="og:url" content="https://docs.promptise.com/blog/langgraph-checkpoint-vs-audit-log/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="LangGraph Checkpoints vs. an Audit Log: The Real Difference">
-  <meta name="twitter:description" content="LangGraph checkpointing is often mistaken for an audit trail. It persists graph state to resume, replay and support human-in-the-loop, but it is not an…">
+  <meta name="twitter:description" content="Learn why a LangGraph checkpoint is not an audit log, what each one records, and how to add a tamper-evident hash chain for actions you need to prove later.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "LangGraph Checkpoints vs. an Audit Log: The Real Difference",
       "name": "LangGraph Checkpoints vs. an Audit Log: The Real Difference",
-      "description": "LangGraph checkpointing is often mistaken for an audit trail. It persists graph state to resume, replay and support human-in-the-loop, but it is not an\u2026",
+      "description": "Learn why a LangGraph checkpoint is not an audit log, what each one records, and how to add a tamper-evident hash chain for actions you need to prove later.",
       "url": "https://docs.promptise.com/blog/langgraph-checkpoint-vs-audit-log/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9364,10 +9315,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#can-i-use-langgraph-checkpointing-for-compliance-evidence" class="md-nav__link">
+  <a href="#can-i-use-langgraph-checkpointing-as-an-audit-trail" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Can I use LangGraph checkpointing for compliance evidence?
+        Can I use LangGraph checkpointing as an audit trail?
       
     </span>
   </a>
@@ -9460,7 +9411,7 @@
                           <span class="md-ellipsis">
                             in
                             
-                              <a href="../category/compliance--audit/">Compliance &amp; Audit</a></span>
+                              <a href="../category/comparisons/">Comparisons</a></span>
                         </div>
                       </li>
                     
@@ -9499,13 +9450,9 @@
 
 
 <h1 id="langgraph-checkpoints-vs-an-audit-log-the-real-difference">LangGraph Checkpoints vs. an Audit Log: The Real Difference<a class="headerlink" href="#langgraph-checkpoints-vs-an-audit-log-the-real-difference" title="Link to this section">&para;</a></h1>
-<p>The <strong>langgraph checkpoint vs audit log</strong> confusion is one of the most expensive category errors in agent engineering: teams wire up a checkpointer, watch their graph resume cleanly after a crash, and quietly assume that same durable state will satisfy an auditor asking what the agent did and who authorized it. It won't. A checkpoint is a mutable snapshot of graph state built to <em>resume, replay, and pause for a human</em>. An audit log is an integrity-chained, attributable record built to <em>prove what happened</em>. Both are legitimate; they solve different problems, and using one where you need the other fails at the worst possible moment. This post draws the precise line, states exactly what LangGraph's checkpointers do and don't guarantee, and shows the one primitive a checkpoint can't give you.</p>
+<p>The <strong>langgraph checkpoint vs audit log</strong> confusion is one of the most expensive category errors in agent engineering: teams wire up a checkpointer, watch their graph resume cleanly after a crash, and quietly assume that same durable state will satisfy an incident reviewer asking what the agent did and who authorized it. It won't. A checkpoint is a mutable snapshot of graph state built to <em>resume, replay, and pause for a human</em>. An audit log is an integrity-chained, attributable record built to <em>prove what happened</em>. Both are legitimate; they solve different problems, and using one where you need the other fails at the worst possible moment. This post draws the precise line, states exactly what LangGraph's checkpointers do and don't guarantee, and shows the one primitive a checkpoint can't give you.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="two-jobs-that-look-identical-and-arent">Two jobs that look identical and aren't<a class="headerlink" href="#two-jobs-that-look-identical-and-arent" title="Link to this section">&para;</a></h2>
 <p>Checkpoints and audit trails both "write down what happened," which is why they get conflated. But the questions they answer are different, and that difference decides whether either survives scrutiny.</p>
 <p>A checkpoint answers an operational question: <em>how do I get this run back?</em> After a process dies, a network blip, or a human-in-the-loop pause, you want to reload the exact state and continue — or rewind to an earlier point and fork a new branch. That job demands durability and mutability: you overwrite state each super-step, you edit it to inject a human decision, you fork from a past point to try something else.</p>
@@ -9522,7 +9469,7 @@
 <p>It even carries provenance. Checkpoint metadata records a <code>source</code> (<code>input</code>, <code>loop</code>, <code>update</code>, <code>fork</code>), a <code>step</code> index, and a <code>writes</code> map of node name → the state update that node produced. So it is <em>not</em> true that LangGraph records nothing about how state changed — it records which <strong>graph node</strong> wrote which values at which step.</p>
 <p>Here is the exact delta, stated honestly. That provenance is node-level, not a verified security principal: the checkpointer stamps which node ran, not an authenticated end-user or tenant. Any end-user or tenant identity appears only if <em>you</em> thread it into state yourself — and once it's in the snapshot it is unverified and just as mutable as everything else. And crucially, as shipped, LangGraph's checkpointers do not provide a per-checkpoint signature, a hash linking one checkpoint to the next, tamper detection, or a <code>verify</code> primitive. Mutability is deliberate — <code>update_state</code> forks and edits state, and the underlying SQLite or Postgres rows can be updated directly — because that is precisely what time-travel and HITL require. None of that is a criticism of checkpointing. It is the honest boundary of what a checkpoint is <em>for</em>.</p>
 <h2 id="is-a-checkpoint-an-audit-log-the-exact-delta">Is a checkpoint an audit log? The exact delta<a class="headerlink" href="#is-a-checkpoint-an-audit-log-the-exact-delta" title="Link to this section">&para;</a></h2>
-<p>So, <strong>is a checkpoint an audit log</strong>? No — and the reason is structural, not a missing config flag. Line the two up on the properties an auditor actually cares about:</p>
+<p>So, <strong>is a checkpoint an audit log</strong>? No — and the reason is structural, not a missing config flag. Line the two up on the properties an incident reviewer actually cares about:</p>
 <table>
 <thead>
 <tr>
@@ -9563,13 +9510,13 @@
 <td>A single <code>verify</code> pass returns a boolean</td>
 </tr>
 <tr>
-<td>Handed to an auditor</td>
+<td>Handed to a reviewer</td>
 <td>"Trust the state"</td>
 <td>"Verify it yourself"</td>
 </tr>
 </tbody>
 </table>
-<p>The distinction that matters most for <strong>langgraph checkpointing for compliance</strong> is the last three rows. A checkpoint lets you <em>reconstruct</em> state; it does not let you <em>prove</em> that a specific state, or a specific action, is byte-for-byte what occurred and was caused by a specific identity. That is exactly the property compliance evidence is made of — and exactly the property a snapshot store was never built to provide. The same gap shows up in observability tooling, for the same reason, as <a href="../ai-agent-observability-vs-audit-trail/">Why AI Agent Traces Aren't an Audit Trail (or SOC 2 Proof)</a> lays out: rich, mutable, queryable data is not the same as verifiable evidence.</p>
+<p>The distinction that matters most for <strong>langgraph checkpointing as an audit trail</strong> is the last three rows. A checkpoint lets you <em>reconstruct</em> state; it does not let you <em>prove</em> that a specific state, or a specific action, is byte-for-byte what occurred and was caused by a specific identity. That is exactly the property verifiable evidence is made of — and exactly the property a snapshot store was never built to provide. The same gap shows up in observability tooling, for the same reason, as the <a href="https://www.promptise.com/guides/view/ai-agent-audit-log">AI agent audit logging guide</a> lays out: rich, mutable, queryable data is not the same as verifiable evidence.</p>
 <h2 id="the-primitive-a-checkpoint-cant-give-you-a-verifiable-hash-chain">The primitive a checkpoint can't give you: a verifiable hash chain<a class="headerlink" href="#the-primitive-a-checkpoint-cant-give-you-a-verifiable-hash-chain" title="Link to this section">&para;</a></h2>
 <p>A tamper-evident audit log doesn't try to <em>prevent</em> edits — write-once storage and file permissions do that. It makes edits <em>detectable</em>. Promptise's <code>AuditMiddleware</code> does this by writing one JSON line per tool call in which every entry carries a keyed hash (HMAC-SHA256) computed over its own fields <strong>plus the hash of the entry before it</strong>. The chain starts from a fixed genesis hash (64 zeros), and each entry commits to the entire history preceding it via a <code>prev_hash</code> field and its own <code>hmac</code>.</p>
 <p>That chaining is the whole point, and it is the structural inverse of a mutable snapshot:</p>
@@ -9599,7 +9546,7 @@
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="nd">@server</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">approve_disbursement</span><span class="p">(</span><span class="n">loan_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="sd">"""Release funds — the action a regulator will ask you to prove."""</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="sd">"""Release funds — the action you will need to prove later."""</span>
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">"loan_id"</span><span class="p">:</span> <span class="n">loan_id</span><span class="p">,</span> <span class="s2">"amount"</span><span class="p">:</span> <span class="n">amount</span><span class="p">,</span> <span class="s2">"state"</span><span class="p">:</span> <span class="s2">"disbursed"</span><span class="p">}</span>
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
@@ -9627,19 +9574,19 @@
 <h2 id="you-need-both-durable-state-and-a-verifiable-record">You need both — durable state and a verifiable record<a class="headerlink" href="#you-need-both-durable-state-and-a-verifiable-record" title="Link to this section">&para;</a></h2>
 <p>This isn't checkpoints <em>or</em> audit. A serious agent platform runs both, because they serve different masters — and Promptise ships both sides deliberately.</p>
 <p>Keep durable state for what it's excellent at: crash-safe resume, human-in-the-loop pauses, conversational memory, and time-travel debugging. Promptise's own runtime offers the direct analog of checkpointing — journal backends with a replay engine and a rewind engine — so an agent process can recover from its last known-good state after a crash. There the properties you want are durability and mutability, exactly as with a LangGraph checkpointer.</p>
-<p>Add a tamper-evident audit trail specifically where the log is <em>evidence</em>: disbursements, deletions, privilege changes, anything a regulator or incident responder will scrutinize. There the properties invert — you want completeness, verified attribution, and an integrity proof, not editable snapshots. Turning one on is a single <code>add_middleware</code> call, and it captures every call, including ones later rejected by auth or a guard. Alongside it, keep your debugging telemetry — the transporters on the <a href="../../core/observability/">core observability</a> page (HTML, structured logs, Prometheus, OTLP) are for profiling and evals, which is a third, mutable-by-design layer.</p>
-<p>The mistake behind most <strong>langgraph persistence compliance</strong> questions is asking a recovery primitive to serve as an evidence primitive. Draw the line deliberately and you get all three: fast iteration from observability, crash-safe continuity from durable state, and a record you can defend from an audit trail.</p>
+<p>Add a tamper-evident audit trail specifically where the log is <em>evidence</em>: disbursements, deletions, privilege changes, anything an incident responder will scrutinize. There the properties invert — you want completeness, verified attribution, and an integrity proof, not editable snapshots. Turning one on is a single <code>add_middleware</code> call, and it captures every call, including ones later rejected by auth or a guard. Alongside it, keep your debugging telemetry — the transporters on the <a href="../../core/observability/">core observability</a> page (HTML, structured logs, Prometheus, OTLP) are for profiling and evals, which is a third, mutable-by-design layer.</p>
+<p>The mistake behind most questions about using LangGraph persistence as an audit trail is asking a recovery primitive to serve as an evidence primitive. Draw the line deliberately and you get all three: fast iteration from observability, crash-safe continuity from durable state, and a record you can defend from an audit trail.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="is-a-checkpoint-an-audit-log">Is a checkpoint an audit log?<a class="headerlink" href="#is-a-checkpoint-an-audit-log" title="Link to this section">&para;</a></h3>
 <p>No. A LangGraph checkpoint is a mutable snapshot of graph state keyed to a thread, built to resume, replay, and support human-in-the-loop. It records which graph node wrote which values, but it has no per-entry signature, no hash chain, no tamper detection, and no verified end-user or tenant attribution. An audit log inverts all of those: append-only, integrity-chained, attributed to an authenticated principal, and verifiable with a single deterministic pass.</p>
-<h3 id="can-i-use-langgraph-checkpointing-for-compliance-evidence">Can I use LangGraph checkpointing for compliance evidence?<a class="headerlink" href="#can-i-use-langgraph-checkpointing-for-compliance-evidence" title="Link to this section">&para;</a></h3>
-<p>Not on its own. As shipped, checkpointers persist state for recovery and time-travel — the snapshots are editable via <code>update_state</code> and directly in the SQLite/Postgres store, with no cryptographic linkage between them. You can't hand an auditor a checkpoint row and prove it's byte-for-byte what happened, or that a specific principal caused it. For that you add a tamper-evident audit trail alongside the checkpointer.</p>
+<h3 id="can-i-use-langgraph-checkpointing-as-an-audit-trail">Can I use LangGraph checkpointing as an audit trail?<a class="headerlink" href="#can-i-use-langgraph-checkpointing-as-an-audit-trail" title="Link to this section">&para;</a></h3>
+<p>Not on its own. As shipped, checkpointers persist state for recovery and time-travel — the snapshots are editable via <code>update_state</code> and directly in the SQLite/Postgres store, with no cryptographic linkage between them. You can't hand a reviewer a checkpoint row and prove it's byte-for-byte what happened, or that a specific principal caused it. For that you add a tamper-evident audit trail alongside the checkpointer.</p>
 <h3 id="whats-the-difference-between-durable-state-and-an-audit-trail">What's the difference between durable state and an audit trail?<a class="headerlink" href="#whats-the-difference-between-durable-state-and-an-audit-trail" title="Link to this section">&para;</a></h3>
 <p>Durable state exists to be reloaded and rewound, so it's mutable by design and keyed to a run or thread. An audit trail exists to be proven, so it's append-only, chained by an HMAC so any edit, deletion, or reorder is detectable, and attributed to a verified identity. Same underlying events, opposite guarantees — which is why you keep both.</p>
 <h3 id="how-does-promptise-make-an-agent-log-tamper-evident">How does Promptise make an agent log tamper-evident?<a class="headerlink" href="#how-does-promptise-make-an-agent-log-tamper-evident" title="Link to this section">&para;</a></h3>
 <p>Use <code>AuditMiddleware(signed=True)</code> with a managed <code>PROMPTISE_AUDIT_SECRET</code>, then call <code>verify_chain()</code>. Each entry's HMAC covers its own fields plus the previous entry's hash, so verification is a single deterministic pass that returns <code>True</code> for an intact chain and <code>False</code> — pointing at the break — if any entry was touched. When a JWT or JWKS provider authenticated the caller, the verified <code>identity</code> block is chained inside each entry too.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Add <code>AuditMiddleware</code> to your MCP server and run <code>verify_chain()</code> — it's one <code>add_middleware</code> call to move a sensitive action from "the checkpoint says so" to "verify it yourself," and it sits happily alongside whatever checkpointer or journal you already use for recovery. The <a href="../../mcp/server/observability/">MCP server observability</a> page shows the configuration and middleware ordering, and the <a href="../../core/observability/">core observability</a> page covers the mutable traces you'll keep for debugging. To see how one verifiable trail feeds SOC 2, HIPAA, and the EU AI Act at once, read <a href="../ai-agent-compliance-audit-trail/">One Audit Trail for SOC 2, HIPAA and the EU AI Act</a>.</p>
+<p>Add <code>AuditMiddleware</code> to your MCP server and run <code>verify_chain()</code> — it's one <code>add_middleware</code> call to move a sensitive action from "the checkpoint says so" to "verify it yourself," and it sits happily alongside whatever checkpointer or journal you already use for recovery. The <a href="../../mcp/server/observability/">MCP server observability</a> page shows the configuration and middleware ordering, and the <a href="../../core/observability/">core observability</a> page covers the mutable traces you'll keep for debugging. For a full walkthrough of tamper-evident logging, read <a href="https://www.promptise.com/guides/view/ai-agent-audit-log">AI Agent Audit Logging: Tamper-Evident Logs in Python</a>.</p>
 
 
 
@@ -9662,7 +9609,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

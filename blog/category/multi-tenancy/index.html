@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,47 +9257,6 @@
           
           <li class="md-meta__item">
             
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="delete-one-tenants-data-for-gdpr-not-the-rest"><a class="toclink" href="../../delete-one-tenant-s-data-gdpr/">Delete One Tenant's Data for GDPR, Not the Rest</a></h2>
-<p>Delete one tenant's data for GDPR right-to-erasure and you inherit a deceptively hard requirement: remove exactly that customer's records from the semantic cache, the vector store, and long-term memory — and nothing belonging to anyone else. On a shared multi-tenant agent, "their data" is smeared across at least three stores, each keyed differently, and a right-to-erasure request gives you a legal deadline to prove you got all of it. This post shows how Promptise Foundry turns that into one call per surface — <code>cache.purge_user("alice", tenant_id="acme")</code> and <code>provider.purge_user(caller.isolation_key)</code> — where the tenant is baked into the key, so the purge matches exactly what was stored.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../delete-one-tenant-s-data-gdpr/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Multi-Tenancy</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               9 min read
             
           </li>
@@ -9645,7 +9555,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="where-does-tenant_id-come-from-jwt-claim-vs-api-key"><a class="toclink" href="../../tenant-id-from-jwt-claim/">Where Does tenant_id Come From? JWT Claim vs API Key</a></h2>
-<p>Every multi-tenant tutorial hands you a <code>tenant_id</code> and moves on, but the honest question is where that value comes from — and the two answers Promptise Foundry supports are a <strong>tenant_id from jwt claim</strong> and a tenant bound to each API key. Get that sourcing step right and the rest of your isolation story (tenant-qualified rate limits, per-tenant audit, cache scoping) follows for free. Get it wrong — a claim you forgot to read, a number where you expected a string, a request with no tenant at all — and a claim-less caller slips through as tenant-less, which is the one outcome a multi-customer platform can never afford.</p>
+<p>Multi-tenant code usually takes a <code>tenant_id</code> for granted, but the real question is where that value comes from — and the two answers Promptise Foundry supports are a <strong>tenant_id from jwt claim</strong> and a tenant bound to each API key. Get that sourcing step right and the rest of your isolation story (tenant-qualified rate limits, per-tenant audit, cache scoping) follows for free. Get it wrong — a claim you forgot to read, a number where you expected a string, a request with no tenant at all — and a claim-less caller slips through as tenant-less, which is the one outcome a multi-customer platform can never afford.</p>
 
     
       <nav class="md-post__action">
@@ -9686,7 +9596,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="tenant-scoped-audit-logs-for-ai-agent-tool-calls"><a class="toclink" href="../../tenant-scoped-audit-log-ai-agent/">Tenant-Scoped Audit Logs for AI Agent Tool Calls</a></h2>
-<p>A <strong>tenant-scoped audit log</strong> for an AI agent's tool calls exists to answer two questions a compliance auditor puts to you in the same breath: <em>show me every action your system took for Acme</em>, and <em>prove that record wasn't edited after the fact</em>. Both are easy to wave at and hard to actually satisfy. A general trace store can usually show you <em>something</em> about Acme, but "every action" means the tenant has to be a field you can filter on cleanly — not a tag one call site set and another forgot. And "prove it wasn't edited" means the trail needs integrity you can hand to a third party, not your assurance that the database looks fine. This post is about the per-tenant forensics angle specifically: how to produce a slice of the trail that belongs to exactly one customer, and hand it over with a proof it wasn't altered.</p>
+<p>A <strong>tenant-scoped audit log</strong> for an AI agent's tool calls exists to answer two questions an incident reviewer puts to you in the same breath: <em>show me every action your system took for Acme</em>, and <em>prove that record wasn't edited after the fact</em>. Both are easy to wave at and hard to actually satisfy. A general trace store can usually show you <em>something</em> about Acme, but "every action" means the tenant has to be a field you can filter on cleanly — not a tag one call site set and another forgot. And "prove it wasn't edited" means the trail needs integrity you can hand to a third party, not your assurance that the database looks fine. This post shows how to produce a slice of the trail that belongs to exactly one customer, and hand it over with a proof it wasn't altered.</p>
 
     
       <nav class="md-post__action">

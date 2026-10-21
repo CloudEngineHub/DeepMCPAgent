@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The promptise runtime command group provides command-line management for agent processes. Start agents from manifest files, monitor status, view journal logs,">
+        <meta name="description" content="The promptise runtime command group runs agent processes from .agent manifests and controls them from another terminal. start runs a runtime (in the foreground">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="CLI Commands">
-  <meta property="og:description" content="The promptise runtime command group provides command-line management for agent processes. Start agents from manifest files, monitor status, view journal logs,">
+  <meta property="og:description" content="The promptise runtime command group runs agent processes from .agent manifests and controls them from another terminal. start runs a runtime (in the foreground">
   <meta property="og:url" content="https://docs.promptise.com/runtime/cli/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="CLI Commands">
-  <meta name="twitter:description" content="The promptise runtime command group provides command-line management for agent processes. Start agents from manifest files, monitor status, view journal logs,">
+  <meta name="twitter:description" content="The promptise runtime command group runs agent processes from .agent manifests and controls them from another terminal. start runs a runtime (in the foreground">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "CLI Commands",
       "name": "CLI Commands",
-      "description": "The promptise runtime command group provides command-line management for agent processes. Start agents from manifest files, monitor status, view journal logs,",
+      "description": "The promptise runtime command group runs agent processes from .agent manifests and controls them from another terminal. start runs a runtime (in the foreground",
       "url": "https://docs.promptise.com/runtime/cli/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -769,8 +769,6 @@
       
         
       
-        
-      
     
     
     
@@ -1008,34 +1006,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5917,6 +5887,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5939,8 +5913,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5954,8 +5929,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5967,6 +5948,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -6127,99 +6110,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
+  <a href="#how-the-commands-find-a-runtime" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concepts
+        How the commands find a runtime
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#commands" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Commands
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Commands">
+    <nav class="md-nav" aria-label="How the commands find a runtime">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#promptise-runtime-start" class="md-nav__link">
+  <a href="#a-runtime-on-another-machine" class="md-nav__link">
     <span class="md-ellipsis">
       
-        promptise runtime start
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-stop" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime stop
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime status
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-logs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime logs
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-restart" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime restart
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-validate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime validate
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-init" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime init
+        A runtime on another machine
       
     </span>
   </a>
@@ -6232,10 +6138,109 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#promptise-runtime-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime stop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-restart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime restart
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-rewind" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime rewind
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime validate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime init
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example-workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example Workflow
+        Example workflow
       
     </span>
   </a>
@@ -6243,32 +6248,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#status-output" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status Output
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        API Summary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -8420,8 +8403,6 @@
       
         
       
-        
-      
     
     
     
@@ -8574,36 +8555,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9482,99 +9433,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
+  <a href="#how-the-commands-find-a-runtime" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concepts
+        How the commands find a runtime
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#commands" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Commands
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Commands">
+    <nav class="md-nav" aria-label="How the commands find a runtime">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#promptise-runtime-start" class="md-nav__link">
+  <a href="#a-runtime-on-another-machine" class="md-nav__link">
     <span class="md-ellipsis">
       
-        promptise runtime start
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-stop" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime stop
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime status
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-logs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime logs
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-restart" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime restart
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-validate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime validate
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#promptise-runtime-init" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        promptise runtime init
+        A runtime on another machine
       
     </span>
   </a>
@@ -9587,10 +9461,109 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#promptise-runtime-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-stop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime stop
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-restart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime restart
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-rewind" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime rewind
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime validate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#promptise-runtime-init" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        promptise runtime init
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#example-workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example Workflow
+        Example workflow
       
     </span>
   </a>
@@ -9598,32 +9571,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#status-output" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status Output
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        API Summary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9668,135 +9619,64 @@
 
 
 <h1 id="runtime-cli">Runtime CLI<a class="headerlink" href="#runtime-cli" title="Link to this section">&para;</a></h1>
-<p>The <code>promptise runtime</code> command group provides command-line management for agent processes. Start agents from manifest files, monitor status, view journal logs, validate manifests, and generate templates -- all from the terminal.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Start an agent from a manifest file</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent
+<p>The <code>promptise runtime</code> command group runs agent processes from <code>.agent</code> manifests and controls them from another terminal. <code>start</code> runs a runtime (in the foreground or in the background); <code>status</code>, <code>stop</code>, <code>restart</code>, <code>logs</code> and <code>rewind</code> find it on their own and talk to its control API. <code>validate</code> and <code>init</code> work on manifest files.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Start an agent in the background</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--detach
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Start all agents in a directory</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Validate a manifest</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/watcher.agent
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># View journal logs</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--lines<span class="w"> </span><span class="m">50</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># From any terminal on this machine</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--follow
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>restart
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>stop
 </span></code></pre></div>
 <hr />
-<h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>The runtime CLI is built with <a href="https://typer.tiangolo.com/">Typer</a> and uses <a href="https://rich.readthedocs.io/">Rich</a> for formatted terminal output. It operates on <code>.agent</code> manifest files -- declarative YAML configurations that define an agent process (model, instructions, triggers, etc.).</p>
-<p>The CLI wraps the <code>AgentRuntime</code> Python API, providing the same capabilities from the command line.</p>
+<h2 id="how-the-commands-find-a-runtime">How the commands find a runtime<a class="headerlink" href="#how-the-commands-find-a-runtime" title="Link to this section">&para;</a></h2>
+<p><code>promptise runtime start</code> serves the <a href="../api/">Orchestration API</a> on <code>127.0.0.1</code> (a free port unless <code>--api-port</code> is given) with a random bearer token, and records how to reach it in a <strong>state file</strong>: <code>~/.promptise/runtime/&lt;runtime name&gt;.json</code>. The file holds the PID, host, port, token, the manifest paths, each process's journal location, the start time and whether startup finished. <code>status</code>, <code>stop</code>, <code>restart</code>, <code>logs</code> and <code>rewind</code> read it. With one runtime running they need no name.</p>
+<p>The state directory holds tokens, so it is private:</p>
+<ul>
+<li>the directory is created with mode <code>0700</code>, each file with <code>0600</code>;</li>
+<li>on POSIX, a directory or file owned by another user is refused, and so is a state file that other users can read or write; a directory you own that is too open is tightened to <code>0700</code>;</li>
+<li>a state file whose process is gone (a crash, <code>kill -9</code>) is stale and removed the next time a command lists the directory;</li>
+<li>the runtime removes its own file when it exits.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Environment variable</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROMPTISE_RUNTIME_STATE_DIR</code></td>
+<td>Use this state directory instead of <code>~/.promptise/runtime</code></td>
+</tr>
+<tr>
+<td><code>PROMPTISE_RUNTIME_TOKEN</code></td>
+<td><code>start</code>: use this API token instead of a random one (<code>start</code> then removes the variable from its own environment, so agents, hooks and stdio MCP servers don't inherit it). Client commands: the token for <code>--url</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="a-runtime-on-another-machine">A runtime on another machine<a class="headerlink" href="#a-runtime-on-another-machine" title="Link to this section">&para;</a></h3>
+<p>Every client command also takes <code>--url</code> (the base URL of any Orchestration API) and <code>--token</code>. Prefer <code>PROMPTISE_RUNTIME_TOKEN</code> over <code>--token</code>: a token on the command line is visible to other users in <code>ps</code>. <code>--token</code> without <code>--url</code> is an error, because a local runtime's token comes from its state file.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">PROMPTISE_RUNTIME_TOKEN</span><span class="o">=</span>...<span class="w">       </span><span class="c1"># the token the remote runtime was started with</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status<span class="w"> </span>--url<span class="w"> </span>http://10.0.0.5:9100
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>worker<span class="w"> </span>--url<span class="w"> </span>http://10.0.0.5:9100
+</span></code></pre></div>
+<p>To control a runtime remotely, start it with <code>--api-host</code> (for example <code>0.0.0.0</code>) and a known <code>PROMPTISE_RUNTIME_TOKEN</code>, and put it behind TLS when the token crosses an untrusted network.</p>
 <hr />
-<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Link to this section">&para;</a></h2>
-<h3 id="promptise-runtime-start">promptise runtime start<a class="headerlink" href="#promptise-runtime-start" title="Link to this section">&para;</a></h3>
-<p>Start agent process(es) from a <code>.agent</code> manifest file or a directory of manifests.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Single manifest</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Directory of manifests</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Override the process name</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--name<span class="w"> </span>my-watcher
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Enable the live dashboard</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--dashboard
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Run in the background</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--detach
+<h2 id="promptise-runtime-start">promptise runtime start<a class="headerlink" href="#promptise-runtime-start" title="Link to this section">&para;</a></h2>
+<p>Start agent process(es) from a <code>.agent</code> manifest or a directory of them.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w">                 </span><span class="c1"># foreground</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w">                              </span><span class="c1"># every .agent file in a directory</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--name<span class="w"> </span>my-watcher
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--runtime-name<span class="w"> </span>prod<span class="w"> </span>--detach<span class="w"> </span><span class="c1"># background</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--dashboard<span class="w">                  </span><span class="c1"># live terminal dashboard</span>
 </span></code></pre></div>
 <table>
 <thead>
 <tr>
-<th>Option</th>
-<th>Short</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--name</code></td>
-<td><code>-n</code></td>
-<td>Override the process name from the manifest</td>
-</tr>
-<tr>
-<td><code>--dashboard/--no-dashboard</code></td>
-<td></td>
-<td>Enable the live terminal dashboard</td>
-</tr>
-<tr>
-<td><code>--detach/--no-detach</code></td>
-<td><code>-d</code></td>
-<td>Run in the background (prints PID)</td>
-</tr>
-</tbody>
-</table>
-<p>When running in the foreground (without <code>--detach</code>), press <code>Ctrl+C</code> to stop all processes gracefully.</p>
-<h3 id="promptise-runtime-stop">promptise runtime stop<a class="headerlink" href="#promptise-runtime-stop" title="Link to this section">&para;</a></h3>
-<p>Stop a running agent process.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>stop<span class="w"> </span>data-watcher
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>stop<span class="w"> </span>data-watcher<span class="w"> </span>--force
-</span></code></pre></div>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--force/--no-force</code></td>
-<td>Force stop</td>
-</tr>
-</tbody>
-</table>
-<div class="admonition tip">
-<p class="admonition-title">Current limitation</p>
-<p>The stop command currently provides guidance on stopping via <code>Ctrl+C</code> or <code>SIGTERM</code>. Full daemon-mode stop will be available with distributed transport.</p>
-</div>
-<h3 id="promptise-runtime-status">promptise runtime status<a class="headerlink" href="#promptise-runtime-status" title="Link to this section">&para;</a></h3>
-<p>Show the status of agent processes.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># All processes</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Specific process</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status<span class="w"> </span>data-watcher
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># JSON output</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status<span class="w"> </span>--json
-</span></code></pre></div>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--json</code></td>
-<td>Output as JSON</td>
-</tr>
-</tbody>
-</table>
-<h3 id="promptise-runtime-logs">promptise runtime logs<a class="headerlink" href="#promptise-runtime-logs" title="Link to this section">&para;</a></h3>
-<p>Show journal entries for a process.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Default: last 20 entries</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Show more entries</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--lines<span class="w"> </span><span class="m">50</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Follow new entries (live tail)</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--follow
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Custom journal path</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--journal-path<span class="w"> </span>/var/log/agents
-</span></code></pre></div>
-<table>
-<thead>
-<tr>
-<th>Option</th>
+<th>Argument / option</th>
 <th>Short</th>
 <th>Default</th>
 <th>Description</th>
@@ -9804,55 +9684,384 @@
 </thead>
 <tbody>
 <tr>
+<td><code>MANIFEST</code></td>
+<td></td>
+<td>required</td>
+<td>Path to a <code>.agent</code> file or a directory of <code>.agent</code> files</td>
+</tr>
+<tr>
+<td><code>--name</code></td>
+<td><code>-n</code></td>
+<td>--</td>
+<td>Override the process name (single manifest file only)</td>
+</tr>
+<tr>
+<td><code>--runtime-name</code></td>
+<td><code>-r</code></td>
+<td>process name (file) or directory name</td>
+<td>Name of this runtime for <code>status</code>, <code>stop</code>, <code>restart</code>, <code>logs</code></td>
+</tr>
+<tr>
+<td><code>--detach/--no-detach</code></td>
+<td><code>-d</code></td>
+<td>off</td>
+<td>Run in the background; print the runtime name, PID and log file</td>
+</tr>
+<tr>
+<td><code>--dashboard/--no-dashboard</code></td>
+<td></td>
+<td>off</td>
+<td>Live monitoring dashboard (foreground only)</td>
+</tr>
+<tr>
+<td><code>--api-host</code></td>
+<td></td>
+<td><code>127.0.0.1</code></td>
+<td>Address the control API listens on</td>
+</tr>
+<tr>
+<td><code>--api-port</code></td>
+<td></td>
+<td><code>0</code></td>
+<td>Port of the control API (<code>0</code>: a free port)</td>
+</tr>
+<tr>
+<td><code>--allow-command-deploys</code></td>
+<td></td>
+<td>off</td>
+<td>Let the control API deploy processes with stdio MCP servers, command hooks or open-mode tool creation</td>
+</tr>
+<tr>
+<td><code>--allow-env-references</code></td>
+<td></td>
+<td>off</td>
+<td>Let control-API deploys use <code>${VAR}</code> references to any environment variable of this machine</td>
+</tr>
+<tr>
+<td><code>--allow-env-var NAME</code></td>
+<td></td>
+<td>--</td>
+<td>Let control-API deploys reference this one variable as <code>${NAME}</code>; repeatable</td>
+</tr>
+</tbody>
+</table>
+<p>In the foreground, <code>start</code> loads the manifests, starts the control API, writes the state file, starts every process and prints a status table:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Loaded process: notes
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>                        Agent Processes
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>┏━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┓
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>┃ Name  ┃ State   ┃ ID       ┃ Invocations ┃ Queue ┃ Uptime   ┃
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>┡━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━┩
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│ notes │ RUNNING │ 51a7550e │           0 │     0 │ 0h 0m 0s │
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>└───────┴─────────┴──────────┴─────────────┴───────┴──────────┘
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>Runtime notes (pid 23006), control API on http://127.0.0.1:53367
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>Press Ctrl+C to stop all processes, or run 'promptise runtime stop notes' from another terminal.
+</span></code></pre></div>
+<p>It runs until Ctrl+C, SIGTERM (<code>docker stop</code>, a process manager) or <code>promptise runtime stop</code>. Each stops every process gracefully (final checkpoint, dead letters, <code>process.stopped</code>), closes the API, removes the state file and exits with 0. A second Ctrl+C or SIGTERM during the shutdown exits at once with code 130.</p>
+<p>A process that fails to start is reported and the others keep running. When none can start, the runtime shuts down with exit code 1.</p>
+<p><strong>Runtime names</strong> are 1-64 letters, digits, <code>_</code>, <code>.</code> or <code>-</code>, starting with a letter or digit; a default taken from a file or directory name is cleaned up to fit. A name is claimed when the runtime starts: a second <code>start</code> with the name of a running runtime fails (<code>A runtime named 'notes' is already running (pid 18457)</code>), so pick another with <code>--runtime-name</code>.</p>
+<p><strong><code>--detach</code></strong> starts the same command in the background (a new session, detached from the terminal), with its output in a log file next to the state file: <code>~/.promptise/runtime/&lt;runtime name&gt;.log</code> (mode <code>0600</code>, overwritten by the next detached start). It waits until startup has finished (every process started or reported as failed), then prints:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Started runtime notes in the background
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  PID:         18457
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  Processes:   notes
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  Control API: http://127.0.0.1:52276
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>  Log file:    /home/me/.promptise/runtime/notes.log
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>  Status:      promptise runtime status notes
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>  Stop it:     promptise runtime stop notes
+</span></code></pre></div>
+<p>When the background runtime exits during startup, <code>start</code> prints the last 20 lines of its log and exits with 1. When it isn't ready after 60 seconds, <code>start</code> says so and exits with 0 (the runtime keeps starting; check <code>status</code> and the log). <code>--detach</code> can't be combined with <code>--dashboard</code>.</p>
+<p><strong><code>--allow-command-deploys</code>.</strong> By default the control API refuses <code>POST /api/v1/processes</code> for a config with a stdio MCP server, a command <a href="../hooks/">hook</a> or open mode with <code>allow_tool_creation</code> (<code>403 COMMANDS_NOT_ALLOWED</code>): anyone with the token could otherwise run any command on the machine. The flag lifts that; use it only when every token holder may run commands there. The manifests you start are never affected.</p>
+<p><strong><code>--allow-env-references</code> and <code>--allow-env-var NAME</code>.</strong> By default the control API refuses a deploy (or a trigger or <code>PATCH</code> body) with a <code>${VAR}</code> reference (<code>403 ENV_REFERENCES_NOT_ALLOWED</code>), because the deployed agent could read the value back through a secret. <code>--allow-env-var SEARCH_API_KEY</code> (repeatable) allows those variables only; <code>--allow-env-references</code> allows any. Both are passed on to a <code>--detach</code> runtime. Paths in deployed configs (journal, memory, watch paths) must lie in <code>./.promptise</code> under the directory you start the runtime in (<code>403 PATH_NOT_ALLOWED</code>). See <a href="../api/#securing-the-control-api">Securing the control API</a>.</p>
+<hr />
+<h2 id="promptise-runtime-status">promptise runtime status<a class="headerlink" href="#promptise-runtime-status" title="Link to this section">&para;</a></h2>
+<p>Show the processes of running runtime(s), or the details of one process.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status<span class="w">                 </span><span class="c1"># every runtime on this machine</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status<span class="w"> </span>prod<span class="w">            </span><span class="c1"># one runtime</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status<span class="w"> </span>data-watcher<span class="w">    </span><span class="c1"># a process name works too</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status<span class="w"> </span>prod<span class="w"> </span>--process<span class="w"> </span>data-watcher
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status<span class="w"> </span>--json
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / option</th>
+<th>Short</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NAME</code></td>
+<td></td>
+<td>Runtime name, or a process name in a running runtime (omit for every runtime)</td>
+</tr>
+<tr>
+<td><code>--process</code></td>
+<td><code>-p</code></td>
+<td>Show this one process instead of the whole runtime</td>
+</tr>
+<tr>
+<td><code>--json</code></td>
+<td></td>
+<td>Output as JSON: an object for one runtime or process, a list of runtimes otherwise</td>
+</tr>
+<tr>
+<td><code>--url</code>, <code>--token</code></td>
+<td></td>
+<td>Talk to an Orchestration API instead of a local runtime</td>
+</tr>
+</tbody>
+</table>
+<p>Each runtime is shown with its name, PID, API URL and start time (<code>(starting)</code> while processes are still starting), then its process table. The JSON output has <code>runtime</code> (name, pid, url, started_at, ready, manifests, log_file; never the token) and <code>status</code> (or <code>process</code>).</p>
+<hr />
+<h2 id="promptise-runtime-stop">promptise runtime stop<a class="headerlink" href="#promptise-runtime-stop" title="Link to this section">&para;</a></h2>
+<p>Stop a running runtime (every process, then the runtime exits), or one process.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>stop<span class="w">                      </span><span class="c1"># the only running runtime</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>stop<span class="w"> </span>prod
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>stop<span class="w"> </span>prod<span class="w"> </span>--process<span class="w"> </span>data-watcher
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>stop<span class="w"> </span>prod<span class="w"> </span>--timeout<span class="w"> </span><span class="m">60</span><span class="w"> </span>--force
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / option</th>
+<th>Short</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NAME</code></td>
+<td></td>
+<td>--</td>
+<td>Runtime to stop, or a process name in a running runtime; may be omitted when only one runtime runs</td>
+</tr>
+<tr>
+<td><code>--process</code></td>
+<td><code>-p</code></td>
+<td>--</td>
+<td>Stop only this process (the runtime keeps running)</td>
+</tr>
+<tr>
+<td><code>--force/--no-force</code></td>
+<td></td>
+<td>off</td>
+<td>Kill the runtime if it hasn't stopped gracefully</td>
+</tr>
+<tr>
+<td><code>--timeout</code></td>
+<td></td>
+<td><code>30.0</code></td>
+<td>Seconds to wait for a graceful shutdown</td>
+</tr>
+<tr>
+<td><code>--url</code>, <code>--token</code></td>
+<td></td>
+<td>--</td>
+<td>Talk to an Orchestration API instead of a local runtime</td>
+</tr>
+</tbody>
+</table>
+<p>How a runtime is stopped:</p>
+<ol>
+<li><code>stop</code> asks it to shut down over its control API (<code>POST /api/v1/runtime/shutdown</code>) and waits up to <code>--timeout</code> seconds for it to exit.</li>
+<li>When the API can't be reached or the runtime is still running, it sends SIGTERM and waits again (up to 10 more seconds after a successful request, <code>--timeout</code> otherwise). Windows has no catchable SIGTERM, so this step is skipped there.</li>
+<li>Still running: with <code>--force</code> the process is killed (SIGKILL) and its state file removed; without it, <code>stop</code> exits with 1 and suggests <code>--timeout</code> or <code>--force</code>.</li>
+</ol>
+<p>With <code>--url</code>, <code>stop</code> requests the shutdown and returns without waiting. A plain <code>OrchestrationAPI</code> (one not started by <code>promptise runtime start</code>, so without the shutdown route) gets <code>stop-all</code> instead: its processes stop, its server keeps running.</p>
+<hr />
+<h2 id="promptise-runtime-restart">promptise runtime restart<a class="headerlink" href="#promptise-runtime-restart" title="Link to this section">&para;</a></h2>
+<p>Restart every process of a running runtime, or one process.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>restart
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>restart<span class="w"> </span>prod<span class="w"> </span>--process<span class="w"> </span>data-watcher
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / option</th>
+<th>Short</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NAME</code></td>
+<td></td>
+<td>Runtime to restart, or a process name in a running runtime; may be omitted when only one runtime runs</td>
+</tr>
+<tr>
+<td><code>--process</code></td>
+<td><code>-p</code></td>
+<td>Restart only this process</td>
+</tr>
+<tr>
+<td><code>--url</code>, <code>--token</code></td>
+<td></td>
+<td>Talk to an Orchestration API instead of a local runtime</td>
+</tr>
+</tbody>
+</table>
+<p>The runtime itself keeps running, with the same control API and token. Restarted processes keep their context state and, unless <code>context.conversation_clear_on_stop</code> is set, their conversation. To load edited manifests, stop the runtime and start it again.</p>
+<hr />
+<h2 id="promptise-runtime-logs">promptise runtime logs<a class="headerlink" href="#promptise-runtime-logs" title="Link to this section">&para;</a></h2>
+<p>Show the newest journal entries of a process, each with its entry ID (the target <code>promptise runtime rewind</code> takes).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w">                 </span><span class="c1"># newest 20 entries</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--lines<span class="w"> </span><span class="m">50</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--follow<span class="w">        </span><span class="c1"># keep printing new ones (Ctrl+C ends)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--journal-path<span class="w"> </span>/var/lib/agents/journal
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / option</th>
+<th>Short</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NAME</code></td>
+<td></td>
+<td>required</td>
+<td>Process name</td>
+</tr>
+<tr>
 <td><code>--lines</code></td>
 <td><code>-n</code></td>
 <td><code>20</code></td>
-<td>Number of entries to show</td>
+<td>Number of most recent entries to show</td>
 </tr>
 <tr>
 <td><code>--follow/--no-follow</code></td>
 <td><code>-f</code></td>
-<td><code>False</code></td>
-<td>Follow new entries</td>
+<td>off</td>
+<td>Keep printing new entries</td>
 </tr>
 <tr>
 <td><code>--journal-path</code></td>
 <td></td>
-<td><code>.promptise/journal</code></td>
+<td>see below</td>
 <td>Journal directory</td>
+</tr>
+<tr>
+<td><code>--url</code>, <code>--token</code></td>
+<td></td>
+<td>--</td>
+<td>Read the journal through an Orchestration API</td>
 </tr>
 </tbody>
 </table>
-<p>The output is a Rich table showing timestamp, entry type, and data for each journal entry.</p>
-<h3 id="promptise-runtime-restart">promptise runtime restart<a class="headerlink" href="#promptise-runtime-restart" title="Link to this section">&para;</a></h3>
-<p>Restart a running agent process (stop then start).</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>restart<span class="w"> </span>data-watcher
-</span></code></pre></div>
-<h3 id="promptise-runtime-validate">promptise runtime validate<a class="headerlink" href="#promptise-runtime-validate" title="Link to this section">&para;</a></h3>
-<p>Validate a <code>.agent</code> manifest file for schema correctness.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/watcher.agent
-</span></code></pre></div>
-<p>The validator checks:</p>
+<p>Where the entries come from:</p>
 <ul>
-<li>Schema validation against <code>AgentManifestSchema</code></li>
-<li>Required fields for each trigger type</li>
-<li>Value constraints (port ranges, cron expressions, etc.)</li>
-<li>Produces warnings for potential issues</li>
+<li><code>--url</code>: the API's <code>GET /processes/{name}/journal</code> (at most 500 entries per request; <code>--follow</code> polls every second);</li>
+<li><code>--journal-path</code>: <code>&lt;path&gt;/&lt;name&gt;.jsonl</code>;</li>
+<li>otherwise, a process in a runtime on this machine: its journal file (read directly, so it works while the runtime is busy), or its API for a memory journal. A process with <code>journal.level: none</code> is an error that says so;</li>
+<li>otherwise: <code>.promptise/journal/&lt;name&gt;.jsonl</code> in the current directory.</li>
 </ul>
-<p>Output includes a summary table with name, model, version, instructions preview, server count, and trigger count.</p>
-<h3 id="promptise-runtime-init">promptise runtime init<a class="headerlink" href="#promptise-runtime-init" title="Link to this section">&para;</a></h3>
+<p>The output is a table of time, entry ID, type and data (cut at 80 characters). With <code>--follow</code>, new entries are printed one per line as they are written; a file that is truncated or replaced is read again from the start.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>                                Journal: notes
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a> Time                     Entry ID                              Type               Data
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a> 2026-10-19T20:25:02.077  b354d9ca-f7b7-4783-964a-970f9ae156b3  invocation_result  {"invocation": 1, ...
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a> 2026-10-19T20:25:02.077  38b220ec-6b42-4c81-a0ca-f27f4f1a4767  checkpoint         {"state": {"context_state": {}, ...
+</span></code></pre></div>
+<hr />
+<h2 id="promptise-runtime-rewind">promptise runtime rewind<a class="headerlink" href="#promptise-runtime-rewind" title="Link to this section">&para;</a></h2>
+<p>Roll a process's conversation and/or context state back to just before a journal entry. See <a href="../journal/rewind/">Rewind</a> for what each mode does.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>rewind<span class="w"> </span>notes<span class="w">                                  </span><span class="c1"># list recent entries with their IDs</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>rewind<span class="w"> </span>notes<span class="w"> </span>7c7bee77-f518-41de-b250-d1b586819d7a<span class="w"> </span>--plan
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>rewind<span class="w"> </span>notes<span class="w"> </span>7c7bee77-f518-41de-b250-d1b586819d7a<span class="w">        </span><span class="c1"># plan, confirm, apply</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>rewind<span class="w"> </span>notes<span class="w"> </span>7c7bee77-...<span class="w"> </span>--mode<span class="w"> </span>conversation_only<span class="w"> </span>--yes
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument / option</th>
+<th>Short</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROCESS</code></td>
+<td></td>
+<td>required</td>
+<td>Process to rewind</td>
+</tr>
+<tr>
+<td><code>ENTRY_ID</code></td>
+<td></td>
+<td>--</td>
+<td>Journal entry to go back to; omit it to list recent entries</td>
+</tr>
+<tr>
+<td><code>--mode</code></td>
+<td><code>-m</code></td>
+<td><code>both</code></td>
+<td><code>both</code>, <code>conversation_only</code>, <code>code_only</code> (context state) or <code>summarize</code> (rewind nothing, add a summary to the conversation)</td>
+</tr>
+<tr>
+<td><code>--plan</code></td>
+<td></td>
+<td>off</td>
+<td>Only show what the rewind would change</td>
+</tr>
+<tr>
+<td><code>--yes</code></td>
+<td><code>-y</code></td>
+<td>off</td>
+<td>Apply without asking for confirmation</td>
+</tr>
+<tr>
+<td><code>--runtime</code></td>
+<td><code>-r</code></td>
+<td>--</td>
+<td>Runtime the process runs in (needed when several runtimes run)</td>
+</tr>
+<tr>
+<td><code>--lines</code></td>
+<td><code>-n</code></td>
+<td><code>20</code></td>
+<td>Entries to list when no entry ID is given (1-500)</td>
+</tr>
+<tr>
+<td><code>--url</code>, <code>--token</code></td>
+<td></td>
+<td>--</td>
+<td>Talk to an Orchestration API instead of a local runtime</td>
+</tr>
+</tbody>
+</table>
+<p>The command shows the plan first (target entry, mode, how many entries are affected), then asks <code>Rewind &lt;process&gt;? [y/N]</code>. A running process is suspended for the rewind and resumed afterwards. The rewind is journaled with actor <code>cli</code>. It goes through the control API, so the process must run in a runtime and have a journal.</p>
+<hr />
+<h2 id="promptise-runtime-validate">promptise runtime validate<a class="headerlink" href="#promptise-runtime-validate" title="Link to this section">&para;</a></h2>
+<p>Validate a <code>.agent</code> manifest file, or every <code>.agent</code> file in a directory.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/watcher.agent
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PATH</code></td>
+<td>A <code>.agent</code> manifest file, or a directory of them</td>
+</tr>
+</tbody>
+</table>
+<p>Each file is checked against the manifest schema (field types, trigger settings, hooks, unknown keys) and warnings are printed for likely mistakes. A valid file gets a summary table: name, model, version, the start of the instructions, server count and trigger count. For a directory, a final line says how many manifests failed.</p>
+<hr />
+<h2 id="promptise-runtime-init">promptise runtime init<a class="headerlink" href="#promptise-runtime-init" title="Link to this section">&para;</a></h2>
 <p>Generate a template <code>.agent</code> manifest file.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Basic template</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Specify output file</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--output<span class="w"> </span>agents/my-agent.agent
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Choose a template type</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--template<span class="w"> </span>cron
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Overwrite existing file</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--output<span class="w"> </span>agent.agent<span class="w"> </span>--force
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w">                                    </span><span class="c1"># agent.agent, basic template</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--template<span class="w"> </span>cron<span class="w"> </span>--output<span class="w"> </span>agents/monitor.agent
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--output<span class="w"> </span>agent.agent<span class="w"> </span>--force<span class="w">       </span><span class="c1"># overwrite</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -9874,143 +10083,115 @@
 <td><code>--template</code></td>
 <td><code>-t</code></td>
 <td><code>basic</code></td>
-<td>Template type</td>
+<td><code>basic</code>, <code>cron</code>, <code>webhook</code> or <code>full</code></td>
 </tr>
 <tr>
 <td><code>--force/--no-force</code></td>
 <td></td>
-<td><code>False</code></td>
-<td>Overwrite existing file</td>
+<td>off</td>
+<td>Overwrite an existing file</td>
 </tr>
 </tbody>
 </table>
-<p>Available templates:</p>
 <table>
 <thead>
 <tr>
 <th>Template</th>
-<th>Description</th>
+<th>Contents</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>basic</code></td>
-<td>Minimal agent with no triggers</td>
+<td>Model and instructions, no servers or triggers</td>
 </tr>
 <tr>
 <td><code>cron</code></td>
-<td>Cron-scheduled agent</td>
+<td>An HTTP MCP server and a cron trigger every 5 minutes</td>
 </tr>
 <tr>
 <td><code>webhook</code></td>
-<td>Webhook-triggered agent</td>
+<td>An HTTP MCP server and a webhook trigger</td>
 </tr>
 <tr>
 <td><code>full</code></td>
-<td>Full configuration with cron, webhook, file watch, journal</td>
+<td>HTTP and stdio servers, cron, webhook and file-watch triggers, a full journal, restart and lifetime settings</td>
 </tr>
 </tbody>
 </table>
-<p>After generating a template, the CLI prints next steps:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>1. Edit agent.agent to customize your agent
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>2. Validate: promptise runtime validate agent.agent
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>3. Start:    promptise runtime start agent.agent
-</span></code></pre></div>
 <hr />
-<h2 id="example-workflow">Example Workflow<a class="headerlink" href="#example-workflow" title="Link to this section">&para;</a></h2>
-<p>A typical workflow for creating and running an agent:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 1. Generate a template</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--template<span class="w"> </span>cron<span class="w"> </span>--output<span class="w"> </span>agents/monitor.agent
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># 2. Edit the manifest (in your editor)</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># ...</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># 3. Validate</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/monitor.agent
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="c1"># 4. Start with dashboard</span>
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/monitor.agent<span class="w"> </span>--dashboard
-</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
-</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="c1"># 5. In another terminal, check logs</span>
-</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--lines<span class="w"> </span><span class="m">50</span>
-</span></code></pre></div>
-<hr />
-<h2 id="status-output">Status Output<a class="headerlink" href="#status-output" title="Link to this section">&para;</a></h2>
-<p>The <code>start</code> command (without <code>--dashboard</code>) displays a Rich table of process status:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>           Agent Processes
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a> Name          State    PID       Invocations  Queue  Uptime
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a> data-watcher  RUNNING  abc123..  5            0      0h 2m 30s
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a> responder     RUNNING  def456..  3            1      0h 2m 28s
-</span></code></pre></div>
-<hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Command</th>
-<th>Description</th>
+<th>Code</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>promptise runtime start &lt;manifest&gt;</code></td>
-<td>Start from <code>.agent</code> file or directory</td>
+<td><code>0</code></td>
+<td>Success (also a foreground runtime stopped with Ctrl+C, SIGTERM or <code>stop</code>)</td>
 </tr>
 <tr>
-<td><code>promptise runtime stop &lt;name&gt;</code></td>
-<td>Stop a running process</td>
+<td><code>1</code></td>
+<td>An error with a message on stderr: no runtime running, unknown runtime or process, the API refused the request or the token, a manifest that fails to load or validate, no process could start, a runtime that didn't stop in time, a rewind that was not confirmed, an existing file for <code>init</code></td>
 </tr>
 <tr>
-<td><code>promptise runtime status [name]</code></td>
-<td>Show process status</td>
+<td><code>2</code></td>
+<td>Usage error: an unknown option, a missing argument, a value out of range</td>
 </tr>
 <tr>
-<td><code>promptise runtime logs &lt;name&gt;</code></td>
-<td>Show journal entries</td>
-</tr>
-<tr>
-<td><code>promptise runtime restart &lt;name&gt;</code></td>
-<td>Restart a process</td>
-</tr>
-<tr>
-<td><code>promptise runtime validate &lt;path&gt;</code></td>
-<td>Validate a <code>.agent</code> manifest</td>
-</tr>
-<tr>
-<td><code>promptise runtime init</code></td>
-<td>Generate a template <code>.agent</code> file</td>
+<td><code>130</code></td>
+<td>A second Ctrl+C or SIGTERM while the runtime was shutting down (exits without a clean shutdown)</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Use validate before start</p>
-<p>Always validate your manifest before starting. Schema errors at runtime produce less helpful error messages than validation errors.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Use --dashboard for development</p>
-<p>The live dashboard gives real-time visibility into trigger firings and process state. It is invaluable during development and testing.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Template as a starting point</p>
-<p>Use <code>promptise runtime init --template full</code> to see all available configuration options, then trim down to what you need.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Detach mode is limited</p>
-<p>Background mode (<code>--detach</code>) starts processes but does not currently implement a daemon with IPC. Full daemon management will be available with distributed transport.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Journal path must exist</p>
-<p>The <code>--journal-path</code> option for <code>logs</code> must point to an existing journal directory. If no entries are found, the command prints a message and exits.</p>
-</div>
+<h2 id="example-workflow">Example workflow<a class="headerlink" href="#example-workflow" title="Link to this section">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># 1. Generate and edit a manifest</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--template<span class="w"> </span>cron<span class="w"> </span>--output<span class="w"> </span>agents/monitor.agent
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># 2. Validate it</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/monitor.agent
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="c1"># 3. Start it in the background</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/monitor.agent<span class="w"> </span>--detach
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="c1"># 4. Watch it</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>status
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>data-watcher<span class="w"> </span>--follow
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="c1"># 5. Stop it</span>
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>stop
+</span></code></pre></div>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>Commands that can't find the runtime.</strong> The state directory is per user (and per <code>PROMPTISE_RUNTIME_STATE_DIR</code>). A runtime started by another user, under <code>sudo</code>, or with a different state directory is invisible; use <code>--url</code> with its token.</li>
+<li><strong>Two runtimes running.</strong> <code>stop</code>, <code>restart</code> and <code>rewind</code> then need a name (or <code>--runtime</code>); the error lists the running ones.</li>
+<li><strong>Expecting <code>restart</code> to reload manifests.</strong> It restarts the processes with the loaded configuration. Stop and start the runtime to pick up edits.</li>
+<li><strong><code>logs</code> reading the wrong journal.</strong> A relative <code>journal.path</code> is relative to the directory <code>start</code> ran in. Run <code>logs</code> with the runtime running (it then uses the recorded absolute path) or pass <code>--journal-path</code>.</li>
+<li><strong>A remote API without a known token.</strong> With <code>--api-host 0.0.0.0</code> and no <code>PROMPTISE_RUNTIME_TOKEN</code>, the token is random and only in the local state file. Set the variable before <code>start</code> so remote clients can use it.</li>
+<li><strong>A killed runtime.</strong> After <code>kill -9</code> the state file stays until the next command notices the PID is gone and removes it; the detached log file is kept.</li>
+</ul>
 <hr />
 <h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../dashboard/">Dashboard</a> -- the live terminal UI in detail</li>
+<li><a href="../manifests/">Agent Manifests</a> -- the <code>.agent</code> file format</li>
+<li><a href="../api/">Orchestration API</a> -- the control API the commands talk to</li>
+<li><a href="../journal/">Journal</a> and <a href="../journal/rewind/">Rewind</a> -- what <code>logs</code> and <code>rewind</code> work on</li>
+<li><a href="../dashboard/">Dashboard</a> -- the live terminal UI</li>
 <li><a href="../runtime-manager/">Runtime Manager</a> -- the Python API behind the CLI</li>
-<li><a href="../configuration/">Configuration</a> -- all configuration options for manifests</li>
 </ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/run-multiple-ai-agents">Run Multiple AI Agents: One Runtime, Many Processes</a> -- Run several agents from manifests and control them from the terminal.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-control-api">AI Agent Control API: Manage Running Agents Over HTTP</a> -- The API every runtime command talks to.</li>
+<li><a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a> -- Journals, recovery and rewind behind <code>logs</code> and <code>rewind</code>.</li>
+</ul>
+</div>
 
 
 
@@ -10033,7 +10214,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 9, 2026 17:46:06 UTC">2026-04-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 22:24:07 UTC">2026-10-19</span>
   </span>
 
     

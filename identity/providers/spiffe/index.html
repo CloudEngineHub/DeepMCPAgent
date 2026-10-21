@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8297,8 +8280,6 @@
       
         
       
-        
-      
     
     
     
@@ -8451,36 +8432,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9476,15 +9427,21 @@
 <code>mode="auto"</code> (default) choosing between them:</p>
 <ul>
 <li><strong>File</strong> — reads a JWT-SVID written by <code>spiffe-helper</code>. Needs no
-  <code>pyspiffe</code>.</li>
+  SPIFFE library.</li>
 <li><strong>SDK</strong> — fetches a JWT-SVID from the SPIRE agent's Workload API
-  socket via <code>pyspiffe</code>.</li>
+  socket with <a href="https://github.com/HewlettPackard/py-spiffe">py-spiffe</a>
+  (the <code>spiffe</code> package on PyPI).</li>
 </ul>
+<p><code>AgentIdentity.auto()</code> picks SDK mode when <code>SPIFFE_ENDPOINT_SOCKET</code> is set,
+so it needs py-spiffe installed too.</p>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this section">&para;</a></h2>
 <ul>
 <li>A workload registered with a SPIRE server, served by a local SPIRE
   agent.</li>
-<li><strong>SDK mode only:</strong> <code>pip install promptise[identity-spiffe]</code>.</li>
+<li><strong>SDK mode only:</strong> <code>pip install "promptise[identity-spiffe]"</code>, which
+  installs <code>spiffe</code> (py-spiffe 0.2 or later) and its gRPC dependencies.
+  Promptise 1.5.0 and earlier named a <code>pyspiffe</code> package that does not
+  exist on PyPI, so this extra could not be installed; upgrade to 1.5.1.</li>
 <li>The resource the agent calls must trust your SPIRE trust domain and
   accept the requested <code>audience</code>.</li>
 </ul>
@@ -9519,15 +9476,15 @@
 <tbody>
 <tr>
 <td><code>ProviderConfigError: … pip install promptise[identity-spiffe]</code></td>
-<td>SDK mode but <code>pyspiffe</code> not installed. Install it, or use file mode.</td>
+<td>SDK mode but py-spiffe (<code>spiffe</code>) is not installed. Install it, or use file mode.</td>
 </tr>
 <tr>
 <td><code>CredentialAcquisitionError: fetching a JWT-SVID … failed</code></td>
-<td>No SPIRE agent on the socket, or no registration entry.</td>
+<td>No SPIRE agent on the socket, the socket address is not a <code>unix://</code> path, or no registration entry.</td>
 </tr>
 <tr>
 <td><code>CredentialAcquisitionError: … could not be extracted</code></td>
-<td>The installed <code>pyspiffe</code> exposes the token under an unexpected accessor.</td>
+<td>The Workload API answered without a usable token (py-spiffe exposes it as <code>JwtSvid.token</code>).</td>
 </tr>
 <tr>
 <td>File mode: file-not-found</td>
@@ -9557,7 +9514,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="June 4, 2026 21:05:06 UTC">2026-06-04</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:40:16 UTC">2026-10-20</span>
   </span>
 
     

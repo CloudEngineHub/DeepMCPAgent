@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="AgentContext is the unified context layer that every AgentProcess provides to its agent on each invocation. It merges four concerns into a single API: key-value">
+        <meta name="description" content="AgentContext is the context every AgentProcess gives its agent: key-value state with an audit trail, optional long-term memory, a filtered view of the">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Context & State">
-  <meta property="og:description" content="AgentContext is the unified context layer that every AgentProcess provides to its agent on each invocation. It merges four concerns into a single API: key-value">
+  <meta property="og:description" content="AgentContext is the context every AgentProcess gives its agent: key-value state with an audit trail, optional long-term memory, a filtered view of the">
   <meta property="og:url" content="https://docs.promptise.com/runtime/context/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Context & State">
-  <meta name="twitter:description" content="AgentContext is the unified context layer that every AgentProcess provides to its agent on each invocation. It merges four concerns into a single API: key-value">
+  <meta name="twitter:description" content="AgentContext is the context every AgentProcess gives its agent: key-value state with an audit trail, optional long-term memory, a filtered view of the">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Context \u0026 State",
       "name": "Context \u0026 State",
-      "description": "AgentContext is the unified context layer that every AgentProcess provides to its agent on each invocation. It merges four concerns into a single API: key-value",
+      "description": "AgentContext is the context every AgentProcess gives its agent: key-value state with an audit trail, optional long-term memory, a filtered view of the",
       "url": "https://docs.promptise.com/runtime/context/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5197,15 +5167,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#state-management" class="md-nav__link">
+  <a href="#state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        State Management
+        State
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="State Management">
+    <nav class="md-nav" aria-label="State">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -5220,10 +5190,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#writable-key-restrictions" class="md-nav__link">
+  <a href="#writable-keys" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Writable key restrictions
+        Writable keys
       
     </span>
   </a>
@@ -5247,10 +5217,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#stateentry" class="md-nav__link">
+  <a href="#how-the-agent-sees-the-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        StateEntry
+        How the agent sees the state
       
     </span>
   </a>
@@ -5258,44 +5228,44 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#memory-integration" class="md-nav__link">
+  <a href="#letting-the-agent-write-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Memory Integration
+        Letting the agent write state
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Memory Integration">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changing-state-over-the-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changing state over the API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#persistence-and-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Persistence and recovery
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Persistence and recovery">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#searching-memory" class="md-nav__link">
+  <a href="#secret-values-in-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Searching memory
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#storing-memory" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Storing memory
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#deleting-memory" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deleting memory
+        Secret values in state
       
     </span>
   </a>
@@ -5308,10 +5278,32 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#environment-variables" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Environment Variables
+        Environment variables
       
     </span>
   </a>
@@ -5322,7 +5314,7 @@
   <a href="#file-mounts" class="md-nav__link">
     <span class="md-ellipsis">
       
-        File Mounts
+        File mounts
       
     </span>
   </a>
@@ -5344,7 +5336,7 @@
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
       
     </span>
   </a>
@@ -5352,10 +5344,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -5366,7 +5358,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -6160,6 +6152,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6182,8 +6178,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6197,8 +6194,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6210,6 +6213,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8456,8 +8461,6 @@
       
         
       
-        
-      
     
     
     
@@ -8610,36 +8613,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9529,15 +9502,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#state-management" class="md-nav__link">
+  <a href="#state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        State Management
+        State
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="State Management">
+    <nav class="md-nav" aria-label="State">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -9552,10 +9525,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#writable-key-restrictions" class="md-nav__link">
+  <a href="#writable-keys" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Writable key restrictions
+        Writable keys
       
     </span>
   </a>
@@ -9579,10 +9552,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#stateentry" class="md-nav__link">
+  <a href="#how-the-agent-sees-the-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        StateEntry
+        How the agent sees the state
       
     </span>
   </a>
@@ -9590,44 +9563,44 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#memory-integration" class="md-nav__link">
+  <a href="#letting-the-agent-write-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Memory Integration
+        Letting the agent write state
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Memory Integration">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changing-state-over-the-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changing state over the API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#persistence-and-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Persistence and recovery
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Persistence and recovery">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#searching-memory" class="md-nav__link">
+  <a href="#secret-values-in-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Searching memory
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#storing-memory" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Storing memory
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#deleting-memory" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Deleting memory
+        Secret values in state
       
     </span>
   </a>
@@ -9640,10 +9613,32 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#environment-variables" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Environment Variables
+        Environment variables
       
     </span>
   </a>
@@ -9654,7 +9649,7 @@
   <a href="#file-mounts" class="md-nav__link">
     <span class="md-ellipsis">
       
-        File Mounts
+        File mounts
       
     </span>
   </a>
@@ -9676,7 +9671,7 @@
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
       
     </span>
   </a>
@@ -9684,10 +9679,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9698,7 +9693,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -9775,24 +9770,28 @@
 
 
 <h1 id="agent-context">Agent Context<a class="headerlink" href="#agent-context" title="Link to this section">&para;</a></h1>
-<p><code>AgentContext</code> is the unified context layer that every <code>AgentProcess</code> provides to its agent on each invocation. It merges four concerns into a single API: key-value state with an audit trail, semantic long-term memory, filtered environment variables, and mounted file paths.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentContext</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">initial_state</span><span class="o">=</span><span class="p">{</span><span class="s2">"pipeline_status"</span><span class="p">:</span> <span class="s2">"healthy"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">writable_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">"pipeline_status"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">],</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">env_prefix</span><span class="o">=</span><span class="s2">"AGENT_"</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">file_mounts</span><span class="o">=</span><span class="p">{</span><span class="s2">"data"</span><span class="p">:</span> <span class="s2">"/mnt/data"</span><span class="p">,</span> <span class="s2">"config"</span><span class="p">:</span> <span class="s2">"/etc/agent"</span><span class="p">},</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">ctx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"check_count"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">assert</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"check_count"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">state_history</span><span class="p">(</span><span class="s2">"check_count"</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span>  <span class="c1"># initial + put</span>
+<p><code>AgentContext</code> is the context every <code>AgentProcess</code> gives its agent: key-value <strong>state</strong> with an audit trail, optional long-term <strong>memory</strong>, a filtered view of the <strong>environment</strong>, and named <strong>file mounts</strong>. The state is how an agent keeps facts between runs (progress markers, counters, flags an operator sets): it is shown to the agent at the start of every run, written by the system, triggers, the <a href="../api/">control API</a> and, if you allow it, the agent itself, and with a journal it survives a crash or a restart.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">ProcessConfig</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContextConfig</span><span class="p">,</span> <span class="n">JournalConfig</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span><span class="s2">"pipeline-watch"</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Check the pipeline. Record what you found with update_state."</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">context</span><span class="o">=</span><span class="n">ContextConfig</span><span class="p">(</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">initial_state</span><span class="o">=</span><span class="p">{</span><span class="s2">"pipeline_status"</span><span class="p">:</span> <span class="s2">"unknown"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">writable_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">"pipeline_status"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">],</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">state_tool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                      <span class="c1"># the agent gets update_state(key, value)</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="p">),</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">journal</span><span class="o">=</span><span class="n">JournalConfig</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">".promptise/journal"</span><span class="p">),</span>  <span class="c1"># state survives restarts</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">))</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">process</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"pipeline_status"</span><span class="p">,</span> <span class="s2">"degraded"</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"operator"</span><span class="p">)</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">state_snapshot</span><span class="p">())</span>  <span class="c1"># {'pipeline_status': 'degraded', 'check_count': 0}</span>
 </span></code></pre></div>
 <hr />
 <h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>The context object acts as a <strong>Blackboard</strong> pattern implementation: multiple sources (system initialization, trigger handlers, the agent itself) can read and write shared state. Every write is recorded as a <code>StateEntry</code> with a timestamp and source attribution, creating a full audit trail.</p>
-<p>Four layers are unified under one interface:</p>
+<p>Four layers share one object:</p>
 <table>
 <thead>
 <tr>
@@ -9804,18 +9803,18 @@
 <tbody>
 <tr>
 <td><strong>State</strong></td>
-<td>Persistent key-value store with audit trail</td>
+<td>Key-value store with an audit trail, shown to the agent every run</td>
 <td><code>ctx.get("status")</code>, <code>ctx.put("status", "ok")</code></td>
 </tr>
 <tr>
 <td><strong>Memory</strong></td>
-<td>Semantic long-term memory via <code>MemoryProvider</code></td>
+<td>Semantic long-term memory through a <code>MemoryProvider</code></td>
 <td><code>await ctx.search_memory("error rate")</code></td>
 </tr>
 <tr>
 <td><strong>Environment</strong></td>
 <td>Filtered snapshot of <code>os.environ</code></td>
-<td><code>ctx.env</code> returns <code>{"AGENT_API_KEY": "..."}</code></td>
+<td><code>ctx.env</code> returns <code>{"AGENT_MODE": "production"}</code></td>
 </tr>
 <tr>
 <td><strong>Files</strong></td>
@@ -9824,45 +9823,56 @@
 </tr>
 </tbody>
 </table>
+<p>The state works like a blackboard: several writers (initial config, triggers, operators over the API, the agent through its state tool) read and write the same keys, and every write is recorded as a <code>StateEntry</code> with a timestamp and a source.</p>
+<p>You can also use <code>AgentContext</code> on its own:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentContext</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">initial_state</span><span class="o">=</span><span class="p">{</span><span class="s2">"pipeline_status"</span><span class="p">:</span> <span class="s2">"healthy"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">writable_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">"pipeline_status"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">],</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">env_prefix</span><span class="o">=</span><span class="s2">"AGENT_"</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">file_mounts</span><span class="o">=</span><span class="p">{</span><span class="s2">"data"</span><span class="p">:</span> <span class="s2">"/mnt/data"</span><span class="p">,</span> <span class="s2">"config"</span><span class="p">:</span> <span class="s2">"/etc/agent"</span><span class="p">},</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">ctx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"check_count"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="k">assert</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"check_count"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">state_history</span><span class="p">(</span><span class="s2">"check_count"</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span>  <span class="c1"># initial + put</span>
+</span></code></pre></div>
 <hr />
-<h2 id="state-management">State Management<a class="headerlink" href="#state-management" title="Link to this section">&para;</a></h2>
+<h2 id="state">State<a class="headerlink" href="#state" title="Link to this section">&para;</a></h2>
 <h3 id="reading-and-writing">Reading and writing<a class="headerlink" href="#reading-and-writing" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Read a value (returns default if key is missing)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">status</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pipeline_status"</span><span class="p">)</span>           <span class="c1"># "healthy"</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">missing</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"nonexistent"</span><span class="p">,</span> <span class="s2">"fallback"</span><span class="p">)</span>  <span class="c1"># "fallback"</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># Write a value</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">ctx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"pipeline_status"</span><span class="p">,</span> <span class="s2">"degraded"</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"cron-trigger"</span><span class="p">)</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># Get a snapshot of all current state</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">state_snapshot</span><span class="p">()</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># {"pipeline_status": "degraded", "check_count": 0}</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1"># List all keys</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">keys</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">state_keys</span><span class="p">()</span>  <span class="c1"># ["pipeline_status", "check_count"]</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># Clear all state and history</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="n">ctx</span><span class="o">.</span><span class="n">clear_state</span><span class="p">()</span>
-</span></code></pre></div>
-<h3 id="writable-key-restrictions">Writable key restrictions<a class="headerlink" href="#writable-key-restrictions" title="Link to this section">&para;</a></h3>
-<p>When <code>writable_keys</code> is set, only those keys can be written to. This prevents the agent from accidentally overwriting system state:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">initial_state</span><span class="o">=</span><span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"ok"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">:</span> <span class="s2">"abc"</span><span class="p">},</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">writable_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">"status"</span><span class="p">],</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">status</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pipeline_status"</span><span class="p">)</span>           <span class="c1"># "healthy"</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">missing</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"nonexistent"</span><span class="p">,</span> <span class="s2">"fallback"</span><span class="p">)</span>  <span class="c1"># "fallback"</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">ctx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"pipeline_status"</span><span class="p">,</span> <span class="s2">"degraded"</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"cron-trigger"</span><span class="p">)</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">ctx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"status"</span><span class="p">,</span> <span class="s2">"error"</span><span class="p">)</span>    <span class="c1"># Works</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">ctx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"secret"</span><span class="p">,</span> <span class="s2">"xyz"</span><span class="p">)</span>      <span class="c1"># Raises KeyError</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Several keys, all or nothing</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">written</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"pipeline_status"</span><span class="p">:</span> <span class="s2">"ok"</span><span class="p">,</span> <span class="s2">"check_count"</span><span class="p">:</span> <span class="mi">2</span><span class="p">},</span> <span class="n">source</span><span class="o">=</span><span class="s2">"operator"</span><span class="p">)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># ["pipeline_status", "check_count"]</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">state_snapshot</span><span class="p">()</span>   <span class="c1"># shallow copy of the current state</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">keys</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">state_keys</span><span class="p">()</span>           <span class="c1"># ["pipeline_status", "check_count"]</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">ctx</span><span class="o">.</span><span class="n">clear_state</span><span class="p">()</span>                 <span class="c1"># remove all state and history</span>
 </span></code></pre></div>
-<p>An empty <code>writable_keys</code> list (the default) means <strong>all</strong> keys are writable.</p>
+<p><code>put()</code> records the write with <code>source</code> (default <code>"agent"</code>). <code>update()</code> checks every key before writing any: if one is not writable, it raises <code>KeyError</code> naming all of them and writes nothing.</p>
+<h3 id="writable-keys">Writable keys<a class="headerlink" href="#writable-keys" title="Link to this section">&para;</a></h3>
+<p>When <code>writable_keys</code> is set, <code>put()</code> and <code>update()</code> only accept those keys, whoever writes (agent, API or trigger code):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">initial_state</span><span class="o">=</span><span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"ok"</span><span class="p">,</span> <span class="s2">"owner"</span><span class="p">:</span> <span class="s2">"ops"</span><span class="p">},</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">writable_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">"status"</span><span class="p">],</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">ctx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"status"</span><span class="p">,</span> <span class="s2">"error"</span><span class="p">)</span>    <span class="c1"># works</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">ctx</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"owner"</span><span class="p">,</span> <span class="s2">"me"</span><span class="p">)</span>        <span class="c1"># raises KeyError: Key 'owner' is not writable. Allowed: ['status']</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">ctx</span><span class="o">.</span><span class="n">can_write</span><span class="p">(</span><span class="s2">"owner"</span><span class="p">)</span>        <span class="c1"># False</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">ctx</span><span class="o">.</span><span class="n">denied_keys</span><span class="p">([</span><span class="s2">"status"</span><span class="p">,</span> <span class="s2">"owner"</span><span class="p">])</span>  <span class="c1"># ["owner"]</span>
+</span></code></pre></div>
+<p><code>None</code> or an empty list (the default) means <strong>every</strong> key is writable. <code>initial_state</code> and recovered state are loaded without the check. <code>ctx.writable_keys</code> returns the sorted list, or <code>None</code> when all keys are writable.</p>
 <h3 id="audit-trail">Audit trail<a class="headerlink" href="#audit-trail" title="Link to this section">&para;</a></h3>
-<p>Every write creates a <code>StateEntry</code> record. You can query the full history for any key:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">state_history</span><span class="p">(</span><span class="s2">"check_count"</span><span class="p">):</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  value=</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">, source=</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="si">}</span><span class="s2">, ts=</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<p>Every write appends a <code>StateEntry</code> to the key's history:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">state_history</span><span class="p">(</span><span class="s2">"check_count"</span><span class="p">):</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">timestamp</span><span class="p">)</span>
 </span></code></pre></div>
-<hr />
-<h2 id="stateentry">StateEntry<a class="headerlink" href="#stateentry" title="Link to this section">&para;</a></h2>
-<p>Each state write produces an audit record:</p>
 <table>
 <thead>
 <tr>
@@ -9880,108 +9890,266 @@
 <tr>
 <td><code>value</code></td>
 <td><code>Any</code></td>
-<td>The value that was stored</td>
+<td>A copy of the value stored (later in-place changes don't rewrite it)</td>
 </tr>
 <tr>
 <td><code>timestamp</code></td>
 <td><code>float</code></td>
-<td>Unix timestamp of the write</td>
+<td>Unix time of the write</td>
 </tr>
 <tr>
 <td><code>source</code></td>
 <td><code>str</code></td>
-<td>Origin: <code>"system"</code>, <code>"agent"</code>, <code>"trigger"</code>, etc.</td>
+<td>Who wrote it: <code>"system"</code> (initial state), <code>"agent"</code> (the state tool, and <code>put()</code>'s default), <code>"api"</code> (<code>PATCH /context</code>), <code>"recovery"</code> (restored from the journal), or any label you pass</td>
 </tr>
 </tbody>
 </table>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">StateEntry</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">entry</span> <span class="o">=</span> <span class="n">StateEntry</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s2">"status"</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">"healthy"</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"system"</span><span class="p">)</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">data</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">restored</span> <span class="o">=</span> <span class="n">StateEntry</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</span></code></pre></div>
+<p><code>StateEntry.to_dict()</code> / <code>StateEntry.from_dict()</code> serialize an entry; <code>to_dict()</code> is also the data of the <code>context_update</code> journal entry.</p>
 <hr />
-<h2 id="memory-integration">Memory Integration<a class="headerlink" href="#memory-integration" title="Link to this section">&para;</a></h2>
-<p>When a <code>MemoryProvider</code> is wired into the context, agents gain semantic long-term memory that persists across process restarts.</p>
-<h3 id="searching-memory">Searching memory<a class="headerlink" href="#searching-memory" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ctx</span><span class="o">.</span><span class="n">search_memory</span><span class="p">(</span><span class="s2">"error rate"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">min_score</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  [</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">memory_id</span><span class="si">}</span><span class="s2">] score=</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<h2 id="how-the-agent-sees-the-state">How the agent sees the state<a class="headerlink" href="#how-the-agent-sees-the-state" title="Link to this section">&para;</a></h2>
+<p>Before every run, when the state is not empty, the process adds it to the prompt as a system message, first in the list (before the budget, mission and inbox blocks and the conversation history):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>[Context State] {'pipeline_status': 'degraded', 'check_count': 2}
 </span></code></pre></div>
-<h3 id="storing-memory">Storing memory<a class="headerlink" href="#storing-memory" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">memory_id</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ctx</span><span class="o">.</span><span class="n">add_memory</span><span class="p">(</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="s2">"Pipeline had 5</span><span class="si">% e</span><span class="s2">rror rate at 07:30"</span><span class="p">,</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"severity"</span><span class="p">:</span> <span class="s2">"warning"</span><span class="p">},</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="deleting-memory">Deleting memory<a class="headerlink" href="#deleting-memory" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">deleted</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ctx</span><span class="o">.</span><span class="n">delete_memory</span><span class="p">(</span><span class="n">memory_id</span><span class="p">)</span>  <span class="c1"># True if found and deleted</span>
-</span></code></pre></div>
-<p>If no memory provider is configured, <code>search_memory</code> returns an empty list, <code>add_memory</code> returns <code>None</code>, and <code>delete_memory</code> returns <code>False</code>.</p>
+<p>The whole state is shown on every run, so keep values short and JSON-friendly.</p>
 <hr />
-<h2 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Link to this section">&para;</a></h2>
-<p>The <code>env</code> property returns a filtered snapshot of <code>os.environ</code>, including only variables whose name starts with the configured prefix:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span><span class="n">env_prefix</span><span class="o">=</span><span class="s2">"AGENT_"</span><span class="p">)</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">ctx</span><span class="o">.</span><span class="n">env</span>  <span class="c1"># {"AGENT_API_KEY": "sk-...", "AGENT_MODE": "production"}</span>
+<h2 id="letting-the-agent-write-state">Letting the agent write state<a class="headerlink" href="#letting-the-agent-write-state" title="Link to this section">&para;</a></h2>
+<p>The agent has no way to write state unless you give it one. <code>ContextConfig(state_tool=True)</code> adds an <code>update_state(key, value)</code> tool to the agent, in any execution mode:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">ContextConfig</span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">initial_state</span><span class="o">=</span><span class="p">{</span><span class="s2">"tables_done"</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">writable_keys</span><span class="o">=</span><span class="p">[</span><span class="s2">"tables_done"</span><span class="p">,</span> <span class="s2">"last_table"</span><span class="p">],</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">state_tool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">)</span>
 </span></code></pre></div>
-<p>The prefix is <strong>not</strong> stripped from the key names. This allows agents to access configuration values without exposing the full environment.</p>
-<hr />
-<h2 id="file-mounts">File Mounts<a class="headerlink" href="#file-mounts" title="Link to this section">&para;</a></h2>
-<p>File mounts provide a logical mapping from a descriptive name to a filesystem path:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span><span class="n">file_mounts</span><span class="o">=</span><span class="p">{</span><span class="s2">"data"</span><span class="p">:</span> <span class="s2">"/mnt/data"</span><span class="p">,</span> <span class="s2">"config"</span><span class="p">:</span> <span class="s2">"/etc/agent"</span><span class="p">})</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">ctx</span><span class="o">.</span><span class="n">files</span>  <span class="c1"># {"data": "/mnt/data", "config": "/etc/agent"}</span>
-</span></code></pre></div>
-<p>The context does not perform any file I/O itself -- it simply provides the mapping for agents and tools to use.</p>
-<hr />
-<h2 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Link to this section">&para;</a></h2>
-<p>The context state is fully serializable for checkpointing and distribution:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Save state</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Restore state (memory provider must be re-attached separately)</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">restored</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">snapshot</span><span class="p">,</span> <span class="n">memory_provider</span><span class="o">=</span><span class="n">my_provider</span><span class="p">)</span>
-</span></code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">Memory providers are not serialized</p>
-<p>The memory provider instance is <strong>not</strong> included in the serialized dict. You must re-attach it when restoring from a checkpoint using the <code>memory_provider</code> parameter.</p>
-</div>
-<p>The serialized dict includes:</p>
 <ul>
-<li>Current state key-value pairs</li>
-<li>Full state history (all <code>StateEntry</code> records)</li>
-<li>Writable keys configuration</li>
-<li>Environment prefix</li>
-<li>File mount mappings</li>
+<li>The tool writes through <code>put()</code> with source <code>"agent"</code>, so it obeys <code>writable_keys</code>; with writable keys set, the key is offered to the model as a fixed list of choices.</li>
+<li>A value must be JSON (string, number, boolean, list or object) and at most 10,000 characters as JSON. Without <code>writable_keys</code>, the state may hold at most 100 keys; a write that adds a key beyond that is refused.</li>
+<li>Refusals come back to the model as text starting with <code>Error:</code> (for example the allowed keys), never as exceptions.</li>
+<li>Writes are journaled like any other.</li>
 </ul>
+<p><code>state_tool</code> is off by default. Turn it on together with <code>writable_keys</code>: without them the agent can write any key, including ones your code relies on.</p>
+<p>To give your own agent the same tool, use <code>create_state_tools(context, source="agent", max_value_chars=10_000, max_keys=100)</code> from <code>promptise.runtime.context</code>; it returns <code>[update_state]</code>.</p>
 <hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<h2 id="changing-state-over-the-api">Changing state over the API<a class="headerlink" href="#changing-state-over-the-api" title="Link to this section">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl<span class="w"> </span>http://localhost:9100/api/v1/processes/pipeline-watch/context<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># {"state": {"pipeline_status": "degraded", "check_count": 2},</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1">#  "writable_keys": ["check_count", "pipeline_status"], "all_keys_writable": false}</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>curl<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span>http://localhost:9100/api/v1/processes/pipeline-watch/context<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"state": {"pipeline_status": "ok"}}'</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1"># {"name": "pipeline-watch", "updated_keys": ["pipeline_status"]}</span>
+</span></code></pre></div>
+<p><code>PATCH /context</code> is atomic: if any key is not writable, the answer is <code>403 WRITE_DENIED</code> naming the denied keys and the allowed ones, and <strong>nothing</strong> is written. The writes are recorded with source <code>"api"</code> and journaled. <code>GET /context</code> returns <code>writable_keys: []</code> with <code>all_keys_writable: true</code> when every key is writable. The Python client has <code>get_context(name)</code> and <code>update_context(name, state)</code>.</p>
+<hr />
+<h2 id="persistence-and-recovery">Persistence and recovery<a class="headerlink" href="#persistence-and-recovery" title="Link to this section">&para;</a></h2>
+<p>Without a journal, the state lives in memory. It survives <code>stop()</code> / <code>start()</code> and <code>restart_process()</code> of the same process object, but a new process object (a new Python process, a redeploy) starts from <code>initial_state</code>.</p>
+<p>With a <a href="../journal/">journal</a> (<code>ProcessConfig.journal</code>, off by default):</p>
+<ol>
+<li><strong>Every write is journaled</strong> as a <code>context_update</code> entry with the <code>StateEntry</code> data (<code>key</code>, <code>value</code>, <code>timestamp</code>, <code>source</code>), including writes from the state tool and the API.</li>
+<li><strong>Checkpoints</strong> with the whole state are written after every run, on <code>stop()</code> and after a rewind.</li>
+<li><strong>Recovery on start.</strong> With <code>JournalConfig.recover_on_start=True</code> (the default), the first <code>start()</code> of a process object restores the state of the last checkpoint for its name plus the <code>context_update</code> entries written after it (or those entries alone when there is no checkpoint yet). Recovered keys replace the same keys of <code>initial_state</code>; other initial keys stay. Recovered values get a history entry with source <code>"recovery"</code>.</li>
+</ol>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span><span class="s2">"pipeline-watch"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>  <span class="c1"># same name and journal path as before</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">recovered</span><span class="p">)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># {'lifecycle_state': 'stopped', 'entries_replayed': 1, 'context_keys': ['check_count', 'pipeline_status'],</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1">#  'mission_restored': False, 'budget_restored': False, 'conversation_messages': 6, 'invocation_count': 3}</span>
+</span></code></pre></div>
+<p><code>process.recovered</code> is <code>None</code> when nothing was restored; the restore is also journaled as a <code>recovered</code> entry. Set <code>recover_on_start=False</code> to always start fresh. To go back to an earlier state, use <a href="../journal/rewind/">rewind</a>.</p>
+<h3 id="secret-values-in-state">Secret values in state<a class="headerlink" href="#secret-values-in-state" title="Link to this section">&para;</a></h3>
+<p>With <a href="../governance/secrets/">secret scoping</a> on, the journal redacts secret values: a <code>context_update</code> entry or checkpoint never holds one in plain text, it holds <code>[REDACTED]</code>. A recovered value therefore comes back as <code>[REDACTED]</code>, not as the secret. The live state is not redacted: the agent's prompt and <code>GET /context</code> show the value as stored. Keep secrets out of the state; read them with the secret scope where they are needed.</p>
+<hr />
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Link to this section">&para;</a></h2>
+<p><code>ProcessConfig.context</code> is a <code>ContextConfig</code>:</p>
 <table>
 <thead>
 <tr>
-<th>Method / Property</th>
+<th>Field</th>
+<th>Default</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>get(key, default)</code></td>
-<td>Read a value from state</td>
+<td><code>initial_state</code></td>
+<td><code>{}</code></td>
+<td>State the process starts with</td>
 </tr>
 <tr>
-<td><code>put(key, value, source)</code></td>
-<td>Write a value to state (creates audit entry)</td>
+<td><code>writable_keys</code></td>
+<td><code>[]</code></td>
+<td>Keys <code>put()</code> / <code>update()</code> may write; empty means all</td>
+</tr>
+<tr>
+<td><code>state_tool</code></td>
+<td><code>False</code></td>
+<td>Give the agent the <code>update_state(key, value)</code> tool</td>
+</tr>
+<tr>
+<td><code>env_prefix</code></td>
+<td><code>"AGENT_"</code></td>
+<td>Only environment variables with this prefix appear in <code>ctx.env</code>. An empty prefix is refused (it would expose the whole environment)</td>
+</tr>
+<tr>
+<td><code>file_mounts</code></td>
+<td><code>{}</code></td>
+<td>Logical name to filesystem path</td>
+</tr>
+<tr>
+<td><code>memory_provider</code></td>
+<td><code>None</code></td>
+<td><code>"in_memory"</code>, <code>"chroma"</code> or <code>"mem0"</code> for long-term memory</td>
+</tr>
+<tr>
+<td><code>memory_max</code></td>
+<td><code>5</code></td>
+<td>Memories injected per run</td>
+</tr>
+<tr>
+<td><code>memory_min_score</code></td>
+<td><code>0.0</code></td>
+<td>Minimum relevance score for injected memories</td>
+</tr>
+<tr>
+<td><code>memory_timeout</code></td>
+<td><code>5.0</code></td>
+<td>Seconds to wait for a memory search or auto-store write</td>
+</tr>
+<tr>
+<td><code>memory_auto_store</code></td>
+<td><code>False</code></td>
+<td>Store each exchange in long-term memory</td>
+</tr>
+<tr>
+<td><code>memory_collection</code></td>
+<td><code>"agent_memory"</code></td>
+<td>ChromaDB collection</td>
+</tr>
+<tr>
+<td><code>memory_persist_directory</code></td>
+<td><code>None</code></td>
+<td>ChromaDB persist directory</td>
+</tr>
+<tr>
+<td><code>memory_user_id</code></td>
+<td><code>"default"</code></td>
+<td>Mem0 user scope</td>
+</tr>
+<tr>
+<td><code>conversation_max_messages</code></td>
+<td><code>100</code></td>
+<td>Conversation buffer size (<code>0</code> = unlimited); see <a href="../conversation/">Conversation</a></td>
+</tr>
+<tr>
+<td><code>conversation_history</code></td>
+<td><code>True</code></td>
+<td><code>False</code> turns short-term conversation memory off</td>
+</tr>
+<tr>
+<td><code>conversation_clear_on_stop</code></td>
+<td><code>False</code></td>
+<td>Clear the conversation on <code>stop()</code></td>
+</tr>
+</tbody>
+</table>
+<p>Unknown keys are ignored with a <code>FutureWarning</code>.</p>
+<p>In a <code>.agent</code> manifest, <code>world:</code> sets <code>initial_state</code> and the <code>context:</code> block takes any <code>ContextConfig</code> field:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pipeline-watch</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai:gpt-5-mini</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="nt">instructions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Check the pipeline and record its status.</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="nt">world</span><span class="p">:</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">pipeline_status</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unknown</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nt">check_count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="nt">context</span><span class="p">:</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">  </span><span class="nt">writable_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pipeline_status</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">check_count</span><span class="p p-Indicator">]</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="nt">state_tool</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="nt">journal</span><span class="p">:</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">  </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">checkpoint</span>
+</span></code></pre></div>
+<p>Setting initial state both in <code>world:</code> and in <code>context: initial_state</code> is an error, as is an unknown <code>context:</code> key.</p>
+<hr />
+<h2 id="memory-integration">Memory integration<a class="headerlink" href="#memory-integration" title="Link to this section">&para;</a></h2>
+<p>When <code>memory_provider</code> is set, the agent gets semantic long-term memory: relevant memories are injected into each run, and <code>memory_auto_store</code> stores each exchange.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ctx</span><span class="o">.</span><span class="n">search_memory</span><span class="p">(</span><span class="s2">"error rate"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">min_score</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">memory_id</span><span class="si">}</span><span class="s2">] score=</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">content</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">memory_id</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ctx</span><span class="o">.</span><span class="n">add_memory</span><span class="p">(</span><span class="s2">"Pipeline had 5</span><span class="si">% e</span><span class="s2">rror rate at 07:30"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"severity"</span><span class="p">:</span> <span class="s2">"warning"</span><span class="p">})</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">deleted</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ctx</span><span class="o">.</span><span class="n">delete_memory</span><span class="p">(</span><span class="n">memory_id</span><span class="p">)</span>  <span class="c1"># True if found and deleted</span>
+</span></code></pre></div>
+<p>Without a provider, <code>search_memory</code> returns <code>[]</code>, <code>add_memory</code> returns <code>None</code> and <code>delete_memory</code> returns <code>False</code>.</p>
+<p>The provider stays open across <code>stop()</code> / <code>start()</code> and restarts of the process object. <code>close()</code> (and <code>AgentRuntime.remove_process()</code>) closes it; a later <code>start()</code> opens a new one, and an <code>in_memory</code> provider then starts empty. Use <code>chroma</code> with <code>memory_persist_directory</code>, or <code>mem0</code>, for memories that outlive the Python process.</p>
+<hr />
+<h2 id="environment-variables">Environment variables<a class="headerlink" href="#environment-variables" title="Link to this section">&para;</a></h2>
+<p><code>ctx.env</code> is a filtered snapshot of <code>os.environ</code> with only the variables whose name starts with <code>env_prefix</code>. The prefix is <strong>not</strong> stripped:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span><span class="n">env_prefix</span><span class="o">=</span><span class="s2">"AGENT_"</span><span class="p">)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">ctx</span><span class="o">.</span><span class="n">env</span>  <span class="c1"># {"AGENT_MODE": "production"}</span>
+</span></code></pre></div>
+<hr />
+<h2 id="file-mounts">File mounts<a class="headerlink" href="#file-mounts" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">ctx</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="p">(</span><span class="n">file_mounts</span><span class="o">=</span><span class="p">{</span><span class="s2">"data"</span><span class="p">:</span> <span class="s2">"/mnt/data"</span><span class="p">,</span> <span class="s2">"config"</span><span class="p">:</span> <span class="s2">"/etc/agent"</span><span class="p">})</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">ctx</span><span class="o">.</span><span class="n">files</span>  <span class="c1"># {"data": "/mnt/data", "config": "/etc/agent"}</span>
+</span></code></pre></div>
+<p>The context does no file I/O itself; it provides the mapping for agents and tools.</p>
+<hr />
+<h2 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">restored</span> <span class="o">=</span> <span class="n">AgentContext</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">snapshot</span><span class="p">,</span> <span class="n">memory_provider</span><span class="o">=</span><span class="n">my_provider</span><span class="p">)</span>
+</span></code></pre></div>
+<p>The dict holds the state, the full history, the writable keys, the environment prefix and the file mounts. The memory provider is <strong>not</strong> serialized; pass it again with <code>memory_provider</code>. A process doesn't use these for recovery: it uses its journal (see <a href="#persistence-and-recovery">Persistence and recovery</a>).</p>
+<hr />
+<h2 id="api-summary">API summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method / property</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get(key, default=None)</code></td>
+<td>Read a value</td>
+</tr>
+<tr>
+<td><code>put(key, value, *, source="agent")</code></td>
+<td>Write one key (audited, journaled); <code>KeyError</code> if not writable</td>
+</tr>
+<tr>
+<td><code>update(values, *, source="agent")</code></td>
+<td>Write several keys, all or nothing; returns the keys written</td>
+</tr>
+<tr>
+<td><code>can_write(key)</code> / <code>denied_keys(keys)</code></td>
+<td>Check keys against <code>writable_keys</code></td>
+</tr>
+<tr>
+<td><code>writable_keys</code></td>
+<td>Sorted writable keys, or <code>None</code> when all are writable</td>
+</tr>
+<tr>
+<td><code>restore_state(state, *, source="recovery")</code></td>
+<td>Load recovered state: bypasses <code>writable_keys</code>, fires no update hooks</td>
+</tr>
+<tr>
+<td><code>add_update_hook(hook)</code></td>
+<td>Call <code>hook(entry)</code> on every write (sync, or returning an awaitable); returns a remover</td>
+</tr>
+<tr>
+<td><code>await flush_update_hooks()</code></td>
+<td>Wait for pending async hooks</td>
 </tr>
 <tr>
 <td><code>state_snapshot()</code></td>
-<td>Shallow copy of current state dict</td>
+<td>Shallow copy of the state</td>
 </tr>
 <tr>
 <td><code>state_history(key)</code></td>
-<td>List of <code>StateEntry</code> records for a key</td>
+<td><code>StateEntry</code> list for a key</td>
 </tr>
 <tr>
 <td><code>state_keys()</code></td>
-<td>List of all state keys</td>
+<td>All keys</td>
 </tr>
 <tr>
 <td><code>clear_state()</code></td>
@@ -9989,64 +10157,62 @@
 </tr>
 <tr>
 <td><code>memory</code></td>
-<td>The underlying <code>MemoryProvider</code> or <code>None</code></td>
+<td>The <code>MemoryProvider</code>, or <code>None</code></td>
 </tr>
 <tr>
-<td><code>await search_memory(query, limit, min_score)</code></td>
-<td>Search semantic memory</td>
+<td><code>await search_memory(query, *, limit=5, min_score=0.0)</code></td>
+<td>Search long-term memory</td>
 </tr>
 <tr>
-<td><code>await add_memory(content, metadata)</code></td>
-<td>Store a new memory</td>
+<td><code>await add_memory(content, *, metadata=None)</code></td>
+<td>Store a memory</td>
 </tr>
 <tr>
 <td><code>await delete_memory(memory_id)</code></td>
-<td>Delete a memory by ID</td>
+<td>Delete a memory</td>
 </tr>
 <tr>
 <td><code>env</code></td>
-<td>Filtered environment variables dict</td>
+<td>Filtered environment variables</td>
 </tr>
 <tr>
 <td><code>files</code></td>
-<td>File mount mapping dict</td>
+<td>File mount mapping</td>
 </tr>
 <tr>
-<td><code>to_dict()</code></td>
-<td>Serialize context for checkpointing</td>
-</tr>
-<tr>
-<td><code>AgentContext.from_dict(data, memory_provider)</code></td>
-<td>Restore from serialized dict</td>
+<td><code>to_dict()</code> / <code>AgentContext.from_dict(data, *, memory_provider=None)</code></td>
+<td>Serialize and restore</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Use writable_keys for safety</p>
-<p>In production, always restrict <code>writable_keys</code> to the specific keys the agent needs to modify. This prevents accidental overwrites of system-managed state.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Source attribution matters</p>
-<p>Always pass a meaningful <code>source</code> parameter to <code>put()</code> -- it makes the audit trail useful for debugging. Common sources: <code>"system"</code>, <code>"agent"</code>, <code>"trigger"</code>, <code>"user"</code>.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">State snapshot is injected into the LLM</p>
-<p>The <code>state_snapshot()</code> dict is included in the agent's context on each invocation. Keep state values concise and JSON-serializable for best results.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Context state is in-memory</p>
-<p>State is not automatically persisted. Use the journal system with <code>level="checkpoint"</code> to snapshot state after each invocation cycle. On crash recovery, the <code>ReplayEngine</code> reconstructs the context from journal entries.</p>
-</div>
-<hr />
-<h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../conversation/">Conversation</a> -- short-term conversation memory buffer</li>
-<li><a href="../configuration/">Configuration</a> -- <code>ContextConfig</code> fields and defaults</li>
-<li><a href="../journal/">Journal Overview</a> -- durable state persistence and crash recovery</li>
-<li><a href="../meta-tools/">Meta-Tools</a> -- how open-mode agents interact with context</li>
+<li><strong>The agent can't write state by default.</strong> Without <code>state_tool=True</code> (or your own tool), only your code, triggers and the API write it.</li>
+<li><strong><code>state_tool</code> without <code>writable_keys</code> lets the agent write any key.</strong> Name the keys it may change.</li>
+<li><strong>In-place changes bypass the audit trail.</strong> <code>ctx.get("items").append(x)</code> changes the stored list, but nothing is recorded or journaled. Write a new value with <code>put()</code>.</li>
+<li><strong>Writes from another thread aren't journaled.</strong> <code>put()</code> called outside the process's event loop updates the state but skips the journal hook (with a warning).</li>
+<li><strong>Secrets in state come back redacted.</strong> With secret scoping, a recovered value that contained a secret is <code>[REDACTED]</code>, while the live state and <code>GET /context</code> show the plain value.</li>
+<li><strong>The state is in every prompt.</strong> Large values cost tokens on every run; store summaries.</li>
+<li><strong>A new process object without a journal starts from <code>initial_state</code>.</strong> Configure a journal to keep state across redeploys and crashes.</li>
 </ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../conversation/">Conversation</a> -- short-term conversation memory</li>
+<li><a href="../api/">Orchestration API</a> -- <code>GET</code> / <code>PATCH /context</code> and the other routes</li>
+<li><a href="../journal/">Journal</a> and <a href="../journal/rewind/">Rewind Engine</a> -- persistence, recovery and going back</li>
+<li><a href="../governance/secrets/">Secret Scoping</a> -- keeping secret values out of journals and prompts</li>
+<li><a href="../configuration/">Configuration</a> -- every <code>ProcessConfig</code> section</li>
+<li><a href="../meta-tools/">Meta-Tools</a> -- the tools an open-mode agent gets</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-state-between-runs">AI Agent State Between Runs: Context, Keys and Audit</a> -- Keep state between runs, restrict who writes it, and recover it.</li>
+<li><a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a> -- How journals and checkpoints bring state back after a crash.</li>
+</ul>
+</div>
 
 
 
@@ -10069,7 +10235,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 9, 2026 17:46:06 UTC">2026-04-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 22:24:07 UTC">2026-10-19</span>
   </span>
 
     

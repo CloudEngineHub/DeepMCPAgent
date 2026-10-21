@@ -777,8 +777,6 @@
       
         
       
-        
-      
     
     
     
@@ -1016,34 +1014,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5905,6 +5875,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5924,8 +5898,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5939,8 +5914,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5952,6 +5933,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8327,6 +8310,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="ApprovalHandler">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#promptise.approval.ApprovalHandler.request_approval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        request_approval
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -11571,8 +11571,6 @@
       
         
       
-        
-      
     
     
     
@@ -11725,36 +11723,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -12922,6 +12890,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="ApprovalHandler">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#promptise.approval.ApprovalHandler.request_approval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        request_approval
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -16816,7 +16801,7 @@ towards <code>max_retries_after_deny</code>.</p>
           <tr class="doc-section-item">
             <td><code><span title="promptise.approval.ApprovalDecision.trace">trace</span></code></td>
             <td>
-                  <code><span title="promptise.approval_classifier.ClassifierDecisionTrace">ClassifierDecisionTrace</span> | None</code>
+                  <code><span title="promptise._approval_types.ClassifierDecisionTrace">ClassifierDecisionTrace</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -16901,6 +16886,28 @@ webhooks, poll APIs, or wait on queues.</p>
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h5 id="promptise.approval.ApprovalHandler.request_approval" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">request_approval</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+<a href="#promptise.approval.ApprovalHandler.request_approval" class="headerlink" title="Link to this section">&para;</a></h5>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Ask for a decision on <em>request</em> and return it.</p>
+
+
+    </div>
+
+</div>
 
 
 
@@ -17297,7 +17304,7 @@ handler.submit_decision(request.request_id, ApprovalDecision(approved=True))
 
   
       dataclass
-  " href="#promptise.approval.ApprovalRequest">ApprovalRequest</a>]</code>
+   (promptise._approval_types.ApprovalRequest)" href="#promptise.approval.ApprovalRequest">ApprovalRequest</a>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -17403,7 +17410,7 @@ handler.submit_decision(request.request_id, ApprovalDecision(approved=True))
 
   
       dataclass
-  " href="#promptise.approval.ApprovalDecision">ApprovalDecision</a></code>
+   (promptise._approval_types.ApprovalDecision)" href="#promptise.approval.ApprovalDecision">ApprovalDecision</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -17507,7 +17514,7 @@ Examples: <code>["send_email"]</code>, <code>["delete_*", "payment_*"]</code>.</
                 <code>handler</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="promptise.approval.ApprovalHandler" href="#promptise.approval.ApprovalHandler">ApprovalHandler</a> | <span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="promptise.approval.ApprovalHandler (promptise._approval_types.ApprovalHandler)" href="#promptise.approval.ApprovalHandler">ApprovalHandler</a> | <span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -17735,12 +17742,12 @@ or async) that receives the call's unredacted arguments.</p>
 
   
       dataclass
-  " href="#promptise.approval.ApprovalRequest">ApprovalRequest</a>, <a class="autorefs autorefs-internal" title="promptise.approval.ApprovalDecision
+   (promptise._approval_types.ApprovalRequest)" href="#promptise.approval.ApprovalRequest">ApprovalRequest</a>, <a class="autorefs autorefs-internal" title="promptise.approval.ApprovalDecision
 
 
   
       dataclass
-  " href="#promptise.approval.ApprovalDecision">ApprovalDecision</a>], <span title="typing.Any">Any</span>] | None</code>
+   (promptise._approval_types.ApprovalDecision)" href="#promptise.approval.ApprovalDecision">ApprovalDecision</a>], <span title="typing.Any">Any</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -17985,7 +17992,7 @@ decides from the server's message alone.</p>
                 <code>handler</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="promptise.approval.ApprovalPolicy" href="#promptise.approval.ApprovalPolicy">ApprovalPolicy</a> | <a class="autorefs autorefs-internal" title="promptise.approval.ApprovalHandler" href="#promptise.approval.ApprovalHandler">ApprovalHandler</a> | <span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="promptise.approval.ApprovalPolicy" href="#promptise.approval.ApprovalPolicy">ApprovalPolicy</a> | <a class="autorefs autorefs-internal" title="promptise.approval.ApprovalHandler (promptise._approval_types.ApprovalHandler)" href="#promptise.approval.ApprovalHandler">ApprovalHandler</a> | <span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -18715,7 +18722,7 @@ counts as a write -- the MCP default for <code>readOnlyHint</code> is false.</p>
     <div class="doc doc-contents ">
 
         <p>Remove all cached entries for a user.</p>
-<p>Use for GDPR right-to-erasure compliance.</p>
+<p>Use it to delete one user's cached data on request.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -18770,7 +18777,7 @@ entries were stored under.</p>
 <details class="note" open>
   <summary>Note</summary>
   <p>This purges the <strong>per-user</strong> scope (<code>user:&lt;id&gt;</code>), which is the
-default and the GDPR-relevant one.  A cache created with
+default and the one that holds a user's data.  A cache created with
 <code>scope="per_session"</code> keys entries by the user's session, so
 <code>purge_user</code> does not remove them; they expire with their TTL.</p>
 </details>
@@ -19932,7 +19939,7 @@ provider = OpenAIEmbeddingProvider(
 
     <div class="doc doc-contents ">
 
-        <p>Remove all entries for a user (GDPR compliance).</p>
+        <p>Remove all entries for a user, for example when they ask you to delete their data.</p>
 
 
     </div>
@@ -20181,7 +20188,7 @@ auto-generated per process.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Remove all entries for a user (GDPR compliance).</p>
+        <p>Remove all entries for a user, for example when they ask you to delete their data.</p>
 
 
     </div>

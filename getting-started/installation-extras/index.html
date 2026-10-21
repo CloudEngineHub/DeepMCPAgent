@@ -773,8 +773,6 @@
       
         
       
-        
-      
     
     
     
@@ -954,8 +952,30 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pip-install-promptiseidentity-aws-identity-spiffe-identity-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pip install "promptise[identity-aws]", [identity-spiffe], [identity-all]
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mcp-sdk-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP SDK versions
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1156,34 +1176,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -6045,6 +6037,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6064,8 +6060,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6079,8 +6076,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6092,6 +6095,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8338,8 +8343,6 @@
       
         
       
-        
-      
     
     
     
@@ -8492,36 +8495,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9455,8 +9428,30 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pip-install-promptiseidentity-aws-identity-spiffe-identity-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pip install "promptise[identity-aws]", [identity-spiffe], [identity-all]
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mcp-sdk-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MCP SDK versions
+      
+    </span>
+  </a>
   
 </li>
       
@@ -9581,19 +9576,40 @@
 <p>Only the Docker client, for the code-execution sandbox (<code>build_agent(sandbox=...)</code>
 and <code>agent_pattern="code-action"</code>) without the rest of <code>[all]</code>. Docker itself must
 be installed and running. See <a href="../../core/sandbox/">Sandbox</a>.</p>
+<h3 id="pip-install-promptiseidentity-aws-identity-spiffe-identity-all"><code>pip install "promptise[identity-aws]"</code>, <code>[identity-spiffe]</code>, <code>[identity-all]</code><a class="headerlink" href="#pip-install-promptiseidentity-aws-identity-spiffe-identity-all" title="Link to this section">&para;</a></h3>
+<p>Cloud SDKs for some <a href="../../identity/overview/">agent identity</a> modes: <code>boto3</code> for AWS STS
+federation, and <a href="https://github.com/HewlettPackard/py-spiffe">py-spiffe</a> (the <code>spiffe</code>
+package) for the SPIFFE Workload API (<code>AgentIdentity.from_spiffe(mode="sdk")</code>, and
+<code>AgentIdentity.auto()</code> when <code>SPIFFE_ENDPOINT_SOCKET</code> is set). <code>[identity-all]</code> installs
+both. Before 1.5.1 the SPIFFE extra named a <code>pyspiffe</code> package that is not on PyPI, so it
+could not be installed.</p>
+<h2 id="mcp-sdk-versions">MCP SDK versions<a class="headerlink" href="#mcp-sdk-versions" title="Link to this section">&para;</a></h2>
+<p>Promptise works with both major versions of the official MCP Python SDK, <code>mcp&gt;=1.9,&lt;3</code>.
+A new install gets the current 2.x SDK, so Promptise installs next to other packages
+that need it, and MCP 2.x clients reach a Promptise server with the 2026-07-28 protocol
+revision (1.x clients still use the 2025 handshake). Promptise 1.5.0 and earlier
+required <code>mcp&lt;2</code>.</p>
+<p>To stay on the 1.x SDK, pin it:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>promptise<span class="w"> </span><span class="s2">"mcp&gt;=1.9,&lt;2"</span>
+</span></code></pre></div>
+<p>Promptise's own APIs are the same with either SDK. Your own code that reads MCP SDK
+objects, such as the <code>Tool</code> and <code>CallToolResult</code> objects <code>MCPClient</code> and <code>TestClient</code>
+return, follows the SDK: 2.x names the fields in snake_case (<code>tool.input_schema</code>,
+<code>result.is_error</code>) where 1.x has the wire names (<code>tool.inputSchema</code>, <code>result.isError</code>).
+See the SDK's <a href="https://py.sdk.modelcontextprotocol.io/migration/">migration guide</a>.</p>
 <h2 id="contributors">Contributors<a class="headerlink" href="#contributors" title="Link to this section">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"promptise[dev]"</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"promptise[dev]"</span>
 </span></code></pre></div>
 <p>Everything in <code>[all]</code> plus test runners (<code>pytest</code>, <code>pytest-asyncio</code>, <code>pytest-cov</code>), lint (<code>mypy</code>, <code>ruff</code>, <code>types-PyYAML</code>), and docs tooling (<code>mkdocs</code>, <code>mkdocs-material</code>, <code>mkdocstrings</code>).</p>
 <h2 id="air-gapped-deployments">Air-gapped deployments<a class="headerlink" href="#air-gapped-deployments" title="Link to this section">&para;</a></h2>
 <p>For environments without internet access:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># On a connected machine</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pip<span class="w"> </span>download<span class="w"> </span><span class="s2">"promptise[all]"</span><span class="w"> </span>-d<span class="w"> </span>./wheels
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Transfer the wheels/ directory</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># On the target machine</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>pip<span class="w"> </span>install<span class="w"> </span>--no-index<span class="w"> </span>--find-links<span class="o">=</span>./wheels<span class="w"> </span><span class="s2">"promptise[all]"</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># On a connected machine</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pip<span class="w"> </span>download<span class="w"> </span><span class="s2">"promptise[all]"</span><span class="w"> </span>-d<span class="w"> </span>./wheels
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Transfer the wheels/ directory</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># On the target machine</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>pip<span class="w"> </span>install<span class="w"> </span>--no-index<span class="w"> </span>--find-links<span class="o">=</span>./wheels<span class="w"> </span><span class="s2">"promptise[all]"</span>
 </span></code></pre></div>
 <p>For semantic tool optimization with local embedding models, set <code>embedding_model</code> to a local directory path in <code>ToolOptimizationConfig</code>.</p>
 <h2 id="migrating-from-older-extras">Migrating from older extras<a class="headerlink" href="#migrating-from-older-extras" title="Link to this section">&para;</a></h2>
@@ -9654,7 +9670,7 @@ be installed and running. See <a href="../../core/sandbox/">Sandbox</a>.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:47:11 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 22:22:15 UTC">2026-10-20</span>
   </span>
 
     

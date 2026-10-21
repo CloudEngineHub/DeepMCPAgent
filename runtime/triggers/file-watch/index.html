@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The FileWatchTrigger monitors a directory for file changes and fires trigger events when files are created, modified, deleted, or moved. It uses watchdog for">
+        <meta name="description" content="The FileWatchTrigger runs an agent when files in a directory are created, modified, deleted or moved. Use it for drop folders, data ingestion and file-based">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="File Watch">
-  <meta property="og:description" content="The FileWatchTrigger monitors a directory for file changes and fires trigger events when files are created, modified, deleted, or moved. It uses watchdog for">
+  <meta property="og:description" content="The FileWatchTrigger runs an agent when files in a directory are created, modified, deleted or moved. Use it for drop folders, data ingestion and file-based">
   <meta property="og:url" content="https://docs.promptise.com/runtime/triggers/file-watch/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="File Watch">
-  <meta name="twitter:description" content="The FileWatchTrigger monitors a directory for file changes and fires trigger events when files are created, modified, deleted, or moved. It uses watchdog for">
+  <meta name="twitter:description" content="The FileWatchTrigger runs an agent when files in a directory are created, modified, deleted or moved. Use it for drop folders, data ingestion and file-based">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "File Watch",
       "name": "File Watch",
-      "description": "The FileWatchTrigger monitors a directory for file changes and fires trigger events when files are created, modified, deleted, or moved. It uses watchdog for",
+      "description": "The FileWatchTrigger runs an agent when files in a directory are created, modified, deleted or moved. Use it for drop folders, data ingestion and file-based",
       "url": "https://docs.promptise.com/runtime/triggers/file-watch/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5872,6 +5842,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#back-pressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Back-pressure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#directory-creation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5944,10 +5925,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -6160,6 +6141,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6182,8 +6167,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6197,8 +6183,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6210,6 +6202,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8456,8 +8450,6 @@
       
         
       
-        
-      
     
     
     
@@ -8610,36 +8602,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9612,6 +9574,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#back-pressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Back-pressure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#directory-creation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9684,10 +9657,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9775,48 +9748,64 @@
 
 
 <h1 id="file-watch-trigger">File Watch Trigger<a class="headerlink" href="#file-watch-trigger" title="Link to this section">&para;</a></h1>
-<p>The <code>FileWatchTrigger</code> monitors a directory for file changes and fires trigger events when files are created, modified, deleted, or moved. It uses <code>watchdog</code> for native OS filesystem notifications when available, with an automatic polling fallback.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.file_watch</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileWatchTrigger</span>
+<p>The <code>FileWatchTrigger</code> runs an agent when files in a directory are created, modified, deleted or moved. Use it for drop folders, data ingestion and file-based workflows. It uses native OS notifications through <code>watchdog</code>, or scans the directory on an interval when you choose polling (network shares, bind mounts).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">],</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># {"path": "/data/inbox/new_data.csv", "filename": "new_data.csv",</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1">#  "event_type": "created", "event_types": ["created", "modified"]}</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Summarise each new CSV file in /data/inbox."</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">TriggerConfig</span><span class="p">(</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            <span class="nb">type</span><span class="o">=</span><span class="s2">"file_watch"</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">watch_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">],</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="p">),</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="p">],</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>On its own, outside a process:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.file_watch</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileWatchTrigger</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span><span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span> <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">])</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># {"path": "/data/inbox/new_data.csv", "filename": "new_data.csv",</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1">#  "event_type": "created", "event_types": ["created", "modified"]}</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
 <hr />
 <h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>The <code>FileWatchTrigger</code> bridges the filesystem and the agent runtime. When files appear in or change within a watched directory, the trigger produces <code>TriggerEvent</code> objects that wake the agent. This is ideal for data ingestion pipelines, file-based workflows, and monitoring drop folders.</p>
-<p>Two backends are supported:</p>
+<p>When files appear in or change within a watched directory, the trigger produces <code>TriggerEvent</code> objects that wake the agent. The payload carries the path, not the content: the agent reads the file with its own tools.</p>
+<p>Two backends detect changes:</p>
 <ul>
-<li><strong>Watchdog</strong> (default) -- uses native OS filesystem notifications (inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows). <code>watchdog</code> ships with <code>pip install promptise</code>.</li>
-<li><strong>Polling fallback</strong> -- scans the directory at regular intervals, comparing file modification times. Works everywhere but uses more CPU and has higher latency.</li>
+<li><strong>watchdog</strong> -- native OS notifications (inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows), near-instant. <code>watchdog</code> ships with <code>pip install promptise</code>.</li>
+<li><strong>polling</strong> -- scans the directory every <code>watch_poll_interval</code> seconds and compares each file's modification time and size. Works everywhere, including network shares and container bind mounts where OS notifications are unreliable, at the cost of latency and CPU.</li>
 </ul>
 <hr />
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Link to this section">&para;</a></h2>
 <h3 id="via-triggerconfig">Via TriggerConfig<a class="headerlink" href="#via-triggerconfig" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Process new data files as they arrive."</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">TriggerConfig</span><span class="p">(</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>            <span class="nb">type</span><span class="o">=</span><span class="s2">"file_watch"</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>            <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>            <span class="n">watch_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">],</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>            <span class="n">watch_events</span><span class="o">=</span><span class="p">[</span><span class="s2">"created"</span><span class="p">,</span> <span class="s2">"modified"</span><span class="p">],</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>            <span class="n">watch_debounce_seconds</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="p">),</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="p">],</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Process new data files as they arrive."</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">TriggerConfig</span><span class="p">(</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>            <span class="nb">type</span><span class="o">=</span><span class="s2">"file_watch"</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>            <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/mnt/share/inbox"</span><span class="p">,</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>            <span class="n">watch_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">],</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>            <span class="n">watch_events</span><span class="o">=</span><span class="p">[</span><span class="s2">"created"</span><span class="p">,</span> <span class="s2">"modified"</span><span class="p">,</span> <span class="s2">"moved"</span><span class="p">],</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>            <span class="n">watch_debounce_seconds</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>            <span class="n">watch_recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>            <span class="n">watch_backend</span><span class="o">=</span><span class="s2">"polling"</span><span class="p">,</span>     <span class="c1"># network share: don't rely on OS notifications</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>            <span class="n">watch_poll_interval</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>            <span class="n">watch_max_pending_events</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>        <span class="p">),</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="p">],</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="p">)</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -9830,22 +9819,42 @@
 <tr>
 <td><code>watch_path</code></td>
 <td>required</td>
-<td>Directory to monitor</td>
+<td>Directory to monitor (created at start if missing)</td>
 </tr>
 <tr>
 <td><code>watch_patterns</code></td>
 <td><code>["*"]</code></td>
-<td>Glob patterns matched against the filename</td>
+<td>Glob patterns matched against the file name</td>
 </tr>
 <tr>
 <td><code>watch_events</code></td>
 <td><code>["created", "modified"]</code></td>
-<td>Which (merged) events run the agent: any of <code>created</code>, <code>modified</code>, <code>deleted</code>, <code>moved</code></td>
+<td>Which (merged) events run the agent: any of <code>created</code>, <code>modified</code>, <code>deleted</code>, <code>moved</code>; at least one</td>
 </tr>
 <tr>
 <td><code>watch_debounce_seconds</code></td>
 <td><code>0.5</code></td>
-<td>Window in which events for the same file are merged into one</td>
+<td>Window in which events for the same file are merged into one (<code>&gt;= 0</code>)</td>
+</tr>
+<tr>
+<td><code>watch_recursive</code></td>
+<td><code>True</code></td>
+<td>Also watch subdirectories</td>
+</tr>
+<tr>
+<td><code>watch_backend</code></td>
+<td><code>"auto"</code></td>
+<td><code>"auto"</code> (watchdog when installed, otherwise polling), <code>"watchdog"</code> (fail if it isn't installed) or <code>"polling"</code></td>
+</tr>
+<tr>
+<td><code>watch_poll_interval</code></td>
+<td><code>1.0</code></td>
+<td>Seconds between scans with the polling backend (<code>&gt; 0</code>, at most 3600)</td>
+</tr>
+<tr>
+<td><code>watch_max_pending_events</code></td>
+<td><code>10000</code></td>
+<td>How many changed files may wait for the process before new changes are dropped (<code>&gt;= 1</code>); see <a href="#back-pressure">Back-pressure</a></td>
 </tr>
 <tr>
 <td><code>filter_expression</code></td>
@@ -9854,18 +9863,21 @@
 </tr>
 </tbody>
 </table>
-<p>Unknown event names in <code>watch_events</code> are rejected when the config is created.</p>
+<p>Unknown event names, an unknown backend, <code>watch_backend="watchdog"</code> without <code>watchdog</code> installed, and out-of-range numbers are rejected when the config is created. Setting a <code>watch_*</code> option on another trigger type is a validation error too.</p>
+<p>Inside a process, the trigger's ID is a <a href="../#trigger-ids">stable ID</a> such as <code>file_watch-06bfa13759</code>.</p>
 <h3 id="direct-instantiation">Direct instantiation<a class="headerlink" href="#direct-instantiation" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.file_watch</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileWatchTrigger</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">],</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">events</span><span class="o">=</span><span class="p">[</span><span class="s2">"created"</span><span class="p">,</span> <span class="s2">"modified"</span><span class="p">,</span> <span class="s2">"deleted"</span><span class="p">],</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">debounce_seconds</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">poll_interval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.file_watch</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileWatchTrigger</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">],</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">events</span><span class="o">=</span><span class="p">[</span><span class="s2">"created"</span><span class="p">,</span> <span class="s2">"modified"</span><span class="p">,</span> <span class="s2">"deleted"</span><span class="p">],</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">debounce_seconds</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">poll_interval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">backend</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">max_pending_events</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">)</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -9887,7 +9899,7 @@
 <td><code>patterns</code></td>
 <td><code>list[str]</code></td>
 <td><code>["*"]</code></td>
-<td>Glob patterns to match filenames</td>
+<td>Glob patterns to match file names</td>
 </tr>
 <tr>
 <td><code>events</code></td>
@@ -9911,10 +9923,23 @@
 <td><code>poll_interval</code></td>
 <td><code>float</code></td>
 <td><code>1.0</code></td>
-<td>Polling interval in seconds (fallback only)</td>
+<td>Seconds between scans (polling backend)</td>
+</tr>
+<tr>
+<td><code>backend</code></td>
+<td><code>str</code></td>
+<td><code>"auto"</code></td>
+<td>Keyword-only: <code>"auto"</code>, <code>"watchdog"</code> or <code>"polling"</code></td>
+</tr>
+<tr>
+<td><code>max_pending_events</code></td>
+<td><code>int</code></td>
+<td><code>10000</code></td>
+<td>Keyword-only: most files waiting before changes are dropped</td>
 </tr>
 </tbody>
 </table>
+<p>The constructor raises <code>ValueError</code> for an unknown event type or backend, <code>backend="watchdog"</code> without <code>watchdog</code>, a <code>poll_interval</code> that isn't positive, a negative <code>debounce_seconds</code>, or a <code>max_pending_events</code> below 1.</p>
 <hr />
 <h2 id="supported-events">Supported Events<a class="headerlink" href="#supported-events" title="Link to this section">&para;</a></h2>
 <table>
@@ -9939,26 +9964,27 @@
 </tr>
 <tr>
 <td><code>moved</code></td>
-<td>A file was moved or renamed (watchdog backend only)</td>
+<td>A file was moved or renamed into place (watchdog backend only)</td>
 </tr>
 </tbody>
 </table>
-<p>Configure which events to react to via the <code>events</code> parameter or <code>watch_events</code> in <code>TriggerConfig</code>. The check runs on the <strong>merged</strong> event for each file (see <a href="#debouncing">Debouncing</a>), so <code>watch_events=["deleted"]</code> fires only when a file is gone, never for a new or changed one.</p>
-<p>Editors and many tools save atomically: they write a temporary file and rename it over the target. Depending on the platform that shows up as <code>moved</code> (to the target name) rather than <code>modified</code>. Add <code>"moved"</code> to <code>watch_events</code> if you need to catch those saves.</p>
+<p>Configure which events to react to via <code>events</code> / <code>watch_events</code>. The check runs on the <strong>merged</strong> event for each file (see <a href="#debouncing">Debouncing</a>), so <code>watch_events=["deleted"]</code> fires only when a file is gone, never for a new or changed one.</p>
+<p>Editors and many upload tools save atomically: they write a temporary file and rename it over the target. With the watchdog backend that shows up as <code>moved</code> (to the target name) rather than <code>created</code> or <code>modified</code>, so the default <code>watch_events</code> miss it. Add <code>"moved"</code> to <code>watch_events</code> if files arrive that way. The polling backend sees a rename as a <code>deleted</code> event for the old name and a <code>created</code> event for the new one.</p>
+<p>Directory events are ignored; only files fire the trigger.</p>
 <hr />
 <h2 id="pattern-matching">Pattern Matching<a class="headerlink" href="#pattern-matching" title="Link to this section">&para;</a></h2>
-<p>Patterns use standard glob syntax and are matched against the <strong>filename</strong> (not the full path):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Match CSV and JSON files</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">]</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Match all Python files</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.py"</span><span class="p">]</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Match everything (default)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*"</span><span class="p">]</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># Match specific prefixes</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"report_*.xlsx"</span><span class="p">]</span>
+<p>Patterns use standard glob syntax and are matched against the <strong>file name</strong> (not the full path):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Match CSV and JSON files</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">]</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Match all Python files</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.py"</span><span class="p">]</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Match everything (default)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*"</span><span class="p">]</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Match specific prefixes</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"report_*.xlsx"</span><span class="p">]</span>
 </span></code></pre></div>
 <hr />
 <h2 id="event-payload">Event Payload<a class="headerlink" href="#event-payload" title="Link to this section">&para;</a></h2>
@@ -9973,11 +9999,11 @@
 <tbody>
 <tr>
 <td><code>path</code></td>
-<td>Full filesystem path of the changed file</td>
+<td>Full file-system path of the changed file</td>
 </tr>
 <tr>
 <td><code>filename</code></td>
-<td>Just the filename (basename)</td>
+<td>Just the file name (basename)</td>
 </tr>
 <tr>
 <td><code>event_type</code></td>
@@ -10009,19 +10035,19 @@
 </tbody>
 </table>
 <p>Example:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># {</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1">#     "path": "/data/inbox/report_2026.csv",</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1">#     "filename": "report_2026.csv",</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1">#     "event_type": "created",</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1">#     "event_types": ["created", "modified"],</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># }</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># {</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1">#     "watch_path": "/data/inbox",</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="c1">#     "patterns": ["*.csv", "*.json"],</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="c1"># }</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># {</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1">#     "path": "/data/inbox/report_2026.csv",</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1">#     "filename": "report_2026.csv",</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1">#     "event_type": "created",</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1">#     "event_types": ["created", "modified"],</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="c1"># }</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1"># {</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1">#     "watch_path": "/data/inbox",</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1">#     "patterns": ["*.csv", "*.json"],</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="c1"># }</span>
 </span></code></pre></div>
 <hr />
 <h2 id="debouncing">Debouncing<a class="headerlink" href="#debouncing" title="Link to this section">&para;</a></h2>
@@ -10054,68 +10080,100 @@
 </tbody>
 </table>
 <p>That merged type is then checked against <code>events</code> / <code>watch_events</code>. One <code>write_text()</code> to a new file therefore runs the agent once, with <code>event_type="created"</code> and <code>event_types=["created", "modified"]</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Merge everything that happens to a file within 1 second</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">debounce_seconds</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Merge everything that happens to a file within 1 second</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">debounce_seconds</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">)</span>
 </span></code></pre></div>
-<p>A larger window coalesces tools that write in several steps; the trade-off is that events arrive that much later.</p>
+<p>A larger window coalesces tools that write in several steps; the trade-off is that events arrive that much later. The window is fixed: it does not wait for the file to stop changing, so a slow upload can still be half-written when the agent runs.</p>
+<hr />
+<h2 id="back-pressure">Back-pressure<a class="headerlink" href="#back-pressure" title="Link to this section">&para;</a></h2>
+<p>Changes are not dropped when the process is busy. The trigger's own queue holds up to 1000 events; once it is full, further changes wait in a per-file backlog and move to the queue, oldest first, as the process takes events. A second change to a file that is already waiting is merged into its event, so a busy file costs one slot, not one per write.</p>
+<p>Only when <code>watch_max_pending_events</code> <strong>different</strong> files are waiting (queued plus backlog) is a change to a new file dropped. Each drop is counted, and the first drop and every hundredth after it are logged as errors:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>FileWatchTrigger file_watch-06bfa13759: 5000 files are waiting for the process
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>(max_pending_events=5000); dropped the change to /data/inbox/f5001.csv (1 dropped so far).
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Raise watch_max_pending_events or process events faster.
+</span></code></pre></div>
+<p>The counters are on the trigger and in the process status:</p>
+<table>
+<thead>
+<tr>
+<th>Counter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pending_events</code></td>
+<td>Events waiting for the process (queued plus backlog)</td>
+</tr>
+<tr>
+<td><code>dropped_events</code></td>
+<td>Changes dropped because <code>max_pending_events</code> files were waiting</td>
+</tr>
+</tbody>
+</table>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">process</span><span class="o">.</span><span class="n">status</span><span class="p">()[</span><span class="s2">"triggers"</span><span class="p">]</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># [{'id': 'file_watch-06bfa13759', 'type': 'FileWatchTrigger', 'source': 'config',</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1">#   'dropped_events': 0, 'pending_events': 12}]</span>
+</span></code></pre></div>
+<p>A suspended process keeps the backlog; the events run after <code>resume()</code>. A process suspended by <code>idle_timeout</code> resumes by itself when a file event arrives.</p>
 <hr />
 <h2 id="directory-creation">Directory Creation<a class="headerlink" href="#directory-creation" title="Link to this section">&para;</a></h2>
-<p>If the <code>watch_path</code> does not exist when <code>start()</code> is called, the trigger creates it automatically:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span><span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/new_inbox"</span><span class="p">)</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>  <span class="c1"># Creates /data/new_inbox if missing</span>
+<p>If the <code>watch_path</code> does not exist when <code>start()</code> is called, the trigger creates it (with parent directories):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span><span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/new_inbox"</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>  <span class="c1"># Creates /data/new_inbox if missing</span>
 </span></code></pre></div>
 <hr />
 <h2 id="backend-selection">Backend Selection<a class="headerlink" href="#backend-selection" title="Link to this section">&para;</a></h2>
-<p>The backend is selected automatically based on available dependencies:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># With watchdog installed</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span><span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">)</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># FileWatchTrigger(path='/data/inbox', patterns=['*'], backend='watchdog')</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># Without watchdog</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># FileWatchTrigger(path='/data/inbox', patterns=['*'], backend='polling')</span>
+<p><code>backend</code> / <code>watch_backend</code> picks how changes are detected; <code>trigger.backend</code> reports the one in use:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span><span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">trigger</span><span class="o">.</span><span class="n">backend</span><span class="p">)</span>  <span class="c1"># "watchdog" (or "polling" when watchdog isn't installed)</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># FileWatchTrigger(path='/data/inbox', patterns=['*'], events=['created', 'modified'],</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1">#                  backend='watchdog', recursive=True)</span>
 </span></code></pre></div>
 <h3 id="watchdog-backend">Watchdog backend<a class="headerlink" href="#watchdog-backend" title="Link to this section">&para;</a></h3>
 <ul>
 <li>Uses native OS notifications for near-instant detection.</li>
 <li>Handles <code>created</code>, <code>modified</code>, <code>deleted</code>, and <code>moved</code> events.</li>
-<li>Runs an <code>Observer</code> thread that dispatches events to the async queue via <code>call_soon_threadsafe</code>.</li>
+<li>Runs an <code>Observer</code> thread that hands events to the event loop with <code>call_soon_threadsafe</code>.</li>
 </ul>
 <h3 id="polling-backend">Polling backend<a class="headerlink" href="#polling-backend" title="Link to this section">&para;</a></h3>
 <ul>
-<li>Scans the directory at <code>poll_interval</code> intervals.</li>
-<li>Compares file modification times to detect changes.</li>
+<li>Takes a snapshot of the directory at <code>start()</code>, then scans every <code>poll_interval</code> seconds.</li>
+<li>Compares each file's modification time (nanoseconds) and size, so a rewrite inside the file system's timestamp resolution is still seen.</li>
 <li>Detects <code>created</code>, <code>modified</code>, and <code>deleted</code> events (not <code>moved</code>).</li>
-<li>Uses <code>asyncio.wait_for</code> with a stop event for cancellable sleeping.</li>
+<li>Use it for NFS/SMB shares and container bind mounts, where native notifications may not arrive.</li>
 </ul>
+<p>Neither backend reports files that already exist when the trigger starts. Process those at start-up yourself (for example with a one-off <code>process.inject()</code> per file).</p>
 <hr />
 <h2 id="lifecycle">Lifecycle<a class="headerlink" href="#lifecycle" title="Link to this section">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">],</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">)</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># Process events in a loop</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>        <span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"File: </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">[</span><span class="s1">'event_type'</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
-</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>        <span class="k">break</span>
-</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>
-</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">],</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="p">)</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># Process events in a loop</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>        <span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"File: </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">[</span><span class="s1">'filename'</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">[</span><span class="s1">'event_type'</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>    <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>        <span class="k">break</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
 <p>When <code>stop()</code> is called:</p>
 <ol>
 <li>The watchdog observer is stopped and joined (or the polling task is cancelled).</li>
-<li>A sentinel event is enqueued to unblock any waiting <code>wait_for_next()</code>.</li>
-<li>The sentinel causes <code>wait_for_next()</code> to raise <code>asyncio.CancelledError</code>.</li>
+<li>Changes still waiting (the backlog and open debounce windows) are turned into events that <code>drain_pending()</code> returns. In a process, they are dead-lettered with reason <code>process stopped</code>, or kept for the next run when the process restarts.</li>
+<li>A sentinel event is enqueued; it makes <code>wait_for_next()</code> raise <code>asyncio.CancelledError</code>.</li>
 </ol>
+<p>In a process, add or remove a file watch while it runs with <a href="../#adding-and-removing-triggers-at-runtime"><code>process.add_trigger()</code> / <code>process.remove_trigger()</code></a>. A <code>FILE_CHANGED</code> <a href="../../hooks/">hook</a> sees every file event before it is queued and can drop it (counted in <code>filtered_count</code>).</p>
 <hr />
 <h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
 <table>
@@ -10127,16 +10185,28 @@
 </thead>
 <tbody>
 <tr>
-<td><code>FileWatchTrigger(watch_path, patterns, events, recursive, debounce_seconds, poll_interval)</code></td>
-<td>Create a file watch trigger (raises <code>ValueError</code> on unknown event names)</td>
+<td><code>FileWatchTrigger(watch_path, patterns, events, recursive, debounce_seconds, poll_interval, *, backend, max_pending_events)</code></td>
+<td>Create a file watch trigger</td>
 </tr>
 <tr>
 <td><code>trigger_id</code></td>
-<td>Unique identifier: <code>file_watch-{path}</code></td>
+<td>Identifier (standalone default: <code>file_watch-{path}</code>; in a process: the stable config ID)</td>
+</tr>
+<tr>
+<td><code>backend</code></td>
+<td>The backend in use: <code>"watchdog"</code> or <code>"polling"</code></td>
+</tr>
+<tr>
+<td><code>pending_events</code></td>
+<td>Events waiting for the consumer (queued plus backlog)</td>
+</tr>
+<tr>
+<td><code>dropped_events</code></td>
+<td>Changes dropped because <code>max_pending_events</code> files were waiting</td>
 </tr>
 <tr>
 <td><code>await start()</code></td>
-<td>Start watching (creates directory if needed)</td>
+<td>Start watching (creates the directory if needed)</td>
 </tr>
 <tr>
 <td><code>await stop()</code></td>
@@ -10149,31 +10219,16 @@
 </tbody>
 </table>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">watchdog is already installed</p>
-<p>Polling works but introduces latency equal to the <code>poll_interval</code>. Native filesystem notifications via <code>watchdog</code> detect changes nearly instantly. <code>watchdog</code> ships with the base <code>pip install promptise</code>.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Narrow your patterns</p>
-<p>Use specific glob patterns to avoid processing temporary files, swap files, and other noise. For example, <code>["*.csv"]</code> is better than <code>["*"]</code> for a data ingestion pipeline.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Increase debounce for noisy directories</p>
-<p>Some tools write files in multiple steps (create, write, flush) spread over more than half a second. Increase <code>debounce_seconds</code> to 1.0 or higher so they still merge into a single event.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Recursive watching can be expensive</p>
-<p>Watching a large directory tree recursively may consume significant resources, especially with the polling backend. Monitor the queue size and consider watching specific subdirectories instead.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">moved events are watchdog-only</p>
-<p>The polling backend detects moves as a <code>deleted</code> event for the old path and a <code>created</code> event for the new path. Only the watchdog backend produces a single <code>moved</code> event.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Queue overflow</p>
-<p>The file watch queue has a capacity of 1000 events. In directories with very high file churn, events may be dropped. Consider increasing <code>debounce_seconds</code> or narrowing <code>patterns</code> to reduce event volume.</p>
-</div>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>Atomic saves and uploads.</strong> Files renamed into place arrive as <code>moved</code> with watchdog. Add <code>"moved"</code> to <code>watch_events</code>, or the agent never runs for them.</li>
+<li><strong>Half-written files.</strong> The debounce window is fixed. For slow uploads, have the producer write to a temporary name that doesn't match <code>watch_patterns</code> and rename it when done, or raise <code>watch_debounce_seconds</code>.</li>
+<li><strong>The agent triggers itself.</strong> An agent that writes output into the watched folder (or a subfolder, with <code>watch_recursive=True</code>) wakes itself up. Write elsewhere, narrow <code>watch_patterns</code>, or set <code>watch_recursive=False</code> and write to a subfolder.</li>
+<li><strong>Network shares and bind mounts.</strong> Native notifications are often missing there. Use <code>watch_backend="polling"</code>.</li>
+<li><strong>Large trees with polling.</strong> Every scan walks the whole tree. Watch a narrower directory, set <code>watch_recursive=False</code>, or raise <code>watch_poll_interval</code>.</li>
+<li><strong>A growing <code>pending_events</code>.</strong> The process can't keep up. Raise <code>concurrency</code>, narrow <code>watch_patterns</code>, or raise <code>watch_max_pending_events</code>; watch <code>dropped_events</code> for losses.</li>
+<li><strong>Files that were there before start.</strong> They don't fire the trigger.</li>
+</ul>
 <div class="admonition warning">
 <p class="admonition-title">File contents are untrusted input</p>
 <p>The trigger passes only the path and file name, but an agent that then reads the file reads whatever someone dropped into the folder. Treat that content like a webhook body: gate side-effecting tools with approval (see <a href="../#trigger-payloads-are-untrusted-input">Trigger payloads are untrusted input</a>).</p>
@@ -10181,14 +10236,16 @@
 <hr />
 <h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../">Triggers Overview</a> -- all trigger types and the base protocol</li>
+<li><a href="../">Triggers Overview</a> -- stable trigger IDs, live trigger changes and the event queue</li>
 <li><a href="../cron/">Cron Trigger</a> -- time-based scheduling</li>
 <li><a href="../event-webhook/">Event and Webhook Triggers</a> -- event-driven activation</li>
+<li><a href="../../hooks/">Hooks</a> -- the <code>FILE_CHANGED</code> hook</li>
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
 <li><a href="https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers">Event-Driven AI Agents: Webhook, Cron and File Triggers</a> -- File-triggered agents alongside webhook and cron triggers.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-file-watcher">AI Agent File Watcher: Process New Files Automatically</a> -- Debouncing, half-written files, archiving processed files and avoiding loops.</li>
 </ul>
 </div>
 
@@ -10213,7 +10270,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
   </span>
 
     

@@ -769,8 +769,6 @@
       
         
       
-        
-      
     
     
     
@@ -1008,34 +1006,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5897,6 +5867,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5916,8 +5890,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5931,8 +5906,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5944,6 +5925,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8350,8 +8333,6 @@
       
         
       
-        
-      
     
     
     
@@ -8504,36 +8485,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9564,10 +9515,6 @@ authenticate and attribute the caller too.</p>
 <p>This is <strong>not</strong> about the LLM credential. The model keeps its own
 authentication; identity is about <em>who is acting</em>, for attribution and
 authorization.</p>
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="why-this-matters">Why this matters<a class="headerlink" href="#why-this-matters" title="Link to this section">&para;</a></h2>
 <p>Agents are a new class of <strong>non-human actor</strong> — they call tools, hit APIs, and
 act continuously, often with no human in the loop. Most teams run them with <strong>no
@@ -9580,7 +9527,7 @@ log. That breaks down fast:</p>
 <li><strong>Least privilege</strong> — without a verifiable identity, every agent holding the
   shared key has the <strong>same</strong> access. You can't scope one agent to billing and
   another to read-only.</li>
-<li><strong>Audit &amp; compliance</strong> — SOC 2 / ISO / internal review ask <em>who</em> performed
+<li><strong>Audit</strong> — security and incident reviewers ask <em>who</em> performed
   each action. "The model" is not an answer; "<code>billing-bot</code>, verified by your
   IdP" is.</li>
 <li><strong>Blast radius</strong> — an over-privileged or unattributable agent is exactly the
@@ -9609,7 +9556,7 @@ authenticate and authorize the agent with <strong>no new secrets to manage</stro
 <td>a <strong>verifiable identity</strong> backed by your IdP</td>
 </tr>
 <tr>
-<td>Have audit/compliance requirements (who did what)</td>
+<td>Need an audit record of who did what</td>
 <td>a <strong>verifiable identity</strong> (the verified subject is recorded in the tamper-evident audit log)</td>
 </tr>
 <tr>
@@ -9760,8 +9707,8 @@ workload runs</strong>:</p>
 </tr>
 </tbody>
 </table>
-<p>Optional cloud SDKs are needed only for some modes (boto3 for AWS STS, <code>pyspiffe</code>
-for the SPIFFE SDK); the metadata/IMDS/projected-token and OIDC paths need none.
+<p>Optional cloud SDKs are needed only for some modes (boto3 for AWS STS, py-spiffe
+(<code>spiffe</code>) for the SPIFFE SDK); the metadata/IMDS/projected-token and OIDC paths need none.
 See the per-provider pages linked in the table above for setup and prerequisites.</p>
 <h2 id="persistence-lives-in-your-idp">Persistence lives in your IdP<a class="headerlink" href="#persistence-lives-in-your-idp" title="Link to this section">&para;</a></h2>
 <p>An agent's identity is <strong>durable because it lives in an identity
@@ -9817,7 +9764,7 @@ not Promptise — makes it so.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:40:16 UTC">2026-10-20</span>
   </span>
 
     

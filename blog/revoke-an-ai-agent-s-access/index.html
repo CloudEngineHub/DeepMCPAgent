@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A leaked static per-agent key is revoked only by rotating it and redeploying every service that trusts it — slow, error-prone, and you may not even know…">
+        <meta name="description" content="Learn how to revoke an AI agent's access in one place by backing it with an identity provider, wiping the credentials it holds and using short-lived tokens.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="How do you revoke an AI agent's access instantly?">
-  <meta property="og:description" content="A leaked static per-agent key is revoked only by rotating it and redeploying every service that trusts it — slow, error-prone, and you may not even know…">
+  <meta property="og:description" content="Learn how to revoke an AI agent's access in one place by backing it with an identity provider, wiping the credentials it holds and using short-lived tokens.">
   <meta property="og:url" content="https://docs.promptise.com/blog/revoke-an-ai-agent-s-access/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="How do you revoke an AI agent's access instantly?">
-  <meta name="twitter:description" content="A leaked static per-agent key is revoked only by rotating it and redeploying every service that trusts it — slow, error-prone, and you may not even know…">
+  <meta name="twitter:description" content="Learn how to revoke an AI agent's access in one place by backing it with an identity provider, wiping the credentials it holds and using short-lived tokens.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "How do you revoke an AI agent\u0027s access instantly?",
       "name": "How do you revoke an AI agent\u0027s access instantly?",
-      "description": "A leaked static per-agent key is revoked only by rotating it and redeploying every service that trusts it \u2014 slow, error-prone, and you may not even know\u2026",
+      "description": "Learn how to revoke an AI agent\u0027s access in one place by backing it with an identity provider, wiping the credentials it holds and using short-lived tokens.",
       "url": "https://docs.promptise.com/blog/revoke-an-ai-agent-s-access/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9510,7 +9461,7 @@
 <li><strong>Edit and redeploy each one.</strong> Roll the new value into every config and restart, ideally with zero downtime for the agents that still need access.</li>
 <li><strong>Guess who leaked it.</strong> If the key was shared across a fleet, the audit log only ever saw "the key" act — so you can't even scope the damage to one agent.</li>
 </ul>
-<p>None of that is <em>instant</em>. It's a change-management project, run under incident pressure, with a long tail where the compromised key still works. And it's the same anti-pattern humans abandoned a decade ago when they stopped carrying passwords into every system and moved to directory-issued logins. Agents are simply the newest <strong>non-human actor</strong> that deserves the same treatment — the <a href="../../identity/overview/">Agent Identity overview</a> frames them exactly that way. The prerequisite for a real kill switch is a real identity, which is why <a href="../give-each-ai-agent-its-own-identity/">giving each AI agent its own identity, not a shared key</a> comes first.</p>
+<p>None of that is <em>instant</em>. It's a change-management project, run under incident pressure, with a long tail where the compromised key still works. And it's the same anti-pattern humans abandoned a decade ago when they stopped carrying passwords into every system and moved to directory-issued logins. Agents are simply the newest <strong>non-human actor</strong> that deserves the same treatment — the <a href="../../identity/overview/">Agent Identity overview</a> frames them exactly that way. The prerequisite for a real kill switch is a real identity, which is why giving each agent its own identity comes first (see <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">AI Agent Identity: Authenticate Agents to MCP Servers</a>).</p>
 <h2 id="back-the-agent-with-an-idp-identity-then-revoke-in-one-place">Back the agent with an IdP identity — then revoke in one place<a class="headerlink" href="#back-the-agent-with-an-idp-identity-then-revoke-in-one-place" title="Link to this section">&para;</a></h2>
 <p>Promptise models the agent as a non-human actor with an <strong><code>AgentIdentity</code></strong>. Attach it at <code>build_agent()</code>; when the agent calls protected resources, make it <strong>verifiable</strong> by backing it with your IdP — Microsoft Entra, AWS IAM, Google Cloud, SPIFFE/SPIRE, or a generic OIDC issuer. Now the credential the agent presents is a short-lived, signed JWT minted from the workload's own identity, not a string you stored:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentIdentity</span><span class="p">,</span> <span class="n">build_agent</span>
@@ -9537,7 +9488,7 @@
 <li><strong>No new credentials can be minted.</strong> The provider will not issue another JWT for a disabled identity, so the agent cannot re-authenticate anywhere.</li>
 <li><strong>Existing credentials expire out from under it.</strong> The tokens already in flight are short-lived; as each reaches its <code>exp</code>, every resource that verifies it rejects it — no redeploy, no config edit, no per-server change.</li>
 </ol>
-<p>The whole revoke path is one operation in a directory you already govern. There is no fleet-wide key to rotate, and no service to reconfigure — server-side verification is stateless (see the next section), so the servers don't even need to know a revocation happened. The <a href="../../identity/guide/">end-to-end identity guide</a> wires this lifecycle from mint through revoke, and the credential side of the story — why a workload-identity JWT beats a static key in the first place — is in <a href="../how-does-an-ai-agent-authenticate-to-an-api/">How does an AI agent authenticate to an API? (not API keys)</a>.</p>
+<p>The whole revoke path is one operation in a directory you already govern. There is no fleet-wide key to rotate, and no service to reconfigure — server-side verification is stateless (see the next section), so the servers don't even need to know a revocation happened. The <a href="../../identity/guide/">end-to-end identity guide</a> wires this lifecycle from mint through revoke, and the <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">AI agent identity guide</a> covers the credential side: how an agent authenticates to the servers it calls.</p>
 <h2 id="zero-fill-the-credentials-a-running-agent-is-holding">Zero-fill the credentials a running agent is holding<a class="headerlink" href="#zero-fill-the-credentials-a-running-agent-is-holding" title="Link to this section">&para;</a></h2>
 <p>Disabling the identity handles <em>future</em> access and stops issued tokens as they expire. But a long-running agent process may already be holding downstream secrets in memory right now. For those, Promptise gives the runtime a second, immediate lever: a per-process <code>SecretScope</code> that keeps values encrypted in memory only — never serialized to a journal, checkpoint, or status output — and can <strong>zero-fill and drop every one on command</strong>.</p>
 <p>This block is fully runnable with no infrastructure at all:</p>
@@ -9609,7 +9560,7 @@
 <li><strong>LlamaIndex</strong> tool specs take an API key or token you pass in at construction — again a static secret whose revocation is a rotation.</li>
 <li>The <strong>MCP specification itself</strong> defines an OAuth 2.1 authorization framework for HTTP transports (2025 spec). This is the honest exception: a real authorization server <em>can</em> support token revocation (RFC 7009) and issues short-lived access tokens that expire on their own. But the spec standardizes the token <em>handoff</em> — it doesn't source the credential from the agent's managed identity, IRSA role, or SPIFFE SVID, and it leaves you to stand up and operate that authorization server yourself.</li>
 </ul>
-<p>So the honest delta isn't "nobody can revoke." Where the credential is a static secret (the common default), there is genuinely no single-place kill switch — you rotate and redeploy. Where an OAuth authorization server is in play, revocation is achievable, but it's infrastructure you run. Promptise makes the kill switch <strong>structural</strong> by consuming the IdP you already govern as the system of record: disabling one identity there stops future credentials and expires the ones in flight, with no server reconfiguration — and <code>revoke_on_stop</code> zero-fills whatever a running process still holds, which a config-file secret has no equivalent of.</p>
+<p>So the real difference isn't "nobody can revoke." Where the credential is a static secret (the common default), there is genuinely no single-place kill switch — you rotate and redeploy. Where an OAuth authorization server is in play, revocation is achievable, but it's infrastructure you run. Promptise makes the kill switch <strong>structural</strong> by consuming the IdP you already govern as the system of record: disabling one identity there stops future credentials and expires the ones in flight, with no server reconfiguration — and <code>revoke_on_stop</code> zero-fills whatever a running process still holds, which a config-file secret has no equivalent of.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="how-do-i-revoke-an-ai-agents-access-instantly">How do I revoke an AI agent's access instantly?<a class="headerlink" href="#how-do-i-revoke-an-ai-agents-access-instantly" title="Link to this section">&para;</a></h3>
 <p>Disable the agent's identity in your IdP. Because Promptise sources the agent's credential from that directory rather than a stored key, no new token can be minted for a disabled identity, and the short-lived tokens already in flight stop validating at every resource as they expire. If a running process is holding downstream secrets, stop it (or call <code>revoke_all()</code>) to zero-fill them immediately. No server needs reconfiguration.</p>
@@ -9645,7 +9596,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

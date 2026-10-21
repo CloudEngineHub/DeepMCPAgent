@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8216,8 +8199,6 @@
       
         
       
-        
-      
     
     
     
@@ -8373,36 +8354,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9298,7 +9249,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/sandboxing/" class="md-meta__link">Sandboxing</a></li>
+              <a href="../../../../category/governance/" class="md-meta__link">Governance</a></li>
         
         
           
@@ -9314,12 +9265,53 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="give-a-code-interpreter-agent-your-tools-keep-approval-gates"><a class="toclink" href="../../../../code-interpreter-agent-with-approval-gates/">Give a Code-Interpreter Agent Your Tools, Keep Approval Gates</a></h2>
-<p>Building a <strong>code interpreter agent with approval gates</strong> means letting the model write and run one program over <em>your</em> tools while every mutating call it makes still stops at a human — and gets counted against a hard per-run budget. That combination is the whole point of this guide. The code-interpreter (codeact) pattern itself is easy; the interesting engineering is the governance you refuse to give up when you hand a model an execution surface. This post is scoped to exactly that: enable <code>agent_pattern="code-action"</code>, wrap the tools that change state with an approval gate, keep a hard <code>max_tool_calls</code> cap on the generated program, and pick the gVisor backend when the input is untrusted.</p>
+    <h2 id="limit-an-ai-agents-irreversible-actions-per-run"><a class="toclink" href="../../../../limit-irreversible-actions-ai-agent/">Limit an AI Agent's Irreversible Actions Per Run</a></h2>
+<p>To limit irreversible actions an AI agent takes in a single run, you need a control that counts <em>destructive</em> calls separately from everything else the agent does. This is a different problem from stopping a runaway loop, and it is the one that keeps operators awake. A looping agent that calls <code>get_status(id=42)</code> forty times is embarrassing and cheap. An agent that reasons its way into ten <code>issue_refund</code> calls, or fires the same dunning email to your entire customer list, or deletes ten accounts because a webhook payload looked plausible — that is not embarrassing, it is a Monday-morning incident review. The failure isn't volume. It's a <em>small number of destructive calls</em>, each one individually reasonable, that together are unrecoverable.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../code-interpreter-agent-with-approval-gates/">
+        <a href="../../../../limit-irreversible-actions-ai-agent/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../../../category/approvals--hitl/" class="md-meta__link">Approvals &amp; HITL</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              9 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="elicitation-vs-four-eyes-two-ways-to-approve-ai-actions"><a class="toclink" href="../../../../mcp-elicitation-approval-vs-four-eyes-review/">Elicitation vs Four-Eyes: Two Ways to Approve AI Actions</a></h2>
+<p>The choice at the heart of <strong>mcp elicitation approval vs four-eyes review</strong> is not "should this tool need a human?" — you already decided that when you marked it <code>requires_approval=True</code>. The real question is <em>which</em> human, and <em>when</em>: do you confirm with the person sitting behind the client that made the call, right now, mid-run — or do you park the call in a queue for an independent reviewer who was not the one who triggered it? Both are legitimate. They protect against different failures, and picking the wrong one either annoys your users or lets a caller wave through their own risky action. This post is a decision guide, and the good news is that in Promptise Foundry the two models sit behind one interchangeable handler, so choosing is a one-line change you can make per tool.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../../../mcp-elicitation-approval-vs-four-eyes-review/">
           Continue reading
         </a>
       </nav>
@@ -9345,7 +9337,7 @@
           
           <li class="md-meta__item">
             
-              10 min read
+              9 min read
             
           </li>
         
@@ -9355,12 +9347,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="how-to-compose-multiple-mcp-servers-into-one-gateway"><a class="toclink" href="../../../../compose-multiple-mcp-servers/">How to Compose Multiple MCP Servers Into One Gateway</a></h2>
-<p>To compose multiple MCP servers into one gateway, you mount each team's server behind a namespace prefix so an agent connects to a single endpoint and discovers one clean toolbelt — <code>pay_charge</code>, <code>usr_get_user</code>, <code>rpt_revenue</code> — instead of juggling three URLs, three auth handshakes, and three tool lists it has to deduplicate itself. That much is table stakes; several frameworks can prefix-and-merge. The part that actually decides whether a gateway survives contact with production is what happens <em>at the seam</em>: can you filter what each client sees across the composed surface based on who is asking, and can two mounted servers ship different versions of the same tool without a name collision?</p>
+    <h2 id="one-stalled-mcp-tool-can-exhaust-your-connection-pool"><a class="toclink" href="../../../../mcp-tool-connection-pool-exhaustion/">One Stalled MCP Tool Can Exhaust Your Connection Pool</a></h2>
+<p>MCP tool connection pool exhaustion is what happens when one slow downstream API doesn't just fail its own call — its tool keeps handler coroutines and pooled DB or HTTP connections open through every timeout, the shared pool saturates, and unrelated healthy tools start queueing behind it. The failure is sneaky because the sick tool often <em>works</em>, just slowly. By the end of this post you'll be able to reproduce that cascade in-process and cap its blast radius with two composable middlewares, so a single stalled MCP tool can never consume the server's shared capacity.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../compose-multiple-mcp-servers/">
+        <a href="../../../../mcp-tool-connection-pool-exhaustion/">
           Continue reading
         </a>
       </nav>
@@ -9380,13 +9372,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/governance/" class="md-meta__link">Governance</a></li>
+              <a href="../../../../category/mcp/" class="md-meta__link">MCP</a></li>
         
         
           
           <li class="md-meta__item">
             
-              9 min read
+              6 min read
             
           </li>
         
@@ -9396,12 +9388,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="set-a-confidence-threshold-to-stop-or-escalate-an-agent"><a class="toclink" href="../../../../confidence-threshold-to-stop-ai-agent/">Set a Confidence Threshold to Stop or Escalate an Agent</a></h2>
-<p>A useful confidence threshold to stop an AI agent is only trustworthy when the confidence comes from an <em>independent judge</em>, not from the agent's own claim that it finished. That distinction is the whole game. The moment you let an agent stop itself the instant it says "done," you have built a rubber stamp: the model declares victory, the loop halts, and nobody checks whether the mission was actually accomplished. Flip the failure around and it is just as bad — an agent with no completion signal at all runs on its trigger forever, re-doing finished work and burning tokens. This post shows the middle path Promptise Foundry makes first-class: a mission whose completion and escalation are both <strong>gated on a separate evaluator's numeric confidence</strong> — <code>auto_complete</code> on a confident success, <code>escalate</code> below your threshold, and a hard <code>timeout_hours</code> backstop so a shaky agent gets a human, not a rubber stamp.</p>
+    <h2 id="mcp-vs-function-calling-whats-the-difference"><a class="toclink" href="../../../../mcp-vs-function-calling/">MCP vs Function Calling: What's the Difference?</a></h2>
+<p>The MCP vs function calling debate confuses a lot of teams, because the two are not actually competitors — they operate at different layers. Function calling is how an LLM decides <em>which</em> tool to call and <em>with what arguments</em>. The Model Context Protocol (MCP) is how those tools get <em>packaged, served, and shared</em>. By the end of this post you'll know exactly where the crossover point sits, so you can keep raw function calling while your tools fit in one file and reach for MCP the moment they don't — without paying a token tax as your catalog grows.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../confidence-threshold-to-stop-ai-agent/">
+        <a href="../../../../mcp-vs-function-calling/">
           Continue reading
         </a>
       </nav>
@@ -9421,7 +9413,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/governance/" class="md-meta__link">Governance</a></li>
+              <a href="../../../../category/air-gapped--sovereign/" class="md-meta__link">Air-Gapped &amp; Sovereign</a></li>
         
         
           
@@ -9437,12 +9429,53 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="add-budget-health-kill-switches-to-a-runtime-agent"><a class="toclink" href="../../../../configure-ai-agent-budget-and-health/">Add Budget + Health Kill-Switches to a Runtime Agent</a></h2>
-<p>To <strong>configure AI agent budget and health</strong> kill-switches you should not need a monitoring side-project, a supervisor loop, or a scatter of <code>try/except</code> blocks around every tool call — you need one config block on the process. This is the copy-paste recipe, not the why-you-need-it explainer: paste one <code>ProcessConfig</code> (or one <code>.agent</code> YAML manifest), fill in your per-run and daily limits, your irreversible-action cap, the four behavioral-health detectors, pick <code>pause</code> / <code>stop</code> / <code>escalate</code>, point a webhook at Slack, and ship a governed, self-limiting agent in a single file. The runtime enforces the whole declaration for you, around every invocation, out-of-band. Below is the exact block.</p>
+    <h2 id="is-your-agents-retrieved-memory-a-prompt-injection-risk"><a class="toclink" href="../../../../memory-prompt-injection/">Is Your Agent's Retrieved Memory a Prompt-Injection Risk?</a></h2>
+<p>Memory prompt injection is the attack most local-vector setups never see coming: you scan the user's message for "ignore your rules," wave it through, and then — one line later — your agent auto-injects a <em>retrieved memory</em> into the system prompt that says exactly that. A vector store is trivial to stand up. What is not trivial is remembering that everything you recall from it is untrusted text. Whoever could write to that store — a prior conversation, a scraped document, a support ticket that got summarized into long-term memory — planted an instruction that fires on a later, unrelated query. This post shows why the retrieval path needs its own defense, and how Promptise Foundry scans recalled memory before it ever reaches the model.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../configure-ai-agent-budget-and-health/">
+        <a href="../../../../memory-prompt-injection/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              9 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="migrate-a-single-tenant-agent-to-multi-tenant"><a class="toclink" href="../../../../migrate-single-tenant-agent-to-multi-tenant/">Migrate a Single-Tenant Agent to Multi-Tenant</a></h2>
+<p>To <strong>migrate a single-tenant agent to multi-tenant</strong>, you don't have to rewrite it — you have to find the one place where identity enters the system and make the tenant part of it. The trap is believing there are many such places. In a typical agent, per-customer state lives in at least three stores — long-term memory (a vector index), a semantic cache, and conversation history — and the naive migration path is to hunt down every read and write against all three and splice in a tenant filter. That's the retrofit tax, and it's where cross-tenant leaks come from: not the filters you add, but the one you forget. This how-to walks the Promptise Foundry migration seam end to end, where adding a tenant means setting a single field.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../../../migrate-single-tenant-agent-to-multi-tenant/">
           Continue reading
         </a>
       </nav>
@@ -9468,7 +9501,7 @@
           
           <li class="md-meta__item">
             
-              7 min read
+              6 min read
             
           </li>
         
@@ -9478,12 +9511,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="connect-your-ai-agent-to-mcp-tools-with-promptise"><a class="toclink" href="../../../../connect-ai-agent-to-mcp-tools/">Connect Your AI Agent to MCP Tools with Promptise</a></h2>
-<p>To connect an AI agent to MCP tools in production, you need two things: reliable auto-discovery so you never hand-wire schemas, and a way to stop a large tool catalog from bloating every prompt. Most tutorials give you the first and quietly skip the second — then your token bill climbs as you add servers. This post shows the production path with Promptise: point the agent at your MCP servers, let it discover every tool, and flip tool optimization to <code>SEMANTIC</code> so local embeddings select only the tools each query actually needs. By the end you'll have a working config, the air-gapped local-embeddings variant, and a clear sense of when you don't need any of it.</p>
+    <h2 id="model-agnostic-ai-agents-claude-gpt-ollama-local"><a class="toclink" href="../../../../model-agnostic-ai-agents/">Model-Agnostic AI Agents: Claude, GPT, Ollama &amp; Local</a></h2>
+<p>Model-agnostic AI agents let you change the model behind your agent without touching the rest of your code. In Promptise Foundry the model is just a string you pass to <code>build_agent()</code>, so the same agent — same tools, same memory, same guardrails — can run on <code>openai:gpt-5-mini</code> today, <code>anthropic:claude-sonnet-4.5</code> tomorrow, and a local <code>ollama:llama3</code> in an air-gapped deployment, with no rewrite in between. By the end of this post you'll know exactly how that swap works, how to run entirely offline, and when pinning to one provider is actually the smarter choice.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../connect-ai-agent-to-mcp-tools/">
+        <a href="../../../../model-agnostic-ai-agents/">
           Continue reading
         </a>
       </nav>
@@ -9503,13 +9536,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/memory--rag/" class="md-meta__link">Memory &amp; RAG</a></li>
+              <a href="../../../../category/identity/" class="md-meta__link">Identity</a></li>
         
         
           
           <li class="md-meta__item">
             
-              7 min read
+              8 min read
             
           </li>
         
@@ -9519,12 +9552,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="context-window-management-for-llm-agents-explained"><a class="toclink" href="../../../../context-window-management/">Context Window Management for LLM Agents, Explained</a></h2>
-<p>Context window management is the difference between an agent that answers the question you asked and one that silently drops it. Every call your agent makes stuffs a system prompt, tool definitions, retrieved memory, and conversation history into a single request — and when that request outgrows the model's window, something has to go. Do nothing and the model either errors out or truncates from wherever the framework happened to stop, which is often the user's latest message. By the end of this post you'll know how to count tokens exactly, assign priorities to every piece of context, and trim gracefully so the parts that matter always survive.</p>
+    <h2 id="multi-agent-audit-whos-the-principal-after-a-delegation-hop"><a class="toclink" href="../../../../multi-agent-audit-accountability/">Multi-Agent Audit: Who's the Principal After a Delegation Hop?</a></h2>
+<p>Multi-agent audit accountability is the question a security reviewer asks the moment your fleet stops being one agent: when Agent A — running on Alice's behalf — hands a subtask to Agent B, and B exports a record or issues a refund, <em>which principal does the audit trail name as accountable?</em> This is not the question of how B authenticates the delegation call (<a href="../../../../secure-agent-to-agent-communication/">Secure Agent-to-Agent Authentication in Practice</a> covers that). It is the narrower audit question that delegation raises: after the handoff, does your tamper-evident record still name <strong>the human who set the chain in motion</strong>, or does it name the sub-agent's service account? Get that wrong and every audited action taken past the first hop is attributed to a bot, and "the bot did it" is not an answer anyone reviewing the incident can use.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../context-window-management/">
+        <a href="../../../../multi-agent-audit-accountability/">
           Continue reading
         </a>
       </nav>
@@ -9544,7 +9577,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/memory--rag/" class="md-meta__link">Memory &amp; RAG</a></li>
+              <a href="../../../../category/reasoning/" class="md-meta__link">Reasoning</a></li>
         
         
           
@@ -9560,12 +9593,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="conversation-persistence-for-llm-agents-in-python"><a class="toclink" href="../../../../conversation-persistence/">Conversation Persistence for LLM Agents in Python</a></h2>
-<p>Conversation persistence is the difference between a demo and a product: without it, every LLM agent forgets the last message the moment the process restarts, and a multi-user app happily serves one person's thread to another. Most tutorials hardcode a single database and quietly skip session ownership, so you inherit a rewrite the day you move from SQLite to Postgres — and a security bug you won't notice until someone reports it. This post shows how to persist chat history in Python behind one <code>ConversationStore</code> protocol, swap backends without touching application code, and enforce session ownership so users can only load their own conversations.</p>
+    <h2 id="multi-agent-debate-for-better-llm-reasoning"><a class="toclink" href="../../../../multi-agent-debate-llm/">Multi-Agent Debate for Better LLM Reasoning</a></h2>
+<p>A multi-agent debate LLM setup runs the same question through three roles — one model proposes an answer, another attacks it, and a judge decides who was right — instead of trusting a single pass. The appeal is obvious: adversarial scrutiny catches mistakes that a lone model, confidently wrong, will happily ship. The catch is just as real: you pay for it in latency and tokens. By the end of this post you'll know exactly what the Proposer → Critic → Judge graph does in Promptise Foundry, how to stand one up in a few lines, and — just as importantly — the narrow set of queries where it earns its keep versus the far larger set where a single verify pass is the smarter buy.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../conversation-persistence/">
+        <a href="../../../../multi-agent-debate-llm/">
           Continue reading
         </a>
       </nav>
@@ -9585,13 +9618,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/comparisons/" class="md-meta__link">Comparisons</a></li>
+              <a href="../../../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
         
         
           
           <li class="md-meta__item">
             
-              6 min read
+              8 min read
             
           </li>
         
@@ -9601,12 +9634,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="crewai-alternative-when-to-switch-and-when-not"><a class="toclink" href="../../../../crewai-alternative/">CrewAI Alternative: When to Switch (and When Not)</a></h2>
-<p>If you're searching for a CrewAI alternative, you probably already have a working crew — a set of role-playing agents that collaborate on a task — and you're now hitting the wall between "impressive demo" and "service other people pay for." That wall is rarely about reasoning quality. It's about isolation, human approval on risky actions, and an audit trail you can defend. This post is the honest version: where CrewAI is the right tool, and the specific moment where switching to Promptise Foundry earns its keep. By the end you'll be able to tell which side of that line your project is on, and stand up a tenant-isolated MCP server if you're on ours.</p>
+    <h2 id="multi-tenant-rag-isolate-customer-data-in-a-shared-store"><a class="toclink" href="../../../../multi-tenant-rag/">Multi-Tenant RAG: Isolate Customer Data in a Shared Store</a></h2>
+<p><strong>Multi-tenant RAG</strong> almost always ships as one shared vector store plus a hand-written metadata filter bolted onto every query — and the first query that forgets the filter quietly leaks Acme's documents into Globex's answer. There is no exception, no stack trace, no failing test. The retrieval just returns a neighbor from the wrong customer, the model summarizes it, and you find out when a support ticket arrives. This post is about the retrieval path specifically: why per-query filters are the wrong place to enforce a security boundary, what other frameworks hand you today, and how Promptise Foundry threads the tenant into retrieval automatically so a forgotten filter is structurally impossible.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../crewai-alternative/">
+        <a href="../../../../multi-tenant-rag/">
           Continue reading
         </a>
       </nav>
@@ -9626,7 +9659,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/use-cases/" class="md-meta__link">Use Cases</a></li>
+              <a href="../../../../category/identity/" class="md-meta__link">Identity</a></li>
         
         
           
@@ -9642,12 +9675,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="how-to-build-a-customer-support-ai-agent-step-by-step"><a class="toclink" href="../../../../customer-support-ai-agent/">How to Build a Customer Support AI Agent, Step by Step</a></h2>
-<p>A production customer support ai agent is not a single-turn question-and-answer bot with a vector store bolted on. Real support is a conversation that changes shape as it goes — you greet, you figure out what's actually wrong, you look up the order, and only then do you resolve or escalate. Most tutorials ship the easy 20% (retrieve an article, paste it into a prompt) and skip the parts that break in production: behavior that shifts across turns, a reply that gets validated before it sends, escalation rules, and history that survives a restart. By the end of this guide you'll have built all of those with Promptise Foundry, and you'll be able to run the whole thing with your own <code>OPENAI_API_KEY</code>.</p>
+    <h2 id="pass-user-identity-through-agents-to-mcp-tools"><a class="toclink" href="../../../../multi-user-agent-identity/">Pass User Identity Through Agents to MCP Tools</a></h2>
+<p>Getting <strong>multi-user agent identity</strong> right is the difference between a demo and a product your security team will sign off on. The moment two customers share one agent, you have to answer a hard question: when Alice asks "show my invoices," how does <em>her</em> identity reach the tool server so it returns <em>her</em> data and not Bob's — without the client simply asserting whatever roles it likes? This post traces the whole path in Promptise Foundry: from a per-request <code>CallerContext</code> in your app, to a bearer token on the wire, to server-side JWT extraction and role/tenant guards. By the end you'll be able to wire it end to end and know exactly where the trust boundary sits.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../customer-support-ai-agent/">
+        <a href="../../../../multi-user-agent-identity/">
           Continue reading
         </a>
       </nav>
@@ -9667,7 +9700,48 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/cost--efficiency/" class="md-meta__link">Cost &amp; Efficiency</a></li>
+              <a href="../../../../category/identity/" class="md-meta__link">Identity</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              7 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="oauth-for-ai-agents-client_credentials-jwks"><a class="toclink" href="../../../../oauth-for-ai-agents/">OAuth for AI Agents: client_credentials &amp; JWKS</a></h2>
+<p>Most guides to OAuth for AI agents drown you in redirect URLs, consent screens, and PKCE — none of which your agent uses. An autonomous agent is a machine calling another machine. There is no browser, no human clicking "Allow." The grant you actually want is <strong>client_credentials</strong>: the agent presents a signed token it got from your identity provider, and your server verifies that token against the issuer's public keys. By the end of this post you'll know exactly which OAuth flow agents use, and how to verify agent-presented tokens in a Promptise MCP server with <code>JwksAuth</code> and <code>AsymmetricJWTAuth</code> — no shared secret in sight.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../../../oauth-for-ai-agents/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../../../category/air-gapped--sovereign/" class="md-meta__link">Air-Gapped &amp; Sovereign</a></li>
         
         
           
@@ -9683,12 +9757,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="how-to-cut-token-cost-for-a-multi-tenant-ai-agent"><a class="toclink" href="../../../../cut-token-cost-multi-tenant-ai-agent/">How to Cut Token Cost for a Multi-Tenant AI Agent</a></h2>
-<p>To <strong>cut token cost, multi-tenant AI agent</strong> deployments have to fight three inefficiencies at once — a leaky shared cache, unbounded tool-loop transcripts, and the full set of tool schemas resent on every call — because one agent serving many customers multiplies each of them per tenant. A waste that is annoying for a single-user demo becomes the dominant line on your bill when a thousand tenants hit the same code path. This post is the hub that connects the three cost levers Promptise Foundry ships as first-class, composable primitives on one <code>build_agent()</code> call — a per-tenant semantic cache, a <code>context_scope="ledger"</code> transcript, and <code>optimize_tools</code> — and then shows you how to prove the savings with built-in observability rather than trust a marketing number.</p>
+    <h2 id="your-vector-store-is-local-are-your-embeddings"><a class="toclink" href="../../../../offline-embeddings-for-ai-agents/">Your Vector Store Is Local — Are Your Embeddings?</a></h2>
+<p>Running <strong>offline embeddings for AI agents</strong> is the difference between retrieval that is genuinely air-gapped and retrieval that quietly ships your entire private corpus to a third party twice. Most teams get the vector store right — they stand up Chroma, FAISS, Qdrant, or pgvector inside their own network, confirm the database never phones home, and check the box marked "on-prem." Then they wire an embeddings step in front of it that calls a hosted API, and every chunk of that private corpus egresses the moment it's indexed and again on every query. The vector <em>math</em> is local. The text that produces the vectors is not. This post walks through that embedding-egress trap and shows how Promptise Foundry pins <strong>both</strong> memory retrieval and semantic tool selection to a single local embedding model, so nothing leaves the host.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../cut-token-cost-multi-tenant-ai-agent/">
+        <a href="../../../../offline-embeddings-for-ai-agents/">
           Continue reading
         </a>
       </nav>
@@ -9708,7 +9782,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/governance/" class="md-meta__link">Governance</a></li>
+              <a href="../../../../category/air-gapped--sovereign/" class="md-meta__link">Air-Gapped &amp; Sovereign</a></li>
         
         
           
@@ -9724,12 +9798,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="set-a-daily-budget-for-an-autonomous-ai-agent"><a class="toclink" href="../../../../daily-budget-for-ai-agent/">Set a Daily Budget for an Autonomous AI Agent</a></h2>
-<p>Setting a real daily budget for AI agents means capping what an agent does across a whole day, not what it does inside one function call — and that distinction is the entire problem with the guardrails most frameworks ship. A per-run cap like <code>max_iterations</code> counts to N and resets to zero the moment the next invocation starts. That is fine for a chatbot a human is watching. It is worthless for an agent on a five-minute cron, because the thing you actually want to bound — total tool calls, total cost units, total runs — is spread across hundreds of invocations that never see each other's counters. This post shows how Promptise Foundry's <code>BudgetConfig</code> daily scope gives a long-lived, trigger-driven process a genuine 24-hour ceiling: <code>max_tool_calls_per_day</code>, <code>max_cost_per_day</code>, <code>max_runs_per_day</code>, and a configurable <code>daily_reset_hour_utc</code>, all tracked across every cron-, webhook-, and event-driven run.</p>
+    <h2 id="how-to-pre-load-llm-guardrail-models-on-an-air-gapped-host"><a class="toclink" href="../../../../offline-guardrail-models/">How to Pre-Load LLM Guardrail Models on an Air-Gapped Host</a></h2>
+<p>Running <strong>offline guardrail models</strong> on an air-gapped host sounds like it should be a config flag, but the failure mode is subtle: a guardrail or embedding model that expects to auto-download from a model hub does not gracefully degrade when the network is gone — it hard-fails or blocks on the first user message, in production, at the exact moment you least want a surprise. The DeBERTa injection classifier, GLiNER NER model, Llama Guard, and the <code>all-MiniLM-L6-v2</code> embedding model that powers semantic tool selection all default to pulling weights from Hugging Face the first time they run. On a laptop that is fine. In a classified data center or a sovereign-cloud tenant with no egress, that first <code>from_pretrained()</code> call raises a connection error and takes your agent down with it.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../daily-budget-for-ai-agent/">
+        <a href="../../../../offline-guardrail-models/">
           Continue reading
         </a>
       </nav>
@@ -9749,13 +9823,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/use-cases/" class="md-meta__link">Use Cases</a></li>
+              <a href="../../../../category/mcp/" class="md-meta__link">MCP</a></li>
         
         
           
           <li class="md-meta__item">
             
-              6 min read
+              7 min read
             
           </li>
         
@@ -9765,12 +9839,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="data-analysis-ai-agent-natural-language-to-sql"><a class="toclink" href="../../../../data-analysis-ai-agent/">Data Analysis AI Agent: Natural Language to SQL</a></h2>
-<p>A data analysis AI agent turns a plain-English question — "which region grew fastest last quarter, and by how much?" — into SQL, runs it, cross-references the results, and hands back an exact number. The catch is that a generic ReAct loop is dangerous here: when it has to join two tables and do arithmetic across the results, it will confidently invent a figure that looks plausible and is simply wrong. By the end of this post you'll know why that happens, and how to wire a plan-execute-verify reasoning pattern plus a bounded, ledger-scoped tool loop so your agent checks its math before it speaks.</p>
+    <h2 id="stop-rewriting-your-tools-for-claude-cursor-and-chatgpt"><a class="toclink" href="../../../../one-mcp-tool-every-ai-client/">Stop Rewriting Your Tools for Claude, Cursor, and ChatGPT</a></h2>
+<p>Write one MCP tool every AI client can call — Claude Desktop, Cursor, and ChatGPT included — and you never rewrite the same logic per framework again. That is the whole promise of the Model Context Protocol: a tool is a small server that speaks a standard wire format, and anything that speaks the protocol can discover and invoke it. Yet most agent frameworks quietly break that promise. They ask you to author tools as framework-native Python objects that only their own runtime understands, so the moment you want to reuse tools across AI clients you are back to standing up a separate MCP server anyway. This post shows why that gap exists, and how being MCP-native on <em>both</em> sides — a server SDK to write the tool and a native MCP client to consume it — collapses two artifacts into one.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../data-analysis-ai-agent/">
+        <a href="../../../../one-mcp-tool-every-ai-client/">
           Continue reading
         </a>
       </nav>
@@ -9806,12 +9880,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="delete-one-tenants-data-for-gdpr-not-the-rest"><a class="toclink" href="../../../../delete-one-tenant-s-data-gdpr/">Delete One Tenant's Data for GDPR, Not the Rest</a></h2>
-<p>Delete one tenant's data for GDPR right-to-erasure and you inherit a deceptively hard requirement: remove exactly that customer's records from the semantic cache, the vector store, and long-term memory — and nothing belonging to anyone else. On a shared multi-tenant agent, "their data" is smeared across at least three stores, each keyed differently, and a right-to-erasure request gives you a legal deadline to prove you got all of it. This post shows how Promptise Foundry turns that into one call per surface — <code>cache.purge_user("alice", tenant_id="acme")</code> and <code>provider.purge_user(caller.isolation_key)</code> — where the tenant is baked into the key, so the purge matches exactly what was stored.</p>
+    <h2 id="per-customer-chat-history-enforcing-session-ownership"><a class="toclink" href="../../../../per-customer-conversation-isolation/">Per-Customer Chat History: Enforcing Session Ownership</a></h2>
+<p><strong>Per-customer conversation isolation</strong> is the difference between persisting a chat thread and actually keeping one customer from reading another's — and the second is the part most stacks quietly skip. Wiring up a database to store messages by <code>session_id</code> is a solved problem: pick SQLite, Postgres, or Redis and you have durable history. The hard problem starts the moment a second customer exists, because a session id is just a string, and any authenticated caller who can produce that string can ask for the thread behind it. This post shows how Promptise Foundry turns "who is allowed to read this thread" from a check you have to remember into an invariant enforced on every read, write, and delete — keyed on the <code>tenant::user</code> isolation key so an enumerated session id from another customer is denied, not served.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../delete-one-tenant-s-data-gdpr/">
+        <a href="../../../../per-customer-conversation-isolation/">
           Continue reading
         </a>
       </nav>
@@ -9831,48 +9905,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/production/" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="deploying-ai-agents-to-kubernetes-with-promptise"><a class="toclink" href="../../../../deploying-ai-agents-to-kubernetes/">Deploying AI Agents to Kubernetes with Promptise</a></h2>
-<p>Deploying AI agents to Kubernetes is where most agent projects stall: the tool server runs fine on your laptop, but the cluster wants HTTP endpoints, real health probes, and metrics it can scale on — none of which a bare <code>python server.py</code> gives you. Promptise closes that gap with pieces you can wire in a few lines: a <code>HealthCheck</code> for dependency-aware readiness, <code>PrometheusMiddleware</code> for metrics, and <code>promptise serve --transport http</code> to run the server without boilerplate. By the end of this post you'll have a copy-paste path from a local MCP server to a running Kubernetes <code>Deployment</code> with liveness, readiness, and startup probes and a scrapeable <code>/metrics</code> endpoint.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../deploying-ai-agents-to-kubernetes/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/compliance--audit/" class="md-meta__link">Compliance &amp; Audit</a></li>
+              <a href="../../../../category/identity/" class="md-meta__link">Identity</a></li>
         
         
           
@@ -9888,12 +9921,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="how-to-detect-a-tampered-ai-agent-audit-trail"><a class="toclink" href="../../../../detect-a-tampered-agent-audit-trail/">How to Detect a Tampered AI Agent Audit Trail</a></h2>
-<p>To <strong>detect a tampered agent audit trail</strong> you need one property a plain JSONL file or stdout stream can never give you on its own: a way to prove, after the fact, that no record was edited, deleted, or reordered. A log your agent appends to is just bytes on disk. Anyone with write access — a compromised process, a careless migration script, an insider covering their tracks — can rewrite a line, drop an entry, or truncate the file, and nothing about the surviving data reveals the change. This post is the operational verification workflow, not the theory: exactly what Promptise's <code>verify_chain()</code> checks, how the break localizes to the specific entry an insert, edit, or delete touched, and how to wire the check into CI, a periodic integrity job, and an incident-response runbook so you can prove a clean chain on demand.</p>
+    <h2 id="one-agent-many-apis-per-resource-credentials-done-right"><a class="toclink" href="../../../../per-resource-credentials-for-one-agent/">One agent, many APIs: per-resource credentials done right</a></h2>
+<p>Getting <strong>per-resource credentials for one agent</strong> right is the difference between a fleet you can reason about and a drawer full of static tokens you rotate by hand. A real agent rarely talks to one backend. <code>billing-bot</code> reads invoices from a billing MCP server <em>and</em> pulls account details from a CRM API — and each of those resources, if it takes security seriously, demands a token minted for <em>its own</em> audience. The billing server wants an <code>aud</code> of <code>api://billing</code>; the CRM wants <code>api://crm</code>; neither should ever accept the other's token. The naive answer is one static bearer per backend, provisioned and rotated separately, which is exactly where leaks and over-scoping creep in. Promptise Foundry mints a resource-scoped credential <em>per audience</em> from a single <code>AgentIdentity</code> — cached and refreshed independently, and verified server-side with an audience check that blocks a token from being replayed at the wrong resource.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../detect-a-tampered-agent-audit-trail/">
+        <a href="../../../../per-resource-credentials-for-one-agent/">
           Continue reading
         </a>
       </nav>
@@ -9913,13 +9946,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/use-cases/" class="md-meta__link">Use Cases</a></li>
+              <a href="../../../../category/mcp/" class="md-meta__link">MCP</a></li>
         
         
           
           <li class="md-meta__item">
             
-              7 min read
+              9 min read
             
           </li>
         
@@ -9929,12 +9962,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="devops-ai-agent-autonomous-cicd-pipeline-monitoring"><a class="toclink" href="../../../../devops-ai-agent/">DevOps AI Agent: Autonomous CI/CD Pipeline Monitoring</a></h2>
-<p>A real devops ai agent is not a chat window you paste stack traces into — it's a long-lived process that wakes up when your pipeline emits an event, investigates on its own, fixes what it safely can, and only pages a human for the genuine criticals. That daemon shape is where most tutorials stop and where production teams actually start. By the end of this post you'll understand the pattern SRE teams use, see a webhook-triggered agent process wired with budget, health, and mission governance, and know how the journal replays state after a crash so a restart doesn't lose the incident it was working.</p>
+    <h2 id="stop-one-tenant-draining-a-shared-mcp-servers-quota"><a class="toclink" href="../../../../per-tenant-mcp-rate-limiting/">Stop One Tenant Draining a Shared MCP Server's Quota</a></h2>
+<p>Per-tenant MCP rate limiting is the difference between a quota that protects each customer and a quota that merely protects your process — and on a shared MCP server, per-client throttling quietly gives you the second while you think you bought the first. The trap is subtle: a token-bucket limiter keyed by "client" looks tenant-aware right up until two of your tenants authenticate a user whose id happens to be the same string. The moment <code>acme</code>'s user <code>u-42</code> and <code>globex</code>'s user <code>u-42</code> collide onto one bucket, one customer's burst starts spending another customer's quota, and neither of them did anything wrong. Worse, a single tenant that spins up many client ids can collectively soak up the shared throughput everyone else depends on, because nothing in a per-client scheme says "this tenant, as a whole, gets this much."</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../devops-ai-agent/">
+        <a href="../../../../per-tenant-mcp-rate-limiting/">
           Continue reading
         </a>
       </nav>
@@ -9954,89 +9987,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/use-cases/" class="md-meta__link">Use Cases</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="build-a-pii-safe-document-processing-ai-agent"><a class="toclink" href="../../../../document-processing-ai-agent/">Build a PII-Safe Document Processing AI Agent</a></h2>
-<p>A document processing ai agent is one of the highest-value things you can build with an LLM — invoices, contracts, lab results, and onboarding forms are exactly the unstructured text that models are good at, and exactly the data your compliance team loses sleep over. Two failure modes break these pipelines in production: sensitive data leaks out in an extracted response, and generated parsing code runs with full access to your host. This build closes both. By the end you'll have a working pipeline where every extracted output is scanned for PII before it leaves the agent, and any code the agent writes to parse a file runs inside a locked-down Docker sandbox with no network.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../document-processing-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/comparisons/" class="md-meta__link">Comparisons</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="does-langchain-support-multi-tenancy-the-honest-answer"><a class="toclink" href="../../../../does-langchain-support-multi-tenancy/">Does LangChain Support Multi-Tenancy? The Honest Answer</a></h2>
-<p>If you are asking <strong>does LangChain support multi-tenancy</strong>, the honest answer is: not as a first-class concept — LangChain hands you excellent building blocks (memory stores, caches, retrievers, rate limiters), but there is no tenant identity that flows through them, so per-tenant isolation is something you wire and enforce yourself on every call. That is not a knock; it is a scope decision. This post is precise about exactly what LangChain gives you today, where the classic "two customers both named alice" leak comes from, and how Promptise Foundry turns tenancy from a filter you can forget into a structural invariant.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../does-langchain-support-multi-tenancy/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/runtime/" class="md-meta__link">Runtime</a></li>
+              <a href="../../../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
         
         
           
@@ -10052,12 +10003,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="durable-execution-for-ai-agents-in-python"><a class="toclink" href="../../../../durable-execution-for-ai-agents/">Durable Execution for AI Agents in Python</a></h2>
-<p>Durable execution for AI agents is the property that lets a long-running, self-triggering agent survive a crash and come back exactly where it left off — same context, same counters, same lifecycle state — instead of restarting from zero. The term "durable execution" comes from the workflow world, where engines like Temporal, Restate, and DBOS made it famous. This page explains what the phrase means once your unit of work stops being a deterministic workflow and becomes a stateful agent, why the existing tools only solve half of it, and how Promptise Foundry closes the gap with a supervised process, an append-only journal, and a replay engine. It is the hub for the whole durability cluster, so it stays at the architecture altitude and points you at the deep dives for each mechanism.</p>
+    <h2 id="noisy-neighbors-per-tenant-rate-limits-for-ai-agents"><a class="toclink" href="../../../../per-tenant-rate-limiting-ai-agent/">Noisy Neighbors: Per-Tenant Rate Limits for AI Agents</a></h2>
+<p>Per-tenant rate limiting AI agent platforms need is the difference between a shared deployment that degrades gracefully and one where a single customer's runaway loop pages your on-call at 2 a.m. because every other tenant's requests are suddenly getting refused. In a multi-customer platform, every tenant's agents hit the same MCP tool servers. Most of the time that is fine. Then one tenant ships a buggy prompt, an agent gets stuck reformulating the same <code>generate_report</code> call forty times a minute, and your token bucket drains — for everyone. This is the noisy-neighbor problem, and the uncomfortable truth is that a per-client or per-tool limiter alone does not solve it.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../durable-execution-for-ai-agents/">
+        <a href="../../../../per-tenant-rate-limiting-ai-agent/">
           Continue reading
         </a>
       </nav>
@@ -10077,13 +10028,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../../../category/cost--efficiency/" class="md-meta__link">Cost &amp; Efficiency</a></li>
+              <a href="../../../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
         
         
           
           <li class="md-meta__item">
             
-              10 min read
+              7 min read
             
           </li>
         
@@ -10093,12 +10044,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="encrypt-your-llm-response-cache-at-rest-in-redis"><a class="toclink" href="../../../../encrypt-llm-cache-at-rest/">Encrypt Your LLM Response Cache at Rest in Redis</a></h2>
-<p>Learning to <strong>encrypt LLM cache at rest</strong> starts with reckoning with what a semantic cache actually is on disk: a running log of every prompt a user typed and every answer your model gave back, sitting in Redis as plaintext JSON. The feature that makes the cache cheap — remembering answers so you can serve them again — is exactly what turns it into a liability. An RDB snapshot copied to a backup bucket, a replica tapped by a read-only credential, a <code>KEYS *</code> from a misconfigured <code>requirepass</code>, or an instance accidentally bound to a public interface: any one of those hands over conversations verbatim. Promptise Foundry ships a one-flag answer to this. Set <code>encrypt_values=True</code> on <code>SemanticCache</code> and the prompt-and-answer payload is encrypted application-side with AES (via Fernet) before it ever reaches Redis, keyed by <code>PROMPTISE_CACHE_KEY</code> so it stays readable across restarts. This post walks the threat, the exact toggle, and how to verify ciphertext is really what landed at rest.</p>
+    <h2 id="carry-a-users-tenant-across-agent-delegation"><a class="toclink" href="../../../../propagate-tenant-across-agent-delegation/">Carry a User's Tenant Across Agent Delegation</a></h2>
+<p>To <strong>propagate tenant across agent delegation</strong> is to keep one promise: when your orchestrator agent hands work to a peer mid-request, the peer's cache, memory, and conversation history stay scoped to the <em>original</em> end-user's tenant — not to the process, and not to whatever principal the peer happens to think it is serving. This is the data-isolation side of delegation, and it is distinct from <em>attribution</em> (knowing which agent asked). Attribution answers "who delegated?"; isolation answers "whose data can the delegate touch?". Get attribution right and you still have a leak if the peer reads a shared vector store under the wrong tenant. This post shows how Promptise Foundry makes the tenant ride along automatically, so <code>ask_agent_&lt;peer&gt;</code> and <code>broadcast_to_agents</code> never silently widen the blast radius.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../../../encrypt-llm-cache-at-rest/">
+        <a href="../../../../propagate-tenant-across-agent-delegation/">
           Continue reading
         </a>
       </nav>
@@ -10114,7 +10065,7 @@
 
 
 <nav class="md-pagination">
-  <a class="md-pagination__link" href="../../">1</a> <a class="md-pagination__link" href="../2/">2</a> <span class="md-pagination__current">3</span> <a class="md-pagination__link" href="../4/">4</a> <a class="md-pagination__link" href="../5/">5</a> <span class="md-pagination__dots">..</span> <a class="md-pagination__link" href="../9/">9</a>
+  <a class="md-pagination__link" href="../../">1</a> <a class="md-pagination__link" href="../2/">2</a> <span class="md-pagination__current">3</span> <a class="md-pagination__link" href="../4/">4</a> <a class="md-pagination__link" href="../5/">5</a>
 </nav>
         
       

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A complete REST API for managing your Agent Runtime — deploy agents, update configurations, send messages, and monitor health without touching code.">
+        <meta name="description" content="OrchestrationAPI is a REST API for a running AgentRuntime. Use it to deploy, start, stop and remove agent processes, change their instructions, budgets and">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Orchestration API">
-  <meta property="og:description" content="A complete REST API for managing your Agent Runtime — deploy agents, update configurations, send messages, and monitor health without touching code.">
+  <meta property="og:description" content="OrchestrationAPI is a REST API for a running AgentRuntime. Use it to deploy, start, stop and remove agent processes, change their instructions, budgets and">
   <meta property="og:url" content="https://docs.promptise.com/runtime/api/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Orchestration API">
-  <meta name="twitter:description" content="A complete REST API for managing your Agent Runtime — deploy agents, update configurations, send messages, and monitor health without touching code.">
+  <meta name="twitter:description" content="OrchestrationAPI is a REST API for a running AgentRuntime. Use it to deploy, start, stop and remove agent processes, change their instructions, budgets and">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Orchestration API",
       "name": "Orchestration API",
-      "description": "A complete REST API for managing your Agent Runtime \u2014 deploy agents, update configurations, send messages, and monitor health without touching code.",
+      "description": "OrchestrationAPI is a REST API for a running AgentRuntime. Use it to deploy, start, stop and remove agent processes, change their instructions, budgets and",
       "url": "https://docs.promptise.com/runtime/api/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5130,6 +5100,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#creating-the-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating the server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5152,56 +5133,89 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#request-bodies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request bodies
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#endpoints" class="md-nav__link">
+  <a href="#securing-the-control-api" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Endpoints
+        Securing the control API
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Endpoints">
+    <nav class="md-nav" aria-label="Securing the control API">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#process-lifecycle" class="md-nav__link">
+  <a href="#deploys-that-run-programs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Process Lifecycle
+        Deploys that run programs
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Process Lifecycle">
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment references
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-system-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File system paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#route-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Route reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Route reference">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#deploy-a-new-agent-no-code-required" class="md-nav__link">
+  <a href="#runtime" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deploy a new agent (no code required)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#configuration-updates-hot-reload" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration Updates (hot-reload)
+        Runtime
       
     </span>
   </a>
@@ -5209,10 +5223,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#trigger-management" class="md-nav__link">
+  <a href="#processes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Trigger Management
+        Processes
       
     </span>
   </a>
@@ -5220,10 +5234,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#secret-management" class="md-nav__link">
+  <a href="#live-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Secret Management
+        Live configuration
       
     </span>
   </a>
@@ -5231,10 +5245,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#journal" class="md-nav__link">
+  <a href="#messages" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Journal
+        Messages
       
     </span>
   </a>
@@ -5242,10 +5256,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#mission-control" class="md-nav__link">
+  <a href="#state-secrets-mission-health" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mission Control
+        State, secrets, mission, health
       
     </span>
   </a>
@@ -5253,54 +5267,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#health-monitoring" class="md-nav__link">
+  <a href="#journal-and-rewind" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Health Monitoring
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#process-suspendresume" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Process Suspend/Resume
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#human-communication" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Human Communication
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#observability" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Observability
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#runtime-management" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Runtime Management
+        Journal and rewind
       
     </span>
   </a>
@@ -5313,10 +5283,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#message-types" class="md-nav__link">
+  <a href="#deploying-a-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Message Types
+        Deploying a process
       
     </span>
   </a>
@@ -5324,10 +5294,198 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#process-config-for-deployment" class="md-nav__link">
+  <a href="#changing-a-running-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Process Config (for deployment)
+        Changing a running process
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Changing a running process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instructions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#budget-health-and-mission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Budget, health and mission
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Triggers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#context-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mission
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#messages-and-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Messages and questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Messages and questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#message-types-and-priorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Message types and priorities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sending-a-message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sending a message
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asking-a-question" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asking a question
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-the-agent-sees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the agent sees
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#answers-and-consumption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Answers and consumption
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limits-and-refusals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits and refusals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guardrail-scanning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guardrail scanning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#from-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python client
       
     </span>
   </a>
@@ -5335,32 +5493,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#python-sdk-client" class="md-nav__link">
+  <a href="#audit-log" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Python SDK Client
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-inbox-messages-reach-the-agent" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How Inbox Messages Reach the Agent
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#inbox-configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Inbox Configuration
+        Audit log
       
     </span>
   </a>
@@ -5371,7 +5507,7 @@
   <a href="#error-responses" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Error Responses
+        Error responses
       
     </span>
   </a>
@@ -5390,10 +5526,21 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next?
+        What's next?
       
     </span>
   </a>
@@ -6243,6 +6390,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6265,8 +6416,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6280,8 +6432,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6293,6 +6451,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8539,8 +8699,6 @@
       
         
       
-        
-      
     
     
     
@@ -8693,36 +8851,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9601,6 +9729,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#creating-the-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Creating the server
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9623,56 +9762,89 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#request-bodies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request bodies
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#endpoints" class="md-nav__link">
+  <a href="#securing-the-control-api" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Endpoints
+        Securing the control API
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Endpoints">
+    <nav class="md-nav" aria-label="Securing the control API">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#process-lifecycle" class="md-nav__link">
+  <a href="#deploys-that-run-programs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Process Lifecycle
+        Deploys that run programs
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Process Lifecycle">
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment references
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-system-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File system paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#route-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Route reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Route reference">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#deploy-a-new-agent-no-code-required" class="md-nav__link">
+  <a href="#runtime" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Deploy a new agent (no code required)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#configuration-updates-hot-reload" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration Updates (hot-reload)
+        Runtime
       
     </span>
   </a>
@@ -9680,10 +9852,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#trigger-management" class="md-nav__link">
+  <a href="#processes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Trigger Management
+        Processes
       
     </span>
   </a>
@@ -9691,10 +9863,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#secret-management" class="md-nav__link">
+  <a href="#live-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Secret Management
+        Live configuration
       
     </span>
   </a>
@@ -9702,10 +9874,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#journal" class="md-nav__link">
+  <a href="#messages" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Journal
+        Messages
       
     </span>
   </a>
@@ -9713,10 +9885,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#mission-control" class="md-nav__link">
+  <a href="#state-secrets-mission-health" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mission Control
+        State, secrets, mission, health
       
     </span>
   </a>
@@ -9724,54 +9896,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#health-monitoring" class="md-nav__link">
+  <a href="#journal-and-rewind" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Health Monitoring
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#process-suspendresume" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Process Suspend/Resume
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#human-communication" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Human Communication
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#observability" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Observability
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#runtime-management" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Runtime Management
+        Journal and rewind
       
     </span>
   </a>
@@ -9784,10 +9912,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#message-types" class="md-nav__link">
+  <a href="#deploying-a-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Message Types
+        Deploying a process
       
     </span>
   </a>
@@ -9795,10 +9923,198 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#process-config-for-deployment" class="md-nav__link">
+  <a href="#changing-a-running-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Process Config (for deployment)
+        Changing a running process
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Changing a running process">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instructions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#budget-health-and-mission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Budget, health and mission
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Triggers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#context-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context state
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mission
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#messages-and-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Messages and questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Messages and questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#message-types-and-priorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Message types and priorities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sending-a-message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sending a message
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asking-a-question" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asking a question
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-the-agent-sees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the agent sees
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#answers-and-consumption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Answers and consumption
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#limits-and-refusals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits and refusals
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#guardrail-scanning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Guardrail scanning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#from-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-client" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python client
       
     </span>
   </a>
@@ -9806,32 +10122,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#python-sdk-client" class="md-nav__link">
+  <a href="#audit-log" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Python SDK Client
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-inbox-messages-reach-the-agent" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How Inbox Messages Reach the Agent
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#inbox-configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Inbox Configuration
+        Audit log
       
     </span>
   </a>
@@ -9842,7 +10136,7 @@
   <a href="#error-responses" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Error Responses
+        Error responses
       
     </span>
   </a>
@@ -9861,10 +10155,21 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next?
+        What's next?
       
     </span>
   </a>
@@ -9941,29 +10246,126 @@
 
 
 <h1 id="orchestration-api">Orchestration API<a class="headerlink" href="#orchestration-api" title="Link to this section">&para;</a></h1>
-<p>A complete REST API for managing your Agent Runtime — deploy agents, update configurations, send messages, and monitor health without touching code.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">OrchestrationAPI</span>
+<p><code>OrchestrationAPI</code> is a REST API for a running <code>AgentRuntime</code>. Use it to deploy, start, stop and remove agent processes, change their instructions, budgets and triggers while they run, send them messages, rotate their secrets and read their journals, all over HTTP. <code>OrchestrationClient</code> is the matching typed Python client. <code>promptise runtime start</code> serves this API for you (see <a href="../cli/">CLI Commands</a>); in your own program you start it yourself.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">()</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">api</span> <span class="o">=</span> <span class="n">OrchestrationAPI</span><span class="p">(</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">runtime</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">host</span><span class="o">=</span><span class="s2">"0.0.0.0"</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">port</span><span class="o">=</span><span class="mi">9100</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">auth_token</span><span class="o">=</span><span class="s2">"$</span><span class="si">{ORCHESTRATION_API_TOKEN}</span><span class="s2">"</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">OrchestrationAPI</span><span class="p">,</span> <span class="n">OrchestrationClient</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">()</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">api</span> <span class="o">=</span> <span class="n">OrchestrationAPI</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">9100</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="s2">"change-me"</span><span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">OrchestrationClient</span><span class="p">(</span><span class="s2">"http://127.0.0.1:9100"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="s2">"change-me"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="s2">"monitor"</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>            <span class="p">{</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                <span class="s2">"model"</span><span class="p">:</span> <span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                <span class="s2">"instructions"</span><span class="p">:</span> <span class="s2">"Watch the data pipelines and report problems."</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                <span class="s2">"triggers"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"cron"</span><span class="p">,</span> <span class="s2">"cron_expression"</span><span class="p">:</span> <span class="s2">"*/5 * * * *"</span><span class="p">}],</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>                <span class="s2">"inbox"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"enabled"</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>            <span class="p">},</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>            <span class="n">start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        <span class="p">)</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="n">status</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get_process</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">)</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">status</span><span class="p">[</span><span class="s2">"state"</span><span class="p">])</span>  <span class="c1"># running</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>        <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>            <span class="s2">"monitor"</span><span class="p">,</span> <span class="s2">"Ignore staging alerts for 1 hour"</span><span class="p">,</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>            <span class="n">message_type</span><span class="o">=</span><span class="s2">"directive"</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="s2">"high"</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>        <span class="p">)</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    <span class="k">await</span> <span class="n">api</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">stop_all</span><span class="p">()</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
 <hr />
+<h2 id="creating-the-server">Creating the server<a class="headerlink" href="#creating-the-server" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">OrchestrationAPI</span><span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">runtime</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">host</span><span class="o">=</span><span class="s2">"127.0.0.1"</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">port</span><span class="o">=</span><span class="mi">9100</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">auth_token</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">on_shutdown</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">allow_command_deploys</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">allow_env_references</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">allowed_env_vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">data_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">)</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>runtime</code></td>
+<td>required</td>
+<td>The <code>AgentRuntime</code> to manage</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td><code>"127.0.0.1"</code></td>
+<td>Bind address</td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td><code>9100</code></td>
+<td>Port. <code>0</code> lets the OS pick a free port; read it from <code>api.port</code> after <code>start()</code></td>
+</tr>
+<tr>
+<td><code>auth_token</code></td>
+<td><code>None</code></td>
+<td>Bearer token required on every route except <code>GET /api/v1/health</code>. Required when <code>host</code> is not a loopback address. <code>"${VAR}"</code> reads it from the environment</td>
+</tr>
+<tr>
+<td><code>on_shutdown</code></td>
+<td><code>None</code></td>
+<td>Sync or async callable without arguments. When set, <code>POST /api/v1/runtime/shutdown</code> exists: it answers <code>202</code> and then calls the callable (for example <code>runtime.request_shutdown</code>). Without it the route answers <code>404</code></td>
+</tr>
+<tr>
+<td><code>allow_command_deploys</code></td>
+<td><code>False</code></td>
+<td>Let <code>POST /api/v1/processes</code> deploy configs that run programs or code on the host (stdio MCP servers, command hooks, open mode with <code>allow_tool_creation</code>). See <a href="#deploys-that-run-programs">Deploys that run programs</a></td>
+</tr>
+<tr>
+<td><code>allow_env_references</code></td>
+<td><code>False</code></td>
+<td>Let deployed configs use <code>${VAR}</code> references to any environment variable of the host. See <a href="#environment-references">Environment references</a></td>
+</tr>
+<tr>
+<td><code>allowed_env_vars</code></td>
+<td><code>None</code></td>
+<td>Names of the variables deployed configs may reference when <code>allow_env_references</code> is off, e.g. <code>{"SEARCH_API_KEY"}</code></td>
+</tr>
+<tr>
+<td><code>data_dir</code></td>
+<td><code>./.promptise</code></td>
+<td>The directory file system paths in deployed configs must lie in. See <a href="#file-system-paths">File system paths</a></td>
+</tr>
+</tbody>
+</table>
+<p><code>await api.start()</code> binds the port and serves; <code>await api.stop()</code> closes the server. The constructor raises <code>ValueError</code> when <code>auth_token</code> is an empty string, names an unset environment variable, or is missing for a non-loopback <code>host</code>, and <code>TypeError</code> when <code>on_shutdown</code> is not callable or <code>allowed_env_vars</code> is a single string.</p>
+<hr />
 <h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Link to this section">&para;</a></h2>
-<p>When <code>auth_token</code> is set, every request except <code>GET /api/v1/health</code> needs a Bearer token, including requests to unknown paths:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Authorization: Bearer &lt;your-token&gt;
+<p>When <code>auth_token</code> is set, every request except <code>GET /api/v1/health</code> needs the token, including requests to unknown paths:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Authorization: Bearer &lt;your-token&gt;
 </span></code></pre></div>
 <ul>
-<li><strong>Loopback</strong> (<code>127.0.0.1</code>, <code>localhost</code>, <code>::1</code>): auth token is optional</li>
-<li><strong>Anything else</strong>: auth token is <strong>required</strong> — the API refuses to start without one (an empty token is refused too)</li>
-<li>Comparison is timing-safe (<code>hmac.compare_digest</code>)</li>
-<li>Token supports env var resolution: <code>${ORCHESTRATION_API_TOKEN}</code></li>
+<li><strong>Loopback</strong> (<code>127.0.0.1</code>, <code>localhost</code>, <code>::1</code>): the token is optional.</li>
+<li><strong>Anything else</strong>: the token is <strong>required</strong>. The constructor refuses to build the API without one.</li>
+<li>The comparison is timing-safe.</li>
+<li><code>auth_token="${ORCHESTRATION_API_TOKEN}"</code> reads the token from the environment; an unset variable raises <code>ValueError</code>.</li>
 </ul>
+<p>A missing or wrong token gets <code>401 UNAUTHORIZED</code>.</p>
 <h3 id="browsers-cant-drive-a-local-api">Browsers can't drive a local API<a class="headerlink" href="#browsers-cant-drive-a-local-api" title="Link to this section">&para;</a></h3>
 <p>A loopback bind is reachable by any web page open in a browser on the same machine. On a loopback bind the API therefore refuses:</p>
 <table>
@@ -9987,433 +10389,582 @@
 </tr>
 </tbody>
 </table>
-<p><code>curl</code>, scripts and the Promptise clients send a loopback <code>Host</code> and no <code>Origin</code>, so they are unaffected. A local web UI served from <code>http://localhost:&lt;port&gt;</code> is allowed. Set an <code>auth_token</code> even on loopback if other users share the machine.</p>
-<p>Request bodies must be JSON objects. Anything else (a list, a string, invalid JSON) gets <code>400</code> <code>INVALID_JSON</code>; routes that take no body accept an empty one.</p>
+<p><code>curl</code>, scripts and the Promptise clients send a loopback <code>Host</code> and no <code>Origin</code>, so they are unaffected. A local web UI served from <code>http://localhost:&lt;port&gt;</code> is allowed. Set an <code>auth_token</code> even on loopback if other users share the machine. Behind a reverse proxy, keep the proxy's upstream <code>Host</code> on a loopback name, or bind the API to a non-loopback address with a token.</p>
+<h3 id="request-bodies">Request bodies<a class="headerlink" href="#request-bodies" title="Link to this section">&para;</a></h3>
+<p>Request bodies must be JSON objects. Anything else (a list, a string, invalid JSON) gets <code>400 INVALID_JSON</code>; routes that take no body accept an empty one. A body over 1 MiB gets <code>413 PAYLOAD_TOO_LARGE</code>.</p>
 <hr />
-<h2 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Link to this section">&para;</a></h2>
-<h3 id="process-lifecycle">Process Lifecycle<a class="headerlink" href="#process-lifecycle" title="Link to this section">&para;</a></h3>
+<h2 id="securing-the-control-api">Securing the control API<a class="headerlink" href="#securing-the-control-api" title="Link to this section">&para;</a></h2>
+<p>Anyone with the token can deploy agents, so treat a token holder as someone who writes process configs on your machine. The API keeps such a config from reaching further than the agent itself:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>What it protects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>auth_token</code></td>
+<td>random with <code>promptise runtime start</code>, else <code>None</code></td>
+<td>Every route except <code>GET /health</code>. Required off loopback</td>
+</tr>
+<tr>
+<td>Loopback bind (<code>host="127.0.0.1"</code>)</td>
+<td>on</td>
+<td>Only local clients; browser pages are refused (<code>421</code> / <code>403</code>)</td>
+</tr>
+<tr>
+<td><code>allow_command_deploys</code></td>
+<td><code>False</code></td>
+<td>Deploys can't start programs or run agent-written code on the host</td>
+</tr>
+<tr>
+<td><code>allow_env_references</code> / <code>allowed_env_vars</code></td>
+<td>off / none</td>
+<td>Deploys can't read the host's environment through <code>${VAR}</code></td>
+</tr>
+<tr>
+<td><code>data_dir</code></td>
+<td><code>./.promptise</code></td>
+<td>Deploys can't write journals, memory or watch files elsewhere</td>
+</tr>
+<tr>
+<td><code>open_mode.allowed_mcp_urls</code></td>
+<td>empty = <strong>no</strong> server for API deploys</td>
+<td>A deployed open-mode agent can't connect MCP servers you didn't list</td>
+</tr>
+</tbody>
+</table>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">api</span> <span class="o">=</span> <span class="n">OrchestrationAPI</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">runtime</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">host</span><span class="o">=</span><span class="s2">"127.0.0.1"</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">auth_token</span><span class="o">=</span><span class="s2">"$</span><span class="si">{ORCHESTRATION_API_TOKEN}</span><span class="s2">"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">allowed_env_vars</span><span class="o">=</span><span class="p">{</span><span class="s2">"SEARCH_API_KEY"</span><span class="p">},</span>  <span class="c1"># the only variable deploys may reference</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">data_dir</span><span class="o">=</span><span class="s2">"/var/lib/promptise"</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>The same switches exist on the CLI: <code>promptise runtime start --allow-command-deploys --allow-env-references --allow-env-var NAME</code>. Processes you load from manifests on the host are yours and none of these checks apply to them. The process keeps the limits it was deployed with (secrets, MCP allowlist, paths) and passes them on to the processes it spawns.</p>
+<h3 id="deploys-that-run-programs">Deploys that run programs<a class="headerlink" href="#deploys-that-run-programs" title="Link to this section">&para;</a></h3>
+<p>A config that starts a program, or runs agent-written code, on the runtime's host can't be deployed over the API by default. <code>POST /api/v1/processes</code> answers <code>403 COMMANDS_NOT_ALLOWED</code> when the config has:</p>
+<ul>
+<li>a stdio MCP server (a server entry with a <code>command</code>, or <code>type</code>/<code>transport</code> <code>"stdio"</code>),</li>
+<li>a command hook (a <code>hooks</code> entry with a <code>command</code>), or</li>
+<li>open mode with <code>open_mode.allow_tool_creation</code> (the default in open mode). The agent's <code>create_tool</code> runs model-written Python inside the runtime's process, and its restricted builtins are not a sandbox, so it amounts to running commands. Deploy open-mode agents with <code>"open_mode": {"allow_tool_creation": false}</code>.</li>
+</ul>
+<p>Anyone with the token could otherwise run any command as the runtime's user. Use HTTP MCP servers instead of stdio ones and leave out command hooks (a deploy is JSON, so it can't carry a Python callback hook either; register hooks on the host, in a manifest or in code), load such processes from manifests on the host, or, if every token holder may run commands there, enable it:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">api</span> <span class="o">=</span> <span class="n">OrchestrationAPI</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="s2">"$</span><span class="si">{ORCHESTRATION_API_TOKEN}</span><span class="s2">"</span><span class="p">,</span> <span class="n">allow_command_deploys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--allow-command-deploys
+</span></code></pre></div>
+<p>The check applies only to deploys. Processes loaded from manifests by the operator are not checked, and the other routes that change a process (triggers, <code>PATCH</code> sections, context, instructions) have no field that runs a program.</p>
+<h3 id="environment-references">Environment references<a class="headerlink" href="#environment-references" title="Link to this section">&para;</a></h3>
+<p><code>${VAR}</code> references are resolved from the host's environment when a process starts (for example in <code>secrets</code>), and an agent can read a secret back with <code>get_secret</code>. So a deploy, a <code>POST .../triggers</code> or a <code>PATCH</code> of <code>budget</code>, <code>health</code> or <code>mission</code> whose body contains a <code>${VAR}</code> reference anywhere gets <code>403 ENV_REFERENCES_NOT_ALLOWED</code>, naming where the reference is. <code>instructions</code> are never resolved, so text there isn't checked. To allow references:</p>
+<ul>
+<li><code>allowed_env_vars={"SEARCH_API_KEY"}</code> (<code>--allow-env-var SEARCH_API_KEY</code>, repeatable): only these variables, or</li>
+<li><code>allow_env_references=True</code> (<code>--allow-env-references</code>): any variable.</li>
+</ul>
+<p>Otherwise send the value itself as a literal secret. As a backstop, an API-deployed process's secret scope resolves only the allowed variables too. A reference that can't be resolved fails the start with a generic <code>START_FAILED</code> message that doesn't say whether the variable exists (the server log has the detail).</p>
+<h3 id="file-system-paths">File system paths<a class="headerlink" href="#file-system-paths" title="Link to this section">&para;</a></h3>
+<p>Paths in a deployed config must lie inside <code>data_dir</code> (default <code>./.promptise</code> under the runtime's working directory, where the journal goes by default). Relative paths are resolved against the working directory, as the process uses them. <code>403 PATH_NOT_ALLOWED</code> answers a deploy whose</p>
+<ul>
+<li><code>journal.path</code> (for a file journal that is on),</li>
+<li><code>context.memory_persist_directory</code>, or</li>
+<li>a file-watch trigger's <code>watch_path</code></li>
+</ul>
+<p>is outside it, uses <code>..</code> or <code>~</code>, or is a symlink that leads out. <code>POST .../triggers</code> checks <code>watch_path</code> the same way, and the deployed agent's own <code>add_trigger</code> (open mode) is held to <code>data_dir</code> too.</p>
+<hr />
+<h2 id="route-reference">Route reference<a class="headerlink" href="#route-reference" title="Link to this section">&para;</a></h2>
+<p>Every route the server registers. Paths start with <code>/api/v1</code>. All routes except <code>GET /health</code> need the bearer token when one is set; <code>{name}</code> is the process name.</p>
+<h3 id="runtime">Runtime<a class="headerlink" href="#runtime" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
 <th>Method</th>
 <th>Path</th>
-<th>Description</th>
+<th>What it does</th>
+<th>Success</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>GET</code></td>
-<td><code>/api/v1/processes</code></td>
-<td>List all processes</td>
+<td><code>/health</code></td>
+<td>Load-balancer probe, no auth: <code>{"status": "healthy", "process_count"}</code></td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}</code></td>
-<td>Get process details (state, budget, health, mission)</td>
+<td><code>/runtime/status</code></td>
+<td><code>{"process_count", "processes": {name: status}}</code> (plus <code>cluster</code> in distributed mode)</td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>POST</code></td>
-<td><code>/api/v1/processes</code></td>
-<td>Deploy a new process from JSON config</td>
+<td><code>/runtime/start-all</code></td>
+<td>Start every process: <code>{"status": "started"}</code></td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/start</code></td>
-<td>Start a process</td>
+<td><code>/runtime/stop-all</code></td>
+<td>Stop every process: <code>{"status": "stopped"}</code></td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/stop</code></td>
-<td>Stop a process</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/restart</code></td>
-<td>Restart a process</td>
-</tr>
-<tr>
-<td><code>DELETE</code></td>
-<td><code>/api/v1/processes/{name}</code></td>
-<td>Remove a process</td>
+<td><code>/runtime/shutdown</code></td>
+<td>Only with <code>on_shutdown</code>: answers <code>{"status": "shutting_down"}</code>, then calls <code>on_shutdown</code></td>
+<td><code>202</code></td>
 </tr>
 </tbody>
 </table>
-<h4 id="deploy-a-new-agent-no-code-required">Deploy a new agent (no code required)<a class="headerlink" href="#deploy-a-new-agent-no-code-required" title="Link to this section">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Content-Type: application/json"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s1">    "name": "incident-handler",</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="s1">    "config": {</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="s1">        "model": "openai:gpt-5-mini",</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="s1">        "instructions": "Handle infrastructure incidents.",</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="s1">        "triggers": [{"type": "webhook", "webhook_path": "/incidents", "webhook_port": 9091}],</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="s1">        "budget": {"enabled": true, "max_tool_calls_per_day": 500}</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="s1">    },</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="s1">    "start": true</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="s1">  }'</span>
-</span></code></pre></div>
-<h3 id="configuration-updates-hot-reload">Configuration Updates (hot-reload)<a class="headerlink" href="#configuration-updates-hot-reload" title="Link to this section">&para;</a></h3>
+<h3 id="processes">Processes<a class="headerlink" href="#processes" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
 <th>Method</th>
 <th>Path</th>
-<th>Description</th>
+<th>What it does</th>
+<th>Success</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/processes</code></td>
+<td><code>{"processes": [{"name", "state", "process_id"}], "total"}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes</code></td>
+<td>Deploy: body <code>{"name", "config", "start"}</code> (see <a href="#deploying-a-process">Deploying a process</a>)</td>
+<td><code>201</code></td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/processes/{name}</code></td>
+<td>Process status: state, counters, triggers, budget, health, mission state, active secret count</td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/processes/{name}</code></td>
+<td>Stop and close the process, then remove it (memory closed, secrets revoked, conversation cleared)</td>
+<td><code>204</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/start</code></td>
+<td>Start: <code>{"name", "state"}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/stop</code></td>
+<td>Stop: <code>{"name", "state"}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/restart</code></td>
+<td>Stop (if running), then start: <code>{"name", "state"}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/suspend</code></td>
+<td>Pause trigger processing: <code>{"name", "suspended": true, "state"}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/resume</code></td>
+<td>Resume a suspended process: <code>{"name", "resumed": true, "state"}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/processes/{name}/metrics</code></td>
+<td>Same body as <code>GET /processes/{name}</code></td>
+<td><code>200</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="live-configuration">Live configuration<a class="headerlink" href="#live-configuration" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>What it does</th>
 <th>Takes effect</th>
+<th>Success</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>PATCH</code></td>
-<td><code>/api/v1/processes/{name}/instructions</code></td>
-<td>Update system prompt</td>
-<td>Next invocation</td>
+<td><code>/processes/{name}/instructions</code></td>
+<td>Replace the instructions: <code>{"instructions": "..."}</code></td>
+<td>Next run (<code>effective_from: "next_invocation"</code>)</td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>PATCH</code></td>
-<td><code>/api/v1/processes/{name}/budget</code></td>
-<td>Update budget limits</td>
-<td>Immediately</td>
+<td><code>/processes/{name}/budget</code></td>
+<td>Change <code>BudgetConfig</code> fields</td>
+<td>Next budget check (<code>"next_budget_check"</code>)</td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>PATCH</code></td>
-<td><code>/api/v1/processes/{name}/health</code></td>
-<td>Update health thresholds</td>
-<td>Immediately</td>
+<td><code>/processes/{name}/health</code></td>
+<td>Change <code>HealthConfig</code> fields</td>
+<td>Next check (<code>"immediate"</code>)</td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>PATCH</code></td>
-<td><code>/api/v1/processes/{name}/mission</code></td>
-<td>Update mission objective</td>
-<td>Immediately</td>
+<td><code>/processes/{name}/mission</code></td>
+<td>Change <code>MissionConfig</code> fields</td>
+<td>Next evaluation and prompt (<code>"immediate"</code>)</td>
+<td><code>200</code></td>
 </tr>
-</tbody>
-</table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Increase budget mid-operation</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/budget<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"max_cost_per_day": 500.0}'</span>
-</span></code></pre></div>
-<p>An <code>instructions</code> patch (<code>{"instructions": "..."}</code>, a string) replaces the process's instructions, including any an open-mode agent set for itself. The next invocation rebuilds the agent with them before it runs, keeping the connected MCP servers, the conversation history and the process state; an invocation already running finishes with the old instructions. No restart is needed. A process that is not running uses them when it starts. The same is available in Python as <code>process.update_instructions(text)</code>.</p>
-<p>The body of a <code>budget</code>, <code>health</code> or <code>mission</code> patch holds the fields to change, named as in <a href="../governance/budget/"><code>BudgetConfig</code>, <code>HealthConfig</code> and <code>MissionConfig</code></a>. The patched section is validated against its model before anything changes, with the same limits as at deploy time and strict JSON types (<code>"5"</code> is not a number, <code>1</code> is not <code>true</code>). A field the model does not declare, including inside <code>escalation</code> or <code>tool_costs</code>, is answered with <code>422 UNKNOWN_FIELD</code>; an invalid value with <code>422 INVALID_CONFIG</code>. In both cases nothing is changed, even when other fields in the same patch are valid. <code>null</code> clears an optional field such as <code>max_cost_per_day</code>.</p>
-<h3 id="trigger-management">Trigger Management<a class="headerlink" href="#trigger-management" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Path</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
 <tr>
 <td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}/triggers</code></td>
-<td>List all triggers (static + dynamic)</td>
+<td><code>/processes/{name}/triggers</code></td>
+<td>Config and agent-added triggers with stable IDs; <code>hmac_secret</code>, credential-like <code>custom_config</code> values and URL user info masked</td>
+<td>--</td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/triggers</code></td>
-<td>Add a trigger</td>
+<td><code>/processes/{name}/triggers</code></td>
+<td>Add a trigger (body: a <code>TriggerConfig</code>)</td>
+<td>At once on an active process, else at the next start</td>
+<td><code>201</code></td>
 </tr>
 <tr>
 <td><code>DELETE</code></td>
-<td><code>/api/v1/processes/{name}/triggers/{trigger_id}</code></td>
-<td>Remove a trigger</td>
+<td><code>/processes/{name}/triggers/{trigger_id}</code></td>
+<td>Stop and remove a trigger</td>
+<td>At once on an active process, else at the next start</td>
+<td><code>200</code></td>
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># List triggers</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>curl<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/triggers<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># Add a cron trigger</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/triggers<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"type": "cron", "cron_expression": "0 9 * * 1-5"}'</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Remove a trigger</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/triggers/static_0<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span></code></pre></div>
-<h3 id="secret-management">Secret Management<a class="headerlink" href="#secret-management" title="Link to this section">&para;</a></h3>
+<h3 id="messages">Messages<a class="headerlink" href="#messages" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
 <th>Method</th>
 <th>Path</th>
-<th>Description</th>
+<th>What it does</th>
+<th>Success</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/messages</code></td>
+<td>Queue a message: <code>{"message_id", "status": "queued", "expires_at"}</code></td>
+<td><code>201</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/ask</code></td>
+<td>Ask a question and wait for the answer (long poll; secret values in the answer are <code>[REDACTED]</code>)</td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/processes/{name}/inbox</code></td>
+<td>Pending messages and questions (redacted like the journal)</td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/processes/{name}/inbox</code></td>
+<td>Remove every message and cancel pending questions</td>
+<td><code>204</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="state-secrets-mission-health">State, secrets, mission, health<a class="headerlink" href="#state-secrets-mission-health" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>What it does</th>
+<th>Success</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}/secrets</code></td>
-<td>List secret names and TTL (never values)</td>
+<td><code>/processes/{name}/context</code></td>
+<td><code>{"state", "writable_keys", "all_keys_writable"}</code></td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>PATCH</code></td>
-<td><code>/api/v1/processes/{name}/secrets/{secret_name}</code></td>
-<td>Rotate a secret value</td>
-</tr>
-<tr>
-<td><code>DELETE</code></td>
-<td><code>/api/v1/processes/{name}/secrets</code></td>
-<td>Revoke all secrets (zero-fill)</td>
-</tr>
-</tbody>
-</table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># List secrets (names only — values are never exposed)</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>curl<span class="w"> </span>http://localhost:9100/api/v1/processes/payment-bot/secrets<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Rotate a secret</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>curl<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span>http://localhost:9100/api/v1/processes/payment-bot/secrets/stripe_key<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"value": "sk_live_new_key_here", "ttl": 3600}'</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1"># Emergency revoke all secrets</span>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>http://localhost:9100/api/v1/processes/payment-bot/secrets<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span></code></pre></div>
-<h3 id="journal">Journal<a class="headerlink" href="#journal" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Path</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}/journal</code></td>
-<td>Read journal entries (supports <code>?limit=50&amp;type=invocation_result</code>)</td>
-</tr>
-</tbody>
-</table>
-<p>The process files its journal entries under its name (so they survive a restart, which gets a new <code>process_id</code>), and the endpoint reads them by name. The response is <code>{"name", "entries": [{"entry_type", "timestamp", "data"}, ...], "count"}</code>, oldest first, or <code>{"name", "entries": [], "journal_enabled": false}</code> when the process has no journal.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Read last 20 journal entries</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>curl<span class="w"> </span><span class="s2">"http://localhost:9100/api/v1/processes/monitor/journal?limit=20"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># Filter by entry type</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>curl<span class="w"> </span><span class="s2">"http://localhost:9100/api/v1/processes/monitor/journal?type=state_transition"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span></code></pre></div>
-<h3 id="mission-control">Mission Control<a class="headerlink" href="#mission-control" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Path</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}/mission</code></td>
-<td>Get mission state + evaluation history</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/mission/fail</code></td>
-<td>Manually fail the mission</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/mission/pause</code></td>
-<td>Pause mission evaluation</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/mission/resume</code></td>
-<td>Resume mission evaluation</td>
-</tr>
-</tbody>
-</table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Check mission progress</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>curl<span class="w"> </span>http://localhost:9100/api/v1/processes/migrator/mission<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># Manually fail (e.g., requirements changed)</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/migrator/mission/fail<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"reason": "Requirements changed, migration cancelled"}'</span>
-</span></code></pre></div>
-<h3 id="health-monitoring">Health Monitoring<a class="headerlink" href="#health-monitoring" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Path</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}/health/anomalies</code></td>
-<td>Get anomaly history</td>
-</tr>
-<tr>
-<td><code>DELETE</code></td>
-<td><code>/api/v1/processes/{name}/health/anomalies</code></td>
-<td>Clear anomaly history</td>
-</tr>
-</tbody>
-</table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Check anomalies</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>curl<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/health/anomalies<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># Clear after fixing the issue</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/health/anomalies<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span></code></pre></div>
-<h3 id="process-suspendresume">Process Suspend/Resume<a class="headerlink" href="#process-suspendresume" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Path</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/suspend</code></td>
-<td>Pause trigger processing</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/resume</code></td>
-<td>Resume trigger processing</td>
-</tr>
-</tbody>
-</table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Pause during maintenance</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/suspend<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># Resume after maintenance</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/resume<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
-</span></code></pre></div>
-<h3 id="human-communication">Human Communication<a class="headerlink" href="#human-communication" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Path</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/messages</code></td>
-<td>Send a message to the agent</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/processes/{name}/ask</code></td>
-<td>Ask a question (long-poll for response)</td>
+<td><code>/processes/{name}/context</code></td>
+<td>Write state keys, all or none: <code>{"state": {...}}</code></td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}/inbox</code></td>
-<td>Get inbox status</td>
-</tr>
-<tr>
-<td><code>DELETE</code></td>
-<td><code>/api/v1/processes/{name}/inbox</code></td>
-<td>Clear inbox</td>
-</tr>
-</tbody>
-</table>
-<p>Requires <code>inbox.enabled: true</code> in the process config.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Send a directive</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/messages<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"content": "Ignore staging alerts for 1 hour", "message_type": "directive", "priority": "high", "ttl": 3600}'</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1"># Ask a question (waits for agent to respond)</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/ask<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"content": "What anomalies have you detected?", "timeout": 120}'</span>
-</span></code></pre></div>
-<h3 id="observability">Observability<a class="headerlink" href="#observability" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Path</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}/metrics</code></td>
-<td>Process metrics (invocations, tools, budget)</td>
-</tr>
-<tr>
-<td><code>GET</code></td>
-<td><code>/api/v1/processes/{name}/context</code></td>
-<td>Agent context state</td>
+<td><code>/processes/{name}/secrets</code></td>
+<td>Secret metadata, never values</td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>PATCH</code></td>
-<td><code>/api/v1/processes/{name}/context</code></td>
-<td>Update context state (writable keys only)</td>
+<td><code>/processes/{name}/secrets/{secret_name}</code></td>
+<td>Rotate one secret: <code>{"value", "ttl"?}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/processes/{name}/secrets</code></td>
+<td>Revoke every secret (zero-fill): <code>{"name", "secrets_revoked": true}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/processes/{name}/mission</code></td>
+<td>Mission state and evaluation history</td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/mission/fail</code></td>
+<td>Fail an <code>active</code> or <code>paused</code> mission: <code>{"reason"?}</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/mission/pause</code></td>
+<td>Pause an <code>active</code> mission</td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/processes/{name}/mission/resume</code></td>
+<td>Resume a <code>paused</code> mission</td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/processes/{name}/health/anomalies</code></td>
+<td>Anomaly history: <code>type</code>, <code>description</code>, <code>timestamp</code></td>
+<td><code>200</code></td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/processes/{name}/health/anomalies</code></td>
+<td>Clear the history and cooldowns: <code>{"anomalies_cleared": n}</code></td>
+<td><code>200</code></td>
 </tr>
 </tbody>
 </table>
-<h3 id="runtime-management">Runtime Management<a class="headerlink" href="#runtime-management" title="Link to this section">&para;</a></h3>
+<h3 id="journal-and-rewind">Journal and rewind<a class="headerlink" href="#journal-and-rewind" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
 <th>Method</th>
 <th>Path</th>
-<th>Auth</th>
-<th>Description</th>
+<th>What it does</th>
+<th>Success</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>GET</code></td>
-<td><code>/api/v1/health</code></td>
-<td>No</td>
-<td>Health probe for load balancers</td>
+<td><code>/processes/{name}/journal</code></td>
+<td>Newest entries, oldest first. <code>?limit=</code> 1-500 (default 50), <code>?type=</code> filters by entry type</td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>GET</code></td>
-<td><code>/api/v1/runtime/status</code></td>
-<td>Yes</td>
-<td>Global runtime status</td>
+<td><code>/processes/{name}/rewind/plan</code></td>
+<td>Preview a rewind: <code>?target_entry_id=</code> (required), <code>?mode=</code> (default <code>both</code>). Changes nothing</td>
+<td><code>200</code></td>
 </tr>
 <tr>
 <td><code>POST</code></td>
-<td><code>/api/v1/runtime/start-all</code></td>
-<td>Yes</td>
-<td>Start all processes</td>
-</tr>
-<tr>
-<td><code>POST</code></td>
-<td><code>/api/v1/runtime/stop-all</code></td>
-<td>Yes</td>
-<td>Stop all processes</td>
+<td><code>/processes/{name}/rewind</code></td>
+<td>Rewind to just before a journal entry: <code>{"target_entry_id", "mode"?, "actor"?}</code></td>
+<td><code>200</code></td>
 </tr>
 </tbody>
 </table>
+<p>Each journal entry is <code>{"entry_id", "entry_type", "timestamp", "data"}</code>; the <code>entry_id</code> is a rewind target. Without a journal the route answers <code>{"name", "entries": [], "journal_enabled": false}</code>, and the rewind routes answer <code>400 JOURNAL_DISABLED</code>. Rewind modes are <code>both</code>, <code>conversation_only</code>, <code>code_only</code>, <code>summarize</code> and <code>cancel</code>; <code>actor</code> (default <code>"api"</code>) is recorded in the journal. A running process is suspended for the rewind and resumed afterwards, and a run still in flight when the rewind times out gives <code>409 REWIND_BUSY</code>. See <a href="../journal/rewind/">Rewind Engine</a> for what each mode restores.</p>
 <hr />
-<h2 id="message-types">Message Types<a class="headerlink" href="#message-types" title="Link to this section">&para;</a></h2>
-<p>Messages sent via <code>/messages</code> support 4 types:</p>
+<h2 id="deploying-a-process">Deploying a process<a class="headerlink" href="#deploying-a-process" title="Link to this section">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Content-Type: application/json"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="s1">    "name": "incident-handler",</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="s1">    "config": {</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="s1">        "model": "openai:gpt-5-mini",</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="s1">        "instructions": "Handle infrastructure incidents.",</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="s1">        "triggers": [{"type": "webhook", "webhook_path": "/incidents", "webhook_port": 9091}],</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="s1">        "budget": {"enabled": true, "max_tool_calls_per_day": 500}</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="s1">    },</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="s1">    "start": true</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="s1">  }'</span>
+</span></code></pre></div>
+<ul>
+<li><code>name</code> must match <code>^[a-zA-Z][a-zA-Z0-9_-]{0,63}$</code> (<code>422 INVALID_NAME</code>); a name already registered gets <code>409 PROCESS_EXISTS</code>.</li>
+<li><code>config</code> is a <code>ProcessConfig</code> as JSON (<code>422 INVALID_CONFIG</code> when it doesn't validate). A valid config that still can't be turned into a process gets <code>422 DEPLOY_FAILED</code>. The <a href="#securing-the-control-api">security checks</a> answer <code>403</code> with <code>COMMANDS_NOT_ALLOWED</code>, <code>ENV_REFERENCES_NOT_ALLOWED</code> or <code>PATH_NOT_ALLOWED</code>.</li>
+<li><code>start</code> (default <code>false</code>) must be a boolean. When the start fails the answer is <code>500 START_FAILED</code> and the process <strong>stays deployed</strong>: fix the cause and <code>POST .../start</code>, or <code>DELETE</code> it. A process whose start fails because of the process itself (a secret that can't be resolved, for example) is <code>500 START_FAILED</code> on <code>POST .../start</code> too, never <code>404</code>.</li>
+<li>The answer is <code>201</code> with <code>{"name", "process_id", "state", "created_at"}</code>.</li>
+</ul>
+<p>The <code>config</code> object follows <code>ProcessConfig</code>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="nt">"model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">"instructions"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Your agent instructions here."</span><span class="p">,</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nt">"servers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">        </span><span class="nt">"tools"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://tools:8080/mcp"</span><span class="p">,</span><span class="w"> </span><span class="nt">"transport"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streamable-http"</span><span class="p">}</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">"triggers"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cron"</span><span class="p">,</span><span class="w"> </span><span class="nt">"cron_expression"</span><span class="p">:</span><span class="w"> </span><span class="s2">"*/5 * * * *"</span><span class="p">}],</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nt">"inbox"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"max_messages"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">},</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="nt">"budget"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"max_tool_calls_per_day"</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">},</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="nt">"health"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"stuck_threshold"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">},</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="nt">"mission"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">        </span><span class="nt">"objective"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Keep pipelines healthy"</span><span class="p">,</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">        </span><span class="nt">"success_criteria"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Zero critical alerts for 24h"</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="p">}</span>
+</span></code></pre></div>
+<hr />
+<h2 id="changing-a-running-process">Changing a running process<a class="headerlink" href="#changing-a-running-process" title="Link to this section">&para;</a></h2>
+<h3 id="instructions">Instructions<a class="headerlink" href="#instructions" title="Link to this section">&para;</a></h3>
+<p><code>PATCH /instructions</code> with <code>{"instructions": "..."}</code> (a non-empty string) replaces the process's instructions, including any an open-mode agent set for itself. The next run rebuilds the agent with them before it runs, keeping the connected MCP servers, the conversation history and the context state; a run already in progress finishes with the old instructions. A process that is not running uses them when it starts. In Python: <code>process.update_instructions(text)</code>.</p>
+<h3 id="budget-health-and-mission">Budget, health and mission<a class="headerlink" href="#budget-health-and-mission" title="Link to this section">&para;</a></h3>
+<p><a id="configuration-updates-hot-reload"></a></p>
+<p>The body of a <code>budget</code>, <code>health</code> or <code>mission</code> patch holds the fields to change, named as in <a href="../governance/budget/"><code>BudgetConfig</code></a>, <a href="../governance/health/"><code>HealthConfig</code></a> and <a href="../governance/mission/"><code>MissionConfig</code></a>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/budget<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"max_cost_per_day": 500.0}'</span>
+</span></code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"monitor"</span><span class="p">,</span><span class="w"> </span><span class="nt">"budget_updated"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"effective_from"</span><span class="p">:</span><span class="w"> </span><span class="s2">"next_budget_check"</span><span class="p">,</span><span class="w"> </span><span class="nt">"live"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">}</span>
+</span></code></pre></div>
+<ul>
+<li>The patched section is validated as a whole before anything changes, with the same limits as at deploy time and strict JSON types (<code>"5"</code> is not a number, <code>1</code> is not <code>true</code>). A field the model doesn't declare, including inside <code>escalation</code> or <code>tool_costs</code>, gets <code>422 UNKNOWN_FIELD</code>; an invalid value gets <code>422 INVALID_CONFIG</code>; an empty body gets <code>422 MISSING_FIELD</code>. In every case nothing changes. <code>null</code> clears an optional field such as <code>max_cost_per_day</code>.</li>
+<li>The process applies the change at once (<code>live: true</code>). Budget limits apply at the next budget check (the next tool call, LLM turn or run start) and the usage counted so far is kept. Health thresholds and window sizes apply at the next check, keeping the recorded history. A mission change applies to the next evaluation and the next <code>[Mission]</code> prompt block, keeping the mission's progress.</li>
+<li><code>enabled</code> works live too: <code>{"enabled": true}</code> builds the subsystem on a process that was deployed without it, and <code>{"enabled": false}</code> removes it.</li>
+</ul>
+<p>The response always says when the change applies. <code>live</code> is <code>false</code> with <code>effective_from: "redeploy"</code>, <code>pending_fields</code> and a <code>note</code> only for a process object that can't apply governance changes itself (a custom process class without <code>apply_governance_config()</code>).</p>
+<h3 id="triggers">Triggers<a class="headerlink" href="#triggers" title="Link to this section">&para;</a></h3>
+<p>Config triggers have <strong>stable IDs</strong>: <code>&lt;type&gt;-&lt;10-character digest of the trigger's config&gt;</code>, for example <code>cron-6d904fd75c</code>. An ID doesn't depend on the trigger's position, so removing one trigger leaves the other IDs unchanged, and the IDs are the same after a restart. Identical configs get <code>-2</code>, <code>-3</code> suffixes. The ID is also the <code>trigger_id</code> of the events the trigger produces.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># List (config triggers include their config; agent-added ones have source "dynamic")</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>curl<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/triggers<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Add</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/triggers<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"type": "cron", "cron_expression": "0 9 * * 1-5"}'</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="c1"># {"name": "monitor", "trigger_added": true, "trigger_id": "cron-fb9fa7b826",</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="c1">#  "trigger_type": "cron", "live": true, "effective_from": "immediate"}</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="c1"># Remove by ID</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/triggers/cron-6d904fd75c<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="c1"># {"name": "monitor", "trigger_removed": "cron-6d904fd75c", "live": true, "effective_from": "immediate"}</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Process starting, running, suspended or awaiting</th>
+<th>Process created, stopped or failed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add</td>
+<td>Created and started at once: <code>live: true</code>, <code>effective_from: "immediate"</code></td>
+<td>Added to the config: <code>live: false</code>, <code>effective_from: "next_start"</code></td>
+</tr>
+<tr>
+<td>Remove a config trigger</td>
+<td>Stopped at once and removed from the config: <code>live: true</code>, <code>"immediate"</code></td>
+<td>Removed from the config: <code>live: true</code>, <code>"next_start"</code></td>
+</tr>
+<tr>
+<td>Remove an agent-added trigger</td>
+<td>Stopped at once: <code>live: true</code>, <code>"immediate"</code></td>
+<td>--</td>
+</tr>
+</tbody>
+</table>
+<p>Adding a trigger identical to one already configured gets <code>409 TRIGGER_EXISTS</code>; an invalid config or one that can't start gets <code>422 INVALID_CONFIG</code>; a <code>${VAR}</code> reference gets <code>403 ENV_REFERENCES_NOT_ALLOWED</code> and a <code>watch_path</code> outside <code>data_dir</code> <code>403 PATH_NOT_ALLOWED</code>; an unknown ID gets <code>404 TRIGGER_NOT_FOUND</code>. In the listing, <code>hmac_secret</code> is masked, and so are the values of <code>custom_config</code> keys that look like credentials (names containing <code>secret</code>, <code>token</code>, <code>password</code>, <code>api_key</code>, <code>auth</code>, <code>credential</code>, <code>signature</code> or <code>cookie</code>) and the user info of any URL value (<code>postgres://app:pw@db/x</code> is listed as <code>postgres://**********@db/x</code>). The old position-based IDs (<code>static_0</code>, <code>static_1</code>, ...) are still accepted on <code>DELETE</code>; the response then carries a <code>warning</code> naming the stable ID to use instead.</p>
+<h3 id="context-state">Context state<a class="headerlink" href="#context-state" title="Link to this section">&para;</a></h3>
+<p><code>PATCH /context</code> with <code>{"state": {key: value}}</code> writes all keys or none: if any key is not writable the answer is <code>403 WRITE_DENIED</code> naming them, and nothing is written. Writes are recorded with source <code>"api"</code> and journaled. Other top-level fields get <code>422 UNKNOWN_FIELD</code>. See <a href="../context/">Agent Context</a>.</p>
+<h3 id="secrets">Secrets<a class="headerlink" href="#secrets" title="Link to this section">&para;</a></h3>
+<p><code>GET /secrets</code> lists metadata, <code>PATCH /secrets/{secret_name}</code> rotates one value (<code>404 SECRET_NOT_FOUND</code> for a name the process doesn't have), <code>DELETE /secrets</code> revokes all. Values never appear in a response. See <a href="../governance/secrets/#over-the-api">Secret Scoping</a>.</p>
+<h3 id="mission">Mission<a class="headerlink" href="#mission" title="Link to this section">&para;</a></h3>
+<p><code>GET /mission</code> returns the state, objective, invocation count and evaluations; <code>fail</code>, <code>pause</code> and <code>resume</code> answer <code>409 MISSION_STATE</code> when the mission is not in a state that allows them. See <a href="../governance/mission/#over-the-api">Mission Model</a>.</p>
+<hr />
+<h2 id="messages-and-questions">Messages and questions<a class="headerlink" href="#messages-and-questions" title="Link to this section">&para;</a></h2>
+<p>A process with an inbox takes messages from people while it runs. The agent sees them in its prompt on its next run. Enable it in the process config:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span><span class="nt">"inbox"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"max_messages"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span><span class="w"> </span><span class="nt">"default_ttl"</span><span class="p">:</span><span class="w"> </span><span class="mi">3600</span><span class="p">}}</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th><code>InboxConfig</code> field</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td><code>false</code></td>
+<td>Enable the inbox</td>
+</tr>
+<tr>
+<td><code>max_messages</code></td>
+<td><code>50</code></td>
+<td>Most messages held at once (never exceeded)</td>
+</tr>
+<tr>
+<td><code>max_message_length</code></td>
+<td><code>2000</code></td>
+<td>Longer content is truncated to this many characters</td>
+</tr>
+<tr>
+<td><code>default_ttl</code></td>
+<td><code>3600</code></td>
+<td>Seconds a message lives when it has no <code>ttl</code> (<code>0</code> = no expiry)</td>
+</tr>
+<tr>
+<td><code>max_ttl</code></td>
+<td><code>86400</code></td>
+<td>Cap on any message's lifetime (<code>0</code> = no cap). <code>default_ttl</code> may not exceed it</td>
+</tr>
+<tr>
+<td><code>rate_limit_per_sender</code></td>
+<td><code>20</code></td>
+<td>Messages per <code>sender_id</code> per hour (messages without a <code>sender_id</code> are not limited)</td>
+</tr>
+<tr>
+<td><code>scan_with_guardrails</code></td>
+<td><code>true</code></td>
+<td>Scan messages for prompt injection when they arrive (see <a href="#guardrail-scanning">Guardrail scanning</a>)</td>
+</tr>
+</tbody>
+</table>
+<p>Without an inbox, <code>/messages</code> and <code>/ask</code> answer <code>400 INBOX_DISABLED</code> and <code>GET /inbox</code> answers <code>{"enabled": false, ...}</code>. A stopped or failed process gets <code>409 PROCESS_NOT_RUNNING</code>.</p>
+<h3 id="message-types-and-priorities">Message types and priorities<a class="headerlink" href="#message-types-and-priorities" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -10430,12 +10981,12 @@
 </tr>
 <tr>
 <td><code>context</code></td>
-<td>Provide information the agent should know</td>
-<td>"Traffic spike is from marketing campaign"</td>
+<td>Information the agent should know (the default for <code>/messages</code>)</td>
+<td>"Traffic spike is from a marketing campaign"</td>
 </tr>
 <tr>
 <td><code>question</code></td>
-<td>Ask the agent something (expects response)</td>
+<td>Ask the agent something; it answers in its reply</td>
 <td>"What's the current health status?"</td>
 </tr>
 <tr>
@@ -10445,341 +10996,666 @@
 </tr>
 </tbody>
 </table>
-<p>Messages have <strong>priority</strong> (<code>low</code>, <code>normal</code>, <code>high</code>, <code>critical</code>) and <strong>TTL</strong> (auto-expire after N seconds).</p>
-<hr />
-<h2 id="process-config-for-deployment">Process Config (for deployment)<a class="headerlink" href="#process-config-for-deployment" title="Link to this section">&para;</a></h2>
-<p>The <code>config</code> object in <code>POST /api/v1/processes</code> follows the same schema as <code>ProcessConfig</code>:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span><span class="nt">"model"</span><span class="p">:</span><span class="w"> </span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">"instructions"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Your agent instructions here."</span><span class="p">,</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">"servers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">        </span><span class="nt">"tools"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"http://tools:8080/mcp"</span><span class="p">,</span><span class="w"> </span><span class="nt">"transport"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streamable-http"</span><span class="p">}</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="p">},</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="nt">"triggers"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">        </span><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cron"</span><span class="p">,</span><span class="w"> </span><span class="nt">"cron_expression"</span><span class="p">:</span><span class="w"> </span><span class="s2">"*/5 * * * *"</span><span class="p">}</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="p">],</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="nt">"inbox"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"max_messages"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">},</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="nt">"budget"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"max_tool_calls_per_day"</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">},</span>
-</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">    </span><span class="nt">"health"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"stuck_threshold"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">},</span>
-</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">    </span><span class="nt">"mission"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">        </span><span class="nt">"objective"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Keep pipelines healthy"</span><span class="p">,</span>
-</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="w">        </span><span class="nt">"success_criteria"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Zero critical alerts for 24h"</span>
-</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="p">}</span>
+<p>Priorities are <code>low</code>, <code>normal</code> (default), <code>high</code> and <code>critical</code>. The agent sees messages ordered by priority, then oldest first.</p>
+<h3 id="sending-a-message">Sending a message<a class="headerlink" href="#sending-a-message" title="Link to this section">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/messages<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"content": "Ignore staging alerts for 1 hour", "message_type": "directive",</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="s1">       "priority": "high", "sender_id": "alice", "ttl": 3600}'</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="c1"># 201 {"message_id": "msg_...", "status": "queued", "expires_at": 1792445004.98}</span>
 </span></code></pre></div>
-<hr />
-<h2 id="python-sdk-client">Python SDK Client<a class="headerlink" href="#python-sdk-client" title="Link to this section">&para;</a></h2>
-<p>Use <code>OrchestrationClient</code> to manage agents programmatically — same capabilities as the REST API but with typed methods, error handling, and async/await.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrchestrationClient</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">async</span> <span class="k">with</span> <span class="n">OrchestrationClient</span><span class="p">(</span><span class="s2">"http://localhost:9100"</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="s2">"my-token"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="c1"># Deploy a new agent</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">"monitor"</span><span class="p">,</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>        <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="s2">"instructions"</span><span class="p">:</span> <span class="s2">"Monitor pipelines."</span><span class="p">},</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        <span class="n">start</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="p">)</span>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="c1"># Check status</span>
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">status</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get_process</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">)</span>
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">status</span><span class="p">[</span><span class="s2">"state"</span><span class="p">])</span>  <span class="c1"># "running"</span>
-</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
-</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    <span class="c1"># Send a message to the running agent</span>
-</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="s2">"Ignore staging alerts for 1 hour"</span><span class="p">,</span>
-</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>                              <span class="n">message_type</span><span class="o">=</span><span class="s2">"directive"</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="s2">"high"</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span>
-</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>
-</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>    <span class="c1"># Ask a question and wait for the agent to respond</span>
-</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="s2">"What anomalies have you found?"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">"response"</span><span class="p">][</span><span class="s2">"content"</span><span class="p">])</span>
-</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>
-</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>    <span class="c1"># Update budget on the fly</span>
-</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">update_budget</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="n">max_cost_per_day</span><span class="o">=</span><span class="mf">500.0</span><span class="p">)</span>
-</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>
-</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>    <span class="c1"># Rotate a secret without restart</span>
-</span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">rotate_secret</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="s2">"api_key"</span><span class="p">,</span> <span class="s2">"sk-new-key-here"</span><span class="p">)</span>
-</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>
-</span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>    <span class="c1"># Read journal entries</span>
-</span><span id="__span-12-30"><a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>    <span class="n">journal</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get_journal</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
-</span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>
-</span><span id="__span-12-32"><a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>    <span class="c1"># Stop the agent</span>
-</span><span id="__span-12-33"><a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">stop_process</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">)</span>
+<p>Fields: <code>content</code> (required, non-empty string), <code>message_type</code>, <code>priority</code>, <code>sender_id</code> (string), <code>ttl</code> (seconds, <code>&gt;= 0</code>; <code>0</code> or missing uses <code>default_ttl</code>, and <code>max_ttl</code> caps it) and <code>metadata</code> (object, stored with the message). An unknown <code>message_type</code> gets <code>422 INVALID_TYPE</code>; another bad field gets <code>422 INVALID_FIELD</code>.</p>
+<h3 id="asking-a-question">Asking a question<a class="headerlink" href="#asking-a-question" title="Link to this section">&para;</a></h3>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/monitor/ask<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"content": "How many alerts did you skip?", "timeout": 120}'</span>
 </span></code></pre></div>
-<p>Every endpoint has a matching typed method:</p>
+<p>The request waits until the agent answers or <code>timeout</code> seconds pass (default <code>120</code>, at most <code>3600</code>). It always answers <code>200</code>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span><span class="nt">"question_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"msg_..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"answered"</span><span class="p">,</span><span class="w"> </span><span class="nt">"response"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Three staging alerts skipped."</span><span class="p">,</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w"> </span><span class="nt">"answered_at"</span><span class="p">:</span><span class="w"> </span><span class="mf">1792441406.1</span><span class="p">,</span><span class="w"> </span><span class="nt">"invocation_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2"</span><span class="p">}</span>
+</span></code></pre></div>
+<p>or, when no answer came in time, <code>{"question_id", "status": "timeout", "response": null}</code>. The question stays in the inbox after a timeout (it lives for <code>timeout</code> + 60 seconds, capped by <code>max_ttl</code>), so a later run can still answer it, but nobody is waiting for that answer. The agent sees the question on its <strong>next run</strong>: if no trigger fires within <code>timeout</code>, it can't answer. <code>priority</code>, <code>sender_id</code> and <code>metadata</code> work as for <code>/messages</code>.</p>
+<h3 id="what-the-agent-sees">What the agent sees<a class="headerlink" href="#what-the-agent-sees" title="Link to this section">&para;</a></h3>
+<p>Before each run, the pending messages are added to the prompt as one system message, after the context state, budget and mission blocks and before the conversation history:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>=== OPERATOR MESSAGES ===
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>[HIGH DIRECTIVE] (from: alice, just now, expires in 59 min)
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>Ignore staging alerts for 1 hour
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>[QUESTION] (just now, expires in 1 min)
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>How many alerts did you skip?
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>→ Please include your answer prefixed with "ANSWER Q1:"
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>=== END OPERATOR MESSAGES ===
+</span></code></pre></div>
+<p>Each message is a <code>[&lt;PRIORITY&gt; &lt;TYPE&gt;]</code> label (the priority is left out for <code>normal</code>) with the sender when known, its age (<code>just now</code>, <code>&lt;n&gt; min ago</code>, <code>&lt;n&gt;h ago</code>) and the time left before it expires, followed by the content. Questions are numbered <code>Q1</code>, <code>Q2</code>, ... in the order they appear in the block.</p>
+<h3 id="answers-and-consumption">Answers and consumption<a class="headerlink" href="#answers-and-consumption" title="Link to this section">&para;</a></h3>
+<p>After every run, the runtime:</p>
+<ol>
+<li>Reads <code>ANSWER Q&lt;n&gt;: &lt;text&gt;</code> parts from the agent's final reply and delivers each one to the question it numbers (the waiting <code>/ask</code> call returns it). Text after the marker up to the next <code>ANSWER Q</code> marker is the answer. Secret values in it are replaced by <code>[REDACTED]</code>, as in the journal, so a question can't make the agent hand out a secret.</li>
+<li>Removes the messages that run saw: directives, context and corrections are gone after one run, and answered questions are removed. Unanswered questions stay until they are answered or expire.</li>
+</ol>
+<p>So a directive is shown once. Send it again, or store the fact in the <a href="../context/">context state</a>, when the agent must keep following it on later runs.</p>
+<h3 id="limits-and-refusals">Limits and refusals<a class="headerlink" href="#limits-and-refusals" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
-<th>REST Endpoint</th>
-<th>Client Method</th>
+<th>Situation</th>
+<th>API answer</th>
+<th>Python (<code>process.send_message</code>)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>GET /processes</code></td>
-<td><code>client.list_processes()</code></td>
+<td>Empty content, unknown priority or type</td>
+<td><code>422 INVALID_FIELD</code> / <code>422 INVALID_TYPE</code></td>
+<td><code>InvalidInboxMessage</code></td>
 </tr>
 <tr>
-<td><code>POST /processes</code></td>
-<td><code>client.deploy(name, config)</code></td>
+<td>Sender over <code>rate_limit_per_sender</code> this hour</td>
+<td><code>429 RATE_LIMITED</code></td>
+<td><code>InboxRateLimitError</code></td>
 </tr>
 <tr>
-<td><code>POST /processes/{name}/start</code></td>
-<td><code>client.start_process(name)</code></td>
+<td>Inbox full and nothing can be evicted</td>
+<td><code>409 INBOX_FULL</code></td>
+<td><code>InboxFullError</code></td>
 </tr>
 <tr>
-<td><code>POST /processes/{name}/stop</code></td>
-<td><code>client.stop_process(name)</code></td>
-</tr>
-<tr>
-<td><code>POST /processes/{name}/restart</code></td>
-<td><code>client.restart_process(name)</code></td>
-</tr>
-<tr>
-<td><code>POST /processes/{name}/suspend</code></td>
-<td><code>client.suspend_process(name)</code></td>
-</tr>
-<tr>
-<td><code>POST /processes/{name}/resume</code></td>
-<td><code>client.resume_process(name)</code></td>
-</tr>
-<tr>
-<td><code>DELETE /processes/{name}</code></td>
-<td><code>client.remove_process(name)</code></td>
-</tr>
-<tr>
-<td><code>PATCH /instructions</code></td>
-<td><code>client.update_instructions(name, text)</code></td>
-</tr>
-<tr>
-<td><code>PATCH /budget</code></td>
-<td><code>client.update_budget(name, **fields)</code></td>
-</tr>
-<tr>
-<td><code>PATCH /health</code></td>
-<td><code>client.update_health(name, **fields)</code></td>
-</tr>
-<tr>
-<td><code>PATCH /mission</code></td>
-<td><code>client.update_mission(name, **fields)</code></td>
-</tr>
-<tr>
-<td><code>GET /triggers</code></td>
-<td><code>client.list_triggers(name)</code></td>
-</tr>
-<tr>
-<td><code>POST /triggers</code></td>
-<td><code>client.add_trigger(name, config)</code></td>
-</tr>
-<tr>
-<td><code>DELETE /triggers/{id}</code></td>
-<td><code>client.remove_trigger(name, id)</code></td>
-</tr>
-<tr>
-<td><code>GET /secrets</code></td>
-<td><code>client.list_secrets(name)</code></td>
-</tr>
-<tr>
-<td><code>PATCH /secrets/{name}</code></td>
-<td><code>client.rotate_secret(name, secret, value)</code></td>
-</tr>
-<tr>
-<td><code>DELETE /secrets</code></td>
-<td><code>client.revoke_secrets(name)</code></td>
-</tr>
-<tr>
-<td><code>GET /journal</code></td>
-<td><code>client.get_journal(name, limit, type)</code></td>
-</tr>
-<tr>
-<td><code>GET /mission</code></td>
-<td><code>client.get_mission(name)</code></td>
-</tr>
-<tr>
-<td><code>POST /mission/fail</code></td>
-<td><code>client.fail_mission(name, reason)</code></td>
-</tr>
-<tr>
-<td><code>POST /mission/pause</code></td>
-<td><code>client.pause_mission(name)</code></td>
-</tr>
-<tr>
-<td><code>POST /mission/resume</code></td>
-<td><code>client.resume_mission(name)</code></td>
-</tr>
-<tr>
-<td><code>GET /health/anomalies</code></td>
-<td><code>client.get_anomalies(name)</code></td>
-</tr>
-<tr>
-<td><code>DELETE /health/anomalies</code></td>
-<td><code>client.clear_anomalies(name)</code></td>
-</tr>
-<tr>
-<td><code>POST /messages</code></td>
-<td><code>client.send_message(name, content, ...)</code></td>
-</tr>
-<tr>
-<td><code>POST /ask</code></td>
-<td><code>client.ask(name, content, timeout)</code></td>
-</tr>
-<tr>
-<td><code>GET /inbox</code></td>
-<td><code>client.get_inbox(name)</code></td>
-</tr>
-<tr>
-<td><code>DELETE /inbox</code></td>
-<td><code>client.clear_inbox(name)</code></td>
-</tr>
-<tr>
-<td><code>GET /context</code></td>
-<td><code>client.get_context(name)</code></td>
-</tr>
-<tr>
-<td><code>PATCH /context</code></td>
-<td><code>client.update_context(name, state)</code></td>
-</tr>
-<tr>
-<td><code>GET /metrics</code></td>
-<td><code>client.get_metrics(name)</code></td>
+<td>Flagged by the guardrail scan</td>
+<td><code>422 MESSAGE_REJECTED</code></td>
+<td><code>InboxMessageRejected</code> (with <code>.reason</code>)</td>
 </tr>
 </tbody>
 </table>
-<hr />
-<h2 id="how-inbox-messages-reach-the-agent">How Inbox Messages Reach the Agent<a class="headerlink" href="#how-inbox-messages-reach-the-agent" title="Link to this section">&para;</a></h2>
-<p>When you send a message via <code>/messages</code> or <code>/ask</code>, here's what happens:</p>
+<p>All four exception classes are in <code>promptise.runtime.inbox</code> and subclass <code>InboxError</code>, a <code>ValueError</code>. Refused messages are not counted against the sender's rate limit.</p>
+<p>When the inbox holds <code>max_messages</code> messages, a new message first replaces an answered question if there is one; otherwise it evicts the <strong>oldest message of the lowest priority</strong> present. Critical messages are never evicted, and a message never evicts one of higher priority: if every message is critical, or the new message has a lower priority than every evictable one, the new message is refused with <code>INBOX_FULL</code>. The inbox never holds more than <code>max_messages</code>. An <code>/ask</code> call waiting on an evicted question ends with <code>410 QUESTION_REMOVED</code>.</p>
+<h3 id="guardrail-scanning">Guardrail scanning<a class="headerlink" href="#guardrail-scanning" title="Link to this section">&para;</a></h3>
+<p>With <code>scan_with_guardrails: true</code> (the default), each message is scanned when it arrives, in overlapping 500-character windows, and a flagged message is refused (<code>422 MESSAGE_REJECTED</code>). The scanner is, in order:</p>
 <ol>
-<li><strong>Message stored</strong> — added to the process's <code>MessageInbox</code> with priority, TTL, and sender_id</li>
-<li><strong>Next invocation</strong> — before the agent is called, the runtime checks the inbox:</li>
-<li>Expired messages are purged</li>
-<li>Pending messages are formatted into a system prompt block</li>
-<li>Injected between mission context and conversation history</li>
-<li><strong>Agent sees the messages</strong> — formatted as:
-   <div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>## Operator Messages
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>[DIRECTIVE] (high priority): Ignore staging alerts for 1 hour
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>[QUESTION Q1]: What anomalies have you found?
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>If any questions are marked above, include "ANSWER Q1: &lt;your response&gt;" in your reply.
-</span></code></pre></div></li>
-<li><strong>Answer extraction</strong> — after the agent responds, the runtime parses for <code>ANSWER Q1:</code> patterns and resolves the waiting future from the <code>/ask</code> call</li>
-<li><strong>Cleanup</strong> — processed directives and answered questions are marked as done</li>
+<li><code>ProcessConfig.guardrails</code>, when it can scan text (a <code>PromptiseSecurityScanner</code> or any object with <code>scan_text()</code> or <code>check_input()</code>).</li>
+<li>The trigger payload scanner, when <code>trigger_delivery.scan_payloads</code> is on. It is loaded when the process starts; messages that arrived before (a created process already takes messages) are scanned then, and flagged ones are removed (an <code>/ask</code> waiting on one gets <code>422 MESSAGE_REJECTED</code>).</li>
 </ol>
-<hr />
-<h2 id="inbox-configuration">Inbox Configuration<a class="headerlink" href="#inbox-configuration" title="Link to this section">&para;</a></h2>
-<p>Enable the inbox on a process via <code>ProcessConfig</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"..."</span><span class="p">,</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">inbox</span><span class="o">=</span><span class="n">InboxConfig</span><span class="p">(</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>        <span class="n">max_messages</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>            <span class="c1"># Max messages in inbox</span>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>        <span class="n">max_message_length</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>    <span class="c1"># Truncate long messages</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>        <span class="n">default_ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>           <span class="c1"># Messages expire after 1 hour</span>
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>        <span class="n">max_ttl</span><span class="o">=</span><span class="mi">86400</span><span class="p">,</span>              <span class="c1"># Maximum TTL: 24 hours</span>
-</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>        <span class="n">rate_limit_per_sender</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>  <span class="c1"># Max 100 messages per sender per hour</span>
-</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>    <span class="p">),</span>
-</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="p">)</span>
+<p>With neither, messages are <strong>not scanned</strong>: the process logs a one-time warning and accepts them. Set <code>guardrails</code> (for example <code>PromptiseSecurityScanner(detectors=[InjectionDetector()])</code>) or <code>trigger_delivery.scan_payloads=True</code> to scan them, or <code>scan_with_guardrails: false</code> to accept messages unscanned without the warning. Only give inbox access to people you trust with the agent's instructions: a message lands in the agent's prompt.</p>
+<h3 id="from-python">From Python<a class="headerlink" href="#from-python" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">msg_id</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="s2">"Ignore staging alerts for 1 hour"</span><span class="p">,</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">message_type</span><span class="o">=</span><span class="s2">"directive"</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="s2">"high"</span><span class="p">,</span> <span class="n">sender_id</span><span class="o">=</span><span class="s2">"alice"</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="p">)</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">"How many alerts did you skip?"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>  <span class="c1"># an InboxResponse: question_id, content, answered_at, invocation_id</span>
 </span></code></pre></div>
-<p>Or via JSON in the deploy endpoint:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">{</span><span class="nt">"inbox"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"max_messages"</span><span class="p">:</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span><span class="w"> </span><span class="nt">"default_ttl"</span><span class="p">:</span><span class="w"> </span><span class="mi">3600</span><span class="p">}}</span>
-</span></code></pre></div>
+<p><code>send_message</code> returns the message ID. <code>ask</code> returns an <code>InboxResponse</code> and raises <code>asyncio.TimeoutError</code> when no answer arrives in time. Both raise <code>RuntimeError</code> when the process has no inbox or is stopped or failed, and <code>ValueError</code> (an <code>InboxError</code>) for a refused message.</p>
 <hr />
-<h2 id="error-responses">Error Responses<a class="headerlink" href="#error-responses" title="Link to this section">&para;</a></h2>
-<p>All errors follow a consistent format:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">{</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">    </span><span class="nt">"error"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">        </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PROCESS_NOT_FOUND"</span><span class="p">,</span>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">        </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Process 'unknown-agent' not found"</span>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="p">}</span>
+<h2 id="python-client">Python client<a class="headerlink" href="#python-client" title="Link to this section">&para;</a></h2>
+<p><code>OrchestrationClient</code> has a typed method for every route. It uses <code>httpx</code> and is an async context manager.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrchestrationAPIError</span><span class="p">,</span> <span class="n">OrchestrationClient</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">async</span> <span class="k">with</span> <span class="n">OrchestrationClient</span><span class="p">(</span><span class="s2">"http://localhost:9100"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="s2">"my-token"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">deploy</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="s2">"instructions"</span><span class="p">:</span> <span class="s2">"Monitor pipelines."</span><span class="p">},</span> <span class="n">start</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">answer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="s2">"What anomalies have you found?"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">answer</span><span class="p">)</span>  <span class="c1"># the answer text, or None if the agent didn't answer in time</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">update_budget</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="n">max_cost_per_day</span><span class="o">=</span><span class="mf">500.0</span><span class="p">)</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"live"</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s2">"effective_from"</span><span class="p">])</span>  <span class="c1"># True next_budget_check</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>        <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">rotate_secret</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="s2">"api_key"</span><span class="p">,</span> <span class="s2">"sk-new-key"</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">)</span>
+</span><span id="__span-17-14"><a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>    <span class="k">except</span> <span class="n">OrchestrationAPIError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-17-15"><a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">exc</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">exc</span><span class="o">.</span><span class="n">error_message</span><span class="p">)</span>  <span class="c1"># 404 SECRET_NOT_FOUND ...</span>
 </span></code></pre></div>
 <table>
 <thead>
 <tr>
-<th>HTTP Code</th>
-<th>Error Code</th>
-<th>When</th>
+<th>Argument</th>
+<th>Default</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>400</td>
+<td><code>base_url</code></td>
+<td>required</td>
+<td>For example <code>"http://localhost:9100"</code></td>
+</tr>
+<tr>
+<td><code>token</code></td>
+<td><code>None</code></td>
+<td>The server's <code>auth_token</code>, sent as <code>Authorization: Bearer</code></td>
+</tr>
+<tr>
+<td><code>auth_token</code></td>
+<td><code>None</code></td>
+<td>Alias of <code>token</code> (passing both with different values raises <code>ValueError</code>)</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>30.0</code></td>
+<td>Default request timeout in seconds</td>
+</tr>
+</tbody>
+</table>
+<p>Use it with <code>async with</code>, or call <code>await client.aclose()</code> when done.</p>
+<p><strong>Errors.</strong> A <code>4xx</code> or <code>5xx</code> answer raises <code>OrchestrationAPIError</code>, a subclass of <code>httpx.HTTPStatusError</code>, with <code>status_code</code>, <code>code</code> (the API error code, or <code>None</code> when the body was not an API error) and <code>error_message</code>. Network failures raise the usual <code>httpx</code> exceptions.</p>
+<p><strong><code>204</code> answers.</strong> <code>remove_process()</code> and <code>clear_inbox()</code> return <code>{}</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Method</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /health</code></td>
+<td><code>health()</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>GET /runtime/status</code></td>
+<td><code>runtime_status()</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST /runtime/start-all</code></td>
+<td><code>start_all()</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST /runtime/stop-all</code></td>
+<td><code>stop_all()</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST /runtime/shutdown</code></td>
+<td><code>shutdown()</code></td>
+<td><code>{"status": "shutting_down"}</code>; <code>404</code> error without <code>on_shutdown</code></td>
+</tr>
+<tr>
+<td><code>GET /processes</code></td>
+<td><code>list_processes()</code></td>
+<td><code>list[dict]</code></td>
+</tr>
+<tr>
+<td><code>POST /processes</code></td>
+<td><code>deploy(name, config, *, start=False)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>GET /processes/{name}</code></td>
+<td><code>get_process(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>DELETE /processes/{name}</code></td>
+<td><code>remove_process(name)</code></td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td><code>POST .../start</code></td>
+<td><code>start_process(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../stop</code></td>
+<td><code>stop_process(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../restart</code></td>
+<td><code>restart_process(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../suspend</code></td>
+<td><code>suspend_process(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../resume</code></td>
+<td><code>resume_process(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>PATCH .../instructions</code></td>
+<td><code>update_instructions(name, instructions)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>PATCH .../budget</code></td>
+<td><code>update_budget(name, **fields)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>PATCH .../health</code></td>
+<td><code>update_health(name, **fields)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>PATCH .../mission</code></td>
+<td><code>update_mission(name, **fields)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>GET .../triggers</code></td>
+<td><code>list_triggers(name)</code></td>
+<td><code>list[dict]</code></td>
+</tr>
+<tr>
+<td><code>POST .../triggers</code></td>
+<td><code>add_trigger(name, trigger_config)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>DELETE .../triggers/{id}</code></td>
+<td><code>remove_trigger(name, trigger_id)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>GET .../secrets</code></td>
+<td><code>list_secrets(name)</code></td>
+<td><code>list[dict]</code></td>
+</tr>
+<tr>
+<td><code>PATCH .../secrets/{secret}</code></td>
+<td><code>rotate_secret(name, secret_name, value, *, ttl=None)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>DELETE .../secrets</code></td>
+<td><code>revoke_secrets(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>GET .../journal</code></td>
+<td><code>get_journal(name, *, limit=50, entry_type=None)</code></td>
+<td><code>list[dict]</code></td>
+</tr>
+<tr>
+<td><code>GET .../rewind/plan</code></td>
+<td><code>rewind_plan(name, target_entry_id, *, mode="both")</code></td>
+<td><code>dict</code> (the plan)</td>
+</tr>
+<tr>
+<td><code>POST .../rewind</code></td>
+<td><code>rewind(name, target_entry_id, *, mode="both", actor=None)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>GET .../mission</code></td>
+<td><code>get_mission(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../mission/fail</code></td>
+<td><code>fail_mission(name, reason="Manually failed via client")</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../mission/pause</code></td>
+<td><code>pause_mission(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../mission/resume</code></td>
+<td><code>resume_mission(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>GET .../health/anomalies</code></td>
+<td><code>get_anomalies(name)</code></td>
+<td><code>list[dict]</code></td>
+</tr>
+<tr>
+<td><code>DELETE .../health/anomalies</code></td>
+<td><code>clear_anomalies(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../messages</code></td>
+<td><code>send_message(name, content, *, message_type="context", priority="normal", sender_id=None, ttl=None, metadata=None)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>POST .../ask</code></td>
+<td><code>ask(name, question, *, timeout=120, sender_id=None, priority="normal")</code></td>
+<td><code>str \| None</code></td>
+</tr>
+<tr>
+<td><code>GET .../inbox</code></td>
+<td><code>get_inbox(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>DELETE .../inbox</code></td>
+<td><code>clear_inbox(name)</code></td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td><code>GET .../context</code></td>
+<td><code>get_context(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>PATCH .../context</code></td>
+<td><code>update_context(name, state)</code></td>
+<td><code>dict</code></td>
+</tr>
+<tr>
+<td><code>GET .../metrics</code></td>
+<td><code>get_metrics(name)</code></td>
+<td><code>dict</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>ask()</code> returns the answer text, or <code>None</code> when the server answered <code>status: "timeout"</code>; its HTTP timeout is <code>timeout</code> + 10 seconds, so the server's long poll ends first.</p>
+<hr />
+<h2 id="audit-log">Audit log<a class="headerlink" href="#audit-log" title="Link to this section">&para;</a></h2>
+<p>Every mutating request (<code>POST</code>, <code>PATCH</code>, <code>PUT</code>, <code>DELETE</code>) that passes the token and Host/Origin checks, successful or not, is logged at <code>INFO</code> to the <code>promptise.runtime.api</code> logger with its method, route, path parameters (process, trigger and secret <strong>names</strong>), status and client address. Requests those checks refuse (<code>401</code>, <code>403 CROSS_ORIGIN_REFUSED</code>, <code>421</code>) are logged as warnings, as are refused command deploys.</p>
+<p>A successful mutating request is also written to the process's journal (when it has one) as an <code>api_request</code> entry:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="p">{</span><span class="nt">"method"</span><span class="p">:</span><span class="w"> </span><span class="s2">"DELETE"</span><span class="p">,</span><span class="w"> </span><span class="nt">"route"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/api/v1/processes/{name}/triggers/{trigger_id}"</span><span class="p">,</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w"> </span><span class="nt">"params"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"monitor"</span><span class="p">,</span><span class="w"> </span><span class="nt">"trigger_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cron-6d904fd75c"</span><span class="p">},</span><span class="w"> </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="nt">"client"</span><span class="p">:</span><span class="w"> </span><span class="s2">"127.0.0.1"</span><span class="p">}</span>
+</span></code></pre></div>
+<p>Request bodies are never logged: they can hold secret values and message text.</p>
+<hr />
+<h2 id="error-responses">Error responses<a class="headerlink" href="#error-responses" title="Link to this section">&para;</a></h2>
+<p>Errors are JSON objects:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="p">{</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">    </span><span class="nt">"error"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">        </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"PROCESS_NOT_FOUND"</span><span class="p">,</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">        </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Process 'unknown-agent' not found"</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>The codes come from <code>promptise.runtime.api.ERROR_CODES</code> (<code>code -&gt; (status, meaning)</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>400</code></td>
+<td><code>HEALTH_DISABLED</code></td>
+<td>Health operation on a process without health monitoring</td>
+</tr>
+<tr>
+<td><code>400</code></td>
+<td><code>INBOX_DISABLED</code></td>
+<td>Inbox operation on a process without an inbox</td>
+</tr>
+<tr>
+<td><code>400</code></td>
 <td><code>INVALID_JSON</code></td>
-<td>Request body is not valid JSON</td>
+<td>Request body is not a JSON object</td>
 </tr>
 <tr>
-<td>400</td>
+<td><code>400</code></td>
+<td><code>JOURNAL_DISABLED</code></td>
+<td>Rewind on a process without a journal</td>
+</tr>
+<tr>
+<td><code>400</code></td>
+<td><code>MISSION_DISABLED</code></td>
+<td>Mission operation on a process without a mission</td>
+</tr>
+<tr>
+<td><code>400</code></td>
+<td><code>RESUME_FAILED</code></td>
+<td>The process can't be resumed in its current state</td>
+</tr>
+<tr>
+<td><code>400</code></td>
+<td><code>ROTATION_FAILED</code></td>
+<td>The secret could not be rotated</td>
+</tr>
+<tr>
+<td><code>400</code></td>
 <td><code>SECRETS_DISABLED</code></td>
-<td>Secret operations on process without secrets</td>
+<td>Secret operation on a process without secret scoping</td>
 </tr>
 <tr>
-<td>401</td>
+<td><code>400</code></td>
+<td><code>SUSPEND_FAILED</code></td>
+<td>The process can't be suspended in its current state</td>
+</tr>
+<tr>
+<td><code>401</code></td>
 <td><code>UNAUTHORIZED</code></td>
-<td>Missing or invalid Bearer token</td>
+<td>Missing or wrong bearer token</td>
 </tr>
 <tr>
-<td>403</td>
+<td><code>403</code></td>
+<td><code>COMMANDS_NOT_ALLOWED</code></td>
+<td>Deploy with a stdio MCP server, a command hook or open-mode tool creation while allow_command_deploys is off</td>
+</tr>
+<tr>
+<td><code>403</code></td>
+<td><code>CROSS_ORIGIN_REFUSED</code></td>
+<td>Cross-site Origin on a loopback bind</td>
+</tr>
+<tr>
+<td><code>403</code></td>
+<td><code>ENV_REFERENCES_NOT_ALLOWED</code></td>
+<td>Config with a <code>${VAR}</code> reference the API doesn't allow (allow_env_references / allowed_env_vars)</td>
+</tr>
+<tr>
+<td><code>403</code></td>
+<td><code>PATH_NOT_ALLOWED</code></td>
+<td>Journal, memory or watch path outside the API's data_dir (or with '..')</td>
+</tr>
+<tr>
+<td><code>403</code></td>
 <td><code>WRITE_DENIED</code></td>
-<td>Writing to a non-writable context key</td>
+<td>Context key(s) not writable (nothing was written)</td>
 </tr>
 <tr>
-<td>404</td>
+<td><code>404</code></td>
+<td><code>ENTRY_NOT_FOUND</code></td>
+<td>Journal entry ID doesn't exist (rewind target)</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td><code>NOT_FOUND</code></td>
+<td>No such route</td>
+</tr>
+<tr>
+<td><code>404</code></td>
 <td><code>PROCESS_NOT_FOUND</code></td>
 <td>Process name doesn't exist</td>
 </tr>
 <tr>
-<td>404</td>
+<td><code>404</code></td>
+<td><code>SECRET_NOT_FOUND</code></td>
+<td>The process has no secret of that name</td>
+</tr>
+<tr>
+<td><code>404</code></td>
 <td><code>TRIGGER_NOT_FOUND</code></td>
 <td>Trigger ID doesn't exist</td>
 </tr>
 <tr>
-<td>409</td>
+<td><code>405</code></td>
+<td><code>METHOD_NOT_ALLOWED</code></td>
+<td>The route doesn't accept this method</td>
+</tr>
+<tr>
+<td><code>409</code></td>
+<td><code>INBOX_FULL</code></td>
+<td>The inbox is full and nothing can be evicted for the message</td>
+</tr>
+<tr>
+<td><code>409</code></td>
+<td><code>MISSION_STATE</code></td>
+<td>Mission fail/pause/resume not valid in the mission's state</td>
+</tr>
+<tr>
+<td><code>409</code></td>
 <td><code>PROCESS_EXISTS</code></td>
 <td>Deploy with a name that's already registered</td>
 </tr>
 <tr>
-<td>422</td>
-<td><code>MISSING_FIELD</code></td>
-<td>Required field missing from request</td>
+<td><code>409</code></td>
+<td><code>PROCESS_NOT_RUNNING</code></td>
+<td>Message or question to a stopped or failed process</td>
 </tr>
 <tr>
-<td>422</td>
+<td><code>409</code></td>
+<td><code>REWIND_BUSY</code></td>
+<td>A run was still in flight when the rewind timed out</td>
+</tr>
+<tr>
+<td><code>409</code></td>
+<td><code>TRIGGER_EXISTS</code></td>
+<td>Adding a trigger identical to an existing one</td>
+</tr>
+<tr>
+<td><code>410</code></td>
+<td><code>QUESTION_REMOVED</code></td>
+<td><code>/ask</code>: the question was cleared or evicted from the inbox before it was answered</td>
+</tr>
+<tr>
+<td><code>413</code></td>
+<td><code>PAYLOAD_TOO_LARGE</code></td>
+<td>Request body over the server's size limit (1 MiB)</td>
+</tr>
+<tr>
+<td><code>421</code></td>
+<td><code>MISDIRECTED_REQUEST</code></td>
+<td>Non-loopback Host on a loopback bind (DNS rebinding)</td>
+</tr>
+<tr>
+<td><code>422</code></td>
+<td><code>DEPLOY_FAILED</code></td>
+<td>The process could not be created from a valid config</td>
+</tr>
+<tr>
+<td><code>422</code></td>
 <td><code>INVALID_CONFIG</code></td>
-<td>Config fails validation (deploy, add trigger, <code>PATCH</code> budget/health/mission)</td>
+<td>Config fails validation (deploy, trigger, PATCH sections)</td>
 </tr>
 <tr>
-<td>422</td>
+<td><code>422</code></td>
+<td><code>INVALID_FIELD</code></td>
+<td>A field has the wrong type or an out-of-range value</td>
+</tr>
+<tr>
+<td><code>422</code></td>
+<td><code>INVALID_NAME</code></td>
+<td>Process name doesn't match <code>^[a-zA-Z][a-zA-Z0-9_-]{0,63}$</code></td>
+</tr>
+<tr>
+<td><code>422</code></td>
+<td><code>INVALID_TYPE</code></td>
+<td>Unknown message_type</td>
+</tr>
+<tr>
+<td><code>422</code></td>
+<td><code>MESSAGE_REJECTED</code></td>
+<td>The inbox's guardrail scan flagged the message</td>
+</tr>
+<tr>
+<td><code>422</code></td>
+<td><code>MISSING_FIELD</code></td>
+<td>Required field missing from the request</td>
+</tr>
+<tr>
+<td><code>422</code></td>
 <td><code>UNKNOWN_FIELD</code></td>
-<td><code>PATCH</code> budget/health/mission names a field the config model does not declare</td>
+<td>PATCH names a field the config model doesn't declare</td>
 </tr>
 <tr>
-<td>429</td>
+<td><code>429</code></td>
 <td><code>RATE_LIMITED</code></td>
 <td>Inbox rate limit exceeded</td>
 </tr>
 <tr>
-<td>500</td>
+<td>varies</td>
+<td><code>HTTP_ERROR</code></td>
+<td>Another HTTP error from the server (<code>400</code>, <code>408</code>, <code>411</code>, <code>414</code>, <code>431</code>, ...); the response status says which</td>
+</tr>
+<tr>
+<td><code>500</code></td>
 <td><code>INTERNAL_ERROR</code></td>
-<td>Unexpected server error</td>
+<td>Unexpected server error (details in the server log)</td>
+</tr>
+<tr>
+<td><code>500</code></td>
+<td><code>RESTART_FAILED</code></td>
+<td>The process failed to restart</td>
+</tr>
+<tr>
+<td><code>500</code></td>
+<td><code>START_FAILED</code></td>
+<td>The process failed to start</td>
+</tr>
+<tr>
+<td><code>500</code></td>
+<td><code>STOP_FAILED</code></td>
+<td>The process failed to stop</td>
 </tr>
 </tbody>
 </table>
+<p><code>HTTP_ERROR</code> has no fixed status (its <code>ERROR_CODES</code> status is <code>None</code>): it carries the status of the underlying HTTP error. An <code>INTERNAL_ERROR</code> message is generic; the details go to the server log.</p>
+<p>When an error is caused by an exception inside the runtime (a failed deploy, start, stop, restart, suspend, resume or secret rotation, an inbox refusal, a rewind that failed, an unexpected error), the response never carries the exception's text, which can hold file paths, internal state or secret values. It carries a fixed <code>message</code> and an <code>error_id</code>, and the exception with its traceback is logged on <code>promptise.runtime.api</code> under the same id (<code>ERROR</code> for a <code>5xx</code>, <code>WARNING</code> otherwise). <code>OrchestrationAPIError.error_id</code> holds it on the client side:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="p">{</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">    </span><span class="nt">"error"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">        </span><span class="nt">"code"</span><span class="p">:</span><span class="w"> </span><span class="s2">"START_FAILED"</span><span class="p">,</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">        </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Process 'worker' failed to start"</span><span class="p">,</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">        </span><span class="nt">"error_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"3f9c0a1b2d4e"</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Validation errors (<code>INVALID_CONFIG</code> from a config pydantic rejects) still list each offending field and what was expected of it.</p>
 <hr />
 <h2 id="security">Security<a class="headerlink" href="#security" title="Link to this section">&para;</a></h2>
 <ul>
-<li>Bearer token required on non-localhost (timing-safe comparison)</li>
-<li>Process names validated: alphanumeric + hyphens, max 64 chars</li>
-<li>Config validated via Pydantic before process creation</li>
-<li>Secret values are never returned in API responses (only names and TTL status)</li>
-<li>Health endpoint has no auth (for Kubernetes probes)</li>
-<li>Config updates (<code>PATCH</code> budget/health/mission) are validated against the config models before they are applied; unknown fields, out-of-range values and wrong types are refused with <code>422</code> and change nothing</li>
-<li>All mutating operations (POST/PATCH/DELETE) are logged</li>
+<li>Bearer token required on non-loopback binds, compared in constant time; <code>GET /api/v1/health</code> is the only route without auth (for Kubernetes probes).</li>
+<li>On loopback binds, DNS-rebinding (<code>421</code>) and cross-site (<code>403</code>) requests are refused.</li>
+<li>Deploys that would run programs or agent-written code on the host are refused unless <code>allow_command_deploys=True</code>.</li>
+<li><code>${VAR}</code> references in deployed configs are refused unless allowed, and an API-deployed process resolves only the allowed variables; a failed resolution doesn't reveal whether a variable exists.</li>
+<li>Journal, memory and watch paths in deployed configs stay inside <code>data_dir</code>.</li>
+<li>An API-deployed open-mode agent connects only the MCP servers in <code>allowed_mcp_urls</code> (none when it is empty), and agent-connected servers never receive the process identity's credential (see <a href="../meta-tools/#security">Open Mode</a>).</li>
+<li>Process names are validated, and configs are validated before a process is created or changed; invalid changes change nothing.</li>
+<li>Secret values never appear in responses (including <code>/ask</code> answers), error messages, the audit log or the journal.</li>
+<li>Every mutating request is audited.</li>
 </ul>
 <hr />
-<h2 id="whats-next">What's Next?<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../processes/">Agent Processes</a> — process lifecycle and configuration</li>
-<li><a href="../governance/budget/">Governance</a> — budget, health, and mission configuration</li>
-<li><a href="../triggers/">Triggers</a> — cron, webhook, file watch, event, message triggers</li>
+<li><strong>An unanswered <code>/ask</code> is not an error.</strong> It answers <code>200</code> with <code>status: "timeout"</code>, and <code>client.ask()</code> returns <code>None</code>. The agent only sees the question on its next run, so a process whose triggers don't fire within <code>timeout</code> can't answer. Inject an event or pick a trigger that runs often enough.</li>
+<li><strong>Directives are shown once.</strong> After the run that saw it, a directive is removed from the inbox. Put lasting rules in the instructions (<code>PATCH /instructions</code>) or the context state.</li>
+<li><strong>Messages are unscanned without guardrails.</strong> <code>scan_with_guardrails</code> defaults to <code>true</code>, but it needs a scanner; without <code>guardrails</code> or <code>trigger_delivery.scan_payloads</code> the process only logs a warning.</li>
+<li><strong><code>DELETE /inbox</code> ends waiting questions.</strong> It removes pending questions; an <code>/ask</code> call still waiting on one answers <code>410 QUESTION_REMOVED</code> (<code>process.ask()</code> raises <code>InboxQuestionRemoved</code>). Wait for open questions before clearing the inbox.</li>
+<li><strong><code>START_FAILED</code> on deploy leaves the process registered.</strong> A retry with the same name gets <code>409 PROCESS_EXISTS</code>; start it or delete it instead.</li>
+<li><strong>Secret rotations don't survive a restart</strong> (with the default <code>revoke_on_stop=True</code>). A restart revokes the secrets and resolves them from the config again; rotate the source value as well (see <a href="../governance/secrets/">Secret Scoping</a>).</li>
+<li><strong>An open-mode deploy gets <code>403 COMMANDS_NOT_ALLOWED</code>.</strong> Open mode allows <code>create_tool</code> by default, which runs agent-written code on the host. Send <code>"open_mode": {"allow_tool_creation": false}</code>, or start the API with <code>allow_command_deploys=True</code> if every token holder may run code there.</li>
+<li><strong>A <code>${VAR}</code> in a deploy gets <code>403 ENV_REFERENCES_NOT_ALLOWED</code>.</strong> Send the value, or ask the operator to allow that variable (<code>--allow-env-var NAME</code>).</li>
+<li><strong>Use stable trigger IDs.</strong> Take the <code>id</code> from <code>GET /triggers</code>; position-based <code>static_&lt;n&gt;</code> IDs are deprecated.</li>
 </ul>
+<hr />
+<h2 id="whats-next">What's next?<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../processes/">Agent Processes</a> -- process lifecycle and configuration</li>
+<li><a href="../context/">Agent Context</a> -- the state behind <code>GET/PATCH /context</code></li>
+<li><a href="../governance/mission/">Mission Model</a>, <a href="../governance/budget/">Autonomy Budget</a>, <a href="../governance/health/">Behavioral Health</a> and <a href="../governance/secrets/">Secret Scoping</a> -- the sections you can patch</li>
+<li><a href="../journal/rewind/">Rewind Engine</a> -- what the rewind routes restore</li>
+<li><a href="../triggers/">Triggers</a> -- cron, webhook, file watch, event and message triggers</li>
+<li><a href="../cli/">CLI Commands</a> -- <code>promptise runtime start</code> serves this API</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-control-api">AI Agent Control API: Manage Running Agents Over HTTP</a> -- Every route group, auth and the loopback guard, with real calls.</li>
+<li><a href="https://www.promptise.com/guides/view/message-running-ai-agent">Message a Running AI Agent: Inbox, Directives and Ask</a> -- Send directives and questions to an agent while it runs.</li>
+<li><a href="https://www.promptise.com/guides/view/autonomous-ai-agent-runtime">Autonomous AI Agent Runtime: Budgets, Crash Recovery, API</a> -- How the API fits with budgets and recovery in a long-running runtime.</li>
+</ul>
+</div>
 
 
 
@@ -10802,7 +11678,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 11, 2026 16:02:23 UTC">2026-10-11</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 21:45:05 UTC">2026-10-20</span>
   </span>
 
     

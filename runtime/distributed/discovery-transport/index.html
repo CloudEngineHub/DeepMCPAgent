@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5925,6 +5895,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5947,8 +5921,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" checked>
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5962,8 +5937,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5975,6 +5956,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -6303,6 +6286,17 @@
     <span class="md-ellipsis">
       
         Inject event
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cluster-routes-coordinator-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster routes (coordinator only)
       
     </span>
   </a>
@@ -8595,8 +8589,6 @@
       
         
       
-        
-      
     
     
     
@@ -8749,36 +8741,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9896,6 +9858,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#cluster-routes-coordinator-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster routes (coordinator only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#error-responses" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -10027,7 +10000,7 @@
     
     
       <li class="md-path__item">
-        <a href="../coordinator/" class="md-path__link">
+        <a href="../" class="md-path__link">
           
   <span class="md-ellipsis">
     Distributed
@@ -10054,6 +10027,7 @@
 
 <h1 id="service-discovery-and-transport">Service Discovery and Transport<a class="headerlink" href="#service-discovery-and-transport" title="Link to this section">&para;</a></h1>
 <p>The distributed runtime uses two complementary systems: <strong>service discovery</strong> for nodes to find each other, and <strong>transport</strong> for remote management via HTTP. Together, they enable multi-node agent deployments where processes can be started, stopped, monitored, and triggered across machines.</p>
+<p>With <a href="../">distributed mode</a> (<code>DistributedConfig(enabled=True)</code>), every runtime builds its own <code>RuntimeTransport</code>, and the coordinator its discovery, from the config. This page documents the pieces themselves: the HTTP routes every node serves, and the discovery classes, for when you call them directly or assemble a cluster by hand.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.distributed.discovery</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticDiscovery</span><span class="p">,</span> <span class="n">RegistryDiscovery</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.distributed.transport</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeTransport</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span>
@@ -10154,7 +10128,7 @@
 </ul>
 <hr />
 <h2 id="registrydiscovery">RegistryDiscovery<a class="headerlink" href="#registrydiscovery" title="Link to this section">&para;</a></h2>
-<p>A dynamic, in-process registry where nodes register themselves and discover each other. Stale registrations are automatically pruned after a configurable TTL.</p>
+<p>A dynamic registry where nodes register themselves and discover each other. Stale registrations are pruned after a TTL (default 60 seconds). The object lives in one Python process; a coordinator started with distributed mode holds one (with <code>ttl=node_timeout</code>) and exposes it over HTTP as <code>POST /cluster/nodes</code>, so nodes on other machines register by calling that route.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.distributed.discovery</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegistryDiscovery</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">registry</span> <span class="o">=</span> <span class="n">RegistryDiscovery</span><span class="p">(</span><span class="n">ttl</span><span class="o">=</span><span class="mf">60.0</span><span class="p">)</span>  <span class="c1"># 60-second TTL</span>
@@ -10186,8 +10160,9 @@
 <ul>
 <li>Dynamic clusters where nodes come and go</li>
 <li>Single-process testing with multiple logical nodes</li>
-<li>Coordinator-hosted registry exposed via HTTP API</li>
+<li>The coordinator of a cluster (<code>discovery_method="registry"</code>, the default)</li>
 </ul>
+<p>Over HTTP, a node refreshes its registration by posting it again (a <code>ClusterNode</code> does that every <code>heartbeat_interval</code>); <code>heartbeat()</code> is the in-process equivalent.</p>
 <hr />
 <h2 id="runtimetransport">RuntimeTransport<a class="headerlink" href="#runtimetransport" title="Link to this section">&para;</a></h2>
 <p>The <code>RuntimeTransport</code> exposes an <code>AgentRuntime</code> as an HTTP API for remote management. It runs an <code>aiohttp</code> server that handles process control, status queries, and event injection.</p>
@@ -10211,6 +10186,62 @@
 </span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="k">await</span> <span class="n">transport</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
 <p>The default <code>host</code> is <code>127.0.0.1</code> (this machine only). Pass <code>port=0</code> to let the OS pick a free port; <code>transport.port</code> reports it after <code>start()</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>runtime</code></td>
+<td>required</td>
+<td>The <code>AgentRuntime</code> to manage</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td><code>"127.0.0.1"</code></td>
+<td>Interface to bind</td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td><code>9100</code></td>
+<td>Port (<code>0</code>: a free one)</td>
+</tr>
+<tr>
+<td><code>node_id</code></td>
+<td><code>"node-1"</code></td>
+<td>This node's ID (in <code>/health</code> and <code>/status</code>)</td>
+</tr>
+<tr>
+<td><code>auth_token</code></td>
+<td><code>None</code></td>
+<td>Bearer token for every route except <code>GET /health</code>; required off loopback</td>
+</tr>
+<tr>
+<td><code>allow_unauthenticated</code></td>
+<td><code>False</code></td>
+<td>Allow a non-loopback bind without a token</td>
+</tr>
+<tr>
+<td><code>coordinator</code></td>
+<td><code>None</code></td>
+<td>A <code>RuntimeCoordinator</code>: adds the <code>/cluster</code> routes (this node hosts the coordinator)</td>
+</tr>
+<tr>
+<td><code>discovery</code></td>
+<td><code>None</code></td>
+<td>The coordinator's discovery (<code>RegistryDiscovery</code> or <code>StaticDiscovery</code>)</td>
+</tr>
+<tr>
+<td><code>allowed_node_hosts</code></td>
+<td><code>None</code></td>
+<td>Hosts a node registering at <code>POST /cluster/nodes</code> may name in its URL (<code>*.example.com</code> matches subdomains); others get <code>403</code>. <code>None</code> or empty: any host</td>
+</tr>
+</tbody>
+</table>
 <h3 id="security">Security<a class="headerlink" href="#security" title="Link to this section">&para;</a></h3>
 <p>The transport can start, stop and drive your agents, so it is locked down by default:</p>
 <table>
@@ -10223,7 +10254,7 @@
 <tbody>
 <tr>
 <td>Bearer token</td>
-<td>With <code>auth_token</code> set, every endpoint except <code>GET /health</code> requires <code>Authorization: Bearer &lt;token&gt;</code> (compared in constant time). Missing or wrong token: <code>401</code>.</td>
+<td>With <code>auth_token</code> set, every endpoint except <code>GET /health</code> requires <code>Authorization: Bearer &lt;token&gt;</code> (compared in constant time). Missing or wrong token, including a header with non-ASCII bytes: <code>401</code>.</td>
 </tr>
 <tr>
 <td>Public bind needs a token</td>
@@ -10237,8 +10268,16 @@
 <td>Empty token</td>
 <td><code>auth_token=""</code> raises <code>ValueError</code>.</td>
 </tr>
+<tr>
+<td>Node URLs</td>
+<td><code>POST /cluster/nodes</code> takes <code>http://</code> or <code>https://</code> URLs with a host only (<code>422</code> otherwise), and only hosts in <code>allowed_node_hosts</code> when it is set (<code>403</code>).</td>
+</tr>
 </tbody>
 </table>
+<div class="admonition warning">
+<p class="admonition-title">Registered URLs receive the cluster token</p>
+<p>The coordinator sends health checks and management calls, with the cluster token, to every URL registered at <code>POST /cluster/nodes</code>. Anyone holding the token can register a URL, and so make the coordinator send requests (and the token) to any host it can reach, internal services included. Set <code>allowed_node_hosts</code> (<code>DistributedConfig.allowed_node_hosts</code>) to your nodes' host names or a domain such as <code>*.cluster.internal</code>, or use static discovery, where only your config lists nodes.</p>
+</div>
 <p>Use TLS (a reverse proxy) when the token crosses an untrusted network: the transport itself speaks plain HTTP.</p>
 <div class="admonition warning">
 <p class="admonition-title">Changed in 1.3.0</p>
@@ -10319,6 +10358,8 @@
 </span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">    </span><span class="nt">"process"</span><span class="p">:</span><span class="w"> </span><span class="s2">"watcher"</span>
 </span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="p">}</span>
 </span></code></pre></div>
+<h3 id="cluster-routes-coordinator-only">Cluster routes (coordinator only)<a class="headerlink" href="#cluster-routes-coordinator-only" title="Link to this section">&para;</a></h3>
+<p>A transport created with <code>coordinator=</code> also serves <code>GET /cluster/nodes</code>, <code>POST /cluster/nodes</code> (register or refresh <code>{"node_id", "url", "metadata"}</code>), <code>DELETE /cluster/nodes/{node_id}</code> and <code>GET /cluster/status</code>. See <a href="../coordinator/#hosted-by-a-runtime">Coordinator</a> for the request and response details.</p>
 <h3 id="error-responses">Error responses<a class="headerlink" href="#error-responses" title="Link to this section">&para;</a></h3>
 <p>All endpoints return appropriate HTTP error codes:</p>
 <table>
@@ -10351,11 +10392,19 @@
 </tr>
 <tr>
 <td>404</td>
-<td>Process not found</td>
+<td>Process (or, on <code>/cluster</code>, node) not found</td>
+</tr>
+<tr>
+<td>409</td>
+<td>Cluster routes: registering with static discovery, or the coordinator's own ID</td>
 </tr>
 <tr>
 <td>421</td>
 <td><code>Host</code> header is not a loopback name (loopback bind)</td>
+</tr>
+<tr>
+<td>422</td>
+<td>Cluster routes: a bad <code>node_id</code>, <code>url</code> or <code>metadata</code></td>
 </tr>
 <tr>
 <td>500</td>
@@ -10365,50 +10414,33 @@
 </table>
 <hr />
 <h2 id="putting-it-together">Putting It Together<a class="headerlink" href="#putting-it-together" title="Link to this section">&para;</a></h2>
-<p>A complete distributed deployment:</p>
+<p>For a real cluster, let the config wire everything: see the two-node setup in <a href="../">Distributed Mode</a>. By hand, the same pieces look like this (a node with a transport, and a coordinator that knows it):</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 </span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.distributed.transport</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeTransport</span>
-</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.distributed.coordinator</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeCoordinator</span>
-</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.distributed.discovery</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegistryDiscovery</span>
-</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>
-</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="n">TOKEN</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"PROMPTISE_NODE_TOKEN"</span><span class="p">]</span>
-</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>
-</span><span id="__span-22-11"><a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_node</span><span class="p">(</span><span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-</span><span id="__span-22-12"><a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="w">    </span><span class="sd">"""Run a single runtime node."""</span>
-</span><span id="__span-22-13"><a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>    <span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">()</span>
-</span><span id="__span-22-14"><a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"watcher"</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-22-15"><a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-22-16"><a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a>        <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor data."</span><span class="p">,</span>
-</span><span id="__span-22-17"><a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a>        <span class="n">triggers</span><span class="o">=</span><span class="p">[</span><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">)],</span>
-</span><span id="__span-22-18"><a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a>    <span class="p">))</span>
-</span><span id="__span-22-19"><a id="__codelineno-22-19" name="__codelineno-22-19" href="#__codelineno-22-19"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
-</span><span id="__span-22-20"><a id="__codelineno-22-20" name="__codelineno-22-20" href="#__codelineno-22-20"></a>
-</span><span id="__span-22-21"><a id="__codelineno-22-21" name="__codelineno-22-21" href="#__codelineno-22-21"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">RuntimeTransport</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">node_id</span><span class="o">=</span><span class="n">node_id</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="n">TOKEN</span><span class="p">):</span>
-</span><span id="__span-22-22"><a id="__codelineno-22-22" name="__codelineno-22-22" href="#__codelineno-22-22"></a>        <span class="c1"># Node is now discoverable and remotely manageable</span>
-</span><span id="__span-22-23"><a id="__codelineno-22-23" name="__codelineno-22-23" href="#__codelineno-22-23"></a>        <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-22-24"><a id="__codelineno-22-24" name="__codelineno-22-24" href="#__codelineno-22-24"></a>            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="__span-22-25"><a id="__codelineno-22-25" name="__codelineno-22-25" href="#__codelineno-22-25"></a>                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-22-26"><a id="__codelineno-22-26" name="__codelineno-22-26" href="#__codelineno-22-26"></a>        <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
-</span><span id="__span-22-27"><a id="__codelineno-22-27" name="__codelineno-22-27" href="#__codelineno-22-27"></a>            <span class="k">pass</span>
-</span><span id="__span-22-28"><a id="__codelineno-22-28" name="__codelineno-22-28" href="#__codelineno-22-28"></a>
-</span><span id="__span-22-29"><a id="__codelineno-22-29" name="__codelineno-22-29" href="#__codelineno-22-29"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">stop_all</span><span class="p">()</span>
-</span><span id="__span-22-30"><a id="__codelineno-22-30" name="__codelineno-22-30" href="#__codelineno-22-30"></a>
-</span><span id="__span-22-31"><a id="__codelineno-22-31" name="__codelineno-22-31" href="#__codelineno-22-31"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_coordinator</span><span class="p">():</span>
-</span><span id="__span-22-32"><a id="__codelineno-22-32" name="__codelineno-22-32" href="#__codelineno-22-32"></a><span class="w">    </span><span class="sd">"""Run the cluster coordinator."""</span>
-</span><span id="__span-22-33"><a id="__codelineno-22-33" name="__codelineno-22-33" href="#__codelineno-22-33"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">RuntimeCoordinator</span><span class="p">(</span><span class="n">auth_token</span><span class="o">=</span><span class="n">TOKEN</span><span class="p">)</span> <span class="k">as</span> <span class="n">coordinator</span><span class="p">:</span>
-</span><span id="__span-22-34"><a id="__codelineno-22-34" name="__codelineno-22-34" href="#__codelineno-22-34"></a>        <span class="n">coordinator</span><span class="o">.</span><span class="n">register_node</span><span class="p">(</span><span class="s2">"node-1"</span><span class="p">,</span> <span class="s2">"http://localhost:9100"</span><span class="p">)</span>
-</span><span id="__span-22-35"><a id="__codelineno-22-35" name="__codelineno-22-35" href="#__codelineno-22-35"></a>        <span class="n">coordinator</span><span class="o">.</span><span class="n">register_node</span><span class="p">(</span><span class="s2">"node-2"</span><span class="p">,</span> <span class="s2">"http://localhost:9101"</span><span class="p">)</span>
-</span><span id="__span-22-36"><a id="__codelineno-22-36" name="__codelineno-22-36" href="#__codelineno-22-36"></a>
-</span><span id="__span-22-37"><a id="__codelineno-22-37" name="__codelineno-22-37" href="#__codelineno-22-37"></a>        <span class="c1"># Monitor cluster health</span>
-</span><span id="__span-22-38"><a id="__codelineno-22-38" name="__codelineno-22-38" href="#__codelineno-22-38"></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="__span-22-39"><a id="__codelineno-22-39" name="__codelineno-22-39" href="#__codelineno-22-39"></a>            <span class="n">status</span> <span class="o">=</span> <span class="k">await</span> <span class="n">coordinator</span><span class="o">.</span><span class="n">cluster_status</span><span class="p">()</span>
-</span><span id="__span-22-40"><a id="__codelineno-22-40" name="__codelineno-22-40" href="#__codelineno-22-40"></a>            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Nodes: </span><span class="si">{</span><span class="n">status</span><span class="p">[</span><span class="s1">'total_nodes'</span><span class="p">]</span><span class="si">}</span><span class="s2">, "</span>
-</span><span id="__span-22-41"><a id="__codelineno-22-41" name="__codelineno-22-41" href="#__codelineno-22-41"></a>                  <span class="sa">f</span><span class="s2">"Healthy: </span><span class="si">{</span><span class="n">status</span><span class="p">[</span><span class="s1">'healthy_nodes'</span><span class="p">]</span><span class="si">}</span><span class="s2">, "</span>
-</span><span id="__span-22-42"><a id="__codelineno-22-42" name="__codelineno-22-42" href="#__codelineno-22-42"></a>                  <span class="sa">f</span><span class="s2">"Processes: </span><span class="si">{</span><span class="n">status</span><span class="p">[</span><span class="s1">'total_processes'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-22-43"><a id="__codelineno-22-43" name="__codelineno-22-43" href="#__codelineno-22-43"></a>            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ProcessConfig</span>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.distributed.coordinator</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeCoordinator</span>
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.distributed.transport</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeTransport</span>
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>
+</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="n">TOKEN</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"CLUSTER_TOKEN"</span><span class="p">]</span>
+</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>
+</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_node</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-22-11"><a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>    <span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">()</span>
+</span><span id="__span-22-12"><a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"watcher"</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-22-13"><a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor data."</span><span class="p">,</span>
+</span><span id="__span-22-14"><a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a>    <span class="p">))</span>
+</span><span id="__span-22-15"><a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
+</span><span id="__span-22-16"><a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">RuntimeTransport</span><span class="p">(</span><span class="n">runtime</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">9101</span><span class="p">,</span> <span class="n">node_id</span><span class="o">=</span><span class="s2">"node-1"</span><span class="p">,</span> <span class="n">auth_token</span><span class="o">=</span><span class="n">TOKEN</span><span class="p">):</span>
+</span><span id="__span-22-17"><a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>   <span class="c1"># serve until cancelled</span>
+</span><span id="__span-22-18"><a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+</span><span id="__span-22-19"><a id="__codelineno-22-19" name="__codelineno-22-19" href="#__codelineno-22-19"></a>
+</span><span id="__span-22-20"><a id="__codelineno-22-20" name="__codelineno-22-20" href="#__codelineno-22-20"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_coordinator</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-22-21"><a id="__codelineno-22-21" name="__codelineno-22-21" href="#__codelineno-22-21"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">RuntimeCoordinator</span><span class="p">(</span><span class="n">auth_token</span><span class="o">=</span><span class="n">TOKEN</span><span class="p">)</span> <span class="k">as</span> <span class="n">coordinator</span><span class="p">:</span>
+</span><span id="__span-22-22"><a id="__codelineno-22-22" name="__codelineno-22-22" href="#__codelineno-22-22"></a>        <span class="n">coordinator</span><span class="o">.</span><span class="n">register_node</span><span class="p">(</span><span class="s2">"node-1"</span><span class="p">,</span> <span class="s2">"http://127.0.0.1:9101"</span><span class="p">)</span>
+</span><span id="__span-22-23"><a id="__codelineno-22-23" name="__codelineno-22-23" href="#__codelineno-22-23"></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span><span id="__span-22-24"><a id="__codelineno-22-24" name="__codelineno-22-24" href="#__codelineno-22-24"></a>            <span class="n">status</span> <span class="o">=</span> <span class="k">await</span> <span class="n">coordinator</span><span class="o">.</span><span class="n">cluster_status</span><span class="p">()</span>
+</span><span id="__span-22-25"><a id="__codelineno-22-25" name="__codelineno-22-25" href="#__codelineno-22-25"></a>            <span class="nb">print</span><span class="p">(</span><span class="n">status</span><span class="p">[</span><span class="s2">"healthy_nodes"</span><span class="p">],</span> <span class="s2">"of"</span><span class="p">,</span> <span class="n">status</span><span class="p">[</span><span class="s2">"total_nodes"</span><span class="p">],</span> <span class="s2">"nodes healthy"</span><span class="p">)</span>
+</span><span id="__span-22-26"><a id="__codelineno-22-26" name="__codelineno-22-26" href="#__codelineno-22-26"></a>            <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
@@ -10449,7 +10481,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>RuntimeTransport(runtime, host, port, node_id, auth_token, allow_unauthenticated)</code></td>
+<td><code>RuntimeTransport(runtime, host, port, node_id, auth_token, allow_unauthenticated, coordinator, discovery)</code></td>
 <td>Create a transport server</td>
 </tr>
 <tr>
@@ -10473,8 +10505,8 @@
 <hr />
 <h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
 <div class="admonition tip">
-<p class="admonition-title">Use RegistryDiscovery with the coordinator</p>
-<p>The coordinator can host a <code>RegistryDiscovery</code> instance and expose it via its HTTP API. Nodes register at startup and send periodic heartbeats. Stale nodes are automatically pruned.</p>
+<p class="admonition-title">Let distributed mode host the registry</p>
+<p><code>DistributedConfig(coordinator=True)</code> gives the coordinator a <code>RegistryDiscovery</code> and serves it as <code>POST /cluster/nodes</code>; nodes with <code>coordinator_url</code> register at start and re-register every <code>heartbeat_interval</code>. Stale nodes are pruned.</p>
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Event injection for cross-node coordination</p>
@@ -10489,8 +10521,8 @@
 <p><code>auth_token</code> is a single shared secret with full control of the node, and the transport does not terminate TLS. In production, put nodes behind a TLS reverse proxy or on a private network, and give each node its own token (<code>RuntimeCoordinator.register_node(..., auth_token=...)</code>).</p>
 </div>
 <div class="admonition warning">
-<p class="admonition-title">RegistryDiscovery is in-process only</p>
-<p>The <code>RegistryDiscovery</code> lives in memory within a single Python process. For multi-machine discovery, host it within the coordinator and expose registration/discovery via the coordinator's HTTP API.</p>
+<p class="admonition-title">RegistryDiscovery lives in one Python process</p>
+<p>The registry is in memory. Across machines, nodes reach it through the coordinator's transport (<code>/cluster/nodes</code>); a restarted coordinator starts with an empty registry and fills it as nodes re-register.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Trailing slashes are stripped</p>
@@ -10499,11 +10531,19 @@
 <hr />
 <h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
 <ul>
+<li><a href="../">Distributed Mode</a> -- <code>DistributedConfig</code>, <code>ClusterNode</code> and a two-node setup</li>
 <li><a href="../coordinator/">Coordinator</a> -- cluster coordination and health monitoring</li>
 <li><a href="../../configuration/">Configuration</a> -- <code>DistributedConfig</code> reference</li>
 <li><a href="../../runtime-manager/">Runtime Manager</a> -- the <code>AgentRuntime</code> that runs on each node</li>
 <li><a href="../../triggers/">Triggers Overview</a> -- trigger events that can be injected remotely</li>
 </ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/run-multiple-ai-agents">Run Multiple AI Agents: One Runtime, Many Processes</a> -- Many processes in one runtime, and when to spread them across nodes.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-control-api">AI Agent Control API: Manage Running Agents Over HTTP</a> -- Manage running agents over HTTP with a bearer token.</li>
+</ul>
+</div>
 
 
 
@@ -10526,7 +10566,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 20:22:26 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 22:24:07 UTC">2026-10-19</span>
   </span>
 
     

@@ -769,8 +769,6 @@
       
         
       
-        
-      
     
     
     
@@ -1008,34 +1006,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5897,6 +5867,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5916,8 +5890,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5931,8 +5906,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5944,6 +5925,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8198,8 +8181,6 @@
       
         
       
-        
-      
     
     
     
@@ -8355,36 +8336,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9280,7 +9231,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../category/use-cases/" class="md-meta__link">Use Cases</a></li>
+              <a href="../../category/comparisons/" class="md-meta__link">Comparisons</a></li>
         
         
           
@@ -9296,12 +9247,53 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="enterprise-ai-agents-support-engineering-finance"><a class="toclink" href="../../enterprise-ai-agents/">Enterprise AI Agents: Support, Engineering &amp; Finance</a></h2>
-<p>Building <strong>enterprise AI agents</strong> for three different departments usually turns into three different projects, three security reviews, and three sets of integration code that share nothing. That is the trap this post breaks. If you are a tech lead evaluating a framework, you do not want a gallery of one-off demos — you want proof that the same primitives carry from a support bot to an engineering assistant to a finance reporting agent, so your second build is faster than your first. By the end you will see the same production spine — automatic tool discovery, local PII and credential guardrails, and per-tenant isolation — powering all three, in code you can run.</p>
+    <h2 id="can-crewai-propagate-a-users-identity-across-delegation"><a class="toclink" href="../../propagate-user-identity-across-agent-delegation-2/">Can CrewAI Propagate a User's Identity Across Delegation?</a></h2>
+<p>If you need to <strong>propagate user identity across agent delegation</strong>, the honest answer for CrewAI is: not out of the box. CrewAI can absolutely hand work from one agent to another — that part works well and has for a long time. What it doesn't do is carry the <em>requesting human</em> along for the ride. When agent A delegates to agent B, the person who asked the question disappears, and B runs with whatever ambient credentials the process happens to hold. This post explains exactly where the principal is lost, what CrewAI actually does today, and how Promptise Foundry's <code>CallerContext</code> keeps <code>user_id</code>, <code>tenant_id</code>, <code>roles</code>, and <code>scopes</code> intact across every delegated hop.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../enterprise-ai-agents/">
+        <a href="../../propagate-user-identity-across-agent-delegation-2/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/identity/" class="md-meta__link">Identity</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              8 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="does-the-users-identity-survive-agent-delegation"><a class="toclink" href="../../propagate-user-identity-across-agent-delegation/">Does the user's identity survive agent delegation?</a></h2>
+<p>The honest answer for most agent stacks is: not unless you thread it by hand. To <strong>propagate user identity across agent delegation</strong> — so that when an orchestrator acting on Alice's behalf hands a subtask to a peer via <code>ask_peer</code> or <code>broadcast</code>, the peer still runs <em>as Alice</em> — you normally have to pass the principal down every hop yourself. Miss it on one call and the peer runs unattributed: its memory search, its semantic cache, its conversation ownership, and its audit trail all detach from the real user. In a multi-tenant product, "unattributed" quietly becomes "cross-tenant," and that is the exact leak a security reviewer will find.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../propagate-user-identity-across-agent-delegation/">
           Continue reading
         </a>
       </nav>
@@ -9327,7 +9319,7 @@
           
           <li class="md-meta__item">
             
-              9 min read
+              6 min read
             
           </li>
         
@@ -9337,12 +9329,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="enterprise-ready-agent-framework-checklist-whats-left-to-you"><a class="toclink" href="../../enterprise-ready-agent-framework-checklist/">Enterprise-Ready Agent Framework Checklist: What's Left to You</a></h2>
-<p>An honest <strong>enterprise-ready agent framework checklist</strong> doesn't grade tools on GitHub stars or integration counts — it grades them on the controls a security or compliance reviewer will actually ask you to demonstrate. Stars measure enthusiasm; they say nothing about whether tenant A can reach tenant B's data, whether a refund tool paged a human before it ran, or whether your audit log can be edited without anyone noticing. This pillar walks five control areas — multi-tenancy, server-enforced approval, principal propagation across delegation, runtime governance, and tamper-evident audit — and says plainly, capability by capability, what LangChain, LangGraph, CrewAI, AutoGen, and Pydantic AI ship today versus what they leave you to build. You'll finish with a checklist you can score your own stack against, and a runnable file that proves three of the five controls in one process.</p>
+    <h2 id="pydantic-ai-vs-promptise-foundry-typed-agents"><a class="toclink" href="../../pydantic-ai-vs-promptise/">Pydantic AI vs Promptise Foundry: Typed Agents</a></h2>
+<p>If you're weighing <strong>Pydantic AI vs Promptise</strong> for a project that lives or dies on structured output, you've already found the crux of the decision: both frameworks give you typed, validated responses, but they draw the box around the problem very differently. Pydantic AI treats an agent as a typed function — clean, minimal, Pydantic all the way down. Promptise Foundry treats structured output as one layer beside memory, semantic cache, a sandbox, multi-tenant MCP, and runtime governance. By the end of this post you'll know which shape fits your stack, and you'll have runnable code for schema-strict output with automatic retry.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../enterprise-ready-agent-framework-checklist/">
+        <a href="../../pydantic-ai-vs-promptise/">
           Continue reading
         </a>
       </nav>
@@ -9362,13 +9354,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../category/identity/" class="md-meta__link">Identity</a></li>
+              <a href="../../category/memory--rag/" class="md-meta__link">Memory &amp; RAG</a></li>
         
         
           
           <li class="md-meta__item">
             
-              7 min read
+              6 min read
             
           </li>
         
@@ -9378,258 +9370,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="microsoft-entra-agent-id-with-promptise-foundry"><a class="toclink" href="../../entra-agent-identity/">Microsoft Entra Agent ID with Promptise Foundry</a></h2>
-<p>If your organization already runs on Azure, wiring <strong>Entra agent identity</strong> into your AI agents is less about adopting something new and more about consuming an identity you can already issue. This post is for teams standardized on Microsoft Entra who want a billing bot, a reporting bot, or any autonomous agent to present a signed, Entra-verified token to the MCP servers it calls — automatically, with no static API keys to leak or rotate. By the end you will know exactly which piece Azure owns, which piece Promptise Foundry owns, and how to get from a managed identity to a verified tool call in one <code>build_agent()</code> call.</p>
+    <h2 id="rag-vs-agent-memory-which-does-your-agent-need"><a class="toclink" href="../../rag-for-agents/">RAG vs Agent Memory: Which Does Your Agent Need?</a></h2>
+<p>If you have shopped around for RAG for agents, you have probably noticed that "memory" and "RAG" get used as if they were the same feature. They are not. Both push external text into the model's context, but they have different sources, different write paths, and — critically — different triggers. Confuse them and you end up bolting a document-retrieval pipeline onto a problem that a simple per-user fact store would have solved, or vice versa. By the end of this post you will have a clear decision table, a runnable Promptise Foundry example, and an honest read on when Promptise's built-in RAG is enough versus when you should reach for a dedicated ingestion library.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../entra-agent-identity/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/governance/" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="escalate-to-a-human-when-an-ai-agent-keeps-failing"><a class="toclink" href="../../escalate-ai-agent-to-human/">Escalate to a Human When an AI Agent Keeps Failing</a></h2>
-<p>The moment to <strong>escalate an AI agent to a human</strong> is not when it throws one exception — it is when a downstream tool has quietly degraded and the agent has been failing, retrying, and failing again on a loop that no caller is watching. That is the runaway nobody sees coming. A single failed tool call is easy: it raises, something catches it, maybe it retries. But when an API you depend on starts returning 500s across the board, an unattended agent does not stop. It keeps invoking, keeps burning tokens and compute, and keeps producing nothing — and because each trigger fires a fresh run, there is no exception bubbling up to anyone. You find out at the end of the month, on the bill. This post is about closing that gap with a first-class escalation path: a sliding-window error-rate detector that decides <em>the tool is down, get a human</em>, pages your on-call channel, and suspends the process — automatically.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../escalate-ai-agent-to-human/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/compliance--audit/" class="md-meta__link">Compliance &amp; Audit</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="eu-ai-act-article-12-logging-requirements-for-ai-agents"><a class="toclink" href="../../eu-ai-act-agent-logging/">EU AI Act Article 12: Logging Requirements for AI Agents</a></h2>
-<p>EU AI Act agent logging is where a lot of otherwise-solid agent deployments quietly fail their first audit, because the log they built for debugging is not the log the regulation asks for. Article 12 of Regulation (EU) 2024/1689 requires high-risk AI systems to <em>technically allow for the automatic recording of events over the lifetime of the system</em>, at a level of detail that ensures traceability appropriate to the system's intended purpose. If your autonomous agent scores credit applications, screens CVs, or triages a benefits claim — all Annex III high-risk categories — a <code>print()</code> to stdout and a span in a trace backend do not clear that bar. This post explains what Article 12 actually asks for, why the usual logging falls short on three specific properties, and how a tamper-evident audit trail with verified per-principal attribution maps to the obligation. (It is engineering guidance, not legal advice — pair it with your own counsel.)</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../eu-ai-act-agent-logging/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/runtime/" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="event-webhook-file-watch-triggered-agents"><a class="toclink" href="../../event-driven-ai-agent/">Event, Webhook &amp; File-Watch Triggered Agents</a></h2>
-<p>An event-driven AI agent wakes up when something happens in the real world — a webhook fires, a file lands, another service publishes a message — instead of waiting for you to call it or for a clock to tick. Most "autonomous agent" tutorials stop at a cron schedule, which is fine for periodic work but useless when the trigger is external and unpredictable. By the end of this post you'll know the four reactive trigger types Promptise Foundry ships, how to compose several of them on a single process, and how to verify a webhook with HMAC so only trusted callers can wake your agent.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../event-driven-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/approvals--hitl/" class="md-meta__link">Approvals &amp; HITL</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="deny-on-timeout-fail-closed-approval-for-ai-agents"><a class="toclink" href="../../fail-closed-approval-timeout-ai-agent/">Deny-on-Timeout: Fail-Closed Approval for AI Agents</a></h2>
-<p>A <strong>fail-closed approval timeout</strong> is the single setting that decides what your <strong>AI agent</strong> does when a human reviewer never answers — and for anything that moves money, deletes data, or pages a customer, the only safe answer is <em>don't run it</em>. Most human-in-the-loop wiring gets the happy path right: a reviewer clicks approve, the tool fires; they click deny, it doesn't. The dangerous cases are the ambiguous ones — the reviewer is asleep, the approval channel is down, the reviewer edited the request, or a thousand pending calls have buried the queue. What happens <em>then</em> is the whole game, and it is exactly where home-grown approval logic tends to leave a hole. This post is the complete treatment of every deny path in Promptise Foundry's server-side gate, and the one invariant that ties them together: <strong>every ambiguous outcome resolves to a denial</strong>.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../fail-closed-approval-timeout-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/mcp/" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              11 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="fastmcp-vs-promptise-the-production-mcp-stack-compared"><a class="toclink" href="../../fastmcp-alternative-for-production/">FastMCP vs Promptise: The Production MCP Stack Compared</a></h2>
-<p>If you are shopping for a <strong>fastmcp alternative for production</strong>, start by dropping the framing that FastMCP is a toy — it is a genuinely capable MCP server SDK, and the honest question is not <em>whether it works</em> but <em>how much production plumbing you still assemble by hand</em>. FastMCP gets you typed tools, mounting, auth, and a real middleware pipeline. This pillar walks the <strong>fastmcp vs promptise</strong> decision feature by feature, gives FastMCP full credit for what it already does well, and then marks the four capabilities Promptise Foundry folds into one middleware stack that FastMCP leaves you to bolt together yourself: versioned tool coexistence, per-tool circuit breaking, tenant-qualified rate limits, and an MCP-native durable job queue.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../fastmcp-alternative-for-production/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/approvals--hitl/" class="md-meta__link">Approvals &amp; HITL</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="human-approval-budget-caps-for-irreversible-ai-calls"><a class="toclink" href="../../gate-irreversible-ai-tool-calls/">Human Approval + Budget Caps for Irreversible AI Calls</a></h2>
-<p>To <strong>gate irreversible AI tool calls</strong> the way a security review actually asks for, one lock is never enough — because the two things that can go wrong are orthogonal. A destructive tool (a refund, a delete, an outbound email, a production deploy) can fire because <em>nobody said yes</em> to that specific call, or it can fire because <em>someone said yes too many times</em>. Approval closes the first hole. It does nothing about the second. Promptise Foundry pairs two independent controls so both have to agree before a destructive action runs: a server-side <code>requires_approval=True</code> gate that decides <strong>who</strong> signs off on each call, and an agent-runtime budget with <code>max_irreversible_per_run</code> that decides <strong>how many</strong> destructive calls a single run is even permitted. Approve-per-call and cap-the-count are different questions, and the answer to one never covers the other.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../gate-irreversible-ai-tool-calls/">
+        <a href="../../rag-for-agents/">
           Continue reading
         </a>
       </nav>
@@ -9655,7 +9401,7 @@
           
           <li class="md-meta__item">
             
-              9 min read
+              8 min read
             
           </li>
         
@@ -9665,12 +9411,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="how-to-gdpr-delete-one-users-cached-llm-answers"><a class="toclink" href="../../gdpr-delete-cached-llm-responses/">How to GDPR-Delete One User's Cached LLM Answers</a></h2>
-<p>To <strong>gdpr delete cached llm responses</strong> for a single data subject, you should be able to name the user, call one function, and be done — without touching any other customer's cached data. That is not how most LLM caches work. A semantic cache keys each entry by a prompt or content hash so it can serve a saved answer for a similar query, and that hash carries no notion of <em>who</em> asked. So when a user exercises their Article 17 right to erasure, you are left with two bad options: flush the entire cache and destroy every customer's hit rate to erase one person, or write and maintain a bespoke key-scanning script that walks the store looking for entries that "belong" to that subject — entries the cache never labelled as theirs in the first place. Promptise Foundry closes that gap structurally: each subject lives in its own cache partition, and <code>SemanticCache.purge_user(user_id, tenant_id=...)</code> drops exactly that partition and nothing else.</p>
+    <h2 id="cut-tool-schema-tokens-without-per-query-selection"><a class="toclink" href="../../reduce-mcp-tool-schema-tokens/">Cut Tool-Schema Tokens Without Per-Query Selection</a></h2>
+<p>The reliable way to <strong>reduce MCP tool schema tokens</strong> — the JSON definitions your agent ships to the model on every single call — is usually not the one teams reach for first. The headline move is semantic top-K selection: embed the query, embed each tool description, and send only the handful of tools that look relevant. It is the biggest single saver, and Promptise Foundry ships it. But it has two properties that rule it out for a lot of real deployments: it needs a per-query embedding pass, and it changes <em>which tools the model sees from one request to the next</em>. If your deployment is air-gapped, or your tool set has to be deterministic — every call presents the same tools, auditable and reproducible — per-query selection is off the table. This post is about the other half of <code>optimize_tools</code>: the graded static levels that shrink each tool's JSON schema deterministically, cutting tokens without ever changing tool availability.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../gdpr-delete-cached-llm-responses/">
+        <a href="../../reduce-mcp-tool-schema-tokens/">
           Continue reading
         </a>
       </nav>
@@ -9690,13 +9436,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../category/air-gapped--sovereign/" class="md-meta__link">Air-Gapped &amp; Sovereign</a></li>
+              <a href="../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
         
         
           
           <li class="md-meta__item">
             
-              8 min read
+              9 min read
             
           </li>
         
@@ -9706,12 +9452,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="gdpr-right-to-erasure-purge-a-user-from-your-agent"><a class="toclink" href="../../gdpr-delete-user-data-ai-agent/">GDPR Right to Erasure: Purge a User From Your Agent</a></h2>
-<p>When a subject-access team hands you a <strong>GDPR delete user data AI agent</strong> request, the hard part is never the primary database — you already know how to run a <code>DELETE</code> there. The hard part is every <em>other</em> place the agent quietly kept a copy of that person: the long-term memory it embedded from their conversations, the semantic cache holding their answered questions, and the observability timeline recording who did what. A modern agent is not one store. It is three or four persistence layers wired behind one <code>build_agent()</code> call, and a right-to-erasure request has to reach all of them or it is not complete. This post shows how to erase one user from every store the agent wrote to — with a single call per layer, keyed to the exact principal so you delete that person and no one else.</p>
+    <h2 id="enforce-tenant-isolation-with-require_tenanttrue"><a class="toclink" href="../../require-tenant-mcp-server/">Enforce Tenant Isolation with require_tenant=True</a></h2>
+<p>A <strong>require_tenant mcp server</strong> turns tenant isolation from a check you remember to add into an invariant the framework enforces at build time. Instead of adding a tenant guard to each tool by hand — and hoping the next tool, the next router, and the mounted third-party server all get one too — you set a single flag on the constructor, and every tool the server exposes is forced to authenticate and carry a tenant guard before you write a line of handler code. This post is about the exact mechanics of that flag: what <code>MCPServer(require_tenant=True)</code> does at build time, how to prove it with a runnable unit test, why it covers registration paths you didn't write yourself, and where it is honestly stronger than the opt-in checks other frameworks hand you.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../gdpr-delete-user-data-ai-agent/">
+        <a href="../../require-tenant-mcp-server/">
           Continue reading
         </a>
       </nav>
@@ -9737,7 +9483,7 @@
           
           <li class="md-meta__item">
             
-              8 min read
+              9 min read
             
           </li>
         
@@ -9747,135 +9493,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="give-each-ai-agent-its-own-identity-not-a-shared-key"><a class="toclink" href="../../give-each-ai-agent-its-own-identity/">Give each AI agent its own identity, not a shared key</a></h2>
-<p>Give each AI agent its own identity and "which agent did this?" stops being a guess: instead of threading one shared API key through <code>env</code> for a whole fleet, you attach a distinct <code>AgentIdentity</code> in the <code>build_agent()</code> call, and that identity gets stamped onto every tool call, every LLM turn, and every HMAC-chained audit entry the agent produces. This is a concrete how-to — not another essay about the "identity gap." By the end you'll have two agents that no longer share one credential or one blast radius: a billing bot that can issue refunds and a read-only reporter that can't, each traceable to itself.</p>
+    <h2 id="how-do-you-revoke-an-ai-agents-access-instantly"><a class="toclink" href="../../revoke-an-ai-agent-s-access/">How do you revoke an AI agent's access instantly?</a></h2>
+<p>To <strong>revoke an AI agent's access</strong> the moment it misbehaves, you need a single place to flip — not a scavenger hunt for a leaked string across every service that trusts it. That is exactly what a static per-agent API key can't give you: revoking it means minting a new one, editing every deployment that holds the old value, and redeploying without a gap — all while you may not even be sure <em>which</em> agent leaked it. Back the agent with an identity from your IdP instead, and revocation collapses into one directory operation: disable the identity, and its short-lived, audience-scoped credentials stop validating everywhere, with no server reconfiguration. This post shows the revoke path, why short-lived tokens keep the blast radius small, and how Promptise zero-fills any credential a running agent still holds in memory.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../give-each-ai-agent-its-own-identity/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/guardrails/" class="md-meta__link">Guardrails</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="guardrails-ai-vs-nemo-vs-promptise-an-honest-comparison"><a class="toclink" href="../../guardrails-ai-vs-nemo-guardrails/">Guardrails AI vs NeMo vs Promptise: An Honest Comparison</a></h2>
-<p>The reason <code>guardrails ai vs nemo guardrails</code> is a hard question to search is that the two tools barely overlap — one validates structured output, the other scripts conversational flow — and neither is really a drop-in for the other. If you are evaluating LLM safety libraries, the first job is to name your actual failure mode, because the wrong tool for your risk class is worse than no tool at all. This post lays out what each library is genuinely good at, shows where Promptise Foundry's local-first security scanner fits, and gives you a side-by-side matrix so you can pick the layer that matches the failure you are actually trying to prevent. No winner is declared; the goal is a decision you can defend.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../guardrails-ai-vs-nemo-guardrails/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/mcp/" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="show-different-mcp-tools-to-different-clients"><a class="toclink" href="../../hide-mcp-tools-per-client/">Show Different MCP Tools to Different Clients</a></h2>
-<p>To hide MCP tools per client, you stop shipping one flat tool list to everyone and instead tailor the list each caller discovers at <code>list_tools</code> time — the anonymous integration sees <code>search_orders</code> and <code>get_order</code>, while an authenticated operator additionally sees <code>issue_refund</code> and <code>delete_customer</code>. A public MCP server that advertises its destructive admin tools to every caller has already lost the argument: even if a guard stops the call, you have leaked the shape of your privileged surface to anyone who runs discovery, and you have handed a confused agent tools it will eventually try to use. The clean fix is to make the <em>advertised</em> toolset a function of <em>who is asking</em>.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../hide-mcp-tools-per-client/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/compliance--audit/" class="md-meta__link">Compliance &amp; Audit</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              11 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="hipaa-grade-audit-logging-for-healthcare-ai-agents"><a class="toclink" href="../../hipaa-ai-agent-audit/">HIPAA-Grade Audit Logging for Healthcare AI Agents</a></h2>
-<p>A HIPAA AI agent audit has one non-negotiable job: prove <em>which</em> verified principal touched <em>which</em> patient record, <em>when</em>, in a record an insider can't quietly rewrite — while never turning that log into a second, leakier copy of the PHI it describes. When an autonomous agent calls a <code>read_patient_record</code> tool, a <code>schedule_appointment</code> tool, or anything that reads or writes electronic protected health information, HIPAA's audit-controls rule (§164.312(b)) expects a mechanism that records and lets you examine that activity, and §164.312&copy; expects that record to be protected from improper alteration. At the same time, HIPAA's Privacy Rule and overlapping regimes like GDPR give data subjects a path to <em>erasure</em> of their upstream data. Those two demands pull in opposite directions — retain the access trail, delete the personal data — and most agent stacks make you reconcile them by hand. This post shows how Promptise Foundry's <code>AuditMiddleware</code> plus a tenant-scoped <code>purge_user</code> do it structurally: attributable and PHI-safe by default, erasable where the PHI actually lives, with the integrity chain left intact.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../hipaa-ai-agent-audit/">
+        <a href="../../revoke-an-ai-agent-s-access/">
           Continue reading
         </a>
       </nav>
@@ -9901,7 +9524,7 @@
           
           <li class="md-meta__item">
             
-              9 min read
+              8 min read
             
           </li>
         
@@ -9911,12 +9534,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="hot-reload-an-agents-instructions-without-losing-state"><a class="toclink" href="../../hot-reload-agent-instructions-without-losing-state/">Hot-Reload an Agent's Instructions Without Losing State</a></h2>
-<p>You can <strong>hot-reload agent instructions without losing state</strong> — rewrite a running agent's system prompt mid-conversation, let its graph rebuild around the new prompt, and keep every message the agent has already exchanged — and then undo the whole thing with a single <code>rollback()</code> call. This post is deliberately narrow. It isn't a tour of open mode's fourteen meta-tools; it's about the one mechanic that decides whether a self-modifying agent is safe to run in production: when the agent changes itself, does the live conversation survive, and can you get back? In Promptise Foundry the answer is yes on both counts, and the machinery that guarantees it — a preserved conversation buffer, a <code>max_rebuilds</code> cap, and one-call rollback — is what this article walks through.</p>
+    <h2 id="the-real-risks-of-running-ai-generated-code-in-process"><a class="toclink" href="../../risks-of-running-ai-generated-code/">The Real Risks of Running AI-Generated Code In-Process</a></h2>
+<p>The risks of running AI-generated code are easy to underestimate, because the failure mode is invisible right up until the day it isn't: the program runs, prints a plausible answer, and only later do you notice it also read your <code>.env</code>, listed <code>/</code>, and made an outbound request you never authorized. This post is a threat-model walkthrough. We trace exactly what a model-written Python snippet can reach when it executes inside your process — the working directory and everything around it, environment-variable secrets, and the open network — using LangChain's <code>PythonREPLTool</code> as the worked example, and then show why Promptise Foundry treats a hardened container as the default path instead of something you remember to bolt on.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../hot-reload-agent-instructions-without-losing-state/">
+        <a href="../../risks-of-running-ai-generated-code/">
           Continue reading
         </a>
       </nav>
@@ -9936,7 +9559,7 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../category/identity/" class="md-meta__link">Identity</a></li>
+              <a href="../../category/mcp/" class="md-meta__link">MCP</a></li>
         
         
           
@@ -9952,12 +9575,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="how-does-an-ai-agent-authenticate-to-an-api-not-api-keys"><a class="toclink" href="../../how-does-an-ai-agent-authenticate-to-an-api/">How does an AI agent authenticate to an API? (not API keys)</a></h2>
-<p>How does an AI agent authenticate to an API without a static, long-lived key you have to babysit? The default answer — mint one API key per agent, paste it into the tool config, and hope it never leaks — is the exact anti-pattern that modern identity abandoned for humans a decade ago. Humans stopped carrying passwords into every system and moved to short-lived, provider-issued tokens; agents, a brand-new class of non-human actor, deserve the same. This pillar walks the real alternative end to end: a short-lived credential minted from the agent's <em>own</em> workload identity, presented to each API automatically, and verified server-side with published keys. No secret to store, rotate, or leak.</p>
+    <h2 id="how-to-roll-out-a-breaking-mcp-tool-change-safely"><a class="toclink" href="../../roll-out-breaking-mcp-tool-change/">How to Roll Out a Breaking MCP Tool Change Safely</a></h2>
+<p>To roll out a breaking MCP tool change safely, you publish the new schema as a <em>new version</em> beside the old one and let each client migrate on its own clock — instead of editing the live tool in place and forcing every connected agent to move the instant you deploy. That second path is the default one, and it is why a one-line schema edit so often turns into an incident. An MCP tool's <code>input_schema</code> is a published contract: agents discovered it, built function calls to match, and will keep sending v1-shaped arguments until <em>they</em> change. Add a required field, rename a property, or tighten a type, and every in-flight caller starts getting rejected before your handler even runs.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../how-does-an-ai-agent-authenticate-to-an-api/">
+        <a href="../../roll-out-breaking-mcp-tool-change/">
           Continue reading
         </a>
       </nav>
@@ -9977,13 +9600,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../category/building-agents/" class="md-meta__link">Building Agents</a></li>
+              <a href="../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
         
         
           
           <li class="md-meta__item">
             
-              7 min read
+              8 min read
             
           </li>
         
@@ -9993,12 +9616,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="how-to-build-an-ai-agent-in-python-the-complete-guide"><a class="toclink" href="../../how-to-build-an-ai-agent-in-python/">How to Build an AI Agent in Python: The Complete Guide</a></h2>
-<p>If you have searched for how to build an AI agent in Python, you have probably found tutorials that hand-wire tool schemas and hard-code a single model. They work until the first thing changes — you swap <code>gpt-4o-mini</code> for a local Llama, add a second tool, or move from a notebook to a service — and then you are rewriting glue code instead of building features. This guide takes a different route. By the end you will have a real LLM agent in Python, understand how it discovers and calls tools automatically, and know which parts of the stack you should build yourself versus let a framework handle.</p>
+    <h2 id="same-user_id-two-tenants-why-that-isnt-isolation"><a class="toclink" href="../../same-user-id-across-two-tenants/">Same user_id, Two Tenants: Why That Isn't Isolation</a></h2>
+<p>The problem with the <strong>same user_id across two tenants</strong> is that it looks fine right up until it doesn't: two of your customers, Acme and Globex, each have a user literally named <code>alice</code>, and the day both are active, whatever you key memory, cache, and conversation history on had better distinguish them. If that key is <code>user_id</code> alone, it doesn't — and the failure is silent. No exception, no log line, just Acme's <code>alice</code> occasionally reading Globex's <code>alice</code>'s data. This post is about why a per-user key is not a per-tenant key, what an <em>injective</em> isolation key is, and the subtler risk most treatments skip: not just accidental collision, but deliberate <strong>forgery</strong> of another tenant's namespace.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../how-to-build-an-ai-agent-in-python/">
+        <a href="../../same-user-id-across-two-tenants/">
           Continue reading
         </a>
       </nav>
@@ -10018,13 +9641,13 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../category/production/" class="md-meta__link">Production</a></li>
+              <a href="../../category/sandboxing/" class="md-meta__link">Sandboxing</a></li>
         
         
           
           <li class="md-meta__item">
             
-              7 min read
+              10 min read
             
           </li>
         
@@ -10034,12 +9657,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="human-in-the-loop-approval-for-ai-agents-done-right"><a class="toclink" href="../../human-in-the-loop-approval/">Human-in-the-Loop Approval for AI Agents, Done Right</a></h2>
-<p>Human-in-the-loop approval is the control that lets an autonomous agent do real work — issue a refund, delete a record, wire money — without letting it do that work unsupervised. The instinct most teams reach for first is a client-side confirmation: the agent asks "are you sure?" and waits for a click. That feels safe, but it protects nothing, because the confirmation lives in the caller you happen to be using today. By the end of this article you'll understand why approval has to live on the server that owns the tool, and you'll have a runnable gate that denies irreversible calls until a human signs off.</p>
+    <h2 id="can-your-agent-exfiltrate-data-sandboxing-code-with-no-network"><a class="toclink" href="../../sandbox-agent-code-with-no-network/">Can Your Agent Exfiltrate Data? Sandboxing Code With No Network</a></h2>
+<p>To <strong>sandbox agent code with no network</strong> is the single highest-leverage control you can put between a code-writing agent and a data breach — because a program with an open socket doesn't need a bug to exfiltrate your data, it just needs a plausible-looking line the model was talked into writing. A code interpreter that "does some math" also has your process's network stack, and one <code>urllib.request.urlopen</code> turns a local read into a POST to <code>attacker.example</code>. Cutting the egress is obvious. The reason teams don't is subtler, and it's the honest problem this post is about: for most sandboxes, cutting the network also cuts the program off from the very tools it exists to use. This is how Promptise Foundry breaks that trade-off — <code>NetworkMode.NONE</code>, auto-set for the code-action pattern, where the isolated program's only reach to the outside world is your tools, invoked over a filesystem bridge that needs no network at all.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../human-in-the-loop-approval/">
+        <a href="../../sandbox-agent-code-with-no-network/">
           Continue reading
         </a>
       </nav>
@@ -10075,12 +9698,340 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="human-in-the-loop-approval-for-ai-agent-tool-calls"><a class="toclink" href="../../human-in-the-loop-llm-approval/">Human-in-the-Loop Approval for AI Agent Tool Calls</a></h2>
-<p>Human-in-the-loop LLM approval is the difference between an agent that can safely touch production and one that stays stuck in a demo. The hard part is not intercepting tool calls — it is deciding <em>which</em> ones actually need a human. Approve everything and your reviewers drown in <code>get_status</code> prompts until they rubber-stamp a <code>delete_database</code> by reflex. Approve nothing and one hallucinated argument wipes a table. By the end of this post you will have a six-layer classifier that auto-clears the safe calls, escalates only the risky ones, and fails closed when no one answers.</p>
+    <h2 id="stop-secrets-leaking-into-llm-prompts-and-tool-calls"><a class="toclink" href="../../secret-detection-for-llm/">Stop Secrets Leaking into LLM Prompts and Tool Calls</a></h2>
+<p>Secret detection for LLM systems is the guardrail almost nobody instruments, and it is the one that quietly turns a helpful agent into an exfiltration channel. Everyone hardens the obvious surfaces — auth on the API, TLS on the wire, secrets in a vault — and then pipes raw user input, model output, and tool arguments straight past all of it. An API key pasted into a support chat, a <code>DATABASE_URL</code> echoed back in a debugging answer, an RSA private key baked into code the sandbox is about to run: each one is a credential leaving your trust boundary in plain text. By the end of this article you will know exactly where those leaks happen and how to layer a local, zero-network <code>CredentialDetector</code> over your agent so keys get caught the moment they appear.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../human-in-the-loop-llm-approval/">
+        <a href="../../secret-detection-for-llm/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/identity/" class="md-meta__link">Identity</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              6 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="secure-agent-to-agent-authentication-in-practice"><a class="toclink" href="../../secure-agent-to-agent-communication/">Secure Agent-to-Agent Authentication in Practice</a></h2>
+<p>Secure agent-to-agent communication is the part of every multi-agent demo that quietly gets skipped: one agent delegates a task to another, the second agent acts, and when you open the log the only actor recorded is "the assistant." That is not an audit trail — it is a shrug. If a planner agent asks a payments agent to issue a refund, you need to know <em>which</em> agent asked, whether the callee was allowed to trust it, and where that decision landed in a tamper-evident record. By the end of this article you will know how Promptise Foundry propagates a verifiable caller identity through a delegation call and lands the answer to "who delegated to whom" in an HMAC-chained audit log.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../secure-agent-to-agent-communication/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/reasoning/" class="md-meta__link">Reasoning</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              6 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="reflection-self-critique-self-consistency-agents"><a class="toclink" href="../../self-critique-agent/">Reflection, Self-Critique &amp; Self-Consistency Agents</a></h2>
+<p>A self-critique agent is an LLM that checks its own work before it answers — it drafts a response, inspects that draft for mistakes, and fixes them in the same step. The appeal is obvious: catch the careless error before the user ever sees it. The catch is that reflection is not free, and most teams bolt it onto models that don't need it. By the end of this article you'll know which introspection techniques pay for themselves, which mostly burn tokens, and how to add a cheap self-check to a small model in a single line.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../self-critique-agent/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/cost--efficiency/" class="md-meta__link">Cost &amp; Efficiency</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              8 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="can-a-paraphrase-leak-another-tenants-cached-answer"><a class="toclink" href="../../semantic-cache-cross-tenant-leak/">Can a Paraphrase Leak Another Tenant's Cached Answer?</a></h2>
+<p>A <strong>semantic cache cross-tenant leak</strong> is the failure mode that only similarity caching can produce: tenant B types a paraphrase of a question tenant A already asked, the two queries embed to nearly the same vector, and — without a caller-scoped partition — the lookup hands tenant B the completion Promptise stored for tenant A. An exact-match cache can never do this. It keys on the literal prompt string, so a reworded question misses and goes to the model. The moment you cache by <em>meaning</em> to save money, you also open a channel where meaning, not identity, decides who sees what. This post isolates that leak vector precisely, and shows how Promptise Foundry confines every similarity search to the caller's own tenant-qualified partition — by default, and fail-closed.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../semantic-cache-cross-tenant-leak/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/approvals--hitl/" class="md-meta__link">Approvals &amp; HITL</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              7 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="should-an-ai-agent-approve-its-own-action"><a class="toclink" href="../../separation-of-duties-for-ai-agents/">Should an AI Agent Approve Its Own Action?</a></h2>
+<p>Separation of duties for AI agents is the rule that the principal who <em>requests</em> a sensitive action can never be the one who <em>approves</em> it — and it is exactly the control that quietly collapses the moment whoever drives an agent can also click "approve" on the agent's own request. Most human-in-the-loop wiring stops one step short of this. It pauses before a risky tool call and asks a human to decide, which feels like dual control. But if the human answering the prompt is the same person (or the same service identity) that triggered the call, you have a rubber stamp with extra latency, not a second set of eyes. This post works through what dual control actually means, why the reviewer has to be a <em>different</em> principal, and how Promptise Foundry makes <code>reviewer client_id != caller client_id</code> a server-enforced default instead of a policy you hope everyone remembers to build.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../separation-of-duties-for-ai-agents/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/sandboxing/" class="md-meta__link">Sandboxing</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              8 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="smolagents-codeagent-vs-promptise-where-do-tool-calls-run"><a class="toclink" href="../../smolagents-codeagent-vs-promptise-code-action/">Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?</a></h2>
+<p>The <strong>smolagents codeagent vs promptise code-action</strong> question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls <code>issue_refund()</code> or <code>delete_customer()</code>, <em>where does that call execute, and what governs it?</em> By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../smolagents-codeagent-vs-promptise-code-action/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/identity/" class="md-meta__link">Identity</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              9 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="spiffe-vs-entra-vs-aws-iam-pick-an-agent-identity-provider"><a class="toclink" href="../../spiffe-vs-entra-vs-aws-iam-for-ai-agents/">SPIFFE vs Entra vs AWS IAM: pick an agent identity provider</a></h2>
+<p>Choosing between SPIFFE vs Entra vs AWS IAM for AI agents is not really a question of which identity provider is <em>best</em> in the abstract — it is a question of which one your platform already issues workload identities from, because that is the one you can back an agent with today. If you have already decided your agents deserve their own verifiable identity instead of a shared key (see <a href="../../workload-identity-for-ai-agents/">What Is Workload Identity for AI Agents?</a>), the next decision is which provider to use. This post is a bake-off across the five Promptise supports — SPIFFE/SPIRE, Microsoft Entra, AWS IAM, Google Cloud, and generic OIDC — compared on the three things that actually differ between them: how the token is acquired, how you revoke it, and when each one fits.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../spiffe-vs-entra-vs-aws-iam-for-ai-agents/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/governance/" class="md-meta__link">Governance</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              8 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="how-to-stop-a-runaway-ai-agent-runtime-kill-switches"><a class="toclink" href="../../stop-a-runaway-ai-agent/">How to Stop a Runaway AI Agent (Runtime Kill Switches)</a></h2>
+<p>To reliably stop a runaway AI agent you need a kill switch that acts on the <em>process</em>, not a counter that raises an exception inside one function call. That distinction is the whole game. Almost every framework hands you a per-run cap — <code>max_iterations</code>, <code>recursion_limit</code>, a usage limit — and calls it a safety control. But those caps raise an exception inside a single <code>ainvoke()</code>, and an exception only exists if there is a caller sitting there to catch it. The moment your agent is running unattended on a cron, a webhook, or a file trigger, there is no such caller: each trigger fires a fresh invocation, the counter resets to zero, and nothing halts the thing that is actually misbehaving. This post reframes the runaway agent kill switch as <em>runtime enforcement</em> — budget, behavioral-health, and mission breaches that become out-of-band <code>pause</code>/<code>stop</code>/<code>escalate</code> actions on a supervised <code>AgentProcess</code> — and shows you how to wire one in a few lines.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../stop-a-runaway-ai-agent/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              8 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="where-does-tenant_id-come-from-jwt-claim-vs-api-key"><a class="toclink" href="../../tenant-id-from-jwt-claim/">Where Does tenant_id Come From? JWT Claim vs API Key</a></h2>
+<p>Multi-tenant code usually takes a <code>tenant_id</code> for granted, but the real question is where that value comes from — and the two answers Promptise Foundry supports are a <strong>tenant_id from jwt claim</strong> and a tenant bound to each API key. Get that sourcing step right and the rest of your isolation story (tenant-qualified rate limits, per-tenant audit, cache scoping) follows for free. Get it wrong — a claim you forgot to read, a number where you expected a string, a request with no tenant at all — and a claim-less caller slips through as tenant-less, which is the one outcome a multi-customer platform can never afford.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../tenant-id-from-jwt-claim/">
           Continue reading
         </a>
       </nav>
@@ -10096,7 +10047,7 @@
 
 
 <nav class="md-pagination">
-  <a class="md-pagination__link" href="../../">1</a> <a class="md-pagination__link" href="../2/">2</a> <a class="md-pagination__link" href="../3/">3</a> <span class="md-pagination__current">4</span> <a class="md-pagination__link" href="../5/">5</a> <a class="md-pagination__link" href="../6/">6</a> <span class="md-pagination__dots">..</span> <a class="md-pagination__link" href="../9/">9</a>
+  <a class="md-pagination__link" href="../../">1</a> <a class="md-pagination__link" href="../2/">2</a> <a class="md-pagination__link" href="../3/">3</a> <span class="md-pagination__current">4</span> <a class="md-pagination__link" href="../5/">5</a>
 </nav>
         
       

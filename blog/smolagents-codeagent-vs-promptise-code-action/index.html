@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Both frameworks let the model write one program over your tools, so this is a precise-delta piece, not a 'they have nothing' one. In smolagents the tool…">
+        <meta name="description" content="Compare smolagents CodeAgent and Promptise code-action: where each one runs the tool calls in a model-written program, and how approval gates still apply.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/smolagents-codeagent-vs-promptise-code-action/">
       
       
-        <link rel="prev" href="../soc-2-audit-trail-for-ai-agents/">
+        <link rel="prev" href="../spiffe-vs-entra-vs-aws-iam-for-ai-agents/">
       
       
-        <link rel="next" href="../single-agent-vs-multi-agent/">
+        <link rel="next" href="../separation-of-duties-for-ai-agents/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?">
-  <meta property="og:description" content="Both frameworks let the model write one program over your tools, so this is a precise-delta piece, not a 'they have nothing' one. In smolagents the tool…">
+  <meta property="og:description" content="Compare smolagents CodeAgent and Promptise code-action: where each one runs the tool calls in a model-written program, and how approval gates still apply.">
   <meta property="og:url" content="https://docs.promptise.com/blog/smolagents-codeagent-vs-promptise-code-action/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?">
-  <meta name="twitter:description" content="Both frameworks let the model write one program over your tools, so this is a precise-delta piece, not a 'they have nothing' one. In smolagents the tool…">
+  <meta name="twitter:description" content="Compare smolagents CodeAgent and Promptise code-action: where each one runs the tool calls in a model-written program, and how approval gates still apply.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?",
       "name": "Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?",
-      "description": "Both frameworks let the model write one program over your tools, so this is a precise-delta piece, not a \u0027they have nothing\u0027 one. In smolagents the tool\u2026",
+      "description": "Compare smolagents CodeAgent and Promptise code-action: where each one runs the tool calls in a model-written program, and how approval gates still apply.",
       "url": "https://docs.promptise.com/blog/smolagents-codeagent-vs-promptise-code-action/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9488,7 +9439,7 @@
 
 
 <h1 id="smolagents-codeagent-vs-promptise-where-do-tool-calls-run">Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?<a class="headerlink" href="#smolagents-codeagent-vs-promptise-where-do-tool-calls-run" title="Link to this section">&para;</a></h1>
-<p>The <strong>smolagents codeagent vs promptise code-action</strong> question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls <code>issue_refund()</code> or <code>delete_customer()</code>, <em>where does that call execute, and what governs it?</em> This is a precise-delta piece, not a "they have nothing" one. By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.</p>
+<p>The <strong>smolagents codeagent vs promptise code-action</strong> question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls <code>issue_refund()</code> or <code>delete_customer()</code>, <em>where does that call execute, and what governs it?</em> By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.</p>
 <!-- more -->
 
 <h2 id="same-program-different-execution-boundary">Same program, different execution boundary<a class="headerlink" href="#same-program-different-execution-boundary" title="Link to this section">&para;</a></h2>
@@ -9577,7 +9528,7 @@
 <li><strong>Health</strong> — behavioral anomaly detection (stuck / loop / repeated-call patterns) evaluated across the bridged calls the program makes.</li>
 <li><strong>Audit</strong> — each bridged call is recorded in the tamper-evident journal with the caller identity, so "the sandbox did it" is never an unaudited black box.</li>
 </ul>
-<p>In smolagents you would place these controls inside each tool or in step-level callbacks that see a whole code block, not the individual call. Promptise makes them a property of the execution boundary itself: the program can only reach a tool by asking the host to run it, and the host runs it through the full hook chain every time. For the broader "where should model-written code run" decision, our field guide <a href="../run-ai-generated-code-safely/">How to Run AI-Generated Code Safely</a> contrasts the three common setups, and <a href="../risks-of-running-ai-generated-code/">The Real Risks of Running AI-Generated Code In-Process</a> shows what a permissive in-process executor gives away.</p>
+<p>In smolagents you would place these controls inside each tool or in step-level callbacks that see a whole code block, not the individual call. Promptise makes them a property of the execution boundary itself: the program can only reach a tool by asking the host to run it, and the host runs it through the full hook chain every time. For the broader "where should model-written code run" decision, see <a href="https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python">AI Agent Code Execution Sandbox: Run LLM Code Safely</a>, and <a href="../risks-of-running-ai-generated-code/">The Real Risks of Running AI-Generated Code In-Process</a> shows what a permissive in-process executor gives away.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="does-smolagents-codeagent-run-tool-calls-in-a-sandbox-or-on-the-host">Does smolagents CodeAgent run tool calls in a sandbox or on the host?<a class="headerlink" href="#does-smolagents-codeagent-run-tool-calls-in-a-sandbox-or-on-the-host" title="Link to this section">&para;</a></h3>
 <p>It depends on the executor. With the default <code>LocalPythonExecutor</code>, tools are called directly in-process. With the E2B, Docker, or Wasm executors — which smolagents added to contain untrusted code — the tool code runs inside the sandbox. In both cases the tool call resolves within the code execution environment; there is no built-in hook to route each individual call back through a host-side approval, budget, and audit layer. That per-call governance is what Promptise's bridge makes structural.</p>
@@ -9611,7 +9562,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

@@ -18,7 +18,7 @@
         <link rel="prev" href="../building-agents/">
       
       
-        <link rel="next" href="../compliance--audit/">
+        <link rel="next" href="../cost--efficiency/">
       
       
         
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8383,36 +8364,6 @@
 
       </a>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -9358,52 +9309,11 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="which-ai-agent-framework-has-built-in-governance"><a class="toclink" href="../../ai-agent-framework-with-built-in-governance/">Which AI Agent Framework Has Built-In Governance?</a></h2>
-<p>If you are shopping for an <strong>AI agent framework with built-in governance</strong> — one where you can cap an agent at a cost ceiling, bound the number of irreversible actions it may take, and hold it to a mission it must actually make progress on — the honest state of the market is that most frameworks answer "write it yourself." They ship a limiter, and a limiter is a real, useful thing. But a single step counter is not a governance envelope, and the gap between the two is exactly where unattended agents get expensive or dangerous. This post maps what governance each popular framework really ships, credits the single-dimension caps some of them provide, and shows the four first-class subsystems Promptise Foundry puts in the box — budget, health, mission, and secrets — each with the same <code>log</code>/<code>pause</code>/<code>stop</code>/<code>escalate</code> enforcement path.</p>
+<p>If you are shopping for an <strong>AI agent framework with built-in governance</strong> — one where you can cap an agent at a cost ceiling, bound the number of irreversible actions it may take, and hold it to a mission it must actually make progress on — most frameworks answer "write it yourself." They ship a limiter, and a limiter is a real, useful thing. But a single step counter is not a governance envelope, and the gap between the two is exactly where unattended agents get expensive or dangerous. This post maps what governance each popular framework really ships, including the single-dimension caps some of them provide, and shows the four first-class subsystems Promptise Foundry puts in the box — budget, health, mission, and secrets — each with the same <code>log</code>/<code>pause</code>/<code>stop</code>/<code>escalate</code> enforcement path.</p>
 
     
       <nav class="md-post__action">
         <a href="../../ai-agent-framework-with-built-in-governance/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Comparisons</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="auto-stop-a-runaway-ai-agent-behavioral-health-checks"><a class="toclink" href="../../auto-stop-runaway-ai-agent/">Auto-Stop a Runaway AI Agent: Behavioral Health Checks</a></h2>
-<p>To <strong>auto-stop a runaway AI agent</strong>, you need something that can tell a <em>stuck</em> agent apart from a merely <em>busy</em> one — and a recursion counter cannot, because all it knows is how many steps have gone by. Set <code>recursion_limit=25</code> and an agent can take twenty-five productive steps toward a finished task, or it can call <code>get_status(id=42)</code> twenty-five times in a row and learn nothing. To the counter those runs are identical: same integer, same ceiling, same hard error at the end. The count is the wrong signal. What you actually want is a monitor that watches the <em>shape</em> of the agent's behavior over time — the same call repeated, a tool pattern cycling, responses collapsing to nothing, errors spiking — and halts the process the moment that shape turns pathological, long before the step budget runs out. This post shows how Promptise Foundry's <a href="../../../runtime/governance/health/">behavioral health governance</a> does exactly that: four anomaly detectors, per-anomaly cooldowns, and a graduated log → pause → escalate response that stops the runaway automatically.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../auto-stop-runaway-ai-agent/">
           Continue reading
         </a>
       </nav>
@@ -9445,129 +9355,6 @@
     
       <nav class="md-post__action">
         <a href="../../autogen-vs-promptise/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Comparisons</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="best-ai-agent-framework-in-2026-an-honest-guide"><a class="toclink" href="../../best-ai-agent-framework-2026/">Best AI Agent Framework in 2026: An Honest Guide</a></h2>
-<p>Search for the best AI agent framework 2026 and you'll get a dozen listicles that rank by GitHub stars, none of which has ever shipped an agent that survives an on-call rotation. Stars measure enthusiasm, not durability. This guide ranks frameworks by what actually holds up in production — authentication, multi-tenancy, governance, crash recovery, and air-gapped deployment — and it says plainly where LangChain, LangGraph, CrewAI, and Pydantic AI are the better pick. By the end you'll have a concrete checklist and a working example, not a popularity contest.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../best-ai-agent-framework-2026/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Comparisons</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-choose-an-ai-agent-framework-2026-checklist"><a class="toclink" href="../../choosing-an-agent-framework/">How to Choose an AI Agent Framework: 2026 Checklist</a></h2>
-<p>Choosing an agent framework is a decision you live with for years, so it deserves more rigor than a feature comparison table and a GitHub star count. Most teams pick based on the demo that ran fastest, then discover six months later that the real cost was somewhere the demo never touched — tool maintenance, access control, or vendor lock-in. This post gives you a vendor-neutral scored rubric so you can evaluate AI agent frameworks against the criteria that actually bite in production, and shows concretely where an MCP-native design removes an entire category of work most frameworks make you own forever.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../choosing-an-agent-framework/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Comparisons</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="crewai-alternative-when-to-switch-and-when-not"><a class="toclink" href="../../crewai-alternative/">CrewAI Alternative: When to Switch (and When Not)</a></h2>
-<p>If you're searching for a CrewAI alternative, you probably already have a working crew — a set of role-playing agents that collaborate on a task — and you're now hitting the wall between "impressive demo" and "service other people pay for." That wall is rarely about reasoning quality. It's about isolation, human approval on risky actions, and an audit trail you can defend. This post is the honest version: where CrewAI is the right tool, and the specific moment where switching to Promptise Foundry earns its keep. By the end you'll be able to tell which side of that line your project is on, and stand up a tenant-isolated MCP server if you're on ours.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../crewai-alternative/">
           Continue reading
         </a>
       </nav>
@@ -9645,7 +9432,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="enterprise-ready-agent-framework-checklist-whats-left-to-you"><a class="toclink" href="../../enterprise-ready-agent-framework-checklist/">Enterprise-Ready Agent Framework Checklist: What's Left to You</a></h2>
-<p>An honest <strong>enterprise-ready agent framework checklist</strong> doesn't grade tools on GitHub stars or integration counts — it grades them on the controls a security or compliance reviewer will actually ask you to demonstrate. Stars measure enthusiasm; they say nothing about whether tenant A can reach tenant B's data, whether a refund tool paged a human before it ran, or whether your audit log can be edited without anyone noticing. This pillar walks five control areas — multi-tenancy, server-enforced approval, principal propagation across delegation, runtime governance, and tamper-evident audit — and says plainly, capability by capability, what LangChain, LangGraph, CrewAI, AutoGen, and Pydantic AI ship today versus what they leave you to build. You'll finish with a checklist you can score your own stack against, and a runnable file that proves three of the five controls in one process.</p>
+<p>A useful <strong>enterprise-ready agent framework checklist</strong> doesn't grade tools on GitHub stars or integration counts — it grades them on the controls a security reviewer will actually ask you to demonstrate. Stars measure enthusiasm; they say nothing about whether tenant A can reach tenant B's data, whether a refund tool paged a human before it ran, or whether your audit log can be edited without anyone noticing. This checklist walks five control areas — multi-tenancy, server-enforced approval, principal propagation across delegation, runtime governance, and tamper-evident audit — and says plainly, capability by capability, what LangChain, LangGraph, CrewAI, AutoGen, and Pydantic AI ship today versus what they leave you to build. You'll finish with a checklist you can score your own stack against, and a runnable file that proves three of the five controls in one process.</p>
 
     
       <nav class="md-post__action">
@@ -9686,7 +9473,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="is-autogen-production-secure-the-audit-trail-gap"><a class="toclink" href="../../is-autogen-production-secure/">Is AutoGen Production-Secure? The Audit Trail Gap</a></h2>
-<p>If you are asking <strong>is AutoGen production secure</strong> enough to survive a compliance review, the honest answer starts with a compliment: Microsoft's AutoGen is a genuinely capable multi-agent research framework, and the 0.4 line ships real infrastructure — a Docker code executor and a distributed gRPC runtime that coordinates agents across processes and machines. That is not a toy. But "capable in production" and "can pass an auditor's questions" are two different bars, and the gap between them is narrow, specific, and unforgiving: when your agents call tools that move money or touch regulated data, an auditor asks <em>who did it, prove the record wasn't edited, and prove nothing went missing</em> — and AutoGen has no answer built in. This post credits what AutoGen actually gives you, then shows the primitive it leaves to you: an HMAC-chained, tamper-evident audit trail with verified per-principal and per-tenant attribution.</p>
+<p>If you are asking <strong>is AutoGen production secure</strong> enough to survive a security review, the answer starts with a compliment: Microsoft's AutoGen is a genuinely capable multi-agent research framework, and the 0.4 line ships real infrastructure — a Docker code executor and a distributed gRPC runtime that coordinates agents across processes and machines. That is not a toy. But "capable in production" and "can answer an incident reviewer's questions" are two different bars, and the gap between them is narrow, specific, and unforgiving: when your agents call tools that move money or touch sensitive data, whoever reviews the incident asks <em>who did it, prove the record wasn't edited, and prove nothing went missing</em> — and AutoGen has no answer built in. This post covers what AutoGen actually gives you, then shows the primitive it leaves to you: an HMAC-chained, tamper-evident audit trail with verified per-principal and per-tenant attribution.</p>
 
     
       <nav class="md-post__action">
@@ -9716,7 +9503,7 @@
           
           <li class="md-meta__item">
             
-              6 min read
+              9 min read
             
           </li>
         
@@ -9726,12 +9513,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="langchain-alternatives-for-production-python-agents"><a class="toclink" href="../../langchain-alternative/">LangChain Alternatives for Production Python Agents</a></h2>
-<p>If you are shopping for a <strong>LangChain alternative</strong>, you have probably already shipped something on LangChain, hit a wall in production, and started looking for a cleaner foundation without throwing away the integrations you rely on. That is the honest tension this post is about. By the end you will know exactly where LangChain still wins, what a production-grade stack adds on top, and how to keep your existing LangChain tools running while you move orchestration, memory, and auth onto Promptise Foundry — one layer at a time, no rip-and-replace.</p>
+    <h2 id="langgraph-checkpoints-vs-an-audit-log-the-real-difference"><a class="toclink" href="../../langgraph-checkpoint-vs-audit-log/">LangGraph Checkpoints vs. an Audit Log: The Real Difference</a></h2>
+<p>The <strong>langgraph checkpoint vs audit log</strong> confusion is one of the most expensive category errors in agent engineering: teams wire up a checkpointer, watch their graph resume cleanly after a crash, and quietly assume that same durable state will satisfy an incident reviewer asking what the agent did and who authorized it. It won't. A checkpoint is a mutable snapshot of graph state built to <em>resume, replay, and pause for a human</em>. An audit log is an integrity-chained, attributable record built to <em>prove what happened</em>. Both are legitimate; they solve different problems, and using one where you need the other fails at the worst possible moment. This post draws the precise line, states exactly what LangGraph's checkpointers do and don't guarantee, and shows the one primitive a checkpoint can't give you.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../langchain-alternative/">
+        <a href="../../langgraph-checkpoint-vs-audit-log/">
           Continue reading
         </a>
       </nav>
@@ -9799,47 +9586,6 @@
           <li class="md-meta__item">
             
               7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="migrating-off-langchain-to-promptise-foundry"><a class="toclink" href="../../migrating-off-langchain/">Migrating off LangChain to Promptise Foundry</a></h2>
-<p>Migrating off LangChain rarely fails because the new framework is worse — it fails because teams try to do it in one weekend, rip out everything at once, and lose the ability to tell whether the port is correct. This guide gives you the opposite: an incremental path where your existing LangChain tools keep working from day one, you move orchestration, memory, and auth one layer at a time, and you verify every step before the next. By the end you'll have a plan to migrate from LangChain to Promptise Foundry without a scary big-bang rewrite, plus a reproducible <code>.superagent</code> manifest that captures the finished agent.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../migrating-off-langchain/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Comparisons</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
             
           </li>
         

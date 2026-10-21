@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Shows that one string swaps the entire model — openai:gpt-5-mini to anthropic:claude-sonnet-4.5 to ollama:llama3 — with zero code rewrites, and that you can…">
+        <meta name="description" content="Learn how to switch an AI agent between OpenAI, Anthropic, Ollama and other models by changing one string, run it fully local, or use a LangChain chat model.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../multi-agent-audit-accountability/">
       
       
-        <link rel="next" href="../migrating-off-langchain/">
+        <link rel="next" href="../migrate-single-tenant-agent-to-multi-tenant/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Model-Agnostic AI Agents: Claude, GPT, Ollama & Local">
-  <meta property="og:description" content="Shows that one string swaps the entire model — openai:gpt-5-mini to anthropic:claude-sonnet-4.5 to ollama:llama3 — with zero code rewrites, and that you can…">
+  <meta property="og:description" content="Learn how to switch an AI agent between OpenAI, Anthropic, Ollama and other models by changing one string, run it fully local, or use a LangChain chat model.">
   <meta property="og:url" content="https://docs.promptise.com/blog/model-agnostic-ai-agents/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Model-Agnostic AI Agents: Claude, GPT, Ollama & Local">
-  <meta name="twitter:description" content="Shows that one string swaps the entire model — openai:gpt-5-mini to anthropic:claude-sonnet-4.5 to ollama:llama3 — with zero code rewrites, and that you can…">
+  <meta name="twitter:description" content="Learn how to switch an AI agent between OpenAI, Anthropic, Ollama and other models by changing one string, run it fully local, or use a LangChain chat model.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Model-Agnostic AI Agents: Claude, GPT, Ollama \u0026 Local",
       "name": "Model-Agnostic AI Agents: Claude, GPT, Ollama \u0026 Local",
-      "description": "Shows that one string swaps the entire model \u2014 openai:gpt-5-mini to anthropic:claude-sonnet-4.5 to ollama:llama3 \u2014 with zero code rewrites, and that you can\u2026",
+      "description": "Learn how to switch an AI agent between OpenAI, Anthropic, Ollama and other models by changing one string, run it fully local, or use a LangChain chat model.",
       "url": "https://docs.promptise.com/blog/model-agnostic-ai-agents/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9480,10 +9431,6 @@
 <p>Model-agnostic AI agents let you change the model behind your agent without touching the rest of your code. In Promptise Foundry the model is just a string you pass to <code>build_agent()</code>, so the same agent — same tools, same memory, same guardrails — can run on <code>openai:gpt-5-mini</code> today, <code>anthropic:claude-sonnet-4.5</code> tomorrow, and a local <code>ollama:llama3</code> in an air-gapped deployment, with no rewrite in between. By the end of this post you'll know exactly how that swap works, how to run entirely offline, and when pinning to one provider is actually the smarter choice.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="one-string-swaps-the-entire-model">One string swaps the entire model<a class="headerlink" href="#one-string-swaps-the-entire-model" title="Link to this section">&para;</a></h2>
 <p>The whole idea rests on a single design decision: <code>build_agent()</code> is a model-agnostic factory. You describe <em>what</em> your agent does — instructions, MCP servers, memory — and pass <em>which</em> model to run it on as a <code>"provider:model-name"</code> string. Everything downstream is provider-neutral.</p>
 <p>Here is a complete, runnable script that runs the <em>same</em> agent logic across three providers. Only the string changes:</p>
@@ -9509,7 +9456,7 @@
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
-<p>Notice what <em>didn't</em> change: the invocation, the message shape, the tool wiring, the shutdown. When you swap Claude for GPT for a local model, you edit one argument. That is the entire promise of model-agnostic AI agents, and it holds all the way from a toy script to a production agent with sandboxing, semantic caching, and observability enabled. If you're building your first agent from scratch, the <a href="../how-to-build-an-ai-agent-in-python/">How to Build an AI Agent in Python: The Complete Guide</a> post walks the same factory from zero.</p>
+<p>Notice what <em>didn't</em> change: the invocation, the message shape, the tool wiring, the shutdown. When you swap Claude for GPT for a local model, you edit one argument. That is the entire promise of model-agnostic AI agents, and it holds all the way from a toy script to a production agent with sandboxing, semantic caching, and observability enabled. If you're building your first agent, <a href="https://www.promptise.com/guides/view/how-to-build-ai-agent-python">How to Build an AI Agent in Python</a> walks through it from scratch.</p>
 <h2 id="switch-your-llm-provider-in-python-without-a-rewrite">Switch your LLM provider in Python without a rewrite<a class="headerlink" href="#switch-your-llm-provider-in-python-without-a-rewrite" title="Link to this section">&para;</a></h2>
 <p>Because the string carries the provider, to switch your LLM provider in Python you change a prefix, not an integration. Promptise resolves the string through LangChain's <code>init_chat_model</code>, so any provider LangChain supports works out of the box:</p>
 <table>
@@ -9544,7 +9491,7 @@
 </tbody>
 </table>
 <p>Set the environment variable for whichever provider you point at, and the agent authenticates itself. To swap a Claude agent for GPT, you flip <code>anthropic:...</code> to <code>openai:...</code> and make sure <code>OPENAI_API_KEY</code> is set — nothing about your tool servers, prompt blocks, or runtime governance moves.</p>
-<p>This portability is what makes provider choice a <em>configuration</em> decision instead of an <em>architecture</em> decision. You can develop against a cheap, fast model, run evals against a frontier model, and ship on whichever one wins — all from the same codebase. The full matrix of supported providers, formats, and environment variables lives in the <a href="../../getting-started/model-setup/">Model Setup</a> guide. If you're still deciding which model to standardize on, the <a href="../../getting-started/best-llms-for-agents/">best LLMs for agents</a> breakdown compares them on tool-calling reliability, latency, and cost.</p>
+<p>This portability is what makes provider choice a <em>configuration</em> decision instead of an <em>architecture</em> decision. You can develop against a cheap, fast model, run evals against a frontier model, and ship on whichever one wins — all from the same codebase. The full matrix of supported providers, formats, and environment variables lives in the <a href="../../getting-started/model-setup/">Model Setup</a> guide. If you're still deciding which model to standardize on, <a href="https://www.promptise.com/guides/view/best-llm-for-ai-agents">Best LLM for AI Agents</a> covers picks, prices, and how to test them.</p>
 <h2 id="run-an-agent-with-ollama-locally-the-air-gapped-path">Run an agent with Ollama locally — the air-gapped path<a class="headerlink" href="#run-an-agent-with-ollama-locally-the-air-gapped-path" title="Link to this section">&para;</a></h2>
 <p>The portability story only matters if it includes the case competitors tend to gloss over: running with no cloud provider at all. To run an agent with Ollama locally, point the model string at an Ollama tag and drop the API key entirely:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
@@ -9563,7 +9510,7 @@
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
-<p>With Ollama running on the same host, no request leaves the machine. That is the foundation for an air-gapped LLM agent in Python: the model is local, and Promptise's other production features are designed to stay local alongside it. Semantic tool optimization uses local embeddings, the guardrail scanner runs its detection heads locally, and the memory providers can persist to disk — so a full agent stack can operate with zero outbound network calls. This is the deployment mode regulated and offline environments actually need, and it's the same three-line change as any other provider.</p>
+<p>With Ollama running on the same host, no request leaves the machine. That is the foundation for an air-gapped LLM agent in Python: the model is local, and Promptise's other production features are designed to stay local alongside it. Semantic tool optimization uses local embeddings, the guardrail scanner runs its detection heads locally, and the memory providers can persist to disk — so a full agent stack can operate with zero outbound network calls. This is the deployment mode that teams with strict no-egress rules and offline environments actually need, and it's the same three-line change as any other provider.</p>
 <p>Because the abstraction is uniform, you can also mix modes across an agent's lifecycle: prototype against a hosted frontier model for quality, then move the exact same agent behind a local model for a sensitive workload. The agent definition doesn't know or care which side of the network boundary its model lives on.</p>
 <h2 id="bring-your-own-model-any-langchain-basechatmodel">Bring your own model: any LangChain BaseChatModel<a class="headerlink" href="#bring-your-own-model-any-langchain-basechatmodel" title="Link to this section">&para;</a></h2>
 <p>A provider string is the common case, but sometimes you need finer control — a custom temperature, a private base URL, a proxy, or a self-hosted OpenAI-compatible endpoint. For that, <code>build_agent()</code> accepts any LangChain <code>BaseChatModel</code> instance directly, so you keep full control of the client while still getting Promptise's tool discovery, memory, and runtime:</p>
@@ -9602,7 +9549,7 @@
 <h3 id="what-if-my-provider-isnt-available-as-a-string">What if my provider isn't available as a string?<a class="headerlink" href="#what-if-my-provider-isnt-available-as-a-string" title="Link to this section">&para;</a></h3>
 <p>Pass a LangChain <code>BaseChatModel</code> instance to the <code>model</code> parameter instead of a string. Any chat model or <code>Runnable</code> LangChain supports works, so you're never limited to the prefixes Promptise resolves directly.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Follow <a href="../../getting-started/model-setup/">Model Setup</a> to point the same agent at OpenAI, Anthropic, or a local model with a one-line change, then keep the <a href="../../getting-started/quickstart/">Quick Start</a> open as you build. If you're weighing whether an agent framework is even the right layer for your project, the <a href="../python-ai-agent-framework/">What Is a Python AI Agent Framework?</a> post frames that decision honestly.</p>
+<p>Follow <a href="../../getting-started/model-setup/">Model Setup</a> to point the same agent at OpenAI, Anthropic, or a local model with a one-line change, then keep the <a href="../../getting-started/quickstart/">Quick Start</a> open as you build. If you're still weighing which agent framework fits your project, the <a href="https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared">Python AI agent frameworks comparison</a> lays out the options.</p>
 
 
 
@@ -9625,7 +9572,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

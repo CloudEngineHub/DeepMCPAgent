@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Most tutorials stop at a single-turn RAG bot. This one ships the hard parts real support needs: conversation phases that change behavior (greet to classify…">
+        <meta name="description" content="Build a customer support AI agent step by step: a knowledge base over MCP, conversation phases, history that survives restarts and handoff rules to a human.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../cut-token-cost-multi-tenant-ai-agent/">
       
       
-        <link rel="next" href="../crewai-alternative/">
+        <link rel="next" href="../configure-ai-agent-budget-and-health/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="How to Build a Customer Support AI Agent, Step by Step">
-  <meta property="og:description" content="Most tutorials stop at a single-turn RAG bot. This one ships the hard parts real support needs: conversation phases that change behavior (greet to classify…">
+  <meta property="og:description" content="Build a customer support AI agent step by step: a knowledge base over MCP, conversation phases, history that survives restarts and handoff rules to a human.">
   <meta property="og:url" content="https://docs.promptise.com/blog/customer-support-ai-agent/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="How to Build a Customer Support AI Agent, Step by Step">
-  <meta name="twitter:description" content="Most tutorials stop at a single-turn RAG bot. This one ships the hard parts real support needs: conversation phases that change behavior (greet to classify…">
+  <meta name="twitter:description" content="Build a customer support AI agent step by step: a knowledge base over MCP, conversation phases, history that survives restarts and handoff rules to a human.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "How to Build a Customer Support AI Agent, Step by Step",
       "name": "How to Build a Customer Support AI Agent, Step by Step",
-      "description": "Most tutorials stop at a single-turn RAG bot. This one ships the hard parts real support needs: conversation phases that change behavior (greet to classify\u2026",
+      "description": "Build a customer support AI agent step by step: a knowledge base over MCP, conversation phases, history that survives restarts and handoff rules to a human.",
       "url": "https://docs.promptise.com/blog/customer-support-ai-agent/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9597,14 +9548,14 @@
 </span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>
 </span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
-<p>Set <code>OPENAI_API_KEY</code>, run it once, then run it again: the second process still answers correctly because the transcript lives in <code>support.db</code>, not in memory. When you outgrow a single node, switching to <code>PostgresConversationStore</code> or <code>RedisConversationStore</code> is a one-line constructor change — the <code>chat()</code> calls and ownership checks are identical. The <a href="../conversation-persistence/">conversation persistence deep dive</a> covers the backend trade-offs and the ownership model in full.</p>
+<p>Set <code>OPENAI_API_KEY</code>, run it once, then run it again: the second process still answers correctly because the transcript lives in <code>support.db</code>, not in memory. When you outgrow a single node, switching to <code>PostgresConversationStore</code> or <code>RedisConversationStore</code> is a one-line constructor change — the <code>chat()</code> calls and ownership checks are identical. For how this conversation history fits alongside long-term memory, see <a href="https://www.promptise.com/guides/view/ai-agent-memory-python">AI Agent Memory in Python: Short-Term and Long-Term</a>.</p>
 <h2 id="escalation-ai-agent-rules-validate-then-hand-off">Escalation ai agent rules: validate, then hand off<a class="headerlink" href="#escalation-ai-agent-rules-validate-then-hand-off" title="Link to this section">&para;</a></h2>
 <p>The last mile of any ai customer service agent is knowing when <em>not</em> to answer. Two mechanisms cover it:</p>
 <ul>
 <li><strong>Validate before sending.</strong> Turning on <code>guardrails=True</code> (above) runs six local detection heads, redacting PII a model might echo back and blocking prompt-injection attempts hidden in a customer message. Nothing leaves without passing those checks.</li>
 <li><strong>Escalate out of scope.</strong> For sensitive actions — issuing a refund, deleting an account — you gate the tool behind human approval rather than letting the model act unilaterally. And when an issue genuinely needs a specialist, hand it to another agent instead of forcing one model to know everything.</li>
 </ul>
-<p>That hand-off is where a single support bot grows into a small team: a front-line agent that triages, a billing agent that owns refunds, a technical agent that reads logs. Promptise's <a href="../../guides/multi-agent-teams/">multi-agent coordination guide</a> shows the <code>ask_peer()</code> and shared-server patterns for exactly this, and the companion post <a href="../multi-agent-systems-python/">How to Build Multi-Agent Systems in Python: 2026 Guide</a> walks the topology end to end. For the broader menu of what you can assemble from these pieces — from a 30-minute build to a full platform — skim the <a href="../../resources/showcase/">showcase</a>.</p>
+<p>That hand-off is where a single support bot grows into a small team: a front-line agent that triages, a billing agent that owns refunds, a technical agent that reads logs. Promptise's <a href="../../guides/multi-agent-teams/">multi-agent coordination guide</a> shows the <code>ask_peer()</code> and shared-server patterns for exactly this, and <a href="https://www.promptise.com/guides/view/multi-agent-system-python">Build a Multi-Agent System in Python (and When Not To)</a> covers when splitting work across agents pays off. For the broader menu of what you can assemble from these pieces — from a 30-minute build to a full platform — skim the <a href="../../resources/showcase/">showcase</a>.</p>
 <h2 id="when-a-plain-rag-bot-is-the-better-fit">When a plain RAG bot is the better fit<a class="headerlink" href="#when-a-plain-rag-bot-is-the-better-fit" title="Link to this section">&para;</a></h2>
 <p>Be honest about scope. If your "support" surface is a single FAQ page and every question is one-shot — "what are your hours?" — a phase state machine and a persistence layer are overhead you don't need. A stateless retrieval prompt over your docs will ship faster and cost less to run. Reach for the full flow only when conversations are genuinely multi-turn, when you need history to survive restarts, or when you have to prove <em>who</em> accessed <em>which</em> thread. The same goes for escalation: if you have no humans in the loop and no irreversible actions, skip the approval gate. Add each layer when a real requirement demands it, not because a tutorial listed it.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
@@ -9638,7 +9589,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

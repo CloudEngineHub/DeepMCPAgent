@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An honest teardown of the conflation 'memory = RAG.' Memory is per-user facts injected automatically; RAG is a document-retrieval tool the agent chooses to…">
+        <meta name="description" content="Learn the difference between agent memory and RAG, and decide whether your agent needs per-user facts, document retrieval or both, with a simple decision table.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/rag-for-agents/">
       
       
-        <link rel="prev" href="../react-agent-pattern/">
+        <link rel="prev" href="../reduce-mcp-tool-schema-tokens/">
       
       
-        <link rel="next" href="../python-ai-agent-framework/">
+        <link rel="next" href="../pydantic-ai-vs-promptise/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="RAG vs Agent Memory: Which Does Your Agent Need?">
-  <meta property="og:description" content="An honest teardown of the conflation 'memory = RAG.' Memory is per-user facts injected automatically; RAG is a document-retrieval tool the agent chooses to…">
+  <meta property="og:description" content="Learn the difference between agent memory and RAG, and decide whether your agent needs per-user facts, document retrieval or both, with a simple decision table.">
   <meta property="og:url" content="https://docs.promptise.com/blog/rag-for-agents/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="RAG vs Agent Memory: Which Does Your Agent Need?">
-  <meta name="twitter:description" content="An honest teardown of the conflation 'memory = RAG.' Memory is per-user facts injected automatically; RAG is a document-retrieval tool the agent chooses to…">
+  <meta name="twitter:description" content="Learn the difference between agent memory and RAG, and decide whether your agent needs per-user facts, document retrieval or both, with a simple decision table.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "RAG vs Agent Memory: Which Does Your Agent Need?",
       "name": "RAG vs Agent Memory: Which Does Your Agent Need?",
-      "description": "An honest teardown of the conflation \u0027memory = RAG.\u0027 Memory is per-user facts injected automatically; RAG is a document-retrieval tool the agent chooses to\u2026",
+      "description": "Learn the difference between agent memory and RAG, and decide whether your agent needs per-user facts, document retrieval or both, with a simple decision table.",
       "url": "https://docs.promptise.com/blog/rag-for-agents/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9496,7 +9447,7 @@
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"You are a support agent. Remember what each user tells you."</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 </span></code></pre></div>
-<p>From then on, every <code>ainvoke</code> and <code>chat</code> call transparently searches that store scoped to the caller and prepends the top matches. Promptise ships three providers — <code>InMemoryProvider</code> for tests, <code>ChromaProvider</code> for local persistent vector search, and <code>Mem0Provider</code> for enterprise graph memory — all behind the same one-parameter interface. If you want the full mental model for how observed facts accumulate over a user's lifetime, the <a href="../ai-agent-memory/">AI Agent Memory: The Complete Guide for Python Devs</a> post walks through it end to end.</p>
+<p>From then on, every <code>ainvoke</code> and <code>chat</code> call transparently searches that store scoped to the caller and prepends the top matches. Promptise ships three providers — <code>InMemoryProvider</code> for tests, <code>ChromaProvider</code> for local persistent vector search, and <code>Mem0Provider</code> for enterprise graph memory — all behind the same one-parameter interface. If you want the full mental model for how observed facts accumulate over a user's lifetime, <a href="https://www.promptise.com/guides/view/ai-agent-memory-python">AI Agent Memory in Python: Short-Term and Long-Term</a> walks through it end to end.</p>
 <p>One more thing memory is <em>not</em>: it is not your conversation transcript. Short-term turn-by-turn history is handled separately by a <a href="../../core/conversations/">conversation store</a> (<code>chat()</code> loads, invokes, and persists automatically). Memory is the distilled, cross-session layer that sits on top. Three distinct systems, three distinct jobs.</p>
 <h2 id="what-rag-for-agents-actually-does">What RAG for agents actually does<a class="headerlink" href="#what-rag-for-agents-actually-does" title="Link to this section">&para;</a></h2>
 <p>RAG — retrieval-augmented generation — is document retrieval for LLM agents. You index a corpus offline, then let the agent query it on demand. Promptise's RAG foundation is deliberately small: four base classes you subclass (<code>DocumentLoader</code>, <code>Chunker</code>, <code>Embedder</code>, <code>VectorStore</code>), a <code>RAGPipeline</code> that orchestrates the <code>load → chunk → embed → store → retrieve</code> flow, and <code>rag_to_tool()</code> to expose the result to an agent. The full contract lives in the <a href="../../core/rag/">RAG documentation</a>.</p>
@@ -9630,7 +9581,7 @@
 <h3 id="can-i-use-rag-and-memory-in-the-same-agent">Can I use RAG and memory in the same agent?<a class="headerlink" href="#can-i-use-rag-and-memory-in-the-same-agent" title="Link to this section">&para;</a></h3>
 <p>Yes, and it is common. Pass a memory provider via the <code>memory=</code> parameter and one or more RAG tools via <code>extra_tools=</code>. Memory personalizes the agent to the user; RAG grounds it in your documents. Neither interferes with the other.</p>
 <h3 id="do-rag-tool-calls-count-against-my-agents-budget">Do RAG tool calls count against my agent's budget?<a class="headerlink" href="#do-rag-tool-calls-count-against-my-agents-budget" title="Link to this section">&para;</a></h3>
-<p>Yes. <code>rag_to_tool()</code> returns a standard tool, so a retrieval is an ordinary tool call — tracked by the budget, health-monitoring, and journal subsystems. That means a runaway retrieval loop trips the same governance guardrails as any other tool. See the <a href="../ai-agent-memory/">memory guide</a> and the <a href="../llm-long-term-memory/">long-term memory walkthrough</a> for how the pieces fit with persistence.</p>
+<p>Yes. <code>rag_to_tool()</code> returns a standard tool, so a retrieval is an ordinary tool call — tracked by the budget, health-monitoring, and journal subsystems. That means a runaway retrieval loop trips the same governance guardrails as any other tool. See the <a href="https://www.promptise.com/guides/view/ai-agent-memory-python">AI agent memory guide</a> for how the pieces fit with persistence.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
 <p>Skim the decision table above, then wire up memory, RAG, or both for your specific retrieval pattern — the two compose without stepping on each other. Start from the <a href="../../getting-started/quickstart/">Quick Start</a> to get an agent running, then follow the <a href="../../core/rag/">RAG documentation</a> to plug in your own loader and vector store, and the <a href="../../core/memory/">memory guide</a> to add auto-injected per-user context. <code>pip install promptise</code> and you have both in the same framework.</p>
 
@@ -9655,7 +9606,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

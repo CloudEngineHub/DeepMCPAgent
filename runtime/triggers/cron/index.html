@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The CronTrigger fires at scheduled intervals defined by a standard cron expression. It is the most common trigger type for periodic monitoring, data pipeline">
+        <meta name="description" content="The CronTrigger runs an agent on a schedule defined by a cron expression. Use it for periodic monitoring, pipeline checks, daily digests and scheduled reports.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Cron Trigger">
-  <meta property="og:description" content="The CronTrigger fires at scheduled intervals defined by a standard cron expression. It is the most common trigger type for periodic monitoring, data pipeline">
+  <meta property="og:description" content="The CronTrigger runs an agent on a schedule defined by a cron expression. Use it for periodic monitoring, pipeline checks, daily digests and scheduled reports.">
   <meta property="og:url" content="https://docs.promptise.com/runtime/triggers/cron/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Cron Trigger">
-  <meta name="twitter:description" content="The CronTrigger fires at scheduled intervals defined by a standard cron expression. It is the most common trigger type for periodic monitoring, data pipeline">
+  <meta name="twitter:description" content="The CronTrigger runs an agent on a schedule defined by a cron expression. Use it for periodic monitoring, pipeline checks, daily digests and scheduled reports.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Cron Trigger",
       "name": "Cron Trigger",
-      "description": "The CronTrigger fires at scheduled intervals defined by a standard cron expression. It is the most common trigger type for periodic monitoring, data pipeline",
+      "description": "The CronTrigger runs an agent on a schedule defined by a cron expression. Use it for periodic monitoring, pipeline checks, daily digests and scheduled reports.",
       "url": "https://docs.promptise.com/runtime/triggers/cron/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5791,6 +5761,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Time zones">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jobs-in-the-hour-that-dst-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jobs in the hour that DST changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5810,6 +5797,17 @@
     <span class="md-ellipsis">
       
         Wait mechanism
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ticks-runs-and-the-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ticks, runs and the queue
       
     </span>
   </a>
@@ -5855,10 +5853,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -6127,6 +6125,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6149,8 +6151,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6164,8 +6167,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6177,6 +6186,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8423,8 +8434,6 @@
       
         
       
-        
-      
     
     
     
@@ -8577,36 +8586,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9554,6 +9533,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Time zones">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#jobs-in-the-hour-that-dst-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jobs in the hour that DST changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -9573,6 +9569,17 @@
     <span class="md-ellipsis">
       
         Wait mechanism
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ticks-runs-and-the-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ticks, runs and the queue
       
     </span>
   </a>
@@ -9618,10 +9625,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9709,42 +9716,54 @@
 
 
 <h1 id="cron-trigger">Cron Trigger<a class="headerlink" href="#cron-trigger" title="Link to this section">&para;</a></h1>
-<p>The <code>CronTrigger</code> fires at scheduled intervals defined by a standard cron expression. It is the most common trigger type for periodic monitoring, data pipeline checks, and scheduled reporting.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.cron</span><span class="w"> </span><span class="kn">import</span> <span class="n">CronTrigger</span>
+<p>The <code>CronTrigger</code> runs an agent on a schedule defined by a cron expression. Use it for periodic monitoring, pipeline checks, daily digests and scheduled reports. Each tick becomes one agent run.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"*/5 * * * *"</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>  <span class="c1"># Blocks up to 5 minutes</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># {"scheduled_time": "2026-03-04T10:05:00+00:00", "cron_expression": "*/5 * * * *", "timezone": "UTC"}</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Check the data pipelines and report failures."</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="c1"># 09:00 Zurich time, Monday to Friday</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"0 9 * * 1-5"</span><span class="p">,</span> <span class="n">cron_timezone</span><span class="o">=</span><span class="s2">"Europe/Zurich"</span><span class="p">),</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="p">],</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>On its own, outside a process:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.cron</span><span class="w"> </span><span class="kn">import</span> <span class="n">CronTrigger</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"*/5 * * * *"</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>  <span class="c1"># Blocks up to 5 minutes</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># {"scheduled_time": "2026-03-04T10:05:00+00:00", "cron_expression": "*/5 * * * *", "timezone": "UTC"}</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
 <hr />
 <h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
 <p>The <code>CronTrigger</code> calculates the next fire time from the current moment, sleeps until that time, and then produces a <code>TriggerEvent</code>. This cycle repeats for as long as the trigger is active.</p>
-<p>Expressions are evaluated with <strong><code>croniter</code></strong>, which ships with <code>pip install promptise</code>: ranges, lists, steps, day-of-week names and an optional seconds field all work. If <code>croniter</code> has been removed from the environment, a built-in fallback handles only <code>*/N * * * *</code>, <code>* * * * *</code> and single-minute expressions like <code>30 * * * *</code>.</p>
+<p>Expressions are evaluated with <strong><code>croniter</code></strong>, which ships with <code>pip install promptise</code>: ranges, lists, steps, day-of-week names and an optional seconds field all work. Macros such as <code>@daily</code> are not accepted; write the five fields. If <code>croniter</code> has been removed from the environment, a built-in fallback handles only <code>*/N * * * *</code>, <code>* * * * *</code> and single-minute expressions like <code>30 * * * *</code>.</p>
 <p><strong>Schedules run in UTC</strong> unless you set a time zone (see <a href="#time-zones">Time zones</a>). <code>0 9 * * 1-5</code> therefore means 09:00 UTC on weekdays by default, which is 10:00 or 11:00 in Zurich depending on daylight saving time.</p>
 <p>The expression (and time zone) is validated when the <code>TriggerConfig</code> or <code>CronTrigger</code> is created. A bad expression raises a <code>ValidationError</code> / <code>TriggerError</code> straight away, so a process with a broken schedule never starts.</p>
 <hr />
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Link to this section">&para;</a></h2>
 <h3 id="via-triggerconfig">Via TriggerConfig<a class="headerlink" href="#via-triggerconfig" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Check data pipelines every 5 minutes."</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">),</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="c1"># 09:00 Zurich time on weekdays, DST-aware</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="n">TriggerConfig</span><span class="p">(</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>            <span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>            <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"0 9 * * 1-5"</span><span class="p">,</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>            <span class="n">cron_timezone</span><span class="o">=</span><span class="s2">"Europe/Zurich"</span><span class="p">,</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="p">),</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="p">],</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Check data pipelines every 5 minutes."</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">),</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="c1"># 09:00 Zurich time on weekdays, DST-aware</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="n">TriggerConfig</span><span class="p">(</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>            <span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>            <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"0 9 * * 1-5"</span><span class="p">,</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>            <span class="n">cron_timezone</span><span class="o">=</span><span class="s2">"Europe/Zurich"</span><span class="p">,</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="p">),</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="p">],</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">)</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -9765,40 +9784,47 @@
 <td><code>None</code> (UTC)</td>
 <td>IANA time zone name the expression is read in</td>
 </tr>
+<tr>
+<td><code>filter_expression</code></td>
+<td><code>None</code></td>
+<td>Skip events before the agent runs (see <a href="../#filtering-events-before-the-agent-runs">Filtering</a>)</td>
+</tr>
 </tbody>
 </table>
+<p>Setting an option of another trigger type (for example <code>watch_path</code>) on a <code>cron</code> trigger is a validation error.</p>
+<p>Inside a process, the trigger's ID is a <a href="../#trigger-ids">stable ID</a> such as <code>cron-6d904fd75c</code>, derived from its config. It stays the same across restarts and is the <code>trigger_id</code> of every event.</p>
 <h3 id="direct-instantiation">Direct instantiation<a class="headerlink" href="#direct-instantiation" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.cron</span><span class="w"> </span><span class="kn">import</span> <span class="n">CronTrigger</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Every 5 minutes</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"*/5 * * * *"</span><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Every hour at minute 0</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"0 * * * *"</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># Every day at 9:00 AM</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"0 9 * * *"</span><span class="p">)</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># Every day at 9:00 AM New York time</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"0 9 * * *"</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="s2">"America/New_York"</span><span class="p">)</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># Every 10 seconds (sixth field = seconds)</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"* * * * * */10"</span><span class="p">)</span>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="c1"># Custom trigger ID</span>
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"*/10 * * * *"</span><span class="p">,</span> <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"pipeline-check"</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.cron</span><span class="w"> </span><span class="kn">import</span> <span class="n">CronTrigger</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Every 5 minutes</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"*/5 * * * *"</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Every hour at minute 0</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"0 * * * *"</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Every day at 9:00 AM (UTC)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"0 9 * * *"</span><span class="p">)</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># Every day at 9:00 AM New York time</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"0 9 * * *"</span><span class="p">,</span> <span class="n">timezone</span><span class="o">=</span><span class="s2">"America/New_York"</span><span class="p">)</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="c1"># Every 10 seconds (sixth field = seconds)</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"* * * * * */10"</span><span class="p">)</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="c1"># Custom trigger ID</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"*/10 * * * *"</span><span class="p">,</span> <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"pipeline-check"</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="cron-expression-reference">Cron Expression Reference<a class="headerlink" href="#cron-expression-reference" title="Link to this section">&para;</a></h2>
 <p>Standard 5-field cron format, with an optional sixth field for seconds:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>┌───────────── minute (0-59)
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>│ ┌───────────── hour (0-23)
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>│ │ ┌───────────── day of month (1-31)
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>│ │ │ ┌───────────── month (1-12)
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│ │ │ │ ┌───────────── day of week (0-7, 0 and 7 are Sunday)
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│ │ │ │ │ ┌───────────── second (0-59, optional, croniter's convention: last)
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│ │ │ │ │ │
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>* * * * * *
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>┌───────────── minute (0-59)
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>│ ┌───────────── hour (0-23)
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>│ │ ┌───────────── day of month (1-31)
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>│ │ │ ┌───────────── month (1-12)
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>│ │ │ │ ┌───────────── day of week (0-7, 0 and 7 are Sunday)
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>│ │ │ │ │ ┌───────────── second (0-59, optional, croniter's convention: last)
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>│ │ │ │ │ │
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>* * * * * *
 </span></code></pre></div>
 <p>Common patterns:</p>
 <table>
@@ -9834,6 +9860,10 @@
 <td>Every Monday at 9:00 AM</td>
 </tr>
 <tr>
+<td><code>0 9 * * 1-5</code></td>
+<td>Weekdays at 9:00 AM</td>
+</tr>
+<tr>
 <td><code>0 0 1 * *</code></td>
 <td>First day of every month</td>
 </tr>
@@ -9851,48 +9881,80 @@
 </tr>
 </tbody>
 </table>
+<p>When both day of month and day of week are restricted (<code>0 9 1 * 1</code>), the job runs when <strong>either</strong> matches: on the 1<sup>st</sup> of the month and on every Monday.</p>
+<hr />
 <h2 id="time-zones">Time zones<a class="headerlink" href="#time-zones" title="Link to this section">&para;</a></h2>
 <p>By default the expression is evaluated in <strong>UTC</strong>. Set <code>cron_timezone</code> (or <code>timezone=</code> on <code>CronTrigger</code>) to an IANA name to schedule in local time:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"0 9 * * 1-5"</span><span class="p">,</span> <span class="n">cron_timezone</span><span class="o">=</span><span class="s2">"Europe/Zurich"</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"0 9 * * 1-5"</span><span class="p">,</span> <span class="n">cron_timezone</span><span class="o">=</span><span class="s2">"Europe/Zurich"</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Daylight-saving changes are handled by <code>croniter</code>: the trigger fires at 09:00 local time all year, and <code>scheduled_time</code> in the payload carries the local offset (<code>2026-03-02T09:00:00+01:00</code>). On Windows, install the <code>tzdata</code> package so time-zone names resolve.</p>
+<h3 id="jobs-in-the-hour-that-dst-changes">Jobs in the hour that DST changes<a class="headerlink" href="#jobs-in-the-hour-that-dst-changes" title="Link to this section">&para;</a></h3>
+<p>A job scheduled inside the hour that the clock change repeats or skips behaves differently on those two nights. With <code>cron_expression="30 2 * * *"</code> and <code>cron_timezone="Europe/Zurich"</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Night</th>
+<th>What happens</th>
+<th><code>scheduled_time</code> values</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fall back (2026-10-25: 03:00 becomes 02:00)</td>
+<td>02:30 occurs twice, so the job <strong>runs twice</strong></td>
+<td><code>2026-10-25T02:30:00+02:00</code>, then <code>2026-10-25T02:30:00+01:00</code></td>
+</tr>
+<tr>
+<td>Spring forward (2026-03-29: 02:00 becomes 03:00)</td>
+<td>02:30 does not exist, so the job <strong>runs at 03:00</strong> local time</td>
+<td><code>2026-03-29T03:00:00+02:00</code></td>
+</tr>
+</tbody>
+</table>
+<p>The same applies to every job in the affected hour (<code>0 2 * * *</code> also runs at 03:00 on the spring-forward night, and <code>*/30 2 * * *</code> runs four times on the fall-back night), and to other zones on their own dates (01:30 runs twice in <code>America/New_York</code> on 2026-11-01). To avoid it, schedule outside 01:00-03:00 local time, use UTC, or make the job idempotent so a second run does no harm.</p>
 <hr />
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Link to this section">&para;</a></h2>
 <h3 id="wait-mechanism">Wait mechanism<a class="headerlink" href="#wait-mechanism" title="Link to this section">&para;</a></h3>
 <p><code>CronTrigger</code> uses <code>asyncio.wait_for</code> with an <code>asyncio.Event</code> to implement cancellable sleeping:</p>
 <ol>
-<li>Calculate the next fire time from the cron expression.</li>
+<li>Calculate the next fire time from the cron expression, starting from now.</li>
 <li>Compute the delay in seconds from now.</li>
 <li>Sleep for the delay using <code>wait_for(event.wait(), timeout=delay)</code>.</li>
 <li>If the event is set (by <code>stop()</code>), raise <code>CancelledError</code>.</li>
 <li>If the timeout expires naturally, produce a <code>TriggerEvent</code>.</li>
 </ol>
 <p>This design allows <code>stop()</code> to immediately unblock a waiting trigger rather than sleeping for the full delay.</p>
+<h3 id="ticks-runs-and-the-queue">Ticks, runs and the queue<a class="headerlink" href="#ticks-runs-and-the-queue" title="Link to this section">&para;</a></h3>
+<p>In a process, the trigger's listener runs independently of the workers. A tick that comes due while the agent is still running is queued and runs after the current run (with the default <code>concurrency=1</code>); ticks are not merged or skipped. If a run takes longer than the interval, the queue grows by one event per tick.</p>
+<p>The next fire time is always computed from the current time. Ticks that fell into a period when the process was stopped, or the machine was asleep, are <strong>not</strong> caught up: after a restart the trigger simply waits for the next one.</p>
+<p>A suspended process keeps queueing ticks and runs them in order after <code>resume()</code>. A process suspended by <code>idle_timeout</code> resumes by itself when the next tick arrives (see <a href="../#what-happens-when-the-process-is-suspended">suspension</a>).</p>
 <h3 id="event-payload">Event payload<a class="headerlink" href="#event-payload" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="s2">"scheduled_time"</span><span class="p">:</span> <span class="s2">"2026-03-04T10:05:00+00:00"</span><span class="p">,</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">"cron_expression"</span><span class="p">:</span> <span class="s2">"*/5 * * * *"</span><span class="p">,</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="s2">"timezone"</span><span class="p">:</span> <span class="s2">"UTC"</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="s2">"scheduled_time"</span><span class="p">:</span> <span class="s2">"2026-03-04T10:05:00+00:00"</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="s2">"cron_expression"</span><span class="p">:</span> <span class="s2">"*/5 * * * *"</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="s2">"timezone"</span><span class="p">:</span> <span class="s2">"UTC"</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
 </span></code></pre></div>
+<p><code>scheduled_time</code> is the tick the event was produced for, not the time the agent started running.</p>
 <hr />
 <h2 id="lifecycle">Lifecycle<a class="headerlink" href="#lifecycle" title="Link to this section">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"*/5 * * * *"</span><span class="p">)</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Start the trigger</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># Wait for events in a loop</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fired at </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">[</span><span class="s1">'scheduled_time'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="k">break</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="c1"># Stop the trigger</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span><span class="s2">"*/5 * * * *"</span><span class="p">)</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># Start the trigger</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># Wait for events in a loop</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        <span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fired at </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">[</span><span class="s1">'scheduled_time'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="k">break</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="c1"># Stop the trigger</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
+<p>To change a running process's schedule, add the new trigger and remove the old one with <a href="../#adding-and-removing-triggers-at-runtime"><code>process.add_trigger()</code> / <code>process.remove_trigger()</code></a> or the API. Both take effect at once.</p>
 <hr />
 <h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
 <table>
@@ -9909,7 +9971,7 @@
 </tr>
 <tr>
 <td><code>trigger_id</code></td>
-<td>Unique identifier (auto-generated: <code>cron-XXXXXXXX</code>)</td>
+<td>Identifier (standalone default: <code>cron-XXXXXXXX</code>; in a process: the stable config ID)</td>
 </tr>
 <tr>
 <td><code>await start()</code></td>
@@ -9926,19 +9988,16 @@
 </tbody>
 </table>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Sub-minute scheduling</p>
-<p>Add a sixth field for seconds: <code>* * * * * */10</code> fires every 10 seconds. Each firing is a full agent run, so keep an eye on cost.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">UTC unless told otherwise</p>
-<p><code>0 9 * * *</code> is 09:00 <strong>UTC</strong>, not server-local time. Set <code>cron_timezone</code> when the schedule follows office hours.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Clock drift</p>
-<p>The trigger computes the next fire time from the system clock. On systems with significant clock drift, scheduled times may shift. Use NTP synchronization in production.</p>
-</div>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>UTC unless told otherwise.</strong> <code>0 9 * * *</code> is 09:00 <strong>UTC</strong>, not server-local time. Set <code>cron_timezone</code> when the schedule follows office hours.</li>
+<li><strong>Jobs between 01:00 and 03:00 local time.</strong> On DST nights they run twice or shift (see <a href="#jobs-in-the-hour-that-dst-changes">above</a>).</li>
+<li><strong>Runs longer than the interval.</strong> Ticks queue up behind the running one. Lengthen the interval, raise <code>concurrency</code> (runs then share context and conversation), or keep runs short.</li>
+<li><strong>Expecting catch-up.</strong> Ticks missed while the process was down are lost. If a job must cover a period, have the agent work from "everything since the last successful run" (kept in <a href="../../context/">context state</a>), not from the tick time.</li>
+<li><strong>Sub-minute schedules.</strong> <code>* * * * * */10</code> fires every 10 seconds, and each firing is a full agent run. Watch the cost; an <a href="../../governance/budget/">autonomy budget</a> with <code>max_runs_per_day</code> puts a ceiling on it.</li>
+<li><strong>Clock drift.</strong> The trigger computes the next fire time from the system clock. Use NTP synchronization in production.</li>
+<li><strong>Several replicas.</strong> Every process with the trigger fires it. Run a scheduled process in one place only.</li>
+</ul>
 <div class="admonition info">
 <p class="admonition-title">Validated up front</p>
 <p>Invalid expressions and unknown time zones are rejected when the config is created, so <code>promptise runtime validate</code> and process start-up both catch them; a running process never ends up retrying a broken schedule.</p>
@@ -9946,14 +10005,16 @@
 <hr />
 <h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../">Triggers Overview</a> -- all trigger types and the base protocol</li>
+<li><a href="../">Triggers Overview</a> -- all trigger types, stable IDs and live trigger changes</li>
 <li><a href="../event-webhook/">Event and Webhook Triggers</a> -- event-driven activation</li>
-<li><a href="../file-watch/">File Watch Trigger</a> -- filesystem change detection</li>
+<li><a href="../file-watch/">File Watch Trigger</a> -- file-system change detection</li>
+<li><a href="../../governance/budget/">Autonomy Budget</a> -- cap runs and tool calls per day</li>
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
 <li><a href="https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers">Event-Driven AI Agents: Webhook, Cron and File Triggers</a> -- Scheduled agents alongside webhook and file triggers.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-cron-schedule">AI Agent Cron Jobs: Run an Agent on a Schedule</a> -- Time zones and DST, overlapping runs, missed ticks and testing.</li>
 </ul>
 </div>
 
@@ -9978,7 +10039,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
   </span>
 
     

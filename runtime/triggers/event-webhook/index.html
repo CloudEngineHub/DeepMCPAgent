@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The EventTrigger, MessageTrigger, and WebhookTrigger provide event-driven activation for agent processes. EventTrigger listens to the framework&#x27;s internal">
+        <meta name="description" content="These three triggers run an agent when something happens elsewhere. WebhookTrigger exposes an HTTP endpoint for external systems (GitHub, Stripe, CI,">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Event & Webhook">
-  <meta property="og:description" content="The EventTrigger, MessageTrigger, and WebhookTrigger provide event-driven activation for agent processes. EventTrigger listens to the framework&#x27;s internal">
+  <meta property="og:description" content="These three triggers run an agent when something happens elsewhere. WebhookTrigger exposes an HTTP endpoint for external systems (GitHub, Stripe, CI,">
   <meta property="og:url" content="https://docs.promptise.com/runtime/triggers/event-webhook/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Event & Webhook">
-  <meta name="twitter:description" content="The EventTrigger, MessageTrigger, and WebhookTrigger provide event-driven activation for agent processes. EventTrigger listens to the framework&#x27;s internal">
+  <meta name="twitter:description" content="These three triggers run an agent when something happens elsewhere. WebhookTrigger exposes an HTTP endpoint for external systems (GitHub, Stripe, CI,">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Event \u0026 Webhook",
       "name": "Event \u0026 Webhook",
-      "description": "The EventTrigger, MessageTrigger, and WebhookTrigger provide event-driven activation for agent processes. EventTrigger listens to the framework\u0026#x27;s internal",
+      "description": "These three triggers run an agent when something happens elsewhere. WebhookTrigger exposes an HTTP endpoint for external systems (GitHub, Stripe, CI,",
       "url": "https://docs.promptise.com/runtime/triggers/event-webhook/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5773,6 +5743,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#the-event-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The event bus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5788,17 +5769,6 @@
     <span class="md-ellipsis">
       
         Direct instantiation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#source-filtering" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Source filtering
       
     </span>
   </a>
@@ -5834,10 +5804,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#configuration_1" class="md-nav__link">
+  <a href="#the-message-broker" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration
+        The message broker
       
     </span>
   </a>
@@ -5884,7 +5854,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#configuration_2" class="md-nav__link">
+  <a href="#configuration_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Configuration
@@ -5902,6 +5872,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Authentication: HMAC signatures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stripe-replay-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stripe replay protection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -6016,10 +6003,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -6260,6 +6247,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6282,8 +6273,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6297,8 +6289,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6310,6 +6308,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8556,8 +8556,6 @@
       
         
       
-        
-      
     
     
     
@@ -8710,36 +8708,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9641,6 +9609,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#the-event-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The event bus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9656,17 +9635,6 @@
     <span class="md-ellipsis">
       
         Direct instantiation
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#source-filtering" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Source filtering
       
     </span>
   </a>
@@ -9702,10 +9670,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#configuration_1" class="md-nav__link">
+  <a href="#the-message-broker" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration
+        The message broker
       
     </span>
   </a>
@@ -9752,7 +9720,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#configuration_2" class="md-nav__link">
+  <a href="#configuration_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Configuration
@@ -9770,6 +9738,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Authentication: HMAC signatures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stripe-replay-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stripe replay protection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -9884,10 +9869,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9975,90 +9960,168 @@
 
 
 <h1 id="event-and-webhook-triggers">Event and Webhook Triggers<a class="headerlink" href="#event-and-webhook-triggers" title="Link to this section">&para;</a></h1>
-<p>The <code>EventTrigger</code>, <code>MessageTrigger</code>, and <code>WebhookTrigger</code> provide event-driven activation for agent processes. EventTrigger listens to the framework's internal EventBus, MessageTrigger subscribes to MessageBroker topics, and WebhookTrigger exposes an HTTP endpoint for external systems.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Handle incoming events and webhooks."</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"event"</span><span class="p">,</span> <span class="n">event_type</span><span class="o">=</span><span class="s2">"pipeline.error"</span><span class="p">),</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span> <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/events"</span><span class="p">,</span> <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">),</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"message"</span><span class="p">,</span> <span class="n">topic</span><span class="o">=</span><span class="s2">"reports.daily"</span><span class="p">),</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="p">],</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
+<p>These three triggers run an agent when something happens elsewhere. <code>WebhookTrigger</code> exposes an HTTP endpoint for external systems (GitHub, Stripe, CI, monitoring). <code>EventTrigger</code> and <code>MessageTrigger</code> listen to an event bus or a message broker that you share between processes, so one process can wake another.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Triage new GitHub issues."</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">TriggerConfig</span><span class="p">(</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/github"</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="n">hmac_secret</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"GITHUB_WEBHOOK_SECRET"</span><span class="p">],</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="n">signature_scheme</span><span class="o">=</span><span class="s2">"github"</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>            <span class="n">filter_expression</span><span class="o">=</span><span class="s2">"payload['action'] == 'opened'"</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="p">),</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="p">],</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span>
 </span></code></pre></div>
 <hr />
 <h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>All three trigger types use an internal <code>asyncio.Queue</code> to decouple event delivery from consumption. Events arriving faster than the agent can process them are buffered (up to the queue capacity). If the queue fills, events are dropped with a warning.</p>
 <table>
 <thead>
 <tr>
 <th>Trigger</th>
 <th>Source</th>
-<th>Use Case</th>
+<th>Use case</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td><code>WebhookTrigger</code></td>
+<td>External HTTP POST</td>
+<td>Receive events from external systems (CI/CD, monitoring, SaaS webhooks)</td>
+</tr>
+<tr>
 <td><code>EventTrigger</code></td>
-<td>Internal <code>EventBus</code></td>
-<td>React to events from other agent processes</td>
+<td>The runtime's <code>event_bus</code></td>
+<td>React to events from other agent processes or your own code</td>
 </tr>
 <tr>
 <td><code>MessageTrigger</code></td>
-<td>Internal <code>MessageBroker</code></td>
+<td>The runtime's <code>broker</code></td>
 <td>Subscribe to topic-based message streams</td>
-</tr>
-<tr>
-<td><code>WebhookTrigger</code></td>
-<td>External HTTP POST</td>
-<td>Receive events from external systems (CI/CD, monitoring, APIs)</td>
 </tr>
 </tbody>
 </table>
+<p>Each trigger buffers events in its own <code>asyncio.Queue</code> until the process's listener takes them. What happens when a buffer is full differs:</p>
+<ul>
+<li><strong>Webhook:</strong> the request is refused with <code>503</code> and a <code>Retry-After: 30</code> header, so the sender can retry. Nothing is dropped silently.</li>
+<li><strong>Event and message:</strong> the queue holds 100 events; beyond that, new events are dropped with a warning in the log.</li>
+</ul>
 <hr />
 <h2 id="eventtrigger">EventTrigger<a class="headerlink" href="#eventtrigger" title="Link to this section">&para;</a></h2>
-<p>Wraps an <code>EventBus</code> subscription and converts matching events into <code>TriggerEvent</code> objects.</p>
+<p>Subscribes to one event type on an event bus and turns matching events into <code>TriggerEvent</code> objects.</p>
+<h3 id="the-event-bus">The event bus<a class="headerlink" href="#the-event-bus" title="Link to this section">&para;</a></h3>
+<p><code>AgentRuntime</code> doesn't create an event bus; you pass one. <code>promptise.runtime.InProcessEventBus</code> delivers events between the processes of one Python process (<code>promptise runtime start</code> gives its runtime one, so <code>event</code> triggers and escalations with an <code>event_type</code> work between the processes it runs). <code>EventTrigger</code> works with any object that has these async methods, so you can also wrap Redis Pub/Sub, Kafka, or your own dispatcher:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Called by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>await subscribe(event_type, handler)</code></td>
+<td><code>EventTrigger.start()</code></td>
+</tr>
+<tr>
+<td><code>await unsubscribe(event_type, handler)</code></td>
+<td><code>EventTrigger.stop()</code></td>
+</tr>
+<tr>
+<td><code>await emit(event_type, payload)</code></td>
+<td>Budget, health and mission <a href="../../governance/budget/#enforcement-actions">escalations</a> with an <code>EscalationTarget(event_type=...)</code></td>
+</tr>
+</tbody>
+</table>
+<p>The handler is an async callable that receives the event object. The trigger reads its <code>event_id</code>, <code>source</code> and <code>data</code> attributes (missing ones become <code>""</code> / <code>{}</code>).</p>
+<p>A minimal in-memory bus (<code>InProcessEventBus</code> is this, plus error handling):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nd">@dataclass</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">BusEvent</span><span class="p">:</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">event_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">InMemoryBus</span><span class="p">:</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">unsubscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">""</span><span class="p">):</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="p">[])):</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>            <span class="k">await</span> <span class="n">handler</span><span class="p">(</span><span class="n">BusEvent</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">))</span>
+</span></code></pre></div>
+<p>Pass the same instance to the runtime and to whatever produces the events:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">bus</span> <span class="o">=</span> <span class="n">InMemoryBus</span><span class="p">()</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">(</span><span class="n">event_bus</span><span class="o">=</span><span class="n">bus</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="s2">"pipeline-doctor"</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="n">instructions</span><span class="o">=</span><span class="s2">"Diagnose failed pipeline jobs."</span><span class="p">,</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="n">triggers</span><span class="o">=</span><span class="p">[</span><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"event"</span><span class="p">,</span> <span class="n">event_type</span><span class="o">=</span><span class="s2">"pipeline.error"</span><span class="p">,</span> <span class="n">event_source</span><span class="o">=</span><span class="s2">"data-pipeline"</span><span class="p">)],</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="p">),</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="k">await</span> <span class="n">bus</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s2">"pipeline.error"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"job"</span><span class="p">:</span> <span class="s2">"nightly-load"</span><span class="p">},</span> <span class="n">source</span><span class="o">=</span><span class="s2">"data-pipeline"</span><span class="p">)</span>
+</span></code></pre></div>
 <h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Listen for pipeline errors</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"event"</span><span class="p">,</span> <span class="n">event_type</span><span class="o">=</span><span class="s2">"pipeline.error"</span><span class="p">)</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># With source filtering</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">TriggerConfig</span><span class="p">(</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="nb">type</span><span class="o">=</span><span class="s2">"event"</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">event_type</span><span class="o">=</span><span class="s2">"task.completed"</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">event_source</span><span class="o">=</span><span class="s2">"data-pipeline"</span><span class="p">,</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">)</span>
-</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event_type</code></td>
+<td>required</td>
+<td>Event type to subscribe to</td>
+</tr>
+<tr>
+<td><code>event_source</code></td>
+<td><code>None</code></td>
+<td>Only events whose <code>source</code> equals this fire the trigger</td>
+</tr>
+<tr>
+<td><code>filter_expression</code></td>
+<td><code>None</code></td>
+<td>Skip events before the agent runs (see <a href="../#filtering-events-before-the-agent-runs">Filtering</a>)</td>
+</tr>
+</tbody>
+</table>
 <h3 id="direct-instantiation">Direct instantiation<a class="headerlink" href="#direct-instantiation" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventTrigger</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.events</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventBus</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">bus</span> <span class="o">=</span> <span class="n">EventBus</span><span class="p">()</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">EventTrigger</span><span class="p">(</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">bus</span><span class="p">,</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="s2">"pipeline.error"</span><span class="p">,</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">source_filter</span><span class="o">=</span><span class="s2">"data-pipeline"</span><span class="p">,</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"pipe-err-listener"</span><span class="p">,</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">)</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="c1"># {</span>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1">#     "event_type": "pipeline.error",</span>
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="c1">#     "event_id": "...",</span>
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="c1">#     "source": "data-pipeline",</span>
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="c1">#     "data": {...},</span>
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="c1"># }</span>
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventTrigger</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">EventTrigger</span><span class="p">(</span><span class="n">bus</span><span class="p">,</span> <span class="s2">"pipeline.error"</span><span class="p">,</span> <span class="n">source_filter</span><span class="o">=</span><span class="s2">"data-pipeline"</span><span class="p">)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># {'event_type': 'pipeline.error', 'event_id': '9b5e8cdb…', 'source': 'data-pipeline',</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1">#  'data': {'job': 'nightly-load'}}</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
-<h3 id="source-filtering">Source filtering<a class="headerlink" href="#source-filtering" title="Link to this section">&para;</a></h3>
-<p>When <code>source_filter</code> is set, only events from that specific source fire the trigger. Events from other sources are silently ignored. This is useful when multiple producers publish to the same event type.</p>
 <h3 id="event-payload">Event payload<a class="headerlink" href="#event-payload" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
@@ -10070,56 +10133,91 @@
 <tbody>
 <tr>
 <td><code>event_type</code></td>
-<td>The EventBus event type string</td>
+<td>The subscribed event type</td>
 </tr>
 <tr>
 <td><code>event_id</code></td>
-<td>Unique event identifier</td>
+<td>The bus event's <code>event_id</code></td>
 </tr>
 <tr>
 <td><code>source</code></td>
-<td>Event source</td>
+<td>The bus event's <code>source</code></td>
 </tr>
 <tr>
 <td><code>data</code></td>
-<td>Event data dict</td>
+<td>The bus event's <code>data</code></td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="messagetrigger">MessageTrigger<a class="headerlink" href="#messagetrigger" title="Link to this section">&para;</a></h2>
-<p>Wraps a <code>MessageBroker</code> subscription for topic-based messaging.</p>
-<h3 id="configuration_1">Configuration<a class="headerlink" href="#configuration_1" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Subscribe to a specific topic</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"message"</span><span class="p">,</span> <span class="n">topic</span><span class="o">=</span><span class="s2">"reports.daily"</span><span class="p">)</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Wildcard topics are supported by the broker</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"message"</span><span class="p">,</span> <span class="n">topic</span><span class="o">=</span><span class="s2">"reports.*"</span><span class="p">)</span>
+<p>Subscribes to one topic on a message broker.</p>
+<h3 id="the-message-broker">The message broker<a class="headerlink" href="#the-message-broker" title="Link to this section">&para;</a></h3>
+<p>Like the event bus, the broker is any object with these async methods:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Called by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>await subscribe(topic, handler)</code></td>
+<td><code>MessageTrigger.start()</code>; returns a subscription ID</td>
+</tr>
+<tr>
+<td><code>await unsubscribe(subscription_id)</code></td>
+<td><code>MessageTrigger.stop()</code></td>
+</tr>
+</tbody>
+</table>
+<p>The handler receives a message object; the trigger reads <code>message_id</code>, <code>sender</code> and <code>content</code> (falling back to <code>str(message)</code> for <code>content</code>). Topic matching, including wildcards such as <code>reports.*</code>, is up to your broker.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">uuid4</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nd">@dataclass</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">Message</span><span class="p">:</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">sender</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">message_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">InMemoryBroker</span><span class="p">:</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_subs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>        <span class="n">sub_id</span> <span class="o">=</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_subs</span><span class="p">[</span><span class="n">sub_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">topic</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="k">return</span> <span class="n">sub_id</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">unsubscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub_id</span><span class="p">):</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_subs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">sub_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topic</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="s2">""</span><span class="p">):</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>        <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">handler</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_subs</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>            <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="n">topic</span><span class="p">:</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>                <span class="k">await</span> <span class="n">handler</span><span class="p">(</span><span class="n">Message</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="n">sender</span><span class="p">))</span>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">(</span><span class="n">broker</span><span class="o">=</span><span class="n">InMemoryBroker</span><span class="p">())</span>
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="c1"># TriggerConfig(type="message", topic="reports.daily")</span>
 </span></code></pre></div>
 <h3 id="direct-instantiation_1">Direct instantiation<a class="headerlink" href="#direct-instantiation_1" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">MessageTrigger</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.broker</span><span class="w"> </span><span class="kn">import</span> <span class="n">MessageBroker</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">broker</span> <span class="o">=</span> <span class="n">MessageBroker</span><span class="p">()</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">MessageTrigger</span><span class="p">(</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">broker</span><span class="p">,</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="s2">"reports.daily"</span><span class="p">,</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"daily-report-sub"</span><span class="p">,</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="c1"># {</span>
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="c1">#     "topic": "reports.daily",</span>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1">#     "message_id": "...",</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="c1">#     "sender": "report-generator",</span>
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="c1">#     "content": "...",</span>
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1"># }</span>
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">MessageTrigger</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">broker</span> <span class="o">=</span> <span class="n">InMemoryBroker</span><span class="p">()</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">MessageTrigger</span><span class="p">(</span><span class="n">broker</span><span class="p">,</span> <span class="s2">"reports.daily"</span><span class="p">)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">await</span> <span class="n">broker</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="s2">"reports.daily"</span><span class="p">,</span> <span class="s2">"Report ready"</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="s2">"report-generator"</span><span class="p">)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1"># {'topic': 'reports.daily', 'message_id': '8796…', 'sender': 'report-generator',</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1">#  'content': 'Report ready'}</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
 <h3 id="message-payload">Message payload<a class="headerlink" href="#message-payload" title="Link to this section">&para;</a></h3>
 <table>
@@ -10132,39 +10230,40 @@
 <tbody>
 <tr>
 <td><code>topic</code></td>
-<td>The topic the message arrived on</td>
+<td>The subscribed topic</td>
 </tr>
 <tr>
 <td><code>message_id</code></td>
-<td>Unique message identifier</td>
+<td>The message's <code>message_id</code></td>
 </tr>
 <tr>
 <td><code>sender</code></td>
-<td>Message sender</td>
+<td>The message's <code>sender</code></td>
 </tr>
 <tr>
 <td><code>content</code></td>
-<td>Message content</td>
+<td>The message's <code>content</code></td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="webhooktrigger">WebhookTrigger<a class="headerlink" href="#webhooktrigger" title="Link to this section">&para;</a></h2>
-<p>An <code>aiohttp</code> HTTP server that listens for incoming POST requests and converts them to <code>TriggerEvent</code> objects.</p>
-<h3 id="configuration_2">Configuration<a class="headerlink" href="#configuration_2" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">TriggerConfig</span><span class="p">(</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/github"</span><span class="p">,</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">,</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">webhook_host</span><span class="o">=</span><span class="s2">"127.0.0.1"</span><span class="p">,</span>          <span class="c1"># default: loopback only</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">hmac_secret</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"GITHUB_WEBHOOK_SECRET"</span><span class="p">],</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">signature_scheme</span><span class="o">=</span><span class="s2">"github"</span><span class="p">,</span>         <span class="c1"># generic | github | stripe</span>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">allowed_sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"203.0.113.0/24"</span><span class="p">],</span>  <span class="c1"># the sender's published IP ranges</span>
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">filter_expression</span><span class="o">=</span><span class="s2">"payload['action'] == 'opened'"</span><span class="p">,</span>
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">)</span>
+<p>An <code>aiohttp</code> HTTP server that listens for POST requests and turns each accepted request into a <code>TriggerEvent</code>. Each webhook trigger runs its own server on its own port.</p>
+<h3 id="configuration_1">Configuration<a class="headerlink" href="#configuration_1" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">TriggerConfig</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">TriggerConfig</span><span class="p">(</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/github"</span><span class="p">,</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">webhook_host</span><span class="o">=</span><span class="s2">"127.0.0.1"</span><span class="p">,</span>          <span class="c1"># default: loopback only</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">hmac_secret</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">"GITHUB_WEBHOOK_SECRET"</span><span class="p">],</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">signature_scheme</span><span class="o">=</span><span class="s2">"github"</span><span class="p">,</span>         <span class="c1"># generic | github | stripe</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">allowed_sources</span><span class="o">=</span><span class="p">[</span><span class="s2">"203.0.113.0/24"</span><span class="p">],</span>  <span class="c1"># the sender's published IP ranges</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="n">webhook_max_body_bytes</span><span class="o">=</span><span class="mi">256</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">,</span>   <span class="c1"># default 1 MiB</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="n">filter_expression</span><span class="o">=</span><span class="s2">"payload['action'] == 'opened'"</span><span class="p">,</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="p">)</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -10198,12 +10297,12 @@
 <tr>
 <td><code>signature_scheme</code></td>
 <td><code>"generic"</code></td>
-<td>How the signature is computed (table below)</td>
+<td>How the signature is computed (table below); requires <code>hmac_secret</code></td>
 </tr>
 <tr>
 <td><code>signature_header</code></td>
 <td>scheme default</td>
-<td>Override the header the signature is read from</td>
+<td>Override the header the signature is read from; requires <code>hmac_secret</code></td>
 </tr>
 <tr>
 <td><code>signature_tolerance</code></td>
@@ -10216,13 +10315,18 @@
 <td>Client IPs or CIDR ranges allowed to call the webhook; others get <code>403</code></td>
 </tr>
 <tr>
+<td><code>webhook_max_body_bytes</code></td>
+<td><code>1048576</code> (1 MiB)</td>
+<td>Largest request body accepted, 1 byte to 1 GiB; larger bodies get <code>413</code></td>
+</tr>
+<tr>
 <td><code>filter_expression</code></td>
 <td><code>None</code></td>
 <td>Skip events before the agent runs (see <a href="../#filtering-events-before-the-agent-runs">Filtering</a>)</td>
 </tr>
 </tbody>
 </table>
-<p>In a manifest, keep the secret out of the file with an environment reference: <code>hmac_secret: ${GITHUB_WEBHOOK_SECRET}</code>.</p>
+<p>In a manifest, keep the secret out of the file with an environment reference: <code>hmac_secret: ${GITHUB_WEBHOOK_SECRET}</code>. The secret is a <code>SecretStr</code>: it is masked in <code>repr()</code>, in config dumps and in <code>GET /triggers</code>.</p>
 <h3 id="authentication-hmac-signatures">Authentication: HMAC signatures<a class="headerlink" href="#authentication-hmac-signatures" title="Link to this section">&para;</a></h3>
 <p>With <code>hmac_secret</code> set, every request must carry an HMAC-SHA256 signature of the raw body, made with the shared secret. The comparison is timing-safe.</p>
 <table>
@@ -10253,103 +10357,148 @@
 </table>
 <p><code>generic</code> and <code>github</code> signatures cover only the body, with no timestamp, so anyone who captures a signed request can send it again. Serve the webhook over TLS (a reverse proxy in front of it) so requests can't be captured, and make the agent's actions safe to repeat where you can.</p>
 <p>Signing a request for the <code>generic</code> scheme:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span><span class="o">,</span><span class="w"> </span><span class="nn">hmac</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">urllib.request</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"order_id"</span><span class="p">:</span> <span class="mi">42</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">signature</span> <span class="o">=</span> <span class="s2">"sha256="</span> <span class="o">+</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s2">"my-secret"</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s2">"http://127.0.0.1:9090/webhook"</span><span class="p">,</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">data</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span> <span class="s2">"X-Webhook-Signature"</span><span class="p">:</span> <span class="n">signature</span><span class="p">},</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span><span class="o">,</span><span class="w"> </span><span class="nn">hmac</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">urllib.request</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"order_id"</span><span class="p">:</span> <span class="mi">42</span><span class="p">})</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">signature</span> <span class="o">=</span> <span class="s2">"sha256="</span> <span class="o">+</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="sa">b</span><span class="s2">"my-secret"</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="s2">"http://127.0.0.1:9090/webhook"</span><span class="p">,</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">data</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Content-Type"</span><span class="p">:</span> <span class="s2">"application/json"</span><span class="p">,</span> <span class="s2">"X-Webhook-Signature"</span><span class="p">:</span> <span class="n">signature</span><span class="p">},</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">))</span>
 </span></code></pre></div>
 <p>For other providers that sign the body with HMAC-SHA256 and a <code>sha256=</code> prefix, keep <code>signature_scheme="generic"</code> and set <code>signature_header</code> to their header name.</p>
+<h4 id="stripe-replay-protection">Stripe replay protection<a class="headerlink" href="#stripe-replay-protection" title="Link to this section">&para;</a></h4>
+<p>A <code>stripe</code> signature is accepted once. The webhook records it only when it takes the event, so a sender's retry is not mistaken for a replay:</p>
+<ul>
+<li>after a <code>503</code> (process unavailable or queue full), the signature was never recorded and the retry goes through;</li>
+<li>after a <code>500</code> (an unexpected error while handling the request), the signature is released again, so the retry goes through;</li>
+<li>after a <code>202</code> or a <code>200 ignored</code>, the same signature gets <code>401</code>.</li>
+</ul>
+<p>Recorded signatures are kept for twice <code>signature_tolerance</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Set a secret before you expose the port</p>
 <p>Without <code>hmac_secret</code>, anyone who can reach the port can make the agent run, and pick what it reads. The trigger logs a warning at start-up in that case. Always set a secret (and ideally <code>allowed_sources</code>) when <code>webhook_host</code> isn't loopback.</p>
 </div>
+<p><strong>Unsigned loopback webhooks refuse browser requests.</strong> A webhook on a loopback address can also be reached by any web page open in a browser on the same machine (a cross-site form post or <code>fetch</code>, or DNS rebinding). Without <code>hmac_secret</code>, a loopback webhook therefore answers <code>421</code> to a request whose <code>Host</code> header is not a loopback name and <code>403</code> to one with a cross-site <code>Origin</code> header, like the <a href="../../api/#browsers-cant-drive-a-local-api">control API</a>. Local senders such as <code>curl</code>, scripts and other services send a loopback <code>Host</code> and no <code>Origin</code>, so they are unaffected. A signed webhook skips this check: the signature already proves the sender.</p>
+<p><strong>Agent-added webhooks.</strong> A webhook trigger an open-mode agent adds (<code>add_trigger</code>), or gives a process it spawns, must listen on loopback unless <code>open_mode.allow_public_webhooks</code> is on, and then needs an <code>hmac_secret</code> (see <a href="../../meta-tools/#security">Open Mode</a>).</p>
 <p><code>allowed_sources</code> is checked against the TCP peer address. Behind a reverse proxy that is the proxy's address, so list the proxy and do the provider IP check there.</p>
 <h3 id="direct-instantiation_2">Direct instantiation<a class="headerlink" href="#direct-instantiation_2" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.webhook</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebhookTrigger</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">WebhookTrigger</span><span class="p">(</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">path</span><span class="o">=</span><span class="s2">"/webhook"</span><span class="p">,</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">port</span><span class="o">=</span><span class="mi">9090</span><span class="p">,</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">host</span><span class="o">=</span><span class="s2">"127.0.0.1"</span><span class="p">,</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">hmac_secret</span><span class="o">=</span><span class="s2">"my-secret"</span><span class="p">,</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">signature_scheme</span><span class="o">=</span><span class="s2">"generic"</span><span class="p">,</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">)</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="c1"># HTTP server now listening at http://127.0.0.1:9090/webhook</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>   <span class="c1"># POST body (JSON or text)</span>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>  <span class="c1"># {"method": "POST", "path": "/webhook", ...}</span>
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.webhook</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebhookTrigger</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">WebhookTrigger</span><span class="p">(</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">path</span><span class="o">=</span><span class="s2">"/webhook"</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">port</span><span class="o">=</span><span class="mi">9090</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">host</span><span class="o">=</span><span class="s2">"127.0.0.1"</span><span class="p">,</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">hmac_secret</span><span class="o">=</span><span class="s2">"my-secret"</span><span class="p">,</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">signature_scheme</span><span class="o">=</span><span class="s2">"generic"</span><span class="p">,</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">max_body_bytes</span><span class="o">=</span><span class="mi">256</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">,</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">)</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># HTTP server now listening at http://127.0.0.1:9090/webhook</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">event</span> <span class="o">=</span> <span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">wait_for_next</span><span class="p">()</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>   <span class="c1"># POST body (JSON or text)</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>  <span class="c1"># {"method": "POST", "path": "/webhook", ...}</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="k">await</span> <span class="n">trigger</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
+<p><code>event_filter=</code> takes a callable (the <code>TriggerEvent</code> in, a bool out); <code>TriggerConfig.filter_expression</code> is compiled into it. <code>WebhookTrigger</code> raises <code>ValueError</code> for an unknown <code>signature_scheme</code> or a <code>max_body_bytes</code> below 1.</p>
 <h3 id="how-requests-are-handled">How requests are handled<a class="headerlink" href="#how-requests-are-handled" title="Link to this section">&para;</a></h3>
 <ol>
 <li>A POST request arrives at the configured path.</li>
-<li>The client address is checked against <code>allowed_sources</code> → <code>403</code> if not allowed.</li>
-<li>With <code>hmac_secret</code> set, the signature is verified → <code>401</code> if missing or wrong.</li>
-<li>If the owning process can't take the event (it is <code>FAILED</code> or stopping, or its queue is full) → <code>503</code> with <code>Retry-After: 30</code>.</li>
+<li>The client address is checked against <code>allowed_sources</code> → <code>403</code> if not allowed. Without <code>hmac_secret</code> on a loopback bind, a non-loopback <code>Host</code> header → <code>421</code> and a cross-site <code>Origin</code> → <code>403</code>.</li>
+<li>The body size is checked against <code>webhook_max_body_bytes</code> → <code>413</code> if larger. The <code>Content-Length</code> header is checked before the body is read; a chunked body without one is cut off at the limit while it is read.</li>
+<li>With <code>hmac_secret</code> set, the signature is verified → <code>401</code> if missing or wrong (or a <code>stripe</code> replay).</li>
+<li>If the owning process can't take the event (it is <code>FAILED</code>, stopping or stopped, or its queue is full) → <code>503</code> with <code>Retry-After: 30</code>.</li>
 <li>The body is parsed as JSON (falling back to plain text) and a <code>TriggerEvent</code> is created with the body as <code>payload</code> and request details in <code>metadata</code>.</li>
 <li>If a <code>filter_expression</code> is set and doesn't match → <code>200 {"status": "ignored", "event_id": ...}</code>; the agent doesn't run.</li>
-<li>Otherwise the event is queued and <code>202 {"status": "accepted", "event_id": ...}</code> is returned.</li>
+<li>The event is queued → <code>202 {"status": "accepted", "event_id": ...}</code>. If the webhook's own queue is full at that moment → <code>503</code>.</li>
 </ol>
+<p>A suspended process still accepts events: they wait in the queue until it resumes, and a process suspended by <code>idle_timeout</code> resumes by itself.</p>
 <table>
 <thead>
 <tr>
 <th>Status</th>
-<th>Body <code>status</code></th>
+<th>Body</th>
 <th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>202</code></td>
-<td><code>accepted</code></td>
+<td><code>{"status": "accepted", "event_id": …}</code></td>
 <td>Queued for the agent</td>
 </tr>
 <tr>
 <td><code>200</code></td>
-<td><code>ignored</code></td>
+<td><code>{"status": "ignored", "event_id": …}</code></td>
 <td>Didn't match <code>filter_expression</code></td>
 </tr>
 <tr>
 <td><code>401</code></td>
-<td><code>error</code></td>
-<td>Missing or invalid signature</td>
+<td><code>{"status": "error", "message": "Missing or invalid signature"}</code></td>
+<td>Missing, wrong or replayed signature</td>
 </tr>
 <tr>
 <td><code>403</code></td>
-<td><code>error</code></td>
+<td><code>{"status": "error", "message": "Source not allowed"}</code></td>
 <td>Source address not in <code>allowed_sources</code></td>
 </tr>
 <tr>
+<td><code>403</code></td>
+<td><code>{"status": "error", "message": "Cross-origin request refused"}</code></td>
+<td>Unsigned loopback webhook, cross-site <code>Origin</code></td>
+</tr>
+<tr>
+<td><code>421</code></td>
+<td><code>{"status": "error", "message": "Misdirected request"}</code></td>
+<td>Unsigned loopback webhook, non-loopback <code>Host</code> (DNS rebinding)</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td>(aiohttp)</td>
+<td>Wrong path</td>
+</tr>
+<tr>
+<td><code>405</code></td>
+<td>(aiohttp)</td>
+<td>Method other than POST on the webhook path</td>
+</tr>
+<tr>
+<td><code>413</code></td>
+<td><code>{"status": "error", "message": "Request body too large (limit … bytes)"}</code></td>
+<td>Body larger than <code>webhook_max_body_bytes</code></td>
+</tr>
+<tr>
+<td><code>500</code></td>
+<td><code>{"status": "error", "message": "internal error"}</code></td>
+<td>Unexpected error while handling the request; the event was not queued</td>
+</tr>
+<tr>
 <td><code>503</code></td>
-<td><code>unavailable</code></td>
-<td>Process failed/stopping or queue full; retry later</td>
+<td><code>{"status": "unavailable", "message": …}</code> + <code>Retry-After: 30</code></td>
+<td><code>message</code> is <code>process failed</code>, <code>process stopped</code>, <code>queue full</code> or <code>webhook stopped</code>; retry later</td>
 </tr>
 </tbody>
 </table>
-<p>Senders such as GitHub and Stripe retry on <code>5xx</code>, so events sent while the process is down are redelivered once it is running again, instead of piling up in a process that can't run them.</p>
+<p>The <code>202</code> is sent when the event is queued, before the agent runs. If the run later fails, the sender is not told; the event ends up in the process's <a href="../#retries-and-dead-letters">dead letters</a>. Stripe retries <code>5xx</code> answers automatically (for up to three days in live mode); GitHub doesn't retry failed deliveries by itself, but you can redeliver them from the webhook's settings page.</p>
 <p>Sensitive headers (<code>Authorization</code>, <code>Proxy-Authorization</code>, <code>Cookie</code>, <code>Set-Cookie</code>) and the signature header are stripped from the metadata.</p>
 <h3 id="health-check-endpoint">Health check endpoint<a class="headerlink" href="#health-check-endpoint" title="Link to this section">&para;</a></h3>
-<p>The webhook server also exposes <code>GET /health</code>. It returns <code>200</code> while events are accepted and <code>503</code> when they aren't:</p>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"healthy"</span><span class="p">,</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">"reason"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nt">"trigger_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"webhook-9090/events"</span><span class="p">,</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">"queue_size"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">}</span>
+<p>The webhook server also exposes <code>GET /health</code> on the same port. It returns <code>200</code> while events are accepted and <code>503</code> when they aren't:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"healthy"</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nt">"reason"</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nt">"trigger_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"webhook-1f0c9e2a7b"</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nt">"queue_size"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>When unavailable, <code>status</code> is <code>"unavailable"</code> and <code>reason</code> is the same text the POST route returns in <code>message</code>.</p>
 <h3 id="webhook-payload">Webhook payload<a class="headerlink" href="#webhook-payload" title="Link to this section">&para;</a></h3>
 <p>The <code>payload</code> field contains the raw POST body:</p>
 <ul>
-<li>If the body is valid JSON, it is stored as a dict.</li>
+<li>If the body is valid JSON, it is stored as parsed JSON (usually a dict).</li>
 <li>Otherwise, it is stored as a string.</li>
 </ul>
 <p>The agent sees it inside a delimited untrusted-data block; see <a href="../#trigger-payloads-are-untrusted-input">Trigger payloads are untrusted input</a>.</p>
@@ -10388,22 +10537,24 @@
 </tr>
 </tbody>
 </table>
+<p>The agent sees only the payload, not the metadata.</p>
 <hr />
 <h2 id="shared-patterns">Shared Patterns<a class="headerlink" href="#shared-patterns" title="Link to this section">&para;</a></h2>
 <h3 id="queue-based-decoupling">Queue-based decoupling<a class="headerlink" href="#queue-based-decoupling" title="Link to this section">&para;</a></h3>
 <p>All three triggers use <code>asyncio.Queue</code> to buffer events:</p>
 <ul>
-<li><code>EventTrigger</code>: maxsize=100</li>
-<li><code>MessageTrigger</code>: maxsize=100</li>
-<li><code>WebhookTrigger</code>: maxsize=1000</li>
+<li><code>EventTrigger</code>: maxsize=100 (drops new events with a warning when full)</li>
+<li><code>MessageTrigger</code>: maxsize=100 (drops new events with a warning when full)</li>
+<li><code>WebhookTrigger</code>: maxsize=1000 (answers <code>503</code> when full)</li>
 </ul>
 <h3 id="graceful-stop">Graceful stop<a class="headerlink" href="#graceful-stop" title="Link to this section">&para;</a></h3>
 <p>When <code>stop()</code> is called, each trigger:</p>
 <ol>
-<li>Unsubscribes from its event source (EventBus, MessageBroker, or shuts down the HTTP server).</li>
+<li>Unsubscribes from its event source (event bus, broker), or shuts down the HTTP server.</li>
 <li>Enqueues a sentinel event with <code>metadata={"_stop": True}</code>.</li>
 <li>Any <code>wait_for_next()</code> call receiving the sentinel raises <code>asyncio.CancelledError</code>.</li>
 </ol>
+<p>Events still in the trigger's queue are returned by <code>drain_pending()</code>. A process calls it when it stops (the events are dead-lettered with reason <code>process stopped</code>) or restarts (they move to the process queue), so an accepted <code>202</code> webhook event is not lost.</p>
 <hr />
 <h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
 <table>
@@ -10415,54 +10566,52 @@
 </thead>
 <tbody>
 <tr>
-<td><code>EventTrigger(event_bus, event_type, source_filter, trigger_id)</code></td>
-<td>EventBus trigger</td>
+<td><code>EventTrigger(event_bus, event_type, *, source_filter, trigger_id)</code></td>
+<td>Event-bus trigger</td>
 </tr>
 <tr>
-<td><code>MessageTrigger(broker, topic, trigger_id)</code></td>
-<td>MessageBroker trigger</td>
+<td><code>MessageTrigger(broker, topic, *, trigger_id)</code></td>
+<td>Message-broker trigger</td>
 </tr>
 <tr>
-<td><code>WebhookTrigger(path, port, host, hmac_secret, *, signature_scheme, signature_header, signature_tolerance, allowed_sources, event_filter)</code></td>
+<td><code>WebhookTrigger(path, port, host, hmac_secret, *, signature_scheme, signature_header, signature_tolerance, allowed_sources, event_filter, max_body_bytes)</code></td>
 <td>HTTP webhook trigger</td>
 </tr>
 </tbody>
 </table>
-<p>All implement the <code>BaseTrigger</code> protocol: <code>start()</code>, <code>stop()</code>, <code>wait_for_next()</code>.</p>
+<p>All implement the <code>BaseTrigger</code> protocol: <code>start()</code>, <code>stop()</code>, <code>wait_for_next()</code>. <code>WebhookTrigger.set_availability_check(callback)</code> installs the check behind the <code>503</code> answers; <code>AgentProcess</code> sets it for you.</p>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>Large payloads.</strong> Bodies over <code>webhook_max_body_bytes</code> (1 MiB by default) get <code>413</code>, and a retry of the same body gets <code>413</code> again. Raise the limit for providers that send big payloads.</li>
+<li><strong>Two webhooks on one port.</strong> Each webhook trigger binds its own server, so a second trigger on the same port fails to start (address already in use). Give each one its own port, or use one webhook with a <code>filter_expression</code> per event kind.</li>
+<li><strong>Reverse proxy and <code>allowed_sources</code>.</strong> Behind a proxy the peer address is the proxy's. List the proxy, or filter by IP in the proxy.</li>
+<li><strong><code>200 ignored</code> is final.</strong> Senders treat a <code>2xx</code> as delivered. A filtered request is not retried later, even if you change the filter.</li>
+<li><strong>A <code>202</code> is not a successful run.</strong> Watch dead letters and the process status; the sender only knows the event was queued.</li>
+<li><strong>Event bus not shared.</strong> <code>EventTrigger</code> and <code>MessageTrigger</code> only see events emitted on the same bus or broker instance you passed to <code>AgentRuntime</code>.</li>
+</ul>
 <div class="admonition tip">
 <p class="admonition-title">Use EventTrigger for inter-process coordination</p>
-<p>When one process needs to trigger another, use <code>EventTrigger</code> with a shared <code>EventBus</code>. This is more efficient than webhooks for in-process communication.</p>
+<p>When one process needs to trigger another, use <code>EventTrigger</code> with a shared event bus. This is simpler than a webhook for in-process communication.</p>
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Webhook security</p>
 <p>The webhook server binds to <code>127.0.0.1</code> by default, so only local clients can reach it. When you bind <code>0.0.0.0</code>, set <code>hmac_secret</code> (and <code>allowed_sources</code> where the sender publishes its IP ranges), and put a reverse proxy (nginx, Caddy) in front for TLS. The trigger doesn't terminate TLS itself.</p>
 </div>
-<div class="admonition info">
-<p class="admonition-title">aiohttp shipped with base install</p>
-<p><code>WebhookTrigger</code> uses <code>aiohttp</code>, which is included in the base <code>pip install promptise</code>.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">EventBus/Broker must be shared</p>
-<p>For <code>EventTrigger</code> and <code>MessageTrigger</code> to work, the same <code>EventBus</code> or <code>MessageBroker</code> instance must be shared between the event producer and the trigger. Pass them to the <code>AgentRuntime</code> constructor.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Queue capacity is finite</p>
-<p>If events arrive faster than the agent processes them, the queue fills and the webhook answers <code>503</code> until there is room again. Monitor queue sizes via the dashboard or <code>status()</code> API. Increase <code>ProcessConfig.concurrency</code> for high-throughput scenarios.</p>
-</div>
 <hr />
 <h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../">Triggers Overview</a> -- all trigger types and the base protocol</li>
+<li><a href="../">Triggers Overview</a> -- stable trigger IDs, live trigger changes and the event queue</li>
 <li><a href="../cron/">Cron Trigger</a> -- time-based scheduling</li>
-<li><a href="../file-watch/">File Watch Trigger</a> -- filesystem monitoring</li>
+<li><a href="../file-watch/">File Watch Trigger</a> -- file-system monitoring</li>
+<li><a href="../../runtime-manager/">Runtime Manager</a> -- sharing an event bus and broker between processes</li>
 <li><a href="../../configuration/">Configuration</a> -- full <code>TriggerConfig</code> reference</li>
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
 <li><a href="https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers">Event-Driven AI Agents: Webhook, Cron and File Triggers</a> -- Signed webhooks and prompt-injection tests for event-driven agents.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-webhook-trigger">AI Agent Webhook Trigger: Run an Agent on HTTP Events</a> -- HMAC signatures for GitHub and Stripe, replay protection and response codes.</li>
 </ul>
 </div>
 
@@ -10487,7 +10636,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:59:21 UTC">2026-10-20</span>
   </span>
 
     

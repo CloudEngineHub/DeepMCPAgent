@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Transforms agents from task-runners into mission-driven processes with LLM-as-judge evaluation, confidence thresholds, escalation, and automatic completion.">
+        <meta name="description" content="A mission turns an agent process from &quot;run when triggered&quot; into &quot;work toward a goal until it is done&quot;. You give the process an objective and">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Mission Model">
-  <meta property="og:description" content="Transforms agents from task-runners into mission-driven processes with LLM-as-judge evaluation, confidence thresholds, escalation, and automatic completion.">
+  <meta property="og:description" content="A mission turns an agent process from &quot;run when triggered&quot; into &quot;work toward a goal until it is done&quot;. You give the process an objective and">
   <meta property="og:url" content="https://docs.promptise.com/runtime/governance/mission/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Mission Model">
-  <meta name="twitter:description" content="Transforms agents from task-runners into mission-driven processes with LLM-as-judge evaluation, confidence thresholds, escalation, and automatic completion.">
+  <meta name="twitter:description" content="A mission turns an agent process from &quot;run when triggered&quot; into &quot;work toward a goal until it is done&quot;. You give the process an objective and">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Mission Model",
       "name": "Mission Model",
-      "description": "Transforms agents from task-runners into mission-driven processes with LLM-as-judge evaluation, confidence thresholds, escalation, and automatic completion.",
+      "description": "A mission turns an agent process from \u0026quot;run when triggered\u0026quot; into \u0026quot;work toward a goal until it is done\u0026quot;. You give the process an objective and",
       "url": "https://docs.promptise.com/runtime/governance/mission/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5526,28 +5496,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#when-you-need-it" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When you need it
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5560,10 +5508,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#state-machine" class="md-nav__link">
+  <a href="#states" class="md-nav__link">
     <span class="md-ellipsis">
       
-        State machine
+        States
       
     </span>
   </a>
@@ -5582,10 +5530,32 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#limits" class="md-nav__link">
     <span class="md-ellipsis">
       
         Limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#failing-a-mission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failing a mission
       
     </span>
   </a>
@@ -5603,8 +5573,52 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#evaluation-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evaluation history
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#restore-after-a-restart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restore after a restart
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#programmatic-success-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Programmatic success checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#over-the-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Over the API
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5653,8 +5667,41 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#missionevidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MissionEvidence
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's next
+      
+    </span>
+  </a>
   
 </li>
       
@@ -6105,6 +6152,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6127,8 +6178,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6142,8 +6194,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6155,6 +6213,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8401,8 +8461,6 @@
       
         
       
-        
-      
     
     
     
@@ -8555,36 +8613,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9463,28 +9491,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#when-you-need-it" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When you need it
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#how-it-works" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9497,10 +9503,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#state-machine" class="md-nav__link">
+  <a href="#states" class="md-nav__link">
     <span class="md-ellipsis">
       
-        State machine
+        States
       
     </span>
   </a>
@@ -9519,10 +9525,32 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#limits" class="md-nav__link">
     <span class="md-ellipsis">
       
         Limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#failing-a-mission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failing a mission
       
     </span>
   </a>
@@ -9540,8 +9568,52 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#evaluation-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evaluation history
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#restore-after-a-restart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restore after a restart
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#programmatic-success-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Programmatic success checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#over-the-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Over the API
+      
+    </span>
+  </a>
   
 </li>
       
@@ -9590,8 +9662,41 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#missionevidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MissionEvidence
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's next
+      
+    </span>
+  </a>
   
 </li>
       
@@ -9665,49 +9770,55 @@
 
 
 <h1 id="mission-oriented-process-model">Mission-Oriented Process Model<a class="headerlink" href="#mission-oriented-process-model" title="Link to this section">&para;</a></h1>
-<p>Transforms agents from task-runners into mission-driven processes with LLM-as-judge evaluation, confidence thresholds, escalation, and automatic completion.</p>
-<h2 id="when-you-need-it">When you need it<a class="headerlink" href="#when-you-need-it" title="Link to this section">&para;</a></h2>
-<p>Standard agents run on a trigger, do something, stop. A mission-oriented agent runs until a goal is achieved — checking database migrations, monitoring a deployment, researching a topic until a quality bar is met. The agent accumulates context across invocations and the runtime evaluates whether the mission is complete.</p>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Link to this section">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">MissionConfig</span><span class="p">,</span> <span class="n">EscalationTarget</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Migrate all tables to the new schema."</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">mission</span><span class="o">=</span><span class="n">MissionConfig</span><span class="p">(</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">objective</span><span class="o">=</span><span class="s2">"Migrate all database tables to v2 schema"</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">success_criteria</span><span class="o">=</span><span class="s2">"All tables pass v2 schema validation with zero errors"</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">eval_every</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>              <span class="c1"># Evaluate every 3 invocations</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">confidence_threshold</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>  <span class="c1"># Pause + escalate below this</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">timeout_hours</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>          <span class="c1"># Fail after 24h</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">max_invocations</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>        <span class="c1"># Fail after 50 invocations</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">auto_complete</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>        <span class="c1"># Stop on success</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">eval_model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>  <span class="c1"># Separate model for eval</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">escalation</span><span class="o">=</span><span class="n">EscalationTarget</span><span class="p">(</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>            <span class="n">webhook_url</span><span class="o">=</span><span class="s2">"https://hooks.slack.com/..."</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="p">),</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="p">),</span>
+<p>A mission turns an agent process from "run when triggered" into "work toward a goal until it is done". You give the process an objective and success criteria; after its runs, an LLM judge (or your own check) decides whether the mission is achieved, how confident it is, and whether to pause and escalate. The process completes, fails on a time or run limit, or is failed by an operator, and the mission's progress survives restarts when the process has a journal.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">EscalationTarget</span><span class="p">,</span> <span class="n">MissionConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">JournalConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Migrate all tables to the new schema, one per run."</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/10 * * * *"</span><span class="p">)],</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">mission</span><span class="o">=</span><span class="n">MissionConfig</span><span class="p">(</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">objective</span><span class="o">=</span><span class="s2">"Migrate all database tables to the v2 schema"</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">success_criteria</span><span class="o">=</span><span class="s2">"All tables pass v2 schema validation with zero errors"</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">eval_every</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>              <span class="c1"># judge after every 3rd successful run</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">confidence_threshold</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>  <span class="c1"># below this: pause and escalate</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">timeout_hours</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>          <span class="c1"># fail after 24 hours</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">max_invocations</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>        <span class="c1"># fail after 50 successful runs</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">eval_model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="n">escalation</span><span class="o">=</span><span class="n">EscalationTarget</span><span class="p">(</span><span class="n">webhook_url</span><span class="o">=</span><span class="s2">"https://hooks.slack.com/..."</span><span class="p">),</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="p">),</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">journal</span><span class="o">=</span><span class="n">JournalConfig</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">".promptise/journal"</span><span class="p">),</span>  <span class="c1"># mission survives restarts</span>
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">)</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span><span class="s2">"schema-migrator"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 </span></code></pre></div>
-<p>Or in a <code>.agent</code> manifest:</p>
+<p>The same in a <code>.agent</code> manifest:</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">schema-migrator</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai:gpt-5-mini</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">instructions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Migrate all tables to the new schema.</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nt">mission</span><span class="p">:</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">objective</span><span class="p">:</span><span class="w"> </span><span class="s">"Migrate</span><span class="nv"> </span><span class="s">all</span><span class="nv"> </span><span class="s">database</span><span class="nv"> </span><span class="s">tables</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">v2</span><span class="nv"> </span><span class="s">schema"</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">success_criteria</span><span class="p">:</span><span class="w"> </span><span class="s">"All</span><span class="nv"> </span><span class="s">tables</span><span class="nv"> </span><span class="s">pass</span><span class="nv"> </span><span class="s">v2</span><span class="nv"> </span><span class="s">schema</span><span class="nv"> </span><span class="s">validation"</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">eval_every</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">confidence_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">timeout_hours</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">24</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">auto_complete</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nt">escalation</span><span class="p">:</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nt">webhook_url</span><span class="p">:</span><span class="w"> </span><span class="s">"https://hooks.slack.com/..."</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">instructions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Migrate all tables to the new schema, one per run.</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nt">triggers</span><span class="p">:</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cron</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">cron_expression</span><span class="p">:</span><span class="w"> </span><span class="s">"*/10</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*"</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nt">mission</span><span class="p">:</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">objective</span><span class="p">:</span><span class="w"> </span><span class="s">"Migrate</span><span class="nv"> </span><span class="s">all</span><span class="nv"> </span><span class="s">database</span><span class="nv"> </span><span class="s">tables</span><span class="nv"> </span><span class="s">to</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">v2</span><span class="nv"> </span><span class="s">schema"</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">success_criteria</span><span class="p">:</span><span class="w"> </span><span class="s">"All</span><span class="nv"> </span><span class="s">tables</span><span class="nv"> </span><span class="s">pass</span><span class="nv"> </span><span class="s">v2</span><span class="nv"> </span><span class="s">schema</span><span class="nv"> </span><span class="s">validation</span><span class="nv"> </span><span class="s">with</span><span class="nv"> </span><span class="s">zero</span><span class="nv"> </span><span class="s">errors"</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">eval_every</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nt">confidence_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="nt">timeout_hours</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">24</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="nt">max_invocations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="nt">escalation</span><span class="p">:</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="nt">webhook_url</span><span class="p">:</span><span class="w"> </span><span class="s">"https://hooks.slack.com/..."</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nt">journal</span><span class="p">:</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">checkpoint</span>
 </span></code></pre></div>
+<hr />
 <h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Link to this section">&para;</a></h2>
-<h3 id="state-machine">State machine<a class="headerlink" href="#state-machine" title="Link to this section">&para;</a></h3>
-<p>Each mission (<code>MissionState</code>) is in one of four states:</p>
+<h3 id="states">States<a class="headerlink" href="#states" title="Link to this section">&para;</a></h3>
+<p>A mission (<code>MissionState</code>) is in one of four states:</p>
 <table>
 <thead>
 <tr>
@@ -9718,46 +9829,163 @@
 <tbody>
 <tr>
 <td><code>active</code></td>
-<td>The agent is working on the mission and evaluations run (the initial state)</td>
+<td>The agent works on the mission and evaluations run (the initial state)</td>
 </tr>
 <tr>
 <td><code>paused</code></td>
-<td>An evaluation was below <code>confidence_threshold</code>: no further evaluations until the mission is resumed (<code>POST /api/v1/processes/{name}/mission/resume</code>); the process keeps running its invocations</td>
+<td>An evaluation was below <code>confidence_threshold</code>, or an operator paused it. No evaluations run until it is resumed; the process keeps running its triggers</td>
 </tr>
 <tr>
 <td><code>completed</code></td>
-<td>Success criteria met; further invocations are skipped</td>
+<td>Achieved. <strong>Final</strong>: later runs are skipped</td>
 </tr>
 <tr>
 <td><code>failed</code></td>
-<td><code>timeout_hours</code> or <code>max_invocations</code> reached, or <code>fail()</code> called; further invocations are skipped</td>
+<td><code>timeout_hours</code> or <code>max_invocations</code> reached, or failed by an operator. <strong>Final</strong>: later runs are skipped</td>
 </tr>
 </tbody>
 </table>
+<p>Evaluations never change a <code>completed</code> or <code>failed</code> mission: a judge verdict that arrives after an operator failed the mission doesn't complete it, and a failed mission can't be completed. The API fails only <code>active</code> or <code>paused</code> missions. Only an <code>active</code> mission can be paused, and only a <code>paused</code> one resumed.</p>
 <h3 id="evaluation-cycle">Evaluation cycle<a class="headerlink" href="#evaluation-cycle" title="Link to this section">&para;</a></h3>
-<p>Every <code>eval_every</code> successful invocations (after each one by default), the runtime:</p>
+<p>Every <code>eval_every</code> successful runs (after each one by default), while the mission is <code>active</code>, the process:</p>
 <ol>
-<li>Collects the evidence: recent conversation, context state, recent tool calls (with health monitoring on) and the trigger event</li>
-<li>Calls a separate LLM (the <code>eval_model</code>, or the process model) with the objective, success criteria, and evidence</li>
-<li>Receives a structured <code>MissionEvaluation</code>: achieved (bool), confidence (0.0–1.0), reasoning, progress summary</li>
-<li>If achieved → mission <code>completed</code>, <code>mission.complete</code> event, process stops (if <code>auto_complete=True</code>)</li>
-<li>If not achieved and confidence &lt; <code>confidence_threshold</code> → mission <code>paused</code>, escalation fires (<code>{"type": "low_confidence", "process_id", "confidence", "reasoning"}</code>), the team can intervene</li>
-<li>Otherwise → <code>mission.progress</code> event, the mission stays <code>active</code></li>
+<li>Collects the evidence (<code>MissionEvidence</code>): the conversation, the context state, the run's tool calls (recorded when <a href="../health/">health monitoring</a> is on) and the trigger event.</li>
+<li>Runs your <code>success_check</code> first, when you set one (see <a href="#programmatic-success-checks">Programmatic success checks</a>).</li>
+<li>Otherwise asks the judge: a tool-less agent built with <code>eval_model</code> (or the process's model) that gets the objective, the success criteria and the evidence (the state as JSON up to 1,000 characters, the last 20 tool calls, the trigger up to 300 characters, the last 10 conversation messages up to 500 characters each) and must answer with JSON: <code>achieved</code>, <code>confidence</code> (0.0-1.0, clamped), <code>reasoning</code>, <code>progress_summary</code>.</li>
+<li>Applies the verdict:<ul>
+<li><strong>Achieved</strong>: the mission is <code>completed</code>, a <code>mission.complete</code> event is emitted, and with <code>auto_complete=True</code> (the default) the process stops.</li>
+<li><strong>Not achieved, confidence below <code>confidence_threshold</code></strong>: the mission is <code>paused</code>, a <code>mission.progress</code> event is emitted, and when <code>escalation</code> is set it receives <code>{"type": "low_confidence", "process_id", "process_name", "confidence", "reasoning"}</code>.</li>
+<li><strong>Otherwise</strong>: a <code>mission.progress</code> event; the mission stays <code>active</code>.</li>
+</ul>
+</li>
 </ol>
-<p>If the judge call fails or its reply is not valid JSON, the evaluation counts as not achieved with confidence 0.5 and its reasoning starts with <code>Evaluation failed:</code>, so with the default threshold it pauses the mission.</p>
+<p>If the judge call fails or its reply is not valid JSON, the evaluation counts as not achieved with confidence <code>0.5</code> and reasoning starting with <code>Evaluation failed:</code>, so with the default threshold it pauses the mission. Every evaluation is journaled as a <code>mission_evaluation</code> entry (<code>achieved</code>, <code>confidence</code>, <code>reasoning</code>, <code>progress_summary</code>, <code>mission_state</code>, <code>invocation_number</code>, <code>source</code>).</p>
+<h3 id="events">Events<a class="headerlink" href="#events" title="Link to this section">&para;</a></h3>
+<p>With an event notifier on the process or runtime:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Severity</th>
+<th>Data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mission.complete</code></td>
+<td><code>info</code></td>
+<td><code>process_name</code>, <code>confidence</code>, <code>invocations</code></td>
+</tr>
+<tr>
+<td><code>mission.progress</code></td>
+<td><code>info</code></td>
+<td><code>process_name</code>, <code>confidence</code>, <code>achieved</code> (<code>false</code>), <code>invocations</code></td>
+</tr>
+<tr>
+<td><code>mission.failed</code></td>
+<td><code>critical</code></td>
+<td><code>process_name</code>, <code>process_id</code>, <code>reason</code>, <code>message</code>, <code>objective</code>, <code>invocation_count</code>, <code>previous_state</code>, <code>failed_at</code></td>
+</tr>
+</tbody>
+</table>
+<p>In <code>mission.failed</code>, <code>reason</code> says who failed it (<code>"timeout"</code>, <code>"max_invocations"</code> or <code>"manual"</code>) and <code>message</code> says why (for example <code>"Mission timeout reached"</code>, <code>"Mission reached max_invocations (50)"</code>, or the operator's reason). <code>failed_at</code> is ISO UTC.</p>
 <h3 id="limits">Limits<a class="headerlink" href="#limits" title="Link to this section">&para;</a></h3>
-<p><code>timeout_hours</code> and <code>max_invocations</code> fail the mission (<code>mission.failed</code> event with <code>reason</code> <code>"timeout"</code> or <code>"max_invocations"</code>). Both are checked before each invocation and again after it, once its evaluation has run, so <code>max_invocations=50</code> lets 50 invocations run and the mission is <code>failed</code> right after the 50<sup>th</sup> unless that one completed it. Only successful invocations count. A failed or completed mission does not stop the process: its later invocations are skipped.</p>
-<h3 id="context-injection">Context injection<a class="headerlink" href="#context-injection" title="Link to this section">&para;</a></h3>
-<p>Before every invocation the agent sees its mission context as a system message:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>[Mission] Objective: Migrate all database tables to v2 schema
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Success Criteria: All tables pass v2 schema validation with zero errors
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Status: active
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Progress: 6 invocations/50, 2.3/24.0 hours
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Last Evaluation: confidence=0.82 — Tables users..orders migrated; invoices and payments remain.
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>Progress Summary: 6 of 8 tables migrated
+<p><code>timeout_hours</code> and <code>max_invocations</code> fail the mission with a <code>mission.failed</code> event. Both are checked before each run and again after it, once its evaluation has run, so <code>max_invocations=50</code> lets 50 runs happen and the mission is <code>failed</code> right after the 50<sup>th</sup> unless that one completed it. Only successful runs count. The timeout clock starts when the process object is created and, after a restart with a journal, continues where it stopped. A failed or completed mission doesn't stop the process: its later runs are skipped.</p>
+<h3 id="failing-a-mission">Failing a mission<a class="headerlink" href="#failing-a-mission" title="Link to this section">&para;</a></h3>
+<p>An operator can fail a mission with a reason (fail only an <code>active</code> or <code>paused</code> one: in Python, <code>fail_mission()</code> doesn't check the state):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">data</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">fail_mission</span><span class="p">(</span><span class="s2">"Requirements changed, migration cancelled"</span><span class="p">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># {"process_name": "schema-migrator", "process_id": "...", "reason": "manual",</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">#  "message": "Requirements changed, migration cancelled", "objective": "...",</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1">#  "invocation_count": 6, "previous_state": "active", "failed_at": "2026-10-19T20:23:26+00:00"}</span>
 </span></code></pre></div>
-<p><code>/50</code> and the hours appear only when <code>max_invocations</code> and <code>timeout_hours</code> are set; the last two lines appear after the first evaluation.</p>
-<p>The agent can also call <code>check_mission</code> in open mode to inspect full evaluation history.</p>
+<p><code>fail_mission()</code> stores the reason with the mission (<code>MissionTracker.failure_reason</code>, the <code>[Mission]</code> prompt block, checkpoints), journals a <code>mission_failed</code> entry, emits <code>mission.failed</code> and returns the event data. It raises <code>RuntimeError</code> when the process has no mission. Over the API: <code>POST /mission/fail</code> (see <a href="#over-the-api">Over the API</a>).</p>
+<h3 id="context-injection">Context injection<a class="headerlink" href="#context-injection" title="Link to this section">&para;</a></h3>
+<p>Before every run the agent sees its mission as a system message:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[Mission] Objective: Migrate all database tables to the v2 schema
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Success Criteria: All tables pass v2 schema validation with zero errors
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Status: active
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>Progress: 6 invocations/50, 2.3/24.0 hours
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>Last Evaluation: confidence=0.82 — Tables users..orders migrated; invoices and payments remain.
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>Progress Summary: 6 of 8 tables migrated
+</span></code></pre></div>
+<p><code>/50</code> and the hours appear only when <code>max_invocations</code> and <code>timeout_hours</code> are set; the last two lines appear after the first evaluation. A failed mission adds a <code>Failure Reason:</code> line after <code>Status</code>.</p>
+<h3 id="evaluation-history">Evaluation history<a class="headerlink" href="#evaluation-history" title="Link to this section">&para;</a></h3>
+<p>The tracker keeps the latest 100 evaluations (<code>MissionTracker.MAX_EVALUATIONS</code>), oldest first, in <code>tracker.evaluations</code>; <code>evaluation_count</code> counts all of them. In <a href="../../meta-tools/">open mode</a> the agent can call <code>check_mission</code>, which returns the mission block above followed by the latest 10 evaluations:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Evaluation History (1):
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>- #3 [llm] not achieved, confidence=0.90: Two tables remain.
+</span></code></pre></div>
+<p><code>GET /api/v1/processes/{name}/mission</code> returns the kept evaluations.</p>
+<h3 id="restore-after-a-restart">Restore after a restart<a class="headerlink" href="#restore-after-a-restart" title="Link to this section">&para;</a></h3>
+<p>With a <a href="../../journal/">journal</a>, the mission is part of every checkpoint: its state, invocation count, elapsed time, failure reason and evaluation history. The first <code>start()</code> of a new process object with the same name restores it (<code>JournalConfig.recover_on_start</code>, default <code>True</code>), and <code>process.recovered["mission_restored"]</code> is <code>True</code>. A snapshot made for a different <code>objective</code> is not restored (a warning is logged) and the mission starts fresh. A completed or failed mission stays completed or failed after a restart.</p>
+<hr />
+<h2 id="programmatic-success-checks">Programmatic success checks<a class="headerlink" href="#programmatic-success-checks" title="Link to this section">&para;</a></h2>
+<p>When success can be measured in code, set <code>success_check</code> in Python. It is called with the <code>MissionEvidence</code> before the judge:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">MissionConfig</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.mission</span><span class="w"> </span><span class="kn">import</span> <span class="n">MissionEvidence</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">migration_done</span><span class="p">(</span><span class="n">evidence</span><span class="p">:</span> <span class="n">MissionEvidence</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">left</span> <span class="o">=</span> <span class="n">evidence</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tables_left"</span><span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="k">if</span> <span class="n">left</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="k">return</span> <span class="kc">True</span>    <span class="c1"># achieved: no judge call</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">if</span> <span class="n">left</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="k">return</span> <span class="kc">False</span>   <span class="c1"># not achieved: no judge call</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">return</span> <span class="kc">None</span>        <span class="c1"># inconclusive: ask the LLM judge</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="n">mission</span> <span class="o">=</span> <span class="n">MissionConfig</span><span class="p">(</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="n">objective</span><span class="o">=</span><span class="s2">"Migrate all tables"</span><span class="p">,</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="n">success_criteria</span><span class="o">=</span><span class="s2">"tables_left is 0"</span><span class="p">,</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="n">success_check</span><span class="o">=</span><span class="n">migration_done</span><span class="p">,</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><code>True</code> completes the mission and <code>False</code> records "not achieved", both with confidence <code>1.0</code> and <code>source: "programmatic"</code>, without a judge call. <code>None</code> falls through to the judge. A check that raises is logged and the judge decides. <code>success_check</code> is Python only: it can't be set in a manifest or over the API, and it is never serialized.</p>
+<hr />
+<h2 id="over-the-api">Over the API<a class="headerlink" href="#over-the-api" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/v1/processes/{name}/mission</code></td>
+<td><code>{"name", "mission_enabled": true, "mission": {"state", "objective", "invocation_count", "evaluations": [...]}}</code>; <code>{"mission_enabled": false}</code> without a mission</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/processes/{name}/mission/fail</code></td>
+<td>Fail an <code>active</code> or <code>paused</code> mission: body <code>{"reason": "..."}</code> (optional, default <code>"Manually failed via API"</code>). Emits <code>mission.failed</code> with <code>reason: "manual"</code></td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/processes/{name}/mission/pause</code></td>
+<td>Pause an <code>active</code> mission</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/processes/{name}/mission/resume</code></td>
+<td>Resume a <code>paused</code> mission</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/api/v1/processes/{name}/mission</code></td>
+<td>Change <code>MissionConfig</code> fields; applies to the next evaluation and prompt</td>
+</tr>
+</tbody>
+</table>
+<p>Each evaluation in <code>GET /mission</code> has <code>achieved</code>, <code>confidence</code>, <code>reasoning</code>, <code>progress_summary</code>, <code>invocation_number</code>, <code>source</code> and <code>timestamp</code>. <code>fail</code>, <code>pause</code> and <code>resume</code> answer <code>409 MISSION_STATE</code> when the mission's state doesn't allow them (for example pausing a completed mission) and <code>400 MISSION_DISABLED</code> without a mission. The Python client has <code>get_mission</code>, <code>fail_mission</code>, <code>pause_mission</code>, <code>resume_mission</code> and <code>update_mission</code>.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:9100/api/v1/processes/schema-migrator/mission/fail<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'{"reason": "Requirements changed, migration cancelled"}'</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># {"name": "schema-migrator", "mission_failed": true, "reason": "Requirements changed, migration cancelled"}</span>
+</span></code></pre></div>
+<hr />
 <h2 id="api-reference">API reference<a class="headerlink" href="#api-reference" title="Link to this section">&para;</a></h2>
 <h3 id="missionconfig"><code>MissionConfig</code><a class="headerlink" href="#missionconfig" title="Link to this section">&para;</a></h3>
 <table>
@@ -9786,64 +10014,71 @@
 <td><code>success_criteria</code></td>
 <td><code>str</code></td>
 <td><code>""</code></td>
-<td>How to judge completion</td>
+<td>How the judge decides completion</td>
 </tr>
 <tr>
 <td><code>eval_model</code></td>
 <td><code>str \| None</code></td>
 <td><code>None</code></td>
-<td>LLM for evaluation (defaults to process model)</td>
+<td>Model for the judge (<code>None</code> = the process model)</td>
 </tr>
 <tr>
 <td><code>eval_every</code></td>
 <td><code>int</code></td>
 <td><code>1</code></td>
-<td>Evaluate every N invocations</td>
+<td>Evaluate every N successful runs (<code>&gt;= 1</code>)</td>
 </tr>
 <tr>
 <td><code>confidence_threshold</code></td>
 <td><code>float</code></td>
 <td><code>0.7</code></td>
-<td>Below this → pause the mission and escalate</td>
+<td>Below this (not achieved): pause and escalate (0-1)</td>
 </tr>
 <tr>
 <td><code>timeout_hours</code></td>
 <td><code>float</code></td>
-<td><code>0</code></td>
-<td>Max hours (0 = no timeout)</td>
+<td><code>0.0</code></td>
+<td>Fail after this many hours (<code>0</code> = no timeout)</td>
 </tr>
 <tr>
 <td><code>max_invocations</code></td>
 <td><code>int</code></td>
 <td><code>0</code></td>
-<td>Fail the mission after this many invocations (0 = unlimited)</td>
+<td>Fail after this many successful runs (<code>0</code> = unlimited)</td>
 </tr>
 <tr>
 <td><code>auto_complete</code></td>
 <td><code>bool</code></td>
 <td><code>True</code></td>
-<td>Stop the process when achieved. <code>False</code> keeps it running (its later invocations are skipped: the mission is completed)</td>
+<td>Stop the process when the mission is achieved. <code>False</code> keeps it running (its later runs are skipped)</td>
 </tr>
 <tr>
 <td><code>on_complete</code></td>
-<td><code>str \| None</code></td>
+<td><code>"stop" \| "continue" \| "suspend" \| None</code></td>
 <td><code>None</code></td>
-<td><strong>Deprecated, ignored.</strong> It was never read; setting it emits a <code>FutureWarning</code>. Use <code>auto_complete</code></td>
+<td><strong>Deprecated, ignored.</strong> Setting it emits a <code>FutureWarning</code>; use <code>auto_complete</code></td>
 </tr>
 <tr>
 <td><code>escalation</code></td>
 <td><code>EscalationTarget \| None</code></td>
 <td><code>None</code></td>
-<td>Where to notify on low confidence</td>
+<td>Where to notify on low confidence (<code>webhook_url</code>, <code>event_type</code>)</td>
+</tr>
+<tr>
+<td><code>success_check</code></td>
+<td><code>Callable[[MissionEvidence], bool \| None] \| None</code></td>
+<td><code>None</code></td>
+<td>Programmatic check run before the judge. Python only, never serialized</td>
 </tr>
 </tbody>
 </table>
+<p>Unknown keys are ignored with a <code>FutureWarning</code> (manifests and the API reject them).</p>
 <h3 id="missiontracker"><code>MissionTracker</code><a class="headerlink" href="#missiontracker" title="Link to this section">&para;</a></h3>
-<p>Created automatically when <code>mission.enabled=True</code>.</p>
+<p>Created by the process when <code>mission.enabled=True</code> (or when a <code>PATCH /mission</code> enables it).</p>
 <table>
 <thead>
 <tr>
-<th>Method</th>
+<th>Member</th>
 <th>Description</th>
 </tr>
 </thead>
@@ -9853,37 +10088,60 @@
 <td>Current <code>MissionState</code></td>
 </tr>
 <tr>
-<td><code>.should_evaluate()</code></td>
-<td>Whether eval is due this invocation</td>
+<td><code>.evaluations</code></td>
+<td>Kept evaluations, oldest first (at most <code>MAX_EVALUATIONS</code> = 100)</td>
 </tr>
 <tr>
-<td><code>.evaluate(evidence, model)</code></td>
-<td>Run the evaluation on a <code>MissionEvidence</code> bundle; <code>model</code> (an ID or chat model) is used when <code>eval_model</code> is not set</td>
+<td><code>.evaluation_count</code></td>
+<td>Total evaluations, including ones no longer kept</td>
+</tr>
+<tr>
+<td><code>.evaluation_history(limit=10)</code></td>
+<td>The latest <code>limit</code> evaluations</td>
+</tr>
+<tr>
+<td><code>.history_summary(limit=10)</code></td>
+<td><code>context_summary()</code> plus the latest evaluations (what <code>check_mission</code> returns)</td>
+</tr>
+<tr>
+<td><code>.invocation_count</code></td>
+<td>Successful runs counted</td>
+</tr>
+<tr>
+<td><code>.failure_reason</code></td>
+<td>Why the mission failed, or <code>None</code></td>
+</tr>
+<tr>
+<td><code>.should_evaluate()</code></td>
+<td>Whether an evaluation is due now</td>
+</tr>
+<tr>
+<td><code>await .evaluate(evidence, model)</code></td>
+<td>Run <code>success_check</code> and/or the judge; <code>model</code> is used when <code>eval_model</code> is not set</td>
 </tr>
 <tr>
 <td><code>.context_summary()</code></td>
-<td>The multi-line mission block for agent context injection</td>
+<td>The <code>[Mission]</code> block text</td>
 </tr>
 <tr>
-<td><code>.is_timed_out()</code></td>
-<td>Whether the mission has exceeded <code>timeout_hours</code></td>
+<td><code>.is_timed_out()</code> / <code>.is_over_limit()</code></td>
+<td>The <code>timeout_hours</code> / <code>max_invocations</code> checks</td>
 </tr>
 <tr>
-<td><code>.is_over_limit()</code></td>
-<td>Whether the mission has reached <code>max_invocations</code></td>
+<td><code>.fail(reason, *, source="manual")</code></td>
+<td>Fail the mission; returns the <code>mission.failed</code> data (without <code>process_name</code>). On a process, use <code>process.fail_mission()</code>, which also emits the event</td>
 </tr>
 <tr>
-<td><code>.fail(reason)</code></td>
-<td>Manually fail the mission</td>
+<td><code>.pause()</code> / <code>.resume()</code> / <code>.complete()</code></td>
+<td>State changes (no effect from a state that doesn't allow them)</td>
 </tr>
 <tr>
-<td><code>.pause()</code> / <code>.resume()</code></td>
-<td>Pause the mission, or resume a paused one</td>
+<td><code>.to_dict()</code> / <code>.restore(data)</code> / <code>MissionTracker.from_dict(data, config)</code></td>
+<td>Snapshot and restore (<code>restore</code> raises <code>ValueError</code> for a snapshot with another objective)</td>
 </tr>
 </tbody>
 </table>
 <h3 id="missionevaluation"><code>MissionEvaluation</code><a class="headerlink" href="#missionevaluation" title="Link to this section">&para;</a></h3>
-<p>Returned by <code>.evaluate()</code>:</p>
 <table>
 <thead>
 <tr>
@@ -9901,28 +10159,96 @@
 <tr>
 <td><code>confidence</code></td>
 <td><code>float</code></td>
-<td>0.0–1.0 confidence in the assessment</td>
+<td>0.0-1.0 confidence in the verdict</td>
 </tr>
 <tr>
 <td><code>reasoning</code></td>
 <td><code>str</code></td>
-<td>Why the evaluator made this judgment</td>
+<td>Why the evaluator decided this</td>
 </tr>
 <tr>
 <td><code>progress_summary</code></td>
 <td><code>str</code></td>
-<td>Current progress description</td>
+<td>Current progress</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>datetime</code></td>
+<td>When the evaluation ran (UTC)</td>
 </tr>
 <tr>
 <td><code>invocation_number</code></td>
 <td><code>int</code></td>
-<td>Which invocation this evaluation covers</td>
+<td>The run count it covers</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td><code>str</code></td>
+<td><code>"llm"</code> or <code>"programmatic"</code></td>
 </tr>
 </tbody>
 </table>
+<h3 id="missionevidence"><code>MissionEvidence</code><a class="headerlink" href="#missionevidence" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>conversation</code></td>
+<td><code>list[dict]</code></td>
+<td>The conversation buffer</td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td><code>dict</code></td>
+<td>The context state</td>
+</tr>
+<tr>
+<td><code>tool_calls</code></td>
+<td><code>list[tuple[str, str]]</code></td>
+<td>Tool calls of the run as <code>(name, args_hash)</code> (with health monitoring on)</td>
+</tr>
+<tr>
+<td><code>trigger_event</code></td>
+<td><code>dict</code></td>
+<td><code>{"type", "payload"}</code> of the trigger event</td>
+</tr>
+<tr>
+<td><code>invocation_count</code></td>
+<td><code>int</code></td>
+<td>Successful runs of the process so far</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>Every evaluation is an LLM call.</strong> With <code>eval_every=1</code> the judge runs after every run. Raise <code>eval_every</code>, use a cheaper <code>eval_model</code>, or add a <code>success_check</code> that answers without the judge.</li>
+<li><strong>A failed judge call pauses the mission.</strong> It scores confidence <code>0.5</code>, below the default threshold. A paused mission stays paused until someone calls <code>resume</code>; check the <code>Evaluation failed:</code> reasoning first.</li>
+<li><strong>Paused doesn't mean idle.</strong> A paused mission skips evaluations, but the process keeps running its triggers (and spending budget). Suspend the process if it should stop working.</li>
+<li><strong>Completed and failed are final.</strong> Restarting the process doesn't reopen the mission when a journal restores it; its runs keep being skipped. Use a new <code>objective</code>, a new journal, or <code>recover_on_start=False</code> to start a new mission.</li>
+<li><strong><code>on_complete</code> does nothing.</strong> Use <code>auto_complete</code>.</li>
+<li><strong><code>success_check</code> only exists in Python.</strong> A manifest or API deploy can't set it; those missions always use the judge.</li>
+<li><strong>Tool calls are only evidence with health monitoring on.</strong> Without <code>health.enabled</code>, the judge sees state, conversation and trigger only.</li>
+</ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../budget/">Autonomy Budget</a> -- cap what the mission may spend</li>
+<li><a href="../health/">Behavioral Health</a> -- detect a stuck agent, and record tool calls as evidence</li>
+<li><a href="../../api/">Orchestration API</a> -- the mission routes and the rest of the control API</li>
+<li><a href="../../journal/">Journal</a> -- checkpoints that carry the mission across restarts</li>
+<li><a href="../../meta-tools/">Meta-Tools</a> -- <code>check_mission</code> in open mode</li>
+</ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
+<li><a href="https://www.promptise.com/guides/view/goal-driven-ai-agent-mission">Goal-Driven AI Agents: Missions With an LLM Judge</a> -- Objectives, success criteria, thresholds and judge costs on real runs.</li>
 <li><a href="https://www.promptise.com/guides/view/autonomous-ai-agent-runtime">Autonomous AI Agent Runtime: Budgets, Crash Recovery, API</a> -- Missions, budgets and recovery tested on real runs.</li>
 </ul>
 </div>
@@ -9948,7 +10274,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:59:21 UTC">2026-10-20</span>
   </span>
 
     

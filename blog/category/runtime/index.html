@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,129 +9257,6 @@
           
           <li class="md-meta__item">
             
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="catch-a-runaway-ai-agent-behavioral-anomaly-detection"><a class="toclink" href="../../ai-agent-behavioral-anomaly-detection/">Catch a Runaway AI Agent: Behavioral Anomaly Detection</a></h2>
-<p><strong>AI agent behavioral anomaly detection</strong> is what tells you <em>which</em> way your agent has gone wrong — a poller frozen on <code>get_status(id=42)</code>, a <code>search → read</code> cycle that never converges, an agent answering with empty strings, or one whose tool calls are half-failing — by watching the <em>pattern</em> of its calls instead of merely counting them. A runaway agent is not always expensive per call. The quiet failures cost you a whole night of the same cheap request, or a slow drip of trivial replies, while every infrastructure dashboard stays green because CPU and memory look fine. This post shows how the Promptise Foundry runtime catches those failures with four pure-pattern-matching detectors — no extra LLM calls — how to tell a behavioral stall apart from a context-bloat loop so you apply the <em>right</em> fix, and how the runtime pauses or escalates a live process the moment a detector trips.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../ai-agent-behavioral-anomaly-detection/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ai-agent-crash-recovery-with-journals-replay"><a class="toclink" href="../../ai-agent-crash-recovery/">AI Agent Crash Recovery with Journals &amp; Replay</a></h2>
-<p>AI agent crash recovery is the difference between a long-running agent that shrugs off an OOM kill and one that silently loses hours of accumulated state. A stateless LLM call is easy to retry; an autonomous process that has run 40 invocations, mutated its context, and fired triggers along the way is not. If that process dies and restarts from zero, it re-does completed work, double-fires side effects, and forgets what it learned. This post shows how Promptise Foundry solves that with an append-only journal plus a replay engine — and, just as importantly, where replay honestly cannot help.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../ai-agent-crash-recovery/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="why-ai-agents-double-fire-actions-after-a-restart"><a class="toclink" href="../../ai-agent-duplicate-actions-after-restart/">Why AI Agents Double-Fire Actions After a Restart</a></h2>
-<p>If you have ever debugged <strong>ai agent duplicate actions after restart</strong>, you know the failure is never the crash itself — it is what the agent does when it comes back. A stateless retry loop restarts the process from zero, and the agent cheerfully re-runs work it already finished: re-charging a card it already charged, re-sending an email it already sent. The crash was survivable. The re-execution is the incident. This post is specifically about the exactly-once / idempotency failure mode — not general crash recovery — and how Promptise Foundry attacks it with two independent guards: a replay engine that reconstructs state from <em>recorded results</em> instead of re-running completed work, and an irreversible-action budget that caps destructive calls even if the first guard has a bug.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../ai-agent-duplicate-actions-after-restart/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               7 min read
             
           </li>
@@ -9470,47 +9298,6 @@
           
           <li class="md-meta__item">
             
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-an-autonomous-agent-knows-when-its-goal-is-done"><a class="toclink" href="../../autonomous-agent-goal-completion/">How an Autonomous Agent Knows When Its Goal Is Done</a></h2>
-<p>Reliable <strong>autonomous agent goal completion</strong> is not a boolean the agent emits when it feels finished — it is a judgment an independent evaluator makes about accumulated evidence, and the difference between those two definitions is the difference between an agent you can leave running and one you have to babysit. A long-running agent has to answer a question no single LLM call can answer on its own: <em>is the goal actually done, or does it just look done from inside the transcript?</em> Get that answer wrong in one direction and the agent quits with the job half-finished; get it wrong in the other and it runs on its trigger forever, re-checking work that was completed an hour ago. This post digs into the subsystem Promptise Foundry uses to answer it: a <strong>mission</strong> — an objective, success criteria, and a periodic LLM-as-judge that scores a persistent process against them until the goal is genuinely met, then auto-completes.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../autonomous-agent-goal-completion/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               7 min read
             
           </li>
@@ -9527,129 +9314,6 @@
     
       <nav class="md-post__action">
         <a href="../../autonomous-agent-governance/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="what-is-an-autonomous-ai-agent-runtime"><a class="toclink" href="../../autonomous-ai-agent-runtime/">What Is an Autonomous AI Agent Runtime?</a></h2>
-<p>An autonomous AI agent runtime is the layer most tutorials skip: the part that keeps a supervised agent alive, reacting, and recoverable long after your Python script would have exited. Nearly every "build an autonomous agent" post stops at a ReAct while-loop running in <code>python agent.py</code> — one process, no supervision, and everything gone the moment it crashes or you close the terminal. That is a demo, not a system. By the end of this post you'll know exactly what the runtime layer adds, how the <code>AgentProcess</code> lifecycle works, and how to wrap an agent you already have so it survives a restart.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../autonomous-ai-agent-runtime/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="durable-execution-for-ai-agents-in-python"><a class="toclink" href="../../durable-execution-for-ai-agents/">Durable Execution for AI Agents in Python</a></h2>
-<p>Durable execution for AI agents is the property that lets a long-running, self-triggering agent survive a crash and come back exactly where it left off — same context, same counters, same lifecycle state — instead of restarting from zero. The term "durable execution" comes from the workflow world, where engines like Temporal, Restate, and DBOS made it famous. This page explains what the phrase means once your unit of work stops being a deterministic workflow and becomes a stateful agent, why the existing tools only solve half of it, and how Promptise Foundry closes the gap with a supervised process, an append-only journal, and a replay engine. It is the hub for the whole durability cluster, so it stays at the architecture altitude and points you at the deep dives for each mechanism.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../durable-execution-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="event-webhook-file-watch-triggered-agents"><a class="toclink" href="../../event-driven-ai-agent/">Event, Webhook &amp; File-Watch Triggered Agents</a></h2>
-<p>An event-driven AI agent wakes up when something happens in the real world — a webhook fires, a file lands, another service publishes a message — instead of waiting for you to call it or for a clock to tick. Most "autonomous agent" tutorials stop at a cron schedule, which is fine for periodic work but useless when the trigger is external and unpredictable. By the end of this post you'll know the four reactive trigger types Promptise Foundry ships, how to compose several of them on a single process, and how to verify a webhook with HMAC so only trusted callers can wake your agent.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../event-driven-ai-agent/">
           Continue reading
         </a>
       </nav>
@@ -9757,170 +9421,6 @@
           
           <li class="md-meta__item">
             
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-build-a-long-running-ai-agent"><a class="toclink" href="../../long-running-ai-agent/">How to Build a Long-Running AI Agent</a></h2>
-<p>Building a long-running AI agent is where most tutorials quietly fall apart: they show you a <code>while True:</code> loop that calls the model, prints a reply, and forgets everything the moment the terminal closes. That loop is not a persistent AI agent — it's a script with a heartbeat problem, no crash recovery, and no way to run more than one thing at a time. By the end of this post you'll understand what a real lifecycle container manages for you, and you'll have a runnable Promptise Foundry agent that keeps living, remembering, and reacting across hours and restarts.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../long-running-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="rotate-an-ai-agents-secret-without-restarting-it"><a class="toclink" href="../../rotate-ai-agent-secret-without-restart/">Rotate an AI Agent's Secret Without Restarting It</a></h2>
-<p>To rotate an AI agent's secret without restart, the running process has to be able to swap the credential it holds in memory <em>while it keeps running</em> — and that is precisely the operation most agent stacks make impossible. The usual pattern is to read <code>OPENAI_API_KEY</code> or a downstream service token from the environment once, at construction time, and hand it to a model client or tool. That value is now frozen inside a live object. When the key leaks, expires, or hits its scheduled rotation, your only lever is to rebuild the client — and for a long-running, self-triggering agent, rebuilding means a restart that tears down the accumulated context, the conversation buffer, and the lifecycle state you worked so hard to keep durable. This post shows how Promptise Foundry's runtime makes the secret a per-process governance concern instead: <code>${ENV_VAR}</code> resolution at start, TTL expiry, hot rotation with no restart, and zero-fill revocation on stop — with the value never written to the journal, checkpoint, or status output.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../rotate-ai-agent-secret-without-restart/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-schedule-an-ai-agent-with-cron-triggers"><a class="toclink" href="../../scheduled-ai-agent/">How to Schedule an AI Agent with Cron Triggers</a></h2>
-<p>Building a <strong>scheduled AI agent</strong> usually starts with the same advice you find everywhere: wrap your Python script in system crontab and walk away. That works until you notice the agent has no memory of yesterday's run, no record of what it did, and no ceiling on how much it can spend. This post shows you a better pattern — attach a <code>CronTrigger</code> to a persistent <code>AgentProcess</code> so every scheduled run shares a conversation buffer, a durable journal, and governance limits. By the end you will have a cron AI agent running on a real schedule in about five lines of configuration.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../scheduled-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="build-self-modifying-ai-agents-with-open-mode"><a class="toclink" href="../../self-modifying-ai-agent/">Build Self-Modifying AI Agents with Open Mode</a></h2>
-<p>A self-modifying AI agent — one that can rewrite its own prompt, author a new tool, or connect to another server while it's still running — sounds like exactly the kind of thing you should never ship to production. The instinct is right: an agent with unrestricted write access to its own configuration is a liability. But "never" is the wrong lesson. The right one is <em>never without guardrails</em>. By the end of this post you'll know what Promptise Foundry's <strong>open mode</strong> actually lets an agent do, the concrete safeguards that box it in, and how to enable it in a <code>.agent</code> manifest so an agent can safely author its own first tool.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../self-modifying-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               10 min read
             
           </li>
@@ -9937,88 +9437,6 @@
     
       <nav class="md-post__action">
         <a href="../../time-travel-debug-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="verify-webhook-signatures-before-waking-your-agent"><a class="toclink" href="../../verify-webhook-signature-ai-agent/">Verify Webhook Signatures Before Waking Your Agent</a></h2>
-<p>The code that runs when a webhook hits your service has one deceptively small job: <strong>verify webhook signature ai agent</strong> triggers before you let them wake anything, because an unauthenticated POST is an open door straight into an autonomous process. This post is not the tour of reactive triggers — that lives in the <a href="../../../runtime/triggers/">triggers overview</a>. It is about the one mechanism that decides whether the request is real: HMAC-SHA256 over the raw body, read from <code>X-Webhook-Signature</code>, compared in constant time, and rejected <em>before</em> the agent is ever invoked. Get that check right and the rest of your pipeline inherits a trustworthy entry point. Get it wrong and everything downstream is running on forged input.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../verify-webhook-signature-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="build-a-crash-safe-watched-folder-ingestion-agent"><a class="toclink" href="../../watched-folder-ingestion-agent/">Build a Crash-Safe Watched-Folder Ingestion Agent</a></h2>
-<p>A <strong>watched folder ingestion agent</strong> watches a drop folder, wakes the instant a file lands, and runs an LLM over it — extract, classify, route, emit. This is not a tour of the runtime's trigger types; that overview lives in the <a href="../../../runtime/triggers/">Triggers guide</a>. It is one end-to-end build. We wire a <code>FileWatchTrigger</code> to a supervised <code>AgentProcess</code>, and then solve the three things a naive watcher gets wrong the moment it meets production: reprocessing after a crash, an unbounded bill when a thousand files land at once, and losing everything the agent learned between drops. The watch itself is the easy part. The durable, restart-safe pipeline around it is the point.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../watched-folder-ingestion-agent/">
           Continue reading
         </a>
       </nav>

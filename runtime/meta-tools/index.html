@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="When an AgentProcess runs in ExecutionMode.OPEN, it receives a set of meta-tools -- LangChain BaseTool subclasses that allow the agent to modify its own">
+        <meta name="description" content="In open mode (execution_mode=ExecutionMode.OPEN) an agent process gets meta-tools: tools that change the process itself instead of the outside world. With them">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Meta-Tools">
-  <meta property="og:description" content="When an AgentProcess runs in ExecutionMode.OPEN, it receives a set of meta-tools -- LangChain BaseTool subclasses that allow the agent to modify its own">
+  <meta property="og:description" content="In open mode (execution_mode=ExecutionMode.OPEN) an agent process gets meta-tools: tools that change the process itself instead of the outside world. With them">
   <meta property="og:url" content="https://docs.promptise.com/runtime/meta-tools/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Meta-Tools">
-  <meta name="twitter:description" content="When an AgentProcess runs in ExecutionMode.OPEN, it receives a set of meta-tools -- LangChain BaseTool subclasses that allow the agent to modify its own">
+  <meta name="twitter:description" content="In open mode (execution_mode=ExecutionMode.OPEN) an agent process gets meta-tools: tools that change the process itself instead of the outside world. With them">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Meta-Tools",
       "name": "Meta-Tools",
-      "description": "When an AgentProcess runs in ExecutionMode.OPEN, it receives a set of meta-tools -- LangChain BaseTool subclasses that allow the agent to modify its own",
+      "description": "In open mode (execution_mode=ExecutionMode.OPEN) an agent process gets meta-tools: tools that change the process itself instead of the outside world. With them",
       "url": "https://docs.promptise.com/runtime/meta-tools/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5425,24 +5395,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
+  <a href="#available-meta-tools" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concepts
+        Available meta-tools
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available meta-tools">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-changes-are-applied" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How changes are applied
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#available-meta-tools" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Available Meta-Tools
-      
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -5552,6 +5528,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#governance-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance tools
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#list_capabilities" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5563,15 +5550,26 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#hot-reload" class="md-nav__link">
+  <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Hot-Reload
+        Security
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Hot-Reload">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hot-reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hot reload
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hot reload">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -5585,16 +5583,38 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rollback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-survives-a-restart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What survives a restart
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#programmatic-creation" class="md-nav__link">
+  <a href="#programmatic-use" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Programmatic Creation
+        Programmatic use
       
     </span>
   </a>
@@ -5602,21 +5622,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -5627,7 +5636,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -6182,6 +6191,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6204,8 +6217,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6219,8 +6233,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6232,6 +6252,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8478,8 +8500,6 @@
       
         
       
-        
-      
     
     
     
@@ -8632,36 +8652,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9540,24 +9530,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
+  <a href="#available-meta-tools" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concepts
+        Available meta-tools
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available meta-tools">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-changes-are-applied" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How changes are applied
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#available-meta-tools" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Available Meta-Tools
-      
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -9667,6 +9663,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#governance-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance tools
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#list_capabilities" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9678,15 +9685,26 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#hot-reload" class="md-nav__link">
+  <a href="#security" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Hot-Reload
+        Security
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Hot-Reload">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hot-reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hot reload
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hot reload">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -9700,16 +9718,38 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rollback
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-survives-a-restart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What survives a restart
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#programmatic-creation" class="md-nav__link">
+  <a href="#programmatic-use" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Programmatic Creation
+        Programmatic use
       
     </span>
   </a>
@@ -9717,21 +9757,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-summary" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9742,7 +9771,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -9819,85 +9848,90 @@
 
 
 <h1 id="meta-tools">Meta-Tools<a class="headerlink" href="#meta-tools" title="Link to this section">&para;</a></h1>
-<p>When an <code>AgentProcess</code> runs in <code>ExecutionMode.OPEN</code>, it receives a set of meta-tools -- LangChain <code>BaseTool</code> subclasses that allow the agent to modify its own configuration at runtime. The agent can change its identity, create new tools, connect to MCP servers, manage triggers, and manipulate long-term memory.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">ExecutionMode</span><span class="p">,</span> <span class="n">OpenModeConfig</span>
+<p>In open mode (<code>execution_mode=ExecutionMode.OPEN</code>) an agent process gets meta-tools: tools that change the process itself instead of the outside world. With them the agent can rewrite its instructions, write new Python tools, connect MCP servers, add and remove its own triggers, manage long-term memory and spawn helper processes. Every meta-tool goes through the same process methods an operator would use, so the limits in <code>OpenModeConfig</code> and your <a href="../hooks/">hooks</a> apply to each change.</p>
+<div class="admonition warning">
+<p class="admonition-title">Open mode hands the model control of its own setup</p>
+<p>Whoever can put text in front of the model (trigger payloads, inbox messages, tool results) can try to steer these tools. <code>create_tool</code> in particular runs model-written Python <strong>inside the runtime's process</strong>; its restricted builtins are not a sandbox. Read <a href="#security">Security</a> before you enable open mode, and switch off what the agent doesn't need.</p>
+</div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"You are an adaptive monitoring agent."</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">execution_mode</span><span class="o">=</span><span class="n">ExecutionMode</span><span class="o">.</span><span class="n">OPEN</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">open_mode</span><span class="o">=</span><span class="n">OpenModeConfig</span><span class="p">(</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">allow_identity_change</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">allow_tool_creation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">allow_mcp_connect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">allow_trigger_management</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">allow_memory_management</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">allow_process_spawn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">max_custom_tools</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">max_spawned_processes</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">sandbox_custom_tools</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="p">),</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ExecutionMode</span><span class="p">,</span> <span class="n">OpenModeConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"You are an adaptive monitoring agent. Improve your own tooling over time."</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">execution_mode</span><span class="o">=</span><span class="n">ExecutionMode</span><span class="o">.</span><span class="n">OPEN</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">open_mode</span><span class="o">=</span><span class="n">OpenModeConfig</span><span class="p">(</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">allow_tool_creation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>    <span class="c1"># no model-written Python in this process</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">allow_mcp_connect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>      <span class="c1"># no new servers</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">allow_process_spawn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>     <span class="c1"># may start helper processes</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">max_custom_tools</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">max_spawned_processes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">max_rebuilds</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="p">),</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">AgentRuntime</span><span class="p">()</span> <span class="k">as</span> <span class="n">runtime</span><span class="p">:</span>  <span class="c1"># spawn_process needs a runtime</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"monitor"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3600</span><span class="p">)</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
 <hr />
-<h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>Meta-tools give the agent <strong>self-modification capabilities</strong>. Unlike regular tools that interact with external systems, meta-tools mutate the owning <code>AgentProcess</code> itself. When a meta-tool changes the agent's instructions, tools, or MCP servers, the process performs a <strong>hot-reload</strong> -- rebuilding the agent graph without losing conversation state.</p>
-<p>Each meta-tool is gated by a permission flag in <code>OpenModeConfig</code>. This allows operators to grant selective capabilities:</p>
-<ul>
-<li>An agent that can learn from experience (memory) but not change its identity</li>
-<li>An agent that can add triggers but not create arbitrary code</li>
-<li>A fully autonomous agent with all capabilities unlocked</li>
-</ul>
-<hr />
-<h2 id="available-meta-tools">Available Meta-Tools<a class="headerlink" href="#available-meta-tools" title="Link to this section">&para;</a></h2>
+<h2 id="available-meta-tools">Available meta-tools<a class="headerlink" href="#available-meta-tools" title="Link to this section">&para;</a></h2>
+<p><code>create_meta_tools()</code> builds the list when the agent is built, filtered by <code>OpenModeConfig</code>. Strict-mode processes get none of them.</p>
 <table>
 <thead>
 <tr>
-<th>Meta-Tool</th>
-<th>Permission</th>
-<th>Description</th>
+<th>Meta-tool</th>
+<th>Present when</th>
+<th>What it does</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>modify_instructions</code></td>
 <td><code>allow_identity_change</code></td>
-<td>Change the system prompt at runtime</td>
+<td>Replace the system prompt (hot reload)</td>
 </tr>
 <tr>
 <td><code>create_tool</code></td>
 <td><code>allow_tool_creation</code></td>
-<td>Define a new Python function tool</td>
+<td>Define a Python tool (hot reload). Runs in the runtime's process, not isolated</td>
 </tr>
 <tr>
 <td><code>connect_mcp_server</code></td>
 <td><code>allow_mcp_connect</code></td>
-<td>Connect to an additional MCP server</td>
+<td>Connect an HTTP MCP server (hot reload)</td>
 </tr>
 <tr>
 <td><code>add_trigger</code></td>
 <td><code>allow_trigger_management</code></td>
-<td>Add a cron, event, message, webhook, file_watch, or custom trigger</td>
+<td>Add a cron, event, message, webhook, file_watch or custom trigger</td>
 </tr>
 <tr>
 <td><code>remove_trigger</code></td>
 <td><code>allow_trigger_management</code></td>
-<td>Remove a dynamically added trigger</td>
+<td>Remove a trigger the agent added</td>
 </tr>
 <tr>
 <td><code>spawn_process</code></td>
 <td><code>allow_process_spawn</code></td>
-<td>Create and start a new agent process within the runtime</td>
+<td>Create and start a new process in the runtime</td>
 </tr>
 <tr>
 <td><code>list_processes</code></td>
 <td><code>allow_process_spawn</code></td>
-<td>List all processes in the runtime with state info</td>
+<td>List the runtime's processes</td>
 </tr>
 <tr>
 <td><code>store_memory</code></td>
 <td><code>allow_memory_management</code></td>
-<td>Store content in long-term memory</td>
+<td>Store text in long-term memory</td>
 </tr>
 <tr>
 <td><code>search_memory</code></td>
@@ -9910,16 +9944,74 @@
 <td>Delete a memory by ID</td>
 </tr>
 <tr>
+<td><code>get_secret</code></td>
+<td>secret scoping enabled</td>
+<td>Read a scoped secret</td>
+</tr>
+<tr>
+<td><code>check_budget</code></td>
+<td>budget enabled</td>
+<td>Show the remaining budget</td>
+</tr>
+<tr>
+<td><code>check_mission</code></td>
+<td>mission enabled</td>
+<td>Show the mission state and latest evaluations</td>
+</tr>
+<tr>
 <td><code>list_capabilities</code></td>
-<td>Always available</td>
-<td>Introspect current tools, triggers, and identity</td>
+<td>always (in open mode)</td>
+<td>Show the agent's current instructions, tools, triggers and counters</td>
 </tr>
 </tbody>
 </table>
+<p>The <code>update_state(key, value)</code> tool is not a meta-tool: <code>ContextConfig(state_tool=True)</code> gives it to a process in either mode (see <a href="../context/">Context</a>).</p>
+<h3 id="how-changes-are-applied">How changes are applied<a class="headerlink" href="#how-changes-are-applied" title="Link to this section">&para;</a></h3>
+<p>Each meta-tool calls a process method, and every method enforces the limits and dispatches the <code>config_change</code> <a href="../hooks/">hook</a> (<code>source="agent"</code>), which can refuse the change:</p>
+<table>
+<thead>
+<tr>
+<th>Meta-tool</th>
+<th>Calls</th>
+<th>Limits checked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>modify_instructions</code></td>
+<td><code>process.set_dynamic_instructions()</code></td>
+<td><code>max_instruction_length</code>, <code>max_rebuilds</code></td>
+</tr>
+<tr>
+<td><code>create_tool</code></td>
+<td>hot reload</td>
+<td><code>max_custom_tools</code>, duplicate names, <code>max_rebuilds</code></td>
+</tr>
+<tr>
+<td><code>connect_mcp_server</code></td>
+<td>hot reload</td>
+<td>duplicate names, <code>http(s)</code> URL, <code>allowed_mcp_urls</code> (or a public address when it is empty), <code>max_rebuilds</code></td>
+</tr>
+<tr>
+<td><code>add_trigger</code></td>
+<td><code>process.add_dynamic_trigger()</code></td>
+<td><code>max_dynamic_triggers</code>, trigger validation, loopback-only webhooks, the API's <code>data_dir</code> for watch paths, process state</td>
+</tr>
+<tr>
+<td><code>remove_trigger</code></td>
+<td><code>process.remove_trigger(trigger_id, source="agent")</code></td>
+<td>only triggers the agent added</td>
+</tr>
+<tr>
+<td><code>spawn_process</code></td>
+<td><code>process.spawn_process()</code></td>
+<td><code>max_spawned_processes</code>, unique name, loopback-only webhooks; the <code>subagent_start</code> hook can refuse it</td>
+</tr>
+</tbody>
+</table>
+<p>A refused or failed change is not applied, now or after a restart. Tools report problems as text starting with <code>Error</code>, so the model can read them and carry on.</p>
 <hr />
 <h2 id="modify_instructions">modify_instructions<a class="headerlink" href="#modify_instructions" title="Link to this section">&para;</a></h2>
-<p>Changes the agent's system prompt. This triggers a hot-reload of the agent graph.</p>
-<p><strong>Input schema:</strong></p>
 <table>
 <thead>
 <tr>
@@ -9936,11 +10028,35 @@
 </tr>
 </tbody>
 </table>
-<p>The instruction length is capped by <code>OpenModeConfig.max_instruction_length</code> (default: 10,000 characters). Exceeding the limit returns an error without modifying the agent.</p>
+<p>The agent is rebuilt with the new instructions. <a href="#rollback"><code>rollback()</code></a> restores the configured ones, and an operator's <code>process.update_instructions()</code> replaces whatever the agent set.</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Rebuild successful</code></td>
+<td>Applied</td>
+</tr>
+<tr>
+<td><code>Error: instructions exceed max length (12000 &gt; 10000)</code></td>
+<td>Longer than <code>max_instruction_length</code></td>
+</tr>
+<tr>
+<td><code>Error: max rebuilds (N) reached; the change was not applied</code></td>
+<td><code>max_rebuilds</code> used up</td>
+</tr>
+<tr>
+<td><code>Error: the change was blocked by a hook: &lt;reason&gt;</code></td>
+<td>A <code>config_change</code> hook refused it</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="create_tool">create_tool<a class="headerlink" href="#create_tool" title="Link to this section">&para;</a></h2>
-<p>Defines a new Python function tool. The code must define a <code>run</code> function that returns a string.</p>
-<p><strong>Input schema:</strong></p>
 <table>
 <thead>
 <tr>
@@ -9958,7 +10074,7 @@
 <tr>
 <td><code>tool_description</code></td>
 <td><code>str</code></td>
-<td>Description of what the tool does</td>
+<td>What the tool does</td>
 </tr>
 <tr>
 <td><code>parameters</code></td>
@@ -9968,11 +10084,11 @@
 <tr>
 <td><code>python_code</code></td>
 <td><code>str</code></td>
-<td>Python code defining <code>run(...) -&gt; str</code></td>
+<td>Python code defining <code>run(...)</code>, which returns a string</td>
 </tr>
 </tbody>
 </table>
-<p><code>parameters</code> shapes the new tool's inputs. Each property of the object schema is a parameter of the tool, offered to the model with its type and constraints, and passed to <code>run</code> as a keyword argument:</p>
+<p><code>parameters</code> shapes the new tool's inputs. Each property of the object schema is a parameter, offered to the model with its type and constraints, and passed to <code>run</code> as a keyword argument:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">create_tool</span><span class="p">(</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">tool_name</span><span class="o">=</span><span class="s2">"add"</span><span class="p">,</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">tool_description</span><span class="o">=</span><span class="s2">"Add two integers."</span><span class="p">,</span>
@@ -9986,27 +10102,60 @@
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># The new tool is called as add(a=2, b=3) -&gt; "5"</span>
 </span></code></pre></div>
 <ul>
-<li>The arguments are validated against the schema before <code>run</code> is called. Invalid arguments raise <code>ToolArgumentError</code> (the model sees each problem and can correct the call), and <code>run</code> is not called.</li>
+<li>Arguments are validated against the schema before <code>run</code> is called. Invalid arguments raise <code>ToolArgumentError</code> (the model sees each problem and can correct the call), and <code>run</code> is not called.</li>
 <li><code>run</code> gets the arguments the caller gave, as plain JSON (nested objects are dicts), plus each property's schema <code>default</code> when the caller left it out. An optional parameter without a schema default that the caller left out is not passed, so <code>run</code>'s own default applies.</li>
-<li>Property names must be usable as Python keyword arguments (identifiers, not keywords, not starting with <code>_</code>), and <code>required</code> may only name declared properties. A schema that is not an object schema, or that lists parameters without <code>properties</code>, is refused with an error and no tool is created.</li>
+<li>Property names must be usable as Python keyword arguments (identifiers, not keywords, not starting with <code>_</code>), and <code>required</code> may only name declared properties. A schema that is not an object schema, or that lists parameters without <code>properties</code>, is refused and no tool is created.</li>
 <li>With empty <code>parameters</code> (or an object schema without properties), the tool takes one free-form <code>input</code> string: <code>run(input="...")</code>.</li>
 </ul>
-<p>The number of custom tools is capped by <code>OpenModeConfig.max_custom_tools</code> (default: 20). Duplicate names are rejected. After creation, a hot-reload is triggered.</p>
-<p><strong>The new tool is callable from the agent's next run, not in the run that creates it</strong> (see <a href="#hot-reload">Hot-Reload</a>: the current invocation keeps the tools it started with). The tool's description and its result say so, so the model finishes the current task without it instead of looking for it or creating it again:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Tool 'add' created. You can call it from your next run, not in this one: this run keeps the tools it started with, so finish the current task without it.
-</span></code></pre></div>
+<p><strong>The new tool can be called from the agent's next run, not in the run that creates it</strong> (the current run keeps the tools it started with). The tool's description and its result say so, so the model finishes the current task without it instead of looking for it or creating it again.</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Tool 'add' created. You can call it from your next run, not in this one: this run keeps the tools it started with, so finish the current task without it.</code></td>
+<td>Created</td>
+</tr>
+<tr>
+<td><code>Error: max custom tools (20) reached</code></td>
+<td><code>max_custom_tools</code> reached</td>
+</tr>
+<tr>
+<td><code>Error: tool 'add' already exists</code></td>
+<td>Duplicate name</td>
+</tr>
+<tr>
+<td><code>Error creating tool: &lt;reason&gt;</code></td>
+<td>Unusable <code>parameters</code> schema, or the rebuild failed</td>
+</tr>
+<tr>
+<td><code>Error: max rebuilds (N) reached; the change was not applied</code></td>
+<td><code>max_rebuilds</code> used up</td>
+</tr>
+<tr>
+<td><code>Error: the change was blocked by a hook: &lt;reason&gt;</code></td>
+<td>A <code>config_change</code> hook refused it</td>
+</tr>
+</tbody>
+</table>
 <h3 id="sandbox-execution">Sandbox execution<a class="headerlink" href="#sandbox-execution" title="Link to this section">&para;</a></h3>
-<p>When <code>sandbox_custom_tools=True</code> (the default), agent-written code runs with restricted builtins:</p>
+<p>With <code>sandbox_custom_tools=True</code> (the default), agent-written code runs with restricted builtins:</p>
 <ul>
-<li><strong>Allowed</strong>: <code>len</code>, <code>range</code>, <code>str</code>, <code>int</code>, <code>float</code>, <code>list</code>, <code>dict</code>, <code>set</code>, <code>sorted</code>, <code>enumerate</code>, <code>zip</code>, <code>map</code>, <code>filter</code>, <code>max</code>, <code>min</code>, <code>sum</code>, <code>print</code>, <code>round</code>, <code>abs</code>, <code>bool</code>, <code>type</code>, <code>isinstance</code>, common exceptions, and other safe builtins.</li>
-<li><strong>Blocked</strong>: <code>open</code>, <code>exec</code>, <code>eval</code>, <code>__import__</code>, file I/O, network access, and all module imports.</li>
+<li><strong>Allowed</strong>: <code>len</code>, <code>range</code>, <code>str</code>, <code>int</code>, <code>float</code>, <code>list</code>, <code>dict</code>, <code>set</code>, <code>sorted</code>, <code>enumerate</code>, <code>zip</code>, <code>map</code>, <code>filter</code>, <code>max</code>, <code>min</code>, <code>sum</code>, <code>print</code>, <code>round</code>, <code>abs</code>, <code>bool</code>, <code>type</code>, <code>isinstance</code>, common exceptions and other safe builtins.</li>
+<li><strong>Blocked</strong>: <code>open</code>, <code>exec</code>, <code>eval</code>, <code>__import__</code>, file I/O, network access and all imports.</li>
 </ul>
-<p>When <code>sandbox_custom_tools=False</code>, the code runs with the <strong>same restricted builtins</strong> (no <code>open</code>, <code>exec</code>, <code>eval</code>, file I/O or network access), but may import a fixed allowlist of standard-library modules: <code>base64</code>, <code>collections</code>, <code>copy</code>, <code>datetime</code>, <code>functools</code>, <code>hashlib</code>, <code>itertools</code>, <code>json</code>, <code>math</code>, <code>re</code>, <code>string</code>, <code>urllib.parse</code>, <code>uuid</code>. Any other import (<code>os</code>, <code>decimal</code>, ...) fails with <code>Import of '...' is not allowed</code>, and each call logs a warning. There is no setting that gives agent-written code full Python builtins; give the agent such capabilities as reviewed MCP tools.</p>
-<p>Restricted builtins are defense in depth, not a security boundary: Python's object model can reach other functions through attribute access. For untrusted code, use the Docker <a href="../../core/sandbox/">sandbox</a>.</p>
+<p>With <code>sandbox_custom_tools=False</code>, the code runs with the <strong>same restricted builtins</strong> (no <code>open</code>, <code>exec</code>, <code>eval</code>, file I/O or network access) but may import a fixed allowlist of standard-library modules: <code>base64</code>, <code>collections</code>, <code>copy</code>, <code>datetime</code>, <code>functools</code>, <code>hashlib</code>, <code>itertools</code>, <code>json</code>, <code>math</code>, <code>re</code>, <code>string</code>, <code>urllib.parse</code>, <code>uuid</code>. Any other import (<code>os</code>, <code>decimal</code>, ...) fails with <code>Import of '...' is not allowed</code>, and each call logs a warning. No setting gives agent-written code full Python builtins; give the agent such capabilities as reviewed MCP tools.</p>
+<p><strong>This is not a sandbox</strong>, with either setting. The code runs in the runtime's own process, and Python's object model lets code walk from any object back to modules like <code>os</code>, so agent-written code can run commands as the runtime's user, read its memory and environment, and reach anything the runtime can. The restrictions only stop honest code from reaching for files and imports by accident. Treat <code>allow_tool_creation=True</code> as "the model may run arbitrary code here":</p>
+<ul>
+<li>the control API refuses to deploy such a config unless <code>allow_command_deploys</code> is on (<code>403 COMMANDS_NOT_ALLOWED</code>);</li>
+<li>for code from the model, prefer the Docker <a href="../../core/sandbox/">sandbox</a> (<code>build_agent(sandbox=...)</code>), which runs each command in an isolated container, or give the agent reviewed MCP tools instead.</li>
+</ul>
 <hr />
 <h2 id="connect_mcp_server">connect_mcp_server<a class="headerlink" href="#connect_mcp_server" title="Link to this section">&para;</a></h2>
-<p>Connects to an additional MCP server at runtime to gain access to its tools.</p>
-<p><strong>Input schema:</strong></p>
 <table>
 <thead>
 <tr>
@@ -10027,21 +10176,92 @@
 <td><code>url</code></td>
 <td><code>str</code></td>
 <td>required</td>
-<td>URL of the MCP server</td>
+<td><code>http://</code> or <code>https://</code> URL of the MCP server</td>
 </tr>
 <tr>
 <td><code>transport</code></td>
 <td><code>str</code></td>
 <td><code>"streamable-http"</code></td>
-<td>Transport type</td>
+<td><code>streamable-http</code> or <code>sse</code></td>
 </tr>
 </tbody>
 </table>
-<p>If <code>OpenModeConfig.allowed_mcp_urls</code> is set (non-empty list), only URLs in that whitelist are accepted. After connecting, a hot-reload rebuilds the agent with the new tools. As with <code>create_tool</code>, the server's tools are callable from the next run, not in the run that connects it, and the result says so.</p>
+<p>Only HTTP(S) servers: the agent can't start a stdio server (a program on the host). Which URLs are accepted depends on <code>allowed_mcp_urls</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>allowed_mcp_urls</code></th>
+<th>Operator-configured process</th>
+<th>Process deployed through the <a href="../api/#securing-the-control-api">control API</a></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Listed URLs</td>
+<td>Only those (compared with a lowercase scheme and host, default ports dropped, no trailing slash); a listed private or loopback URL is fine</td>
+<td>The same</td>
+</tr>
+<tr>
+<td>Empty</td>
+<td>Any URL whose host resolves to public addresses only: loopback, private, link-local (cloud metadata) and other internal addresses are refused. A warning is logged when the process starts</td>
+<td><strong>None</strong>: the agent can't connect servers</td>
+</tr>
+</tbody>
+</table>
+<p>The address check resolves the host when the agent connects and again at every agent build, like escalation webhooks, but it can't stop a host whose DNS answer changes in between; list the servers in <code>allowed_mcp_urls</code> where that matters. After connecting, the agent is rebuilt with the server's tools, which are available from the next run.</p>
+<p>A server the agent connected never receives the process identity's credential (<code>ProcessConfig.identity</code>) or a caller's token, so the agent can't send them to a server it picked. List the URLs that may receive it in <code>open_mode.identity_mcp_urls</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Connected to MCP server 'x' at &lt;url&gt;. Its tools are available from your next run, not in this one: this run keeps the tools it started with.</code></td>
+<td>Connected</td>
+</tr>
+<tr>
+<td><code>Error: the MCP server URL must start with http:// or https://</code></td>
+<td>Not an HTTP(S) URL</td>
+</tr>
+<tr>
+<td><code>Error: URL not in allowed whitelist (open_mode.allowed_mcp_urls)</code></td>
+<td>Not in <code>allowed_mcp_urls</code></td>
+</tr>
+<tr>
+<td><code>Error: refused: '&lt;host&gt;' resolves to private/internal IP &lt;ip&gt; (...)</code></td>
+<td>No allowlist, and the host is internal</td>
+</tr>
+<tr>
+<td><code>Error: this process was deployed through the control API and has no open_mode.allowed_mcp_urls, ...</code></td>
+<td>API-deployed process without an allowlist</td>
+</tr>
+<tr>
+<td><code>Error: the MCP server host did not resolve (...)</code></td>
+<td>No allowlist, and the host doesn't resolve</td>
+</tr>
+<tr>
+<td><code>Error: server 'x' already connected</code></td>
+<td>Duplicate name</td>
+</tr>
+<tr>
+<td><code>Error connecting to MCP server: &lt;reason&gt;</code></td>
+<td>The connection or rebuild failed</td>
+</tr>
+<tr>
+<td><code>Error: max rebuilds (N) reached; the change was not applied</code></td>
+<td><code>max_rebuilds</code> used up</td>
+</tr>
+<tr>
+<td><code>Error: the change was blocked by a hook: &lt;reason&gt;</code></td>
+<td>A <code>config_change</code> hook refused it</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="add_trigger">add_trigger<a class="headerlink" href="#add_trigger" title="Link to this section">&para;</a></h2>
-<p>Adds a new trigger at runtime. The agent can schedule cron jobs, listen for events, subscribe to message topics, set up webhooks, watch files, or use custom trigger types.</p>
-<p><strong>Input schema:</strong></p>
 <table>
 <thead>
 <tr>
@@ -10054,55 +10274,92 @@
 <tr>
 <td><code>trigger_type</code></td>
 <td><code>str</code></td>
-<td>Any registered trigger type: <code>"cron"</code>, <code>"event"</code>, <code>"message"</code>, <code>"webhook"</code>, <code>"file_watch"</code>, or a custom type</td>
+<td><code>"cron"</code>, <code>"event"</code>, <code>"message"</code>, <code>"webhook"</code>, <code>"file_watch"</code> or a registered custom type</td>
 </tr>
 <tr>
 <td><code>cron_expression</code></td>
 <td><code>str \| None</code></td>
-<td>Cron expression (for <code>cron</code> triggers)</td>
+<td>For <code>cron</code></td>
 </tr>
 <tr>
 <td><code>event_type</code></td>
 <td><code>str \| None</code></td>
-<td>Event type to listen for (for <code>event</code> triggers)</td>
+<td>For <code>event</code></td>
 </tr>
 <tr>
 <td><code>topic</code></td>
 <td><code>str \| None</code></td>
-<td>Message topic (for <code>message</code> triggers)</td>
+<td>For <code>message</code></td>
 </tr>
 <tr>
 <td><code>webhook_path</code></td>
 <td><code>str \| None</code></td>
-<td>URL path (for <code>webhook</code> triggers)</td>
+<td>For <code>webhook</code></td>
 </tr>
 <tr>
 <td><code>webhook_port</code></td>
 <td><code>int \| None</code></td>
-<td>Listen port (for <code>webhook</code> triggers)</td>
+<td>For <code>webhook</code></td>
 </tr>
 <tr>
 <td><code>watch_path</code></td>
 <td><code>str \| None</code></td>
-<td>Directory to watch (for <code>file_watch</code> triggers)</td>
+<td>For <code>file_watch</code></td>
 </tr>
 <tr>
 <td><code>watch_patterns</code></td>
 <td><code>list[str] \| None</code></td>
-<td>Glob patterns (for <code>file_watch</code> triggers)</td>
+<td>For <code>file_watch</code></td>
 </tr>
 <tr>
 <td><code>custom_config</code></td>
 <td><code>dict \| None</code></td>
-<td>Arbitrary config for custom trigger types</td>
+<td>For custom trigger types</td>
 </tr>
 </tbody>
 </table>
-<p>The number of dynamic triggers is capped by <code>OpenModeConfig.max_dynamic_triggers</code> (default: 10). The trigger starts immediately after creation. Custom trigger types must be registered via <code>register_trigger_type()</code> before use.</p>
+<p>The trigger is validated like any <code>TriggerConfig</code>, started at once with its listener, and counts toward <code>max_dynamic_triggers</code>. It is not added to <code>config.triggers</code>: it lives until <code>remove_trigger</code>, <code>rollback()</code> or the next <code>stop()</code> (a restart drops it too).</p>
+<p>A webhook the agent adds listens on loopback only. <code>process.add_dynamic_trigger()</code> refuses a non-loopback <code>webhook_host</code> unless <code>open_mode.allow_public_webhooks</code> is on, and then requires an <code>hmac_secret</code>. For a process deployed through the control API, a <code>file_watch</code> <code>watch_path</code> must lie in the API's <code>data_dir</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Trigger 'cron-36042769' (cron) added and listening.</code></td>
+<td>Added; the ID is what <code>remove_trigger</code> takes</td>
+</tr>
+<tr>
+<td><code>Error adding trigger: max dynamic triggers (10) reached</code></td>
+<td>Limit reached</td>
+</tr>
+<tr>
+<td><code>Error adding trigger: Invalid trigger config: &lt;details&gt;</code></td>
+<td>Invalid fields</td>
+</tr>
+<tr>
+<td><code>Error adding trigger: Adding the cron trigger was blocked: &lt;reason&gt;</code></td>
+<td>A <code>config_change</code> hook refused it</td>
+</tr>
+<tr>
+<td><code>Error adding trigger: Trigger could not start: &lt;reason&gt;</code></td>
+<td>The trigger failed to start (for example a port in use)</td>
+</tr>
+<tr>
+<td><code>Error adding trigger: a webhook trigger on '0.0.0.0' would accept requests from other machines; ...</code></td>
+<td>Non-loopback webhook (see above)</td>
+</tr>
+<tr>
+<td><code>Error adding trigger: watch_path '...' is outside the data directory ...</code></td>
+<td>API-deployed process, path outside <code>data_dir</code></td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="remove_trigger">remove_trigger<a class="headerlink" href="#remove_trigger" title="Link to this section">&para;</a></h2>
-<p>Removes a dynamically added trigger by its ID. Config-defined (static) triggers cannot be removed.</p>
-<p><strong>Input schema:</strong></p>
 <table>
 <thead>
 <tr>
@@ -10115,14 +10372,35 @@
 <tr>
 <td><code>trigger_id</code></td>
 <td><code>str</code></td>
-<td>ID of the trigger to remove</td>
+<td>ID returned by <code>add_trigger</code></td>
+</tr>
+</tbody>
+</table>
+<p>The agent can only remove triggers it added; config triggers stay. The trigger's listener is cancelled with it.</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Trigger 'cron-36042769' removed.</code></td>
+<td>Removed</td>
+</tr>
+<tr>
+<td><code>Error: trigger 'x' not found in dynamic triggers</code></td>
+<td>Not an agent-added trigger</td>
+</tr>
+<tr>
+<td><code>Error removing trigger: Removing trigger 'x' was blocked: &lt;reason&gt;</code></td>
+<td>A <code>config_change</code> hook refused it</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="spawn_process">spawn_process<a class="headerlink" href="#spawn_process" title="Link to this section">&para;</a></h2>
-<p>Creates and starts a new agent process within the runtime. This allows agents to delegate work by spawning sub-processes with their own instructions, triggers, and execution modes.</p>
-<p><strong>Input schema:</strong></p>
 <table>
 <thead>
 <tr>
@@ -10137,25 +10415,25 @@
 <td><code>process_name</code></td>
 <td><code>str</code></td>
 <td>required</td>
-<td>Unique name for the new process</td>
+<td>Unique name in the runtime</td>
 </tr>
 <tr>
 <td><code>instructions</code></td>
 <td><code>str</code></td>
 <td>required</td>
-<td>System prompt for the spawned agent</td>
+<td>System prompt for the new process</td>
 </tr>
 <tr>
 <td><code>model</code></td>
-<td><code>str</code></td>
-<td><code>"openai:gpt-5-mini"</code></td>
-<td>LLM model identifier</td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Model ID; <code>None</code> uses the parent's model</td>
 </tr>
 <tr>
 <td><code>triggers</code></td>
 <td><code>list[dict]</code></td>
 <td><code>[]</code></td>
-<td>Trigger configs (each dict has <code>type</code> + type-specific fields)</td>
+<td>Trigger configs (each with <code>type</code> and its fields)</td>
 </tr>
 <tr>
 <td><code>execution_mode</code></td>
@@ -10165,207 +10443,253 @@
 </tr>
 </tbody>
 </table>
-<p>The number of spawned processes is capped by <code>OpenModeConfig.max_spawned_processes</code> (default: 3). Duplicate process names are rejected. The spawned process starts immediately and runs independently within the same runtime.</p>
-<div class="admonition warning">
-<p class="admonition-title">Defaults to disabled</p>
-<p>Unlike most other permissions, <code>allow_process_spawn</code> defaults to <code>False</code>. Process spawning is a powerful capability -- enable it only for agents that need to create sub-processes.</p>
-</div>
+<p>The new process is registered in the parent's <code>AgentRuntime</code>, started, and listed in <code>process.spawned_processes</code>. It inherits the parent's guardrails:</p>
+<table>
+<thead>
+<tr>
+<th>Inherited from the parent</th>
+<th>Not inherited</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>budget</code>, <code>health</code>, <code>trigger_delivery</code> and <code>journal</code> settings (copies: the child has its own counters)</td>
+<td>Secrets</td>
+</tr>
+<tr>
+<td><code>approval</code> policy and <code>guardrails</code> scanner</td>
+<td>MCP servers</td>
+</tr>
+<tr>
+<td><code>max_invocation_time</code></td>
+<td>Identity</td>
+</tr>
+<tr>
+<td><code>open_mode</code> limits, with <code>allow_process_spawn</code> switched off</td>
+<td><code>config.hooks</code> entries, mission, inbox, context settings</td>
+</tr>
+<tr>
+<td>The parent's hooks: its <code>hooks</code> manager (and what the parent inherited) is dispatched for the child after the child's own, so <code>permission_request</code>, <code>user_prompt_submit</code> and every other hook the parent has also govern the child (<code>ctx.process_id</code> names the child)</td>
+<td></td>
+</tr>
+<tr>
+<td>The deploy policy: a child of an API-deployed process is limited like its parent (env references, MCP allowlist, <code>data_dir</code>)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>So a spawned process can never spawn more processes, even in open mode. Its <code>triggers</code> follow the <code>add_trigger</code> rules: webhooks listen on loopback unless <code>open_mode.allow_public_webhooks</code> is on (then with an <code>hmac_secret</code>), so the model can't open a public, unsigned endpoint. The <code>subagent_start</code> hook runs before the spawn and can refuse it; <code>subagent_stop</code> runs when the child stops or fails. The child runs independently: stopping the parent does not stop it. <code>allow_process_spawn</code> defaults to <code>False</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Process 'helper' spawned and started. Mode: strict. Triggers: 1.</code></td>
+<td>Spawned</td>
+</tr>
+<tr>
+<td><code>Error: process is not running inside an AgentRuntime. spawn_process requires a runtime.</code></td>
+<td>The process has no runtime</td>
+</tr>
+<tr>
+<td><code>Error spawning process: max spawned processes (3) reached</code></td>
+<td>Limit reached</td>
+</tr>
+<tr>
+<td><code>Error spawning process: process 'helper' already exists in the runtime</code></td>
+<td>Name taken</td>
+</tr>
+<tr>
+<td><code>Error spawning process: invalid process config: &lt;details&gt;</code></td>
+<td>Bad trigger or mode</td>
+</tr>
+<tr>
+<td><code>Error spawning process: spawning 'helper' was blocked by a hook: &lt;reason&gt;</code></td>
+<td>A <code>subagent_start</code> hook refused it</td>
+</tr>
+<tr>
+<td><code>Error spawning process: can't spawn 'helper': a webhook trigger on '0.0.0.0' ...</code></td>
+<td>A non-loopback (or unsigned public) webhook trigger</td>
+</tr>
+</tbody>
+</table>
+<p>A child that fails to start is removed from the runtime again, and the error is returned.</p>
 <hr />
 <h2 id="list_processes">list_processes<a class="headerlink" href="#list_processes" title="Link to this section">&para;</a></h2>
-<p>Lists all processes in the runtime with their current state.</p>
-<p><strong>Input schema:</strong> No parameters.</p>
-<p>Returns a formatted list showing each process name, state (RUNNING, STOPPED, etc.), model, and execution mode.</p>
+<p>No parameters. Lists every process in the runtime:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Processes in runtime:
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  - monitor: state=running, invocations=12 (this process)
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  - helper: state=running, invocations=3 [spawned by this process]
+</span></code></pre></div>
+<p>Without a runtime: <code>Error: process is not running inside an AgentRuntime. list_processes requires a runtime.</code></p>
 <hr />
 <h2 id="store_memory-search_memory-forget_memory">store_memory, search_memory, forget_memory<a class="headerlink" href="#store_memory-search_memory-forget_memory" title="Link to this section">&para;</a></h2>
-<p>Explicit memory management tools. These require a <code>MemoryProvider</code> to be configured in the process context.</p>
-<p><strong>store_memory:</strong></p>
+<p>These need a long-term memory provider (<code>ContextConfig.memory_provider</code>); without one each returns <code>Error: no memory provider configured</code>.</p>
 <table>
 <thead>
 <tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
+<th>Tool</th>
+<th>Parameters</th>
+<th>Result</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>content</code></td>
-<td><code>str</code></td>
-<td>Information to store</td>
+<td><code>store_memory</code></td>
+<td><code>content: str</code>, <code>tags: list[str] = []</code></td>
+<td><code>Stored in memory (id=&lt;id&gt;).</code></td>
 </tr>
 <tr>
-<td><code>tags</code></td>
-<td><code>list[str]</code></td>
-<td>Optional categorization tags</td>
+<td><code>search_memory</code></td>
+<td><code>query: str</code>, <code>limit: int = 5</code> (1-20)</td>
+<td><code>Found memories:</code> and one <code>- [&lt;id&gt;] (score=0.87) &lt;content&gt;</code> line each, or <code>No relevant memories found.</code></td>
+</tr>
+<tr>
+<td><code>forget_memory</code></td>
+<td><code>memory_id: str</code></td>
+<td><code>Memory '&lt;id&gt;' deleted.</code> or <code>Memory '&lt;id&gt;' not found.</code></td>
 </tr>
 </tbody>
 </table>
-<p><strong>search_memory:</strong></p>
+<hr />
+<h2 id="governance-tools">Governance tools<a class="headerlink" href="#governance-tools" title="Link to this section">&para;</a></h2>
+<p>These appear in open mode when the subsystem is enabled.</p>
 <table>
 <thead>
 <tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
+<th>Tool</th>
+<th>Parameters</th>
+<th>Result</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>query</code></td>
-<td><code>str</code></td>
-<td>Natural-language search query</td>
+<td><code>get_secret</code></td>
+<td><code>name: str</code></td>
+<td>The secret value, or <code>Error: secret '&lt;name&gt;' not found or expired</code>. Each access is logged in the audit trail.</td>
 </tr>
 <tr>
-<td><code>limit</code></td>
-<td><code>int</code></td>
-<td>Max results (1-20, default 5)</td>
+<td><code>check_budget</code></td>
+<td>none</td>
+<td><code>Budget remaining:</code> and one line per limit (<code>Tool Calls Run: 5</code>, <code>Cost Day: unlimited</code>, ...)</td>
 </tr>
-</tbody>
-</table>
-<p><strong>forget_memory:</strong></p>
-<table>
-<thead>
 <tr>
-<th>Parameter</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>memory_id</code></td>
-<td><code>str</code></td>
-<td>ID of the memory to delete</td>
+<td><code>check_mission</code></td>
+<td>none</td>
+<td>The mission summary and up to the latest 10 evaluations (<code>- #&lt;run&gt; [&lt;source&gt;] achieved, confidence=0.82: &lt;reasoning&gt;</code>)</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="list_capabilities">list_capabilities<a class="headerlink" href="#list_capabilities" title="Link to this section">&para;</a></h2>
-<p>Always available regardless of <code>OpenModeConfig</code> settings. Returns a human-readable summary of the agent's current state:</p>
-<ul>
-<li>Process name, mode, and model</li>
-<li>Current instructions (truncated to 200 characters)</li>
-<li>MCP tools and custom tools</li>
-<li>Static and dynamic triggers</li>
-<li>Memory status</li>
-<li>Invocation and rebuild counts</li>
-</ul>
-<hr />
-<h2 id="hot-reload">Hot-Reload<a class="headerlink" href="#hot-reload" title="Link to this section">&para;</a></h2>
-<p>When a meta-tool modifies instructions, tools, or MCP servers, the process performs a <strong>hot-reload</strong>:</p>
-<ol>
-<li>The conversation buffer is preserved.</li>
-<li>The agent graph is rebuilt with the new configuration, with a fresh connection to each MCP server.</li>
-<li>The previous agent and its MCP connections are closed (stdio servers exit) once the invocation that asked for the reload has finished; until then that run keeps using the tools it started with.</li>
-<li>The rebuild count is incremented.</li>
-<li>A new invocation resumes with the updated agent.</li>
-</ol>
-<p>If the rebuild fails, the process keeps the previous agent, and the change is undone: the instructions, tool or server the meta-tool added is removed again, so a later start does not apply it.</p>
-<h3 id="max_rebuilds"><code>max_rebuilds</code><a class="headerlink" href="#max_rebuilds" title="Link to this section">&para;</a></h3>
-<p>If <code>OpenModeConfig.max_rebuilds</code> is set, the process refuses further modifications once that many hot reloads have happened. The limit counts over the lifetime of the <code>AgentProcess</code> object: <code>stop()</code> / <code>start()</code>, crash recovery and <code>restart_policy</code> restarts do not reset it (<code>status()["rebuild_count"]</code>).</p>
-<p>A refused change is not made at all. <code>modify_instructions</code>, <code>create_tool</code> and <code>connect_mcp_server</code> answer <code>Error: max rebuilds (N) reached; the change was not applied</code>, and the process's instructions, custom tools and servers stay as they were, so a restart does not apply the refused change either. The limit is checked before the change is staged, under the same lock as the rebuild.</p>
-<p><code>rollback()</code> is not refused by the limit: it is how an operator undoes the agent's changes. It counts as a rebuild.</p>
-<hr />
-<h2 id="programmatic-creation">Programmatic Creation<a class="headerlink" href="#programmatic-creation" title="Link to this section">&para;</a></h2>
-<p>The <code>create_meta_tools</code> factory builds the tool list based on <code>OpenModeConfig</code> permissions:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.meta_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_meta_tools</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">tools</span> <span class="o">=</span> <span class="n">create_meta_tools</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Returns only the tools permitted by process.config.open_mode</span>
+<p>No parameters. Returns the process name, mode and model, the current instructions (first 200 characters), custom tool names, config and dynamic trigger IDs, spawned processes, memory status, conversation size, and the invocation and rebuild counts:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Process: monitor
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Mode: open
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>Model: openai:gpt-5-mini
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>Instructions: You coordinate carefully.
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>Custom tools: ['add']
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>Static triggers: []
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>Dynamic triggers: []
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>Spawned processes: ['helper']
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>Memory: disabled
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>Conversation buffer: 0 messages
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>Invocations: 0
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>Rebuilds: 2
 </span></code></pre></div>
 <hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<h2 id="security">Security<a class="headerlink" href="#security" title="Link to this section">&para;</a></h2>
+<p>Open mode gives the model the same levers an operator has, within <code>OpenModeConfig</code>. Plan for a model that has been talked into misusing them.</p>
 <table>
 <thead>
 <tr>
-<th>Function</th>
-<th>Description</th>
+<th>Capability</th>
+<th>Risk</th>
+<th>What limits it</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>create_meta_tools(process, *, runtime=None)</code></td>
-<td>Factory: build meta-tools filtered by <code>OpenModeConfig</code></td>
+<td><code>create_tool</code> (<code>allow_tool_creation</code>, on by default)</td>
+<td>Runs model-written Python in the runtime's process: effectively any command as the runtime's user</td>
+<td>Nothing contains it. Switch it off unless that is acceptable; the control API refuses it without <code>allow_command_deploys</code></td>
 </tr>
 <tr>
-<td><code>modify_instructions</code></td>
-<td>Change agent system prompt</td>
+<td><code>connect_mcp_server</code> (<code>allow_mcp_connect</code>)</td>
+<td>Sends requests (and tool arguments) to a server the model picked</td>
+<td><code>allowed_mcp_urls</code>; without it, internal addresses are refused and API deploys get none. Agent-connected servers never get the process identity's credential or a caller's token (<code>identity_mcp_urls</code> opts a URL in)</td>
 </tr>
 <tr>
-<td><code>create_tool</code></td>
-<td>Define new Python tool</td>
+<td><code>add_trigger</code> (<code>allow_trigger_management</code>)</td>
+<td>Opens new entry points (webhooks, file watchers)</td>
+<td>Webhooks on loopback only unless <code>allow_public_webhooks</code> (then signed); unsigned loopback webhooks refuse browser cross-site requests; API deploys keep watch paths in <code>data_dir</code></td>
 </tr>
 <tr>
-<td><code>connect_mcp_server</code></td>
-<td>Connect to MCP server</td>
+<td><code>spawn_process</code> (<code>allow_process_spawn</code>, off by default)</td>
+<td>New processes with their own triggers</td>
+<td>Children inherit the guardrails, hooks and deploy policy, can't spawn further, and follow the <code>add_trigger</code> webhook rules</td>
 </tr>
 <tr>
-<td><code>add_trigger</code></td>
-<td>Add any trigger type (cron, event, message, webhook, file_watch, custom)</td>
-</tr>
-<tr>
-<td><code>remove_trigger</code></td>
-<td>Remove dynamic trigger</td>
-</tr>
-<tr>
-<td><code>spawn_process</code></td>
-<td>Create and start a new agent process</td>
-</tr>
-<tr>
-<td><code>list_processes</code></td>
-<td>List all runtime processes</td>
-</tr>
-<tr>
-<td><code>store_memory</code></td>
-<td>Store in long-term memory</td>
-</tr>
-<tr>
-<td><code>search_memory</code></td>
-<td>Search long-term memory</td>
-</tr>
-<tr>
-<td><code>forget_memory</code></td>
-<td>Delete a memory</td>
-</tr>
-<tr>
-<td><code>list_capabilities</code></td>
-<td>Introspect current state</td>
+<td><code>get_secret</code> (secret scoping on)</td>
+<td>The model reads secret values</td>
+<td>Secret values are redacted from the journal, the prompt history, <code>/ask</code> answers and inbox listings; an API deploy can't make a secret out of a host environment variable unless the operator allows it</td>
 </tr>
 </tbody>
 </table>
+<p>Hooks are the place for your own policy: a <code>config_change</code> hook (<code>source="agent"</code>) can refuse any self-modification, <code>subagent_start</code> any spawn, and <code>permission_request</code> any approval-gated tool call, for spawned children too.</p>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Start restrictive, then expand</p>
-<p>Begin with minimal permissions and only enable what the agent actually needs. For example, <code>allow_mcp_connect=False</code> prevents the agent from reaching out to arbitrary servers.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Use allowed_mcp_urls in production</p>
-<p>Whitelisting MCP server URLs prevents the agent from connecting to untrusted endpoints. An empty list means any URL is allowed.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Sandbox limitations</p>
-<p>Sandboxed tools cannot import any modules, read/write files, or make network calls. <code>sandbox_custom_tools=False</code> only adds imports from a small standard-library allowlist (<code>json</code>, <code>math</code>, <code>re</code>, <code>datetime</code>, ...); files and network stay out of reach. If the agent needs those, provide them through MCP servers.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Hot-reload cost</p>
-<p>Each hot-reload rebuilds the agent graph, which involves reconnecting MCP servers and re-initializing tools. Frequent modifications can add latency. Use <code>max_rebuilds</code> to cap this.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Dynamic triggers persist until process stop</p>
-<p>Triggers added via <code>add_trigger</code> run until explicitly removed or the process stops. They are not persisted across restarts.</p>
-</div>
+<h2 id="hot-reload">Hot reload<a class="headerlink" href="#hot-reload" title="Link to this section">&para;</a></h2>
+<p><code>modify_instructions</code>, <code>create_tool</code> and <code>connect_mcp_server</code> rebuild the agent:</p>
+<ol>
+<li>The limits are checked and the <code>config_change</code> hook runs; a refusal stops here, with nothing changed.</li>
+<li>The change is staged and the conversation history saved.</li>
+<li>The agent is rebuilt from the static config plus the dynamic state, with a fresh connection to each MCP server.</li>
+<li>The previous agent and its MCP connections are closed (stdio servers exit) once the run that asked for the reload has finished; until then that run keeps the tools it started with.</li>
+<li>The conversation history is restored and <code>rebuild_count</code> goes up.</li>
+</ol>
+<p>If the rebuild fails, the process keeps the previous agent and the change is undone, so a later start doesn't apply it either.</p>
+<h3 id="max_rebuilds">max_rebuilds<a class="headerlink" href="#max_rebuilds" title="Link to this section">&para;</a></h3>
+<p>With <code>OpenModeConfig.max_rebuilds</code> set, the process refuses further changes once that many hot reloads have happened. The limit counts over the lifetime of the <code>AgentProcess</code> object: <code>stop()</code> / <code>start()</code>, recovery and automatic restarts don't reset it (<code>status()["rebuild_count"]</code>). A refused change is not made at all; the limit is checked before the change is staged, under the same lock as the rebuild.</p>
+<h3 id="rollback">rollback<a class="headerlink" href="#rollback" title="Link to this section">&para;</a></h3>
+<p><code>await process.rollback()</code> is the operator's undo: it removes the agent's instructions, tools, MCP servers and triggers and rebuilds from the original config. It is not refused by <code>max_rebuilds</code> but counts as a rebuild, and it returns <code>Rebuild successful</code>. It keeps the context state and conversation; use <a href="../journal/rewind/"><code>rewind()</code></a> to roll those back. Strict-mode processes raise <code>RuntimeError</code>.</p>
+<h3 id="what-survives-a-restart">What survives a restart<a class="headerlink" href="#what-survives-a-restart" title="Link to this section">&para;</a></h3>
+<p>Agent-written instructions, custom tools and MCP servers stay on the process object, so <code>stop()</code> / <code>start()</code> and automatic restarts rebuild the agent with them. Agent-added triggers end at <code>stop()</code>. A new process object (a redeploy) starts from the config only.</p>
 <hr />
-<h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="programmatic-use">Programmatic use<a class="headerlink" href="#programmatic-use" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.meta_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_meta_tools</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">tools</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">create_meta_tools</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="n">runtime</span><span class="o">=</span><span class="n">runtime</span><span class="p">)}</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nb">print</span><span class="p">(</span><span class="k">await</span> <span class="n">tools</span><span class="p">[</span><span class="s2">"add_trigger"</span><span class="p">]</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"trigger_type"</span><span class="p">:</span> <span class="s2">"cron"</span><span class="p">,</span> <span class="s2">"cron_expression"</span><span class="p">:</span> <span class="s2">"*/5 * * * *"</span><span class="p">}))</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># Trigger 'cron-36042769' (cron) added and listening.</span>
+</span></code></pre></div>
+<p><code>create_meta_tools(process, *, runtime=None)</code> returns LangChain <code>StructuredTool</code>s filtered by <code>process.config.open_mode</code>. Without <code>runtime</code>, <code>spawn_process</code> and <code>list_processes</code> answer with the "not running inside an AgentRuntime" error. Calling the tools directly is useful in tests; the process adds them to its own agent by itself.</p>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../configuration/">Configuration</a> -- <code>ExecutionMode</code> and <code>OpenModeConfig</code> reference</li>
-<li><a href="../context/">Context</a> -- the state and memory layer meta-tools interact with</li>
-<li><a href="../triggers/">Triggers Overview</a> -- trigger types that can be added dynamically</li>
+<li><strong>Spawning without a runtime.</strong> A bare <code>AgentProcess</code> can't spawn; register it with <code>AgentRuntime.add_process()</code> (which passes the runtime) or pass <code>runtime=</code>.</li>
+<li><strong>Expecting the new tool in the same run.</strong> Created tools and connected servers are available from the next run.</li>
+<li><strong>Leaving <code>max_rebuilds</code> unset.</strong> Each hot reload reconnects every MCP server. A cap bounds both the cost and how far the agent can drift.</li>
+<li><strong>Assuming a child has the parent's secrets or tools.</strong> A spawned process gets the parent's limits and hooks, not its secrets or servers.</li>
+<li><strong>Treating the sandbox as isolation.</strong> Restricted builtins don't contain hostile code: <code>create_tool</code> can run any command as the runtime's user. Set <code>allow_tool_creation=False</code> unless that is acceptable, and use the Docker sandbox or MCP tools for anything sensitive.</li>
+<li><strong>Empty <code>allowed_mcp_urls</code>.</strong> For your own process it means any public HTTP(S) URL (a warning says so at start); for an API deploy it means none. List the servers the agent may use, or set <code>allow_mcp_connect=False</code>.</li>
+</ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../configuration/#openmodeconfig">Configuration</a> -- every <code>OpenModeConfig</code> field</li>
+<li><a href="../hooks/">Runtime Hooks</a> -- refuse an agent's change with a <code>config_change</code> or <code>subagent_start</code> hook</li>
+<li><a href="../runtime-manager/">Runtime Manager</a> -- the runtime spawned processes join</li>
+<li><a href="../triggers/">Triggers Overview</a> -- the trigger types <code>add_trigger</code> can create</li>
+<li><a href="../context/">Context</a> -- the state and memory the memory tools use</li>
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
 <li><a href="https://www.promptise.com/guides/view/self-modifying-ai-agent-open-mode">Self-Modifying AI Agent in Python: Open Mode &amp; Limits</a> -- Meta-tools, hot reload and the limits that keep open mode bounded.</li>
+<li><a href="https://www.promptise.com/guides/view/autonomous-ai-agent-runtime">Autonomous AI Agent Runtime: Budgets, Crash Recovery, API</a> -- The budgets and controls around an agent that changes itself.</li>
 </ul>
 </div>
 
@@ -10390,7 +10714,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 22:24:07 UTC">2026-10-19</span>
   </span>
 
     

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Voyager-style 'the agent writes its own skills' is thrilling until the function it authored opens a socket or reads /etc/passwd. A threat-model deep dive on…">
+        <meta name="description" content="Learn what a function written by your own agent could reach, how restricted builtins and a tool cap guard it, and when to move that code into a Docker sandbox.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="The Hidden Risk of Letting an Agent Write Its Own Tools">
-  <meta property="og:description" content="Voyager-style 'the agent writes its own skills' is thrilling until the function it authored opens a socket or reads /etc/passwd. A threat-model deep dive on…">
+  <meta property="og:description" content="Learn what a function written by your own agent could reach, how restricted builtins and a tool cap guard it, and when to move that code into a Docker sandbox.">
   <meta property="og:url" content="https://docs.promptise.com/blog/let-an-agent-write-its-own-tools-safely/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="The Hidden Risk of Letting an Agent Write Its Own Tools">
-  <meta name="twitter:description" content="Voyager-style 'the agent writes its own skills' is thrilling until the function it authored opens a socket or reads /etc/passwd. A threat-model deep dive on…">
+  <meta name="twitter:description" content="Learn what a function written by your own agent could reach, how restricted builtins and a tool cap guard it, and when to move that code into a Docker sandbox.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "The Hidden Risk of Letting an Agent Write Its Own Tools",
       "name": "The Hidden Risk of Letting an Agent Write Its Own Tools",
-      "description": "Voyager-style \u0027the agent writes its own skills\u0027 is thrilling until the function it authored opens a socket or reads /etc/passwd. A threat-model deep dive on\u2026",
+      "description": "Learn what a function written by your own agent could reach, how restricted builtins and a tool cap guard it, and when to move that code into a Docker sandbox.",
       "url": "https://docs.promptise.com/blog/let-an-agent-write-its-own-tools-safely/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9477,7 +9428,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
                           <span class="md-ellipsis">
                             
-                              10 min read
+                              9 min read
                             
                           </span>
                         </div>
@@ -9633,7 +9584,7 @@
 <p>The agent writes a <code>run(**kwargs) -&gt; str</code> that adds up the digits and calls it. If the same model had instead written <code>import os; return open("/etc/passwd").read()</code> — whether by hallucination or injection — the import would raise <code>ImportError</code> and <code>open</code> would raise <code>NameError</code> before a single byte left the box. The capability lands; the blast radius does not.</p>
 <h2 id="where-the-in-process-guard-ends-and-the-docker-sandbox-begins">Where the in-process guard ends and the Docker sandbox begins<a class="headerlink" href="#where-the-in-process-guard-ends-and-the-docker-sandbox-begins" title="Link to this section">&para;</a></h2>
 <p>Now the honest part, because agent-generated tool security is exactly where hand-waving gets people breached. The restricted-builtins sandbox is <strong>defense-in-depth, not a hard security boundary</strong>, and Promptise's own source says so in the <code>create_tool</code> builder's docstring. Python's object model is expansive: a determined adversary who fully controls the code string can attempt <code>getattr</code>-based traversal — walking from an allowed object, through <code>__class__</code> and <code>__subclasses__</code>, toward something dangerous — that a pure builtins allowlist does not categorically stop. The restricted namespace defeats the naive, the accidental, and the hallucinated attack, and it raises the bar sharply against injection. It does not make a truly untrusted, adversarial code body safe on its own.</p>
-<p>That is the distinction between this guard and Promptise's Docker sandbox, and it is deliberate. <code>create_tool</code>'s restricted builtins are the <strong>lightweight, in-process</strong> guard for the tools an agent authors about <em>itself</em> — cheap, always-on, no daemon required, right for adaptive agents doing computation. When the code is genuinely untrusted, you layer the real boundary underneath: the Docker sandbox gives you a read-only rootfs, roughly 40 dropped Linux capabilities, Docker's default seccomp profile, resource limits, and a configurable network mode (defaulting to <code>none</code>), so even a successful object-model escape lands in a container built to refuse it. The two compose — restricted builtins keep the everyday case honest; the container contains the adversarial case. The full layer-by-layer configuration is in the <a href="../../core/sandbox/">sandbox reference</a>, and the operational playbook for combining them is in <a href="../run-ai-generated-code-safely/">How to Run AI-Generated Code Safely: The 2026 Field Guide</a>.</p>
+<p>That is the distinction between this guard and Promptise's Docker sandbox, and it is deliberate. <code>create_tool</code>'s restricted builtins are the <strong>lightweight, in-process</strong> guard for the tools an agent authors about <em>itself</em> — cheap, always-on, no daemon required, right for adaptive agents doing computation. When the code is genuinely untrusted, you layer the real boundary underneath: the Docker sandbox gives you a read-only rootfs, roughly 40 dropped Linux capabilities, Docker's default seccomp profile, resource limits, and a configurable network mode (defaulting to <code>none</code>), so even a successful object-model escape lands in a container built to refuse it. The two compose — restricted builtins keep the everyday case honest; the container contains the adversarial case. The full layer-by-layer configuration is in the <a href="../../core/sandbox/">sandbox reference</a>, and <a href="https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python">AI Agent Code Execution Sandbox: Run LLM Code Safely</a> covers sandboxing LLM-written code more broadly.</p>
 <p>The one thing you should never do is reach for <code>sandbox_custom_tools=False</code>. It lifts the builtins restriction and is only defensible in a trusted, reviewed environment — treat it as a red flag, not a shortcut.</p>
 <h2 id="what-other-frameworks-do-today">What other frameworks do today<a class="headerlink" href="#what-other-frameworks-do-today" title="Link to this section">&para;</a></h2>
 <p>To be fair and precise: sandboxing model-written code is not something Promptise invented, and some frameworks ship real container isolation. The gap is narrower and more specific than "nobody else does this."</p>
@@ -9653,7 +9604,7 @@
 <h3 id="can-i-turn-the-restriction-off">Can I turn the restriction off?<a class="headerlink" href="#can-i-turn-the-restriction-off" title="Link to this section">&para;</a></h3>
 <p>You can set <code>sandbox_custom_tools=False</code>, which lifts the builtins restriction. Only do this in a trusted, reviewed environment. If your agent's tools need file or network I/O, the right move is to provide those as reviewed MCP tools rather than disabling the guard.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Enable open mode with <code>sandbox_custom_tools=True</code> and let your agent build tools without handing it a blank check — start from the runnable example above, keep <code>max_custom_tools</code> tight, and grant only <code>allow_tool_creation</code>. Then read the <a href="../../runtime/meta-tools/">meta-tools reference</a> for the full <code>create_tool</code> schema, the <a href="../../core/sandbox/">sandbox reference</a> to layer real container isolation under untrusted code, and <a href="../run-ai-generated-code-safely/">How to Run AI-Generated Code Safely: The 2026 Field Guide</a> for the end-to-end production checklist.</p>
+<p>Enable open mode with <code>sandbox_custom_tools=True</code> and let your agent build tools without handing it a blank check — start from the runnable example above, keep <code>max_custom_tools</code> tight, and grant only <code>allow_tool_creation</code>. Then read the <a href="../../runtime/meta-tools/">meta-tools reference</a> for the full <code>create_tool</code> schema, the <a href="../../core/sandbox/">sandbox reference</a> to layer real container isolation under untrusted code, and <a href="https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python">AI Agent Code Execution Sandbox: Run LLM Code Safely</a> for the wider sandboxing picture.</p>
 
 
 
@@ -9676,7 +9627,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:47:11 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

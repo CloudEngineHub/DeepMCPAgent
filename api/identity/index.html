@@ -777,8 +777,6 @@
       
         
       
-        
-      
     
     
     
@@ -1016,34 +1014,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5905,6 +5875,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5924,8 +5898,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5939,8 +5914,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5952,6 +5933,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8979,8 +8962,6 @@
       
         
       
-        
-      
     
     
     
@@ -9133,36 +9114,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -13713,7 +13664,7 @@ Defaults to five seconds; the metadata server is link-local.</p>
 
 
 
-        <p>SPIFFE credential source using the Workload API via pyspiffe.</p>
+        <p>SPIFFE credential source using the Workload API via py-spiffe.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -14401,7 +14352,7 @@ expiry. Returns an empty dict if anything is malformed.</p>
 <li>Conflicting arguments were supplied (for example, both
   <code>token_file</code> and <code>token_fn</code> to the OIDC credential).</li>
 <li>A required optional dependency is missing — boto3 for AWS, or
-  pyspiffe for SPIFFE SDK mode. The exception message names the
+  py-spiffe (the <code>spiffe</code> package) for SPIFFE SDK mode. The exception message names the
   exact <code>pip install</code> command that resolves it.</li>
 </ul>
 

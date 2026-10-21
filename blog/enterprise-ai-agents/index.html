@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A decision page for tech leads evaluating a framework: three concrete industry builds (support, engineering, finance) sharing the same production spine …">
+        <meta name="description" content="See three enterprise AI agent builds, for customer support, engineering and finance, that share one production setup: auth, tenant isolation, approvals, audit.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Enterprise AI Agents: Support, Engineering & Finance">
-  <meta property="og:description" content="A decision page for tech leads evaluating a framework: three concrete industry builds (support, engineering, finance) sharing the same production spine …">
+  <meta property="og:description" content="See three enterprise AI agent builds, for customer support, engineering and finance, that share one production setup: auth, tenant isolation, approvals, audit.">
   <meta property="og:url" content="https://docs.promptise.com/blog/enterprise-ai-agents/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Enterprise AI Agents: Support, Engineering & Finance">
-  <meta name="twitter:description" content="A decision page for tech leads evaluating a framework: three concrete industry builds (support, engineering, finance) sharing the same production spine …">
+  <meta name="twitter:description" content="See three enterprise AI agent builds, for customer support, engineering and finance, that share one production setup: auth, tenant isolation, approvals, audit.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Enterprise AI Agents: Support, Engineering \u0026 Finance",
       "name": "Enterprise AI Agents: Support, Engineering \u0026 Finance",
-      "description": "A decision page for tech leads evaluating a framework: three concrete industry builds (support, engineering, finance) sharing the same production spine \u2026",
+      "description": "See three enterprise AI agent builds, for customer support, engineering and finance, that share one production setup: auth, tenant isolation, approvals, audit.",
       "url": "https://docs.promptise.com/blog/enterprise-ai-agents/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9491,10 +9442,6 @@
 <p>Building <strong>enterprise AI agents</strong> for three different departments usually turns into three different projects, three security reviews, and three sets of integration code that share nothing. That is the trap this post breaks. If you are a tech lead evaluating a framework, you do not want a gallery of one-off demos — you want proof that the same primitives carry from a support bot to an engineering assistant to a finance reporting agent, so your second build is faster than your first. By the end you will see the same production spine — automatic tool discovery, local PII and credential guardrails, and per-tenant isolation — powering all three, in code you can run.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="the-shared-spine-behind-every-enterprise-ai-agent">The shared spine behind every enterprise AI agent<a class="headerlink" href="#the-shared-spine-behind-every-enterprise-ai-agent" title="Link to this section">&para;</a></h2>
 <p>Most demos fall apart the moment you ask "what changes when the second team wants one?" A durable <strong>production AI agent framework</strong> answers that by making the hard parts shared infrastructure, not per-project glue. In Promptise Foundry, every one of the builds below reuses exactly three things:</p>
 <ul>
@@ -9553,7 +9500,7 @@
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">guardrails</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">)</span>
 </span></code></pre></div>
-<p>Two details matter at engineering scale. First, when many servers expose dozens of tools, sending every schema on every call wastes context. Promptise's semantic tool optimization selects only the tools relevant to each query using local embeddings; the docs report <strong>40–70% fewer tokens</strong> in that mode. Second, an engineering assistant that can act — restart a job, open an incident — is where you compose approval gates and per-tool guards on the server side, so a human confirms the irreversible calls. Once you have more than one specialist agent (a triage agent handing off to a remediation agent, say), the coordination primitives are covered in the <a href="../../guides/multi-agent-teams/">Multi-Agent Coordination guide</a> and, at article length, in <a href="../multi-agent-systems-python/">How to Build Multi-Agent Systems in Python: 2026 Guide</a>.</p>
+<p>Two details matter at engineering scale. First, when many servers expose dozens of tools, sending every schema on every call wastes context. Promptise's semantic tool optimization selects only the tools relevant to each query using local embeddings; the docs report <strong>40–70% fewer tokens</strong> in that mode. Second, an engineering assistant that can act — restart a job, open an incident — is where you compose approval gates and per-tool guards on the server side, so a human confirms the irreversible calls. Once you have more than one specialist agent (a triage agent handing off to a remediation agent, say), the coordination primitives are covered in the <a href="../../guides/multi-agent-teams/">Multi-Agent Coordination guide</a> and, at article length, in <a href="https://www.promptise.com/guides/view/multi-agent-system-python">Build a Multi-Agent System in Python (and When Not To)</a>.</p>
 <h2 id="build-3-finance-a-secure-enterprise-agent-with-hard-tenant-isolation">Build 3 — Finance: a secure enterprise agent with hard tenant isolation<a class="headerlink" href="#build-3-finance-a-secure-enterprise-agent-with-hard-tenant-isolation" title="Link to this section">&para;</a></h2>
 <p>Finance is where "<strong>secure enterprise agent</strong>" stops being a slogan. A reporting agent that serves multiple business units — or a SaaS product that serves multiple customers — cannot let one tenant read another's ledger, and it must never leak account numbers or credentials into a response. The spine already handles the second concern through <code>guardrails=True</code>. For the first, you enforce tenancy on the server that owns the sensitive tools:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.mcp.server</span><span class="w"> </span><span class="kn">import</span> <span class="n">MCPServer</span><span class="p">,</span> <span class="n">AuthMiddleware</span><span class="p">,</span> <span class="n">JWTAuth</span>
@@ -9576,7 +9523,7 @@
 <h2 id="when-another-framework-is-the-better-fit">When another framework is the better fit<a class="headerlink" href="#when-another-framework-is-the-better-fit" title="Link to this section">&para;</a></h2>
 <p>Promptise is opinionated toward MCP-native, secure-by-default, production agents, and that is not free weight for everyone.</p>
 <ul>
-<li><strong>A single throwaway prototype.</strong> If you are proving one idea over a weekend with no auth, no tenants, and no compliance surface, a thinner library or a raw provider SDK gets you there with less to learn.</li>
+<li><strong>A single throwaway prototype.</strong> If you are proving one idea over a weekend with no auth, no tenants, and no sensitive data, a thinner library or a raw provider SDK gets you there with less to learn.</li>
 <li><strong>A non-MCP tool ecosystem you will not migrate.</strong> Promptise integrates tools through the Model Context Protocol. If your tools are locked to another calling convention and you have no plan to wrap them as MCP servers, a framework built around that convention fits your reality better.</li>
 <li><strong>Deep single-vendor lock-in you are happy with.</strong> If you have standardized on one cloud's agent service and never need to move models or self-host guardrails, its native tooling may integrate more tightly than a portable framework.</li>
 </ul>
@@ -9612,7 +9559,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

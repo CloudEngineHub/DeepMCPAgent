@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,211 +9257,6 @@
           
           <li class="md-meta__item">
             
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ai-agent-memory-the-complete-guide-for-python-devs"><a class="toclink" href="../../ai-agent-memory/">AI Agent Memory: The Complete Guide for Python Devs</a></h2>
-<p>AI agent memory is not one feature — it is a stack of four distinct layers, and most guides only ever cover one of them. They pick a vector database, wire up a <code>search()</code> call, and declare the problem solved. That leaves you with an agent that recalls old facts but re-reads your entire conversation on every turn, recomputes identical answers, and blows past the context window the moment history gets long. This guide maps the whole stack: short-term conversation history, long-term vector memory, the semantic cache, and context budgeting. For each layer you'll see exactly which problem it solves and the runnable Python that turns it on in Promptise Foundry.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../ai-agent-memory/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="context-window-management-for-llm-agents-explained"><a class="toclink" href="../../context-window-management/">Context Window Management for LLM Agents, Explained</a></h2>
-<p>Context window management is the difference between an agent that answers the question you asked and one that silently drops it. Every call your agent makes stuffs a system prompt, tool definitions, retrieved memory, and conversation history into a single request — and when that request outgrows the model's window, something has to go. Do nothing and the model either errors out or truncates from wherever the framework happened to stop, which is often the user's latest message. By the end of this post you'll know how to count tokens exactly, assign priorities to every piece of context, and trim gracefully so the parts that matter always survive.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../context-window-management/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="conversation-persistence-for-llm-agents-in-python"><a class="toclink" href="../../conversation-persistence/">Conversation Persistence for LLM Agents in Python</a></h2>
-<p>Conversation persistence is the difference between a demo and a product: without it, every LLM agent forgets the last message the moment the process restarts, and a multi-user app happily serves one person's thread to another. Most tutorials hardcode a single database and quietly skip session ownership, so you inherit a rewrite the day you move from SQLite to Postgres — and a security bug you won't notice until someone reports it. This post shows how to persist chat history in Python behind one <code>ConversationStore</code> protocol, swap backends without touching application code, and enforce session ownership so users can only load their own conversations.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../conversation-persistence/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="llm-long-term-memory-in-python-a-practical-guide"><a class="toclink" href="../../llm-long-term-memory/">LLM Long-Term Memory in Python: A Practical Guide</a></h2>
-<p>Adding <strong>LLM long-term memory</strong> to a Python agent is where most tutorials go quiet. They show you how to embed a string and push it into a vector database, then stop — as if storage were the whole job. It isn't. The hard half is retrieval: deciding <em>what</em> to pull back, <em>when</em> to inject it, and <em>how</em> to keep the loop identical whether you're running an in-memory stub in tests or a persistent store in production. By the end of this guide you'll have a working memory loop that auto-searches and injects relevant context before every model call, and you'll be able to swap backends by changing a single line.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../llm-long-term-memory/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="stop-context-bloat-in-long-running-ai-agents"><a class="toclink" href="../../long-running-agent-context-bloat/">Stop Context Bloat in Long-Running AI Agents</a></h2>
-<p><strong>Long-running agent context bloat</strong> is the reason a deep tool-calling task that looked great in your demo becomes slow, expensive, and subtly wrong in production. Every tool call appends its request and result to the transcript, so by the twentieth call the model is re-reading a growing wall of its own past work on every turn — losing the thread, re-querying facts it already fetched, and paying for thousands of redundant tokens each time. This post is the Promptise Foundry decision guide for <code>context_scope</code>, the node-level lever that keeps a 30-tool task bounded instead of drowning in the middle. By the end you'll know which of the four modes to reach for, and you'll have a runnable example that stays flat while a naive loop balloons.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../long-running-agent-context-bloat/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               6 min read
             
           </li>
@@ -9527,88 +9273,6 @@
     
       <nav class="md-post__action">
         <a href="../../rag-for-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="cut-llm-token-costs-with-semantic-tool-selection"><a class="toclink" href="../../reduce-llm-token-cost/">Cut LLM Token Costs with Semantic Tool Selection</a></h2>
-<p>If you want to reduce LLM token cost on an agent that calls tools, the first place to look is almost never the conversation — it's the tool schemas you re-send on every single request. Connect an agent to a few MCP servers and you can easily be shipping 20–50 tool definitions, each with a name, description, and full JSON Schema, on every turn — thousands of tokens the model reads before it even sees the user's question. This post shows why that cost is hidden, and how per-query semantic tool selection trims it, with a <code>request_more_tools</code> fallback so the agent self-recovers when selection misses. By the end you'll have a runnable agent that only pays for the tools each query actually needs.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../reduce-llm-token-cost/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="semantic-caching-for-llms-cut-api-costs-30-50"><a class="toclink" href="../../semantic-cache-for-llms/">Semantic Caching for LLMs: Cut API Costs 30-50%</a></h2>
-<p>A semantic cache for LLMs serves a stored answer when a new question <em>means</em> the same thing as one you already answered — not just when the two strings match byte for byte. That is the difference between a cache that almost never hits (exact-match) and one that quietly absorbs the "how do refunds work?" / "what's your refund policy?" / "can I get my money back?" long tail that real users type. This post skips the tutorial-grade theory and focuses on the two things that decide whether similarity-based caching is safe in production, then shows you how to turn it on in Promptise Foundry with one argument and measure your real hit rate before you commit.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../semantic-cache-for-llms/">
           Continue reading
         </a>
       </nav>

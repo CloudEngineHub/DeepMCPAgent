@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A deep dive into the credential-exfiltration path nobody instruments: API keys, DB URLs, and private keys leaking through prompts, tool arguments, or…">
+        <meta name="description" content="Learn how to stop API keys, database URLs and private keys from leaking through LLM prompts, tool arguments and sandboxed code with local secret detection.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../secure-agent-to-agent-communication/">
       
       
-        <link rel="next" href="../scheduled-ai-agent/">
+        <link rel="next" href="../sandbox-agent-code-with-no-network/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Stop Secrets Leaking into LLM Prompts & Tool Calls">
-  <meta property="og:description" content="A deep dive into the credential-exfiltration path nobody instruments: API keys, DB URLs, and private keys leaking through prompts, tool arguments, or…">
+  <meta property="og:description" content="Learn how to stop API keys, database URLs and private keys from leaking through LLM prompts, tool arguments and sandboxed code with local secret detection.">
   <meta property="og:url" content="https://docs.promptise.com/blog/secret-detection-for-llm/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Stop Secrets Leaking into LLM Prompts & Tool Calls">
-  <meta name="twitter:description" content="A deep dive into the credential-exfiltration path nobody instruments: API keys, DB URLs, and private keys leaking through prompts, tool arguments, or…">
+  <meta name="twitter:description" content="Learn how to stop API keys, database URLs and private keys from leaking through LLM prompts, tool arguments and sandboxed code with local secret detection.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Stop Secrets Leaking into LLM Prompts \u0026 Tool Calls",
       "name": "Stop Secrets Leaking into LLM Prompts \u0026 Tool Calls",
-      "description": "A deep dive into the credential-exfiltration path nobody instruments: API keys, DB URLs, and private keys leaking through prompts, tool arguments, or\u2026",
+      "description": "Learn how to stop API keys, database URLs and private keys from leaking through LLM prompts, tool arguments and sandboxed code with local secret detection.",
       "url": "https://docs.promptise.com/blog/secret-detection-for-llm/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9491,10 +9442,6 @@
 <p>Secret detection for LLM systems is the guardrail almost nobody instruments, and it is the one that quietly turns a helpful agent into an exfiltration channel. Everyone hardens the obvious surfaces — auth on the API, TLS on the wire, secrets in a vault — and then pipes raw user input, model output, and tool arguments straight past all of it. An API key pasted into a support chat, a <code>DATABASE_URL</code> echoed back in a debugging answer, an RSA private key baked into code the sandbox is about to run: each one is a credential leaving your trust boundary in plain text. By the end of this article you will know exactly where those leaks happen and how to layer a local, zero-network <code>CredentialDetector</code> over your agent so keys get caught the moment they appear.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="the-credential-exfiltration-path-nobody-instruments">The credential-exfiltration path nobody instruments<a class="headerlink" href="#the-credential-exfiltration-path-nobody-instruments" title="Link to this section">&para;</a></h2>
 <p>Traditional secret scanning lives in CI. Tools like gitleaks and trufflehog scan commits, so a key that lands in git history gets flagged before merge. That is necessary, but agents opened four new leak paths that never touch a repository:</p>
 <ul>
@@ -9566,7 +9513,7 @@
 <li><strong>On generated code:</strong> run <code>await scanner.scan_text(code)</code> on any snippet before it reaches the executor, and refuse or redact when a credential pattern fires. This is your last line of <code>API key leak prevention</code> for LLM-authored code.</li>
 <li><strong>On the sandbox itself:</strong> keep network isolation set to <code>none</code> so that even a key that slips through cannot phone home. The sandbox's default posture — seccomp filtering, dropped capabilities, no network — means a leaked key inside the container has nowhere to go.</li>
 </ul>
-<p>Combining the two heads is the whole point of composable guardrails: <code>CredentialDetector</code> decides <em>what</em> is a secret, and the sandbox decides <em>what a leaked secret can do</em>. For the broader picture of how these detection heads fit together, the <a href="../llm-guardrails-python/">LLM Guardrails in Python guide</a> walks through all six risk classes end to end.</p>
+<p>Combining the two heads is the whole point of composable guardrails: <code>CredentialDetector</code> decides <em>what</em> is a secret, and the sandbox decides <em>what a leaked secret can do</em>. For the broader picture of how these detection heads fit together, see <a href="https://www.promptise.com/guides/view/ai-agent-guardrails-python">AI Agent Guardrails in Python: Block Injection, Redact PII</a>.</p>
 <h2 id="tune-categories-exclusions-and-standalone-scans">Tune categories, exclusions, and standalone scans<a class="headerlink" href="#tune-categories-exclusions-and-standalone-scans" title="Link to this section">&para;</a></h2>
 <p>Running all 96 patterns on every message is cheap, but you can narrow the surface when you know your threat model. Pass a set of <code>CredentialCategory</code> values to scan only what matters, or <code>exclude</code> specific pattern names that produce noise in your domain:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">PromptiseSecurityScanner</span><span class="p">,</span> <span class="n">CredentialDetector</span>
@@ -9587,13 +9534,13 @@
 </span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">PromptiseSecurityScanner</span><span class="o">.</span><span class="n">list_credential_patterns</span><span class="p">())</span>
 </span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1"># ['aws_access_key', 'github_pat', 'stripe_live', 'openai_key', ...]</span>
 </span></code></pre></div>
-<p>Because the scanner also detects prompt injection with a local model, credential detection pairs naturally with the injection head — an attacker who tries to trick the agent into dumping its environment variables trips both. If injection is your primary concern, <a href="../prompt-injection-detection/">How to Detect Prompt Injection Attacks in Python</a> covers that head in depth.</p>
+<p>Because the scanner also detects prompt injection with a local model, credential detection pairs naturally with the injection head — an attacker who tries to trick the agent into dumping its environment variables trips both. If injection is your primary concern, <a href="https://www.promptise.com/guides/view/ai-agent-prompt-injection-defense">AI Agent Prompt Injection: How to Defend Against It</a> covers it in depth.</p>
 <h2 id="when-gitleaks-or-trufflehog-is-the-better-fit">When gitleaks or trufflehog is the better fit<a class="headerlink" href="#when-gitleaks-or-trufflehog-is-the-better-fit" title="Link to this section">&para;</a></h2>
 <p>Runtime detection does not replace repository scanning, and it would be dishonest to pretend otherwise. If your goal is to keep secrets out of git history, out of build artifacts, or out of Terraform state, run gitleaks or trufflehog in CI and pre-commit hooks — they are purpose-built for filesystem and version-control scanning, support entropy-based detection of unknown key shapes, and can verify whether a leaked key is still live. <code>CredentialDetector</code> deliberately reuses their published patterns, but it is scoped to a different job: catching secrets in the live request/response and tool-call path of an agent, where CI never runs.</p>
 <p>Use both. CI scanning stops secrets from being committed; runtime detection stops secrets from being <em>spoken</em> — pasted into a prompt, echoed in an answer, or embedded in code an agent is about to execute. They cover disjoint surfaces, and mature systems need coverage on both.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="does-scanning-for-secrets-send-my-prompts-to-a-third-party">Does scanning for secrets send my prompts to a third party?<a class="headerlink" href="#does-scanning-for-secrets-send-my-prompts-to-a-third-party" title="Link to this section">&para;</a></h3>
-<p>No. <code>CredentialDetector</code> is 96 local regex patterns with a 0 MB footprint, executed in-process. Nothing about a scan leaves your infrastructure — which is the entire point, since a hosted "secret checker" would have to receive the secret to inspect it. This makes it safe for air-gapped and regulated environments.</p>
+<p>No. <code>CredentialDetector</code> is 96 local regex patterns with a 0 MB footprint, executed in-process. Nothing about a scan leaves your infrastructure — which is the entire point, since a hosted "secret checker" would have to receive the secret to inspect it. This makes it safe for air-gapped and no-egress environments.</p>
 <h3 id="what-happens-when-a-credential-is-detected">What happens when a credential is detected?<a class="headerlink" href="#what-happens-when-a-credential-is-detected" title="Link to this section">&para;</a></h3>
 <p>By default the matched span is redacted and replaced with a descriptive label (for example <code>AKIAIOSFODNN7EXAMPLE</code> becomes <code>[AWS_ACCESS_KEY]</code>), so the conversation continues without the raw key. Set <code>CredentialDetector(action=Action.BLOCK)</code> to reject the message outright with a <code>GuardrailViolation</code> instead. Every match is recorded as a structured <code>SecurityFinding</code> you can log or alert on.</p>
 <h3 id="can-i-detect-secrets-in-code-an-agent-writes-before-it-runs">Can I detect secrets in code an agent writes before it runs?<a class="headerlink" href="#can-i-detect-secrets-in-code-an-agent-writes-before-it-runs" title="Link to this section">&para;</a></h3>
@@ -9622,7 +9569,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

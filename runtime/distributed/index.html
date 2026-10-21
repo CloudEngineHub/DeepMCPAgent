@@ -6,37 +6,37 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes — secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.">
+        <meta name="description" content="Distributed mode lets several AgentRuntimes on different machines (or ports) work as one cluster. Each runtime runs a small management transport (an HTTP API">
       
       
         <meta name="author" content="Manser Ventures">
       
       
-        <link rel="canonical" href="https://docs.promptise.com/blog/archive/2026/page/9/">
+        <link rel="canonical" href="https://docs.promptise.com/runtime/distributed/">
       
       
-        <link rel="prev" href="../../../../category/use-cases/">
+        <link rel="prev" href="../journal/rewind/">
       
       
-        <link rel="next" href="../../../../../resources/showcase/">
+        <link rel="next" href="coordinator/">
       
       
         
       
       
-      <link rel="icon" href="../../../../../assets/favicon.png">
+      <link rel="icon" href="../../assets/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>2026 - Promptise Foundry</title>
+        <title>Distributed Mode - Promptise Foundry</title>
       
     
     
-      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -55,11 +55,11 @@
       
     
     
-      <link rel="stylesheet" href="../../../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../../../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -75,7 +75,7 @@
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/blog/archive/2026/page/9/">
+  <link rel="canonical" href="https://docs.promptise.com/runtime/distributed/">
 
   
   
@@ -92,9 +92,9 @@
   
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="2026">
-  <meta property="og:description" content="Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes — secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.">
-  <meta property="og:url" content="https://docs.promptise.com/blog/archive/2026/page/9/">
+  <meta property="og:title" content="Distributed Mode">
+  <meta property="og:description" content="Distributed mode lets several AgentRuntimes on different machines (or ports) work as one cluster. Each runtime runs a small management transport (an HTTP API">
+  <meta property="og:url" content="https://docs.promptise.com/runtime/distributed/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
   <meta property="og:image:height" content="640">
@@ -102,8 +102,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="2026">
-  <meta name="twitter:description" content="Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes — secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.">
+  <meta name="twitter:title" content="Distributed Mode">
+  <meta name="twitter:description" content="Distributed mode lets several AgentRuntimes on different machines (or ports) work as one cluster. Each runtime runs a small management transport (an HTTP API">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -177,10 +177,10 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "2026",
-      "name": "2026",
-      "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
-      "url": "https://docs.promptise.com/blog/archive/2026/page/9/",
+      "headline": "Distributed Mode",
+      "name": "Distributed Mode",
+      "description": "Distributed mode lets several AgentRuntimes on different machines (or ports) work as one cluster. Each runtime runs a small management transport (an HTTP API",
+      "url": "https://docs.promptise.com/runtime/distributed/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
         "@type": "WebSite",
@@ -233,20 +233,20 @@
       ,{
         "@type": "ListItem",
         "position": 2,
-        "name": "Blog"
+        "name": "Agent Runtime"
       }
       
       ,{
         "@type": "ListItem",
         "position": 3,
-        "name": "Archive"
+        "name": "Distributed"
       }
       
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "2026",
-        "item": "https://docs.promptise.com/blog/archive/2026/page/9/"
+        "name": "Distributed Mode",
+        "item": "https://docs.promptise.com/runtime/distributed/"
       }
     ]
   }
@@ -272,7 +272,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#2026" class="md-skip">
+        <a href="#distributed-mode" class="md-skip">
           Skip to content
         </a>
       
@@ -290,7 +290,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="https://promptise.com" title="Promptise Foundry" class="md-header__button md-logo" aria-label="Promptise Foundry" data-md-component="logo">
       
-  <img src="../../../../../assets/logo.png" alt="logo">
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -307,7 +307,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              2026
+              Distributed Mode
             
           </span>
         </div>
@@ -416,7 +416,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../.." class="md-tabs__link">
+        <a href="../.." class="md-tabs__link">
           
   
   
@@ -438,7 +438,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../guides/" class="md-tabs__link">
+        <a href="../../guides/" class="md-tabs__link">
           
   
   
@@ -460,7 +460,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../mcpcast/" class="md-tabs__link">
+        <a href="../../mcpcast/" class="md-tabs__link">
           
   
   
@@ -482,7 +482,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../core/" class="md-tabs__link">
+        <a href="../../core/" class="md-tabs__link">
           
   
   
@@ -504,7 +504,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../core/engine/" class="md-tabs__link">
+        <a href="../../core/engine/" class="md-tabs__link">
           
   
   
@@ -526,7 +526,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../mcp/" class="md-tabs__link">
+        <a href="../../mcp/" class="md-tabs__link">
           
   
   
@@ -544,11 +544,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../../../../runtime/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -570,7 +572,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../identity/overview/" class="md-tabs__link">
+        <a href="../../identity/overview/" class="md-tabs__link">
           
   
   
@@ -592,7 +594,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../prompting/" class="md-tabs__link">
+        <a href="../../prompting/" class="md-tabs__link">
           
   
   
@@ -621,7 +623,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../api/agent/" class="md-tabs__link">
+        <a href="../../api/agent/" class="md-tabs__link">
           
   
   
@@ -642,13 +644,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../../../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../blog/" class="md-tabs__link">
           
   
   
@@ -677,7 +677,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../../resources/showcase/" class="md-tabs__link">
+        <a href="../../resources/showcase/" class="md-tabs__link">
           
   
   
@@ -724,7 +724,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://promptise.com" title="Promptise Foundry" class="md-nav__button md-logo" aria-label="Promptise Foundry" data-md-component="logo">
       
-  <img src="../../../../../assets/logo.png" alt="logo">
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     Promptise Foundry
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -794,7 +792,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../.." class="md-nav__link ">
+            <a href="../.." class="md-nav__link ">
               
   
   
@@ -838,7 +836,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/installation-extras/" class="md-nav__link">
+      <a href="../../getting-started/installation-extras/" class="md-nav__link">
         
   
   
@@ -866,7 +864,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -894,7 +892,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/configuration/" class="md-nav__link">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
         
   
   
@@ -922,7 +920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/model-setup/" class="md-nav__link">
+      <a href="../../getting-started/model-setup/" class="md-nav__link">
         
   
   
@@ -950,7 +948,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/cookbook/" class="md-nav__link">
+      <a href="../../getting-started/cookbook/" class="md-nav__link">
         
   
   
@@ -978,7 +976,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/why-promptise/" class="md-nav__link">
+      <a href="../../getting-started/why-promptise/" class="md-nav__link">
         
   
   
@@ -1006,7 +1004,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/what-is-mcp/" class="md-nav__link">
+      <a href="../../getting-started/what-is-mcp/" class="md-nav__link">
         
   
   
@@ -1034,35 +1032,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../../../getting-started/concepts/" class="md-nav__link">
+      <a href="../../getting-started/concepts/" class="md-nav__link">
         
   
   
@@ -1090,7 +1060,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../getting-started/glossary/" class="md-nav__link">
+      <a href="../../getting-started/glossary/" class="md-nav__link">
         
   
   
@@ -1154,7 +1124,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../guides/" class="md-nav__link ">
+            <a href="../../guides/" class="md-nav__link ">
               
   
   
@@ -1272,7 +1242,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/building-agents/" class="md-nav__link">
+      <a href="../../guides/building-agents/" class="md-nav__link">
         
   
   
@@ -1300,7 +1270,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/context-lifecycle/" class="md-nav__link">
+      <a href="../../guides/context-lifecycle/" class="md-nav__link">
         
   
   
@@ -1328,7 +1298,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/code-action/" class="md-nav__link">
+      <a href="../../guides/code-action/" class="md-nav__link">
         
   
   
@@ -1356,7 +1326,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/production-mcp-servers/" class="md-nav__link">
+      <a href="../../guides/production-mcp-servers/" class="md-nav__link">
         
   
   
@@ -1384,7 +1354,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/agentic-runtime/" class="md-nav__link">
+      <a href="../../guides/agentic-runtime/" class="md-nav__link">
         
   
   
@@ -1412,7 +1382,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/prompt-engineering/" class="md-nav__link">
+      <a href="../../guides/prompt-engineering/" class="md-nav__link">
         
   
   
@@ -1440,7 +1410,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/multi-user-systems/" class="md-nav__link">
+      <a href="../../guides/multi-user-systems/" class="md-nav__link">
         
   
   
@@ -1468,7 +1438,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/multi-user-identity/" class="md-nav__link">
+      <a href="../../guides/multi-user-identity/" class="md-nav__link">
         
   
   
@@ -1496,7 +1466,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/secure-multi-tenant-platform/" class="md-nav__link">
+      <a href="../../guides/secure-multi-tenant-platform/" class="md-nav__link">
         
   
   
@@ -1524,7 +1494,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/multi-agent-teams/" class="md-nav__link">
+      <a href="../../guides/multi-agent-teams/" class="md-nav__link">
         
   
   
@@ -1622,7 +1592,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/lab-customer-support/" class="md-nav__link">
+      <a href="../../guides/lab-customer-support/" class="md-nav__link">
         
   
   
@@ -1650,7 +1620,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/lab-data-analysis/" class="md-nav__link">
+      <a href="../../guides/lab-data-analysis/" class="md-nav__link">
         
   
   
@@ -1678,7 +1648,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/lab-code-review/" class="md-nav__link">
+      <a href="../../guides/lab-code-review/" class="md-nav__link">
         
   
   
@@ -1706,7 +1676,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/lab-pipeline-observer/" class="md-nav__link">
+      <a href="../../guides/lab-pipeline-observer/" class="md-nav__link">
         
   
   
@@ -1910,7 +1880,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../mcpcast/" class="md-nav__link ">
+            <a href="../../mcpcast/" class="md-nav__link ">
               
   
   
@@ -1954,7 +1924,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcpcast/guided-setup/" class="md-nav__link">
+      <a href="../../mcpcast/guided-setup/" class="md-nav__link">
         
   
   
@@ -1982,7 +1952,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/mcpcast/" class="md-nav__link">
+      <a href="../../mcp/server/mcpcast/" class="md-nav__link">
         
   
   
@@ -2010,7 +1980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/mcpcast-existing-api/" class="md-nav__link">
+      <a href="../../guides/mcpcast-existing-api/" class="md-nav__link">
         
   
   
@@ -2038,7 +2008,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/mcpcast-python-app/" class="md-nav__link">
+      <a href="../../guides/mcpcast-python-app/" class="md-nav__link">
         
   
   
@@ -2066,7 +2036,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/mcpcast-recipes/" class="md-nav__link">
+      <a href="../../mcp/server/mcpcast-recipes/" class="md-nav__link">
         
   
   
@@ -2094,7 +2064,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/lab-mcpcast-storefront/" class="md-nav__link">
+      <a href="../../guides/lab-mcpcast-storefront/" class="md-nav__link">
         
   
   
@@ -2122,7 +2092,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/lab-mcpcast-wizard/" class="md-nav__link">
+      <a href="../../guides/lab-mcpcast-wizard/" class="md-nav__link">
         
   
   
@@ -2150,7 +2120,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/mcpcast/" class="md-nav__link">
+      <a href="../../api/mcpcast/" class="md-nav__link">
         
   
   
@@ -2224,7 +2194,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../core/" class="md-nav__link ">
+            <a href="../../core/" class="md-nav__link ">
               
   
   
@@ -2336,7 +2306,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/agents/building-agents/" class="md-nav__link">
+      <a href="../../core/agents/building-agents/" class="md-nav__link">
         
   
   
@@ -2364,7 +2334,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/agents/models/" class="md-nav__link">
+      <a href="../../core/agents/models/" class="md-nav__link">
         
   
   
@@ -2392,7 +2362,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/agents/server-specs/" class="md-nav__link">
+      <a href="../../core/agents/server-specs/" class="md-nav__link">
         
   
   
@@ -2420,7 +2390,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/agents/network-server/" class="md-nav__link">
+      <a href="../../core/agents/network-server/" class="md-nav__link">
         
   
   
@@ -2448,7 +2418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/agents/superagent-files/" class="md-nav__link">
+      <a href="../../core/agents/superagent-files/" class="md-nav__link">
         
   
   
@@ -2476,7 +2446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/agents/reasoning-patterns/" class="md-nav__link">
+      <a href="../../core/agents/reasoning-patterns/" class="md-nav__link">
         
   
   
@@ -2504,7 +2474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/agents/cross-agent/" class="md-nav__link">
+      <a href="../../core/agents/cross-agent/" class="md-nav__link">
         
   
   
@@ -2604,7 +2574,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/memory/" class="md-nav__link">
+      <a href="../../core/memory/" class="md-nav__link">
         
   
   
@@ -2632,7 +2602,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/rag/" class="md-nav__link">
+      <a href="../../core/rag/" class="md-nav__link">
         
   
   
@@ -2660,7 +2630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/conversations/" class="md-nav__link">
+      <a href="../../core/conversations/" class="md-nav__link">
         
   
   
@@ -2688,7 +2658,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/cache/" class="md-nav__link">
+      <a href="../../core/cache/" class="md-nav__link">
         
   
   
@@ -2716,7 +2686,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/context-engine/" class="md-nav__link">
+      <a href="../../core/context-engine/" class="md-nav__link">
         
   
   
@@ -2814,7 +2784,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/guardrails/" class="md-nav__link">
+      <a href="../../core/guardrails/" class="md-nav__link">
         
   
   
@@ -2842,7 +2812,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/approval/" class="md-nav__link">
+      <a href="../../core/approval/" class="md-nav__link">
         
   
   
@@ -2870,7 +2840,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/approval-classifier/" class="md-nav__link">
+      <a href="../../core/approval-classifier/" class="md-nav__link">
         
   
   
@@ -2898,7 +2868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/sandbox/" class="md-nav__link">
+      <a href="../../core/sandbox/" class="md-nav__link">
         
   
   
@@ -2994,7 +2964,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/tool-optimization/" class="md-nav__link">
+      <a href="../../core/tool-optimization/" class="md-nav__link">
         
   
   
@@ -3022,7 +2992,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/fallback/" class="md-nav__link">
+      <a href="../../core/fallback/" class="md-nav__link">
         
   
   
@@ -3050,7 +3020,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/adaptive-strategy/" class="md-nav__link">
+      <a href="../../core/adaptive-strategy/" class="md-nav__link">
         
   
   
@@ -3146,7 +3116,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/streaming/" class="md-nav__link">
+      <a href="../../core/streaming/" class="md-nav__link">
         
   
   
@@ -3174,7 +3144,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/events/" class="md-nav__link">
+      <a href="../../core/events/" class="md-nav__link">
         
   
   
@@ -3202,7 +3172,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/observability/" class="md-nav__link">
+      <a href="../../core/observability/" class="md-nav__link">
         
   
   
@@ -3306,7 +3276,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/config/" class="md-nav__link">
+      <a href="../../core/config/" class="md-nav__link">
         
   
   
@@ -3334,7 +3304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/types/" class="md-nav__link">
+      <a href="../../core/types/" class="md-nav__link">
         
   
   
@@ -3362,7 +3332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/default-prompt/" class="md-nav__link">
+      <a href="../../core/default-prompt/" class="md-nav__link">
         
   
   
@@ -3390,7 +3360,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/callback-handler/" class="md-nav__link">
+      <a href="../../core/callback-handler/" class="md-nav__link">
         
   
   
@@ -3418,7 +3388,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/tools/" class="md-nav__link">
+      <a href="../../core/tools/" class="md-nav__link">
         
   
   
@@ -3446,7 +3416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/env-resolver/" class="md-nav__link">
+      <a href="../../core/env-resolver/" class="md-nav__link">
         
   
   
@@ -3474,7 +3444,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/exceptions/" class="md-nav__link">
+      <a href="../../core/exceptions/" class="md-nav__link">
         
   
   
@@ -3510,7 +3480,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/projects/" class="md-nav__link">
+      <a href="../../core/projects/" class="md-nav__link">
         
   
   
@@ -3538,7 +3508,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/cli/" class="md-nav__link">
+      <a href="../../core/cli/" class="md-nav__link">
         
   
   
@@ -3637,7 +3607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine/" class="md-nav__link">
+      <a href="../../core/engine/" class="md-nav__link">
         
   
   
@@ -3725,7 +3695,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-nodes/" class="md-nav__link">
+      <a href="../../core/engine-nodes/" class="md-nav__link">
         
   
   
@@ -3753,7 +3723,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-edges/" class="md-nav__link">
+      <a href="../../core/engine-edges/" class="md-nav__link">
         
   
   
@@ -3781,7 +3751,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-flags/" class="md-nav__link">
+      <a href="../../core/engine-flags/" class="md-nav__link">
         
   
   
@@ -3879,7 +3849,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-prebuilts/" class="md-nav__link">
+      <a href="../../core/engine-prebuilts/" class="md-nav__link">
         
   
   
@@ -3907,7 +3877,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-skills/" class="md-nav__link">
+      <a href="../../core/engine-skills/" class="md-nav__link">
         
   
   
@@ -3935,7 +3905,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/skill-registry/" class="md-nav__link">
+      <a href="../../core/skill-registry/" class="md-nav__link">
         
   
   
@@ -3963,7 +3933,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/custom-reasoning/" class="md-nav__link">
+      <a href="../../guides/custom-reasoning/" class="md-nav__link">
         
   
   
@@ -4061,7 +4031,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-tools/" class="md-nav__link">
+      <a href="../../core/engine-tools/" class="md-nav__link">
         
   
   
@@ -4089,7 +4059,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-processors/" class="md-nav__link">
+      <a href="../../core/engine-processors/" class="md-nav__link">
         
   
   
@@ -4117,7 +4087,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-hooks/" class="md-nav__link">
+      <a href="../../core/engine-hooks/" class="md-nav__link">
         
   
   
@@ -4145,7 +4115,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-serialization/" class="md-nav__link">
+      <a href="../../core/engine-serialization/" class="md-nav__link">
         
   
   
@@ -4181,7 +4151,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../core/engine-internals/" class="md-nav__link">
+      <a href="../../core/engine-internals/" class="md-nav__link">
         
   
   
@@ -4243,7 +4213,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../mcp/" class="md-nav__link ">
+            <a href="../../mcp/" class="md-nav__link ">
               
   
   
@@ -4369,7 +4339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../guides/production-mcp-servers/" class="md-nav__link">
+      <a href="../../guides/production-mcp-servers/" class="md-nav__link">
         
   
   
@@ -4397,7 +4367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/building-servers/" class="md-nav__link">
+      <a href="../../mcp/server/building-servers/" class="md-nav__link">
         
   
   
@@ -4425,7 +4395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/routers-middleware/" class="md-nav__link">
+      <a href="../../mcp/server/routers-middleware/" class="md-nav__link">
         
   
   
@@ -4453,7 +4423,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/auth-security/" class="md-nav__link">
+      <a href="../../mcp/server/auth-security/" class="md-nav__link">
         
   
   
@@ -4481,7 +4451,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/multi-tenancy/" class="md-nav__link">
+      <a href="../../mcp/server/multi-tenancy/" class="md-nav__link">
         
   
   
@@ -4509,7 +4479,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/approval-gates/" class="md-nav__link">
+      <a href="../../mcp/server/approval-gates/" class="md-nav__link">
         
   
   
@@ -4537,7 +4507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/production-features/" class="md-nav__link">
+      <a href="../../mcp/server/production-features/" class="md-nav__link">
         
   
   
@@ -4565,7 +4535,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/caching-performance/" class="md-nav__link">
+      <a href="../../mcp/server/caching-performance/" class="md-nav__link">
         
   
   
@@ -4593,7 +4563,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/observability/" class="md-nav__link">
+      <a href="../../mcp/server/observability/" class="md-nav__link">
         
   
   
@@ -4621,7 +4591,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/resilience-patterns/" class="md-nav__link">
+      <a href="../../mcp/server/resilience-patterns/" class="md-nav__link">
         
   
   
@@ -4649,7 +4619,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/queue/" class="md-nav__link">
+      <a href="../../mcp/server/queue/" class="md-nav__link">
         
   
   
@@ -4677,7 +4647,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/advanced-patterns/" class="md-nav__link">
+      <a href="../../mcp/server/advanced-patterns/" class="md-nav__link">
         
   
   
@@ -4705,7 +4675,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/deployment/" class="md-nav__link">
+      <a href="../../mcp/server/deployment/" class="md-nav__link">
         
   
   
@@ -4733,7 +4703,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/server/testing/" class="md-nav__link">
+      <a href="../../mcp/server/testing/" class="md-nav__link">
         
   
   
@@ -4794,7 +4764,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../mcp/client/" class="md-nav__link ">
+            <a href="../../mcp/client/" class="md-nav__link ">
               
   
   
@@ -4838,7 +4808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../mcp/client/tool-adapter/" class="md-nav__link">
+      <a href="../../mcp/client/tool-adapter/" class="md-nav__link">
         
   
   
@@ -4878,6 +4848,8 @@
       
   
   
+    
+  
   
   
     
@@ -4907,20 +4879,23 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../runtime/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -4938,13 +4913,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -4986,17 +4961,20 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" >
         
           
-          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="">
             
   
   
@@ -5032,7 +5010,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/processes/" class="md-nav__link">
+      <a href="../processes/" class="md-nav__link">
         
   
   
@@ -5060,7 +5038,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/api/" class="md-nav__link">
+      <a href="../api/" class="md-nav__link">
         
   
   
@@ -5088,7 +5066,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/runtime-manager/" class="md-nav__link">
+      <a href="../runtime-manager/" class="md-nav__link">
         
   
   
@@ -5116,7 +5094,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/context/" class="md-nav__link">
+      <a href="../context/" class="md-nav__link">
         
   
   
@@ -5144,7 +5122,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/lifecycle/" class="md-nav__link">
+      <a href="../lifecycle/" class="md-nav__link">
         
   
   
@@ -5172,7 +5150,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/hooks/" class="md-nav__link">
+      <a href="../hooks/" class="md-nav__link">
         
   
   
@@ -5200,7 +5178,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/conversation/" class="md-nav__link">
+      <a href="../conversation/" class="md-nav__link">
         
   
   
@@ -5250,17 +5228,20 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" >
         
           
-          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="">
             
   
   
@@ -5296,7 +5277,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/configuration/" class="md-nav__link">
+      <a href="../configuration/" class="md-nav__link">
         
   
   
@@ -5324,7 +5305,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/manifests/" class="md-nav__link">
+      <a href="../manifests/" class="md-nav__link">
         
   
   
@@ -5352,7 +5333,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/meta-tools/" class="md-nav__link">
+      <a href="../meta-tools/" class="md-nav__link">
         
   
   
@@ -5404,17 +5385,20 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="">
             
   
   
@@ -5450,7 +5434,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/governance/mission/" class="md-nav__link">
+      <a href="../governance/mission/" class="md-nav__link">
         
   
   
@@ -5478,7 +5462,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/governance/budget/" class="md-nav__link">
+      <a href="../governance/budget/" class="md-nav__link">
         
   
   
@@ -5506,7 +5490,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/governance/health/" class="md-nav__link">
+      <a href="../governance/health/" class="md-nav__link">
         
   
   
@@ -5534,7 +5518,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/governance/secrets/" class="md-nav__link">
+      <a href="../governance/secrets/" class="md-nav__link">
         
   
   
@@ -5588,10 +5572,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -5599,7 +5586,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../runtime/triggers/" class="md-nav__link ">
+            <a href="../triggers/" class="md-nav__link ">
               
   
   
@@ -5617,7 +5604,7 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_7_5" id="__nav_7_5_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -5643,7 +5630,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/triggers/cron/" class="md-nav__link">
+      <a href="../triggers/cron/" class="md-nav__link">
         
   
   
@@ -5671,7 +5658,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/triggers/event-webhook/" class="md-nav__link">
+      <a href="../triggers/event-webhook/" class="md-nav__link">
         
   
   
@@ -5699,7 +5686,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/triggers/file-watch/" class="md-nav__link">
+      <a href="../triggers/file-watch/" class="md-nav__link">
         
   
   
@@ -5753,10 +5740,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -5764,7 +5754,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../runtime/journal/" class="md-nav__link ">
+            <a href="../journal/" class="md-nav__link ">
               
   
   
@@ -5782,7 +5772,7 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_7_6" id="__nav_7_6_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -5808,7 +5798,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/journal/backends/" class="md-nav__link">
+      <a href="../journal/backends/" class="md-nav__link">
         
   
   
@@ -5836,7 +5826,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/journal/replay/" class="md-nav__link">
+      <a href="../journal/replay/" class="md-nav__link">
         
   
   
@@ -5864,7 +5854,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/journal/rewind/" class="md-nav__link">
+      <a href="../journal/rewind/" class="md-nav__link">
         
   
   
@@ -5897,33 +5887,43 @@
                 
   
   
+    
   
   
+  
     
     
       
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="./" class="md-nav__link md-nav__link--active">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,10 +5937,16 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link md-nav__link--active" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -5952,13 +5958,15 @@
           <ul class="md-nav__list" data-md-scrollfix>
             
               
+            
+              
                 
   
   
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/distributed/coordinator/" class="md-nav__link">
+      <a href="coordinator/" class="md-nav__link">
         
   
   
@@ -5986,7 +5994,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/distributed/discovery-transport/" class="md-nav__link">
+      <a href="discovery-transport/" class="md-nav__link">
         
   
   
@@ -6022,7 +6030,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/dashboard/" class="md-nav__link">
+      <a href="../dashboard/" class="md-nav__link">
         
   
   
@@ -6050,7 +6058,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../runtime/cli/" class="md-nav__link">
+      <a href="../cli/" class="md-nav__link">
         
   
   
@@ -6153,7 +6161,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/overview/" class="md-nav__link">
+      <a href="../../identity/overview/" class="md-nav__link">
         
   
   
@@ -6181,7 +6189,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/quickstart/" class="md-nav__link">
+      <a href="../../identity/quickstart/" class="md-nav__link">
         
   
   
@@ -6209,7 +6217,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/guide/" class="md-nav__link">
+      <a href="../../identity/guide/" class="md-nav__link">
         
   
   
@@ -6237,7 +6245,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/architecture/" class="md-nav__link">
+      <a href="../../identity/architecture/" class="md-nav__link">
         
   
   
@@ -6329,7 +6337,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/providers/entra/" class="md-nav__link">
+      <a href="../../identity/providers/entra/" class="md-nav__link">
         
   
   
@@ -6357,7 +6365,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/providers/aws/" class="md-nav__link">
+      <a href="../../identity/providers/aws/" class="md-nav__link">
         
   
   
@@ -6385,7 +6393,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/providers/gcp/" class="md-nav__link">
+      <a href="../../identity/providers/gcp/" class="md-nav__link">
         
   
   
@@ -6413,7 +6421,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/providers/spiffe/" class="md-nav__link">
+      <a href="../../identity/providers/spiffe/" class="md-nav__link">
         
   
   
@@ -6441,7 +6449,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/providers/oidc/" class="md-nav__link">
+      <a href="../../identity/providers/oidc/" class="md-nav__link">
         
   
   
@@ -6477,7 +6485,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/security/" class="md-nav__link">
+      <a href="../../identity/security/" class="md-nav__link">
         
   
   
@@ -6505,7 +6513,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../identity/migration/" class="md-nav__link">
+      <a href="../../identity/migration/" class="md-nav__link">
         
   
   
@@ -6571,7 +6579,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../../prompting/" class="md-nav__link ">
+            <a href="../../prompting/" class="md-nav__link ">
               
   
   
@@ -6679,7 +6687,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/blocks/" class="md-nav__link">
+      <a href="../../prompting/blocks/" class="md-nav__link">
         
   
   
@@ -6707,7 +6715,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/flows/" class="md-nav__link">
+      <a href="../../prompting/flows/" class="md-nav__link">
         
   
   
@@ -6735,7 +6743,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/builder/" class="md-nav__link">
+      <a href="../../prompting/builder/" class="md-nav__link">
         
   
   
@@ -6763,7 +6771,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/loader-templates/" class="md-nav__link">
+      <a href="../../prompting/loader-templates/" class="md-nav__link">
         
   
   
@@ -6791,7 +6799,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/shell-interpolation/" class="md-nav__link">
+      <a href="../../prompting/shell-interpolation/" class="md-nav__link">
         
   
   
@@ -6887,7 +6895,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/strategies/" class="md-nav__link">
+      <a href="../../prompting/strategies/" class="md-nav__link">
         
   
   
@@ -6915,7 +6923,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/chaining/" class="md-nav__link">
+      <a href="../../prompting/chaining/" class="md-nav__link">
         
   
   
@@ -6943,7 +6951,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/context/" class="md-nav__link">
+      <a href="../../prompting/context/" class="md-nav__link">
         
   
   
@@ -7039,7 +7047,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/guards/" class="md-nav__link">
+      <a href="../../prompting/guards/" class="md-nav__link">
         
   
   
@@ -7067,7 +7075,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/inspector/" class="md-nav__link">
+      <a href="../../prompting/inspector/" class="md-nav__link">
         
   
   
@@ -7095,7 +7103,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/testing/" class="md-nav__link">
+      <a href="../../prompting/testing/" class="md-nav__link">
         
   
   
@@ -7131,7 +7139,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../prompting/suite-registry/" class="md-nav__link">
+      <a href="../../prompting/suite-registry/" class="md-nav__link">
         
   
   
@@ -7298,7 +7306,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/agent/" class="md-nav__link">
+      <a href="../../api/agent/" class="md-nav__link">
         
   
   
@@ -7326,7 +7334,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/config/" class="md-nav__link">
+      <a href="../../api/config/" class="md-nav__link">
         
   
   
@@ -7354,7 +7362,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/models/" class="md-nav__link">
+      <a href="../../api/models/" class="md-nav__link">
         
   
   
@@ -7382,7 +7390,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/memory/" class="md-nav__link">
+      <a href="../../api/memory/" class="md-nav__link">
         
   
   
@@ -7410,7 +7418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/rag/" class="md-nav__link">
+      <a href="../../api/rag/" class="md-nav__link">
         
   
   
@@ -7438,7 +7446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/sandbox/" class="md-nav__link">
+      <a href="../../api/sandbox/" class="md-nav__link">
         
   
   
@@ -7466,7 +7474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/observability/" class="md-nav__link">
+      <a href="../../api/observability/" class="md-nav__link">
         
   
   
@@ -7558,7 +7566,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/identity/" class="md-nav__link">
+      <a href="../../api/identity/" class="md-nav__link">
         
   
   
@@ -7652,7 +7660,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/mcp-server/" class="md-nav__link">
+      <a href="../../api/mcp-server/" class="md-nav__link">
         
   
   
@@ -7680,7 +7688,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/mcp-client/" class="md-nav__link">
+      <a href="../../api/mcp-client/" class="md-nav__link">
         
   
   
@@ -7774,7 +7782,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/prompts/" class="md-nav__link">
+      <a href="../../api/prompts/" class="md-nav__link">
         
   
   
@@ -7802,7 +7810,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/runtime/" class="md-nav__link">
+      <a href="../../api/runtime/" class="md-nav__link">
         
   
   
@@ -7898,7 +7906,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/cross-agent/" class="md-nav__link">
+      <a href="../../api/cross-agent/" class="md-nav__link">
         
   
   
@@ -7926,7 +7934,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/superagent/" class="md-nav__link">
+      <a href="../../api/superagent/" class="md-nav__link">
         
   
   
@@ -7954,7 +7962,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../api/utilities/" class="md-nav__link">
+      <a href="../../api/utilities/" class="md-nav__link">
         
   
   
@@ -7994,8 +8002,6 @@
       
   
   
-    
-  
   
   
     
@@ -8013,23 +8019,20 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../" class="md-nav__link ">
+            <a href="../../blog/" class="md-nav__link ">
               
   
   
@@ -8047,13 +8050,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_11" id="__nav_11_label" tabindex="">
+              <label class="md-nav__link " for="__nav_11" id="__nav_11_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_11">
             <span class="md-nav__icon md-icon"></span>
             
@@ -8070,10 +8073,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -8085,20 +8086,17 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_2" >
         
           
-          <label class="md-nav__link" for="__nav_11_2" id="__nav_11_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_11_2" id="__nav_11_2_label" tabindex="0">
             
   
   
@@ -8116,7 +8114,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_11_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_11_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_11_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -8133,19 +8131,10 @@
   
   
     
-      
-    
   
   
     <li class="md-nav__item">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="../../" class="md-nav__link md-nav__link--active">
+      <a href="../../blog/archive/2026/" class="md-nav__link">
         
   
   
@@ -8161,7 +8150,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -8216,28 +8204,23 @@
       
         
       
-        
-      
     
     
     
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3" >
         
           
-          <label class="md-nav__link" for="__nav_11_3" id="__nav_11_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_11_3" id="__nav_11_3_label" tabindex="0">
             
   
   
@@ -8275,7 +8258,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/air-gapped--sovereign/" class="md-nav__link">
+      <a href="../../blog/category/air-gapped--sovereign/" class="md-nav__link">
         
   
   
@@ -8305,7 +8288,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/approvals--hitl/" class="md-nav__link">
+      <a href="../../blog/category/approvals--hitl/" class="md-nav__link">
         
   
   
@@ -8335,7 +8318,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/building-agents/" class="md-nav__link">
+      <a href="../../blog/category/building-agents/" class="md-nav__link">
         
   
   
@@ -8365,7 +8348,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/comparisons/" class="md-nav__link">
+      <a href="../../blog/category/comparisons/" class="md-nav__link">
         
   
   
@@ -8395,37 +8378,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../../category/cost--efficiency/" class="md-nav__link">
+      <a href="../../blog/category/cost--efficiency/" class="md-nav__link">
         
   
   
@@ -8455,7 +8408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/governance/" class="md-nav__link">
+      <a href="../../blog/category/governance/" class="md-nav__link">
         
   
   
@@ -8485,7 +8438,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/guardrails/" class="md-nav__link">
+      <a href="../../blog/category/guardrails/" class="md-nav__link">
         
   
   
@@ -8515,7 +8468,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/identity/" class="md-nav__link">
+      <a href="../../blog/category/identity/" class="md-nav__link">
         
   
   
@@ -8545,7 +8498,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/mcp/" class="md-nav__link">
+      <a href="../../blog/category/mcp/" class="md-nav__link">
         
   
   
@@ -8575,7 +8528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/memory--rag/" class="md-nav__link">
+      <a href="../../blog/category/memory--rag/" class="md-nav__link">
         
   
   
@@ -8605,7 +8558,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/multi-tenancy/" class="md-nav__link">
+      <a href="../../blog/category/multi-tenancy/" class="md-nav__link">
         
   
   
@@ -8635,7 +8588,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/production/" class="md-nav__link">
+      <a href="../../blog/category/production/" class="md-nav__link">
         
   
   
@@ -8665,7 +8618,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/reasoning/" class="md-nav__link">
+      <a href="../../blog/category/reasoning/" class="md-nav__link">
         
   
   
@@ -8695,7 +8648,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/runtime/" class="md-nav__link">
+      <a href="../../blog/category/runtime/" class="md-nav__link">
         
   
   
@@ -8725,7 +8678,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/sandboxing/" class="md-nav__link">
+      <a href="../../blog/category/sandboxing/" class="md-nav__link">
         
   
   
@@ -8755,7 +8708,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../category/use-cases/" class="md-nav__link">
+      <a href="../../blog/category/use-cases/" class="md-nav__link">
         
   
   
@@ -8918,7 +8871,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../resources/showcase/" class="md-nav__link">
+      <a href="../../resources/showcase/" class="md-nav__link">
         
   
   
@@ -8946,7 +8899,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../resources/submit-project/" class="md-nav__link">
+      <a href="../../resources/submit-project/" class="md-nav__link">
         
   
   
@@ -8974,7 +8927,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../resources/examples/" class="md-nav__link">
+      <a href="../../resources/examples/" class="md-nav__link">
         
   
   
@@ -9070,7 +9023,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../resources/migration/" class="md-nav__link">
+      <a href="../../resources/migration/" class="md-nav__link">
         
   
   
@@ -9098,7 +9051,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../resources/changelog/" class="md-nav__link">
+      <a href="../../resources/changelog/" class="md-nav__link">
         
   
   
@@ -9126,7 +9079,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../resources/contributing/" class="md-nav__link">
+      <a href="../../resources/contributing/" class="md-nav__link">
         
   
   
@@ -9218,7 +9171,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../../faq/" class="md-nav__link">
+      <a href="../../faq/" class="md-nav__link">
         
   
   
@@ -9274,6 +9227,97 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-a-node-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a node runs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What a node runs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#discovery-registry-or-static" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery: registry or static
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#distributedconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DistributedConfig
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clusternode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ClusterNode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's Next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -9281,846 +9325,439 @@
             
           
           
-  <div class="md-content" data-md-component="content">
-    <div class="md-content__inner">
-      <header class="md-typeset">
-        <h1 id="2026">2026<a class="headerlink" href="#2026" title="Link to this section">&para;</a></h1>
-      </header>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/use-cases/" class="md-meta__link">Use Cases</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="single-agent-vs-multi-agent-when-to-actually-split"><a class="toclink" href="../../../../single-agent-vs-multi-agent/">Single-Agent vs Multi-Agent: When to Actually Split</a></h2>
-<p>The single agent vs multi-agent decision gets made too early and for the wrong reasons — usually a diagram in a slide deck rather than a signal in your workload. Splitting one agent into several feels like progress, but it buys you a coordination layer, extra token overhead, and a new class of failures before it buys you any capability. This guide gives you the concrete signals that actually justify a split, the cost governance you should put in place first, and runnable code for adding delegation to Promptise Foundry only when the signals fire.</p>
+            <div class="md-content" data-md-component="content">
+              
+                
 
+
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+      
+        
+  
+  
     
-      <nav class="md-post__action">
-        <a href="../../../../single-agent-vs-multi-agent/">
-          Continue reading
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Agent Runtime
+  </span>
+
         </a>
-      </nav>
+      </li>
     
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/sandboxing/" class="md-meta__link">Sandboxing</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="smolagents-codeagent-vs-promptise-where-do-tool-calls-run"><a class="toclink" href="../../../../smolagents-codeagent-vs-promptise-code-action/">Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?</a></h2>
-<p>The <strong>smolagents codeagent vs promptise code-action</strong> question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls <code>issue_refund()</code> or <code>delete_customer()</code>, <em>where does that call execute, and what governs it?</em> This is a precise-delta piece, not a "they have nothing" one. By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.</p>
+  
 
+      
+        
+  
+  
     
-      <nav class="md-post__action">
-        <a href="../../../../smolagents-codeagent-vs-promptise-code-action/">
-          Continue reading
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Distributed
+  </span>
+
         </a>
-      </nav>
+      </li>
     
-    
-  </div>
-</article>
+  
+
       
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="distributed-mode">Distributed Mode<a class="headerlink" href="#distributed-mode" title="Link to this section">&para;</a></h1>
+<p>Distributed mode lets several <code>AgentRuntime</code>s on different machines (or ports) work as one cluster. Each runtime runs a small management transport (an HTTP API for its processes); one runtime also hosts the coordinator, which knows every node and checks its health. You turn it on with <code>RuntimeConfig.distributed</code>; <code>start_all()</code> and <code>run_forever()</code> start it, <code>shutdown()</code> stops it. Use it when one machine is not enough, or when agents must run close to the systems they work on.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># coordinator.py -- hosts the cluster coordinator and one process</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">DistributedConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">RuntimeConfig</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">config</span> <span class="o">=</span> <span class="n">RuntimeConfig</span><span class="p">(</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">processes</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="s2">"planner"</span><span class="p">:</span> <span class="n">ProcessConfig</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">instructions</span><span class="o">=</span><span class="s2">"Plan the work."</span><span class="p">),</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="p">},</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">distributed</span><span class="o">=</span><span class="n">DistributedConfig</span><span class="p">(</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">coordinator</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>               <span class="c1"># this runtime hosts the coordinator</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">node_id</span><span class="o">=</span><span class="s2">"coordinator"</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">transport_port</span><span class="o">=</span><span class="mi">9100</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">auth_token</span><span class="o">=</span><span class="s2">"$</span><span class="si">{CLUSTER_TOKEN}</span><span class="s2">"</span><span class="p">,</span>  <span class="c1"># resolved when the transport starts</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">heartbeat_interval</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="p">),</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">AgentRuntime</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">run_forever</span><span class="p">())</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># node.py -- a worker node that registers with the coordinator</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">DistributedConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">RuntimeConfig</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">config</span> <span class="o">=</span> <span class="n">RuntimeConfig</span><span class="p">(</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">processes</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="s2">"worker"</span><span class="p">:</span> <span class="n">ProcessConfig</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">instructions</span><span class="o">=</span><span class="s2">"Do the work."</span><span class="p">),</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="p">},</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">distributed</span><span class="o">=</span><span class="n">DistributedConfig</span><span class="p">(</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">node_id</span><span class="o">=</span><span class="s2">"worker-1"</span><span class="p">,</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="n">transport_port</span><span class="o">=</span><span class="mi">9101</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="n">coordinator_url</span><span class="o">=</span><span class="s2">"http://127.0.0.1:9100"</span><span class="p">,</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="n">auth_token</span><span class="o">=</span><span class="s2">"$</span><span class="si">{CLUSTER_TOKEN}</span><span class="s2">"</span><span class="p">,</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="n">heartbeat_interval</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="p">),</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="p">)</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">AgentRuntime</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">run_forever</span><span class="p">())</span>
+</span></code></pre></div>
+<p>Run both with the same token, then ask the coordinator:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CLUSTER_TOKEN</span><span class="o">=</span><span class="k">$(</span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import secrets; print(secrets.token_urlsafe(32))"</span><span class="k">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>python<span class="w"> </span>coordinator.py<span class="w"> </span><span class="p">&amp;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>python<span class="w"> </span>node.py<span class="w"> </span><span class="p">&amp;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>curl<span class="w"> </span>-s<span class="w"> </span>http://127.0.0.1:9100/health
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># {"status": "healthy", "node_id": "coordinator", "process_count": 1}</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$CLUSTER_TOKEN</span><span class="s2">"</span><span class="w"> </span>http://127.0.0.1:9100/cluster/nodes
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># {"node_id": "coordinator", "nodes": [</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1">#    {"node_id": "coordinator", "url": "http://127.0.0.1:9100", "status": "healthy",</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1">#     "process_count": 1, "metadata": {"role": "coordinator"}, ...},</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1">#    {"node_id": "worker-1", "url": "http://127.0.0.1:9101", "status": "healthy",</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c1">#     "process_count": 1, "metadata": {"processes": 1}, ...}], "count": 2}</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># Send the worker a trigger event through its transport</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">"Authorization: Bearer </span><span class="nv">$CLUSTER_TOKEN</span><span class="s2">"</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/json'</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">     </span>-d<span class="w"> </span><span class="s1">'{"payload": {"task": "hello"}}'</span><span class="w"> </span>http://127.0.0.1:9101/processes/worker/event
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="c1"># {"status": "injected", "event_id": "5650beaa-...", "process": "worker"}</span>
+</span></code></pre></div>
+<p>Without the token, <code>/cluster/nodes</code> answers <code>401</code>. When <code>node.py</code> stops (Ctrl+C or SIGTERM), it unregisters, and the coordinator lists only itself again.</p>
+<hr />
+<h2 id="what-a-node-runs">What a node runs<a class="headerlink" href="#what-a-node-runs" title="Link to this section">&para;</a></h2>
+<p>With <code>distributed.enabled=True</code>, <code>AgentRuntime.start_all()</code> (and <code>run_forever()</code>) first starts a <code>ClusterNode</code>, then the processes. A failure to start it (a port in use, an unset token variable) raises; the processes don't start. <code>AgentRuntime.shutdown()</code> stops the processes, then the node. <code>runtime.cluster</code> is the running <code>ClusterNode</code> (or <code>None</code>), and <code>runtime.status()["cluster"]</code> summarizes it.</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Config</th>
+<th>Runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Coordinator</td>
+<td><code>coordinator=True</code></td>
+<td>The <a href="discovery-transport/#runtimetransport">transport</a> with the <code>/cluster</code> routes, a <a href="coordinator/"><code>RuntimeCoordinator</code></a> that health-checks every node each <code>heartbeat_interval</code>, and its discovery (registry or static). The coordinator lists itself</td>
+</tr>
+<tr>
+<td>Node</td>
+<td><code>coordinator_url=...</code></td>
+<td>The transport, plus registration: register at start, re-register every <code>heartbeat_interval</code> (so a restarted coordinator finds the node again), unregister at stop</td>
+</tr>
+<tr>
+<td>Stand-alone</td>
+<td>neither</td>
+<td>The transport only (a static coordinator elsewhere can list it)</td>
+</tr>
+</tbody>
+</table>
+<p>A node that can't reach the coordinator still starts; it logs the failure and keeps trying every <code>heartbeat_interval</code> (<code>runtime.status()["cluster"]["last_registration_error"]</code> shows why).</p>
+<h3 id="discovery-registry-or-static">Discovery: registry or static<a class="headerlink" href="#discovery-registry-or-static" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th><code>discovery_method</code></th>
+<th>How the coordinator learns about nodes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"registry"</code> (default)</td>
+<td>Nodes register themselves at <code>POST /cluster/nodes</code> on the coordinator's transport. A node that hasn't re-registered for <code>node_timeout</code> seconds is dropped</td>
+</tr>
+<tr>
+<td><code>"static"</code></td>
+<td>The coordinator lists the nodes in <code>static_nodes</code> (<code>node_id -&gt; URL</code>). Nodes don't register (<code>POST /cluster/nodes</code> answers <code>409</code>)</td>
+</tr>
+<tr>
+<td><code>"multicast"</code></td>
+<td>Rejected: <code>discovery_method='multicast' is not implemented. Use 'registry' (nodes register with the coordinator at coordinator_url) or 'static' (list the nodes in static_nodes on the coordinator).</code></td>
+</tr>
+</tbody>
+</table>
+<p>A static coordinator:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">DistributedConfig</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">coordinator</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">discovery_method</span><span class="o">=</span><span class="s2">"static"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">static_nodes</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="s2">"worker-1"</span><span class="p">:</span> <span class="s2">"http://10.0.0.11:9100"</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="s2">"worker-2"</span><span class="p">:</span> <span class="s2">"http://10.0.0.12:9100"</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="p">},</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">transport_host</span><span class="o">=</span><span class="s2">"0.0.0.0"</span><span class="p">,</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">advertise_url</span><span class="o">=</span><span class="s2">"http://10.0.0.10:9100"</span><span class="p">,</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">auth_token</span><span class="o">=</span><span class="s2">"$</span><span class="si">{CLUSTER_TOKEN}</span><span class="s2">"</span><span class="p">,</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>The workers then run stand-alone (<code>enabled=True</code>, no <code>coordinator_url</code>) with the same token.</p>
+<hr />
+<h2 id="distributedconfig">DistributedConfig<a class="headerlink" href="#distributedconfig" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Start the transport (and the coordinator or registration) with the runtime</td>
+</tr>
+<tr>
+<td><code>coordinator</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>This runtime hosts the coordinator</td>
+</tr>
+<tr>
+<td><code>coordinator_url</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Base URL of the coordinator's transport; this node registers there</td>
+</tr>
+<tr>
+<td><code>node_id</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>This node's ID. Default <code>&lt;hostname&gt;-&lt;port&gt;</code></td>
+</tr>
+<tr>
+<td><code>transport_host</code></td>
+<td><code>str</code></td>
+<td><code>"127.0.0.1"</code></td>
+<td>Interface the transport binds</td>
+</tr>
+<tr>
+<td><code>transport_port</code></td>
+<td><code>int</code></td>
+<td><code>9100</code></td>
+<td>Port of the transport; <code>0</code> picks a free port. Ports 1-1024 are rejected</td>
+</tr>
+<tr>
+<td><code>advertise_url</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>URL other nodes reach this one at. Default <code>http://&lt;transport_host&gt;:&lt;port&gt;</code>. Required with a wildcard <code>transport_host</code> on a coordinator or a registering node</td>
+</tr>
+<tr>
+<td><code>auth_token</code></td>
+<td><code>SecretStr \| None</code></td>
+<td><code>None</code></td>
+<td>The cluster bearer token, or a <code>${ENV_VAR}</code> reference resolved when the transport starts</td>
+</tr>
+<tr>
+<td><code>allow_unauthenticated</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Allow a non-loopback transport or coordinator without <code>auth_token</code></td>
+</tr>
+<tr>
+<td><code>discovery_method</code></td>
+<td><code>"registry" \| "static" \| "multicast"</code></td>
+<td><code>"registry"</code></td>
+<td>How the coordinator finds nodes (<code>"multicast"</code> is rejected)</td>
+</tr>
+<tr>
+<td><code>static_nodes</code></td>
+<td><code>dict[str, str]</code></td>
+<td><code>{}</code></td>
+<td><code>node_id -&gt; URL</code>, for a coordinator with <code>discovery_method="static"</code></td>
+</tr>
+<tr>
+<td><code>allowed_node_hosts</code></td>
+<td><code>list[str]</code></td>
+<td><code>[]</code></td>
+<td>For a registry coordinator: the hosts a registering node's URL may name (<code>*.example.com</code> matches subdomains); others get <code>403</code>. Empty: any host</td>
+</tr>
+<tr>
+<td><code>heartbeat_interval</code></td>
+<td><code>float</code></td>
+<td><code>15.0</code></td>
+<td>Seconds between the coordinator's health checks and between a node's re-registrations</td>
+</tr>
+<tr>
+<td><code>node_timeout</code></td>
+<td><code>float \| None</code></td>
+<td><code>None</code></td>
+<td>Seconds without a successful health check (or re-registration) before a node counts as unhealthy (or is dropped from the registry). Default <code>3 * heartbeat_interval</code></td>
+</tr>
+</tbody>
+</table>
+<p>URLs must be <code>http://</code> or <code>https://</code> with a host; a trailing slash is removed. Unknown keys are ignored with a <code>FutureWarning</code>. In a JSON dump (<code>RuntimeConfig.to_dict()</code>), a literal <code>auth_token</code> is written as <code>"**********"</code> and a <code>${VAR}</code> reference as is; loading the masked placeholder back is an error.</p>
+<p>Inconsistent combinations fail when the config is built, each with a message that says what to change:</p>
+<ul>
+<li><code>coordinator=True</code> together with <code>coordinator_url</code>;</li>
+<li><code>static_nodes</code> without <code>coordinator=True</code> and <code>discovery_method="static"</code>;</li>
+<li><code>discovery_method="static"</code> with <code>coordinator_url</code> (static nodes don't register);</li>
+<li>a non-loopback <code>transport_host</code>, or a <code>coordinator_url</code> on another host, without <code>auth_token</code> (unless <code>allow_unauthenticated=True</code>);</li>
+<li>a wildcard <code>transport_host</code> (<code>0.0.0.0</code>, <code>::</code>) without <code>advertise_url</code> on a coordinator or registering node;</li>
+<li>an empty <code>auth_token</code>.</li>
+</ul>
+<p><code>DEFAULT_DEVELOPMENT_CONFIG</code> and <code>DEFAULT_PRODUCTION_CONFIG</code> both leave distributed mode off: it needs your cluster's addresses and token, which no preset can know.</p>
+<hr />
+<h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Link to this section">&para;</a></h2>
+<p>One cluster token authenticates everything:</p>
+<ul>
+<li>requests to every node's transport (all routes except <code>GET /health</code> need <code>Authorization: Bearer &lt;token&gt;</code>; compared in constant time);</li>
+<li>a node's registration with the coordinator;</li>
+<li>the coordinator's health checks and requests to the nodes.</li>
+</ul>
+<p>Generate it once (<code>secrets.token_urlsafe(32)</code>), give it to every node through an environment variable, and reference it as <code>auth_token="${CLUSTER_TOKEN}"</code> so it never sits in code or config files. A transport without a token logs a warning at start: any local process could manage that runtime. A node started with the wrong token is refused by the coordinator (<code>401</code>) and keeps retrying, logging the failure.</p>
+<p>The transport speaks plain HTTP. Across an untrusted network, put the nodes behind a TLS-terminating reverse proxy and use <code>https://</code> URLs for <code>coordinator_url</code>, <code>advertise_url</code> and <code>static_nodes</code>.</p>
+<p>The coordinator calls every registered node URL with the cluster token, so a token holder could register an internal address and have the coordinator send requests there. On a registry coordinator, set <code>allowed_node_hosts</code> to your nodes' hosts (see <a href="discovery-transport/#security">Security</a>).</p>
+<hr />
+<h2 id="clusternode">ClusterNode<a class="headerlink" href="#clusternode" title="Link to this section">&para;</a></h2>
+<p><code>ClusterNode(runtime, config)</code> is what <code>AgentRuntime</code> creates; you rarely build one yourself.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>await start()</code></td>
+<td>Start the transport, then the coordinator (and its prune loop for registry discovery) or the registration. Raises <code>ValueError</code> when the token's <code>${ENV_VAR}</code> is not set, <code>OSError</code> when the port can't be bound. Calling it twice does nothing</td>
+</tr>
+<tr>
+<td><code>await stop()</code></td>
+<td>Unregister (best effort), stop the coordinator's health monitor and the transport</td>
+</tr>
+<tr>
+<td><code>role</code></td>
+<td><code>"coordinator"</code>, <code>"node"</code> or <code>"standalone"</code></td>
+</tr>
+<tr>
+<td><code>node_id</code>, <code>url</code></td>
+<td>This node's ID and advertised URL (known after <code>start()</code>)</td>
+</tr>
+<tr>
+<td><code>transport</code>, <code>coordinator</code>, <code>discovery</code></td>
+<td>The <code>RuntimeTransport</code>, and on a coordinator the <code>RuntimeCoordinator</code> and its discovery</td>
+</tr>
+<tr>
+<td><code>registered</code>, <code>last_registration_error</code></td>
+<td>Registration state of a node</td>
+</tr>
+<tr>
+<td><code>status()</code></td>
+<td><code>node_id</code>, <code>role</code>, <code>url</code>, <code>discovery_method</code>, <code>authenticated</code>; plus <code>coordinator_url</code>, <code>registered</code> (and <code>last_registration_error</code>) on a node, <code>nodes</code> and <code>healthy_nodes</code> on a coordinator</td>
+</tr>
+<tr>
+<td><code>await prune()</code></td>
+<td>On a registry coordinator: unregister nodes whose registration expired; returns their IDs</td>
+</tr>
+</tbody>
+</table>
+<p><code>AgentRuntime.start_distributed()</code> and <code>stop_distributed()</code> start and stop the node on their own, without the processes.</p>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>Port 9100 twice.</strong> <code>DistributedConfig.transport_port</code> and <code>OrchestrationAPI(port=...)</code> both default to <code>9100</code>. On one host, give each node and each control API its own port.</li>
+<li><strong><code>0.0.0.0</code> without <code>advertise_url</code>.</strong> Other nodes can't connect to a wildcard address; the config refuses it on a coordinator or registering node.</li>
+<li><strong>An unset token variable.</strong> <code>auth_token="${CLUSTER_TOKEN}"</code> is resolved at start; when the variable is missing, <code>start_all()</code> raises <code>ValueError: distributed.auth_token: Environment variable 'CLUSTER_TOKEN' not found</code> and no process starts.</li>
+<li><strong>A short <code>node_timeout</code>.</strong> A registry node that misses re-registrations for <code>node_timeout</code> seconds is dropped. Keep it at least two or three <code>heartbeat_interval</code>s (the default is three).</li>
+<li><strong>Expecting failover.</strong> The coordinator monitors health; it does not move processes. When a node fails, your code picks a healthy node (<code>coordinator.healthy_nodes</code>) and starts the process there (<code>start_process_on_node</code>).</li>
+<li><strong>Expecting <code>promptise runtime start</code> to join a cluster.</strong> The CLI runs a runtime without a <code>RuntimeConfig</code>, so distributed mode is configured in Python, as above.</li>
+<li><strong>The coordinator as a single point.</strong> It is not replicated. If it goes away, nodes keep running and keep trying to register; a restarted coordinator finds them again within one <code>heartbeat_interval</code>.</li>
+</ul>
+<hr />
+<h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="coordinator/">Coordinator</a> -- health monitoring, cluster status and remote operations</li>
+<li><a href="discovery-transport/">Discovery and Transport</a> -- the HTTP routes of every node and the discovery classes</li>
+<li><a href="../runtime-manager/">Runtime Manager</a> -- <code>AgentRuntime</code>, <code>start_all()</code>, <code>run_forever()</code> and <code>shutdown()</code></li>
+<li><a href="../configuration/">Configuration</a> -- <code>RuntimeConfig</code> and the other options</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/run-multiple-ai-agents">Run Multiple AI Agents: One Runtime, Many Processes</a> -- When one runtime with many processes is enough, and when to spread out.</li>
+<li><a href="https://www.promptise.com/guides/view/autonomous-ai-agent-runtime">Autonomous AI Agent Runtime: Budgets, Crash Recovery, API</a> -- How a runtime supervises long-running agents.</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+  
     
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/compliance--audit/" class="md-meta__link">Compliance &amp; Audit</a></li>
-        
-        
+  
+  
+    
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 22:24:07 UTC">2026-10-19</span>
+  </span>
+
+    
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Created">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
+  </span>
+
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
           
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-prove-what-your-ai-agent-did-for-a-soc-2-audit"><a class="toclink" href="../../../../soc-2-audit-trail-for-ai-agents/">How to Prove What Your AI Agent Did for a SOC 2 Audit</a></h2>
-<p>A <strong>soc 2 audit trail for ai agents</strong> is the artifact you reach for the moment a reviewer stops asking about your policies and asks the pointed question: "for this refund your agent issued, show me who was allowed to call that tool, who actually called it, and prove the record wasn't edited after the fact." Pointing at your LLM provider's SOC 2 badge doesn't answer it — that badge attests to <em>their</em> controls, not to evidence of <em>your</em> agent's actions. This post is the step-by-step setup: capability-based per-tool guards so only the right agent can take a sensitive action, <code>AuditMiddleware(signed=True)</code> with a managed <code>PROMPTISE_AUDIT_SECRET</code> so every attempt becomes an attributable, tamper-evident record, PII kept out by default, and a <code>verify_chain()</code> report an auditor will accept.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../soc-2-audit-trail-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/air-gapped--sovereign/" class="md-meta__link">Air-Gapped &amp; Sovereign</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-deploy-a-sovereign-ai-agent-for-eu-data-residency"><a class="toclink" href="../../../../sovereign-ai-agent-eu-data-residency/">How to Deploy a Sovereign AI Agent for EU Data Residency</a></h2>
-<p>When a European bank, hospital group, or public-sector team specifies a <strong>sovereign AI agent EU data residency</strong> deployment, they mean something exact and non-negotiable: every byte the agent touches — prompts, retrieved context, tool arguments, generated code — must stay on infrastructure inside the region, on components you operate, with no packet crossing to a US-hosted API. That is harder than pointing your model string at a European endpoint, because an agent framework has more channels to the internet than the model call. This post walks through a deployment where inference, embeddings, the vector store, the safety guardrails, and code execution are all bound to local, no-egress components — and, critically, where that binding lives in one declarative <code>.superagent</code> file an auditor can read top to bottom instead of trusting five separate integrations.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../sovereign-ai-agent-eu-data-residency/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/identity/" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="give-an-ai-agent-a-spiffe-svid-identity-in-kubernetes"><a class="toclink" href="../../../../spiffe-svid-identity-for-ai-agents/">Give an AI agent a SPIFFE SVID identity in Kubernetes</a></h2>
-<p>A SPIFFE SVID identity for AI agents is the cleanest way to authenticate an autonomous agent inside a service mesh you already run: if your platform uses SPIRE, every workload already receives a short-lived, cryptographic SVID from the Workload API, yet no mainstream agent framework consumes one to prove <em>which</em> agent is acting. This how-to closes that gap. You will wire <code>AgentIdentity.from_spiffe</code> into <code>build_agent</code>, let SPIRE mint a per-audience JWT-SVID for each MCP server the agent calls, and verify those tokens server-side with <code>JwksAuth</code> against your trust domain — with automatic SVID rotation and not one static secret in code or <code>env</code>.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../spiffe-svid-identity-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/identity/" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="spiffe-vs-entra-vs-aws-iam-pick-an-agent-identity-provider"><a class="toclink" href="../../../../spiffe-vs-entra-vs-aws-iam-for-ai-agents/">SPIFFE vs Entra vs AWS IAM: pick an agent identity provider</a></h2>
-<p>Choosing between SPIFFE vs Entra vs AWS IAM for AI agents is not really a question of which identity provider is <em>best</em> in the abstract — it is a question of which one your platform already issues workload identities from, because that is the one you can back an agent with today. If you have already decided your agents deserve their own verifiable identity instead of a shared key (the case the <a href="../../../../workload-identity-for-ai-agents/">workload-identity hub</a> makes), this is the follow-up decision: pick the provider. This post is a bake-off across the five Promptise supports — SPIFFE/SPIRE, Microsoft Entra, AWS IAM, Google Cloud, and generic OIDC — compared on the three things that actually differ between them: how the token is acquired, how you revoke it, and when each one fits.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../spiffe-vs-entra-vs-aws-iam-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/governance/" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-stop-a-runaway-ai-agent-runtime-kill-switches"><a class="toclink" href="../../../../stop-a-runaway-ai-agent/">How to Stop a Runaway AI Agent (Runtime Kill Switches)</a></h2>
-<p>To reliably stop a runaway AI agent you need a kill switch that acts on the <em>process</em>, not a counter that raises an exception inside one function call. That distinction is the whole game. Almost every framework hands you a per-run cap — <code>max_iterations</code>, <code>recursion_limit</code>, a usage limit — and calls it a safety control. But those caps raise an exception inside a single <code>ainvoke()</code>, and an exception only exists if there is a caller sitting there to catch it. The moment your agent is running unattended on a cron, a webhook, or a file trigger, there is no such caller: each trigger fires a fresh invocation, the counter resets to zero, and nothing halts the thing that is actually misbehaving. This post reframes the runaway agent kill switch as <em>runtime enforcement</em> — budget, behavioral-health, and mission breaches that become out-of-band <code>pause</code>/<code>stop</code>/<code>escalate</code> actions on a supervised <code>AgentProcess</code> — and shows you how to wire one in a few lines.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../stop-a-runaway-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="where-does-tenant_id-come-from-jwt-claim-vs-api-key"><a class="toclink" href="../../../../tenant-id-from-jwt-claim/">Where Does tenant_id Come From? JWT Claim vs API Key</a></h2>
-<p>Every multi-tenant tutorial hands you a <code>tenant_id</code> and moves on, but the honest question is where that value comes from — and the two answers Promptise Foundry supports are a <strong>tenant_id from jwt claim</strong> and a tenant bound to each API key. Get that sourcing step right and the rest of your isolation story (tenant-qualified rate limits, per-tenant audit, cache scoping) follows for free. Get it wrong — a claim you forgot to read, a number where you expected a string, a request with no tenant at all — and a claim-less caller slips through as tenant-less, which is the one outcome a multi-customer platform can never afford.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../tenant-id-from-jwt-claim/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="tenant-scoped-audit-logs-for-ai-agent-tool-calls"><a class="toclink" href="../../../../tenant-scoped-audit-log-ai-agent/">Tenant-Scoped Audit Logs for AI Agent Tool Calls</a></h2>
-<p>A <strong>tenant-scoped audit log</strong> for an AI agent's tool calls exists to answer two questions a compliance auditor puts to you in the same breath: <em>show me every action your system took for Acme</em>, and <em>prove that record wasn't edited after the fact</em>. Both are easy to wave at and hard to actually satisfy. A general trace store can usually show you <em>something</em> about Acme, but "every action" means the tenant has to be a field you can filter on cleanly — not a tag one call site set and another forgot. And "prove it wasn't edited" means the trail needs integrity you can hand to a third party, not your assurance that the database looks fine. This post is about the per-tenant forensics angle specifically: how to produce a slice of the trail that belongs to exactly one customer, and hand it over with a proof it wasn't altered.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../tenant-scoped-audit-log-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/mcp/" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-test-mcp-servers-without-a-live-server"><a class="toclink" href="../../../../testing-mcp-servers/">How to Test MCP Servers Without a Live Server</a></h2>
-<p>Testing MCP servers usually means starting a process, waiting for it to bind a port, and firing HTTP or stdio requests at it from a separate test runner. That works, but it is slow, it is flaky in CI, and it turns a two-line assertion into a fixture that manages subprocesses and sockets. This post shows the alternative: run the complete request pipeline — validation, dependency injection, guards, middleware, and your handler — entirely in-process with Promptise Foundry's <code>TestClient</code>, so your tests stay as fast and deterministic as plain function calls. By the end you will be able to test tools, guards, middleware, and error handling without ever opening a network connection.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../testing-mcp-servers/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/runtime/" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="time-travel-debug-an-ai-agent-by-rewinding-state"><a class="toclink" href="../../../../time-travel-debug-ai-agent/">Time-Travel Debug an AI Agent by Rewinding State</a></h2>
-<p>To <strong>time-travel debug an AI agent</strong>, you rewind its recorded history to the exact step before it did something baffling, rebuild the state it was actually looking at, and replay its decisions deterministically — instead of squinting at stdout and guessing. When a request/response function misbehaves you set a breakpoint and re-run it. An autonomous agent gives you neither luxury: it woke itself on a trigger you didn't watch, called an LLM whose output you can't reproduce, mutated its own state across dozens of invocations, and fired a side effect you now have to explain. This post shows how a Promptise journal plus its rewind and replay engines turn "why did it do that?" into a reproducible postmortem, and where that differs — honestly — from LangGraph's graph-state time-travel.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../time-travel-debug-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/building-agents/" class="md-meta__link">Building Agents</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="tool-calling-in-python-connect-an-llm-to-tools"><a class="toclink" href="../../../../tool-calling-in-python/">Tool Calling in Python: Connect an LLM to Tools</a></h2>
-<p>Tool calling in Python is the mechanism that turns a language model from a text generator into something that can actually <em>do</em> things — look up an order, query a database, call an internal API. The concept is simple, but the standard tutorials bury you in JSON Schema boilerplate: for every function you want to expose, you hand-write a schema describing its name, parameters, and types, and keep that schema in sync with the code forever. By the end of this post you'll understand exactly how tool calling works under the hood, and you'll see the shortcut most guides skip — pointing your agent at an MCP server so tools appear auto-discovered, with schemas derived straight from your Python type hints.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../tool-calling-in-python/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/cost--efficiency/" class="md-meta__link">Cost &amp; Efficiency</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="why-trim_messages-drops-facts-your-agent-still-needs"><a class="toclink" href="../../../../trim-messages-vs-facts-ledger/">Why trim_messages Drops Facts Your Agent Still Needs</a></h2>
-<p>Put <strong>trim_messages vs a facts ledger</strong> side by side on a deep tool loop and the difference stops being academic: trimming evicts messages by token or message count, so it can throw away the exact record the model still needs three turns later — while a ledger keeps that fact and drops the <em>duplicates</em> instead. When a tool-calling agent balloons in the middle of a long task, the reflex is to reach for one of two stock helpers: trim the message history, or summarize it. Both bound the transcript. Both also have a failure mode that only shows up on the tasks that matter most — the deep ones. This post compares those helpers head-to-head with Promptise Foundry's <code>context_scope="ledger"</code>, a last-value-wins facts ledger that deduplicates repeated tool calls and cache-serves a repeat instead of re-running it, with no extra model call.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../trim-messages-vs-facts-ledger/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/identity/" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="zero-trust-verify-the-calling-agent-not-its-name"><a class="toclink" href="../../../../verify-the-calling-agent-server-side/">Zero-trust: verify the calling agent, not its name</a></h2>
-<p>In a zero-trust agent mesh you must <strong>verify the calling agent server-side</strong> — cryptographically, on the resource that receives the call — because a self-asserted agent name in a request body is trivial to forge. Agent A tells your billing server "I am <code>billing-bot</code>"; your server believes it; a compromised or misconfigured Agent B says exactly the same thing. If the only thing standing between a caller and <code>issue_refund</code> is a string it chose for itself, you have no security boundary at all — you have a naming convention.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../verify-the-calling-agent-server-side/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/runtime/" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="verify-webhook-signatures-before-waking-your-agent"><a class="toclink" href="../../../../verify-webhook-signature-ai-agent/">Verify Webhook Signatures Before Waking Your Agent</a></h2>
-<p>The code that runs when a webhook hits your service has one deceptively small job: <strong>verify webhook signature ai agent</strong> triggers before you let them wake anything, because an unauthenticated POST is an open door straight into an autonomous process. This post is not the tour of reactive triggers — that lives in the <a href="../../../../../runtime/triggers/">triggers overview</a>. It is about the one mechanism that decides whether the request is real: HMAC-SHA256 over the raw body, read from <code>X-Webhook-Signature</code>, compared in constant time, and rejected <em>before</em> the agent is ever invoked. Get that check right and the rest of your pipeline inherits a trustworthy entry point. Get it wrong and everything downstream is running on forged input.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../verify-webhook-signature-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/mcp/" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="why-a-small-mcp-tool-change-broke-every-connected-agent"><a class="toclink" href="../../../../version-mcp-tools-without-breaking-clients/">Why a Small MCP Tool Change Broke Every Connected Agent</a></h2>
-<p>To version MCP tools without breaking clients, you have to treat a tool's schema as a published API contract — because that is exactly what every connected agent already assumes it is. An agent does not read your source code. It reads the <code>input_schema</code> your server advertises, builds a function call to match, and trusts that the shape it saw at discovery time is the shape you will accept at call time. Rename one field from <code>customer</code> to <code>customer_id</code>, tighten <code>filters</code> from optional to required, or drop a property some prompt still references, and every agent already in flight starts emitting arguments your handler rejects. Nothing crashed on your side. You just changed the contract out from under callers who never agreed to the new terms.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../version-mcp-tools-without-breaking-clients/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/runtime/" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="build-a-crash-safe-watched-folder-ingestion-agent"><a class="toclink" href="../../../../watched-folder-ingestion-agent/">Build a Crash-Safe Watched-Folder Ingestion Agent</a></h2>
-<p>A <strong>watched folder ingestion agent</strong> watches a drop folder, wakes the instant a file lands, and runs an LLM over it — extract, classify, route, emit. This is not a tour of the runtime's trigger types; that overview lives in the <a href="../../../../../runtime/triggers/">Triggers guide</a>. It is one end-to-end build. We wire a <code>FileWatchTrigger</code> to a supervised <code>AgentProcess</code>, and then solve the three things a naive watcher gets wrong the moment it meets production: reprocessing after a crash, an unbounded bill when a thousand files land at once, and losing everything the agent learned between drops. The watch itself is the easy part. The durable, restart-safe pipeline around it is the point.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../watched-folder-ingestion-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/mcp/" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="what-is-mcp-model-context-protocol-explained"><a class="toclink" href="../../../../what-is-mcp/">What Is MCP? Model Context Protocol Explained</a></h2>
-<p>If you have ever asked <em>what is MCP</em> and come away with a spec diagram but no running code, this post is the fix. The <strong>Model Context Protocol</strong> (MCP) is an open standard for connecting language models to tools, data, and prompts in one uniform way — so a tool you build once can be called by any MCP-compatible agent. By the end of this article you will understand the protocol's moving parts and see an agent auto-discover and call a real tool in under ten lines of Python, with zero manual wiring.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../what-is-mcp/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/approvals--hitl/" class="md-meta__link">Approvals &amp; HITL</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="who-approved-that-ai-refund-reviewer-attribution"><a class="toclink" href="../../../../who-approved-this-ai-agent-action/">Who Approved That AI Refund? Reviewer Attribution</a></h2>
-<p>When compliance asks <strong>who approved this ai agent action</strong> — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post is scoped narrowly to one thing: the <em>provenance of an approval decision</em>. Not whether the audit log is tamper-evident (that question is settled elsewhere), but what actually lands on it when a human signs off, and whether that record can survive an auditor who does not trust your good intentions.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../who-approved-this-ai-agent-action/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../../../category/identity/" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="what-is-workload-identity-for-ai-agents"><a class="toclink" href="../../../../workload-identity-for-ai-agents/">What Is Workload Identity for AI Agents?</a></h2>
-<p>Workload identity for AI agents is the practice of giving every agent a stable, verifiable identity of its own — minted by the identity provider you already run — instead of handing the whole fleet one shared API key. If you deploy more than one agent, you have probably already felt the gap: your logs say "the model" did something, your audit trail can't name which agent hit which tool, and every agent holds the same credential so every agent has the same blast radius. By the end of this post you will know exactly what workload identity means for agents, why it is the same problem enterprises solved for services years ago, and how to give your first agent a real identity with no new secrets to manage.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../../../workload-identity-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-      
-        
-          
-
-
-
-<nav class="md-pagination">
-  <a class="md-pagination__link" href="../../">1</a> <span class="md-pagination__dots">..</span> <a class="md-pagination__link" href="../7/">7</a> <a class="md-pagination__link" href="../8/">8</a> <span class="md-pagination__current">9</span>
-</nav>
-        
-      
-    </div>
-  </div>
-
           
   <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
 
@@ -10184,10 +9821,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.path", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow", "search.suggest", "search.highlight", "header.autohide"], "search": "../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.path", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow", "search.suggest", "search.highlight", "header.autohide"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

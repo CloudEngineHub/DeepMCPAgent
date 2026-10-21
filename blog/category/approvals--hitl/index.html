@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8375,36 +8356,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9317,7 +9268,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="add-a-four-eyes-approval-queue-to-your-mcp-server"><a class="toclink" href="../../add-approval-queue-to-mcp-server/">Add a Four-Eyes Approval Queue to Your MCP Server</a></h2>
-<p>Search <strong>add approval queue to MCP server</strong> and you'll find plenty on gating a tool, but almost nothing on the reviewer side — and the reviewer side is four separate chores: a pending store that holds a blocked call, admin endpoints a human can drive to release it, role-based access so only reviewers can touch those endpoints, and a separation-of-duties check so the person who <em>made</em> the call can't rubber-stamp their own request. This is the reviewer-side build — not "how do I gate a tool" (a gate that runs a policy or a webhook is covered elsewhere), but "how do I stand up an independent human queue that a <em>different</em> person drains." In Promptise Foundry it is one object: <code>PendingApprover</code>. This post shows the whole flow end to end, then covers the honest edges so you deploy it knowing exactly what it does and doesn't survive.</p>
+<p>To <strong>add an approval queue to an MCP server</strong>, gating the tool is only half the job. The reviewer side is four separate chores: a pending store that holds a blocked call, admin endpoints a human can drive to release it, role-based access so only reviewers can touch those endpoints, and a separation-of-duties check so the person who <em>made</em> the call can't rubber-stamp their own request. The question here is not "how do I gate a tool" but "how do I stand up an independent human queue that a <em>different</em> person drains." In Promptise Foundry it is one object: <code>PendingApprover</code>. This post shows the whole flow end to end, then covers its limits so you deploy it knowing exactly what it does and doesn't survive.</p>
 
     
       <nav class="md-post__action">
@@ -9481,7 +9432,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="langgraph-vs-crewai-vs-autogen-where-hitl-runs"><a class="toclink" href="../../langgraph-vs-crewai-vs-autogen-human-in-the-loop/">LangGraph vs CrewAI vs AutoGen: Where HITL Runs</a></h2>
-<p>Read enough roundups and you get the same <strong>LangGraph vs CrewAI vs AutoGen human in the loop</strong> comparison — three feature checklists, all ticking the "supports HITL" box — while the question that actually decides your architecture goes unasked: <em>where does the approval physically execute?</em> This post is a capability matrix, not another retelling of the bypass argument. For each framework we state exactly where the check runs and what that implies, then show the one row that's structurally different: a gate that lives on the tool itself.</p>
+<p>A typical <strong>LangGraph vs CrewAI vs AutoGen human in the loop</strong> comparison is three feature checklists, all ticking the "supports HITL" box, while the question that actually decides your architecture goes unasked: <em>where does the approval physically execute?</em> This post is a capability matrix. For each framework we state exactly where the check runs and what that implies, then show the one row that's structurally different: a gate that lives on the tool itself.</p>
 
     
       <nav class="md-post__action">
@@ -9552,48 +9503,7 @@
           
           <li class="md-meta__item">
             
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="route-ai-agent-approvals-to-slack-with-signed-webhooks"><a class="toclink" href="../../route-ai-agent-approvals-to-slack/">Route AI Agent Approvals to Slack with Signed Webhooks</a></h2>
-<p>To <strong>route AI agent approvals to Slack</strong> — or PagerDuty, or an internal review app — the decision has to leave your agent's process entirely and land in front of a human who lives in that channel, not at the terminal that happens to be running the agent. That is a different problem from the usual "pop a confirm dialog in the calling app." The reviewer for a $5,000 refund is on call in an ops channel; they are never going to be watching a Python REPL. This post wires the same server-side approval gate that enforces on every MCP client to an external channel using <code>WebhookApprovalHandler</code>: it POSTs an HMAC-signed request to your own service, polls for the verdict, and denies by default if the clock runs out — a one-line swap for the in-process reviewers, with no change to the tool.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../route-ai-agent-approvals-to-slack/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Approvals &amp; HITL</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
+              7 min read
             
           </li>
         
@@ -9604,52 +9514,11 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="should-an-ai-agent-approve-its-own-action"><a class="toclink" href="../../separation-of-duties-for-ai-agents/">Should an AI Agent Approve Its Own Action?</a></h2>
-<p>Separation of duties for AI agents is the rule that the principal who <em>requests</em> a sensitive action can never be the one who <em>approves</em> it — and it is exactly the control that quietly collapses the moment whoever drives an agent can also click "approve" on the agent's own request. Most human-in-the-loop wiring stops one step short of this. It pauses before a risky tool call and asks a human to decide, which feels like dual control. But if the human answering the prompt is the same person (or the same service identity) that triggered the call, you have a rubber stamp with extra latency, not a second set of eyes. This post goes past the two sentences a general approval overview can spare and works through what dual control actually means, why the reviewer has to be a <em>different</em> principal, and how Promptise Foundry makes <code>reviewer client_id != caller client_id</code> a server-enforced default instead of a policy you hope everyone remembers to build.</p>
+<p>Separation of duties for AI agents is the rule that the principal who <em>requests</em> a sensitive action can never be the one who <em>approves</em> it — and it is exactly the control that quietly collapses the moment whoever drives an agent can also click "approve" on the agent's own request. Most human-in-the-loop wiring stops one step short of this. It pauses before a risky tool call and asks a human to decide, which feels like dual control. But if the human answering the prompt is the same person (or the same service identity) that triggered the call, you have a rubber stamp with extra latency, not a second set of eyes. This post works through what dual control actually means, why the reviewer has to be a <em>different</em> principal, and how Promptise Foundry makes <code>reviewer client_id != caller client_id</code> a server-enforced default instead of a policy you hope everyone remembers to build.</p>
 
     
       <nav class="md-post__action">
         <a href="../../separation-of-duties-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Approvals &amp; HITL</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="approve-in-the-agent-or-the-mcp-server-or-both"><a class="toclink" href="../../server-side-vs-agent-side-ai-approval/">Approve in the Agent or the MCP Server? Or Both</a></h2>
-<p>The <strong>server-side vs agent-side ai approval</strong> decision is the one most teams get wrong by not knowing they had a decision to make — they wire a single human-in-the-loop hook, wherever the docs put it, and assume that one hook is doing two jobs it can't do at once. Promptise Foundry ships two distinct enforcement layers for a reason, and this post puts them side by side so you can map each sensitive tool to the layer it actually belongs in.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../server-side-vs-agent-side-ai-approval/">
           Continue reading
         </a>
       </nav>
@@ -9686,7 +9555,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="who-approved-that-ai-refund-reviewer-attribution"><a class="toclink" href="../../who-approved-this-ai-agent-action/">Who Approved That AI Refund? Reviewer Attribution</a></h2>
-<p>When compliance asks <strong>who approved this ai agent action</strong> — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post is scoped narrowly to one thing: the <em>provenance of an approval decision</em>. Not whether the audit log is tamper-evident (that question is settled elsewhere), but what actually lands on it when a human signs off, and whether that record can survive an auditor who does not trust your good intentions.</p>
+<p>When someone asks <strong>who approved this ai agent action</strong> — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post covers the <em>provenance of an approval decision</em>: what actually lands on a tamper-evident audit log when a human signs off, and whether that record can survive an incident reviewer who does not trust your good intentions.</p>
 
     
       <nav class="md-post__action">

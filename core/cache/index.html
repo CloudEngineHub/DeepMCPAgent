@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -2938,10 +2908,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gdpr-compliance" class="md-nav__link">
+  <a href="#deleting-one-users-cached-data" class="md-nav__link">
     <span class="md-ellipsis">
       
-        GDPR Compliance
+        Deleting One User's Cached Data
       
     </span>
   </a>
@@ -6185,6 +6155,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6204,8 +6178,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6219,8 +6194,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6232,6 +6213,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8478,8 +8461,6 @@
       
         
       
-        
-      
     
     
     
@@ -8632,36 +8613,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9717,10 +9668,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#gdpr-compliance" class="md-nav__link">
+  <a href="#deleting-one-users-cached-data" class="md-nav__link">
     <span class="md-ellipsis">
       
-        GDPR Compliance
+        Deleting One User's Cached Data
       
     </span>
   </a>
@@ -9839,10 +9790,6 @@
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">caller</span><span class="o">=</span><span class="n">CallerContext</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="s2">"user-42"</span><span class="p">))</span>
 </span></code></pre></div>
 <hr />
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Link to this section">&para;</a></h2>
 <ol>
 <li>User sends a message</li>
@@ -9979,7 +9926,7 @@
 - With <code>CallerContext(tenant_id="acme")</code> the key is tenant-qualified — an injective, colon-prefixed hash (<code>user:t:&lt;sha256&gt;</code>) disjoint from the untenanted namespace, so two tenants with the same <code>user_id</code> can never share a cache partition
 - Similarity search only runs within a user's own partition — no cross-user matching possible
 - If no <code>CallerContext</code> is provided, caching is silently disabled for that request (with a debug log: <code>"Cache: no CallerContext or user_id provided"</code>)
-- <code>purge_user("alice")</code> removes all of Alice's cached entries (GDPR compliance)</p>
+- <code>purge_user("alice")</code> removes all of Alice's cached entries, for example when she asks you to delete her data</p>
 <p><strong>Per-session mode</strong> isolates even further — each of a user's sessions has its own cache:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">cache</span> <span class="o">=</span> <span class="n">SemanticCache</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="s2">"per_session"</span><span class="p">)</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
@@ -10205,7 +10152,7 @@
 <p>To evict by hand, for example after a webhook reports a change: <code>await cache.invalidate_for_write("orders_updated", caller=caller)</code>.</p>
 <p>Disable with <code>invalidate_on_write=False</code> if your tools don't affect query results. Turns that called a write tool are still never cached.</p>
 <hr />
-<h2 id="gdpr-compliance">GDPR Compliance<a class="headerlink" href="#gdpr-compliance" title="Link to this section">&para;</a></h2>
+<h2 id="deleting-one-users-cached-data">Deleting One User's Cached Data<a class="headerlink" href="#deleting-one-users-cached-data" title="Link to this section">&para;</a></h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Delete all cached data for a user</span>
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">count</span> <span class="o">=</span> <span class="k">await</span> <span class="n">cache</span><span class="o">.</span><span class="n">purge_user</span><span class="p">(</span><span class="s2">"user-42"</span><span class="p">)</span>
 </span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
@@ -10257,7 +10204,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:43:59 UTC">2026-10-20</span>
   </span>
 
     

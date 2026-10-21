@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="When a fleet shares one key, a SOC 2 or ISO reviewer asking 'who performed this action?' gets 'the model' as the answer. This piece frames attribution as a…">
+        <meta name="description" content="Learn how to attribute every tool call in an agent fleet to a verified agent identity in a tamper-evident log, instead of one shared key that hides who acted.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/ai-agent-action-attribution/">
       
       
-        <link rel="prev" href="../ai-agent-audit-logging/">
+        <link rel="prev" href="../ai-agent-failover-to-another-node/">
       
       
-        <link rel="next" href="../agent-token-usage-observability/">
+        <link rel="next" href="../agent-identity-without-an-identity-provider/">
       
       
         
@@ -88,14 +88,14 @@
 
   
   
-    <meta name="keywords" content="AI agent action attribution, which AI agent did this, SOC 2 agent attribution, tamper-evident agent audit, who performed this action agent, verified principal audit">
+    <meta name="keywords" content="AI agent action attribution, which AI agent did this, agent fleet attribution, tamper-evident agent audit, who performed this action agent, verified principal audit">
   
 
   
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Which AI agent did this? Attribution for agent fleets">
-  <meta property="og:description" content="When a fleet shares one key, a SOC 2 or ISO reviewer asking 'who performed this action?' gets 'the model' as the answer. This piece frames attribution as a…">
+  <meta property="og:description" content="Learn how to attribute every tool call in an agent fleet to a verified agent identity in a tamper-evident log, instead of one shared key that hides who acted.">
   <meta property="og:url" content="https://docs.promptise.com/blog/ai-agent-action-attribution/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Which AI agent did this? Attribution for agent fleets">
-  <meta name="twitter:description" content="When a fleet shares one key, a SOC 2 or ISO reviewer asking 'who performed this action?' gets 'the model' as the answer. This piece frames attribution as a…">
+  <meta name="twitter:description" content="Learn how to attribute every tool call in an agent fleet to a verified agent identity in a tamper-evident log, instead of one shared key that hides who acted.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Which AI agent did this? Attribution for agent fleets",
       "name": "Which AI agent did this? Attribution for agent fleets",
-      "description": "When a fleet shares one key, a SOC 2 or ISO reviewer asking \u0027who performed this action?\u0027 gets \u0027the model\u0027 as the answer. This piece frames attribution as a\u2026",
+      "description": "Learn how to attribute every tool call in an agent fleet to a verified agent identity in a tamper-evident log, instead of one shared key that hides who acted.",
       "url": "https://docs.promptise.com/blog/ai-agent-action-attribution/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9460,7 +9411,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
                           <span class="md-ellipsis">
                             
-                              9 min read
+                              8 min read
                             
                           </span>
                         </div>
@@ -9488,15 +9439,11 @@
 
 
 <h1 id="which-ai-agent-did-this-attribution-for-agent-fleets">Which AI agent did this? Attribution for agent fleets<a class="headerlink" href="#which-ai-agent-did-this-attribution-for-agent-fleets" title="Link to this section">&para;</a></h1>
-<p>AI agent action attribution is the forensic question every autonomous fleet eventually has to answer: when a refund was issued, a record was deleted, or a customer's data was exported, <em>which agent did it?</em> If your fleet shares one API key and one model credential, the honest answer is "the model" — and "the model did it" is not a sentence a SOC 2 or ISO reviewer will accept as attribution. This post frames attribution as a forensics problem rather than a logging convenience, and shows the two properties a record needs to actually survive an incident: the acting agent stamped on <em>every</em> action, and a <em>verified</em> principal landing in a <em>tamper-evident</em> log.</p>
+<p>AI agent action attribution is the forensic question every autonomous fleet eventually has to answer: when a refund was issued, a record was deleted, or a customer's data was exported, <em>which agent did it?</em> If your fleet shares one API key and one model credential, the honest answer is "the model" — and "the model did it" is not a sentence a security reviewer will accept as attribution. Treat attribution as a forensics problem rather than a logging convenience. This post shows the two properties a record needs to actually survive an incident: the acting agent stamped on <em>every</em> action, and a <em>verified</em> principal landing in a <em>tamper-evident</em> log.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="the-model-did-it-is-not-an-answer">"The model did it" is not an answer<a class="headerlink" href="#the-model-did-it-is-not-an-answer" title="Link to this section">&para;</a></h2>
-<p>Attribution breaks in a very specific place. A fleet of ten agents shares one key. Each one can call the same tools with the same authority. Post-incident, your logs faithfully record that <code>issue_refund</code> was called — but every line looks identical, because every agent presented the same credential. You can see <em>what</em> happened. You cannot see <em>who</em> did it. That is the shared-key anti-pattern that human identity abandoned decades ago, and it is exactly what most agent fleets still run. (For why each agent should carry its own identity rather than a shared secret, see <a href="../give-each-ai-agent-its-own-identity/">Give each AI agent its own identity, not a shared key</a>.)</p>
+<p>Attribution breaks in a very specific place. A fleet of ten agents shares one key. Each one can call the same tools with the same authority. Post-incident, your logs faithfully record that <code>issue_refund</code> was called — but every line looks identical, because every agent presented the same credential. You can see <em>what</em> happened. You cannot see <em>who</em> did it. That is the shared-key anti-pattern that human identity abandoned decades ago, and it is exactly what most agent fleets still run. (For how each agent authenticates with its own identity rather than a shared secret, see <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">AI Agent Identity: Authenticate Agents to MCP Servers</a>.)</p>
 <p>Attribution is not the same as observability. Observability tells you a call happened and how long it took. Attribution has to hold up when someone disputes it — when a customer says "your agent charged me twice" or a reviewer asks you to prove that agent A, owned by team X, took an action three weeks ago. That standard raises two demands a debug log never has to meet:</p>
 <ol>
 <li><strong>Every action carries the acting agent.</strong> Not a sampled subset, not "usually" — every recorded tool call and LLM turn names the principal that took it, or the record has a hole exactly where the dispute is.</li>
@@ -9515,7 +9462,7 @@
 <p>Promptise closes both gaps at once, and in two places, so attribution is redundant by design.</p>
 <p><strong>On the observability timeline.</strong> Attach an <code>AgentIdentity</code> to an agent and turn on observability, and every tool call and LLM turn is stamped with that agent's identifier — its <code>agent_id</code>, or the IdP-assigned <code>subject</code> for a verifiable identity. Delegation, the point where attribution usually evaporates, stays intact: when one agent hands work to a peer, the peer's entries are stamped with <code>delegated_by</code>, so work done "by the other agent" is still traceable to the originator. The full four-touchpoint walkthrough — attribution, outbound auth, inbound verification, and audit — is the <a href="../../identity/guide/">end-to-end Identity guide</a>.</p>
 <p><strong>In the tamper-evident audit.</strong> This is the part that survives a dispute. When an MCP server verifies the caller's token — with <code>JWTAuth</code> against a shared secret, or <code>JwksAuth</code> against your IdP's published keys — the <em>verified</em> descriptors of the acting agent (<code>subject</code>, <code>issuer</code>, <code>audience</code>, <code>roles</code>) land as a first-class <code>identity</code> block inside every audit entry. And because <code>AuditMiddleware(signed=True)</code> writes an HMAC-chained log — each entry hashes the one before it — editing, deleting, or reordering any entry breaks the chain at that point. An insider can't rewrite <code>subject</code> from <code>billing-bot</code> to <code>reporting-bot</code> without invalidating the signature.</p>
-<p>That combination is the answer competitors don't cleanly give: <em>who performed this action</em> is (a) checked server-side against an identity provider, not asserted by the caller, and (b) bound into a chain where any later edit is detectable. The principal reaches <code>ctx.client</code> on the server the same way a human user's identity does — through the <a href="../../guides/multi-user-identity/">multi-user identity flow</a>, where <code>CallerContext</code> carries the bearer token to the server and roles/subject are extracted from the JWT server-side, never trusted from the client. How an agent obtains that token in the first place is covered in <a href="../how-does-an-ai-agent-authenticate-to-an-api/">How does an AI agent authenticate to an API? (not API keys)</a>.</p>
+<p>That combination is the answer competitors don't cleanly give: <em>who performed this action</em> is (a) checked server-side against an identity provider, not asserted by the caller, and (b) bound into a chain where any later edit is detectable. The principal reaches <code>ctx.client</code> on the server the same way a human user's identity does — through the <a href="../../guides/multi-user-identity/">multi-user identity flow</a>, where <code>CallerContext</code> carries the bearer token to the server and roles/subject are extracted from the JWT server-side, never trusted from the client. How an agent obtains that token in the first place is covered in the <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">AI agent identity guide</a>.</p>
 <h2 id="see-it-run-from-jwt-to-a-signed-identity-block">See it run: from JWT to a signed identity block<a class="headerlink" href="#see-it-run-from-jwt-to-a-signed-identity-block" title="Link to this section">&para;</a></h2>
 <p>Here is the whole mechanism in one runnable file. It stands up a billing server, verifies a caller's token, records a refund, prints the <strong>verified</strong> principal the audit captured, then simulates an insider rewriting history to blame a different agent — and watches the chain catch it. Every API is real, and it runs in-process with <code>TestClient</code>: no network, no LLM key.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># attribution_demo.py — prove which agent performed an action, tamper-evidently.</span>
@@ -9571,7 +9518,7 @@
 </span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>
 </span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
-<p>The <code>identity</code> block is not a string the agent typed about itself — it is what the server extracted <em>after</em> validating the token's signature, so it names the principal the resource actually authenticated. And because that block is part of the payload the HMAC covers, rewriting <code>subject</code> after the fact is exactly the edit <code>verify_chain()</code> is built to catch. That is attribution you can hand an auditor: they don't take your word for the "who," they check the math. Argument and result capture stay opt-in (<code>include_args</code>, <code>include_result</code>) so the trail records <em>who did what</em> without dragging PII into your logs by default.</p>
+<p>The <code>identity</code> block is not a string the agent typed about itself — it is what the server extracted <em>after</em> validating the token's signature, so it names the principal the resource actually authenticated. And because that block is part of the payload the HMAC covers, rewriting <code>subject</code> after the fact is exactly the edit <code>verify_chain()</code> is built to catch. That is attribution you can hand an incident reviewer: they don't take your word for the "who," they check the math. Argument and result capture stay opt-in (<code>include_args</code>, <code>include_result</code>) so the trail records <em>who did what</em> without dragging PII into your logs by default.</p>
 <h2 id="what-a-verified-subject-proves-and-what-it-doesnt">What a verified subject proves — and what it doesn't<a class="headerlink" href="#what-a-verified-subject-proves-and-what-it-doesnt" title="Link to this section">&para;</a></h2>
 <p>Honest attribution means being precise about the trust boundary, and Promptise is deliberately blunt about it. A verified <code>subject</code> on the server side means the resource checked a signature against the IdP's keys — that is real cryptographic proof the caller holds a valid credential for <em>this</em> audience. But two caveats matter:</p>
 <ul>
@@ -9612,7 +9559,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

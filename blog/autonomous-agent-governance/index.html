@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The question every tech lead asks before shipping an autonomous agent: what stops it from looping forever or draining my tool budget? Covers the concrete…">
+        <meta name="description" content="Learn how to keep an unattended AI agent in check with per-run and daily budgets, health anomaly detection, and missions that know when the goal is done.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/autonomous-agent-governance/">
       
       
-        <link rel="prev" href="../autonomous-ai-agent-runtime/">
+        <link rel="prev" href="../build-ai-agent-with-promptise/">
       
       
-        <link rel="next" href="../autonomous-agent-goal-completion/">
+        <link rel="next" href="../autogen-vs-promptise/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Governing Autonomous Agents: Budget & Health">
-  <meta property="og:description" content="The question every tech lead asks before shipping an autonomous agent: what stops it from looping forever or draining my tool budget? Covers the concrete…">
+  <meta property="og:description" content="Learn how to keep an unattended AI agent in check with per-run and daily budgets, health anomaly detection, and missions that know when the goal is done.">
   <meta property="og:url" content="https://docs.promptise.com/blog/autonomous-agent-governance/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Governing Autonomous Agents: Budget & Health">
-  <meta name="twitter:description" content="The question every tech lead asks before shipping an autonomous agent: what stops it from looping forever or draining my tool budget? Covers the concrete…">
+  <meta name="twitter:description" content="Learn how to keep an unattended AI agent in check with per-run and daily budgets, health anomaly detection, and missions that know when the goal is done.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Governing Autonomous Agents: Budget \u0026 Health",
       "name": "Governing Autonomous Agents: Budget \u0026 Health",
-      "description": "The question every tech lead asks before shipping an autonomous agent: what stops it from looping forever or draining my tool budget? Covers the concrete\u2026",
+      "description": "Learn how to keep an unattended AI agent in check with per-run and daily budgets, health anomaly detection, and missions that know when the goal is done.",
       "url": "https://docs.promptise.com/blog/autonomous-agent-governance/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9589,7 +9540,7 @@
 <li><strong>Short, one-shot tasks.</strong> A single tool call behind an API endpoint does not need per-day budgets or mission evaluation. The ceremony outweighs the benefit.</li>
 <li><strong>You already own an external orchestrator.</strong> If Temporal, Airflow, or a similar system already enforces retries, timeouts, and spend limits around the agent, layering Promptise's budget on top can duplicate controls. Use health and mission for the behavior it can see, and let the orchestrator own scheduling.</li>
 </ul>
-<p>Governance earns its keep exactly when an agent runs on triggers, calls tools that cost money or cannot be undone, and needs to keep going until a goal is met. If none of that is true, start lighter. For the broader picture of when you cross that line, see <a href="../autonomous-ai-agent-runtime/">What Is an Autonomous AI Agent Runtime?</a>.</p>
+<p>Governance earns its keep exactly when an agent runs on triggers, calls tools that cost money or cannot be undone, and needs to keep going until a goal is met. If none of that is true, start lighter. For the broader picture of when you cross that line, see the <a href="https://www.promptise.com/guides/view/autonomous-ai-agent-runtime">autonomous AI agent runtime guide</a>.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="does-the-budget-track-my-real-dollar-spend-on-openai-or-anthropic">Does the budget track my real dollar spend on OpenAI or Anthropic?<a class="headerlink" href="#does-the-budget-track-my-real-dollar-spend-on-openai-or-anthropic" title="Link to this section">&para;</a></h3>
 <p>No. The budget measures abstract cost units you define through <code>ToolCostAnnotation</code>, plus counts of tool calls and LLM turns. It governs agent <em>behavior</em>, not provider pricing — Promptise never connects to a billing API. For real monetary limits, track token usage through your provider dashboard or Promptise observability, and use the budget to cap the actions that matter. The <a href="../../runtime/governance/budget/">budget reference</a> walks through both approaches.</p>
@@ -9598,7 +9549,7 @@
 <h3 id="what-is-the-difference-between-a-budget-limit-and-a-mission">What is the difference between a budget limit and a mission?<a class="headerlink" href="#what-is-the-difference-between-a-budget-limit-and-a-mission" title="Link to this section">&para;</a></h3>
 <p>A budget is a hard ceiling on <em>how much</em> an agent may do; a mission defines <em>what done looks like</em> and evaluates progress toward it. Budget and health keep a misbehaving agent inside its envelope, while the mission decides when the work is finished and stops the process on success — optionally via a deterministic <code>success_check</code> before the LLM judge runs.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Wrap your agent in a budget plus a health policy and set your first hard stop before production — start from the runnable process above, then tune the thresholds to your tools. Read the <a href="../../getting-started/quickstart/">Quick Start</a> to build the underlying agent, follow <a href="../long-running-ai-agent/">How to Build a Long-Running AI Agent</a> to put it on a trigger, and use the <a href="../../runtime/governance/mission/">Mission-Oriented Process reference</a> to make it run until the job is genuinely done.</p>
+<p>Wrap your agent in a budget plus a health policy and set your first hard stop before production — start from the runnable process above, then tune the thresholds to your tools. Read the <a href="../../getting-started/quickstart/">Quick Start</a> to build the underlying agent, follow <a href="https://www.promptise.com/guides/view/deploy-ai-agents-in-production">Deploy AI Agents in Production: Long-Running Python Agents</a> to put it on a trigger, and use the <a href="../../runtime/governance/mission/">Mission-Oriented Process reference</a> to make it run until the job is genuinely done.</p>
 
 
 
@@ -9621,7 +9572,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

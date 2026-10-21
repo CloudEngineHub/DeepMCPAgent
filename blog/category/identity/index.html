@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9347,7 +9298,7 @@
           
           <li class="md-meta__item">
             
-              9 min read
+              8 min read
             
           </li>
         
@@ -9358,7 +9309,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="which-ai-agent-did-this-attribution-for-agent-fleets"><a class="toclink" href="../../ai-agent-action-attribution/">Which AI agent did this? Attribution for agent fleets</a></h2>
-<p>AI agent action attribution is the forensic question every autonomous fleet eventually has to answer: when a refund was issued, a record was deleted, or a customer's data was exported, <em>which agent did it?</em> If your fleet shares one API key and one model credential, the honest answer is "the model" — and "the model did it" is not a sentence a SOC 2 or ISO reviewer will accept as attribution. This post frames attribution as a forensics problem rather than a logging convenience, and shows the two properties a record needs to actually survive an incident: the acting agent stamped on <em>every</em> action, and a <em>verified</em> principal landing in a <em>tamper-evident</em> log.</p>
+<p>AI agent action attribution is the forensic question every autonomous fleet eventually has to answer: when a refund was issued, a record was deleted, or a customer's data was exported, <em>which agent did it?</em> If your fleet shares one API key and one model credential, the honest answer is "the model" — and "the model did it" is not a sentence a security reviewer will accept as attribution. Treat attribution as a forensics problem rather than a logging convenience. This post shows the two properties a record needs to actually survive an incident: the acting agent stamped on <em>every</em> action, and a <em>verified</em> principal landing in a <em>tamper-evident</em> log.</p>
 
     
       <nav class="md-post__action">
@@ -9388,89 +9339,7 @@
           
           <li class="md-meta__item">
             
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ai-agent-identity-authentication-the-complete-guide"><a class="toclink" href="../../ai-agent-identity/">AI Agent Identity &amp; Authentication: The Complete Guide</a></h2>
-<p>AI agent identity is the answer to a deceptively simple question: <em>which agent did this?</em> If you searched for "AI agent authentication" and landed on a page about storing your OpenAI key safely, you found the wrong thing — that secures the model call, not the actor. This guide separates the two clearly, explains why an autonomous agent is a new kind of non-human actor that needs its own identity, and shows you how to give one a traceable identity in a few lines of Python. By the end you'll know when a name-only identity is enough and when you need a signed, verifiable one your identity provider mints.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../ai-agent-identity/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="api-keys-vs-jwt-for-ai-agent-tools-which-to-use"><a class="toclink" href="../../api-keys-vs-jwt-for-ai-agents/">API Keys vs JWT for AI Agent Tools: Which to Use</a></h2>
-<p>The debate over API keys vs JWT for AI agents usually gets strawmanned: a vendor comparison declares static keys "insecure" and pushes you toward tokens you don't need yet. That framing is wrong. For a single internal tool with one caller, a pre-shared API key is a perfectly good, production-grade choice — and Promptise Foundry ships <code>APIKeyAuth</code> as a first-class provider, not a training-wheels fallback. By the end of this article you'll be able to match your actual threat model to the right provider, and know the exact moment JWT and verifiable identity start earning their extra complexity.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../api-keys-vs-jwt-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
             
           </li>
         
@@ -9521,94 +9390,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="give-each-ai-agent-its-own-identity-not-a-shared-key"><a class="toclink" href="../../give-each-ai-agent-its-own-identity/">Give each AI agent its own identity, not a shared key</a></h2>
-<p>Give each AI agent its own identity and "which agent did this?" stops being a guess: instead of threading one shared API key through <code>env</code> for a whole fleet, you attach a distinct <code>AgentIdentity</code> in the <code>build_agent()</code> call, and that identity gets stamped onto every tool call, every LLM turn, and every HMAC-chained audit entry the agent produces. This is a concrete how-to — not another essay about the "identity gap." By the end you'll have two agents that no longer share one credential or one blast radius: a billing bot that can issue refunds and a read-only reporter that can't, each traceable to itself.</p>
+    <h2 id="multi-agent-audit-whos-the-principal-after-a-delegation-hop"><a class="toclink" href="../../multi-agent-audit-accountability/">Multi-Agent Audit: Who's the Principal After a Delegation Hop?</a></h2>
+<p>Multi-agent audit accountability is the question a security reviewer asks the moment your fleet stops being one agent: when Agent A — running on Alice's behalf — hands a subtask to Agent B, and B exports a record or issues a refund, <em>which principal does the audit trail name as accountable?</em> This is not the question of how B authenticates the delegation call (<a href="../../secure-agent-to-agent-communication/">Secure Agent-to-Agent Authentication in Practice</a> covers that). It is the narrower audit question that delegation raises: after the handoff, does your tamper-evident record still name <strong>the human who set the chain in motion</strong>, or does it name the sub-agent's service account? Get that wrong and every audited action taken past the first hop is attributed to a bot, and "the bot did it" is not an answer anyone reviewing the incident can use.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../give-each-ai-agent-its-own-identity/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-does-an-ai-agent-authenticate-to-an-api-not-api-keys"><a class="toclink" href="../../how-does-an-ai-agent-authenticate-to-an-api/">How does an AI agent authenticate to an API? (not API keys)</a></h2>
-<p>How does an AI agent authenticate to an API without a static, long-lived key you have to babysit? The default answer — mint one API key per agent, paste it into the tool config, and hope it never leaks — is the exact anti-pattern that modern identity abandoned for humans a decade ago. Humans stopped carrying passwords into every system and moved to short-lived, provider-issued tokens; agents, a brand-new class of non-human actor, deserve the same. This pillar walks the real alternative end to end: a short-lived credential minted from the agent's <em>own</em> workload identity, presented to each API automatically, and verified server-side with published keys. No secret to store, rotate, or leak.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../how-does-an-ai-agent-authenticate-to-an-api/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="jwt-authentication-for-mcp-servers-step-by-step"><a class="toclink" href="../../jwt-authentication-for-mcp-servers/">JWT Authentication for MCP Servers: Step by Step</a></h2>
-<p>JWT authentication for MCP servers is the piece the protocol spec leaves out: it tells you how to move bytes over stdio, HTTP, or SSE, but not how to prove <em>who</em> is calling a tool or stop an unauthorized agent from invoking your <code>delete_all</code> endpoint. If you have shipped a Model Context Protocol server and now need to lock it down, you are in the right place. By the end of this post you will understand the three-layer model Promptise Foundry uses — a JWT provider, <code>AuthMiddleware</code>, and per-tool guards — and you will have a copy-paste server where only the tools you mark are protected.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../jwt-authentication-for-mcp-servers/">
+        <a href="../../multi-agent-audit-accountability/">
           Continue reading
         </a>
       </nav>
@@ -9645,7 +9432,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="pass-user-identity-through-agents-to-mcp-tools"><a class="toclink" href="../../multi-user-agent-identity/">Pass User Identity Through Agents to MCP Tools</a></h2>
-<p>Getting <strong>multi-user agent identity</strong> right is the difference between a demo and a product your auditors will sign off on. The moment two customers share one agent, you have to answer a hard question: when Alice asks "show my invoices," how does <em>her</em> identity reach the tool server so it returns <em>her</em> data and not Bob's — without the client simply asserting whatever roles it likes? This post traces the whole path in Promptise Foundry: from a per-request <code>CallerContext</code> in your app, to a bearer token on the wire, to server-side JWT extraction and role/tenant guards. By the end you'll be able to wire it end to end and know exactly where the trust boundary sits.</p>
+<p>Getting <strong>multi-user agent identity</strong> right is the difference between a demo and a product your security team will sign off on. The moment two customers share one agent, you have to answer a hard question: when Alice asks "show my invoices," how does <em>her</em> identity reach the tool server so it returns <em>her</em> data and not Bob's — without the client simply asserting whatever roles it likes? This post traces the whole path in Promptise Foundry: from a per-request <code>CallerContext</code> in your app, to a bearer token on the wire, to server-side JWT extraction and role/tenant guards. By the end you'll be able to wire it end to end and know exactly where the trust boundary sits.</p>
 
     
       <nav class="md-post__action">
@@ -9839,7 +9626,7 @@
           
           <li class="md-meta__item">
             
-              7 min read
+              6 min read
             
           </li>
         
@@ -9890,49 +9677,8 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="give-an-ai-agent-a-spiffe-svid-identity-in-kubernetes"><a class="toclink" href="../../spiffe-svid-identity-for-ai-agents/">Give an AI agent a SPIFFE SVID identity in Kubernetes</a></h2>
-<p>A SPIFFE SVID identity for AI agents is the cleanest way to authenticate an autonomous agent inside a service mesh you already run: if your platform uses SPIRE, every workload already receives a short-lived, cryptographic SVID from the Workload API, yet no mainstream agent framework consumes one to prove <em>which</em> agent is acting. This how-to closes that gap. You will wire <code>AgentIdentity.from_spiffe</code> into <code>build_agent</code>, let SPIRE mint a per-audience JWT-SVID for each MCP server the agent calls, and verify those tokens server-side with <code>JwksAuth</code> against your trust domain — with automatic SVID rotation and not one static secret in code or <code>env</code>.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../spiffe-svid-identity-for-ai-agents/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Identity</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
     <h2 id="spiffe-vs-entra-vs-aws-iam-pick-an-agent-identity-provider"><a class="toclink" href="../../spiffe-vs-entra-vs-aws-iam-for-ai-agents/">SPIFFE vs Entra vs AWS IAM: pick an agent identity provider</a></h2>
-<p>Choosing between SPIFFE vs Entra vs AWS IAM for AI agents is not really a question of which identity provider is <em>best</em> in the abstract — it is a question of which one your platform already issues workload identities from, because that is the one you can back an agent with today. If you have already decided your agents deserve their own verifiable identity instead of a shared key (the case the <a href="../../workload-identity-for-ai-agents/">workload-identity hub</a> makes), this is the follow-up decision: pick the provider. This post is a bake-off across the five Promptise supports — SPIFFE/SPIRE, Microsoft Entra, AWS IAM, Google Cloud, and generic OIDC — compared on the three things that actually differ between them: how the token is acquired, how you revoke it, and when each one fits.</p>
+<p>Choosing between SPIFFE vs Entra vs AWS IAM for AI agents is not really a question of which identity provider is <em>best</em> in the abstract — it is a question of which one your platform already issues workload identities from, because that is the one you can back an agent with today. If you have already decided your agents deserve their own verifiable identity instead of a shared key (see <a href="../../workload-identity-for-ai-agents/">What Is Workload Identity for AI Agents?</a>), the next decision is which provider to use. This post is a bake-off across the five Promptise supports — SPIFFE/SPIRE, Microsoft Entra, AWS IAM, Google Cloud, and generic OIDC — compared on the three things that actually differ between them: how the token is acquired, how you revoke it, and when each one fits.</p>
 
     
       <nav class="md-post__action">

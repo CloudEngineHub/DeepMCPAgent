@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="ConversationBuffer provides a rolling window of message exchanges for short-term memory within an AgentProcess. It retains the last N messages across trigger">
+        <meta name="description" content="ConversationBuffer is an agent process&#x27;s short-term memory: a rolling window of the last messages exchanged, replayed to the agent on every run so it">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Conversation Management">
-  <meta property="og:description" content="ConversationBuffer provides a rolling window of message exchanges for short-term memory within an AgentProcess. It retains the last N messages across trigger">
+  <meta property="og:description" content="ConversationBuffer is an agent process&#x27;s short-term memory: a rolling window of the last messages exchanged, replayed to the agent on every run so it">
   <meta property="og:url" content="https://docs.promptise.com/runtime/conversation/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Conversation Management">
-  <meta name="twitter:description" content="ConversationBuffer provides a rolling window of message exchanges for short-term memory within an AgentProcess. It retains the last N messages across trigger">
+  <meta name="twitter:description" content="ConversationBuffer is an agent process&#x27;s short-term memory: a rolling window of the last messages exchanged, replayed to the agent on every run so it">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Conversation Management",
       "name": "Conversation Management",
-      "description": "ConversationBuffer provides a rolling window of message exchanges for short-term memory within an AgentProcess. It retains the last N messages across trigger",
+      "description": "ConversationBuffer is an agent process\u0026#x27;s short-term memory: a rolling window of the last messages exchanged, replayed to the agent on every run so it",
       "url": "https://docs.promptise.com/runtime/conversation/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5270,10 +5240,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
+  <a href="#how-a-process-uses-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concepts
+        How a process uses it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifetime
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#secret-values-are-redacted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret values are redacted
       
     </span>
   </a>
@@ -5284,12 +5276,12 @@
   <a href="#basic-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Usage
+        Basic usage
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Basic Usage">
+    <nav class="md-nav" aria-label="Basic usage">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -5315,10 +5307,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#replacing-the-buffer" class="md-nav__link">
+  <a href="#replacing-and-clearing" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Replacing the buffer
+        Replacing and clearing
       
     </span>
   </a>
@@ -5326,10 +5318,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#clearing" class="md-nav__link">
+  <a href="#turning-it-off" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Clearing
+        Turning it off
       
     </span>
   </a>
@@ -5345,7 +5337,7 @@
   <a href="#async-safe-operations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Async-Safe Operations
+        Async-safe operations
       
     </span>
   </a>
@@ -5356,7 +5348,7 @@
   <a href="#automatic-eviction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Automatic Eviction
+        Automatic eviction
       
     </span>
   </a>
@@ -5378,7 +5370,7 @@
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
       
     </span>
   </a>
@@ -5386,10 +5378,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -5400,7 +5392,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -6110,6 +6102,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6132,8 +6128,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6147,8 +6144,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6160,6 +6163,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8406,8 +8411,6 @@
       
         
       
-        
-      
     
     
     
@@ -8560,36 +8563,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9468,10 +9441,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
+  <a href="#how-a-process-uses-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concepts
+        How a process uses it
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifetime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifetime
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#secret-values-are-redacted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret values are redacted
       
     </span>
   </a>
@@ -9482,12 +9477,12 @@
   <a href="#basic-usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Basic Usage
+        Basic usage
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Basic Usage">
+    <nav class="md-nav" aria-label="Basic usage">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -9513,10 +9508,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#replacing-the-buffer" class="md-nav__link">
+  <a href="#replacing-and-clearing" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Replacing the buffer
+        Replacing and clearing
       
     </span>
   </a>
@@ -9524,10 +9519,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#clearing" class="md-nav__link">
+  <a href="#turning-it-off" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Clearing
+        Turning it off
       
     </span>
   </a>
@@ -9543,7 +9538,7 @@
   <a href="#async-safe-operations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Async-Safe Operations
+        Async-safe operations
       
     </span>
   </a>
@@ -9554,7 +9549,7 @@
   <a href="#automatic-eviction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Automatic Eviction
+        Automatic eviction
       
     </span>
   </a>
@@ -9576,7 +9571,7 @@
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
       
     </span>
   </a>
@@ -9584,10 +9579,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9598,7 +9593,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -9675,94 +9670,166 @@
 
 
 <h1 id="conversation-buffer">Conversation Buffer<a class="headerlink" href="#conversation-buffer" title="Link to this section">&para;</a></h1>
-<p><code>ConversationBuffer</code> provides a rolling window of message exchanges for short-term memory within an <code>AgentProcess</code>. It retains the last N messages across trigger invocations, giving the agent continuity within a single process lifecycle.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.conversation</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConversationBuffer</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">buffer</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="p">(</span><span class="n">max_messages</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hello!"</span><span class="p">})</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hi there!"</span><span class="p">})</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Next invocation sees the previous exchange</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">history</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">get_messages</span><span class="p">()</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hi there!"}]</span>
+<p><code>ConversationBuffer</code> is an agent process's short-term memory: a rolling window of the last messages exchanged, replayed to the agent on every run so it remembers what it saw and said on earlier runs. Each <code>AgentProcess</code> owns one. It keeps its history across <code>stop()</code> / <code>start()</code> and restarts, can be checkpointed and recovered with a journal, and never stores a secret value in plain text.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContextConfig</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Triage incoming tickets."</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">context</span><span class="o">=</span><span class="n">ContextConfig</span><span class="p">(</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">conversation_max_messages</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>      <span class="c1"># keep the last 50 messages</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">conversation_clear_on_stop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># default: history survives stop()/start()</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="p">),</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>On its own:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.conversation</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConversationBuffer</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">buffer</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="p">(</span><span class="n">max_messages</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hello!"</span><span class="p">})</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hi there!"</span><span class="p">})</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">history</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">get_messages</span><span class="p">()</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># [{"role": "user", "content": "Hello!"}, {"role": "assistant", "content": "Hi there!"}]</span>
 </span></code></pre></div>
 <hr />
-<h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>Agent processes are often invoked repeatedly by triggers (cron jobs, webhooks, events). Each invocation needs context from prior exchanges to maintain coherent behavior. The <code>ConversationBuffer</code> provides this by maintaining a FIFO message buffer:</p>
-<ul>
-<li><strong>Short-term only</strong> -- messages are lost on process restart. For persistence across restarts, use a <code>MemoryProvider</code>.</li>
-<li><strong>Rolling window</strong> -- oldest messages are automatically evicted when <code>max_messages</code> is exceeded.</li>
-<li><strong>Dual interface</strong> -- synchronous methods for single-threaded use and tests; async methods with internal locking for concurrent access.</li>
-<li><strong>Serializable</strong> -- can be checkpointed to the journal for crash recovery.</li>
-</ul>
+<h2 id="how-a-process-uses-it">How a process uses it<a class="headerlink" href="#how-a-process-uses-it" title="Link to this section">&para;</a></h2>
+<p>On every run the process:</p>
+<ol>
+<li>Puts the buffer's messages into the prompt after the system blocks (context state, budget, mission, inbox) and before the new trigger message.</li>
+<li>After the run, appends two messages: the trigger message as the <code>user</code> message and the agent's final reply as the <code>assistant</code> message. Tool calls, tool results and the injected system blocks are not stored.</li>
+<li>Drops the oldest messages when the buffer is over <code>conversation_max_messages</code>.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th><code>ContextConfig</code> field</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>conversation_max_messages</code></td>
+<td><code>100</code></td>
+<td>Messages kept. <code>0</code> means <strong>unlimited</strong>, not off</td>
+</tr>
+<tr>
+<td><code>conversation_history</code></td>
+<td><code>True</code></td>
+<td><code>False</code> turns the buffer off: every run sees only its own trigger message</td>
+</tr>
+<tr>
+<td><code>conversation_clear_on_stop</code></td>
+<td><code>False</code></td>
+<td>Clear the history on <code>stop()</code></td>
+</tr>
+</tbody>
+</table>
+<p>When an append makes the buffer drop old messages, the process fires the <code>pre_compact</code> hook (with the messages about to be dropped) and the <code>post_compact</code> hook. See <a href="../hooks/">Runtime Hooks</a>.</p>
 <hr />
-<h2 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this section">&para;</a></h2>
+<h2 id="lifetime">Lifetime<a class="headerlink" href="#lifetime" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>History</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stop()</code> then <code>start()</code> on the same process object</td>
+<td>Kept (unless <code>conversation_clear_on_stop=True</code>)</td>
+</tr>
+<tr>
+<td><code>restart_process()</code>, <code>POST /restart</code> (a stop, then a start)</td>
+<td>Kept (unless <code>conversation_clear_on_stop=True</code>)</td>
+</tr>
+<tr>
+<td>An automatic restart after a failure (restart policy)</td>
+<td>Kept</td>
+</tr>
+<tr>
+<td>An instructions change (<code>update_instructions</code>, <code>PATCH /instructions</code>)</td>
+<td>Kept: the agent is rebuilt with the same history</td>
+</tr>
+<tr>
+<td><code>close()</code>, <code>async with process:</code> exit, <code>AgentRuntime.remove_process()</code>, <code>DELETE /processes/{name}</code></td>
+<td>Cleared</td>
+</tr>
+<tr>
+<td>A new process object with the same name and a journal</td>
+<td>Restored from the last checkpoint (<code>JournalConfig.recover_on_start</code>, default <code>True</code>)</td>
+</tr>
+<tr>
+<td>A new process object without a journal</td>
+<td>Starts empty</td>
+</tr>
+</tbody>
+</table>
+<p>With a journal, the conversation is part of every checkpoint (written after each run and on stop), and the first <code>start()</code> of a new process object restores it when <code>conversation_history</code> is on. <code>process.recovered["conversation_messages"]</code> says how many messages came back. A <a href="../journal/rewind/">rewind</a> can roll the conversation back to an earlier point.</p>
+<p>Facts that must outlive all of this belong in long-term memory or in the <a href="../context/">context state</a>.</p>
+<hr />
+<h2 id="secret-values-are-redacted">Secret values are redacted<a class="headerlink" href="#secret-values-are-redacted" title="Link to this section">&para;</a></h2>
+<p>With <a href="../governance/secrets/">secret scoping</a> enabled, both messages are stored with every secret value replaced by <code>[REDACTED]</code>: current values, and values replaced by a rotation or expired. An agent that echoes a secret in its reply doesn't carry it into later prompts, and the conversation in journal checkpoints holds no plain-text secret.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># The agent replied "the token is tok-SECRET-42"; the buffer holds:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"the token is [REDACTED]"</span><span class="p">}</span>
+</span></code></pre></div>
+<hr />
+<h2 id="basic-usage">Basic usage<a class="headerlink" href="#basic-usage" title="Link to this section">&para;</a></h2>
 <h3 id="adding-messages">Adding messages<a class="headerlink" href="#adding-messages" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">buffer</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="p">(</span><span class="n">max_messages</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Add a single message</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Check the pipeline status."</span><span class="p">})</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Add multiple messages at once</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">buffer</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Pipeline is healthy. No anomalies."</span><span class="p">},</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"What about the error rate?"</span><span class="p">},</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">buffer</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="p">(</span><span class="n">max_messages</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Check the pipeline status."</span><span class="p">})</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">buffer</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Pipeline is healthy. No anomalies."</span><span class="p">},</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="p">{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"What about the error rate?"</span><span class="p">},</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="reading-messages">Reading messages<a class="headerlink" href="#reading-messages" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Get all messages as a list copy (oldest first)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">messages</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">get_messages</span><span class="p">()</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Check message count</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">buffer</span><span class="p">))</span>  <span class="c1"># 3</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">messages</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">get_messages</span><span class="p">()</span>  <span class="c1"># list copy, oldest first</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">buffer</span><span class="p">))</span>                <span class="c1"># 3</span>
 </span></code></pre></div>
-<h3 id="replacing-the-buffer">Replacing the buffer<a class="headerlink" href="#replacing-the-buffer" title="Link to this section">&para;</a></h3>
-<p>Used during hot-reload to preserve conversation across agent rebuilds:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">buffer</span><span class="o">.</span><span class="n">set_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+<h3 id="replacing-and-clearing">Replacing and clearing<a class="headerlink" href="#replacing-and-clearing" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">buffer</span><span class="o">.</span><span class="n">set_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>  <span class="c1"># replace the whole buffer (oldest dropped if over the limit)</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">buffer</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
 </span></code></pre></div>
-<h3 id="clearing">Clearing<a class="headerlink" href="#clearing" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">buffer</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
-</span></code></pre></div>
-<hr />
-<h2 id="async-safe-operations">Async-Safe Operations<a class="headerlink" href="#async-safe-operations" title="Link to this section">&para;</a></h2>
-<p>When multiple coroutines access the buffer concurrently (for example, a process handling concurrent triggers), use the async methods which acquire an internal <code>asyncio.Lock</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Thread-safe read</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="k">await</span> <span class="n">buffer</span><span class="o">.</span><span class="n">async_snapshot</span><span class="p">()</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Thread-safe replace</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">await</span> <span class="n">buffer</span><span class="o">.</span><span class="n">async_replace</span><span class="p">([{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Fresh start"</span><span class="p">}])</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Thread-safe append</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">await</span> <span class="n">buffer</span><span class="o">.</span><span class="n">async_append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Ready."</span><span class="p">})</span>
+<h3 id="turning-it-off">Turning it off<a class="headerlink" href="#turning-it-off" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">buffer</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="p">(</span><span class="n">max_messages</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hello"</span><span class="p">})</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">buffer</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>  <span class="c1"># nothing is retained</span>
 </span></code></pre></div>
 <hr />
-<h2 id="automatic-eviction">Automatic Eviction<a class="headerlink" href="#automatic-eviction" title="Link to this section">&para;</a></h2>
-<p>When the buffer exceeds <code>max_messages</code>, the oldest messages are evicted automatically:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">buffer</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="p">(</span><span class="n">max_messages</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Message 1"</span><span class="p">})</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Message 2"</span><span class="p">})</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Message 3"</span><span class="p">})</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Message 4"</span><span class="p">})</span>  <span class="c1"># Evicts Message 1</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">messages</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">get_messages</span><span class="p">()</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="k">assert</span> <span class="n">messages</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Message 2"</span>
+<h2 id="async-safe-operations">Async-safe operations<a class="headerlink" href="#async-safe-operations" title="Link to this section">&para;</a></h2>
+<p>When several coroutines use the buffer (a process with <code>concurrency &gt; 1</code>), use the async methods, which hold an internal <code>asyncio.Lock</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="k">await</span> <span class="n">buffer</span><span class="o">.</span><span class="n">async_snapshot</span><span class="p">()</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">await</span> <span class="n">buffer</span><span class="o">.</span><span class="n">async_replace</span><span class="p">([{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Fresh start"</span><span class="p">}])</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">await</span> <span class="n">buffer</span><span class="o">.</span><span class="n">async_append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Ready."</span><span class="p">})</span>
 </span></code></pre></div>
-<p>Set <code>max_messages=0</code> in <code>ContextConfig</code> to disable conversation buffering entirely.</p>
+<p>The synchronous methods take no lock; use them outside concurrent code (tests, serialization). The buffer is not thread-safe.</p>
+<hr />
+<h2 id="automatic-eviction">Automatic eviction<a class="headerlink" href="#automatic-eviction" title="Link to this section">&para;</a></h2>
+<p>When the buffer exceeds <code>max_messages</code>, the oldest messages are dropped:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">buffer</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="p">(</span><span class="n">max_messages</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">buffer</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Message </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">})</span>  <span class="c1"># the 4th evicts Message 1</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">messages</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">get_messages</span><span class="p">()</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">assert</span> <span class="n">messages</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"Message 2"</span>
+</span></code></pre></div>
 <hr />
 <h2 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Link to this section">&para;</a></h2>
-<p>The buffer can be serialized for journal checkpointing and restored after a crash:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Save</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">data</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># {"max_messages": 100, "messages": [...]}</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># Restore</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">restored</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">data</span> <span class="o">=</span> <span class="n">buffer</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># {"max_messages": 100, "enabled": True, "messages": [...]}</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">restored</span> <span class="o">=</span> <span class="n">ConversationBuffer</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<h2 id="api-summary">API summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -9773,24 +9840,29 @@
 </thead>
 <tbody>
 <tr>
+<td><code>ConversationBuffer(max_messages=100, enabled=True)</code></td>
+<td>--</td>
+<td><code>max_messages=0</code> is unlimited; <code>enabled=False</code> retains nothing</td>
+</tr>
+<tr>
 <td><code>append(message)</code></td>
 <td>Sync</td>
-<td>Add a single message dict</td>
+<td>Add one message dict</td>
 </tr>
 <tr>
 <td><code>extend(messages)</code></td>
 <td>Sync</td>
-<td>Add multiple message dicts</td>
+<td>Add several message dicts</td>
 </tr>
 <tr>
 <td><code>get_messages()</code></td>
 <td>Sync</td>
-<td>Return all messages as a list copy</td>
+<td>All messages as a list copy, oldest first</td>
 </tr>
 <tr>
 <td><code>set_messages(messages)</code></td>
 <td>Sync</td>
-<td>Replace the entire buffer</td>
+<td>Replace the whole buffer</td>
 </tr>
 <tr>
 <td><code>clear()</code></td>
@@ -9800,27 +9872,27 @@
 <tr>
 <td><code>async_snapshot()</code></td>
 <td>Async</td>
-<td>Thread-safe copy of all messages</td>
+<td>Locked copy of all messages</td>
 </tr>
 <tr>
 <td><code>async_replace(messages)</code></td>
 <td>Async</td>
-<td>Thread-safe replacement of the entire buffer</td>
+<td>Locked replacement of the whole buffer</td>
 </tr>
 <tr>
 <td><code>async_append(message)</code></td>
 <td>Async</td>
-<td>Thread-safe append of a single message</td>
+<td>Locked append of one message</td>
 </tr>
 <tr>
 <td><code>to_dict()</code></td>
 <td>Sync</td>
-<td>Serialize to dict for checkpointing</td>
+<td>Serialize (<code>max_messages</code>, <code>enabled</code>, <code>messages</code>)</td>
 </tr>
 <tr>
 <td><code>ConversationBuffer.from_dict(data)</code></td>
 <td>Classmethod</td>
-<td>Reconstruct from serialized dict</td>
+<td>Rebuild from <code>to_dict()</code> output</td>
 </tr>
 <tr>
 <td><code>__len__()</code></td>
@@ -9830,30 +9902,29 @@
 </tbody>
 </table>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Size the buffer for your use case</p>
-<p>A cron agent that runs every 5 minutes may only need <code>max_messages=20</code>. A webhook handler processing rapid events might need <code>max_messages=200</code>. The default is <code>100</code>.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Use async methods in production</p>
-<p>When <code>concurrency &gt; 1</code> in <code>ProcessConfig</code>, multiple invocations can access the buffer simultaneously. Always use <code>async_snapshot</code>, <code>async_append</code>, and <code>async_replace</code> in that scenario.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Messages are lost on restart</p>
-<p>The conversation buffer is ephemeral. On process restart, the buffer starts empty unless you restore from a journal checkpoint. For persistent memory across restarts, use a <code>MemoryProvider</code>.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Eviction is silent</p>
-<p>When the buffer overflows, the oldest messages are dropped without warning. If you need to preserve important context, store it in the agent's long-term memory.</p>
-</div>
-<hr />
-<h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../context/">Context</a> -- the full <code>AgentContext</code> that wraps the conversation buffer</li>
-<li><a href="../configuration/">Configuration</a> -- <code>conversation_max_messages</code> in <code>ContextConfig</code></li>
-<li><a href="../journal/">Journal Overview</a> -- checkpointing the buffer for crash recovery</li>
+<li><strong><code>conversation_max_messages=0</code> keeps everything.</strong> It means unlimited, so the prompt grows with every run. Use <code>conversation_history=False</code> to turn the buffer off.</li>
+<li><strong><code>close()</code> clears the history; <code>stop()</code> doesn't.</strong> Removing a process from a runtime closes it. To keep the conversation across a redeploy, configure a journal.</li>
+<li><strong>Each run adds two messages.</strong> <code>max_messages=20</code> holds the last 10 runs, not 20.</li>
+<li><strong>Eviction is silent unless you hook it.</strong> Old messages are dropped without a log line; use the <code>pre_compact</code> hook to summarize or archive them, or store important facts in the context state or long-term memory.</li>
+<li><strong>Tool results aren't in the history.</strong> Only the trigger message and the final reply are kept; a value the agent read from a tool is gone on the next run unless the reply or the state holds it.</li>
 </ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../context/">Agent Context</a> -- state and long-term memory around the conversation</li>
+<li><a href="../hooks/">Runtime Hooks</a> -- <code>pre_compact</code> / <code>post_compact</code></li>
+<li><a href="../journal/">Journal</a> and <a href="../journal/rewind/">Rewind Engine</a> -- checkpointing, recovery and rolling back the conversation</li>
+<li><a href="../governance/secrets/">Secret Scoping</a> -- the values that are redacted</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-state-between-runs">AI Agent State Between Runs: Context, Keys and Audit</a> -- How state, conversation and memory differ, and what survives a restart.</li>
+<li><a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a> -- Checkpoints that bring the conversation back after a crash.</li>
+</ul>
+</div>
 
 
 
@@ -9876,7 +9947,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 9, 2026 17:46:06 UTC">2026-04-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
   </span>
 
     

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A semantic cache is a plaintext log of every prompt and answer sitting in Redis, so a snapshot or a rogue read leaks conversations. Mainstream LLM caches…">
+        <meta name="description" content="Learn how to encrypt a semantic LLM response cache at rest in Redis with encrypt_values=True, and how to check that only ciphertext is stored in the database.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../enterprise-ai-agents/">
       
       
-        <link rel="next" href="../durable-execution-for-ai-agents/">
+        <link rel="next" href="../does-langchain-support-multi-tenancy/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Encrypt Your LLM Response Cache at Rest in Redis">
-  <meta property="og:description" content="A semantic cache is a plaintext log of every prompt and answer sitting in Redis, so a snapshot or a rogue read leaks conversations. Mainstream LLM caches…">
+  <meta property="og:description" content="Learn how to encrypt a semantic LLM response cache at rest in Redis with encrypt_values=True, and how to check that only ciphertext is stored in the database.">
   <meta property="og:url" content="https://docs.promptise.com/blog/encrypt-llm-cache-at-rest/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Encrypt Your LLM Response Cache at Rest in Redis">
-  <meta name="twitter:description" content="A semantic cache is a plaintext log of every prompt and answer sitting in Redis, so a snapshot or a rogue read leaks conversations. Mainstream LLM caches…">
+  <meta name="twitter:description" content="Learn how to encrypt a semantic LLM response cache at rest in Redis with encrypt_values=True, and how to check that only ciphertext is stored in the database.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Encrypt Your LLM Response Cache at Rest in Redis",
       "name": "Encrypt Your LLM Response Cache at Rest in Redis",
-      "description": "A semantic cache is a plaintext log of every prompt and answer sitting in Redis, so a snapshot or a rogue read leaks conversations. Mainstream LLM caches\u2026",
+      "description": "Learn how to encrypt a semantic LLM response cache at rest in Redis with encrypt_values=True, and how to check that only ciphertext is stored in the database.",
       "url": "https://docs.promptise.com/blog/encrypt-llm-cache-at-rest/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9502,10 +9453,6 @@
 <p>Learning to <strong>encrypt LLM cache at rest</strong> starts with reckoning with what a semantic cache actually is on disk: a running log of every prompt a user typed and every answer your model gave back, sitting in Redis as plaintext JSON. The feature that makes the cache cheap — remembering answers so you can serve them again — is exactly what turns it into a liability. An RDB snapshot copied to a backup bucket, a replica tapped by a read-only credential, a <code>KEYS *</code> from a misconfigured <code>requirepass</code>, or an instance accidentally bound to a public interface: any one of those hands over conversations verbatim. Promptise Foundry ships a one-flag answer to this. Set <code>encrypt_values=True</code> on <code>SemanticCache</code> and the prompt-and-answer payload is encrypted application-side with AES (via Fernet) before it ever reaches Redis, keyed by <code>PROMPTISE_CACHE_KEY</code> so it stays readable across restarts. This post walks the threat, the exact toggle, and how to verify ciphertext is really what landed at rest.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="what-actually-sits-in-redis-when-you-cache-llm-responses">What actually sits in Redis when you cache LLM responses<a class="headerlink" href="#what-actually-sits-in-redis-when-you-cache-llm-responses" title="Link to this section">&para;</a></h2>
 <p>When Promptise stores a cache entry in the Redis backend, it serializes a small JSON object and writes it into a Redis hash. That object holds the fields you'd expect a cache to need — and every one of them is sensitive:</p>
 <ul>
@@ -9523,7 +9470,7 @@
 <li><strong>GPTCache</strong> — used directly, via LangChain's <code>GPTCache</code> wrapper, or through <strong>LlamaIndex's</strong> GPTCache integration — splits storage into a scalar store (SQLite or similar, holding the prompt and answer text) and a vector store. Encryption of that scalar store is left to whatever database you point it at; there is no built-in toggle that encrypts the cached answer text before it's written.</li>
 <li><strong>LlamaIndex's</strong> own KV/cache stores (<code>SimpleKVStore</code> and friends) persist plaintext JSON to disk. Again, encryption is delegated to the filesystem or database underneath.</li>
 </ul>
-<p>So the honest delta is not "these tools can't be encrypted" — they can, at the disk or database layer, and that's a legitimate design. The precise gap is that none of them, as far as their current cache APIs go, offer an <strong>application-side toggle that makes the cached value ciphertext inside the store</strong>. The plaintext is exposed to anything holding a database connection, and hardening it is separate infrastructure you remember to configure per environment. Promptise's edge is to make value-level encryption a first-class, one-parameter property of the cache object itself, so ciphertext-at-rest is a code decision that travels with the agent — not a checklist item on the Redis box. If you find a value-encryption flag has since shipped in one of these libraries, the delta narrows to "on by a single flag, and re-scanned by guardrails on read," which is where Promptise sits.</p>
+<p>So the real difference is not "these tools can't be encrypted" — they can, at the disk or database layer, and that's a legitimate design. The precise gap is that none of them, as far as their current cache APIs go, offer an <strong>application-side toggle that makes the cached value ciphertext inside the store</strong>. The plaintext is exposed to anything holding a database connection, and hardening it is separate infrastructure you remember to configure per environment. Promptise's edge is to make value-level encryption a first-class, one-parameter property of the cache object itself, so ciphertext-at-rest is a code decision that travels with the agent — not a checklist item on the Redis box. If a value-encryption flag has since shipped in one of these libraries, the difference narrows to "on by a single flag, and re-scanned by guardrails on read," which is where Promptise sits.</p>
 <h2 id="turn-on-encryption-at-rest-with-encrypt_valuestrue">Turn on encryption at rest with <code>encrypt_values=True</code><a class="headerlink" href="#turn-on-encryption-at-rest-with-encrypt_valuestrue" title="Link to this section">&para;</a></h2>
 <p>The toggle is one keyword argument. <code>SemanticCache(encrypt_values=True)</code> initializes a Fernet cipher and encrypts the serialized entry — the prompt, the answer, and the tool-call payload — before writing it to Redis. On a cache hit the value is decrypted, re-validated, and (crucially) re-scanned by output guardrails before it is ever returned.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
@@ -9597,7 +9544,7 @@
 <li><strong>Output guardrails re-scan cached responses on the way out.</strong> A cache hit isn't a bypass of your safety layer — the decrypted value passes back through output guardrails before it's returned, so a response that would be redacted today is redacted even if it was cached yesterday. The full ordering is in the <a href="../../core/cache/">Semantic Cache docs</a>.</li>
 <li><strong>Per-user isolation is the default.</strong> Encryption protects the value; scoping controls <em>who can match it at all</em>. The default <code>per_user</code> scope keys every entry under the caller's partition, and the cache fails closed when no <code>CallerContext</code> is present. If your worry is a paraphrase surfacing another tenant's answer rather than a disk leak, that's a distinct failure mode covered in <a href="../semantic-cache-cross-tenant-leak/">Can a Paraphrase Leak Another Tenant's Cached Answer?</a>.</li>
 <li><strong>The embedding runs locally.</strong> <code>SemanticCache</code> uses the same on-device model as <a href="../../core/tool-optimization/">tool optimization</a>, so encrypting the cache costs no extra API calls and query text never leaves your environment to be embedded by a third party — the plaintext exposure surface shrinks in transit as well as at rest.</li>
-<li><strong>GDPR erase still works on ciphertext.</strong> <code>await cache.purge_user("alice")</code> removes a user's entries whether or not they're encrypted; you don't have to decrypt to delete.</li>
+<li><strong>Per-user deletion still works on ciphertext.</strong> <code>await cache.purge_user("alice")</code> removes a user's entries whether or not they're encrypted; you don't have to decrypt to delete.</li>
 </ul>
 <p>If you turned encryption on because you're running one Redis across many customers, the cost and isolation levers reinforce each other — correct partitioning is exactly what lets you cache aggressively without turning the cache into a liability. <a href="../cut-token-cost-multi-tenant-ai-agent/">How to Cut Token Cost for a Multi-Tenant AI Agent</a> covers the cache alongside the other savings levers.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
@@ -9635,7 +9582,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

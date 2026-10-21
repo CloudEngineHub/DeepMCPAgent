@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Roll back agent state to a previous point in the journal. Unlike ReplayEngine (which reconstructs current state by replaying forward), RewindEngine lets you go">
+        <meta name="description" content="Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../replay/">
       
       
-        <link rel="next" href="../../distributed/coordinator/">
+        <link rel="next" href="../../distributed/">
       
       
         
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Rewind Engine">
-  <meta property="og:description" content="Roll back agent state to a previous point in the journal. Unlike ReplayEngine (which reconstructs current state by replaying forward), RewindEngine lets you go">
+  <meta property="og:description" content="Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off">
   <meta property="og:url" content="https://docs.promptise.com/runtime/journal/rewind/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Rewind Engine">
-  <meta name="twitter:description" content="Roll back agent state to a previous point in the journal. Unlike ReplayEngine (which reconstructs current state by replaying forward), RewindEngine lets you go">
+  <meta name="twitter:description" content="Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Rewind Engine",
       "name": "Rewind Engine",
-      "description": "Roll back agent state to a previous point in the journal. Unlike ReplayEngine (which reconstructs current state by replaying forward), RewindEngine lets you go",
+      "description": "Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off",
       "url": "https://docs.promptise.com/runtime/journal/rewind/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -272,7 +272,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#multi-granularity-rewind" class="md-skip">
+        <a href="#rewind" class="md-skip">
           Skip to content
         </a>
       
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5946,10 +5916,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#5-rewind-modes" class="md-nav__link">
+  <a href="#modes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5 Rewind Modes
+        Modes
       
     </span>
   </a>
@@ -5957,10 +5927,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#non-destructive" class="md-nav__link">
+  <a href="#what-a-rewind-reads" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Non-destructive
+        What a rewind reads
       
     </span>
   </a>
@@ -5968,10 +5938,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#plan-preview-before-committing" class="md-nav__link">
+  <a href="#agentprocessrewind-and-rewind_plan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        plan() — preview before committing
+        AgentProcess.rewind() and rewind_plan()
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AgentProcess.rewind() and rewind_plan()">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rewindplan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RewindPlan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rewindresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RewindResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#over-the-orchestration-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Over the Orchestration API
       
     </span>
   </a>
@@ -5979,10 +5988,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#entry-type-classification" class="md-nav__link">
+  <a href="#from-the-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Entry type classification
+        From the CLI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="From the CLI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#worked-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worked example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rewindengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RewindEngine
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
       
     </span>
   </a>
@@ -6027,6 +6075,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6049,8 +6101,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6064,8 +6117,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6077,6 +6136,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8323,8 +8384,6 @@
       
         
       
-        
-      
     
     
     
@@ -8477,36 +8536,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9385,10 +9414,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#5-rewind-modes" class="md-nav__link">
+  <a href="#modes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5 Rewind Modes
+        Modes
       
     </span>
   </a>
@@ -9396,10 +9425,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#non-destructive" class="md-nav__link">
+  <a href="#what-a-rewind-reads" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Non-destructive
+        What a rewind reads
       
     </span>
   </a>
@@ -9407,10 +9436,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#plan-preview-before-committing" class="md-nav__link">
+  <a href="#agentprocessrewind-and-rewind_plan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        plan() — preview before committing
+        AgentProcess.rewind() and rewind_plan()
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AgentProcess.rewind() and rewind_plan()">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rewindplan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RewindPlan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rewindresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RewindResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#over-the-orchestration-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Over the Orchestration API
       
     </span>
   </a>
@@ -9418,10 +9486,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#entry-type-classification" class="md-nav__link">
+  <a href="#from-the-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Entry type classification
+        From the CLI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="From the CLI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#worked-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worked example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rewindengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RewindEngine
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
       
     </span>
   </a>
@@ -9508,99 +9615,452 @@
   
 
 
-<h1 id="multi-granularity-rewind">Multi-Granularity Rewind<a class="headerlink" href="#multi-granularity-rewind" title="Link to this section">&para;</a></h1>
-<p>Roll back agent state to a previous point in the journal. Unlike <a href="../replay/">ReplayEngine</a> (which reconstructs <em>current</em> state by replaying forward), <code>RewindEngine</code> lets you go <strong>backward</strong> — pick a point in history and selectively undo conversation, code/state changes, or both.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryJournal</span><span class="p">,</span> <span class="n">RewindEngine</span><span class="p">,</span> <span class="n">RewindMode</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">rewind</span> <span class="o">=</span> <span class="n">RewindEngine</span><span class="p">(</span><span class="n">journal</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># Preview first (dry-run)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">plan</span> <span class="o">=</span> <span class="k">await</span> <span class="n">rewind</span><span class="o">.</span><span class="n">plan</span><span class="p">(</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">process_id</span><span class="o">=</span><span class="s2">"support-bot"</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">target_entry_id</span><span class="o">=</span><span class="s2">"entry-42"</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">mode</span><span class="o">=</span><span class="n">RewindMode</span><span class="o">.</span><span class="n">CANCEL</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">entries_affected</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">summary</span><span class="p">)</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># Apply</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">rewind</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">process_id</span><span class="o">=</span><span class="s2">"support-bot"</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">target_entry_id</span><span class="o">=</span><span class="s2">"entry-42"</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">mode</span><span class="o">=</span><span class="n">RewindMode</span><span class="o">.</span><span class="n">CONVERSATION_ONLY</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">actor</span><span class="o">=</span><span class="s2">"alice@acme.com"</span><span class="p">,</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">)</span>
+<h1 id="rewind">Rewind<a class="headerlink" href="#rewind" title="Link to this section">&para;</a></h1>
+<p>Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off track -- a bad tool result written into its state, a conversation that drifted -- and you want it to continue from an earlier point instead of starting over. It is non-destructive: the journal is only appended to, so a rewind can itself be rewound.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">JournalConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileJournal</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"You write release notes."</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">journal</span><span class="o">=</span><span class="n">JournalConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="s2">"checkpoint"</span><span class="p">),</span>     <span class="c1"># rewind needs a journal</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">))</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">process</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"stage"</span><span class="p">,</span> <span class="s2">"draft"</span><span class="p">)</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># ... a run ...</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">process</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"stage"</span><span class="p">,</span> <span class="s2">"published"</span><span class="p">)</span>         <span class="c1"># this turns out to be wrong</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># ... another run ...</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># Find the entry to go back to (or: GET /journal, `promptise runtime logs notes`)</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">FileJournal</span><span class="p">(</span><span class="s2">".promptise/journal"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">)</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">target</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">entries</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>              <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">entry_type</span> <span class="o">==</span> <span class="s2">"context_update"</span> <span class="ow">and</span> <span class="n">e</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"value"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"published"</span><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="n">plan</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">rewind_plan</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">entry_id</span><span class="p">,</span> <span class="s2">"both"</span><span class="p">)</span>  <span class="c1"># preview, changes nothing</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">summary</span><span class="p">)</span>    <span class="c1"># rewind (both): 3 entries affected (1 conversation, 1 code/state).</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">rewind</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">entry_id</span><span class="p">,</span> <span class="s2">"both"</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="s2">"alice"</span><span class="p">)</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nb">print</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stage"</span><span class="p">))</span>   <span class="c1"># 'draft'</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">rewind_entry_id</span><span class="p">)</span>         <span class="c1"># rewind-8e4617a...</span>
+</span></code></pre></div>
+<p>From the terminal, against a runtime started with <code>promptise runtime start</code>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>notes<span class="w">                         </span><span class="c1"># find the entry ID</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>rewind<span class="w"> </span>notes<span class="w"> </span>&lt;entry_id&gt;<span class="w"> </span>--plan<span class="w">     </span><span class="c1"># preview</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>rewind<span class="w"> </span>notes<span class="w"> </span>&lt;entry_id&gt;<span class="w">            </span><span class="c1"># preview, confirm, apply</span>
 </span></code></pre></div>
 <hr />
-<h2 id="5-rewind-modes">5 Rewind Modes<a class="headerlink" href="#5-rewind-modes" title="Link to this section">&para;</a></h2>
+<h2 id="modes">Modes<a class="headerlink" href="#modes" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Mode</th>
-<th>What it does</th>
+<th>Context state</th>
+<th>Conversation history</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>BOTH</code></td>
-<td>Full rollback — rewind conversation <em>and</em> context state to the target point.</td>
+<td><code>both</code> (default)</td>
+<td>Rewound</td>
+<td>Rewound</td>
 </tr>
 <tr>
-<td><code>CONVERSATION_ONLY</code></td>
-<td>Restore the conversation buffer but keep tool results and state changes. Useful when the agent went off-rails in chat but accumulated useful work.</td>
+<td><code>conversation_only</code></td>
+<td>Kept as it is now</td>
+<td>Rewound</td>
 </tr>
 <tr>
-<td><code>CODE_ONLY</code></td>
-<td>Restore context state and tool results but keep the conversation. Useful to "undo" a tool call without losing the reasoning that led to it.</td>
+<td><code>code_only</code></td>
+<td>Rewound</td>
+<td>Kept as it is now</td>
 </tr>
 <tr>
-<td><code>SUMMARIZE</code></td>
-<td>Keep everything as-is but inject a summary of the skipped interval into the conversation as a system note. The agent remembers it tried something without re-running it.</td>
+<td><code>summarize</code></td>
+<td>Kept</td>
+<td>Kept, plus a system note summarizing what happened since the target</td>
 </tr>
 <tr>
-<td><code>CANCEL</code></td>
-<td>Dry-run: return the plan without changing anything. Always safe.</td>
+<td><code>cancel</code></td>
+<td>Kept</td>
+<td>Kept (a dry run that returns the plan; <code>rewind_plan()</code> does the same)</td>
+</tr>
+</tbody>
+</table>
+<p>"Rewound" means rebuilt as it was <strong>just before</strong> the target entry; the target itself is undone too. To get back the state a checkpoint recorded, target the entry <em>after</em> that checkpoint.</p>
+<p>The <code>summarize</code> note is a <code>system</code> message like <code>[rewind summary] Skipped interval 2026-10-19T20:23:11+00:00 -&gt; 2026-10-19T20:23:12+00:00 containing 1 checkpoint, 1 context_update, 1 invocation_result. State and conversation were preserved as-is.</code> It lets the agent know what it already tried without undoing anything.</p>
+<p><strong>Never rewound:</strong> long-term memory, the budget counters (a rewind doesn't refund spent budget), the mission's progress, secrets, the invocation count, and anything a tool did outside the process (an email sent stays sent). Open mode's <code>process.rollback()</code> is a different thing: it discards the agent's <em>self-modifications</em> (instructions, tools, MCP servers, triggers) and keeps state and history.</p>
+<hr />
+<h2 id="what-a-rewind-reads">What a rewind reads<a class="headerlink" href="#what-a-rewind-reads" title="Link to this section">&para;</a></h2>
+<p>The engine rebuilds state from the process's own journal entries:</p>
+<table>
+<thead>
+<tr>
+<th>Entry type</th>
+<th>Effect when rebuilding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>checkpoint</code></td>
+<td>A full snapshot: replaces the context state, lifecycle state and conversation (the process writes one after every run)</td>
+</tr>
+<tr>
+<td><code>context_update</code></td>
+<td>Sets one context key</td>
+</tr>
+<tr>
+<td><code>state_transition</code></td>
+<td>Sets the lifecycle state</td>
+</tr>
+<tr>
+<td><code>user_prompt</code>, <code>assistant_message</code>, <code>conversation_turn</code></td>
+<td>Append a message to the conversation</td>
+</tr>
+<tr>
+<td>Anything else</td>
+<td>Ignored (observability only)</td>
+</tr>
+</tbody>
+</table>
+<p>Each mode takes its rewound part from the state rebuilt from the entries <em>before</em> the target and keeps the rest from the state rebuilt from <em>all</em> entries. Values the journal stored redacted (secrets, as <code>[REDACTED]</code>) come back redacted.</p>
+<p>For the plan's counts, entries are grouped as <strong>conversation</strong> (<code>user_prompt</code>, <code>assistant_message</code>, <code>conversation_turn</code>, <code>trigger_event</code>, <code>invocation_result</code>) or <strong>code/state</strong> (<code>tool_call</code>, <code>tool_result</code>, <code>file_write</code>, <code>file_change</code>, <code>code_execution</code>, <code>context_update</code>, <code>state_transition</code>).</p>
+<hr />
+<h2 id="agentprocessrewind-and-rewind_plan">AgentProcess.rewind() and rewind_plan()<a class="headerlink" href="#agentprocessrewind-and-rewind_plan" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">rewind_plan</span><span class="p">(</span><span class="n">target_entry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RewindMode</span> <span class="o">=</span> <span class="s2">"both"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RewindPlan</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">rewind</span><span class="p">(</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">target_entry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">RewindMode</span> <span class="o">=</span> <span class="s2">"both"</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">actor</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"operator"</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">wait_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RewindResult</span>
+</span></code></pre></div>
+<p>What <code>rewind()</code> does:</p>
+<ol>
+<li>Checks the target and the mode (nothing is changed when either is wrong).</li>
+<li>Makes sure the live state is the journal's: if the process hasn't recovered from its journal yet, it does that first.</li>
+<li>Suspends a <code>RUNNING</code> process (reason <code>"rewind"</code>) and waits up to <code>wait_timeout</code> seconds for a run in flight to finish. Events that arrive meanwhile wait in the queue. A suspended or stopped process stays as it is.</li>
+<li>Applies the result: replaces the context state and/or the conversation buffer (or appends the summary note).</li>
+<li>Appends a <code>rewind</code> entry (<code>target_entry_id</code>, <code>mode</code>, <code>actor</code>, <code>entries_affected</code>, <code>conversation_affected</code>, <code>code_affected</code>, <code>summary_note</code>) and a checkpoint of the rewound state, so a later <a href="../#recovery-on-start">recovery</a> starts from it.</li>
+<li>Resumes the process if it suspended it, emits the <code>process.rewound</code> event (severity <code>warning</code>) and dispatches the <code>CONFIG_CHANGE</code> <a href="../../hooks/">hook</a> with <code>source="operator"</code>, <code>change="rewind"</code>.</li>
+</ol>
+<p><code>mode="cancel"</code> returns at once with only <code>result.plan</code> set, without suspending or writing anything.</p>
+<table>
+<thead>
+<tr>
+<th>Raises</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RuntimeError</code></td>
+<td>The process has no journal</td>
+</tr>
+<tr>
+<td><code>ValueError</code></td>
+<td>The entry ID is not in the journal, or the mode is unknown</td>
+</tr>
+<tr>
+<td><code>TimeoutError</code></td>
+<td>A run was still in flight after <code>wait_timeout</code> (nothing was changed; the process is resumed)</td>
+</tr>
+</tbody>
+</table>
+<p>A hook must not <code>await process.rewind()</code> of the process that dispatched it; schedule it with <code>asyncio.create_task</code>.</p>
+<h3 id="rewindplan">RewindPlan<a class="headerlink" href="#rewindplan" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>process_id</code></td>
+<td>The process name</td>
+</tr>
+<tr>
+<td><code>target_entry_id</code>, <code>target_entry_type</code>, <code>target_timestamp</code></td>
+<td>The target entry</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td>The <code>RewindMode</code></td>
+</tr>
+<tr>
+<td><code>entries_total</code></td>
+<td>Entries in the journal</td>
+</tr>
+<tr>
+<td><code>entries_affected</code></td>
+<td>Entries from the target on (the ones the rewind undoes)</td>
+</tr>
+<tr>
+<td><code>conversation_entries_affected</code>, <code>code_entries_affected</code></td>
+<td>How many of those are conversation or code/state entries</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td>One line, for example <code>rewind (both): 3 entries affected (1 conversation, 1 code/state).</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>plan.to_dict()</code> gives the JSON form the API returns.</p>
+<h3 id="rewindresult">RewindResult<a class="headerlink" href="#rewindresult" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>process_id</code>, <code>target_entry_id</code>, <code>mode</code></td>
+<td>What was rewound</td>
+</tr>
+<tr>
+<td><code>context_state</code></td>
+<td>The context state after the rewind</td>
+</tr>
+<tr>
+<td><code>conversation</code></td>
+<td>The conversation after the rewind</td>
+</tr>
+<tr>
+<td><code>lifecycle_state</code></td>
+<td>The lifecycle state the journal had at that point (informational; the process's state is not changed)</td>
+</tr>
+<tr>
+<td><code>summary_note</code></td>
+<td>The note <code>summarize</code> added, else <code>None</code></td>
+</tr>
+<tr>
+<td><code>plan</code></td>
+<td>The <code>RewindPlan</code></td>
+</tr>
+<tr>
+<td><code>rewind_entry_id</code></td>
+<td>ID of the <code>rewind</code> journal entry (<code>rewind-&lt;hex&gt;</code>)</td>
+</tr>
+<tr>
+<td><code>applied_at</code></td>
+<td>When it was applied (UTC)</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="non-destructive">Non-destructive<a class="headerlink" href="#non-destructive" title="Link to this section">&para;</a></h2>
-<p>Original journal entries <strong>never get deleted or edited</strong>. A rewind is recorded as a new <code>rewind</code> entry in the journal, so the history shows when a rollback happened, who triggered it, and which mode was used.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># The rewind entry data looks like:</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="p">{</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="s2">"target_entry_id"</span><span class="p">:</span> <span class="s2">"entry-42"</span><span class="p">,</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"conversation_only"</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="s2">"actor"</span><span class="p">:</span> <span class="s2">"alice@acme.com"</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="s2">"entries_affected"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="s2">"conversation_affected"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="s2">"code_affected"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">}</span>
+<h2 id="over-the-orchestration-api">Over the Orchestration API<a class="headerlink" href="#over-the-orchestration-api" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /api/v1/processes/{name}/rewind/plan?target_entry_id=...&amp;mode=both</code></td>
+<td>The plan (<code>{"name": ..., "plan": {...}}</code>); changes nothing. <code>mode</code> defaults to <code>both</code></td>
+</tr>
+<tr>
+<td><code>POST /api/v1/processes/{name}/rewind</code></td>
+<td>Body <code>{"target_entry_id": "...", "mode": "both", "actor": "alice"}</code>; <code>mode</code> defaults to <code>both</code>, <code>actor</code> to <code>"api"</code> (at most 200 characters)</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>POST</code> answers with <code>name</code>, <code>mode</code>, <code>target_entry_id</code>, <code>rewind_entry_id</code>, <code>entries_affected</code>, <code>context_keys</code>, <code>conversation_messages</code>, <code>state</code> and <code>plan</code>. Entry IDs come from <code>GET /api/v1/processes/{name}/journal</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Code</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>400</code></td>
+<td><code>JOURNAL_DISABLED</code></td>
+<td>The process has no journal</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td><code>PROCESS_NOT_FOUND</code></td>
+<td>No such process</td>
+</tr>
+<tr>
+<td><code>404</code></td>
+<td><code>ENTRY_NOT_FOUND</code></td>
+<td>The entry ID is not in the journal</td>
+</tr>
+<tr>
+<td><code>409</code></td>
+<td><code>REWIND_BUSY</code></td>
+<td>A run was still in flight when the rewind timed out</td>
+</tr>
+<tr>
+<td><code>422</code></td>
+<td><code>MISSING_FIELD</code> / <code>INVALID_FIELD</code></td>
+<td>No <code>target_entry_id</code>, or a bad <code>mode</code> or <code>actor</code></td>
+</tr>
+</tbody>
+</table>
+<p>With <code>OrchestrationClient</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.api_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrchestrationClient</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">async</span> <span class="k">with</span> <span class="n">OrchestrationClient</span><span class="p">(</span><span class="s2">"http://127.0.0.1:9100"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">entries</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">get_journal</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">target</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">][</span><span class="s2">"entry_id"</span><span class="p">]</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">plan</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">rewind_plan</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>   <span class="c1"># the plan dict</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">rewind</span><span class="p">(</span><span class="s2">"notes"</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"both"</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="s2">"alice"</span><span class="p">)</span>
 </span></code></pre></div>
+<p>Errors raise <code>OrchestrationAPIError</code> with the codes above.</p>
 <hr />
-<h2 id="plan-preview-before-committing">plan() — preview before committing<a class="headerlink" href="#plan-preview-before-committing" title="Link to this section">&para;</a></h2>
-<p>Always preview first:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">plan</span> <span class="o">=</span> <span class="k">await</span> <span class="n">rewind</span><span class="o">.</span><span class="n">plan</span><span class="p">(</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">process_id</span><span class="o">=</span><span class="s2">"support-bot"</span><span class="p">,</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">target_entry_id</span><span class="o">=</span><span class="s2">"entry-42"</span><span class="p">,</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">entries_affected</span><span class="p">)</span>                <span class="c1"># 5</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">conversation_entries_affected</span><span class="p">)</span>   <span class="c1"># 3</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">code_entries_affected</span><span class="p">)</span>           <span class="c1"># 2</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">summary</span><span class="p">)</span>                        <span class="c1"># human-readable summary</span>
+<h2 id="from-the-cli">From the CLI<a class="headerlink" href="#from-the-cli" title="Link to this section">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>promptise runtime rewind PROCESS [ENTRY_ID] [--mode MODE] [--plan] [--yes]
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                         [--runtime NAME | --url URL [--token TOKEN]] [--lines N]
 </span></code></pre></div>
-<p>Show the plan to a user or operator, let them pick a mode, then apply.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ENTRY_ID</code></td>
+<td>--</td>
+<td>The entry to go back to. Omit it to list the newest entries with their IDs</td>
+</tr>
+<tr>
+<td><code>--mode</code>, <code>-m</code></td>
+<td><code>both</code></td>
+<td><code>both</code>, <code>conversation_only</code>, <code>code_only</code> or <code>summarize</code></td>
+</tr>
+<tr>
+<td><code>--plan</code></td>
+<td>off</td>
+<td>Show the plan and stop</td>
+</tr>
+<tr>
+<td><code>--yes</code>, <code>-y</code></td>
+<td>off</td>
+<td>Apply without asking</td>
+</tr>
+<tr>
+<td><code>--runtime</code>, <code>-r</code></td>
+<td>--</td>
+<td>The runtime the process runs in (needed when several are running)</td>
+</tr>
+<tr>
+<td><code>--lines</code>, <code>-n</code></td>
+<td><code>20</code></td>
+<td>Entries to list when no entry ID is given (1-500)</td>
+</tr>
+<tr>
+<td><code>--url</code>, <code>--token</code></td>
+<td>--</td>
+<td>Talk to an Orchestration API instead of a local runtime</td>
+</tr>
+</tbody>
+</table>
+<p>The command goes through the runtime's control API, so the process must be in a running runtime. It prints the plan, asks <code>Rewind &lt;process&gt;? [y/N]</code>, and records the rewind with actor <code>"cli"</code>. Answering no (or no answer) exits with code 1 and changes nothing.</p>
+<h3 id="worked-example">Worked example<a class="headerlink" href="#worked-example" title="Link to this section">&para;</a></h3>
+<p>A <code>notes</code> process with a webhook trigger and <code>journal: {level: checkpoint}</code> runs in the background. Two events arrived; the second run should not have happened.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span>promptise<span class="w"> </span>runtime<span class="w"> </span>logs<span class="w"> </span>notes
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">                                </span>Journal:<span class="w"> </span>notes
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w"> </span>Time<span class="w">                     </span>Entry<span class="w"> </span>ID<span class="w">                              </span>Type<span class="w">               </span>Data
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w"> </span><span class="m">2026</span>-10-19T20:25:00.948<span class="w">  </span>4ce65790-942e-44a3-9397-d2cecf567c89<span class="w">  </span>state_transition<span class="w">   </span><span class="o">{</span><span class="s2">"from_state"</span>:<span class="w"> </span><span class="s2">"created"</span>,<span class="w"> </span>...
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w"> </span><span class="m">2026</span>-10-19T20:25:00.950<span class="w">  </span>18dff2cd-da54-4416-aa5c-a65b42f0979f<span class="w">  </span>state_transition<span class="w">   </span><span class="o">{</span><span class="s2">"from_state"</span>:<span class="w"> </span><span class="s2">"starting"</span>,<span class="w"> </span>...
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w"> </span><span class="m">2026</span>-10-19T20:25:02.077<span class="w">  </span>b354d9ca-f7b7-4783-964a-970f9ae156b3<span class="w">  </span>invocation_result<span class="w">  </span><span class="o">{</span><span class="s2">"invocation"</span>:<span class="w"> </span><span class="m">1</span>,<span class="w"> </span>...
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w"> </span><span class="m">2026</span>-10-19T20:25:02.077<span class="w">  </span>38b220ec-6b42-4c81-a0ca-f27f4f1a4767<span class="w">  </span>checkpoint<span class="w">         </span><span class="o">{</span><span class="s2">"state"</span>:<span class="w"> </span><span class="o">{</span><span class="s2">"context_state"</span>:<span class="w"> </span><span class="o">{}</span>,<span class="w"> </span>...
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w"> </span><span class="m">2026</span>-10-19T20:25:03.585<span class="w">  </span>7c7bee77-f518-41de-b250-d1b586819d7a<span class="w">  </span>invocation_result<span class="w">  </span><span class="o">{</span><span class="s2">"invocation"</span>:<span class="w"> </span><span class="m">2</span>,<span class="w"> </span>...
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w"> </span><span class="m">2026</span>-10-19T20:25:03.586<span class="w">  </span>cd3d6e60-4910-42bb-b236-4336367ba701<span class="w">  </span>checkpoint<span class="w">         </span><span class="o">{</span><span class="s2">"state"</span>:<span class="w"> </span><span class="o">{</span><span class="s2">"context_state"</span>:<span class="w"> </span><span class="o">{}</span>,<span class="w"> </span>...
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>$<span class="w"> </span>promptise<span class="w"> </span>runtime<span class="w"> </span>rewind<span class="w"> </span>notes<span class="w"> </span>7c7bee77-f518-41de-b250-d1b586819d7a<span class="w"> </span>--plan
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>Rewind<span class="w"> </span>plan<span class="w"> </span><span class="k">for</span><span class="w"> </span>notes:<span class="w"> </span>back<span class="w"> </span>to<span class="w"> </span>just<span class="w"> </span>before<span class="w"> </span>entry<span class="w"> </span>7c7bee77-f518-41de-b250-d1b586819d7a<span class="w"> </span><span class="o">(</span>invocation_result,<span class="w"> </span><span class="m">2026</span>-10-19T20:25:03.585572+00:00<span class="o">)</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">  </span>Mode:<span class="w">      </span>both<span class="w"> </span><span class="o">(</span>rewinds<span class="w"> </span>the<span class="w"> </span>conversation<span class="w"> </span>and<span class="w"> </span>the<span class="w"> </span>context<span class="w"> </span>state<span class="o">)</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">  </span>Affected:<span class="w">  </span><span class="m">2</span><span class="w"> </span>of<span class="w"> </span><span class="m">6</span><span class="w"> </span>journal<span class="w"> </span>entries:<span class="w"> </span>the<span class="w"> </span>target<span class="w"> </span>and<span class="w"> </span>the<span class="w"> </span><span class="m">1</span><span class="w"> </span>after<span class="w"> </span>it<span class="w"> </span><span class="o">(</span><span class="m">1</span><span class="w"> </span>conversation,<span class="w"> </span><span class="m">0</span><span class="w"> </span>state/tool<span class="o">)</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">  </span>Summary:<span class="w">   </span>rewind<span class="w"> </span><span class="o">(</span>both<span class="o">)</span>:<span class="w"> </span><span class="m">2</span><span class="w"> </span>entries<span class="w"> </span>affected<span class="w"> </span><span class="o">(</span><span class="m">1</span><span class="w"> </span>conversation,<span class="w"> </span><span class="m">0</span><span class="w"> </span>code/state<span class="o">)</span>.
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>The<span class="w"> </span>journal<span class="w"> </span>itself<span class="w"> </span>is<span class="w"> </span>kept<span class="w"> </span><span class="o">(</span>a<span class="w"> </span>rewind<span class="w"> </span>entry<span class="w"> </span>is<span class="w"> </span>appended<span class="o">)</span>,<span class="w"> </span>so<span class="w"> </span>a<span class="w"> </span>rewind<span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span>rewound.
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>$<span class="w"> </span>promptise<span class="w"> </span>runtime<span class="w"> </span>rewind<span class="w"> </span>notes<span class="w"> </span>7c7bee77-f518-41de-b250-d1b586819d7a<span class="w"> </span>--yes
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>...
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>Rewound<span class="w"> </span>notes<span class="w"> </span>to<span class="w"> </span>just<span class="w"> </span>before<span class="w"> </span>7c7bee77-f518-41de-b250-d1b586819d7a<span class="w"> </span><span class="o">(</span>both<span class="o">)</span>:<span class="w"> </span><span class="m">2</span><span class="w"> </span>entries<span class="w"> </span>undone,<span class="w"> </span><span class="m">2</span><span class="w"> </span>conversation<span class="w"> </span>messages<span class="w"> </span>kept,<span class="w"> </span>state<span class="w"> </span>running
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>Journal<span class="w"> </span>entry<span class="w"> </span>of<span class="w"> </span>this<span class="w"> </span>rewind:<span class="w"> </span>rewind-0764e40877f84f1992def63cb066927d
+</span></code></pre></div>
+<p>The conversation is back to the two messages of the first run, the process is running again, and the journal now ends with the suspension, the <code>rewind</code> entry, the resume, a checkpoint of the rewound state and the <code>api_request</code> audit entry. "2 entries undone" is the plan's count: the target and the one entry after it. The suspension the rewind journals itself is not counted.</p>
 <hr />
-<h2 id="entry-type-classification">Entry type classification<a class="headerlink" href="#entry-type-classification" title="Link to this section">&para;</a></h2>
-<p>The rewind engine classifies journal entries into two buckets:</p>
-<p><strong>Conversation entries:</strong> <code>user_prompt</code>, <code>assistant_message</code>, <code>conversation_turn</code></p>
-<p><strong>Code/state entries:</strong> <code>tool_call</code>, <code>tool_result</code>, <code>file_write</code>, <code>file_change</code>, <code>code_execution</code>, <code>context_update</code>, <code>state_transition</code></p>
-<p><code>CONVERSATION_ONLY</code> drops conversation entries after the target but keeps code entries. <code>CODE_ONLY</code> does the reverse. <code>BOTH</code> drops everything after the target.</p>
+<h2 id="rewindengine">RewindEngine<a class="headerlink" href="#rewindengine" title="Link to this section">&para;</a></h2>
+<p>The engine only <em>computes</em> a rewind; <code>AgentProcess.rewind()</code> applies it. Use it directly on a journal without a live process, for example to inspect history offline:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileJournal</span><span class="p">,</span> <span class="n">RewindEngine</span><span class="p">,</span> <span class="n">RewindMode</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">engine</span> <span class="o">=</span> <span class="n">RewindEngine</span><span class="p">(</span><span class="n">FileJournal</span><span class="p">(</span><span class="s2">".promptise/journal"</span><span class="p">))</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">plan</span> <span class="o">=</span> <span class="k">await</span> <span class="n">engine</span><span class="o">.</span><span class="n">plan</span><span class="p">(</span><span class="n">process_id</span><span class="o">=</span><span class="s2">"notes"</span><span class="p">,</span> <span class="n">target_entry_id</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">RewindMode</span><span class="o">.</span><span class="n">BOTH</span><span class="p">)</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">engine</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">process_id</span><span class="o">=</span><span class="s2">"notes"</span><span class="p">,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">target_entry_id</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">mode</span><span class="o">=</span><span class="n">RewindMode</span><span class="o">.</span><span class="n">CODE_ONLY</span><span class="p">,</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">actor</span><span class="o">=</span><span class="s2">"alice@example.com"</span><span class="p">,</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">record</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>      <span class="c1"># True (the default) appends a `rewind` entry</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">)</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">context_state</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">conversation</span><span class="p">))</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RewindEngine(journal)</code></td>
+<td>Wrap a <code>JournalProvider</code> (stateless otherwise; one engine can serve several processes)</td>
+</tr>
+<tr>
+<td><code>await plan(*, process_id, target_entry_id, mode=RewindMode.CANCEL)</code></td>
+<td>A <code>RewindPlan</code>; raises <code>ValueError</code> for an unknown entry</td>
+</tr>
+<tr>
+<td><code>await apply(*, process_id, target_entry_id, mode, actor="system", record=True)</code></td>
+<td>A <code>RewindResult</code>; with <code>record=True</code> a <code>rewind</code> entry is appended (never anything edited or deleted). <code>CANCEL</code> returns only the plan</td>
+</tr>
+</tbody>
+</table>
+<p><code>process_id</code> is the name the entries are filed under (the process name).</p>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>No journal.</strong> Rewind needs <code>ProcessConfig.journal</code> with a level other than <code>"none"</code> (<code>RuntimeError</code>, <code>400 JOURNAL_DISABLED</code>).</li>
+<li><strong>Off by one entry.</strong> The target is undone too. To keep what a checkpoint recorded, target the entry after it.</li>
+<li><strong>Expecting the budget back.</strong> Spent runs, tool calls and cost stay counted.</li>
+<li><strong>Expecting the world to be rewound.</strong> Files written, messages sent and API calls made by tools stay done. Rewind is for the agent's own state and history.</li>
+<li><strong>A long run in flight.</strong> The rewind waits up to <code>wait_timeout</code> (60 seconds) for it, then gives up with <code>TimeoutError</code> / <code>409 REWIND_BUSY</code> and changes nothing. Retry when the run is done, or suspend the process first.</li>
+<li><strong>A memory journal.</strong> <code>backend: memory</code> lives only as long as the Python process, and so does its rewind history.</li>
+</ul>
 <hr />
 <h2 id="related">Related<a class="headerlink" href="#related" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../backends/">Journal Backends</a> — InMemoryJournal, FileJournal</li>
-<li><a href="../replay/">Replay Engine</a> — forward recovery from checkpoints</li>
-<li><a href="../../processes/">Agent Processes</a> — lifecycle and state management</li>
+<li><a href="../">Journal Overview</a> -- entry types, checkpoints and recovery on start</li>
+<li><a href="../replay/">Replay Engine</a> -- forward recovery from the last checkpoint</li>
+<li><a href="../../api/">Orchestration API</a> -- the journal and rewind routes</li>
+<li><a href="../../cli/">CLI Commands</a> -- <code>promptise runtime logs</code> and <code>promptise runtime rewind</code></li>
+<li><a href="../../processes/">Agent Processes</a> -- suspend, resume and the process state</li>
 </ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a> -- Journals, checkpoints and resuming safely after something went wrong.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-control-api">AI Agent Control API: Manage Running Agents Over HTTP</a> -- Drive a running process, including its journal, over HTTP.</li>
+</ul>
+</div>
 
 
 
@@ -9623,7 +10083,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 9, 2026 17:46:06 UTC">2026-04-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:59:21 UTC">2026-10-20</span>
   </span>
 
     

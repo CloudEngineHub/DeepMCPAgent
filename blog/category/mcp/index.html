@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,7 +9257,7 @@
           
           <li class="md-meta__item">
             
-              10 min read
+              9 min read
             
           </li>
         
@@ -9347,48 +9298,7 @@
           
           <li class="md-meta__item">
             
-              11 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="fastmcp-vs-promptise-the-production-mcp-stack-compared"><a class="toclink" href="../../fastmcp-alternative-for-production/">FastMCP vs Promptise: The Production MCP Stack Compared</a></h2>
-<p>If you are shopping for a <strong>fastmcp alternative for production</strong>, start by dropping the framing that FastMCP is a toy — it is a genuinely capable MCP server SDK, and the honest question is not <em>whether it works</em> but <em>how much production plumbing you still assemble by hand</em>. FastMCP gets you typed tools, mounting, auth, and a real middleware pipeline. This pillar walks the <strong>fastmcp vs promptise</strong> decision feature by feature, gives FastMCP full credit for what it already does well, and then marks the four capabilities Promptise Foundry folds into one middleware stack that FastMCP leaves you to bolt together yourself: versioned tool coexistence, per-tool circuit breaking, tenant-qualified rate limits, and an MCP-native durable job queue.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../fastmcp-alternative-for-production/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
+              9 min read
             
           </li>
         
@@ -9404,170 +9314,6 @@
     
       <nav class="md-post__action">
         <a href="../../hide-mcp-tools-per-client/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="long-running-mcp-tools-without-client-timeouts"><a class="toclink" href="../../long-running-mcp-tool-job-queue/">Long-Running MCP Tools Without Client Timeouts</a></h2>
-<p>A long-running MCP tool job queue exists because of one hard fact about the Model Context Protocol: a tool call is a single request/response exchange, so a report that takes ten minutes to build times the client out and loses its result long before your handler returns. The agent sends <code>tools/call</code>, the connection holds open waiting for a reply, and somewhere around the 30-, 60-, or 120-second mark — whatever your transport, proxy, or client library decided — the request is abandoned. Your handler may still be running server-side, dutifully finishing the PDF, but there is no longer anyone listening for the answer. The work happened; the result evaporated.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../long-running-mcp-tool-job-queue/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="mcp-authentication-jwt-oauth2-api-keys"><a class="toclink" href="../../mcp-authentication/">MCP Authentication: JWT, OAuth2 &amp; API Keys</a></h2>
-<p>MCP authentication is the part of the Model Context Protocol that the spec deliberately leaves to you — and most tutorials stop at a hard-coded shared secret. That is fine for a laptop demo and dangerous the moment an agent can call a tool that spends money, deletes records, or reads another tenant's data. This guide shows how to do layered, capability-based access properly in Promptise Foundry: transport-level providers (JWT, RS256/ES256, API keys) that verify <em>who is calling</em>, plus per-tool guards that decide <em>what they may do</em> — all in copy-paste code, not theory. By the end you will have a server where a public health check, a scoped read tool, and an admin-only write tool coexist safely.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../mcp-authentication/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              5 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="mcp-client-tutorial-connect-agents-to-mcp-servers"><a class="toclink" href="../../mcp-client/">MCP Client Tutorial: Connect Agents to MCP Servers</a></h2>
-<p>Most tutorials teach you to build an MCP server, then stop — but an MCP client is what actually connects your agent to that server, discovers its tools, and calls them. This tutorial covers the side most guides skip: how to connect to one server, fan out across many servers behind a single unified tool list with auto-routing, and convert MCP tools into LangChain tools you can drop into any agent. Everything here uses Promptise Foundry's native MCP client — three small classes, no third-party MCP dependency to audit or update. By the end you'll be able to wire an agent to any MCP server in a few lines of Python.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../mcp-client/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              5 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-build-an-mcp-server-in-python-tutorial"><a class="toclink" href="../../mcp-server-python/">How to Build an MCP Server in Python (Tutorial)</a></h2>
-<p>Building an MCP server Python developers can actually ship usually stalls on one thing: hand-writing JSON Schema for every tool so clients know how to call it. This tutorial skips that entirely. With Promptise Foundry you decorate a normal Python function with type hints, and the framework generates the schema, validates every call, and serves the tool over stdio, streamable HTTP, or SSE. By the end you'll have a typed tool running, exposed over HTTP, and covered by an in-process test — no schema boilerplate, no network mocking.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../mcp-server-python/">
           Continue reading
         </a>
       </nav>
@@ -9716,48 +9462,7 @@
           
           <li class="md-meta__item">
             
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="turn-a-rest-or-openapi-api-into-an-mcp-server"><a class="toclink" href="../../openapi-to-mcp/">Turn a REST or OpenAPI API into an MCP Server</a></h2>
-<p>Going from OpenAPI to MCP is the fastest way to make an API you already own callable by AI agents — and you can do it without touching a single route handler. If your service already ships a Swagger or OpenAPI document, Promptise Foundry can read that spec and generate one MCP tool per operation, complete with JSON Schema derived from your existing parameter definitions. By the end of this article you'll have an OpenAPI mcp server running that proxies real HTTP calls to your API, and you'll know how to layer authentication, rate limits, and endpoint filtering on top so agents only touch what you allow.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../openapi-to-mcp/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
+              9 min read
             
           </li>
         
@@ -9773,47 +9478,6 @@
     
       <nav class="md-post__action">
         <a href="../../per-tenant-mcp-rate-limiting/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="best-python-mcp-server-framework-for-production"><a class="toclink" href="../../production-mcp-server/">Best Python MCP Server Framework for Production</a></h2>
-<p>Shipping a production MCP server is a different job from getting a demo tool to respond once in your terminal. The prototype works because nothing is trying to break it: no untrusted callers, no bursty traffic, no flaky downstream API, no auditor asking who invoked the refund tool at 2 a.m. Cross that line and you inherit a checklist — authentication, rate limiting, failure isolation, tamper-evident logging, multi-tenancy, and health probes your orchestrator can read. This guide lays out what that checklist actually contains, shows how Promptise Foundry ships every item as one composable middleware chain, and is honest about when the raw SDK alone is all you need.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../production-mcp-server/">
           Continue reading
         </a>
       </nav>
@@ -9880,88 +9544,6 @@
           
           <li class="md-meta__item">
             
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-secure-an-mcp-server-on-the-public-internet"><a class="toclink" href="../../secure-mcp-server-on-public-internet/">How to Secure an MCP Server on the Public Internet</a></h2>
-<p>To <strong>secure an MCP server on the public internet</strong> you have to accept one uncomfortable fact first: the moment your server has a public URL, every tool you registered becomes a callable endpoint for anyone who finds it — not just your agent, but any script, scanner, or rogue MCP client on Earth. A bearer token is table stakes, and it is not hardening. Hardening is what happens <em>after</em> auth: capability checks per tool, limits that survive a burst, breakers that stop a cascade, a trail you can prove wasn't edited, and a human in the loop on the calls that move money. This post wires all of that into one middleware chain you can copy, run offline, and ship.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../secure-mcp-server-on-public-internet/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-test-mcp-servers-without-a-live-server"><a class="toclink" href="../../testing-mcp-servers/">How to Test MCP Servers Without a Live Server</a></h2>
-<p>Testing MCP servers usually means starting a process, waiting for it to bind a port, and firing HTTP or stdio requests at it from a separate test runner. That works, but it is slow, it is flaky in CI, and it turns a two-line assertion into a fixture that manages subprocesses and sockets. This post shows the alternative: run the complete request pipeline — validation, dependency injection, guards, middleware, and your handler — entirely in-process with Promptise Foundry's <code>TestClient</code>, so your tests stay as fast and deterministic as plain function calls. By the end you will be able to test tools, guards, middleware, and error handling without ever opening a network connection.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../testing-mcp-servers/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               8 min read
             
           </li>
@@ -9978,47 +9560,6 @@
     
       <nav class="md-post__action">
         <a href="../../version-mcp-tools-without-breaking-clients/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="what-is-mcp-model-context-protocol-explained"><a class="toclink" href="../../what-is-mcp/">What Is MCP? Model Context Protocol Explained</a></h2>
-<p>If you have ever asked <em>what is MCP</em> and come away with a spec diagram but no running code, this post is the fix. The <strong>Model Context Protocol</strong> (MCP) is an open standard for connecting language models to tools, data, and prompts in one uniform way — so a tool you build once can be called by any MCP-compatible agent. By the end of this article you will understand the protocol's moving parts and see an agent auto-discover and call a real tool in under ten lines of Python, with zero manual wiring.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../what-is-mcp/">
           Continue reading
         </a>
       </nav>

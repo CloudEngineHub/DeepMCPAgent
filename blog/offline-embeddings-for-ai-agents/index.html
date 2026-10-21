@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Teams stand up Chroma or FAISS locally and assume their retrieval is air-gapped — but if the embedding step calls a hosted embeddings API, every chunk of…">
+        <meta name="description" content="Learn why a local vector store still sends your data out if embeddings come from a hosted API, and how to run a local embedding model pinned to a path on disk.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Your Vector Store Is Local — Are Your Embeddings?">
-  <meta property="og:description" content="Teams stand up Chroma or FAISS locally and assume their retrieval is air-gapped — but if the embedding step calls a hosted embeddings API, every chunk of…">
+  <meta property="og:description" content="Learn why a local vector store still sends your data out if embeddings come from a hosted API, and how to run a local embedding model pinned to a path on disk.">
   <meta property="og:url" content="https://docs.promptise.com/blog/offline-embeddings-for-ai-agents/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Your Vector Store Is Local — Are Your Embeddings?">
-  <meta name="twitter:description" content="Teams stand up Chroma or FAISS locally and assume their retrieval is air-gapped — but if the embedding step calls a hosted embeddings API, every chunk of…">
+  <meta name="twitter:description" content="Learn why a local vector store still sends your data out if embeddings come from a hosted API, and how to run a local embedding model pinned to a path on disk.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Your Vector Store Is Local \u2014 Are Your Embeddings?",
       "name": "Your Vector Store Is Local \u2014 Are Your Embeddings?",
-      "description": "Teams stand up Chroma or FAISS locally and assume their retrieval is air-gapped \u2014 but if the embedding step calls a hosted embeddings API, every chunk of\u2026",
+      "description": "Learn why a local vector store still sends your data out if embeddings come from a hosted API, and how to run a local embedding model pinned to a path on disk.",
       "url": "https://docs.promptise.com/blog/offline-embeddings-for-ai-agents/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9502,10 +9453,6 @@
 <p>Running <strong>offline embeddings for AI agents</strong> is the difference between retrieval that is genuinely air-gapped and retrieval that quietly ships your entire private corpus to a third party twice. Most teams get the vector store right — they stand up Chroma, FAISS, Qdrant, or pgvector inside their own network, confirm the database never phones home, and check the box marked "on-prem." Then they wire an embeddings step in front of it that calls a hosted API, and every chunk of that private corpus egresses the moment it's indexed and again on every query. The vector <em>math</em> is local. The text that produces the vectors is not. This post walks through that embedding-egress trap and shows how Promptise Foundry pins <strong>both</strong> memory retrieval and semantic tool selection to a single local embedding model, so nothing leaves the host.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="the-embedding-egress-trap">The embedding-egress trap<a class="headerlink" href="#the-embedding-egress-trap" title="Link to this section">&para;</a></h2>
 <p>A vector store doesn't store text — it stores vectors. To put a document <em>into</em> the store, something has to turn "Q3 pipeline had a 5% error rate at 07:30" into a list of floats. To <em>query</em> the store, the same something has to embed the user's question so the database can compare it against what's indexed. That "something" is the embedding model, and where it runs decides whether your data leaves the building.</p>
 <p>Here's the trap in one sentence: <strong>your vector store being local tells you nothing about where the embedding step runs.</strong> If your embedder is a hosted API — the default in an enormous number of tutorials and starter templates — then:</p>
@@ -9513,7 +9460,7 @@
 <li><strong>At index time</strong>, every chunk of every document you ingest is POSTed to a cloud endpoint. Your entire corpus, in plaintext, leaves the host once.</li>
 <li><strong>At query time</strong>, every user question — often containing the sensitive part, the account number, the patient detail, the deal name — is POSTed again, on every single retrieval.</li>
 </ul>
-<p>For a regulated, sovereign, or genuinely air-gapped deployment, that is the whole ballgame. It does not matter that Chroma is on local disk if the text that produced the vectors already round-tripped through someone else's data centre. The fix is not a bigger firewall; it's an embedding model that runs <em>in-process</em>, on your hardware, with no network dependency. That's the discipline this whole "Air-Gapped &amp; Sovereign" series is built on — see <a href="../air-gapped-agent-framework/">Air-Gapped AI Agent Framework: The On-Prem Guide</a> for the full deployment picture and <a href="../air-gapped-ai-agent/">Why AI Agent Frameworks Fail in Air-Gapped Networks</a> for the failure modes that catch teams by surprise.</p>
+<p>For a sovereign or genuinely air-gapped deployment, that is the whole ballgame. It does not matter that Chroma is on local disk if the text that produced the vectors already round-tripped through someone else's data centre. The fix is not a bigger firewall; it's an embedding model that runs <em>in-process</em>, on your hardware, with no network dependency. That's the discipline this whole "Air-Gapped &amp; Sovereign" series is built on — see <a href="../air-gapped-agent-framework/">Air-Gapped AI Agent Framework: The On-Prem Guide</a> for the full deployment picture and <a href="../air-gapped-ai-agent/">Why AI Agent Frameworks Fail in Air-Gapped Networks</a> for the failure modes that catch teams by surprise.</p>
 <h2 id="one-local-model-two-surfaces">One local model, two surfaces<a class="headerlink" href="#one-local-model-two-surfaces" title="Link to this section">&para;</a></h2>
 <p>An agent that retrieves has <em>two</em> places an embedder can leak from, and teams almost always audit only the first.</p>
 <ol>
@@ -9615,7 +9562,7 @@
 </span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>    <span class="p">),</span>
 </span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="p">)</span>
 </span></code></pre></div>
-<p><code>ChromaProvider.embedding_function</code> accepts any Chroma embedding function — here a Sentence Transformers one pointed at your directory — and <code>ToolOptimizationConfig.embedding_model</code> accepts a model name <em>or a local directory path</em>. Set them to the same <code>LOCAL_MODEL</code> and you've pinned the entire retrieval stack to one on-disk model. This is exactly the CTA of this article: point <code>ChromaProvider</code> and semantic tool optimization at a local embedding-model path and run retrieval with zero egress.</p>
+<p><code>ChromaProvider.embedding_function</code> accepts any Chroma embedding function — here a Sentence Transformers one pointed at your directory — and <code>ToolOptimizationConfig.embedding_model</code> accepts a model name <em>or a local directory path</em>. Set them to the same <code>LOCAL_MODEL</code> and you've pinned the entire retrieval stack to one on-disk model. That is the one change this article asks you to make: point <code>ChromaProvider</code> and semantic tool optimization at a local embedding-model path and run retrieval with zero egress.</p>
 <h2 id="what-other-frameworks-do-today">What other frameworks do today<a class="headerlink" href="#what-other-frameworks-do-today" title="Link to this section">&para;</a></h2>
 <p>Being precise here matters, because offline embeddings are <strong>not</strong> something Promptise invented and no honest comparison should imply otherwise.</p>
 <ul>
@@ -9677,7 +9624,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

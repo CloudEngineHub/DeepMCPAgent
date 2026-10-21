@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,88 +9257,6 @@
           
           <li class="md-meta__item">
             
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="ai-agent-audit-logging-tamper-evident-by-design"><a class="toclink" href="../../ai-agent-audit-logging/">AI Agent Audit Logging: Tamper-Evident by Design</a></h2>
-<p>AI agent audit logging is the difference between telling an auditor "trust us, the log says so" and handing them a record they can independently verify wasn't edited after the fact. When an autonomous agent calls a <code>refund</code> tool, a <code>delete_user</code> tool, or anything that moves money or data, you need a durable answer to "who called which tool, when, and with what outcome" — and you need that answer to survive an insider with write access to the log file. By the end of this post you'll know why plain JSON logs fail that test, what an HMAC-chained audit trail buys you, and how to turn one on in a single line with Promptise Foundry's <code>AuditMiddleware</code>.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../ai-agent-audit-logging/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="circuit-breakers-for-ai-agent-tools-resilience-101"><a class="toclink" href="../../circuit-breakers-for-tools/">Circuit Breakers for AI Agent Tools: Resilience 101</a></h2>
-<p>Circuit breakers for tools are the difference between an agent that degrades gracefully and one that burns your token budget while a downstream API is on fire. When a tool starts failing—your payment provider times out, a search API returns 503s—a naive agent does the worst possible thing: it retries in a hot loop, waits out every 30-second timeout, and asks the model to "try again" until your bill and your latency both spike. By the end of this post you'll know how to wrap a flaky tool in a per-tool breaker, pair it with timeout and concurrency limits, and turn a trip into a clean, retryable error the model can reason about.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../circuit-breakers-for-tools/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               6 min read
             
           </li>
@@ -9404,211 +9273,6 @@
     
       <nav class="md-post__action">
         <a href="../../deploying-ai-agents-to-kubernetes/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="human-in-the-loop-approval-for-ai-agents-done-right"><a class="toclink" href="../../human-in-the-loop-approval/">Human-in-the-Loop Approval for AI Agents, Done Right</a></h2>
-<p>Human-in-the-loop approval is the control that lets an autonomous agent do real work — issue a refund, delete a record, wire money — without letting it do that work unsupervised. The instinct most teams reach for first is a client-side confirmation: the agent asks "are you sure?" and waits for a click. That feels safe, but it protects nothing, because the confirmation lives in the caller you happen to be using today. By the end of this article you'll understand why approval has to live on the server that owns the tool, and you'll have a runnable gate that denies irreversible calls until a human signs off.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../human-in-the-loop-approval/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="llm-tool-rate-limiting-per-client-and-per-tool-guide"><a class="toclink" href="../../llm-tool-rate-limiting/">LLM Tool Rate Limiting: Per-Client and Per-Tool Guide</a></h2>
-<p>LLM tool rate limiting is the part of production agent infrastructure that most tutorials skip, and it is exactly the part that pages your team at 2 a.m. An agent is not a well-behaved REST client that makes one request per user action. Give it a task and it will fan out five, ten, or fifty tool calls in a single turn, retrying and reformulating as it reasons. A flat "requests per minute" cap treats all of that as one undifferentiated stream, which is why it protects nothing. By the end of this guide you will know how to declare a rate limit directly on the tool that needs it, how the token bucket behaves under bursty agent traffic, and when a plain API gateway is the better tool for the job.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../llm-tool-rate-limiting/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="multi-tenant-ai-agents-architecture-for-saas"><a class="toclink" href="../../multi-tenant-ai-agent/">Multi-Tenant AI Agents: Architecture for SaaS</a></h2>
-<p>Shipping a <strong>multi-tenant AI agent</strong> means one deployment serves many customers, and the single worst thing that can happen is that Acme's data surfaces in Globex's session. If you are building AI features into a SaaS product, tenant separation is not a nice-to-have — it is the invariant your whole security story rests on. This post walks through why per-handler tenant checks fail, what a real isolation boundary looks like, and how to make cross-tenant leakage structurally impossible in Promptise Foundry with one server flag and a <code>tenant_id</code> that flows from your JWT all the way to storage.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../multi-tenant-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="per-tenant-data-isolation-for-ai-agents-enforced"><a class="toclink" href="../../per-tenant-data-isolation/">Per-Tenant Data Isolation for AI Agents, Enforced</a></h2>
-<p>Per-tenant data isolation is the promise that Acme's data never surfaces in Globex's session — and it only counts if it holds at <em>every</em> layer your agent touches, not just the one you remembered to check. Most frameworks leave you to hand-roll a tenant check in each handler, which fails silently the first time one call site forgets. This post shows how Promptise Foundry makes tenant separation a structural invariant: a <code>tenant_id</code> that flows from the JWT claim into rate-limit buckets, audit entries, tool guards, memory, and — critically — the semantic cache scope. By the end you'll be able to turn on server-wide isolation with one flag and reason about exactly where the boundary lives.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../per-tenant-data-isolation/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="the-production-ai-agent-checklist-ship-agents-safely"><a class="toclink" href="../../production-ai-agent-checklist/">The Production AI Agent Checklist: Ship Agents Safely</a></h2>
-<p>A production AI agent checklist is what separates a demo that answers once in your terminal from a system you can put in front of real users, bursty traffic, and an auditor who wants to know who invoked the refund tool at 2 a.m. The hard part of shipping an agent was never the prompt — it's everything around the tool calls: identity, load, failure, accountability, and isolation. This post is that checklist, mapped item by item to a concrete layer you can turn on today with <a href="../../../getting-started/quickstart/">Promptise Foundry</a>. By the end you'll know exactly what production-ready AI agents require and how to add each layer without a rewrite.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../production-ai-agent-checklist/">
           Continue reading
         </a>
       </nav>

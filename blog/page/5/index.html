@@ -769,8 +769,6 @@
       
         
       
-        
-      
     
     
     
@@ -1008,34 +1006,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5897,6 +5867,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5916,8 +5890,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5931,8 +5906,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5944,6 +5925,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8198,8 +8181,6 @@
       
         
       
-        
-      
     
     
     
@@ -8355,36 +8336,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9280,7 +9231,48 @@
           <li class="md-meta__item">
             in
             
-              <a href="../../category/comparisons/" class="md-meta__link">Comparisons</a></li>
+              <a href="../../category/multi-tenancy/" class="md-meta__link">Multi-Tenancy</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              9 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="tenant-scoped-audit-logs-for-ai-agent-tool-calls"><a class="toclink" href="../../tenant-scoped-audit-log-ai-agent/">Tenant-Scoped Audit Logs for AI Agent Tool Calls</a></h2>
+<p>A <strong>tenant-scoped audit log</strong> for an AI agent's tool calls exists to answer two questions an incident reviewer puts to you in the same breath: <em>show me every action your system took for Acme</em>, and <em>prove that record wasn't edited after the fact</em>. Both are easy to wave at and hard to actually satisfy. A general trace store can usually show you <em>something</em> about Acme, but "every action" means the tenant has to be a field you can filter on cleanly — not a tag one call site set and another forgot. And "prove it wasn't edited" means the trail needs integrity you can hand to a third party, not your assurance that the database looks fine. This post shows how to produce a slice of the trail that belongs to exactly one customer, and hand it over with a proof it wasn't altered.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../tenant-scoped-audit-log-ai-agent/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/runtime/" class="md-meta__link">Runtime</a></li>
         
         
           
@@ -9296,12 +9288,176 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="is-autogen-production-secure-the-audit-trail-gap"><a class="toclink" href="../../is-autogen-production-secure/">Is AutoGen Production-Secure? The Audit Trail Gap</a></h2>
-<p>If you are asking <strong>is AutoGen production secure</strong> enough to survive a compliance review, the honest answer starts with a compliment: Microsoft's AutoGen is a genuinely capable multi-agent research framework, and the 0.4 line ships real infrastructure — a Docker code executor and a distributed gRPC runtime that coordinates agents across processes and machines. That is not a toy. But "capable in production" and "can pass an auditor's questions" are two different bars, and the gap between them is narrow, specific, and unforgiving: when your agents call tools that move money or touch regulated data, an auditor asks <em>who did it, prove the record wasn't edited, and prove nothing went missing</em> — and AutoGen has no answer built in. This post credits what AutoGen actually gives you, then shows the primitive it leaves to you: an HMAC-chained, tamper-evident audit trail with verified per-principal and per-tenant attribution.</p>
+    <h2 id="time-travel-debug-an-ai-agent-by-rewinding-state"><a class="toclink" href="../../time-travel-debug-ai-agent/">Time-Travel Debug an AI Agent by Rewinding State</a></h2>
+<p>To <strong>time-travel debug an AI agent</strong>, you rewind its recorded history to the exact step before it did something baffling, rebuild the state it was actually looking at, and replay its decisions deterministically — instead of squinting at stdout and guessing. When a request/response function misbehaves you set a breakpoint and re-run it. An autonomous agent gives you neither luxury: it woke itself on a trigger you didn't watch, called an LLM whose output you can't reproduce, mutated its own state across dozens of invocations, and fired a side effect you now have to explain. This post shows how a Promptise journal plus its rewind and replay engines turn "why did it do that?" into a reproducible postmortem, and where that differs — honestly — from LangGraph's graph-state time-travel.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../is-autogen-production-secure/">
+        <a href="../../time-travel-debug-ai-agent/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/cost--efficiency/" class="md-meta__link">Cost &amp; Efficiency</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              8 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="why-trim_messages-drops-facts-your-agent-still-needs"><a class="toclink" href="../../trim-messages-vs-facts-ledger/">Why trim_messages Drops Facts Your Agent Still Needs</a></h2>
+<p>Put <strong>trim_messages vs a facts ledger</strong> side by side on a deep tool loop and the difference stops being academic: trimming evicts messages by token or message count, so it can throw away the exact record the model still needs three turns later — while a ledger keeps that fact and drops the <em>duplicates</em> instead. When a tool-calling agent balloons in the middle of a long task, the reflex is to reach for one of two stock helpers: trim the message history, or summarize it. Both bound the transcript. Both also have a failure mode that only shows up on the tasks that matter most — the deep ones. This post compares those helpers head-to-head with Promptise Foundry's <code>context_scope="ledger"</code>, a last-value-wins facts ledger that deduplicates repeated tool calls and cache-serves a repeat instead of re-running it, with no extra model call.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../trim-messages-vs-facts-ledger/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/identity/" class="md-meta__link">Identity</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              8 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="zero-trust-verify-the-calling-agent-not-its-name"><a class="toclink" href="../../verify-the-calling-agent-server-side/">Zero-trust: verify the calling agent, not its name</a></h2>
+<p>In a zero-trust agent mesh you must <strong>verify the calling agent server-side</strong> — cryptographically, on the resource that receives the call — because a self-asserted agent name in a request body is trivial to forge. Agent A tells your billing server "I am <code>billing-bot</code>"; your server believes it; a compromised or misconfigured Agent B says exactly the same thing. If the only thing standing between a caller and <code>issue_refund</code> is a string it chose for itself, you have no security boundary at all — you have a naming convention.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../verify-the-calling-agent-server-side/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/mcp/" class="md-meta__link">MCP</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              8 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="why-a-small-mcp-tool-change-broke-every-connected-agent"><a class="toclink" href="../../version-mcp-tools-without-breaking-clients/">Why a Small MCP Tool Change Broke Every Connected Agent</a></h2>
+<p>To version MCP tools without breaking clients, you have to treat a tool's schema as a published API contract — because that is exactly what every connected agent already assumes it is. An agent does not read your source code. It reads the <code>input_schema</code> your server advertises, builds a function call to match, and trusts that the shape it saw at discovery time is the shape you will accept at call time. Rename one field from <code>customer</code> to <code>customer_id</code>, tighten <code>filters</code> from optional to required, or drop a property some prompt still references, and every agent already in flight starts emitting arguments your handler rejects. Nothing crashed on your side. You just changed the contract out from under callers who never agreed to the new terms.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../version-mcp-tools-without-breaking-clients/">
+          Continue reading
+        </a>
+      </nav>
+    
+    
+  </div>
+</article>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
+        
+          <li class="md-meta__item">
+            in
+            
+              <a href="../../category/approvals--hitl/" class="md-meta__link">Approvals &amp; HITL</a></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              9 min read
+            
+          </li>
+        
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="who-approved-that-ai-refund-reviewer-attribution"><a class="toclink" href="../../who-approved-this-ai-agent-action/">Who Approved That AI Refund? Reviewer Attribution</a></h2>
+<p>When someone asks <strong>who approved this ai agent action</strong> — the $5,000 refund your agent issued to order A-1 at 3 a.m. — the honest answer is often a shrug, a Slack screenshot, and a log line that says the call succeeded. That is not reviewer attribution; that is a story. This post covers the <em>provenance of an approval decision</em>: what actually lands on a tamper-evident audit log when a human signs off, and whether that record can survive an incident reviewer who does not trust your good intentions.</p>
+
+    
+      <nav class="md-post__action">
+        <a href="../../who-approved-this-ai-agent-action/">
           Continue reading
         </a>
       </nav>
@@ -9337,750 +9493,12 @@
     </div>
   </header>
   <div class="md-post__content md-typeset">
-    <h2 id="jwt-authentication-for-mcp-servers-step-by-step"><a class="toclink" href="../../jwt-authentication-for-mcp-servers/">JWT Authentication for MCP Servers: Step by Step</a></h2>
-<p>JWT authentication for MCP servers is the piece the protocol spec leaves out: it tells you how to move bytes over stdio, HTTP, or SSE, but not how to prove <em>who</em> is calling a tool or stop an unauthorized agent from invoking your <code>delete_all</code> endpoint. If you have shipped a Model Context Protocol server and now need to lock it down, you are in the right place. By the end of this post you will understand the three-layer model Promptise Foundry uses — a JWT provider, <code>AuthMiddleware</code>, and per-tool guards — and you will have a copy-paste server where only the tools you mark are protected.</p>
+    <h2 id="what-is-workload-identity-for-ai-agents"><a class="toclink" href="../../workload-identity-for-ai-agents/">What Is Workload Identity for AI Agents?</a></h2>
+<p>Workload identity for AI agents is the practice of giving every agent a stable, verifiable identity of its own — minted by the identity provider you already run — instead of handing the whole fleet one shared API key. If you deploy more than one agent, you have probably already felt the gap: your logs say "the model" did something, your audit trail can't name which agent hit which tool, and every agent holds the same credential so every agent has the same blast radius. By the end of this post you will know exactly what workload identity means for agents, why it is the same problem enterprises solved for services years ago, and how to give your first agent a real identity with no new secrets to manage.</p>
 
     
       <nav class="md-post__action">
-        <a href="../../jwt-authentication-for-mcp-servers/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/governance/" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="know-when-your-ai-agent-hit-its-goal-llm-judge"><a class="toclink" href="../../know-when-ai-agent-achieved-its-goal/">Know When Your AI Agent Hit Its Goal (LLM Judge)</a></h2>
-<p>To <strong>know when your AI agent achieved its goal</strong> — not merely that it stopped — you need something that evaluates the objective, because a turn cap only proves a counter ran out. This is the quiet failure mode of every long-running agent: it exits cleanly, your logs go green, and nobody notices that the migration is half-done, the queue still has open items, or the research brief never actually answered the question. "Stopped" and "succeeded" are different facts, and almost every framework only measures the first one. This post shows the difference between a hard limit and an evaluated judgment, and how Promptise Foundry wires a separate judge model into the runtime so a supervised process ends when the mission is genuinely met.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../know-when-ai-agent-achieved-its-goal/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/comparisons/" class="md-meta__link">Comparisons</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="langchain-alternatives-for-production-python-agents"><a class="toclink" href="../../langchain-alternative/">LangChain Alternatives for Production Python Agents</a></h2>
-<p>If you are shopping for a <strong>LangChain alternative</strong>, you have probably already shipped something on LangChain, hit a wall in production, and started looking for a cleaner foundation without throwing away the integrations you rely on. That is the honest tension this post is about. By the end you will know exactly where LangChain still wins, what a production-grade stack adds on top, and how to keep your existing LangChain tools running while you move orchestration, memory, and auth onto Promptise Foundry — one layer at a time, no rip-and-replace.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../langchain-alternative/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/compliance--audit/" class="md-meta__link">Compliance &amp; Audit</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="langgraph-checkpoints-vs-an-audit-log-the-real-difference"><a class="toclink" href="../../langgraph-checkpoint-vs-audit-log/">LangGraph Checkpoints vs. an Audit Log: The Real Difference</a></h2>
-<p>The <strong>langgraph checkpoint vs audit log</strong> confusion is one of the most expensive category errors in agent engineering: teams wire up a checkpointer, watch their graph resume cleanly after a crash, and quietly assume that same durable state will satisfy an auditor asking what the agent did and who authorized it. It won't. A checkpoint is a mutable snapshot of graph state built to <em>resume, replay, and pause for a human</em>. An audit log is an integrity-chained, attributable record built to <em>prove what happened</em>. Both are legitimate; they solve different problems, and using one where you need the other fails at the worst possible moment. This post draws the precise line, states exactly what LangGraph's checkpointers do and don't guarantee, and shows the one primitive a checkpoint can't give you.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../langgraph-checkpoint-vs-audit-log/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/runtime/" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="langgraph-checkpointing-vs-journal-replay-explained"><a class="toclink" href="../../langgraph-checkpointing-vs-journaling/">LangGraph Checkpointing vs Journal-Replay Explained</a></h2>
-<p>The honest way to frame <strong>langgraph checkpointing vs journaling</strong> is not "which one persists state" — both genuinely do — but "what unit each one persists": a LangGraph checkpoint saves the state of a single graph run, while a Promptise journal records the append-only event stream of a long-running, self-triggering process. That distinction sounds academic until a process reboots at 2am mid-run and you need it back exactly where it was. This post draws the line precisely, shows what each mechanism captures, and gives you a runnable script so you can watch a journal rebuild a crashed process from its own event log.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../langgraph-checkpointing-vs-journaling/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/approvals--hitl/" class="md-meta__link">Approvals &amp; HITL</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="langgraph-vs-crewai-vs-autogen-where-hitl-runs"><a class="toclink" href="../../langgraph-vs-crewai-vs-autogen-human-in-the-loop/">LangGraph vs CrewAI vs AutoGen: Where HITL Runs</a></h2>
-<p>Read enough roundups and you get the same <strong>LangGraph vs CrewAI vs AutoGen human in the loop</strong> comparison — three feature checklists, all ticking the "supports HITL" box — while the question that actually decides your architecture goes unasked: <em>where does the approval physically execute?</em> This post is a capability matrix, not another retelling of the bypass argument. For each framework we state exactly where the check runs and what that implies, then show the one row that's structurally different: a gate that lives on the tool itself.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../langgraph-vs-crewai-vs-autogen-human-in-the-loop/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/runtime/" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="langgraph-vs-promptise-long-running-agents"><a class="toclink" href="../../langgraph-vs-promptise-2/">LangGraph vs Promptise: Long-Running Agents</a></h2>
-<p>If you are researching <strong>LangGraph vs Promptise</strong> for an agent that has to stay alive for hours or days — not just answer one request and exit — you are comparing two different layers of the stack, and it pays to be precise about which one you actually need. LangGraph excels at orchestrating the control flow <em>inside</em> a single invocation. Promptise's Agent Runtime targets the layer <em>above</em> the graph: an OS-level process that wakes on triggers, survives crashes, and stays under governance. By the end of this post you will be able to tell which layer your project needs, and you will have runnable code for a supervised, crash-recoverable agent.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../langgraph-vs-promptise-2/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/comparisons/" class="md-meta__link">Comparisons</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="promptise-foundry-vs-langgraph-graph-vs-runtime"><a class="toclink" href="../../langgraph-vs-promptise/">Promptise Foundry vs LangGraph: Graph vs Runtime</a></h2>
-<p>If you are weighing <strong>LangGraph vs Promptise</strong>, you are really comparing two different layers of the stack: a graph library for wiring up agent control flow versus a runtime for keeping agents alive, triggered, and recoverable in production. Both are good at what they do, and they are not strictly competitors. This article draws the line honestly — where a graph is enough, where you end up rebuilding a runtime by hand, and how to build a crash-recoverable process in Promptise. By the end you will know which layer your project actually needs.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../langgraph-vs-promptise/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/sandboxing/" class="md-meta__link">Sandboxing</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="the-hidden-risk-of-letting-an-agent-write-its-own-tools"><a class="toclink" href="../../let-an-agent-write-its-own-tools-safely/">The Hidden Risk of Letting an Agent Write Its Own Tools</a></h2>
-<p>To <strong>let an agent write its own tools safely</strong> you have to accept an uncomfortable fact first: the moment an agent authors a Python function and you add it to its toolset, you are running model-written code — and the function it wrote is one string away from <code>open("/etc/passwd")</code> or an outbound socket to an address you never approved. The Voyager-style dream, where an agent grows its own skill library as it explores, is genuinely powerful. It is also the exact point where "the agent got smarter" and "the agent got a shell on my box" become the same event. This post is a threat-model deep dive on Promptise Foundry's <code>create_tool</code> meta-tool specifically — attack by attack — and on the two guardrails that are on by default so self-authored tools stay tools instead of turning into a breach.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../let-an-agent-write-its-own-tools-safely/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/governance/" class="md-meta__link">Governance</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="limit-an-ai-agents-irreversible-actions-per-run"><a class="toclink" href="../../limit-irreversible-actions-ai-agent/">Limit an AI Agent's Irreversible Actions Per Run</a></h2>
-<p>To limit irreversible actions an AI agent takes in a single run, you need a control that counts <em>destructive</em> calls separately from everything else the agent does. This is a different problem from stopping a runaway loop, and it is the one that keeps operators awake. A looping agent that calls <code>get_status(id=42)</code> forty times is embarrassing and cheap. An agent that reasons its way into ten <code>issue_refund</code> calls, or fires the same dunning email to your entire customer list, or deletes ten accounts because a webhook payload looked plausible — that is not embarrassing, it is a Monday-morning incident review. The failure isn't volume. It's a <em>small number of destructive calls</em>, each one individually reasonable, that together are unrecoverable.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../limit-irreversible-actions-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/guardrails/" class="md-meta__link">Guardrails</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="llama-guard-vs-azure-ai-llm-content-moderation"><a class="toclink" href="../../llm-content-moderation/">Llama Guard vs Azure AI: LLM Content Moderation</a></h2>
-<p>Picking a backend for LLM content moderation usually forces an early, sticky decision: run a safety model locally, or call a hosted API. Get it wrong and you either ship a 4.9 GB model into an environment with no GPU budget, or route every user prompt through a cloud endpoint that your compliance team has not signed off on. This post gives you an honest local-vs-cloud breakdown of the two most common choices — Meta's Llama Guard and Azure AI Content Safety — and shows how Promptise Foundry puts both behind a single <code>ContentSafetyDetector</code> interface so the choice becomes a config flag, not a rewrite.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../llm-content-moderation/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/guardrails/" class="md-meta__link">Guardrails</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="llm-guardrails-in-python-the-complete-guide"><a class="toclink" href="../../llm-guardrails-python/">LLM Guardrails in Python: The Complete Guide</a></h2>
-<p>Shipping LLM guardrails in Python usually means stitching together three or four half-overlapping libraries — one for prompt injection, one for PII, a regex file for secrets, and a hosted moderation API that sends every prompt off your network. That fragmentation is where bugs and compliance gaps live. This guide shows you a different approach: a single composable scanner that covers all six major risk classes, runs entirely on your own hardware, and wires into an agent in three lines. By the end you will be able to block malicious input, redact sensitive output, and add your own domain rules — without any prompt or response ever leaving your infrastructure.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../llm-guardrails-python/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/memory--rag/" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="llm-long-term-memory-in-python-a-practical-guide"><a class="toclink" href="../../llm-long-term-memory/">LLM Long-Term Memory in Python: A Practical Guide</a></h2>
-<p>Adding <strong>LLM long-term memory</strong> to a Python agent is where most tutorials go quiet. They show you how to embed a string and push it into a vector database, then stop — as if storage were the whole job. It isn't. The hard half is retrieval: deciding <em>what</em> to pull back, <em>when</em> to inject it, and <em>how</em> to keep the loop identical whether you're running an in-memory stub in tests or a persistent store in production. By the end of this guide you'll have a working memory loop that auto-searches and injects relevant context before every model call, and you'll be able to swap backends by changing a single line.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../llm-long-term-memory/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/production/" class="md-meta__link">Production</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="llm-tool-rate-limiting-per-client-and-per-tool-guide"><a class="toclink" href="../../llm-tool-rate-limiting/">LLM Tool Rate Limiting: Per-Client and Per-Tool Guide</a></h2>
-<p>LLM tool rate limiting is the part of production agent infrastructure that most tutorials skip, and it is exactly the part that pages your team at 2 a.m. An agent is not a well-behaved REST client that makes one request per user action. Give it a task and it will fan out five, ten, or fifty tool calls in a single turn, retrying and reformulating as it reasons. A flat "requests per minute" cap treats all of that as one undifferentiated stream, which is why it protects nothing. By the end of this guide you will know how to declare a rate limit directly on the tool that needs it, how the token bucket behaves under bursty agent traffic, and when a plain API gateway is the better tool for the job.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../llm-tool-rate-limiting/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/memory--rag/" class="md-meta__link">Memory &amp; RAG</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="stop-context-bloat-in-long-running-ai-agents"><a class="toclink" href="../../long-running-agent-context-bloat/">Stop Context Bloat in Long-Running AI Agents</a></h2>
-<p><strong>Long-running agent context bloat</strong> is the reason a deep tool-calling task that looked great in your demo becomes slow, expensive, and subtly wrong in production. Every tool call appends its request and result to the transcript, so by the twentieth call the model is re-reading a growing wall of its own past work on every turn — losing the thread, re-querying facts it already fetched, and paying for thousands of redundant tokens each time. This post is the Promptise Foundry decision guide for <code>context_scope</code>, the node-level lever that keeps a 30-tool task bounded instead of drowning in the middle. By the end you'll know which of the four modes to reach for, and you'll have a runnable example that stays flat while a naive loop balloons.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../long-running-agent-context-bloat/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/runtime/" class="md-meta__link">Runtime</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-build-a-long-running-ai-agent"><a class="toclink" href="../../long-running-ai-agent/">How to Build a Long-Running AI Agent</a></h2>
-<p>Building a long-running AI agent is where most tutorials quietly fall apart: they show you a <code>while True:</code> loop that calls the model, prints a reply, and forgets everything the moment the terminal closes. That loop is not a persistent AI agent — it's a script with a heartbeat problem, no crash recovery, and no way to run more than one thing at a time. By the end of this post you'll understand what a real lifecycle container manages for you, and you'll have a runnable Promptise Foundry agent that keeps living, remembering, and reacting across hours and restarts.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../long-running-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/mcp/" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              9 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="long-running-mcp-tools-without-client-timeouts"><a class="toclink" href="../../long-running-mcp-tool-job-queue/">Long-Running MCP Tools Without Client Timeouts</a></h2>
-<p>A long-running MCP tool job queue exists because of one hard fact about the Model Context Protocol: a tool call is a single request/response exchange, so a report that takes ten minutes to build times the client out and loses its result long before your handler returns. The agent sends <code>tools/call</code>, the connection holds open waiting for a reply, and somewhere around the 30-, 60-, or 120-second mark — whatever your transport, proxy, or client library decided — the request is abandoned. Your handler may still be running server-side, dutifully finishing the PDF, but there is no longer anyone listening for the answer. The work happened; the result evaporated.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../long-running-mcp-tool-job-queue/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/mcp/" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="mcp-authentication-jwt-oauth2-api-keys"><a class="toclink" href="../../mcp-authentication/">MCP Authentication: JWT, OAuth2 &amp; API Keys</a></h2>
-<p>MCP authentication is the part of the Model Context Protocol that the spec deliberately leaves to you — and most tutorials stop at a hard-coded shared secret. That is fine for a laptop demo and dangerous the moment an agent can call a tool that spends money, deletes records, or reads another tenant's data. This guide shows how to do layered, capability-based access properly in Promptise Foundry: transport-level providers (JWT, RS256/ES256, API keys) that verify <em>who is calling</em>, plus per-tool guards that decide <em>what they may do</em> — all in copy-paste code, not theory. By the end you will have a server where a public health check, a scoped read tool, and an admin-only write tool coexist safely.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../mcp-authentication/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="../../category/mcp/" class="md-meta__link">MCP</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              5 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="mcp-client-tutorial-connect-agents-to-mcp-servers"><a class="toclink" href="../../mcp-client/">MCP Client Tutorial: Connect Agents to MCP Servers</a></h2>
-<p>Most tutorials teach you to build an MCP server, then stop — but an MCP client is what actually connects your agent to that server, discovers its tools, and calls them. This tutorial covers the side most guides skip: how to connect to one server, fan out across many servers behind a single unified tool list with auto-routing, and convert MCP tools into LangChain tools you can drop into any agent. Everything here uses Promptise Foundry's native MCP client — three small classes, no third-party MCP dependency to audit or update. By the end you'll be able to wire an agent to any MCP server in a few lines of Python.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../mcp-client/">
+        <a href="../../workload-identity-for-ai-agents/">
           Continue reading
         </a>
       </nav>
@@ -10096,7 +9514,7 @@
 
 
 <nav class="md-pagination">
-  <a class="md-pagination__link" href="../../">1</a> <span class="md-pagination__dots">..</span> <a class="md-pagination__link" href="../3/">3</a> <a class="md-pagination__link" href="../4/">4</a> <span class="md-pagination__current">5</span> <a class="md-pagination__link" href="../6/">6</a> <a class="md-pagination__link" href="../7/">7</a> <span class="md-pagination__dots">..</span> <a class="md-pagination__link" href="../9/">9</a>
+  <a class="md-pagination__link" href="../../">1</a> <span class="md-pagination__dots">..</span> <a class="md-pagination__link" href="../3/">3</a> <a class="md-pagination__link" href="../4/">4</a> <span class="md-pagination__current">5</span>
 </nav>
         
       

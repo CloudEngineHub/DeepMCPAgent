@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A build guide scoped to the governance you keep, not the codeact pattern itself: enable agent_pattern='code-action', wrap mutating tools with an approval…">
+        <meta name="description" content="Learn how to let a code-action agent call your tools from generated code while every mutating tool still goes through an approval gate and the usual guards.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../compose-multiple-mcp-servers/">
       
       
-        <link rel="next" href="../code-action-agent/">
+        <link rel="next" href="../build-time-enforced-approval-gate-mcp/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Give a Code-Interpreter Agent Your Tools, Keep Approval Gates">
-  <meta property="og:description" content="A build guide scoped to the governance you keep, not the codeact pattern itself: enable agent_pattern='code-action', wrap mutating tools with an approval…">
+  <meta property="og:description" content="Learn how to let a code-action agent call your tools from generated code while every mutating tool still goes through an approval gate and the usual guards.">
   <meta property="og:url" content="https://docs.promptise.com/blog/code-interpreter-agent-with-approval-gates/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Give a Code-Interpreter Agent Your Tools, Keep Approval Gates">
-  <meta name="twitter:description" content="A build guide scoped to the governance you keep, not the codeact pattern itself: enable agent_pattern='code-action', wrap mutating tools with an approval…">
+  <meta name="twitter:description" content="Learn how to let a code-action agent call your tools from generated code while every mutating tool still goes through an approval gate and the usual guards.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Give a Code-Interpreter Agent Your Tools, Keep Approval Gates",
       "name": "Give a Code-Interpreter Agent Your Tools, Keep Approval Gates",
-      "description": "A build guide scoped to the governance you keep, not the codeact pattern itself: enable agent_pattern=\u0027code-action\u0027, wrap mutating tools with an approval\u2026",
+      "description": "Learn how to let a code-action agent call your tools from generated code while every mutating tool still goes through an approval gate and the usual guards.",
       "url": "https://docs.promptise.com/blog/code-interpreter-agent-with-approval-gates/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9527,7 +9478,7 @@
 
 
 <h1 id="give-a-code-interpreter-agent-your-tools-keep-approval-gates">Give a Code-Interpreter Agent Your Tools, Keep Approval Gates<a class="headerlink" href="#give-a-code-interpreter-agent-your-tools-keep-approval-gates" title="Link to this section">&para;</a></h1>
-<p>Building a <strong>code interpreter agent with approval gates</strong> means letting the model write and run one program over <em>your</em> tools while every mutating call it makes still stops at a human — and gets counted against a hard per-run budget. That combination is the whole point of this guide. The code-interpreter (codeact) pattern itself is easy; the interesting engineering is the governance you refuse to give up when you hand a model an execution surface. This post is scoped to exactly that: enable <code>agent_pattern="code-action"</code>, wrap the tools that change state with an approval gate, keep a hard <code>max_tool_calls</code> cap on the generated program, and pick the gVisor backend when the input is untrusted.</p>
+<p>Building a <strong>code interpreter agent with approval gates</strong> means letting the model write and run one program over <em>your</em> tools while every mutating call it makes still stops at a human — and gets counted against a hard per-run budget. That combination is the whole point of this guide. The code-interpreter (codeact) pattern itself is easy; the interesting engineering is the governance you refuse to give up when you hand a model an execution surface. This post covers exactly that: enable <code>agent_pattern="code-action"</code>, wrap the tools that change state with an approval gate, keep a hard <code>max_tool_calls</code> cap on the generated program, and pick the gVisor backend when the input is untrusted.</p>
 <!-- more -->
 
 <p>If you want the case for the pattern in the first place — why one sandboxed program beats a 30-call tool loop — read <a href="../../guides/code-action/">the code-action guide</a> first. Here we assume you're sold on codeact and worried about the safety story. Good instinct.</p>
@@ -9539,7 +9490,7 @@
 <li><strong>A hard <code>max_tool_calls</code> cap per run.</strong> The code-action node enforces its own hook-independent ceiling (default 50) so a generated loop can never hammer a tool unbounded.</li>
 <li><strong>Kernel-level isolation on demand.</strong> Swap the container backend to gVisor for untrusted input.</li>
 </ol>
-<p>That is the delta this article is about: giving a code interpreter your tools <em>safely</em>, where "safely" is a policy you author, not a property of a vendor's closed sandbox.</p>
+<p>That is what this article is about: giving a code interpreter your tools <em>safely</em>, where "safely" is a policy you author, not a property of a vendor's closed sandbox.</p>
 <h2 id="build-it-a-code-interpreter-that-still-asks-permission">Build it: a code interpreter that still asks permission<a class="headerlink" href="#build-it-a-code-interpreter-that-still-asks-permission" title="Link to this section">&para;</a></h2>
 <p>The example below is runnable end-to-end — set <code>OPENAI_API_KEY</code> and have Docker running. It gives a code-action agent three tools: two read-only (<code>list_employees</code>, <code>get_employee</code>) that the program may call freely, and one mutating tool (<code>apply_raise</code>) that is gated. The model is asked to raise a whole department, so it will write a loop that calls <code>apply_raise</code> several times — and each of those calls passes through your approval handler.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
@@ -9630,7 +9581,7 @@
 <p>This capability is worth situating honestly against the alternatives, because each does part of the job well.</p>
 <p><strong>Hosted code interpreters (e.g. OpenAI's <code>code_interpreter</code> tool).</strong> These run model-written Python in a sandboxed, network-isolated container that the vendor hosts. The isolation is real and well-engineered. The delta is the <em>toolset</em>: the code runs over a closed environment — a Python runtime plus files you upload — not over your arbitrary host tools. In the same API you can define function tools, but those are called through the normal tool-call loop, separate from the interpreter's sandbox; the program the interpreter writes does not itself invoke your function tools, so there is no supported path to fire a per-call human-approval gate and a hard per-run tool-call budget <em>you</em> define on the code the model wrote. As of these APIs, human-in-the-loop over tool calls is client-side (you decide whether to submit outputs), not a server-enforced gate on generated code.</p>
 <p><strong>DIY / bolt-on sandboxes (e2b, Riza, Modal, <code>langchain-sandbox</code>).</strong> These give you a genuinely hardened boundary — e2b runs Firecracker microVMs, Riza uses WASM isolates, Modal spins serverless containers. Where they have a partial feature, say so: they isolate the <em>code</em> excellently. The precise delta is that they are <strong>generic code executors, not tool-aware bridges.</strong> If you want the sandboxed program to call your database or MCP tools, you expose those yourself over RPC, and any approval prompt, per-run cap, or audit entry on those bridged calls is integration work you build and maintain.</p>
-<p>Promptise's edge isn't "we have a sandbox and they don't" — several of these have excellent sandboxes. It's that the code-action bridge makes per-call governance <strong>structural</strong>: because each tool call the generated program makes runs back through the real host <code>BaseTool</code>, your <code>ApprovalPolicy</code> and the hard <code>max_tool_calls</code> cap apply to generated code as a first-class property of the pattern, with no closed toolset to accept and no RPC layer to stand up. For the fuller three-way comparison of in-process REPLs, bolt-on sandboxes, and governed bridges, see <a href="../run-ai-generated-code-safely/">How to Run AI-Generated Code Safely: The 2026 Field Guide</a>; for the threat model that motivates isolating this code in the first place, see <a href="../risks-of-running-ai-generated-code/">The Real Risks of Running AI-Generated Code In-Process</a>.</p>
+<p>Promptise's edge isn't "we have a sandbox and they don't" — several of these have excellent sandboxes. It's that the code-action bridge makes per-call governance <strong>structural</strong>: because each tool call the generated program makes runs back through the real host <code>BaseTool</code>, your <code>ApprovalPolicy</code> and the hard <code>max_tool_calls</code> cap apply to generated code as a first-class property of the pattern, with no closed toolset to accept and no RPC layer to stand up. For how to run model-written code in a sandbox, see <a href="https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python">AI Agent Code Execution Sandbox: Run LLM Code Safely</a>; for the threat model that motivates isolating this code in the first place, see <a href="../risks-of-running-ai-generated-code/">The Real Risks of Running AI-Generated Code In-Process</a>.</p>
 <h2 id="when-to-reach-for-this-and-when-not">When to reach for this — and when not<a class="headerlink" href="#when-to-reach-for-this-and-when-not" title="Link to this section">&para;</a></h2>
 <p>Code-action with gates is a precise instrument, not a default. Be honest about the fit:</p>
 <table>
@@ -9693,7 +9644,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:47:11 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

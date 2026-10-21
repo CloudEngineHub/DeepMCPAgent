@@ -777,8 +777,6 @@
       
         
       
-        
-      
     
     
     
@@ -1016,34 +1014,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5905,6 +5875,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5924,8 +5898,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5939,8 +5914,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5952,6 +5933,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8198,8 +8181,6 @@
       
         
       
-        
-      
     
     
     
@@ -8352,36 +8333,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -10688,7 +10639,7 @@
     {"@type":"Question","name":"How does Promptise Foundry handle prompt injection and security?","acceptedAnswer":{"@type":"Answer","text":"PromptiseSecurityScanner with six detection heads — DeBERTa-based prompt injection detection, PII detection (69 regex patterns), credential detection (96 patterns), GLiNER NER, content safety via Llama Guard or Azure AI, and custom rules. All models run locally."}},
     {"@type":"Question","name":"What memory backends does Promptise Foundry support?","acceptedAnswer":{"@type":"Answer","text":"Three providers — InMemoryProvider (testing), ChromaProvider (local vector search, persistent), and Mem0Provider (enterprise-grade graph search). The agent auto-searches memory before every invocation and injects relevant results with prompt-injection mitigation."}},
     {"@type":"Question","name":"Does Promptise Foundry support conversation persistence?","acceptedAnswer":{"@type":"Answer","text":"Yes. ConversationStore protocol with four backends — InMemoryConversationStore, SQLiteConversationStore, PostgresConversationStore, RedisConversationStore. The chat() method handles load, invoke, and persist automatically with session ownership enforcement."}},
-    {"@type":"Question","name":"Does Promptise Foundry support semantic caching?","acceptedAnswer":{"@type":"Answer","text":"Yes. SemanticCache with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for semantically similar queries — typically 30-50% cost reduction. GDPR purge_user() supported. Encrypted-at-rest option for Redis."}},
+    {"@type":"Question","name":"Does Promptise Foundry support semantic caching?","acceptedAnswer":{"@type":"Answer","text":"Yes. SemanticCache with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for semantically similar queries — typically 30-50% cost reduction. purge_user() deletes one user's cached entries on request. Encrypted-at-rest option for Redis."}},
     {"@type":"Question","name":"Can I sandbox code execution in Promptise Foundry?","acceptedAnswer":{"@type":"Answer","text":"Yes. Docker-based sandbox with seccomp syscall filtering, capability dropping, read-only rootfs, resource limits, and network isolation. Optional gVisor kernel. Five agent tools auto-injected when sandbox is enabled. Path traversal and shell injection prevention built in."}},
     {"@type":"Question","name":"How does observability work?","acceptedAnswer":{"@type":"Answer","text":"Four levels — OFF, BASIC, STANDARD, FULL. Every LLM turn, tool call, token count, latency, retry, cache hit/miss is recorded. Eight transporters — HTML report, JSON file, structured log, console, Prometheus, OpenTelemetry, webhook, callback."}},
     {"@type":"Question","name":"What governance does the Agent Runtime provide?","acceptedAnswer":{"@type":"Answer","text":"Four governance subsystems — Budget (tool calls, LLM turns, cost units, irreversible actions), Health (anomaly detection), Mission (LLM-as-judge evaluation against success criteria), and Secrets (per-process credential context with TTL expiry, rotation, zero-fill revocation)."}},
@@ -10708,10 +10659,6 @@
 
 <h1 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h1>
 <p>Honest, complete answers about Promptise Foundry — the production Python framework for building AI agents, MCP servers, and autonomous runtimes.</p>
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="foundations">Foundations<a class="headerlink" href="#foundations" title="Link to this section">&para;</a></h2>
 <h3 id="what-is-promptise-foundry">What is Promptise Foundry?<a class="headerlink" href="#what-is-promptise-foundry" title="Link to this section">&para;</a></h3>
 <p>Promptise Foundry is a production-grade Python framework for building AI agents, MCP (Model Context Protocol) servers, prompt engineering systems, and autonomous runtimes. It is <strong>secure by default, model-agnostic, MCP-native</strong>, and designed for teams shipping agentic AI to production. One coherent stack instead of gluing libraries together.</p>
@@ -10899,7 +10846,7 @@
 </ul>
 <p>The <code>chat()</code> method handles load → invoke → persist automatically. Session ownership is enforced.</p>
 <h3 id="does-promptise-foundry-support-semantic-caching">Does Promptise Foundry support semantic caching?<a class="headerlink" href="#does-promptise-foundry-support-semantic-caching" title="Link to this section">&para;</a></h3>
-<p>Yes. <code>SemanticCache</code> with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for <strong>semantically similar queries</strong> — typically 30–50% cost reduction. Output guardrails re-scan cached responses. GDPR <code>purge_user()</code> supported. Encrypted-at-rest option available for Redis.</p>
+<p>Yes. <code>SemanticCache</code> with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for <strong>semantically similar queries</strong> — typically 30–50% cost reduction. Output guardrails re-scan cached responses. <code>purge_user()</code> deletes one user's cached entries on request. Encrypted-at-rest option available for Redis.</p>
 <h2 id="prompt-engineering">Prompt Engineering<a class="headerlink" href="#prompt-engineering" title="Link to this section">&para;</a></h2>
 <h3 id="does-promptise-foundry-have-prompt-engineering-features">Does Promptise Foundry have prompt engineering features?<a class="headerlink" href="#does-promptise-foundry-have-prompt-engineering-features" title="Link to this section">&para;</a></h3>
 <p>Yes — prompts as software components:</p>
@@ -11009,7 +10956,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 18:52:02 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:43:59 UTC">2026-10-20</span>
   </span>
 
     

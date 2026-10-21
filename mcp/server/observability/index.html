@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -6307,6 +6277,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6326,8 +6300,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6341,8 +6316,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6354,6 +6335,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8600,8 +8583,6 @@
       
         
       
-        
-      
     
     
     
@@ -8754,36 +8735,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -10076,10 +10027,6 @@
 
 <h1 id="observability-monitoring">Observability &amp; Monitoring<a class="headerlink" href="#observability-monitoring" title="Link to this section">&para;</a></h1>
 <p>Track what your MCP server is doing in production with built-in metrics, distributed tracing, Prometheus export, structured logging, audit trails, and a live terminal dashboard.</p>
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="built-in-metrics">Built-in Metrics<a class="headerlink" href="#built-in-metrics" title="Link to this section">&para;</a></h2>
 <h3 id="metricscollector"><code>MetricsCollector</code><a class="headerlink" href="#metricscollector" title="Link to this section">&para;</a></h3>
 <p>Track per-tool call counts, error rates, and latency out of the box:</p>
@@ -10322,7 +10269,7 @@
 <hr />
 <h2 id="audit-logging">Audit Logging<a class="headerlink" href="#audit-logging" title="Link to this section">&para;</a></h2>
 <h3 id="when-you-need-it_3">When you need it<a class="headerlink" href="#when-you-need-it_3" title="Link to this section">&para;</a></h3>
-<p>Your compliance team requires a tamper-evident record of every tool call -- who called what, when, with what arguments, and what happened. HIPAA, SOC 2, and GDPR compliance often require audit trails.</p>
+<p>You need a tamper-evident record of every tool call -- who called what, when, with what arguments, and what happened -- so a security or incident reviewer can trace any action later. Some uses of AI are regulated in some places; ask your legal and compliance team what applies to you.</p>
 <h3 id="auditmiddleware"><code>AuditMiddleware</code><a class="headerlink" href="#auditmiddleware" title="Link to this section">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.mcp.server</span><span class="w"> </span><span class="kn">import</span> <span class="n">MCPServer</span><span class="p">,</span> <span class="n">AuditMiddleware</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
@@ -10332,7 +10279,7 @@
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="n">signed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>               <span class="c1"># HMAC chain for tamper detection</span>
 </span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="n">hmac_secret</span><span class="o">=</span><span class="s2">"your-secret"</span><span class="p">,</span> <span class="c1"># Or set PROMPTISE_AUDIT_SECRET env var</span>
 </span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="n">include_args</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>         <span class="c1"># Log tool arguments</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="n">include_result</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>      <span class="c1"># Don't log results (may contain PHI)</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="n">include_result</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>      <span class="c1"># Don't log results (may contain patient data)</span>
 </span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="p">))</span>
 </span></code></pre></div>
 <p>Each entry in <code>audit.jsonl</code>:</p>
@@ -10589,7 +10536,7 @@
 </span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>
 </span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="c1"># Observability stack (order matters)</span>
 </span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="n">server</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">StructuredLoggingMiddleware</span><span class="p">())</span>    <span class="c1"># JSON logs for every call</span>
-</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="n">server</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">AuditMiddleware</span><span class="p">(</span>                  <span class="c1"># Compliance audit trail</span>
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="n">server</span><span class="o">.</span><span class="n">add_middleware</span><span class="p">(</span><span class="n">AuditMiddleware</span><span class="p">(</span>                  <span class="c1"># Tamper-evident audit trail</span>
 </span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>    <span class="n">log_path</span><span class="o">=</span><span class="s2">"/var/log/mcp-audit.jsonl"</span><span class="p">,</span>
 </span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a>    <span class="n">signed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="p">))</span>
@@ -10699,7 +10646,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:43:59 UTC">2026-10-20</span>
   </span>
 
     

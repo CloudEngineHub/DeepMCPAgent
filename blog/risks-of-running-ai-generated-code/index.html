@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A threat-model walkthrough, not another isolation-layer reference: what model-written Python can actually reach when it executes in your process — the…">
+        <meta name="description" content="Learn what model-written Python can reach when it runs inside your process, from secrets to files and the network, and how a hardened container closes each.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="The Real Risks of Running AI-Generated Code In-Process">
-  <meta property="og:description" content="A threat-model walkthrough, not another isolation-layer reference: what model-written Python can actually reach when it executes in your process — the…">
+  <meta property="og:description" content="Learn what model-written Python can reach when it runs inside your process, from secrets to files and the network, and how a hardened container closes each.">
   <meta property="og:url" content="https://docs.promptise.com/blog/risks-of-running-ai-generated-code/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="The Real Risks of Running AI-Generated Code In-Process">
-  <meta name="twitter:description" content="A threat-model walkthrough, not another isolation-layer reference: what model-written Python can actually reach when it executes in your process — the…">
+  <meta name="twitter:description" content="Learn what model-written Python can reach when it runs inside your process, from secrets to files and the network, and how a hardened container closes each.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "The Real Risks of Running AI-Generated Code In-Process",
       "name": "The Real Risks of Running AI-Generated Code In-Process",
-      "description": "A threat-model walkthrough, not another isolation-layer reference: what model-written Python can actually reach when it executes in your process \u2014 the\u2026",
+      "description": "Learn what model-written Python can reach when it runs inside your process, from secrets to files and the network, and how a hardened container closes each.",
       "url": "https://docs.promptise.com/blog/risks-of-running-ai-generated-code/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9488,7 +9439,7 @@
 
 
 <h1 id="the-real-risks-of-running-ai-generated-code-in-process">The Real Risks of Running AI-Generated Code In-Process<a class="headerlink" href="#the-real-risks-of-running-ai-generated-code-in-process" title="Link to this section">&para;</a></h1>
-<p>The risks of running AI-generated code are easy to underestimate, because the failure mode is invisible right up until the day it isn't: the program runs, prints a plausible answer, and only later do you notice it also read your <code>.env</code>, listed <code>/</code>, and made an outbound request you never authorized. This post is a threat-model walkthrough rather than another isolation-layer reference. We are going to trace exactly what a model-written Python snippet can reach when it executes inside your process — the working directory and everything around it, environment-variable secrets, and the open network — using LangChain's <code>PythonREPLTool</code> as the worked example, and then show why Promptise Foundry treats a hardened container as the default path instead of something you remember to bolt on.</p>
+<p>The risks of running AI-generated code are easy to underestimate, because the failure mode is invisible right up until the day it isn't: the program runs, prints a plausible answer, and only later do you notice it also read your <code>.env</code>, listed <code>/</code>, and made an outbound request you never authorized. This post is a threat-model walkthrough. We trace exactly what a model-written Python snippet can reach when it executes inside your process — the working directory and everything around it, environment-variable secrets, and the open network — using LangChain's <code>PythonREPLTool</code> as the worked example, and then show why Promptise Foundry treats a hardened container as the default path instead of something you remember to bolt on.</p>
 <!-- more -->
 
 <h2 id="what-in-process-actually-means">What "in-process" actually means<a class="headerlink" href="#what-in-process-actually-means" title="Link to this section">&para;</a></h2>
@@ -9595,7 +9546,7 @@
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="p">},</span>
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
 </span></code></pre></div>
-<p>This is also why the <a href="../../guides/code-action/">code-action pattern</a> — where the model writes one program over your tools instead of chaining calls — is safe to reach for: it <em>requires</em> a sandbox, auto-sets <code>network="none"</code>, and raises a clear error rather than silently running model code on the host if a container can't be initialized. There is no quiet fallback to the dangerous path. For the end-to-end operational playbook of building on top of this, see <a href="../run-ai-generated-code-safely/">How to Run AI-Generated Code Safely: The 2026 Field Guide</a>.</p>
+<p>This is also why the <a href="../../guides/code-action/">code-action pattern</a> — where the model writes one program over your tools instead of chaining calls — is safe to reach for: it <em>requires</em> a sandbox, auto-sets <code>network="none"</code>, and raises a clear error rather than silently running model code on the host if a container can't be initialized. There is no quiet fallback to the dangerous path. For the end-to-end operational playbook of building on top of this, see <a href="https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python">AI Agent Code Execution Sandbox: Run LLM Code Safely</a>.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="what-are-the-actual-risks-of-running-ai-generated-code-in-my-process">What are the actual risks of running AI-generated code in my process?<a class="headerlink" href="#what-are-the-actual-risks-of-running-ai-generated-code-in-my-process" title="Link to this section">&para;</a></h3>
 <p>A program that runs in your interpreter inherits your process's permissions. That gives it three concrete reaches: the filesystem your service can read or write (source, adjacent tenant data, key files), your environment-variable secrets via <code>os.environ</code>, and your full network stack — which turns a local read into remote exfiltration and can pivot to internal-only services like the cloud metadata endpoint. None of these require attacker sophistication; a single hallucinated or prompt-injected line is enough.</p>
@@ -9606,7 +9557,7 @@
 <h3 id="how-is-a-code-interpreter-agent-isolated-differently-in-promptise">How is a "code interpreter agent isolated" differently in Promptise?<a class="headerlink" href="#how-is-a-code-interpreter-agent-isolated-differently-in-promptise" title="Link to this section">&para;</a></h3>
 <p>The isolation is structural rather than a bolt-on. Selecting <code>sandbox=True</code> (or the code-action pattern, which forces it) provisions a Docker container with a read-only rootfs, ~40 dropped capabilities, Docker's default seccomp profile, resource limits, and a network mode that defaults to none — before any model code runs. The agent's five code tools operate against that container, so there is no in-process code path to fall back to.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Turn on <code>sandbox=True</code> in <code>build_agent</code> and let model-written code run in a container instead of your interpreter — that one change closes every reach in the table above. Start from the <a href="../../core/sandbox/">sandbox reference</a> for the full layer-by-layer configuration, wire an aggregation workload through the <a href="../../guides/code-action/">code-action guide</a> to get network-isolation for free, and read <a href="../run-ai-generated-code-safely/">How to Run AI-Generated Code Safely: The 2026 Field Guide</a> for the production checklist.</p>
+<p>Turn on <code>sandbox=True</code> in <code>build_agent</code> and let model-written code run in a container instead of your interpreter — that one change closes every reach in the table above. Start from the <a href="../../core/sandbox/">sandbox reference</a> for the full layer-by-layer configuration, wire an aggregation workload through the <a href="../../guides/code-action/">code-action guide</a> to get network-isolation for free, and read the <a href="https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python">AI agent code execution sandbox guide</a> for the end-to-end setup.</p>
 
 
 
@@ -9629,7 +9580,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:47:11 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

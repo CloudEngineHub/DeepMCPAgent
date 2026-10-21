@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="When an autonomous agent does something baffling, 'read the stdout' isn't a debugging strategy. This shows how the journal + ReplayEngine let you rewind a…">
+        <meta name="description" content="Learn how to debug an autonomous AI agent by replaying its journal, rewinding to the moment before a bad decision, and fixing forward without losing good work.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/time-travel-debug-ai-agent/">
       
       
-        <link rel="prev" href="../tool-calling-in-python/">
+        <link rel="prev" href="../trim-messages-vs-facts-ledger/">
       
       
-        <link rel="next" href="../testing-mcp-servers/">
+        <link rel="next" href="../tenant-scoped-audit-log-ai-agent/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Time-Travel Debug an AI Agent by Rewinding State">
-  <meta property="og:description" content="When an autonomous agent does something baffling, 'read the stdout' isn't a debugging strategy. This shows how the journal + ReplayEngine let you rewind a…">
+  <meta property="og:description" content="Learn how to debug an autonomous AI agent by replaying its journal, rewinding to the moment before a bad decision, and fixing forward without losing good work.">
   <meta property="og:url" content="https://docs.promptise.com/blog/time-travel-debug-ai-agent/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Time-Travel Debug an AI Agent by Rewinding State">
-  <meta name="twitter:description" content="When an autonomous agent does something baffling, 'read the stdout' isn't a debugging strategy. This shows how the journal + ReplayEngine let you rewind a…">
+  <meta name="twitter:description" content="Learn how to debug an autonomous AI agent by replaying its journal, rewinding to the moment before a bad decision, and fixing forward without losing good work.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Time-Travel Debug an AI Agent by Rewinding State",
       "name": "Time-Travel Debug an AI Agent by Rewinding State",
-      "description": "When an autonomous agent does something baffling, \u0027read the stdout\u0027 isn\u0027t a debugging strategy. This shows how the journal + ReplayEngine let you rewind a\u2026",
+      "description": "Learn how to debug an autonomous AI agent by replaying its journal, rewinding to the moment before a bad decision, and fixing forward without losing good work.",
       "url": "https://docs.promptise.com/blog/time-travel-debug-ai-agent/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9493,7 +9444,7 @@
 
 <h2 id="why-read-the-stdout-fails-on-an-autonomous-agent">Why "read the stdout" fails on an autonomous agent<a class="headerlink" href="#why-read-the-stdout-fails-on-an-autonomous-agent" title="Link to this section">&para;</a></h2>
 <p>Logs answer <em>what</em> the process printed. A postmortem needs <em>why it decided</em> — and those are different data structures. A log line like <code>applied hold on acme-42</code> tells you the outcome but not the state the agent held at the instant it chose the hold: which context keys were set, what the conversation looked like, which trigger had just fired. By the time you're reading logs, that state is gone. The process has moved on, mutated its counters, and overwritten the exact values that would explain the decision.</p>
-<p>Three properties of a <a href="../durable-execution-for-ai-agents/">long-running agent</a> make plain logging a dead end for debugging:</p>
+<p>Three properties of a <a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">long-running agent</a> make plain logging a dead end for debugging:</p>
 <ul>
 <li><strong>The inputs aren't in the request.</strong> The agent wasn't called by a user with a payload you can re-send. It was woken by a cron tick or a webhook, and its "input" was its own accumulated state.</li>
 <li><strong>The decision isn't deterministic.</strong> Re-running the same prompt against the LLM won't necessarily reproduce the choice, so "just run it again" doesn't reconstruct the incident.</li>
@@ -9588,7 +9539,7 @@
 <p>Precision matters here, because the closest comparison genuinely has time-travel and it would be dishonest to pretend otherwise.</p>
 <p><strong>LangGraph has real graph-state time-travel.</strong> With a checkpointer attached, LangGraph saves a snapshot of the graph's channel state at every super-step, keyed by <code>thread_id</code>. You can walk that history with <code>get_state_history()</code>, resume from any past <code>checkpoint_id</code>, and even branch by editing channel values at a checkpoint with <code>update_state()</code>. That is authentic time-travel, and it's the backbone of LangGraph's human-in-the-loop story — pause a graph, rewind a step, tweak the state, and re-run. If your unit of work is a single graph invocation, that is a strong, mature tool and you should use it.</p>
 <p>The delta is <em>what gets rewound</em>. A LangGraph checkpoint is the state of one graph run — the channel values of a thread. It is not a replayable journal of every lifecycle transition, every trigger firing, and every invocation of a long-lived, self-triggering process. In our example the root cause was a <code>webhook</code> trigger landing between two <code>cron</code>-driven steps; that inter-invocation event isn't part of a graph run's channel snapshot, so a thread's state history can't point at it. You can rewind <em>the state of a run</em>, but not to "the exact step before a bad decision" across a process's whole event history, because the triggers, the invocation boundaries, and the lifecycle transitions that frame the decision live outside the graph checkpoint.</p>
-<p>So Promptise's edge isn't "LangGraph can't time-travel" — it can. It's that Promptise journals the <strong>whole process history</strong>, which makes step-accurate postmortem replay a structural property rather than something scoped to one run. A rewind lands on any entry — a trigger, a transition, a tool call — not just a super-step boundary, and the reconstruction includes the triggers that woke the agent. For the mechanical side-by-side of per-thread checkpoints versus a process decision journal, see <a href="../langgraph-checkpointing-vs-journaling/">LangGraph Checkpointing vs Journal-Replay Explained</a>. (Durable-workflow engines like Temporal and DBOS also replay an event history, but to reconstruct deterministic <em>workflow</em> state, not to give you a rewind-and-inspect debugger over an agent's decisions — that landscape is covered in the <a href="../durable-execution-for-ai-agents/">durable-execution hub</a>.)</p>
+<p>So Promptise's edge isn't "LangGraph can't time-travel" — it can. It's that Promptise journals the <strong>whole process history</strong>, which makes step-accurate postmortem replay a structural property rather than something scoped to one run. A rewind lands on any entry — a trigger, a transition, a tool call — not just a super-step boundary, and the reconstruction includes the triggers that woke the agent. For the mechanical side-by-side of per-thread checkpoints versus a process decision journal, see <a href="../langgraph-checkpointing-vs-journaling/">LangGraph Checkpointing vs Journal-Replay Explained</a>. (Durable-workflow engines like Temporal and DBOS also replay an event history, but to reconstruct deterministic <em>workflow</em> state, not to give you a rewind-and-inspect debugger over an agent's decisions — crash recovery and safe resume are covered in <a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a>.)</p>
 <h2 id="fix-forward-without-losing-the-good-work">Fix forward without losing the good work<a class="headerlink" href="#fix-forward-without-losing-the-good-work" title="Link to this section">&para;</a></h2>
 <p>A postmortem usually ends with a decision: undo the bad step and let the agent continue. Rewinding an agent isn't as blunt as rewinding a function, because after the bad decision the process may have accumulated genuinely useful work you don't want to throw away. The <a href="../../runtime/journal/rewind/"><code>RewindEngine</code></a> exposes five modes so the rollback can be as surgical as the incident demands:</p>
 <table>
@@ -9656,7 +9607,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

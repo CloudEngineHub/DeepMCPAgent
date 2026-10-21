@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A compliance auditor asks 'show me every action taken for Acme, and prove the log wasn't edited.' This post is the per-tenant forensics angle specifically…">
+        <meta name="description" content="Learn how to filter an AI agent audit log by tenant and prove the records weren't edited, using an HMAC chain and the tenant taken from the verified JWT.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/tenant-scoped-audit-log-ai-agent/">
       
       
-        <link rel="prev" href="../testing-mcp-servers/">
+        <link rel="prev" href="../time-travel-debug-ai-agent/">
       
       
         <link rel="next" href="../tenant-id-from-jwt-claim/">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Tenant-Scoped Audit Logs for AI Agent Tool Calls">
-  <meta property="og:description" content="A compliance auditor asks 'show me every action taken for Acme, and prove the log wasn't edited.' This post is the per-tenant forensics angle specifically…">
+  <meta property="og:description" content="Learn how to filter an AI agent audit log by tenant and prove the records weren't edited, using an HMAC chain and the tenant taken from the verified JWT.">
   <meta property="og:url" content="https://docs.promptise.com/blog/tenant-scoped-audit-log-ai-agent/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Tenant-Scoped Audit Logs for AI Agent Tool Calls">
-  <meta name="twitter:description" content="A compliance auditor asks 'show me every action taken for Acme, and prove the log wasn't edited.' This post is the per-tenant forensics angle specifically…">
+  <meta name="twitter:description" content="Learn how to filter an AI agent audit log by tenant and prove the records weren't edited, using an HMAC chain and the tenant taken from the verified JWT.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Tenant-Scoped Audit Logs for AI Agent Tool Calls",
       "name": "Tenant-Scoped Audit Logs for AI Agent Tool Calls",
-      "description": "A compliance auditor asks \u0027show me every action taken for Acme, and prove the log wasn\u0027t edited.\u0027 This post is the per-tenant forensics angle specifically\u2026",
+      "description": "Learn how to filter an AI agent audit log by tenant and prove the records weren\u0027t edited, using an HMAC chain and the tenant taken from the verified JWT.",
       "url": "https://docs.promptise.com/blog/tenant-scoped-audit-log-ai-agent/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9275,10 +9226,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-auditors-two-questions" class="md-nav__link">
+  <a href="#the-reviewers-two-questions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The auditor's two questions
+        The reviewer's two questions
       
     </span>
   </a>
@@ -9364,10 +9315,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#how-does-a-regulator-verify-the-per-tenant-slice-i-hand-over" class="md-nav__link">
+  <a href="#how-does-the-recipient-verify-the-per-tenant-slice-i-hand-over" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How does a regulator verify the per-tenant slice I hand over?
+        How does the recipient verify the per-tenant slice I hand over?
       
     </span>
   </a>
@@ -9488,16 +9439,12 @@
 
 
 <h1 id="tenant-scoped-audit-logs-for-ai-agent-tool-calls">Tenant-Scoped Audit Logs for AI Agent Tool Calls<a class="headerlink" href="#tenant-scoped-audit-logs-for-ai-agent-tool-calls" title="Link to this section">&para;</a></h1>
-<p>A <strong>tenant-scoped audit log</strong> for an AI agent's tool calls exists to answer two questions a compliance auditor puts to you in the same breath: <em>show me every action your system took for Acme</em>, and <em>prove that record wasn't edited after the fact</em>. Both are easy to wave at and hard to actually satisfy. A general trace store can usually show you <em>something</em> about Acme, but "every action" means the tenant has to be a field you can filter on cleanly — not a tag one call site set and another forgot. And "prove it wasn't edited" means the trail needs integrity you can hand to a third party, not your assurance that the database looks fine. This post is about the per-tenant forensics angle specifically: how to produce a slice of the trail that belongs to exactly one customer, and hand it over with a proof it wasn't altered.</p>
+<p>A <strong>tenant-scoped audit log</strong> for an AI agent's tool calls exists to answer two questions an incident reviewer puts to you in the same breath: <em>show me every action your system took for Acme</em>, and <em>prove that record wasn't edited after the fact</em>. Both are easy to wave at and hard to actually satisfy. A general trace store can usually show you <em>something</em> about Acme, but "every action" means the tenant has to be a field you can filter on cleanly — not a tag one call site set and another forgot. And "prove it wasn't edited" means the trail needs integrity you can hand to a third party, not your assurance that the database looks fine. This post shows how to produce a slice of the trail that belongs to exactly one customer, and hand it over with a proof it wasn't altered.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
-<h2 id="the-auditors-two-questions">The auditor's two questions<a class="headerlink" href="#the-auditors-two-questions" title="Link to this section">&para;</a></h2>
-<p>Picture the scenario concretely. Acme, one of forty customers on your shared agent platform, has a dispute — a record was changed, and their legal team wants to know which automated action touched it and when. The auditor's request has two clauses, and each one breaks a naive logging setup in a different way.</p>
-<p><strong>"Show me every action for Acme."</strong> Agents are not one-request-per-action clients. Give an agent a task and it fans out across tools — reads, writes, retries, reformulations — dozens of tool calls per turn. So the raw material is there; the problem is slicing it. If your log keys each line on <code>client_id</code>, and you provisioned one service identity per agent <em>role</em> rather than per customer — a single <code>report-agent</code> credential deployed into every tenant's workspace — then Acme's <code>report-agent</code> and Globex's <code>report-agent</code> write byte-for-byte identical <code>client_id</code> values. Filtering on <code>client_id</code> hands the auditor both tenants' actions blended together. That is the same failure mode we covered for storage keys in <a href="../same-user-id-across-two-tenants/">Same user_id, Two Tenants: Why That Isn't Isolation</a>: an inner identifier that collides across tenants can't be the thing you slice on. You need the tenant as its own dimension.</p>
+<h2 id="the-reviewers-two-questions">The reviewer's two questions<a class="headerlink" href="#the-reviewers-two-questions" title="Link to this section">&para;</a></h2>
+<p>Picture the scenario concretely. Acme, one of forty customers on your shared agent platform, has a dispute — a record was changed, and their security team wants to know which automated action touched it and when. The reviewer's request has two clauses, and each one breaks a naive logging setup in a different way.</p>
+<p><strong>"Show me every action for Acme."</strong> Agents are not one-request-per-action clients. Give an agent a task and it fans out across tools — reads, writes, retries, reformulations — dozens of tool calls per turn. So the raw material is there; the problem is slicing it. If your log keys each line on <code>client_id</code>, and you provisioned one service identity per agent <em>role</em> rather than per customer — a single <code>report-agent</code> credential deployed into every tenant's workspace — then Acme's <code>report-agent</code> and Globex's <code>report-agent</code> write byte-for-byte identical <code>client_id</code> values. Filtering on <code>client_id</code> hands the reviewer both tenants' actions blended together. That is the same failure mode we covered for storage keys in <a href="../same-user-id-across-two-tenants/">Same user_id, Two Tenants: Why That Isn't Isolation</a>: an inner identifier that collides across tenants can't be the thing you slice on. You need the tenant as its own dimension.</p>
 <p><strong>"Prove the log wasn't edited."</strong> A JSONL file on disk is trivially editable. So is a row in a traces table. If your only answer to "did someone alter this?" is "our access controls are good," you don't have a forensic record — you have a hopeful one. What closes this clause is per-entry tamper-evidence: a cryptographic chain where changing, reordering, or deleting any line breaks a verification that anyone with the key can run.</p>
 <p>Promptise Foundry's <code>AuditMiddleware</code> answers both clauses in the same object, because the tenant is a first-class field <em>inside</em> an HMAC-chained entry.</p>
 <h2 id="slice-by-tenant-a-filter-on-a-first-class-field">Slice by tenant: a filter on a first-class field<a class="headerlink" href="#slice-by-tenant-a-filter-on-a-first-class-field" title="Link to this section">&para;</a></h2>
@@ -9573,14 +9520,14 @@
 </span></code></pre></div>
 <p>The <code>identity</code> block is the acting principal, captured from the verified credential — not just <em>which tenant</em> but <em>which agent role</em>. Under <code>JWTAuth</code>, that block also carries the token's <code>subject</code>, <code>issuer</code>, and <code>audience</code>, so a delegated call is attributed to the agent that actually presented the token. The token itself and the raw claim set are never written — only identity descriptors — so the audit log stays useful without becoming a second place your secrets leak.</p>
 <h2 id="prove-it-wasnt-edited-the-hmac-chain">Prove it wasn't edited: the HMAC chain<a class="headerlink" href="#prove-it-wasnt-edited-the-hmac-chain" title="Link to this section">&para;</a></h2>
-<p>The second clause — <em>prove nobody altered the record</em> — is what <code>prev_hash</code> and <code>hmac</code> are for. Each entry stores the HMAC of the previous entry, so the lines form a chain: edit one field, drop a line, or reorder two calls, and every downstream hash stops matching. You don't audit the auditor's honesty; you run a check:</p>
+<p>The second clause — <em>prove nobody altered the record</em> — is what <code>prev_hash</code> and <code>hmac</code> are for. Each entry stores the HMAC of the previous entry, so the lines form a chain: edit one field, drop a line, or reorder two calls, and every downstream hash stops matching. You don't take anyone's word for it; you run a check:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"chain valid:"</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">verify_chain</span><span class="p">())</span>          <span class="c1"># True</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Someone edits a delivered log to hide an action...</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">audit</span><span class="o">.</span><span class="n">entries</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"tool"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"read_ticket"</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"chain valid:"</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">verify_chain</span><span class="p">())</span>          <span class="c1"># False</span>
 </span></code></pre></div>
-<p><code>verify_chain()</code> recomputes every entry's HMAC from its contents and confirms each <code>prev_hash</code> links to the one before it. Any post-hoc edit — including inside the Acme slice you handed over — flips it to <code>False</code>. Crucially, verification only needs the entries and the shared secret, so the recipient of a per-tenant export can confirm integrity themselves. Set <code>PROMPTISE_AUDIT_SECRET</code> (rather than letting the middleware auto-generate one) so the chain stays verifiable across process restarts; without a stable secret the log is still written, but it can't be checked after a restart. The mechanics of the chain itself — genesis hash, concurrency locking, why HMAC over a plain digest — are covered in <a href="../ai-agent-audit-logging/">AI Agent Audit Logging: Tamper-Evident by Design</a>; here the point is narrower: the <em>per-tenant</em> slice inherits that integrity, so filtering to one customer doesn't cost you the proof.</p>
+<p><code>verify_chain()</code> recomputes every entry's HMAC from its contents and confirms each <code>prev_hash</code> links to the one before it. Any post-hoc edit — including inside the Acme slice you handed over — flips it to <code>False</code>. Crucially, verification only needs the entries and the shared secret, so the recipient of a per-tenant export can confirm integrity themselves. Set <code>PROMPTISE_AUDIT_SECRET</code> (rather than letting the middleware auto-generate one) so the chain stays verifiable across process restarts; without a stable secret the log is still written, but it can't be checked after a restart. How the chain itself works is explained in <a href="https://www.promptise.com/guides/view/ai-agent-audit-log">AI Agent Audit Logging: Tamper-Evident Logs in Python</a>; here the point is narrower: the <em>per-tenant</em> slice inherits that integrity, so filtering to one customer doesn't cost you the proof.</p>
 <h2 id="wire-it-for-production-tenant-from-the-jwt">Wire it for production: tenant from the JWT<a class="headerlink" href="#wire-it-for-production-tenant-from-the-jwt" title="Link to this section">&para;</a></h2>
 <p>The API-key map above keeps the demo self-contained. In production the tenant rides on the JWT, and <code>AuthMiddleware</code> lifts it from a configurable claim into <code>ctx.client.tenant_id</code>, which is exactly what <code>AuditMiddleware</code> stamps into each entry's <code>identity</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -9607,7 +9554,7 @@
 <p>To be fair about the delta, the popular observability stacks let you get <em>close</em>, and it's worth being precise about where the gap actually is.</p>
 <ul>
 <li><strong>LangSmith</strong> attaches arbitrary <code>metadata</code> and <code>tags</code> to runs, and its UI and SDK let you filter and search traces by those values. Putting <code>{"tenant": "acme"}</code> on every run and filtering on it is a genuinely supported workflow. What it is, though, is a mutable observability store built for debugging and eval: the tenant is a free-form metadata string you remember to set (and could set inconsistently), not a reserved field derived from the verified credential, and there is no per-record cryptographic chain that proves a delivered trace slice wasn't edited or deleted in the backend afterward.</li>
-<li><strong>OpenTelemetry</strong>-based agent tracing lets you set span attributes — there's even a semantic-convention <code>enduser.id</code> — and query them in whatever backend you export to (Tempo, Jaeger, Honeycomb). Again real and useful. But spans are telemetry: commonly <em>sampled</em>, so the record is not guaranteed complete; the attribute is a string on a span, not a first-class tenant dimension; and the backing store offers no tamper-evident hash chain a regulator can independently verify.</li>
+<li><strong>OpenTelemetry</strong>-based agent tracing lets you set span attributes — there's even a semantic-convention <code>enduser.id</code> — and query them in whatever backend you export to (Tempo, Jaeger, Honeycomb). Again real and useful. But spans are telemetry: commonly <em>sampled</em>, so the record is not guaranteed complete; the attribute is a string on a span, not a first-class tenant dimension; and the backing store offers no tamper-evident hash chain a third party can independently verify.</li>
 </ul>
 <p>So nobody here "can't record a tenant" — both let you attach one and filter on it, and for observability that's the right tool. The precise delta is two structural properties. First, in Promptise the tenant is a <strong>reserved field populated from the verified credential</strong> (<code>identity.tenant_id</code>), so it can't be a tag one call site forgets and sampling can't quietly drop it. Second, each entry is <strong>HMAC-chained and independently verifiable</strong>, so a per-tenant slice ships with its own integrity proof. Promptise's contribution isn't "we invented audit logs"; it's that <em>filter by tenant</em> and <em>prove this slice wasn't altered</em> are both first-class on the same record, rather than a metadata convention layered over a mutable, sampled trace store. Keep your tracing stack for latency and debugging — use the tamper-evident audit trail for the forensic questions it isn't built to answer.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
@@ -9615,7 +9562,7 @@
 <p>Yes — that's the case it's built for. The slice keys on <code>identity.tenant_id</code>, which the auth layer populates from the caller's credential, not on <code>client_id</code>. Two tenants presenting the identical <code>client_id</code> string (a role-based service identity deployed into each workspace) produce entries you can separate cleanly, as the runnable example shows: three calls, two of them Acme's, filtered exactly.</p>
 <h3 id="where-does-the-tenant_id-in-each-entry-come-from">Where does the tenant_id in each entry come from?<a class="headerlink" href="#where-does-the-tenant_id-in-each-entry-come-from" title="Link to this section">&para;</a></h3>
 <p>From the verified credential, never from tool arguments. With <code>JWTAuth</code>, <code>AuthMiddleware</code> reads it from a configurable claim (<code>tenant_claim="org_id"</code>, <code>"tenant_id"</code>, whatever your IdP emits) into <code>ctx.client.tenant_id</code>; with <code>APIKeyAuth</code> it comes from the key's config dict. Only string claim values are accepted, so a malformed claim leaves the tenant unset rather than logging a wrong one.</p>
-<h3 id="how-does-a-regulator-verify-the-per-tenant-slice-i-hand-over">How does a regulator verify the per-tenant slice I hand over?<a class="headerlink" href="#how-does-a-regulator-verify-the-per-tenant-slice-i-hand-over" title="Link to this section">&para;</a></h3>
+<h3 id="how-does-the-recipient-verify-the-per-tenant-slice-i-hand-over">How does the recipient verify the per-tenant slice I hand over?<a class="headerlink" href="#how-does-the-recipient-verify-the-per-tenant-slice-i-hand-over" title="Link to this section">&para;</a></h3>
 <p><code>verify_chain()</code> recomputes every entry's HMAC and confirms each <code>prev_hash</code> links to its predecessor, using only the entries plus the shared secret. Any edit, deletion, or reorder returns <code>False</code>. Set <code>PROMPTISE_AUDIT_SECRET</code> to a stable value so the chain remains verifiable across restarts and by whoever receives the export.</p>
 <h3 id="does-logging-arguments-risk-leaking-pii-into-the-audit-trail">Does logging arguments risk leaking PII into the audit trail?<a class="headerlink" href="#does-logging-arguments-risk-leaking-pii-into-the-audit-trail" title="Link to this section">&para;</a></h3>
 <p><code>include_args</code> and <code>include_result</code> both default to <code>False</code> precisely because tool inputs and outputs may carry PII. The tenant, tool name, acting identity, status, and timing are recorded regardless, which is enough for "who did what, for which customer, when." Enable argument capture only for tools whose inputs you've confirmed are safe to retain.</p>
@@ -9643,7 +9590,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

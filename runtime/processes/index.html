@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="AgentProcess wraps an agent with lifecycle management, event triggers, and configurable behavior. It is the core unit of the Agent Runtime.">
+        <meta name="description" content="AgentProcess turns an agent into a long-running process. It builds the agent, connects its MCP servers, starts its triggers, runs the agent once per trigger">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Agent Processes">
-  <meta property="og:description" content="AgentProcess wraps an agent with lifecycle management, event triggers, and configurable behavior. It is the core unit of the Agent Runtime.">
+  <meta property="og:description" content="AgentProcess turns an agent into a long-running process. It builds the agent, connects its MCP servers, starts its triggers, runs the agent once per trigger">
   <meta property="og:url" content="https://docs.promptise.com/runtime/processes/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Agent Processes">
-  <meta name="twitter:description" content="AgentProcess wraps an agent with lifecycle management, event triggers, and configurable behavior. It is the core unit of the Agent Runtime.">
+  <meta name="twitter:description" content="AgentProcess turns an agent into a long-running process. It builds the agent, connects its MCP servers, starts its triggers, runs the agent once per trigger">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Agent Processes",
       "name": "Agent Processes",
-      "description": "AgentProcess wraps an agent with lifecycle management, event triggers, and configurable behavior. It is the core unit of the Agent Runtime.",
+      "description": "AgentProcess turns an agent into a long-running process. It builds the agent, connects its MCP servers, starts its triggers, runs the agent once per trigger",
       "url": "https://docs.promptise.com/runtime/processes/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5102,52 +5072,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#processconfig" class="md-nav__link">
+  <a href="#creating-a-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ProcessConfig
+        Creating a process
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="ProcessConfig">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#core-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Core fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#governance-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Governance fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#full-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full example
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5155,30 +5086,19 @@
   <a href="#lifecycle-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lifecycle Methods
+        Lifecycle methods
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#triggers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Triggers
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Triggers">
+    <nav class="md-nav" aria-label="Lifecycle methods">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#crontrigger" class="md-nav__link">
+  <a href="#start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CronTrigger
+        start()
       
     </span>
   </a>
@@ -5186,10 +5106,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#webhooktrigger" class="md-nav__link">
+  <a href="#stop" class="md-nav__link">
     <span class="md-ellipsis">
       
-        WebhookTrigger
+        stop()
       
     </span>
   </a>
@@ -5197,10 +5117,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filewatchtrigger" class="md-nav__link">
+  <a href="#suspend-and-resume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        FileWatchTrigger
+        suspend() and resume()
       
     </span>
   </a>
@@ -5208,54 +5128,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#eventtrigger" class="md-nav__link">
+  <a href="#close" class="md-nav__link">
     <span class="md-ellipsis">
       
-        EventTrigger
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#messagetrigger" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MessageTrigger
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triggerconfig-reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TriggerConfig Reference
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#trigger-class-constructors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Trigger Class Constructors
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#the-create_trigger-factory" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The create_trigger() Factory
+        close()
       
     </span>
   </a>
@@ -5268,10 +5144,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#concurrency-control" class="md-nav__link">
+  <a href="#what-survives-stop-and-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concurrency Control
+        What survives stop and start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-on-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery on start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trigger-events-and-the-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trigger events and the queue
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Trigger events and the queue">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dead-letters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dead letters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
       
     </span>
   </a>
@@ -5282,7 +5208,62 @@
   <a href="#restart-policies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Restart Policies
+        Restart policies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#live-triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Live triggers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#instructions-messages-and-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instructions, messages and hooks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rewind" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rewind
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#governance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
       
     </span>
   </a>
@@ -5293,7 +5274,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next?
+        What's next
       
     </span>
   </a>
@@ -6171,6 +6152,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6193,8 +6178,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6208,8 +6194,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6221,6 +6213,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8467,8 +8461,6 @@
       
         
       
-        
-      
     
     
     
@@ -8621,36 +8613,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9529,52 +9491,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#processconfig" class="md-nav__link">
+  <a href="#creating-a-process" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ProcessConfig
+        Creating a process
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="ProcessConfig">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#core-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Core fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#governance-fields" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Governance fields
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#full-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Full example
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -9582,30 +9505,19 @@
   <a href="#lifecycle-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Lifecycle Methods
+        Lifecycle methods
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#triggers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Triggers
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Triggers">
+    <nav class="md-nav" aria-label="Lifecycle methods">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#crontrigger" class="md-nav__link">
+  <a href="#start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CronTrigger
+        start()
       
     </span>
   </a>
@@ -9613,10 +9525,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#webhooktrigger" class="md-nav__link">
+  <a href="#stop" class="md-nav__link">
     <span class="md-ellipsis">
       
-        WebhookTrigger
+        stop()
       
     </span>
   </a>
@@ -9624,10 +9536,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filewatchtrigger" class="md-nav__link">
+  <a href="#suspend-and-resume" class="md-nav__link">
     <span class="md-ellipsis">
       
-        FileWatchTrigger
+        suspend() and resume()
       
     </span>
   </a>
@@ -9635,54 +9547,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#eventtrigger" class="md-nav__link">
+  <a href="#close" class="md-nav__link">
     <span class="md-ellipsis">
       
-        EventTrigger
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#messagetrigger" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        MessageTrigger
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#triggerconfig-reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TriggerConfig Reference
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#trigger-class-constructors" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Trigger Class Constructors
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#the-create_trigger-factory" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The create_trigger() Factory
+        close()
       
     </span>
   </a>
@@ -9695,10 +9563,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#concurrency-control" class="md-nav__link">
+  <a href="#what-survives-stop-and-start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Concurrency Control
+        What survives stop and start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-on-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery on start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trigger-events-and-the-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trigger events and the queue
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Trigger events and the queue">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dead-letters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dead letters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
       
     </span>
   </a>
@@ -9709,7 +9627,62 @@
   <a href="#restart-policies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Restart Policies
+        Restart policies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#live-triggers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Live triggers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#instructions-messages-and-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instructions, messages and hooks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rewind" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rewind
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#governance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Governance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
       
     </span>
   </a>
@@ -9720,7 +9693,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next?
+        What's next
       
     </span>
   </a>
@@ -9797,511 +9770,374 @@
 
 
 <h1 id="agent-processes">Agent Processes<a class="headerlink" href="#agent-processes" title="Link to this section">&para;</a></h1>
-<p><code>AgentProcess</code> wraps an agent with lifecycle management, event triggers, and configurable behavior. It is the core unit of the Agent Runtime.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
+<p><code>AgentProcess</code> turns an agent into a long-running process. It builds the agent, connects its MCP servers, starts its triggers, runs the agent once per trigger event, and keeps state, memory and conversation history between runs. It also restarts itself after failures when you ask it to. It is the core unit of the Agent Runtime; <a href="../runtime-manager/"><code>AgentRuntime</code></a> manages many of them.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">"health-checker"</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">config</span><span class="o">=</span><span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">instructions</span><span class="o">=</span><span class="s2">"You monitor infrastructure health."</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"tools"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">:</span> <span class="s2">"http://localhost:8000/mcp"</span><span class="p">}},</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">),</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="p">],</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">concurrency</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="p">),</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">)</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># Process runs autonomously on the cron schedule...</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">status</span><span class="p">())</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span><span class="p">,</span> <span class="n">TriggerEvent</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">"health-checker"</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">config</span><span class="o">=</span><span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">instructions</span><span class="o">=</span><span class="s2">"You monitor infrastructure health."</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="n">triggers</span><span class="o">=</span><span class="p">[</span><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">)],</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="p">),</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="p">)</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>  <span class="c1"># runs on the cron schedule from now on</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="c1"># Run it once now, without waiting for the schedule</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="n">TriggerEvent</span><span class="p">(</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>        <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"manual"</span><span class="p">,</span> <span class="n">trigger_type</span><span class="o">=</span><span class="s2">"manual"</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="p">{</span><span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"ad-hoc check"</span><span class="p">},</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="p">))</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="n">status</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">status</span><span class="p">[</span><span class="s2">"state"</span><span class="p">],</span> <span class="n">status</span><span class="p">[</span><span class="s2">"invocation_count"</span><span class="p">])</span>  <span class="c1"># running 1</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
 <hr />
-<h2 id="processconfig">ProcessConfig<a class="headerlink" href="#processconfig" title="Link to this section">&para;</a></h2>
-<p><code>ProcessConfig</code> composes all configuration for a single agent process. Every field has a sensible default.</p>
-<h3 id="core-fields">Core fields<a class="headerlink" href="#core-fields" title="Link to this section">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>model</code></td>
-<td><code>str</code></td>
-<td><code>"openai:gpt-5-mini"</code></td>
-<td>LLM model identifier (e.g. <code>openai:gpt-5-mini</code>)</td>
-</tr>
-<tr>
-<td><code>instructions</code></td>
-<td><code>str \| None</code></td>
-<td><code>None</code></td>
-<td>System prompt for the agent</td>
-</tr>
-<tr>
-<td><code>execution_mode</code></td>
-<td><code>ExecutionMode</code></td>
-<td><code>STRICT</code></td>
-<td><code>STRICT</code> (immutable) or <code>OPEN</code> (self-modifying)</td>
-</tr>
-<tr>
-<td><code>open_mode</code></td>
-<td><code>OpenModeConfig</code></td>
-<td>defaults</td>
-<td>Guardrails for open mode (ignored in strict)</td>
-</tr>
-<tr>
-<td><code>servers</code></td>
-<td><code>dict[str, Any]</code></td>
-<td><code>{}</code></td>
-<td>MCP server specifications</td>
-</tr>
-<tr>
-<td><code>triggers</code></td>
-<td><code>list[TriggerConfig]</code></td>
-<td><code>[]</code></td>
-<td>Trigger configurations</td>
-</tr>
-<tr>
-<td><code>journal</code></td>
-<td><code>JournalConfig</code></td>
-<td>off (<code>level="none"</code>)</td>
-<td>Journal (audit log). Pass <code>JournalConfig(...)</code> to record transitions, invocations and checkpoints. See <a href="../journal/">Journal</a>.</td>
-</tr>
-<tr>
-<td><code>context</code></td>
-<td><code>ContextConfig</code></td>
-<td>defaults</td>
-<td>AgentContext configuration</td>
-</tr>
-<tr>
-<td><code>concurrency</code></td>
-<td><code>int</code></td>
-<td><code>1</code></td>
-<td>Max concurrent trigger invocations</td>
-</tr>
-<tr>
-<td><code>heartbeat_interval</code></td>
-<td><code>float</code></td>
-<td><code>10.0</code></td>
-<td>Heartbeat period in seconds</td>
-</tr>
-<tr>
-<td><code>idle_timeout</code></td>
-<td><code>float</code></td>
-<td><code>0.0</code></td>
-<td>Seconds of inactivity before suspending (0 = never)</td>
-</tr>
-<tr>
-<td><code>max_lifetime</code></td>
-<td><code>float</code></td>
-<td><code>0.0</code></td>
-<td>Max process lifetime in seconds (0 = unlimited)</td>
-</tr>
-<tr>
-<td><code>max_consecutive_failures</code></td>
-<td><code>int</code></td>
-<td><code>3</code></td>
-<td>Consecutive failures before FAILED state</td>
-</tr>
-<tr>
-<td><code>restart_policy</code></td>
-<td><code>str</code></td>
-<td><code>"never"</code></td>
-<td><code>"always"</code>, <code>"on_failure"</code>, or <code>"never"</code></td>
-</tr>
-<tr>
-<td><code>max_restarts</code></td>
-<td><code>int</code></td>
-<td><code>3</code></td>
-<td>Max consecutive restart attempts after failures</td>
-</tr>
-<tr>
-<td><code>restart_backoff</code></td>
-<td><code>float</code></td>
-<td><code>1.0</code></td>
-<td>Seconds before the first restart attempt; doubles per attempt, capped at 60 s</td>
-</tr>
-</tbody>
-</table>
-<h3 id="governance-fields">Governance fields<a class="headerlink" href="#governance-fields" title="Link to this section">&para;</a></h3>
-<p>All governance is opt-in and zero-overhead when disabled. Each subsystem has its own config object with <code>enabled=False</code> by default.</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Type</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>secrets</code></td>
-<td><code>SecretScopeConfig</code></td>
-<td>disabled</td>
-<td>Per-process encrypted secret scoping with TTL, rotation, and access logging. See <a href="../governance/secrets/">Secret Scoping</a>.</td>
-</tr>
-<tr>
-<td><code>budget</code></td>
-<td><code>BudgetConfig</code></td>
-<td>disabled</td>
-<td>Per-run and daily limits on tool calls, LLM turns, cost, and irreversible actions. See <a href="../governance/budget/">Autonomy Budget</a>.</td>
-</tr>
-<tr>
-<td><code>health</code></td>
-<td><code>HealthConfig</code></td>
-<td>disabled</td>
-<td>Behavioral anomaly detection (stuck loops, empty responses, error rate). See <a href="../governance/health/">Behavioral Health</a>.</td>
-</tr>
-<tr>
-<td><code>mission</code></td>
-<td><code>MissionConfig</code></td>
-<td>disabled</td>
-<td>Mission-oriented execution with LLM-as-judge evaluation and success criteria. See <a href="../governance/mission/">Mission Model</a>.</td>
-</tr>
-<tr>
-<td><code>inbox</code></td>
-<td><code>InboxConfig</code></td>
-<td>disabled</td>
-<td>Human-in-the-loop message inbox for approvals and ad-hoc questions.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="full-example">Full example<a class="headerlink" href="#full-example" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span><span class="p">,</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">BudgetConfig</span><span class="p">,</span> <span class="n">HealthConfig</span><span class="p">,</span> <span class="n">MissionConfig</span><span class="p">,</span> <span class="n">JournalConfig</span><span class="p">,</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">SecretScopeConfig</span><span class="p">,</span> <span class="n">ToolCostAnnotation</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">)</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor the data pipeline and respond to incidents."</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"tools"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">:</span> <span class="s2">"http://localhost:8000/mcp"</span><span class="p">}},</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span> <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/alerts"</span><span class="p">,</span> <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">),</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">),</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="p">],</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="n">concurrency</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="c1"># Governance — all opt-in</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="n">budget</span><span class="o">=</span><span class="n">BudgetConfig</span><span class="p">(</span>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        <span class="n">max_tool_calls_per_run</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>        <span class="n">max_cost_per_day</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>        <span class="n">on_exceeded</span><span class="o">=</span><span class="s2">"pause"</span><span class="p">,</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>        <span class="n">tool_costs</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>            <span class="s2">"restart_service"</span><span class="p">:</span> <span class="n">ToolCostAnnotation</span><span class="p">(</span><span class="n">cost_weight</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">irreversible</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>        <span class="p">},</span>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>    <span class="p">),</span>
-</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>    <span class="n">health</span><span class="o">=</span><span class="n">HealthConfig</span><span class="p">(</span>
-</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>        <span class="n">stuck_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>        <span class="n">empty_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>        <span class="n">on_anomaly</span><span class="o">=</span><span class="s2">"escalate"</span><span class="p">,</span>
-</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>    <span class="p">),</span>
-</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>    <span class="n">mission</span><span class="o">=</span><span class="n">MissionConfig</span><span class="p">(</span>
-</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>        <span class="n">objective</span><span class="o">=</span><span class="s2">"Keep all services above 99.9</span><span class="si">% u</span><span class="s2">ptime."</span><span class="p">,</span>
-</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>        <span class="n">success_criteria</span><span class="o">=</span><span class="s2">"No unresolved P1 incidents for &gt;15 minutes."</span><span class="p">,</span>
-</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>        <span class="n">eval_every</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>    <span class="p">),</span>
-</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>    <span class="n">secrets</span><span class="o">=</span><span class="n">SecretScopeConfig</span><span class="p">(</span>
-</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>        <span class="n">secrets</span><span class="o">=</span><span class="p">{</span><span class="s2">"api_key"</span><span class="p">:</span> <span class="s2">"$</span><span class="si">{MONITORING_API_KEY}</span><span class="s2">"</span><span class="p">},</span>
-</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>        <span class="n">default_ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>
-</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>    <span class="p">),</span>
-</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>    <span class="n">journal</span><span class="o">=</span><span class="n">JournalConfig</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="s2">"file"</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">"./pipeline-journal"</span><span class="p">),</span>
-</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="p">)</span>
+<h2 id="creating-a-process">Creating a process<a class="headerlink" href="#creating-a-process" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">AgentProcess</span><span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">name</span><span class="p">,</span>                  <span class="c1"># unique process name; the journal files entries under it</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">config</span><span class="p">,</span>                <span class="c1"># ProcessConfig</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">process_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>       <span class="c1"># auto-generated UUID if omitted</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">event_bus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>        <span class="c1"># shared bus for "event" triggers</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">broker</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>           <span class="c1"># shared broker for "message" triggers</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">runtime</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>          <span class="c1"># parent AgentRuntime (open mode's spawn_process needs it)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">event_notifier</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>   <span class="c1"># EventNotifier for process.* and agent events</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">hooks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>            <span class="c1"># shared HookManager, dispatched after the process's own hooks</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">)</span>
 </span></code></pre></div>
-<div class="admonition tip">
-<p class="admonition-title">Start with governance disabled</p>
-<p>For local development, leave all governance disabled. Enable it one subsystem at a time as you move toward production. Budget first (to prevent runaway costs), then health (to catch stuck agents), then mission (to track long-horizon progress).</p>
-</div>
+<p>The constructor checks each entry of <code>config.servers</code> and raises <code>ValueError</code> for one it can't use. Every setting lives in <code>ProcessConfig</code>; see <a href="../configuration/#processconfig">Configuration</a> for all fields and defaults. Inside an <code>AgentRuntime</code>, use <code>runtime.add_process(name, config)</code> instead: it passes the runtime's bus, broker, notifier and hooks.</p>
 <hr />
-<h2 id="lifecycle-methods">Lifecycle Methods<a class="headerlink" href="#lifecycle-methods" title="Link to this section">&para;</a></h2>
-<p><code>AgentProcess</code> exposes async methods for controlling the process lifecycle.</p>
+<h2 id="lifecycle-methods">Lifecycle methods<a class="headerlink" href="#lifecycle-methods" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>Method</th>
 <th>Transition</th>
-<th>Description</th>
+<th>What it does</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>await process.start()</code></td>
-<td>CREATED -&gt; STARTING -&gt; RUNNING</td>
-<td>Build agent, start triggers, enter main loop</td>
+<td><code>await start()</code></td>
+<td><code>CREATED</code>, <code>STOPPED</code> or <code>FAILED</code> → <code>STARTING</code> → <code>RUNNING</code></td>
+<td>Recovers from the journal (first start only), resolves secrets, builds the agent and connects MCP servers, starts triggers, workers and the heartbeat</td>
 </tr>
 <tr>
-<td><code>await process.stop()</code></td>
-<td>RUNNING -&gt; STOPPING -&gt; STOPPED</td>
-<td>Stop triggers, cancel tasks, shut the agent down and close its MCP connections (stdio servers exit)</td>
+<td><code>await stop()</code></td>
+<td>→ <code>STOPPING</code> → <code>STOPPED</code> (from <code>CREATED</code>: straight to <code>STOPPED</code>)</td>
+<td>Cancels workers and runs in flight, stops triggers, dead-letters queued events, writes a journal checkpoint (with a journal), closes the agent and its MCP connections, revokes secrets</td>
 </tr>
 <tr>
-<td><code>await process.inject(event)</code></td>
-<td>--</td>
-<td>Push a <code>TriggerEvent</code> into the process queue</td>
+<td><code>await close()</code></td>
+<td>as <code>stop()</code></td>
+<td><code>stop()</code>, then closes long-term memory, revokes secrets and clears the conversation history</td>
 </tr>
 <tr>
-<td><code>process.update_instructions(text)</code></td>
-<td>--</td>
-<td>New instructions from the next invocation on (the agent is rebuilt before it runs; no restart)</td>
+<td><code>await suspend(reason="manual")</code></td>
+<td><code>RUNNING</code> → <code>SUSPENDED</code></td>
+<td>Pauses processing; triggers keep queueing events</td>
 </tr>
 <tr>
-<td><code>process.status()</code></td>
-<td>--</td>
-<td>Return a status dict (state, invocations, queue, etc.)</td>
+<td><code>await resume(reason="manual")</code></td>
+<td><code>SUSPENDED</code> → <code>RUNNING</code></td>
+<td>Runs the queued events in order; restarts the idle clock</td>
 </tr>
 <tr>
-<td><code>process.state</code></td>
-<td>--</td>
-<td>Current <code>ProcessState</code> enum value</td>
-</tr>
-<tr>
-<td><code>process.context</code></td>
-<td>--</td>
-<td>Access the <code>AgentContext</code> instance</td>
+<td><code>async with process:</code></td>
+<td></td>
+<td><code>start()</code> on enter, <code>close()</code> on exit</td>
 </tr>
 </tbody>
 </table>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Manual event injection (useful for testing)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">TriggerEvent</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="n">TriggerEvent</span><span class="p">(</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"manual"</span><span class="p">,</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">trigger_type</span><span class="o">=</span><span class="s2">"manual"</span><span class="p">,</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">payload</span><span class="o">=</span><span class="p">{</span><span class="s2">"reason"</span><span class="p">:</span> <span class="s2">"Ad-hoc health check"</span><span class="p">},</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">))</span>
+<p>The <a href="../lifecycle/">Lifecycle</a> page has the full state diagram, which transitions raise <code>StateError</code>, and every <code>process.*</code> event.</p>
+<h3 id="start">start()<a class="headerlink" href="#start" title="Link to this section">&para;</a></h3>
+<p><code>start()</code> works from <code>CREATED</code>, <code>STOPPED</code> and <code>FAILED</code>. On <code>FAILED</code> it first tears down what the failed run left (trigger listeners, triggers, heartbeat, agent) and cancels a pending automatic restart, so nothing runs twice. If startup raises, the process goes to <code>FAILED</code>, <code>process.failed</code> is emitted, and <code>start()</code> raises the error to you; your own <code>start()</code> call is never retried automatically.</p>
+<p>Calling <code>start()</code> on a process that is already <code>STARTING</code>, <code>RUNNING</code> or <code>SUSPENDED</code> raises <code>StateError</code>.</p>
+<h3 id="stop">stop()<a class="headerlink" href="#stop" title="Link to this section">&para;</a></h3>
+<p><code>stop()</code> works from every state:</p>
+<ul>
+<li><code>RUNNING</code>, <code>SUSPENDED</code>, <code>FAILED</code>: <code>STOPPING</code> → <code>STOPPED</code>, then <code>process.stopped</code>.</li>
+<li><code>CREATED</code> (never started): straight to <code>STOPPED</code>, no event.</li>
+<li><code>STOPPED</code> or <code>STOPPING</code>: does nothing.</li>
+</ul>
+<p>An explicit <code>stop()</code> never triggers an automatic restart and cancels one that is pending. A run in flight is cancelled, and every event that hasn't run goes to the <a href="#dead-letters">dead letters</a> with reason <code>"process stopped"</code>: events still in the queue, events a suspended worker or a trigger listener was holding, events still inside a trigger (a file watch's backlog, a webhook's accepted requests), and the cancelled run's event (with error <code>"run cancelled"</code>). An automatic restart keeps the queue instead, and adds the triggers' leftover events to it.</p>
+<h3 id="suspend-and-resume">suspend() and resume()<a class="headerlink" href="#suspend-and-resume" title="Link to this section">&para;</a></h3>
+<p><code>suspend()</code> pauses the process without tearing anything down. Triggers keep firing; their events wait in the queue in arrival order, and a run in flight finishes. <code>resume()</code> runs them in that order and restarts the idle clock, so <code>idle_timeout</code> counts from the resume.</p>
+<p>A process suspended by <code>idle_timeout</code> resumes by itself when the next trigger event arrives (or you call <code>inject()</code>); you don't need to call <code>resume()</code>. Budget, health and manual suspensions wait for <code>resume()</code>. <code>process.suspend_reason</code> tells them apart: <code>"manual"</code>, <code>"idle"</code>, <code>"budget"</code>, <code>"health"</code> or <code>"rewind"</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">suspend</span><span class="p">()</span>  <span class="c1"># e.g. during a maintenance window</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">suspend_reason</span><span class="p">)</span>  <span class="c1"># "manual"</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">resume</span><span class="p">()</span>
 </span></code></pre></div>
-<p>The <code>status()</code> method returns a dict with fields including <code>state</code>, <code>invocation_count</code>, <code>queue_size</code>, <code>execution_mode</code>, <code>has_memory</code>, <code>conversation_messages</code>, <code>custom_tool_count</code>, and <code>rebuild_count</code>.</p>
+<h3 id="close">close()<a class="headerlink" href="#close" title="Link to this section">&para;</a></h3>
+<p><code>close()</code> stops the process and releases what lives as long as the process object: it closes the long-term memory provider, revokes secrets (whatever <code>revoke_on_stop</code> says) and clears the conversation history. <code>async with process:</code> and <code>AgentRuntime.remove_process()</code> call it. A closed process can be started again; <code>start()</code> opens a new memory provider, and an <code>in_memory</code> one starts empty.</p>
 <hr />
-<h2 id="triggers">Triggers<a class="headerlink" href="#triggers" title="Link to this section">&para;</a></h2>
-<p>Triggers produce <code>TriggerEvent</code> objects that wake the process and cause it to invoke its agent. Five trigger types are available.</p>
-<h3 id="crontrigger">CronTrigger<a class="headerlink" href="#crontrigger" title="Link to this section">&para;</a></h3>
-<p>Fires on a cron schedule. Requires the <code>cron_expression</code> field.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="webhooktrigger">WebhookTrigger<a class="headerlink" href="#webhooktrigger" title="Link to this section">&para;</a></h3>
-<p>Listens on an HTTP endpoint. Uses <code>aiohttp</code> (included in the base install).</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span> <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/webhook"</span><span class="p">,</span> <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="filewatchtrigger">FileWatchTrigger<a class="headerlink" href="#filewatchtrigger" title="Link to this section">&para;</a></h3>
-<p>Watches a directory for filesystem changes. Uses <code>watchdog</code> (included in the base install).</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">TriggerConfig</span><span class="p">(</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="nb">type</span><span class="o">=</span><span class="s2">"file_watch"</span><span class="p">,</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">watch_patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">],</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">watch_events</span><span class="o">=</span><span class="p">[</span><span class="s2">"created"</span><span class="p">,</span> <span class="s2">"modified"</span><span class="p">],</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="eventtrigger">EventTrigger<a class="headerlink" href="#eventtrigger" title="Link to this section">&para;</a></h3>
-<p>Fires on EventBus events (inter-process communication). Requires a shared <code>EventBus</code> instance.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"event"</span><span class="p">,</span> <span class="n">event_type</span><span class="o">=</span><span class="s2">"pipeline.degraded"</span><span class="p">,</span> <span class="n">event_source</span><span class="o">=</span><span class="s2">"monitor"</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="messagetrigger">MessageTrigger<a class="headerlink" href="#messagetrigger" title="Link to this section">&para;</a></h3>
-<p>Fires on MessageBroker messages. Requires a shared broker instance.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"message"</span><span class="p">,</span> <span class="n">topic</span><span class="o">=</span><span class="s2">"alerts"</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="triggerconfig-reference">TriggerConfig Reference<a class="headerlink" href="#triggerconfig-reference" title="Link to this section">&para;</a></h3>
+<h2 id="what-survives-stop-and-start">What survives stop and start<a class="headerlink" href="#what-survives-stop-and-start" title="Link to this section">&para;</a></h2>
+<p><code>stop()</code> and <code>start()</code> on the same object (including automatic restarts) keep the process's state, so the next run continues where the last one stopped. <code>close()</code> releases it.</p>
 <table>
 <thead>
 <tr>
-<th>Field</th>
-<th>Type</th>
-<th>Applies to</th>
+<th>Item</th>
+<th>After <code>stop()</code> / <code>start()</code></th>
+<th>After <code>close()</code></th>
+<th>In a new process object</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Context state</td>
+<td>Kept</td>
+<td>Kept</td>
+<td>Restored from the journal (see <a href="#recovery-on-start">Recovery on start</a>)</td>
+</tr>
+<tr>
+<td>Conversation history</td>
+<td>Kept (cleared if <code>context.conversation_clear_on_stop=True</code>)</td>
+<td>Cleared</td>
+<td>Restored from the journal</td>
+</tr>
+<tr>
+<td>Long-term memory</td>
+<td>Provider stays open</td>
+<td>Provider closed; <code>start()</code> opens a new one</td>
+<td>Whatever the provider persists (Chroma, Mem0)</td>
+</tr>
+<tr>
+<td>Secrets</td>
+<td>Revoked on stop (unless <code>secrets.revoke_on_stop=False</code>), resolved again on start</td>
+<td>Revoked</td>
+<td>Resolved on start</td>
+</tr>
+<tr>
+<td>Invocation count, budget counters, mission</td>
+<td>Kept</td>
+<td>Kept</td>
+<td>Restored from the journal</td>
+</tr>
+<tr>
+<td>Dead letters</td>
+<td>Kept</td>
+<td>Kept</td>
+<td>Not restored</td>
+</tr>
+<tr>
+<td>Agent-added triggers (open mode)</td>
+<td>Stopped and dropped</td>
+<td>Dropped</td>
+<td>Not restored</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="recovery-on-start">Recovery on start<a class="headerlink" href="#recovery-on-start" title="Link to this section">&para;</a></h2>
+<p>With a journal, a new <code>AgentProcess</code> continues from the last checkpoint of the same process <strong>name</strong>. On the first <code>start()</code> of a process object, when <code>JournalConfig.recover_on_start</code> is <code>True</code> (the default) and the journal holds state for that name, the process restores the context state (the last checkpoint plus the <code>context_update</code> entries written after it; without a checkpoint, for a crash before the first run ended, the <code>context_update</code> entries alone), the mission, the budget counters (a restart can't reset the daily limits), the conversation history and the invocation count. Recovered keys replace the same keys of <code>context.initial_state</code>.</p>
+<p>The process writes a checkpoint after every run, on <code>stop()</code> and after a rewind, so this works after a clean stop and after a crash.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">JournalConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">journal</span><span class="o">=</span><span class="n">JournalConfig</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">".promptise/journal"</span><span class="p">),</span>  <span class="c1"># level="checkpoint"</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span><span class="s2">"pipeline-watcher"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">process</span><span class="o">.</span><span class="n">recovered</span><span class="p">)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># {'lifecycle_state': 'stopped', 'entries_replayed': 1, 'context_keys': ['counter'],</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1">#  'mission_restored': False, 'budget_restored': False,</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1">#  'conversation_messages': 2, 'invocation_count': 1}</span>
+</span></code></pre></div>
+<p><code>process.recovered</code> is <code>None</code> when nothing was restored. <code>lifecycle_state</code> is the last state the journal recorded: <code>"stopped"</code> after a clean stop, <code>"running"</code> after a crash. A journal that can't be read is logged and the process starts fresh. Set <code>recover_on_start=False</code> to always start fresh. <code>ProcessConfig</code> has no journal by default (<code>level="none"</code>); see <a href="../journal/">Journal</a> and <a href="../journal/replay/">Replay Engine</a>.</p>
+<hr />
+<h2 id="trigger-events-and-the-queue">Trigger events and the queue<a class="headerlink" href="#trigger-events-and-the-queue" title="Link to this section">&para;</a></h2>
+<p>Each trigger's events go into one queue per process (1000 events). <code>concurrency</code> workers take events from it in arrival order and run the agent once per event; with <code>concurrency=1</code> (the default) runs never overlap.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">ProcessConfig</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">concurrency</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># up to 3 runs in parallel</span>
+</span></code></pre></div>
+<p><code>await process.inject(event)</code> puts a <code>TriggerEvent</code> into the queue by hand, as if a trigger had fired: it resumes an idle-suspended process, passes the <code>file_changed</code> / <code>task_created</code> hooks, and is dead-lettered (<code>"queue full"</code>) when the queue is full.</p>
+<p>A run that raises is retried when <code>trigger_delivery.max_retries</code> is above 0 (default 0); an event that has used up its retries counts as one consecutive failure. Events blocked by the payload scan, the guardrail scanner or a <code>user_prompt_submit</code> hook are dead-lettered without counting as failures. See <a href="../triggers/">Triggers</a> for trigger types, filters and payload handling.</p>
+<h3 id="dead-letters">Dead letters<a class="headerlink" href="#dead-letters" title="Link to this section">&para;</a></h3>
+<p><code>process.dead_letters</code> lists the events that were not processed, oldest first. Each entry has <code>event</code> (the <code>TriggerEvent</code>), <code>reason</code>, <code>error</code>, <code>attempts</code> and <code>dead_lettered_at</code>. The list keeps the last <code>trigger_delivery.dead_letter_size</code> entries (default 100).</p>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"process stopped"</code></td>
+<td>Not run yet at <code>stop()</code> (queued, held, running or still inside a trigger), or arriving while the process is stopping or stopped. A run that finished (its <code>task_completed</code> hooks may still be running) is not dead-lettered</td>
+</tr>
+<tr>
+<td><code>"budget: max_runs_per_day"</code></td>
+<td>The run was refused because <code>max_runs_per_day</code> was reached; redeliver it after the daily reset</td>
+</tr>
+<tr>
+<td><code>"process restarting"</code></td>
+<td>Held by a worker, or waiting for a retry, when an automatic restart or recycle tears the process down</td>
+</tr>
+<tr>
+<td><code>"trigger removed"</code></td>
+<td>Still buffered in a trigger, or held by its listener, when the trigger was removed (<code>remove_trigger()</code>, <code>DELETE .../triggers/{id}</code>, the agent's <code>remove_trigger</code>)</td>
+</tr>
+<tr>
+<td><code>"process failed"</code></td>
+<td>Queued when the process failed, or arriving while it is <code>FAILED</code></td>
+</tr>
+<tr>
+<td><code>"retries exhausted"</code></td>
+<td>The run raised and used up <code>trigger_delivery.max_retries</code></td>
+</tr>
+<tr>
+<td><code>"queue full"</code></td>
+<td><code>inject()</code> or a retry found the queue full</td>
+</tr>
+<tr>
+<td><code>"trigger buffer full"</code></td>
+<td>An event or message trigger's 100-event buffer was full (also counted in the trigger's <code>dropped_events</code>)</td>
+</tr>
+<tr>
+<td><code>"flagged by payload scan"</code></td>
+<td><code>trigger_delivery.scan_payloads</code> flagged the payload</td>
+</tr>
+<tr>
+<td><code>"blocked by guardrails"</code></td>
+<td>The guardrail scanner blocked the run</td>
+</tr>
+<tr>
+<td><code>"blocked by hook"</code></td>
+<td>A <code>user_prompt_submit</code> hook refused the run</td>
+</tr>
+</tbody>
+</table>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">process</span><span class="o">.</span><span class="n">dead_letters</span><span class="p">:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"reason"</span><span class="p">],</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"event"</span><span class="p">]</span><span class="o">.</span><span class="n">payload</span><span class="p">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">requeued</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">redeliver_dead_letters</span><span class="p">()</span>  <span class="c1"># or event_ids=[...]</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">process</span><span class="o">.</span><span class="n">clear_dead_letters</span><span class="p">()</span>
+</span></code></pre></div>
+<p><code>redeliver_dead_letters(event_ids=None)</code> puts the events back on the queue and returns how many it re-queued; events that don't fit stay in the list. Like <code>inject()</code>, it wakes a process suspended for <code>idle_timeout</code>.</p>
+<hr />
+<h2 id="status">Status<a class="headerlink" href="#status" title="Link to this section">&para;</a></h2>
+<p><code>process.status()</code> returns a JSON-serializable dict:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>type</code></td>
-<td><code>str</code></td>
-<td>all</td>
-<td><code>"cron"</code>, <code>"webhook"</code>, <code>"file_watch"</code>, <code>"event"</code>, <code>"message"</code></td>
+<td><code>name</code>, <code>process_id</code></td>
+<td>Identity</td>
 </tr>
 <tr>
-<td><code>cron_expression</code></td>
-<td><code>str</code></td>
-<td>cron</td>
-<td>Cron schedule (e.g. <code>"*/5 * * * *"</code>; 6<sup>th</sup> field = seconds)</td>
+<td><code>state</code></td>
+<td>Lifecycle state value, e.g. <code>"running"</code></td>
 </tr>
 <tr>
-<td><code>cron_timezone</code></td>
-<td><code>str \| None</code></td>
-<td>cron</td>
-<td>IANA time zone (default UTC)</td>
+<td><code>suspend_reason</code></td>
+<td><code>"manual"</code>, <code>"idle"</code>, <code>"budget"</code>, <code>"health"</code>, <code>"rewind"</code>, or <code>None</code></td>
 </tr>
 <tr>
-<td><code>webhook_path</code></td>
-<td><code>str</code></td>
-<td>webhook</td>
-<td>URL path (default <code>"/webhook"</code>)</td>
+<td><code>execution_mode</code></td>
+<td><code>"strict"</code> or <code>"open"</code></td>
 </tr>
 <tr>
-<td><code>webhook_port</code></td>
-<td><code>int</code></td>
-<td>webhook</td>
-<td>Listen port (default <code>9090</code>)</td>
+<td><code>invocation_count</code></td>
+<td>Completed runs (restored by journal recovery)</td>
 </tr>
 <tr>
-<td><code>webhook_host</code></td>
-<td><code>str</code></td>
-<td>webhook</td>
-<td>Bind address (default <code>"127.0.0.1"</code>)</td>
+<td><code>consecutive_failures</code></td>
+<td>Current streak of failed events</td>
 </tr>
 <tr>
-<td><code>hmac_secret</code></td>
-<td><code>str \| None</code></td>
-<td>webhook</td>
-<td>Signature secret (see <a href="../triggers/event-webhook/#authentication-hmac-signatures">Webhook Trigger</a>)</td>
+<td><code>restart_count</code></td>
+<td>Automatic restart attempts in the current failure streak</td>
 </tr>
 <tr>
-<td><code>signature_scheme</code></td>
-<td><code>str</code></td>
-<td>webhook</td>
-<td><code>"generic"</code>, <code>"github"</code> or <code>"stripe"</code></td>
+<td><code>journal_enabled</code></td>
+<td>Whether the process has a journal</td>
 </tr>
 <tr>
-<td><code>allowed_sources</code></td>
-<td><code>list[str]</code></td>
-<td>webhook</td>
-<td>Allowed client IPs / CIDRs</td>
+<td><code>trigger_count</code>, <code>dynamic_trigger_count</code></td>
+<td>Running config triggers, agent-added triggers</td>
 </tr>
 <tr>
-<td><code>watch_path</code></td>
-<td><code>str</code></td>
-<td>file_watch</td>
-<td>Directory to watch</td>
+<td><code>triggers</code></td>
+<td>One dict per trigger: <code>id</code>, <code>type</code>, <code>source</code> (<code>"config"</code> or <code>"dynamic"</code>), for a file watch <code>dropped_events</code> and <code>pending_events</code>, and for an event or message trigger <code>dropped_events</code></td>
 </tr>
 <tr>
-<td><code>watch_patterns</code></td>
-<td><code>list[str]</code></td>
-<td>file_watch</td>
-<td>Glob patterns (default <code>["*"]</code>)</td>
+<td><code>custom_tool_count</code>, <code>rebuild_count</code>, <code>spawned_process_count</code></td>
+<td>Open-mode counters</td>
 </tr>
 <tr>
-<td><code>watch_events</code></td>
-<td><code>list[str]</code></td>
-<td>file_watch</td>
-<td><code>"created"</code>, <code>"modified"</code>, <code>"deleted"</code>, <code>"moved"</code> (default first two)</td>
+<td><code>conversation_messages</code></td>
+<td>Messages in the conversation buffer</td>
 </tr>
 <tr>
-<td><code>watch_debounce_seconds</code></td>
-<td><code>float</code></td>
-<td>file_watch</td>
-<td>Merge window per file (default <code>0.5</code>)</td>
+<td><code>has_memory</code></td>
+<td>Whether a long-term memory provider is configured</td>
 </tr>
 <tr>
-<td><code>event_type</code></td>
-<td><code>str</code></td>
-<td>event</td>
-<td>EventBus event type string</td>
+<td><code>queue_size</code></td>
+<td>Events waiting in the queue</td>
 </tr>
 <tr>
-<td><code>event_source</code></td>
-<td><code>str \| None</code></td>
-<td>event</td>
-<td>Optional source filter</td>
+<td><code>dead_letter_count</code></td>
+<td>Entries in <code>dead_letters</code></td>
 </tr>
 <tr>
-<td><code>topic</code></td>
-<td><code>str</code></td>
-<td>message</td>
-<td>MessageBroker topic</td>
+<td><code>filtered_count</code></td>
+<td>Events skipped by a trigger's <code>filter_expression</code></td>
 </tr>
 <tr>
-<td><code>filter_expression</code></td>
-<td><code>str \| Callable \| None</code></td>
-<td>all</td>
-<td>Skip non-matching events before the agent runs</td>
+<td><code>pending_retries</code></td>
+<td>Events waiting for a retry</td>
+</tr>
+<tr>
+<td><code>uptime_seconds</code></td>
+<td>Seconds since the last <code>start()</code> while the process is up; <code>None</code> before the first start and while it is stopped or failed</td>
+</tr>
+<tr>
+<td><code>hook_count</code></td>
+<td>Hooks registered on <code>process.hooks</code></td>
+</tr>
+<tr>
+<td><code>recovered</code></td>
+<td>Only after a journal recovery: the <code>recovered</code> dict</td>
+</tr>
+<tr>
+<td><code>budget</code></td>
+<td>Only with a budget: remaining limits</td>
+</tr>
+<tr>
+<td><code>health_anomalies</code>, <code>health</code></td>
+<td>Only with health monitoring: anomaly count and health status</td>
+</tr>
+<tr>
+<td><code>mission_state</code></td>
+<td>Only with a mission: its state</td>
+</tr>
+<tr>
+<td><code>active_secrets</code></td>
+<td>Only with secret scoping: number of active secrets</td>
 </tr>
 </tbody>
 </table>
-<h3 id="trigger-class-constructors">Trigger Class Constructors<a class="headerlink" href="#trigger-class-constructors" title="Link to this section">&para;</a></h3>
-<p>Each trigger type maps to a concrete class. These are typically created via <code>create_trigger()</code>, but you can also instantiate them directly.</p>
-<p><strong><code>CronTrigger</code></strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.cron</span><span class="w"> </span><span class="kn">import</span> <span class="n">CronTrigger</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">CronTrigger</span><span class="p">(</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">,</span>   <span class="c1"># Standard cron expression (required)</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"my-cron"</span><span class="p">,</span>            <span class="c1"># Optional unique ID (auto-generated if omitted)</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">timezone</span><span class="o">=</span><span class="s2">"Europe/Zurich"</span><span class="p">,</span>        <span class="c1"># Optional IANA time zone (default: UTC)</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span>
-</span></code></pre></div>
-<p>Uses <code>croniter</code> (installed with promptise) for full cron support, including a sixth seconds field. Bad expressions raise <code>TriggerError</code> immediately.</p>
-<p><strong><code>EventTrigger</code></strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventTrigger</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">EventTrigger</span><span class="p">(</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">event_bus</span><span class="p">,</span>                       <span class="c1"># EventBus instance (required)</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="s2">"pipeline.degraded"</span><span class="p">,</span>             <span class="c1"># Event type string to listen for (required)</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">source_filter</span><span class="o">=</span><span class="s2">"monitor"</span><span class="p">,</span>         <span class="c1"># Optional: only events from this source</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"my-event"</span><span class="p">,</span>           <span class="c1"># Optional unique ID</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">)</span>
-</span></code></pre></div>
-<p><strong><code>MessageTrigger</code></strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.event</span><span class="w"> </span><span class="kn">import</span> <span class="n">MessageTrigger</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">MessageTrigger</span><span class="p">(</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">broker</span><span class="p">,</span>                          <span class="c1"># MessageBroker instance (required)</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="s2">"alerts"</span><span class="p">,</span>                        <span class="c1"># Topic to subscribe to (required, supports wildcards)</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">trigger_id</span><span class="o">=</span><span class="s2">"my-message"</span><span class="p">,</span>         <span class="c1"># Optional unique ID</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="p">)</span>
-</span></code></pre></div>
-<p><strong><code>FileWatchTrigger</code></strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.file_watch</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileWatchTrigger</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">FileWatchTrigger</span><span class="p">(</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">watch_path</span><span class="o">=</span><span class="s2">"/data/inbox"</span><span class="p">,</span>        <span class="c1"># Directory to monitor (required)</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">patterns</span><span class="o">=</span><span class="p">[</span><span class="s2">"*.csv"</span><span class="p">,</span> <span class="s2">"*.json"</span><span class="p">],</span>    <span class="c1"># Glob patterns to match (default: ["*"])</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="n">events</span><span class="o">=</span><span class="p">[</span><span class="s2">"created"</span><span class="p">,</span> <span class="s2">"modified"</span><span class="p">],</span>  <span class="c1"># Event types to react to (default: ["created", "modified"])</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                  <span class="c1"># Watch subdirectories (default: True)</span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="n">debounce_seconds</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>            <span class="c1"># Events for one file within this window merge into one (default: 0.5)</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">poll_interval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>               <span class="c1"># Polling interval in seconds when watchdog unavailable (default: 1.0)</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">)</span>
-</span></code></pre></div>
-<p>Uses <code>watchdog</code> for native OS notifications if installed; falls back to polling otherwise.</p>
-<p><strong><code>WebhookTrigger</code></strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.triggers.webhook</span><span class="w"> </span><span class="kn">import</span> <span class="n">WebhookTrigger</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">WebhookTrigger</span><span class="p">(</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">path</span><span class="o">=</span><span class="s2">"/webhook"</span><span class="p">,</span>                 <span class="c1"># URL path to listen on (default: "/webhook")</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="n">port</span><span class="o">=</span><span class="mi">9090</span><span class="p">,</span>                       <span class="c1"># TCP port to bind to (default: 9090)</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="n">host</span><span class="o">=</span><span class="s2">"127.0.0.1"</span><span class="p">,</span>                <span class="c1"># Host/IP to bind to (default: "127.0.0.1")</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="n">hmac_secret</span><span class="o">=</span><span class="s2">"..."</span><span class="p">,</span>               <span class="c1"># Optional: require signed requests (401 otherwise)</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="n">signature_scheme</span><span class="o">=</span><span class="s2">"github"</span><span class="p">,</span>       <span class="c1"># "generic" | "github" | "stripe"</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="p">)</span>
-</span></code></pre></div>
-<p>Starts an <code>aiohttp</code> server. Includes a <code>/health</code> endpoint that returns 503 while the process can't accept events.</p>
-<p>All trigger classes expose the same lifecycle interface: <code>await trigger.start()</code>, <code>await trigger.stop()</code>, and <code>await trigger.wait_for_next()</code> (returns a <code>TriggerEvent</code>).</p>
-<h3 id="the-create_trigger-factory">The <code>create_trigger()</code> Factory<a class="headerlink" href="#the-create_trigger-factory" title="Link to this section">&para;</a></h3>
-<p>The <code>create_trigger()</code> function converts a <code>TriggerConfig</code> into a trigger instance:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_trigger</span><span class="p">,</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"0 * * * *"</span><span class="p">)</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">trigger</span> <span class="o">=</span> <span class="n">create_trigger</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># Returns a CronTrigger</span>
-</span></code></pre></div>
-<p>For <code>event</code> and <code>message</code> triggers, pass the shared <code>event_bus</code> or <code>broker</code> as keyword arguments.</p>
+<p>Other read-only properties: <code>state</code> (<code>ProcessState</code>), <code>context</code> (the <a href="../context/"><code>AgentContext</code></a>), <code>lifecycle</code> (the <a href="../lifecycle/"><code>ProcessLifecycle</code></a>), <code>recovered</code>, <code>suspend_reason</code>, <code>dead_letters</code>, <code>spawned_processes</code> and <code>hooks</code>.</p>
 <hr />
-<h2 id="concurrency-control">Concurrency Control<a class="headerlink" href="#concurrency-control" title="Link to this section">&para;</a></h2>
-<p>The <code>concurrency</code> field on <code>ProcessConfig</code> controls how many trigger events can be processed simultaneously. Internally, this is enforced with an <code>asyncio.Semaphore</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">concurrency</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>  <span class="c1"># Up to 3 invocations in parallel</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="p">)</span>
-</span></code></pre></div>
-<hr />
-<h2 id="restart-policies">Restart Policies<a class="headerlink" href="#restart-policies" title="Link to this section">&para;</a></h2>
-<p>When a process enters the <code>FAILED</code> state while running (for example after <code>max_consecutive_failures</code> failed invocations), the restart policy determines what happens next.</p>
+<h2 id="restart-policies">Restart policies<a class="headerlink" href="#restart-policies" title="Link to this section">&para;</a></h2>
+<p>When a running process enters <code>FAILED</code> (after <code>max_consecutive_failures</code> failed events in a row), <code>restart_policy</code> decides what happens next.</p>
 <table>
 <thead>
 <tr>
@@ -10312,55 +10148,174 @@
 <tbody>
 <tr>
 <td><code>"never"</code></td>
-<td>Process stays in FAILED state (default)</td>
+<td>The process stays <code>FAILED</code> (default)</td>
 </tr>
 <tr>
 <td><code>"on_failure"</code></td>
-<td>Tear the process down and start it again, up to <code>max_restarts</code> consecutive attempts</td>
+<td>Tear the process down and start it again, up to <code>max_restarts</code> attempts in a row</td>
 </tr>
 <tr>
 <td><code>"always"</code></td>
-<td>Same as <code>"on_failure"</code>, and a process that reaches <code>max_lifetime</code> is recycled (stopped and started again) instead of staying stopped</td>
+<td>Same as <code>"on_failure"</code>, and a process that reaches <code>max_lifetime</code> is recycled (stopped and started again) instead of stopped</td>
 </tr>
 </tbody>
 </table>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">restart_policy</span><span class="o">=</span><span class="s2">"on_failure"</span><span class="p">,</span>
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">max_restarts</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>    <span class="n">restart_backoff</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>   <span class="c1"># 2s, 4s, 8s, ... (max 60s)</span>
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="n">max_consecutive_failures</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">restart_policy</span><span class="o">=</span><span class="s2">"on_failure"</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">max_restarts</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">restart_backoff</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>          <span class="c1"># 2 s, 4 s, 8 s, ... (max 60 s)</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">max_consecutive_failures</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>How restarts behave:</p>
 <ul>
-<li>The first attempt waits <code>restart_backoff</code> seconds; each further consecutive attempt doubles the wait (capped at 60 s). A restart that fails to start counts as an attempt.</li>
-<li>The attempt count resets after a successful invocation, so <code>max_restarts</code> limits a <em>streak</em> of failures, not the process's lifetime. A restarted process also starts a fresh <code>max_consecutive_failures</code> streak. <code>max_lifetime</code> recycling does not count as an attempt.</li>
-<li>When <code>max_restarts</code> is reached the process stays <code>FAILED</code> (a <code>restart_exhausted</code> journal entry is written).</li>
-<li>An explicit <code>stop()</code> never triggers a restart and cancels a pending one. Stops the runtime performs on purpose (budget <code>"stop"</code>, mission completion) are not restarted either.</li>
-<li>Each restart shuts the old agent down and closes its MCP connections (stdio servers exit) before it starts again.</li>
-<li>A failure of your own <code>start()</code> call raises to you and is not retried.</li>
-<li>Each attempt emits a <code>process.restarted</code> event and the <code>FAILED</code> transition emits <code>process.failed</code>. <code>status()</code> reports <code>restart_count</code>.</li>
+<li>The first attempt waits <code>restart_backoff</code> seconds; each further attempt in a row doubles the wait, capped at 60 s. A restart whose <code>start()</code> fails counts as an attempt.</li>
+<li>The attempt count (<code>restart_count</code>) resets after a successful run, so <code>max_restarts</code> limits a streak of failures, not the process's lifetime. A restarted process also starts a fresh <code>max_consecutive_failures</code> streak. <code>max_lifetime</code> recycling doesn't count as an attempt.</li>
+<li>When <code>max_restarts</code> is used up, the process stays <code>FAILED</code>: a <code>restart_exhausted</code> journal entry is written and <code>process.restart_exhausted</code> is emitted.</li>
+<li>An explicit <code>stop()</code> never triggers a restart and cancels a pending one. Stops the process makes on purpose (budget <code>on_exceeded="stop"</code>, health <code>on_anomaly="stop"</code>, mission completion, <code>max_lifetime</code> without <code>"always"</code>) are not restarted either.</li>
+<li>A restart keeps the context state, conversation history, invocation count and <code>process_id</code>. Each restart shuts the old agent down and closes its MCP connections (stdio servers exit) before starting again.</li>
+<li>A failure of your own <code>start()</code> call is raised to you and not retried.</li>
+<li>Each attempt emits <code>process.restarted</code> (<code>attempt</code>, <code>max_restarts</code>); each failure emits <code>process.failed</code> with the error.</li>
 </ul>
-<div class="admonition note">
-<p class="admonition-title">Changed in 1.3.0</p>
-<p><code>restart_policy</code> and <code>max_restarts</code> were accepted but had no effect in earlier versions: a failed process always stayed <code>FAILED</code>.</p>
+<p>Only an event whose run raised (after its retries) counts as a failure. A tool that raises does not fail the run: the model sees the error and carries on.</p>
+<hr />
+<h2 id="live-triggers">Live triggers<a class="headerlink" href="#live-triggers" title="Link to this section">&para;</a></h2>
+<p><code>add_trigger()</code> and <code>remove_trigger()</code> change a process's config triggers while it runs:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">trigger_id</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">add_trigger</span><span class="p">({</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"cron"</span><span class="p">,</span> <span class="s2">"cron_expression"</span><span class="p">:</span> <span class="s2">"0 * * * *"</span><span class="p">})</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">remove_trigger</span><span class="p">(</span><span class="n">trigger_id</span><span class="p">)</span>
+</span></code></pre></div>
+<p>On a <code>RUNNING</code> or <code>SUSPENDED</code> process the new trigger starts at once (its events queue while suspended); otherwise it starts with the next <code>start()</code>. Trigger IDs are stable (<code>&lt;type&gt;-&lt;digest of the config&gt;</code>), so removing one trigger leaves the others' IDs unchanged. An invalid config raises <code>ValueError</code> and nothing is added; an unknown ID raises <code>KeyError</code>. See <a href="../triggers/">Triggers</a>.</p>
+<hr />
+<h2 id="instructions-messages-and-hooks">Instructions, messages and hooks<a class="headerlink" href="#instructions-messages-and-hooks" title="Link to this section">&para;</a></h2>
+<ul>
+<li><code>process.update_instructions(text)</code> replaces the system prompt from the next run on. The agent is rebuilt before that run, reusing the connected MCP tools; no restart.</li>
+<li><code>await process.send_message(content, ...)</code> and <code>await process.ask(content, timeout=120)</code> reach the agent through its inbox (<code>InboxConfig(enabled=True)</code>); both raise <code>RuntimeError</code> on a stopped or failed process. See <a href="../api/">Orchestration API</a>.</li>
+<li><code>process.hooks</code> is the process's <a href="../hooks/"><code>HookManager</code></a>. It holds the hooks from <code>ProcessConfig.hooks</code> (or a manifest's <code>hooks:</code> section); register more in code:</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">HookEvent</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nd">@process</span><span class="o">.</span><span class="n">hooks</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_START</span><span class="p">)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">announce</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">process_id</span><span class="p">,</span> <span class="s2">"started; restart:"</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"restart"</span><span class="p">])</span>
+</span></code></pre></div>
+<hr />
+<h2 id="rewind">Rewind<a class="headerlink" href="#rewind" title="Link to this section">&para;</a></h2>
+<p>With a journal, <code>rewind()</code> rolls the context state and/or conversation history back to just before a journal entry. <code>rewind_plan()</code> previews it without changing anything.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">plan</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">rewind_plan</span><span class="p">(</span><span class="n">entry_id</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">entries_affected</span><span class="p">)</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">rewind</span><span class="p">(</span><span class="n">entry_id</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>  <span class="c1"># also: conversation_only, code_only, summarize, cancel</span>
+</span></code></pre></div>
+<p>A running process is suspended (reason <code>"rewind"</code>) for the duration, waits for a run in flight, and is resumed afterwards. Long-term memory, budget counters, the mission, secrets and the outside effects of tool calls are never rolled back. Without a journal it raises <code>RuntimeError</code>. From the command line: <code>promptise runtime rewind &lt;process&gt; [&lt;entry_id&gt;] [--mode both|conversation_only|code_only|summarize] [--plan]</code>. See <a href="../journal/rewind/">Rewind Engine</a>.</p>
+<hr />
+<h2 id="governance">Governance<a class="headerlink" href="#governance" title="Link to this section">&para;</a></h2>
+<p>Budget, health, mission, secrets and the inbox are opt-in and add no overhead while disabled. Each has its own config object on <code>ProcessConfig</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Config</th>
+<th>Page</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>budget</code></td>
+<td><code>BudgetConfig(enabled=True, ...)</code></td>
+<td><a href="../governance/budget/">Autonomy Budget</a></td>
+</tr>
+<tr>
+<td><code>health</code></td>
+<td><code>HealthConfig(enabled=True, ...)</code></td>
+<td><a href="../governance/health/">Behavioral Health</a></td>
+</tr>
+<tr>
+<td><code>mission</code></td>
+<td><code>MissionConfig(enabled=True, ...)</code></td>
+<td><a href="../governance/mission/">Mission Model</a></td>
+</tr>
+<tr>
+<td><code>secrets</code></td>
+<td><code>SecretScopeConfig(enabled=True, ...)</code></td>
+<td><a href="../governance/secrets/">Secret Scoping</a></td>
+</tr>
+<tr>
+<td><code>inbox</code></td>
+<td><code>InboxConfig(enabled=True, ...)</code></td>
+<td><a href="../api/">Orchestration API</a></td>
+</tr>
+</tbody>
+</table>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">BudgetConfig</span><span class="p">,</span> <span class="n">HealthConfig</span><span class="p">,</span> <span class="n">JournalConfig</span><span class="p">,</span> <span class="n">MissionConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">SecretScopeConfig</span><span class="p">,</span> <span class="n">ToolCostAnnotation</span><span class="p">,</span> <span class="n">TriggerConfig</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">)</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor the data pipeline and respond to incidents."</span><span class="p">,</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"tools"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">:</span> <span class="s2">"http://localhost:8000/mcp"</span><span class="p">}},</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span> <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/alerts"</span><span class="p">,</span> <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">),</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">),</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="p">],</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>    <span class="n">concurrency</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>    <span class="n">restart_policy</span><span class="o">=</span><span class="s2">"on_failure"</span><span class="p">,</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="n">journal</span><span class="o">=</span><span class="n">JournalConfig</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="s2">"./pipeline-journal"</span><span class="p">),</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>    <span class="n">budget</span><span class="o">=</span><span class="n">BudgetConfig</span><span class="p">(</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>        <span class="n">max_tool_calls_per_run</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>        <span class="n">max_cost_per_day</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>        <span class="n">on_exceeded</span><span class="o">=</span><span class="s2">"pause"</span><span class="p">,</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>        <span class="n">tool_costs</span><span class="o">=</span><span class="p">{</span><span class="s2">"restart_service"</span><span class="p">:</span> <span class="n">ToolCostAnnotation</span><span class="p">(</span><span class="n">cost_weight</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">irreversible</span><span class="o">=</span><span class="kc">True</span><span class="p">)},</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>    <span class="p">),</span>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>    <span class="n">health</span><span class="o">=</span><span class="n">HealthConfig</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stuck_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">on_anomaly</span><span class="o">=</span><span class="s2">"escalate"</span><span class="p">),</span>
+</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>    <span class="n">mission</span><span class="o">=</span><span class="n">MissionConfig</span><span class="p">(</span>
+</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>        <span class="n">objective</span><span class="o">=</span><span class="s2">"Keep all services above 99.9</span><span class="si">% u</span><span class="s2">ptime."</span><span class="p">,</span>
+</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>        <span class="n">success_criteria</span><span class="o">=</span><span class="s2">"No unresolved P1 incidents for more than 15 minutes."</span><span class="p">,</span>
+</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a>        <span class="n">eval_every</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a>    <span class="p">),</span>
+</span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>    <span class="n">secrets</span><span class="o">=</span><span class="n">SecretScopeConfig</span><span class="p">(</span>
+</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a>        <span class="n">secrets</span><span class="o">=</span><span class="p">{</span><span class="s2">"api_key"</span><span class="p">:</span> <span class="s2">"$</span><span class="si">{MONITORING_API_KEY}</span><span class="s2">"</span><span class="p">},</span>
+</span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a>        <span class="n">default_ttl</span><span class="o">=</span><span class="mi">3600</span><span class="p">,</span>
+</span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>    <span class="p">),</span>
+</span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="p">)</span>
+</span></code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Start with governance disabled</p>
+<p>For local development, leave governance off. Turn it on one subsystem at a time as you move toward production: budget first (runaway cost), then health (stuck agents), then mission (long-running goals).</p>
 </div>
 <hr />
-<h2 id="whats-next">What's Next?<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../manifests/">Agent Manifests</a> -- declare processes in YAML instead of code</li>
-<li><a href="../runtime-manager/">Runtime Manager</a> -- multi-process management with <code>AgentRuntime</code></li>
-<li><a href="../">Agent Runtime Overview</a> -- architecture and lifecycle state diagram</li>
-<li><a href="../governance/budget/">Autonomy Budget</a> -- limit tool calls, cost, and irreversible actions</li>
-<li><a href="../governance/health/">Behavioral Health</a> -- detect stuck loops and anomalies</li>
-<li><a href="../governance/mission/">Mission Model</a> -- mission-oriented execution with LLM-as-judge</li>
-<li><a href="../governance/secrets/">Secret Scoping</a> -- per-process encrypted secrets</li>
+<li><strong>Forgetting <code>enabled=True</code>.</strong> Every governance config defaults to <code>enabled=False</code>; <code>SecretScopeConfig(secrets={...})</code> without <code>enabled=True</code> resolves no secrets.</li>
+<li><strong>Expecting a new process object to start empty.</strong> With a journal, a process with the same name continues from its last checkpoint. Use a new journal path, a new name, or <code>recover_on_start=False</code> for a clean start.</li>
+<li><strong>Losing events at stop.</strong> Events that were queued when you stopped are in <code>dead_letters</code>, not lost. Call <code>redeliver_dead_letters()</code> after <code>start()</code> if they should still run.</li>
+<li><strong>Calling <code>resume()</code> for an idle process.</strong> Not needed: the next trigger event wakes it. <code>resume()</code> is for manual, budget and health suspensions.</li>
+<li><strong>Relying on <code>stop()</code> to free memory.</strong> <code>stop()</code> keeps long-term memory and the conversation for the next <code>start()</code>. Use <code>close()</code> (or <code>async with</code>) when you are done with the process.</li>
+<li><strong>Leaving <code>restart_policy</code> at <code>"never"</code> in production.</strong> A failed process then stays <code>FAILED</code> until someone restarts it.</li>
+</ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../lifecycle/">Process Lifecycle</a> -- states, transitions, <code>StateError</code> and <code>process.*</code> events</li>
+<li><a href="../runtime-manager/">Runtime Manager</a> -- run many processes with <code>AgentRuntime</code></li>
+<li><a href="../configuration/">Configuration</a> -- every <code>ProcessConfig</code> field</li>
+<li><a href="../manifests/">Agent Manifests</a> -- declare a process in a <code>.agent</code> YAML file</li>
+<li><a href="../triggers/">Triggers</a> -- cron, webhook, file watch, event and message triggers</li>
+<li><a href="../hooks/">Runtime Hooks</a> -- run code at lifecycle points</li>
+<li><a href="../journal/">Journal</a> -- recovery and rewind</li>
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
 <li><a href="https://www.promptise.com/guides/view/deploy-ai-agents-in-production">Deploy AI Agents in Production: Long-Running Python Agents</a> -- Run an agent as a long-lived process with state between runs.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-auto-restart">AI Agent Auto-Restart: Restart Policies and Timeouts</a> -- Restart policies, backoff, restart limits, run timeouts and lifetime recycling.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-pause-resume">Pause and Resume an AI Agent: Lifecycle States Explained</a> -- Suspend and resume a running agent and what happens to queued work.</li>
+<li><a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a> -- Continue from the last checkpoint after a crash or redeploy.</li>
+<li><a href="https://www.promptise.com/guides/view/autonomous-ai-agent-runtime">Autonomous AI Agent Runtime: Budgets, Crash Recovery, API</a> -- What a runtime adds around an agent: budgets, restarts and recovery.</li>
 </ul>
 </div>
 
@@ -10385,7 +10340,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 21:55:30 UTC">2026-10-20</span>
   </span>
 
     

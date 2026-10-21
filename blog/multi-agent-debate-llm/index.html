@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Shows the Proposer-to-Critic-to-Judge graph and is upfront about the economics: debate roughly triples calls for marginal accuracy on capable models. It maps…">
+        <meta name="description" content="Learn how proposer, critic and judge agents debate to improve LLM reasoning, how to tune the rounds, and why debate triples the calls for small accuracy gains.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/multi-agent-debate-llm/">
       
       
-        <link rel="prev" href="../multi-agent-systems-python/">
+        <link rel="prev" href="../multi-tenant-rag/">
       
       
         <link rel="next" href="../multi-agent-audit-accountability/">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Multi-Agent Debate for Better LLM Reasoning">
-  <meta property="og:description" content="Shows the Proposer-to-Critic-to-Judge graph and is upfront about the economics: debate roughly triples calls for marginal accuracy on capable models. It maps…">
+  <meta property="og:description" content="Learn how proposer, critic and judge agents debate to improve LLM reasoning, how to tune the rounds, and why debate triples the calls for small accuracy gains.">
   <meta property="og:url" content="https://docs.promptise.com/blog/multi-agent-debate-llm/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Multi-Agent Debate for Better LLM Reasoning">
-  <meta name="twitter:description" content="Shows the Proposer-to-Critic-to-Judge graph and is upfront about the economics: debate roughly triples calls for marginal accuracy on capable models. It maps…">
+  <meta name="twitter:description" content="Learn how proposer, critic and judge agents debate to improve LLM reasoning, how to tune the rounds, and why debate triples the calls for small accuracy gains.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Multi-Agent Debate for Better LLM Reasoning",
       "name": "Multi-Agent Debate for Better LLM Reasoning",
-      "description": "Shows the Proposer-to-Critic-to-Judge graph and is upfront about the economics: debate roughly triples calls for marginal accuracy on capable models. It maps\u2026",
+      "description": "Learn how proposer, critic and judge agents debate to improve LLM reasoning, how to tune the rounds, and why debate triples the calls for small accuracy gains.",
       "url": "https://docs.promptise.com/blog/multi-agent-debate-llm/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9480,10 +9431,6 @@
 <p>A multi-agent debate LLM setup runs the same question through three roles — one model proposes an answer, another attacks it, and a judge decides who was right — instead of trusting a single pass. The appeal is obvious: adversarial scrutiny catches mistakes that a lone model, confidently wrong, will happily ship. The catch is just as real: you pay for it in latency and tokens. By the end of this post you'll know exactly what the Proposer → Critic → Judge graph does in Promptise Foundry, how to stand one up in a few lines, and — just as importantly — the narrow set of queries where it earns its keep versus the far larger set where a single verify pass is the smarter buy.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="what-the-debate-reasoning-pattern-actually-does">What the debate reasoning pattern actually does<a class="headerlink" href="#what-the-debate-reasoning-pattern-actually-does" title="Link to this section">&para;</a></h2>
 <p>Promptise ships <code>debate</code> as a prebuilt reasoning graph. It's an adversarial two-agent loop: a <strong>proposer</strong> generates an answer, a <strong>critic</strong> challenges it, and they alternate. When the critic's objections drop below a severity threshold, control passes to a <strong>judge</strong> that renders the final verdict.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>proposer ──→ critic ──→ (severity high) ──→ proposer
@@ -9543,7 +9490,7 @@
 <p>So don't reach for it by default. Debate earns its cost in a specific shape of problem:</p>
 <ul>
 <li><strong>Ambiguous judgment calls</strong> — questions with no clean lookup answer, where two defensible readings exist and you want them argued out.</li>
-<li><strong>Adversarial correctness</strong> — high-stakes claims where being confidently wrong is expensive: contract deadlines, compliance interpretations, financial thresholds, safety sign-offs.</li>
+<li><strong>Adversarial correctness</strong> — high-stakes claims where being confidently wrong is expensive: contract deadlines, policy interpretations, financial thresholds, safety sign-offs.</li>
 <li><strong>Robust argument generation</strong> — when you need the <em>strongest case on both sides</em> surfaced, not just a single answer.</li>
 </ul>
 <p>For everything else — tool-calling, retrieval, straightforward Q&amp;A, arithmetic — the extra scrutiny is scrutiny you're paying for and not using. The pattern only pays back where a wrong answer costs more than three LLM calls.</p>
@@ -9554,7 +9501,7 @@
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">agent_pattern</span><span class="o">=</span><span class="s2">"verify"</span><span class="p">)</span>
 </span></code></pre></div>
 <p><code>verify</code> catches the same genre of slip debate is good at — bad arithmetic, a skipped constraint, an unchecked assumption — but at roughly a third of the cost. Its measurable gains show up most on weaker or cheaper models, where the forced self-check recovers errors a single pass would miss. Reach for debate only when you specifically need <em>two independent perspectives arguing</em>, not just one model checking itself. When you simply want a cheap self-check, <code>verify</code> wins; the tradeoff is laid out in full in the <a href="../../core/agents/reasoning-patterns/">reasoning patterns reference</a>.</p>
-<p>A practical rule of thumb: route your traffic. Send the small slice of genuinely high-stakes, contestable queries to a <code>debate</code> agent, and let a <code>verify</code> or plain <code>react</code> agent handle the rest. Two agents, one gate — that's how you get debate's scrutiny without paying for it on every request. If you're deciding between patterns more broadly, <a href="../agent-reasoning-patterns/">Agent Reasoning Patterns: The Complete Guide</a> compares all of Promptise's built-in graphs side by side.</p>
+<p>A practical rule of thumb: route your traffic. Send the small slice of genuinely high-stakes, contestable queries to a <code>debate</code> agent, and let a <code>verify</code> or plain <code>react</code> agent handle the rest. Two agents, one gate — that's how you get debate's scrutiny without paying for it on every request. If you're deciding between patterns more broadly, <a href="https://www.promptise.com/guides/view/ai-agent-reasoning-patterns">AI Agent Reasoning Patterns in Python: 9 Patterns Tested</a> compares nine reasoning patterns side by side.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="does-multi-agent-debate-actually-improve-llm-accuracy">Does multi-agent debate actually improve LLM accuracy?<a class="headerlink" href="#does-multi-agent-debate-actually-improve-llm-accuracy" title="Link to this section">&para;</a></h3>
 <p>It can, but the gain depends heavily on the model and the task. On capable models that already reason well, debate produces a marginal improvement for roughly triple the cost, because the base model wasn't making many catchable errors. The wins concentrate in ambiguous or adversarial questions where a second, opposing perspective surfaces a flaw the proposer missed. For routine tasks, the extra calls buy little.</p>
@@ -9586,7 +9533,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

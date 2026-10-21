@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The fastest possible on-ramp: pip install, set one API key, and go from empty file to a running tool-using agent in under ten minutes — every step…">
+        <meta name="description" content="Install Promptise, write your first tool-using AI agent in Python, give it tools through an MCP server and run it from the CLI, all in about ten minutes.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../build-time-enforced-approval-gate-mcp/">
       
       
-        <link rel="next" href="../best-llm-for-ai-agents/">
+        <link rel="next" href="../autonomous-agent-governance/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Build Your First AI Agent with Promptise in 10 Minutes">
-  <meta property="og:description" content="The fastest possible on-ramp: pip install, set one API key, and go from empty file to a running tool-using agent in under ten minutes — every step…">
+  <meta property="og:description" content="Install Promptise, write your first tool-using AI agent in Python, give it tools through an MCP server and run it from the CLI, all in about ten minutes.">
   <meta property="og:url" content="https://docs.promptise.com/blog/build-ai-agent-with-promptise/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Build Your First AI Agent with Promptise in 10 Minutes">
-  <meta name="twitter:description" content="The fastest possible on-ramp: pip install, set one API key, and go from empty file to a running tool-using agent in under ten minutes — every step…">
+  <meta name="twitter:description" content="Install Promptise, write your first tool-using AI agent in Python, give it tools through an MCP server and run it from the CLI, all in about ten minutes.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Build Your First AI Agent with Promptise in 10 Minutes",
       "name": "Build Your First AI Agent with Promptise in 10 Minutes",
-      "description": "The fastest possible on-ramp: pip install, set one API key, and go from empty file to a running tool-using agent in under ten minutes \u2014 every step\u2026",
+      "description": "Install Promptise, write your first tool-using AI agent in Python, give it tools through an MCP server and run it from the CLI, all in about ten minutes.",
       "url": "https://docs.promptise.com/blog/build-ai-agent-with-promptise/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9590,7 +9541,7 @@
 </span></code></pre></div>
 <p>The <code>chat()</code> method loads the session, invokes the agent, and persists the result for you, while <code>CallerContext</code> scopes memory, cache, and guardrails to a specific user. The semantic cache serves responses for similar queries, which the framework reports as a 30–50% cost reduction on repetitive workloads. Guardrails run six local detection heads to block prompt injection and redact PII and secrets, and <code>observe=True</code> gives you a timeline of every LLM turn and tool call for debugging. Every feature you don't enable has zero overhead — features are opt-in, not baked into a heavy base class, so the ten-line agent from earlier stays exactly as cheap as it looks. For copy-paste snippets of each of these (auth, approval gates, multi-tenancy, and more), the <a href="../../getting-started/cookbook/">Cookbook</a> is the fastest reference.</p>
 <h2 id="when-another-framework-is-a-better-fit">When another framework is a better fit<a class="headerlink" href="#when-another-framework-is-a-better-fit" title="Link to this section">&para;</a></h2>
-<p>Promptise is opinionated, and that's worth being honest about. If all you need is a single LLM call with no tools, no memory, and no governance, the provider's own SDK is lighter and has one less dependency — reach for Promptise when the agent has to <em>do</em> work safely, not just answer once. And if your team has already invested heavily in a specific orchestration ecosystem with a lot of existing graph or chain code, migrating for a greenfield feature may be more churn than it's worth; Promptise interoperates through MCP, so you can expose tools to your current stack instead of rewriting it. Where Promptise wins is the combination this tutorial showed: MCP-native tool discovery, secure-by-default production features behind single parameters, and a CLI that gets you running in minutes. For a deeper, framework-agnostic look at the tradeoffs, see <a href="../python-ai-agent-framework/">What Is a Python AI Agent Framework? (And When You Need One)</a>.</p>
+<p>Promptise is opinionated, and that's worth being honest about. If all you need is a single LLM call with no tools, no memory, and no governance, the provider's own SDK is lighter and has one less dependency — reach for Promptise when the agent has to <em>do</em> work safely, not just answer once. And if your team has already invested heavily in a specific orchestration ecosystem with a lot of existing graph or chain code, migrating for a greenfield feature may be more churn than it's worth; Promptise interoperates through MCP, so you can expose tools to your current stack instead of rewriting it. Where Promptise wins is the combination this tutorial showed: MCP-native tool discovery, secure-by-default production features behind single parameters, and a CLI that gets you running in minutes. For a broader look at the tradeoffs across frameworks, see <a href="https://www.promptise.com/guides/view/python-ai-agent-frameworks-compared">Best AI Agent Frameworks: Python Options Compared</a>.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="how-long-does-it-really-take-to-build-an-ai-agent-with-promptise">How long does it really take to build an AI agent with Promptise?<a class="headerlink" href="#how-long-does-it-really-take-to-build-an-ai-agent-with-promptise" title="Link to this section">&para;</a></h3>
 <p>The first working agent takes a couple of minutes — install, set a key, and run the ten-line script above. Adding a tool server and launching it through <code>promptise run</code> fits comfortably inside ten minutes, because there's no schema wiring or manual tool registration to slow you down.</p>
@@ -9599,7 +9550,7 @@
 <h3 id="can-i-use-a-model-other-than-openai">Can I use a model other than OpenAI?<a class="headerlink" href="#can-i-use-a-model-other-than-openai" title="Link to this section">&para;</a></h3>
 <p>Yes. The <code>model</code> argument is a provider-prefixed string, so <code>anthropic:claude-sonnet-4.5</code>, <code>ollama:llama3</code>, and others work by changing that one value. See the <a href="../../getting-started/model-setup/">Model Setup guide</a> for the full list and the env var each provider expects.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Run <code>pip install promptise</code> and follow the Quickstart to ship your first agent today — the <a href="../../getting-started/quickstart/">Quick Start</a> expands each step above with runnable variations, and when you're ready to go deeper, <a href="../how-to-build-an-ai-agent-in-python/">How to Build an AI Agent in Python: The Complete Guide</a> takes you from this ten-minute agent to a production deployment.</p>
+<p>Run <code>pip install promptise</code> and follow the Quickstart to ship your first agent today — the <a href="../../getting-started/quickstart/">Quick Start</a> expands each step above with runnable variations, and when you're ready to go deeper, <a href="https://www.promptise.com/guides/view/how-to-build-ai-agent-python">How to Build an AI Agent in Python</a> is the longer walkthrough.</p>
 
 
 
@@ -9622,7 +9573,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 15, 2026 11:58:16 UTC">2026-10-15</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

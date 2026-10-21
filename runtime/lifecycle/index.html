@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The ProcessLifecycle class implements a thread-safe, auditable state machine that governs every AgentProcess. It defines the valid states a process can be in,">
+        <meta name="description" content="Every AgentProcess moves through a fixed set of states: created, starting, running, suspended, stopping, stopped and failed. The ProcessLifecycle state machine">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Lifecycle Events">
-  <meta property="og:description" content="The ProcessLifecycle class implements a thread-safe, auditable state machine that governs every AgentProcess. It defines the valid states a process can be in,">
+  <meta property="og:description" content="Every AgentProcess moves through a fixed set of states: created, starting, running, suspended, stopping, stopped and failed. The ProcessLifecycle state machine">
   <meta property="og:url" content="https://docs.promptise.com/runtime/lifecycle/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Lifecycle Events">
-  <meta name="twitter:description" content="The ProcessLifecycle class implements a thread-safe, auditable state machine that governs every AgentProcess. It defines the valid states a process can be in,">
+  <meta name="twitter:description" content="Every AgentProcess moves through a fixed set of states: created, starting, running, suspended, stopping, stopped and failed. The ProcessLifecycle state machine">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Lifecycle Events",
       "name": "Lifecycle Events",
-      "description": "The ProcessLifecycle class implements a thread-safe, auditable state machine that governs every AgentProcess. It defines the valid states a process can be in,",
+      "description": "Every AgentProcess moves through a fixed set of states: created, starting, running, suspended, stopping, stopped and failed. The ProcessLifecycle state machine",
       "url": "https://docs.promptise.com/runtime/lifecycle/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5214,32 +5184,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Concepts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#state-diagram" class="md-nav__link">
     <span class="md-ellipsis">
       
-        State Diagram
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#process-states" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Process States
+        State diagram
       
     </span>
   </a>
@@ -5250,7 +5198,7 @@
   <a href="#valid-transitions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Valid Transitions
+        Valid transitions
       
     </span>
   </a>
@@ -5258,55 +5206,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-processlifecycle" class="md-nav__link">
+  <a href="#what-each-state-means" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using ProcessLifecycle
+        What each state means
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using ProcessLifecycle">
+    <nav class="md-nav" aria-label="What each state means">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#creating-and-transitioning" class="md-nav__link">
+  <a href="#why-a-process-is-suspended" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating and transitioning
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#checking-validity-before-transitioning" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Checking validity before transitioning
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#transition-with-metadata" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Transition with metadata
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#invalid-transitions-raise-stateerror" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Invalid transitions raise StateError
+        Why a process is suspended
       
     </span>
   </a>
@@ -5319,6 +5234,62 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-moves-a-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What moves a process
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stateerror-and-processstateerror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StateError and ProcessStateError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-processlifecycle-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using ProcessLifecycle directly
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using ProcessLifecycle directly">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#listeners" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Listeners
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#processtransition" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5327,69 +5298,40 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="ProcessTransition">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#serialization" class="md-nav__link">
+  <a href="#history-and-snapshots" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Serialization
+        History and snapshots
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#audit-history" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Audit History
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Audit History">
-      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#snapshotting-and-restoring" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Snapshotting and restoring
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#thread-safety" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Thread Safety
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concurrency
       
     </span>
   </a>
@@ -5397,10 +5339,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -5411,7 +5353,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -6177,6 +6119,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6199,8 +6145,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6214,8 +6161,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6227,6 +6180,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8473,8 +8428,6 @@
       
         
       
-        
-      
     
     
     
@@ -8627,36 +8580,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9535,32 +9458,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Concepts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#state-diagram" class="md-nav__link">
     <span class="md-ellipsis">
       
-        State Diagram
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#process-states" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Process States
+        State diagram
       
     </span>
   </a>
@@ -9571,7 +9472,7 @@
   <a href="#valid-transitions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Valid Transitions
+        Valid transitions
       
     </span>
   </a>
@@ -9579,55 +9480,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-processlifecycle" class="md-nav__link">
+  <a href="#what-each-state-means" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using ProcessLifecycle
+        What each state means
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using ProcessLifecycle">
+    <nav class="md-nav" aria-label="What each state means">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#creating-and-transitioning" class="md-nav__link">
+  <a href="#why-a-process-is-suspended" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating and transitioning
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#checking-validity-before-transitioning" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Checking validity before transitioning
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#transition-with-metadata" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Transition with metadata
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#invalid-transitions-raise-stateerror" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Invalid transitions raise StateError
+        Why a process is suspended
       
     </span>
   </a>
@@ -9640,6 +9508,62 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-moves-a-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What moves a process
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stateerror-and-processstateerror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StateError and ProcessStateError
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-processlifecycle-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using ProcessLifecycle directly
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Using ProcessLifecycle directly">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#listeners" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Listeners
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#processtransition" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9648,69 +9572,40 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="ProcessTransition">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#serialization" class="md-nav__link">
+  <a href="#history-and-snapshots" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Serialization
+        History and snapshots
       
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#audit-history" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Audit History
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Audit History">
-      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#snapshotting-and-restoring" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Snapshotting and restoring
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#thread-safety" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Thread Safety
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concurrency
       
     </span>
   </a>
@@ -9718,10 +9613,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9732,7 +9627,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -9809,82 +9704,72 @@
 
 
 <h1 id="process-lifecycle">Process Lifecycle<a class="headerlink" href="#process-lifecycle" title="Link to this section">&para;</a></h1>
-<p>The <code>ProcessLifecycle</code> class implements a thread-safe, auditable state machine that governs every <code>AgentProcess</code>. It defines the valid states a process can be in, the legal transitions between them, and records every transition with timestamps and reasons.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.lifecycle</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessLifecycle</span><span class="p">,</span> <span class="n">ProcessState</span>
+<p>Every <code>AgentProcess</code> moves through a fixed set of states: created, starting, running, suspended, stopping, stopped and failed. The <code>ProcessLifecycle</code> state machine checks every transition against a transition map, rejects invalid ones with a <code>StateError</code>, and records each change with a timestamp and a reason. Use this page to know what a state means, what moves a process between states, and which event each change emits.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">lc</span> <span class="o">=</span> <span class="n">ProcessLifecycle</span><span class="p">()</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">assert</span> <span class="n">lc</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">ProcessState</span><span class="o">.</span><span class="n">CREATED</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackSink</span><span class="p">,</span> <span class="n">EventNotifier</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">ProcessConfig</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">STARTING</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"user requested start"</span><span class="p">)</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">)</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">lc</span><span class="o">.</span><span class="n">history</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_event</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">event_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"process."</span><span class="p">):</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">event_type</span><span class="p">,</span> <span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reason"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">notifier</span> <span class="o">=</span> <span class="n">EventNotifier</span><span class="p">(</span><span class="n">sinks</span><span class="o">=</span><span class="p">[</span><span class="n">CallbackSink</span><span class="p">(</span><span class="n">on_event</span><span class="p">)])</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="s2">"watcher"</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">ProcessConfig</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">),</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="n">event_notifier</span><span class="o">=</span><span class="n">notifier</span><span class="p">,</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>    <span class="c1"># CREATED -&gt; STARTING -&gt; RUNNING</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">suspend</span><span class="p">()</span>  <span class="c1"># RUNNING -&gt; SUSPENDED</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">resume</span><span class="p">()</span>   <span class="c1"># SUSPENDED -&gt; RUNNING</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>     <span class="c1"># RUNNING -&gt; STOPPING -&gt; STOPPED</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="nb">print</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">to_state</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">process</span><span class="o">.</span><span class="n">lifecycle</span><span class="o">.</span><span class="n">history</span><span class="p">])</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>process.started
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>process.suspended manual
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>process.resumed manual
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>process.stopped
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>['starting', 'running', 'suspended', 'running', 'stopping', 'stopped']
 </span></code></pre></div>
 <hr />
-<h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p>Agent processes follow a strict state machine. Invalid transitions are rejected at the API level, preventing processes from entering inconsistent states. Every transition is recorded as a <code>ProcessTransition</code> with a timestamp, reason, and optional metadata -- creating a complete audit trail of what happened and why.</p>
+<h2 id="state-diagram">State diagram<a class="headerlink" href="#state-diagram" title="Link to this section">&para;</a></h2>
+<p>The diagram shows every transition in <code>VALID_TRANSITIONS</code> (<code>promptise.runtime.lifecycle</code>) and nothing else. <code>AWAITING</code> is reserved: it is in the map, but <code>AgentProcess</code> never enters it.</p>
+<pre class="mermaid"><code>stateDiagram-v2
+    [*] --&gt; CREATED
+    CREATED --&gt; STARTING
+    CREATED --&gt; STOPPED
+    STARTING --&gt; RUNNING
+    STARTING --&gt; STOPPING
+    STARTING --&gt; FAILED
+    RUNNING --&gt; SUSPENDED
+    RUNNING --&gt; STOPPING
+    RUNNING --&gt; FAILED
+    RUNNING --&gt; AWAITING
+    SUSPENDED --&gt; RUNNING
+    SUSPENDED --&gt; STOPPING
+    SUSPENDED --&gt; FAILED
+    STOPPING --&gt; STOPPED
+    STOPPING --&gt; FAILED
+    STOPPED --&gt; STARTING
+    FAILED --&gt; STARTING
+    FAILED --&gt; STOPPING
+    AWAITING --&gt; RUNNING
+    AWAITING --&gt; STOPPING
+    AWAITING --&gt; FAILED</code></pre>
 <hr />
-<h2 id="state-diagram">State Diagram<a class="headerlink" href="#state-diagram" title="Link to this section">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>CREATED ----&gt; STARTING ----&gt; RUNNING ----&gt; STOPPING ----&gt; STOPPED
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>                 |              |  ^           ^
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>                 |              |  |           |
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>                 v              v  |           |
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>               FAILED      SUSPENDED       FAILED ----&gt; STARTING (restart)
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>                              |
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>                              v
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>                          AWAITING ----&gt; RUNNING (trigger fires)
-</span></code></pre></div>
-<hr />
-<h2 id="process-states">Process States<a class="headerlink" href="#process-states" title="Link to this section">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>State</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>CREATED</code></td>
-<td>Initial state after registration. Not yet started.</td>
-</tr>
-<tr>
-<td><code>STARTING</code></td>
-<td>Start sequence in progress (building agent, connecting MCP servers).</td>
-</tr>
-<tr>
-<td><code>RUNNING</code></td>
-<td>Active and processing triggers.</td>
-</tr>
-<tr>
-<td><code>SUSPENDED</code></td>
-<td>Paused due to idle timeout. Can resume.</td>
-</tr>
-<tr>
-<td><code>AWAITING</code></td>
-<td>Waiting for next trigger event. A sub-state of running.</td>
-</tr>
-<tr>
-<td><code>STOPPING</code></td>
-<td>Graceful shutdown in progress.</td>
-</tr>
-<tr>
-<td><code>STOPPED</code></td>
-<td>Fully stopped. Can be restarted.</td>
-</tr>
-<tr>
-<td><code>FAILED</code></td>
-<td>Encountered a fatal error. Can be restarted.</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="valid-transitions">Valid Transitions<a class="headerlink" href="#valid-transitions" title="Link to this section">&para;</a></h2>
+<h2 id="valid-transitions">Valid transitions<a class="headerlink" href="#valid-transitions" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
 <th>From</th>
-<th>Allowed Targets</th>
+<th>Allowed targets</th>
 </tr>
 </thead>
 <tbody>
@@ -9894,7 +9779,7 @@
 </tr>
 <tr>
 <td><code>STARTING</code></td>
-<td><code>RUNNING</code>, <code>FAILED</code>, <code>STOPPING</code></td>
+<td><code>RUNNING</code>, <code>STOPPING</code>, <code>FAILED</code></td>
 </tr>
 <tr>
 <td><code>RUNNING</code></td>
@@ -9902,10 +9787,6 @@
 </tr>
 <tr>
 <td><code>SUSPENDED</code></td>
-<td><code>RUNNING</code>, <code>STOPPING</code>, <code>FAILED</code></td>
-</tr>
-<tr>
-<td><code>AWAITING</code></td>
 <td><code>RUNNING</code>, <code>STOPPING</code>, <code>FAILED</code></td>
 </tr>
 <tr>
@@ -9918,51 +9799,368 @@
 </tr>
 <tr>
 <td><code>FAILED</code></td>
-<td><code>STARTING</code></td>
+<td><code>STARTING</code>, <code>STOPPING</code></td>
+</tr>
+<tr>
+<td><code>AWAITING</code> (reserved)</td>
+<td><code>RUNNING</code>, <code>STOPPING</code>, <code>FAILED</code></td>
 </tr>
 </tbody>
 </table>
-<p>Any transition not in this table raises a <code>StateError</code>.</p>
+<p>Any other transition raises <code>StateError</code>. A transition to the current state is invalid too: calling <code>suspend()</code> on a suspended process raises.</p>
 <hr />
-<h2 id="using-processlifecycle">Using ProcessLifecycle<a class="headerlink" href="#using-processlifecycle" title="Link to this section">&para;</a></h2>
-<h3 id="creating-and-transitioning">Creating and transitioning<a class="headerlink" href="#creating-and-transitioning" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.lifecycle</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessLifecycle</span><span class="p">,</span> <span class="n">ProcessState</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">lc</span> <span class="o">=</span> <span class="n">ProcessLifecycle</span><span class="p">()</span>  <span class="c1"># starts in CREATED</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># Transition with a reason</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">STARTING</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"CLI start command"</span><span class="p">)</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"agent built successfully"</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># Check current state</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">assert</span> <span class="n">lc</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">ProcessState</span><span class="o">.</span><span class="n">RUNNING</span>
-</span></code></pre></div>
-<h3 id="checking-validity-before-transitioning">Checking validity before transitioning<a class="headerlink" href="#checking-validity-before-transitioning" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">if</span> <span class="n">lc</span><span class="o">.</span><span class="n">can_transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">SUSPENDED</span><span class="p">):</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">SUSPENDED</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"idle timeout"</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="transition-with-metadata">Transition with metadata<a class="headerlink" href="#transition-with-metadata" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">ProcessState</span><span class="o">.</span><span class="n">FAILED</span><span class="p">,</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">reason</span><span class="o">=</span><span class="s2">"Max consecutive failures reached"</span><span class="p">,</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"failures"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="invalid-transitions-raise-stateerror">Invalid transitions raise StateError<a class="headerlink" href="#invalid-transitions-raise-stateerror" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.lifecycle</span><span class="w"> </span><span class="kn">import</span> <span class="n">StateError</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">lc</span> <span class="o">=</span> <span class="n">ProcessLifecycle</span><span class="p">()</span>  <span class="c1"># CREATED</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">try</span><span class="p">:</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">)</span>  <span class="c1"># Invalid: must go through STARTING</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">except</span> <span class="n">StateError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="c1"># Cannot transition from 'created' to 'running'.</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="c1"># Allowed targets: ['starting', 'stopped']</span>
-</span></code></pre></div>
+<h2 id="what-each-state-means">What each state means<a class="headerlink" href="#what-each-state-means" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CREATED</code></td>
+<td><code>"created"</code></td>
+<td>Constructed, never started. <code>stop()</code> moves it straight to <code>STOPPED</code> without an event.</td>
+</tr>
+<tr>
+<td><code>STARTING</code></td>
+<td><code>"starting"</code></td>
+<td><code>start()</code> is running: journal recovery (first start only), secrets, agent build and MCP connections, triggers, workers and heartbeat. Trigger events that arrive wait until the process is <code>RUNNING</code>.</td>
+</tr>
+<tr>
+<td><code>RUNNING</code></td>
+<td><code>"running"</code></td>
+<td>Processing trigger events. An idle process with nothing to do is still <code>RUNNING</code>.</td>
+</tr>
+<tr>
+<td><code>SUSPENDED</code></td>
+<td><code>"suspended"</code></td>
+<td>Paused. Triggers keep firing and their events queue in arrival order; a run in flight finishes. See <a href="#why-a-process-is-suspended">Why a process is suspended</a>.</td>
+</tr>
+<tr>
+<td><code>STOPPING</code></td>
+<td><code>"stopping"</code></td>
+<td>Teardown in progress: workers cancelled, triggers stopped, queued events dead-lettered, agent and MCP clients closed.</td>
+</tr>
+<tr>
+<td><code>STOPPED</code></td>
+<td><code>"stopped"</code></td>
+<td>Stopped cleanly. <code>start()</code> can start it again; context state, long-term memory and conversation history are kept.</td>
+</tr>
+<tr>
+<td><code>FAILED</code></td>
+<td><code>"failed"</code></td>
+<td><code>max_consecutive_failures</code> events in a row failed, or <code>start()</code> raised. New trigger events are dead-lettered (<code>"process failed"</code>) and a webhook answers 503. <code>start()</code> (or an automatic restart) goes to <code>STARTING</code>; <code>stop()</code> goes to <code>STOPPING</code>, then <code>STOPPED</code>.</td>
+</tr>
+<tr>
+<td><code>AWAITING</code></td>
+<td><code>"awaiting"</code></td>
+<td>Reserved. The value and its transitions are kept for backward compatibility; <code>AgentProcess</code> never enters it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="why-a-process-is-suspended">Why a process is suspended<a class="headerlink" href="#why-a-process-is-suspended" title="Link to this section">&para;</a></h3>
+<p><code>SUSPENDED</code> has several causes. <code>process.suspend_reason</code> (and <code>status()["suspend_reason"]</code>) says which one; it is <code>None</code> when the process is not suspended.</p>
+<table>
+<thead>
+<tr>
+<th><code>suspend_reason</code></th>
+<th>Who suspends</th>
+<th>How it resumes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"manual"</code></td>
+<td><code>process.suspend()</code> (default reason), the <a href="../api/">control API</a>, the <a href="../dashboard/">dashboard</a></td>
+<td><code>process.resume()</code></td>
+</tr>
+<tr>
+<td><code>"idle"</code></td>
+<td><code>idle_timeout</code> seconds without a run, with nothing queued or running (checked every <code>heartbeat_interval</code>)</td>
+<td>By itself, when the next trigger event arrives or you call <code>inject()</code> (the <code>process.resumed</code> reason is <code>"trigger"</code>)</td>
+</tr>
+<tr>
+<td><code>"budget"</code></td>
+<td><a href="../governance/budget/">Autonomy budget</a> with <code>on_exceeded="pause"</code> or <code>"escalate"</code></td>
+<td><code>process.resume()</code></td>
+</tr>
+<tr>
+<td><code>"health"</code></td>
+<td><a href="../governance/health/">Behavioral health</a> with <code>on_anomaly="pause"</code> or <code>"escalate"</code></td>
+<td><code>process.resume()</code></td>
+</tr>
+<tr>
+<td><code>"rewind"</code></td>
+<td><code>process.rewind()</code> on a running process, for the duration of the rewind</td>
+<td>By itself, when the rewind ends</td>
+</tr>
+</tbody>
+</table>
+<p><code>resume()</code> restarts the idle clock, so <code>idle_timeout</code> counts from the resume, and the queued events run in the order they arrived.</p>
 <hr />
-<h2 id="processtransition">ProcessTransition<a class="headerlink" href="#processtransition" title="Link to this section">&para;</a></h2>
-<p>Every state transition is recorded as a <code>ProcessTransition</code> dataclass:</p>
+<h2 id="what-moves-a-process">What moves a process<a class="headerlink" href="#what-moves-a-process" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Transition</th>
+<th>Caused by</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CREATED → STARTING</code></td>
+<td><code>start()</code></td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>CREATED → STOPPED</code></td>
+<td><code>stop()</code> before <code>start()</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>STARTING → RUNNING</code></td>
+<td>Startup complete</td>
+<td><code>process.started</code></td>
+</tr>
+<tr>
+<td><code>STARTING → FAILED</code></td>
+<td>Startup raised (bad MCP server, missing secret, ...). <code>start()</code> re-raises the error; your own <code>start()</code> is not retried</td>
+<td><code>process.failed</code></td>
+</tr>
+<tr>
+<td><code>STARTING → STOPPING</code></td>
+<td>Allowed by the map. <code>stop()</code> called during <code>start()</code> waits for <code>start()</code> to finish first</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>RUNNING → SUSPENDED</code></td>
+<td><code>suspend()</code>, <code>idle_timeout</code>, budget, health, rewind</td>
+<td><code>process.suspended</code></td>
+</tr>
+<tr>
+<td><code>RUNNING → STOPPING</code></td>
+<td><code>stop()</code>, <code>max_lifetime</code>, budget <code>on_exceeded="stop"</code>, health <code>on_anomaly="stop"</code>, mission completion</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>RUNNING → FAILED</code></td>
+<td><code>max_consecutive_failures</code> reached</td>
+<td><code>process.failed</code></td>
+</tr>
+<tr>
+<td><code>SUSPENDED → RUNNING</code></td>
+<td><code>resume()</code>, or a trigger event for an idle-suspended process</td>
+<td><code>process.resumed</code></td>
+</tr>
+<tr>
+<td><code>SUSPENDED → STOPPING</code></td>
+<td><code>stop()</code></td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>SUSPENDED → FAILED</code></td>
+<td>A run that was in flight when the process was suspended fails and reaches <code>max_consecutive_failures</code></td>
+<td><code>process.failed</code></td>
+</tr>
+<tr>
+<td><code>STOPPING → STOPPED</code></td>
+<td>Teardown complete</td>
+<td><code>process.stopped</code> (not during a <code>max_lifetime</code> recycle)</td>
+</tr>
+<tr>
+<td><code>STOPPED → STARTING</code></td>
+<td><code>start()</code>, <code>AgentRuntime.restart_process()</code>, a <code>max_lifetime</code> recycle</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>FAILED → STARTING</code></td>
+<td><code>start()</code>, <code>restart_process()</code>, <code>start_all()</code>, an automatic restart</td>
+<td><code>process.restarted</code> (automatic restart only, before the attempt)</td>
+</tr>
+<tr>
+<td><code>FAILED → STOPPING</code></td>
+<td><code>stop()</code></td>
+<td>--</td>
+</tr>
+</tbody>
+</table>
+<p><code>STOPPING → FAILED</code> and the <code>AWAITING</code> transitions are allowed by the map but not used by <code>AgentProcess</code>.</p>
+<p>Restarting a <code>FAILED</code> process (by <code>start()</code> or an automatic restart) first tears down what the failed run left: trigger listeners, triggers, heartbeat and agent. Nothing fires twice. See <a href="../processes/#restart-policies">Restart policies</a> for backoff and limits.</p>
+<hr />
+<h2 id="lifecycle-events">Lifecycle events<a class="headerlink" href="#lifecycle-events" title="Link to this section">&para;</a></h2>
+<p>With an <code>event_notifier</code>, the process emits these events. Every event's <code>data</code> holds <code>process_name</code> and <code>process_id</code> plus the keys below; <code>agent_id</code> is the process name, and <code>metadata</code> holds <code>process_name</code>, <code>process_id</code> and <code>model</code> (when the model is a string).</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Severity</th>
+<th>When</th>
+<th>Extra <code>data</code> keys</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>process.started</code></td>
+<td><code>info</code></td>
+<td>Entered <code>RUNNING</code> (every start, automatic restarts included)</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>process.stopped</code></td>
+<td><code>info</code></td>
+<td>A stop finished (not for <code>CREATED → STOPPED</code>)</td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>process.failed</code></td>
+<td><code>critical</code></td>
+<td>Entered <code>FAILED</code></td>
+<td><code>reason</code>, <code>error</code> (the real error, <code>"Type: message"</code>, at most 500 characters)</td>
+</tr>
+<tr>
+<td><code>process.restarted</code></td>
+<td><code>warning</code></td>
+<td>An automatic restart attempt begins (after its backoff), or a <code>max_lifetime</code> recycle</td>
+<td><code>reason</code>, <code>attempt</code> (<code>None</code> for a recycle), <code>max_restarts</code></td>
+</tr>
+<tr>
+<td><code>process.restart_exhausted</code></td>
+<td><code>critical</code></td>
+<td>A failure with <code>max_restarts</code> already used up; the process stays <code>FAILED</code></td>
+<td><code>reason</code>, <code>restarts</code>, <code>max_restarts</code>, <code>error</code></td>
+</tr>
+<tr>
+<td><code>process.suspended</code></td>
+<td><code>warning</code></td>
+<td>Entered <code>SUSPENDED</code></td>
+<td><code>reason</code> (<code>"manual"</code>, <code>"idle"</code>, <code>"budget"</code>, <code>"health"</code>, <code>"rewind"</code>)</td>
+</tr>
+<tr>
+<td><code>process.resumed</code></td>
+<td><code>info</code></td>
+<td>Left <code>SUSPENDED</code></td>
+<td><code>reason</code> (<code>"manual"</code>, <code>"trigger"</code>, <code>"rewind"</code>), <code>suspended_for</code> (the suspension's reason)</td>
+</tr>
+<tr>
+<td><code>process.rewound</code></td>
+<td><code>warning</code></td>
+<td><code>rewind()</code> applied</td>
+<td><code>target_entry_id</code>, <code>mode</code>, <code>actor</code>, <code>entries_affected</code></td>
+</tr>
+</tbody>
+</table>
+<p>A failed process that gets restarted and fails again emits <code>process.failed</code> each time, and <code>process.restart_exhausted</code> once the limit is hit:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>process.started
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>process.failed             error="GraphExecutionError: ... RuntimeError: model down"
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>process.restarted          attempt=1, max_restarts=1
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>process.started
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>process.failed             error="GraphExecutionError: ... RuntimeError: model down"
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>process.restart_exhausted  restarts=1, max_restarts=1
+</span></code></pre></div>
+<p>The same process also emits <code>invocation.*</code> events from its agent and, when enabled, <code>budget.*</code>, <code>health.*</code> and <code>mission.*</code> events (see the <a href="../governance/budget/">governance</a> pages). Journal entries mirror the lifecycle: a <code>state_transition</code> entry per transition (<code>from_state</code>, <code>to_state</code>, <code>reason</code>, <code>process_id</code>), plus <code>restart</code>, <code>restart_exhausted</code> and <code>recovered</code> entries.</p>
+<p>The <a href="../hooks/">lifecycle hooks</a> <code>session_start</code> (on entering <code>RUNNING</code>) and <code>session_end</code> (before a stop or restart) follow the same lifecycle.</p>
+<hr />
+<h2 id="stateerror-and-processstateerror">StateError and ProcessStateError<a class="headerlink" href="#stateerror-and-processstateerror" title="Link to this section">&para;</a></h2>
+<p><code>StateError</code> is the one exception for an invalid transition. It subclasses <code>ProcessStateError</code> (which subclasses <code>RuntimeBaseError</code>) and <code>ValueError</code>, so any of these catches it:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessStateError</span><span class="p">,</span> <span class="n">RuntimeBaseError</span><span class="p">,</span> <span class="n">StateError</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>  <span class="c1"># already running</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">except</span> <span class="n">ProcessStateError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># or StateError, ValueError, RuntimeBaseError</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="c1"># Process 'watcher': Cannot transition from 'running' to 'starting'.</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="c1"># Allowed targets: ['awaiting', 'failed', 'stopping', 'suspended']</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>current</code></td>
+<td><code>ProcessState</code></td>
+<td>The state the transition started from</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td><code>ProcessState</code></td>
+<td>The rejected target</td>
+</tr>
+<tr>
+<td><code>process_id</code></td>
+<td><code>str \| None</code></td>
+<td>The process name (an <code>AgentProcess</code> always sets it)</td>
+</tr>
+<tr>
+<td><code>current_state</code></td>
+<td><code>str</code></td>
+<td><code>current.value</code></td>
+</tr>
+<tr>
+<td><code>attempted_state</code></td>
+<td><code>str</code></td>
+<td><code>target.value</code></td>
+</tr>
+</tbody>
+</table>
+<p>The message starts with <code>Process '&lt;name&gt;':</code> when the process is known and lists the allowed targets (sorted by value). The runtime never raises a bare <code>ProcessStateError</code>; it exists as the base class.</p>
+<p>Which <code>AgentProcess</code> methods raise it:</p>
+<table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Raises when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start()</code></td>
+<td>The process is <code>STARTING</code>, <code>RUNNING</code> or <code>SUSPENDED</code> (already started)</td>
+</tr>
+<tr>
+<td><code>suspend()</code></td>
+<td>The process is not <code>RUNNING</code></td>
+</tr>
+<tr>
+<td><code>resume()</code></td>
+<td>The process is not <code>SUSPENDED</code></td>
+</tr>
+<tr>
+<td><code>stop()</code></td>
+<td>Never for a state reason: stopping a <code>STOPPED</code> or <code>STOPPING</code> process does nothing</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="using-processlifecycle-directly">Using ProcessLifecycle directly<a class="headerlink" href="#using-processlifecycle-directly" title="Link to this section">&para;</a></h2>
+<p><code>AgentProcess</code> owns its <code>ProcessLifecycle</code> (<code>process.lifecycle</code>). You can use the class on its own, for example in tests:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessLifecycle</span><span class="p">,</span> <span class="n">ProcessState</span><span class="p">,</span> <span class="n">StateError</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">lc</span> <span class="o">=</span> <span class="n">ProcessLifecycle</span><span class="p">(</span><span class="n">process_id</span><span class="o">=</span><span class="s2">"demo"</span><span class="p">)</span>  <span class="c1"># starts in CREATED</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">STARTING</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"CLI start command"</span><span class="p">)</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"agent built"</span><span class="p">)</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="k">if</span> <span class="n">lc</span><span class="o">.</span><span class="n">can_transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">SUSPENDED</span><span class="p">):</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">SUSPENDED</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"idle"</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"idle_s"</span><span class="p">:</span> <span class="mi">300</span><span class="p">})</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">CREATED</span><span class="p">)</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="k">except</span> <span class="n">StateError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">current</span><span class="p">,</span> <span class="n">exc</span><span class="o">.</span><span class="n">target</span><span class="p">)</span>  <span class="c1"># ProcessState.SUSPENDED ProcessState.CREATED</span>
+</span></code></pre></div>
+<h3 id="listeners">Listeners<a class="headerlink" href="#listeners" title="Link to this section">&para;</a></h3>
+<p><code>add_listener(callback)</code> registers a sync or async callable that receives the <code>ProcessTransition</code> after every successful transition. Listeners run in registration order, after the state has changed and outside the lock, so they may read <code>lc.state</code> or start another transition. A listener that raises is logged and skipped; it never undoes the transition.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">lc</span><span class="o">.</span><span class="n">add_listener</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">from_state</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">to_state</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
+</span></code></pre></div>
+<h3 id="processtransition">ProcessTransition<a class="headerlink" href="#processtransition" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -9985,7 +10183,7 @@
 <tr>
 <td><code>timestamp</code></td>
 <td><code>datetime</code></td>
-<td>When the transition occurred (UTC)</td>
+<td>When the transition happened (UTC)</td>
 </tr>
 <tr>
 <td><code>reason</code></td>
@@ -9995,59 +10193,32 @@
 <tr>
 <td><code>metadata</code></td>
 <td><code>dict[str, Any]</code></td>
-<td>Additional context (error details, etc.)</td>
+<td>Extra context; <code>AgentProcess</code> puts the error under <code>"error"</code> for <code>FAILED</code></td>
 </tr>
 </tbody>
 </table>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">transition</span> <span class="o">=</span> <span class="k">await</span> <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">STOPPING</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"user request"</span><span class="p">)</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">transition</span><span class="o">.</span><span class="n">from_state</span><span class="p">)</span>   <span class="c1"># ProcessState.RUNNING</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">transition</span><span class="o">.</span><span class="n">to_state</span><span class="p">)</span>     <span class="c1"># ProcessState.STOPPING</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">transition</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>       <span class="c1"># "user request"</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">transition</span><span class="o">.</span><span class="n">timestamp</span><span class="p">)</span>    <span class="c1"># datetime (UTC)</span>
+<p><code>to_dict()</code> and <code>ProcessTransition.from_dict(data)</code> convert to and from JSON-compatible dicts.</p>
+<h3 id="history-and-snapshots">History and snapshots<a class="headerlink" href="#history-and-snapshots" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">lc</span><span class="o">.</span><span class="n">history</span><span class="p">:</span>  <span class="c1"># a copy, oldest first</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">from_state</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">to_state</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="n">lc</span><span class="o">.</span><span class="n">snapshot</span><span class="p">()</span>  <span class="c1"># {"state": "suspended", "history": [...]}</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">restored</span> <span class="o">=</span> <span class="n">ProcessLifecycle</span><span class="o">.</span><span class="n">from_snapshot</span><span class="p">(</span><span class="n">snapshot</span><span class="p">)</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">assert</span> <span class="n">restored</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">lc</span><span class="o">.</span><span class="n">state</span>
 </span></code></pre></div>
-<h3 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">data</span> <span class="o">=</span> <span class="n">transition</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">restored</span> <span class="o">=</span> <span class="n">ProcessTransition</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</span></code></pre></div>
-<hr />
-<h2 id="audit-history">Audit History<a class="headerlink" href="#audit-history" title="Link to this section">&para;</a></h2>
-<p>The full transition history is available as a list:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">lc</span><span class="o">.</span><span class="n">history</span><span class="p">:</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">from_state</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">to_state</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">t</span><span class="o">.</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="snapshotting-and-restoring">Snapshotting and restoring<a class="headerlink" href="#snapshotting-and-restoring" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Serialize current state + full history</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">snapshot</span> <span class="o">=</span> <span class="n">lc</span><span class="o">.</span><span class="n">snapshot</span><span class="p">()</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Restore from a snapshot (e.g., after crash recovery)</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">restored_lc</span> <span class="o">=</span> <span class="n">ProcessLifecycle</span><span class="o">.</span><span class="n">from_snapshot</span><span class="p">(</span><span class="n">snapshot</span><span class="p">)</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">assert</span> <span class="n">restored_lc</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">lc</span><span class="o">.</span><span class="n">state</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">restored_lc</span><span class="o">.</span><span class="n">history</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">lc</span><span class="o">.</span><span class="n">history</span><span class="p">)</span>
-</span></code></pre></div>
-<hr />
-<h2 id="thread-safety">Thread Safety<a class="headerlink" href="#thread-safety" title="Link to this section">&para;</a></h2>
-<p><code>ProcessLifecycle</code> uses an internal <code>asyncio.Lock</code> to ensure that concurrent transition attempts are serialized. This prevents race conditions when multiple triggers or external signals attempt to change the process state simultaneously.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Safe for concurrent use from multiple coroutines</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">SUSPENDED</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"idle"</span><span class="p">),</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">STOPPING</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"shutdown"</span><span class="p">),</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">)</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1"># Only one transition will succeed; the other raises StateError</span>
-</span></code></pre></div>
-<hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<p><code>from_snapshot()</code> restores the state and history only; listeners and the <code>process_id</code> are not part of a snapshot.</p>
+<h3 id="api-summary">API summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h3>
 <table>
 <thead>
 <tr>
-<th>Method / Property</th>
+<th>Method / property</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>ProcessLifecycle(initial)</code></td>
-<td>Create with initial state (default: <code>CREATED</code>)</td>
+<td><code>ProcessLifecycle(initial=ProcessState.CREATED, *, process_id=None)</code></td>
+<td>Create a state machine</td>
 </tr>
 <tr>
 <td><code>state</code></td>
@@ -10055,50 +10226,68 @@
 </tr>
 <tr>
 <td><code>history</code></td>
-<td>List of all <code>ProcessTransition</code> records</td>
+<td>Copy of all <code>ProcessTransition</code> records</td>
 </tr>
 <tr>
 <td><code>can_transition(target)</code></td>
-<td>Check if transitioning to target is valid</td>
+<td>Whether <code>target</code> is allowed from the current state</td>
 </tr>
 <tr>
-<td><code>await transition(target, reason, metadata)</code></td>
-<td>Perform a state transition</td>
+<td><code>await transition(target, *, reason="", metadata=None)</code></td>
+<td>Perform a transition; returns the <code>ProcessTransition</code>, raises <code>StateError</code></td>
+</tr>
+<tr>
+<td><code>add_listener(callback)</code></td>
+<td>Call <code>callback(transition)</code> after every transition</td>
 </tr>
 <tr>
 <td><code>snapshot()</code></td>
-<td>Serialize state and history to dict</td>
+<td><code>{"state": ..., "history": [...]}</code></td>
 </tr>
 <tr>
 <td><code>ProcessLifecycle.from_snapshot(data)</code></td>
-<td>Restore from serialized dict</td>
+<td>Rebuild from a snapshot</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Always provide a reason</p>
-<p>Transition reasons make debugging straightforward. Include context about who or what triggered the transition: <code>"cron trigger fired"</code>, <code>"max failures reached"</code>, <code>"user stop command"</code>.</p>
-</div>
-<div class="admonition tip">
-<p class="admonition-title">Use metadata for error details</p>
-<p>When transitioning to <code>FAILED</code>, include the error details in <code>metadata</code>. This information flows into the journal for later analysis.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">STOPPED and FAILED are restartable</p>
-<p>Both states allow transitioning back to <code>STARTING</code>. This is intentional for the restart policy feature. If you need a process to stay dead, remove it from the runtime entirely.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">AWAITING is not SUSPENDED</p>
-<p><code>AWAITING</code> means the process is healthy but waiting for its next trigger. <code>SUSPENDED</code> means the process was explicitly paused (idle timeout). They have different allowed transitions.</p>
-</div>
+<h2 id="concurrency">Concurrency<a class="headerlink" href="#concurrency" title="Link to this section">&para;</a></h2>
+<p>Transitions are serialized with an <code>asyncio.Lock</code>. That makes <code>ProcessLifecycle</code> safe for concurrent tasks of one event loop; it is not thread-safe, so call it (and <code>AgentProcess</code>) from the loop that runs the process.</p>
+<p>Serialized does not mean "only one wins". Concurrent transitions run one after another, and each is checked against the state the previous one left:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">lc</span> <span class="o">=</span> <span class="n">ProcessLifecycle</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">RUNNING</span><span class="p">)</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">SUSPENDED</span><span class="p">),</span>  <span class="c1"># RUNNING -&gt; SUSPENDED</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">lc</span><span class="o">.</span><span class="n">transition</span><span class="p">(</span><span class="n">ProcessState</span><span class="o">.</span><span class="n">STOPPING</span><span class="p">),</span>   <span class="c1"># SUSPENDED -&gt; STOPPING, also valid</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">)</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">assert</span> <span class="n">lc</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">ProcessState</span><span class="o">.</span><span class="n">STOPPING</span>
+</span></code></pre></div>
+<p>A transition that is no longer valid when its turn comes raises <code>StateError</code>.</p>
 <hr />
-<h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../runtime-manager/">Runtime Manager</a> -- how <code>AgentRuntime</code> coordinates process lifecycles</li>
-<li><a href="../journal/">Journal Overview</a> -- durable recording of lifecycle events</li>
+<li><strong>Waiting for <code>AWAITING</code>.</strong> It never happens. An idle process is <code>RUNNING</code>, or <code>SUSPENDED</code> with <code>suspend_reason == "idle"</code> after <code>idle_timeout</code>.</li>
+<li><strong>Treating every <code>SUSPENDED</code> the same.</strong> Only an idle suspension resumes by itself. A budget, health or manual suspension waits for <code>resume()</code>; its trigger events keep queueing (the queue holds 1000 events) and webhooks keep answering 202.</li>
+<li><strong>Treating <code>FAILED</code> as final.</strong> With <code>restart_policy="on_failure"</code> or <code>"always"</code> a failed process is restarted with backoff. Alert on <code>process.restart_exhausted</code> (it gave up), not only on <code>process.failed</code>.</li>
+<li><strong>Expecting <code>process.stopped</code> from a never-started process.</strong> <code>stop()</code> on a <code>CREATED</code> process moves it to <code>STOPPED</code> without an event.</li>
+<li><strong>Calling <code>start()</code> on a running process.</strong> It raises <code>StateError</code>. Use <code>AgentRuntime.restart_process()</code> to stop and start in one call.</li>
+<li><strong>Driving a process from another thread.</strong> The lifecycle lock is an <code>asyncio.Lock</code>; use <code>asyncio.run_coroutine_threadsafe()</code> to reach the process's loop.</li>
 </ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../processes/">Agent Processes</a> -- <code>start()</code>, <code>stop()</code>, <code>suspend()</code>, <code>resume()</code>, restart policies and dead letters</li>
+<li><a href="../runtime-manager/">Runtime Manager</a> -- how <code>AgentRuntime</code> starts, restarts and stops many processes</li>
+<li><a href="../hooks/">Runtime Hooks</a> -- run code on <code>session_start</code>, <code>session_end</code> and other lifecycle points</li>
+<li><a href="../journal/">Journal</a> -- durable record of every transition, and recovery on start</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-pause-resume">Pause and Resume an AI Agent: Lifecycle States Explained</a> -- The lifecycle states, suspend and resume, and what happens to queued work.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-auto-restart">AI Agent Auto-Restart: Restart Policies and Timeouts</a> -- Restart policies, backoff, restart limits and an alert when the runtime gives up.</li>
+<li><a href="https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery">Durable AI Agents: Crash Recovery and Safe Resume</a> -- Journal a process and continue where it stopped after a crash.</li>
+</ul>
+</div>
 
 
 
@@ -10121,7 +10310,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="April 9, 2026 17:46:06 UTC">2026-04-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
   </span>
 
     

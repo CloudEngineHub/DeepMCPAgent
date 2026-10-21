@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="React to high-level agent process events without modifying the agent itself. Runtime hooks are separate from reasoning graph hooks — they fire at process-level">
+        <meta name="description" content="Runtime hooks let you react to what happens to an agent process -- a session starting, a prompt about to reach the model, a tool approval being denied, a">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Runtime Hooks">
-  <meta property="og:description" content="React to high-level agent process events without modifying the agent itself. Runtime hooks are separate from reasoning graph hooks — they fire at process-level">
+  <meta property="og:description" content="Runtime hooks let you react to what happens to an agent process -- a session starting, a prompt about to reach the model, a tool approval being denied, a">
   <meta property="og:url" content="https://docs.promptise.com/runtime/hooks/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Runtime Hooks">
-  <meta name="twitter:description" content="React to high-level agent process events without modifying the agent itself. Runtime hooks are separate from reasoning graph hooks — they fire at process-level">
+  <meta name="twitter:description" content="Runtime hooks let you react to what happens to an agent process -- a session starting, a prompt about to reach the model, a tool approval being denied, a">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Runtime Hooks",
       "name": "Runtime Hooks",
-      "description": "React to high-level agent process events without modifying the agent itself. Runtime hooks are separate from reasoning graph hooks \u2014 they fire at process-level",
+      "description": "Runtime hooks let you react to what happens to an agent process -- a session starting, a prompt about to reach the model, a tool approval being denied, a",
       "url": "https://docs.promptise.com/runtime/hooks/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5242,10 +5212,60 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#hookevent-14-lifecycle-events" class="md-nav__link">
+  <a href="#registering-hooks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        HookEvent — 14 lifecycle events
+        Registering hooks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registering hooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hookconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HookConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#in-a-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In a manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deploying-command-hooks-over-the-control-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deploying command hooks over the control API
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-13-lifecycle-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The 13 lifecycle events
       
     </span>
   </a>
@@ -5264,10 +5284,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#once-true-fire-and-forget-hooks" class="md-nav__link">
+  <a href="#blocking-data-and-errors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        once: true — fire-and-forget hooks
+        Blocking, data and errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Blocking, data and errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#managing-registrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Managing registrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shellhook-external-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ShellHook: external commands
       
     </span>
   </a>
@@ -5275,54 +5323,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#priority-ordering" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Priority ordering
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#blocking-an-action" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Blocking an action
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#exception-isolation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Exception isolation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tag-based-deregistration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tag-based deregistration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#shellhook-delegate-to-an-external-command" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ShellHook — delegate to an external command
+        Common pitfalls
       
     </span>
   </a>
@@ -6071,6 +6075,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6093,8 +6101,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6108,8 +6117,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6121,6 +6136,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8367,8 +8384,6 @@
       
         
       
-        
-      
     
     
     
@@ -8521,36 +8536,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9429,10 +9414,60 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#hookevent-14-lifecycle-events" class="md-nav__link">
+  <a href="#registering-hooks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        HookEvent — 14 lifecycle events
+        Registering hooks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registering hooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hookconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HookConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#in-a-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In a manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deploying-command-hooks-over-the-control-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deploying command hooks over the control API
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-13-lifecycle-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The 13 lifecycle events
       
     </span>
   </a>
@@ -9451,10 +9486,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#once-true-fire-and-forget-hooks" class="md-nav__link">
+  <a href="#blocking-data-and-errors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        once: true — fire-and-forget hooks
+        Blocking, data and errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Blocking, data and errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#managing-registrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Managing registrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shellhook-external-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ShellHook: external commands
       
     </span>
   </a>
@@ -9462,54 +9525,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#priority-ordering" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Priority ordering
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#blocking-an-action" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Blocking an action
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#exception-isolation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Exception isolation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tag-based-deregistration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tag-based deregistration
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#shellhook-delegate-to-an-external-command" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ShellHook — delegate to an external command
+        Common pitfalls
       
     </span>
   </a>
@@ -9597,176 +9616,548 @@
 
 
 <h1 id="runtime-lifecycle-hooks">Runtime Lifecycle Hooks<a class="headerlink" href="#runtime-lifecycle-hooks" title="Link to this section">&para;</a></h1>
-<p>React to high-level agent process events without modifying the agent itself. Runtime hooks are separate from <a href="../../core/engine-hooks/">reasoning graph hooks</a> — they fire at <strong>process-level</strong> moments, not at every node or tool call.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">HookManager</span><span class="p">,</span> <span class="n">HookEvent</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">hooks</span> <span class="o">=</span> <span class="n">HookManager</span><span class="p">()</span>
+<p>Runtime hooks let you react to what happens <em>to</em> an agent process -- a session starting, a prompt about to reach the model, a tool approval being denied, a trigger event entering or leaving the queue -- without changing the agent. Use them to audit prompts, add standing context, notify a chat channel, or refuse an action by policy. Every <code>AgentProcess</code> dispatches the 13 lifecycle events itself; you only register the hooks.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">HookBlocked</span><span class="p">,</span> <span class="n">HookConfig</span><span class="p">,</span> <span class="n">HookContext</span><span class="p">,</span> <span class="n">HookEvent</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nd">@hooks</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">USER_PROMPT_SUBMIT</span><span class="p">)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">audit</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">await</span> <span class="n">audit_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">])</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">no_passwords</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">HookContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="k">if</span> <span class="s2">"password"</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="k">raise</span> <span class="n">HookBlocked</span><span class="p">(</span><span class="s2">"prompts may not ask for passwords"</span><span class="p">)</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nd">@hooks</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_START</span><span class="p">,</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">welcome</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"First session of the run!"</span><span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">add_house_rules</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">HookContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">ctx</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">"prompt"</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"prompt"</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">Answer in one sentence."</span><span class="p">)</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"You are a helpful assistant."</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">hooks</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">HookConfig</span><span class="p">(</span><span class="n">event</span><span class="o">=</span><span class="s2">"user_prompt_submit"</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">no_passwords</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="n">HookConfig</span><span class="p">(</span><span class="n">event</span><span class="o">=</span><span class="s2">"user_prompt_submit"</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">add_house_rules</span><span class="p">),</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="n">HookConfig</span><span class="p">(</span><span class="n">event</span><span class="o">=</span><span class="s2">"task_completed"</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"./hooks/log-task.sh"</span><span class="p">],</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">),</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="p">],</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">)</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span><span class="s2">"helper"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="nd">@process</span><span class="o">.</span><span class="n">hooks</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_START</span><span class="p">)</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">started</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">HookContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"session started"</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>   <span class="c1"># {'restart': False, 'recovered': None}</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 </span></code></pre></div>
+<p>A trigger event whose prompt mentions a password is refused before any budget is counted: it lands in <code>process.dead_letters</code> with reason <code>"blocked by hook"</code> and error <code>"prompts may not ask for passwords"</code>. Every other prompt gets the extra sentence. After each event, <code>./hooks/log-task.sh</code> receives the <code>task_completed</code> event as JSON on stdin.</p>
+<p>Runtime hooks are not the <a href="../../core/engine-hooks/">reasoning graph hooks</a> (<code>Hook</code>, <code>LoggingHook</code>, <code>TimingHook</code>): those run for every node and tool call <em>inside</em> one agent run. Runtime hooks fire at process-level moments, around runs.</p>
 <hr />
-<h2 id="hookevent-14-lifecycle-events">HookEvent — 14 lifecycle events<a class="headerlink" href="#hookevent-14-lifecycle-events" title="Link to this section">&para;</a></h2>
+<h2 id="registering-hooks">Registering hooks<a class="headerlink" href="#registering-hooks" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>How</th>
+<th>Accepts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ProcessConfig.hooks</code></td>
+<td>A list of <code>HookConfig</code></td>
+<td>Async callbacks and external commands</td>
+</tr>
+<tr>
+<td>Code</td>
+<td><code>process.hooks.on(event)</code> decorator or <code>process.hooks.register(event, fn)</code></td>
+<td>Async callbacks (or <code>ShellHook(...).callback</code>)</td>
+</tr>
+<tr>
+<td>Manifest</td>
+<td>The <code>hooks:</code> section of a <code>.agent</code> file</td>
+<td>External commands only</td>
+</tr>
+<tr>
+<td>Shared manager</td>
+<td><code>AgentRuntime(hooks=manager)</code> or <code>AgentProcess(..., hooks=manager)</code></td>
+<td>One <code>HookManager</code> whose hooks fire for every process</td>
+</tr>
+</tbody>
+</table>
+<p><code>process.hooks</code> is the process's own <code>HookManager</code>. It holds the hooks from <code>config.hooks</code> and whatever you register in code. A shared manager runs after the process's own hooks; <code>ctx.process_id</code> tells you which process dispatched the event.</p>
+<p>A process spawned by an open-mode agent (<code>spawn_process</code>) inherits its parent's <code>hooks</code> manager (and whatever the parent inherited): they run for the child after the child's own hooks and before the shared manager, with <code>ctx.process_id</code> naming the child. So a <code>permission_request</code> or <code>user_prompt_submit</code> hook on the parent governs every process it spawns.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">HookEvent</span><span class="p">,</span> <span class="n">HookManager</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">shared</span> <span class="o">=</span> <span class="n">HookManager</span><span class="p">()</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nd">@shared</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_START</span><span class="p">)</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">announce</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">process_id</span><span class="si">}</span><span class="s2"> is running"</span><span class="p">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">(</span><span class="n">hooks</span><span class="o">=</span><span class="n">shared</span><span class="p">)</span>   <span class="c1"># fires for every process the runtime starts</span>
+</span></code></pre></div>
+<p>A callback must be an async function, or an object with an async <code>__call__</code>, that takes one <code>HookContext</code>. A sync function raises <code>TypeError</code> at registration. The event can be a <code>HookEvent</code> member or its value (<code>"session_start"</code>); an unknown value raises <code>ValueError</code> listing the valid ones.</p>
+<h3 id="hookconfig">HookConfig<a class="headerlink" href="#hookconfig" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event</code></td>
+<td><code>str</code></td>
+<td>required</td>
+<td>A <code>HookEvent</code> value, for example <code>"user_prompt_submit"</code></td>
+</tr>
+<tr>
+<td><code>command</code></td>
+<td><code>str \| list[str] \| None</code></td>
+<td><code>None</code></td>
+<td>External program and arguments, run as a <a href="#shellhook-external-commands"><code>ShellHook</code></a>. A string is split like a terminal would (<code>shlex.split</code>); no shell runs it</td>
+</tr>
+<tr>
+<td><code>callback</code></td>
+<td>async callable</td>
+<td><code>None</code></td>
+<td>Python hook (code only; not serialized)</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>float \| None</code></td>
+<td><code>None</code></td>
+<td>Seconds the hook may run (<code>&gt; 0</code>, at most 3600). Unset: 5 for a command, 30 for a callback</td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td><code>int</code></td>
+<td><code>0</code></td>
+<td>Higher runs first</td>
+</tr>
+<tr>
+<td><code>once</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Run on the first matching event only, then deregister</td>
+</tr>
+<tr>
+<td><code>tag</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Group name for <code>remove_by_tag()</code></td>
+</tr>
+<tr>
+<td><code>fail_closed</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>An error or timeout of this hook blocks the action (blockable events only)</td>
+</tr>
+<tr>
+<td><code>cwd</code></td>
+<td><code>str \| None</code></td>
+<td><code>None</code></td>
+<td>Working directory of the command</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td><code>dict[str, SecretStr]</code></td>
+<td><code>{}</code></td>
+<td>Extra environment variables for the command. <code>${VAR}</code> references are resolved from the host environment each time the hook runs; literal values are masked in JSON dumps</td>
+</tr>
+<tr>
+<td><code>env_passthrough</code></td>
+<td><code>list[str]</code></td>
+<td><code>[]</code></td>
+<td>Host environment variables passed through to the command</td>
+</tr>
+<tr>
+<td><code>max_output_bytes</code></td>
+<td><code>int</code></td>
+<td><code>65536</code></td>
+<td>Largest stdout accepted from the command (at most 10 MiB)</td>
+</tr>
+</tbody>
+</table>
+<p>Set exactly one of <code>command</code> or <code>callback</code>; both or neither raises a validation error. Unknown keys are rejected.</p>
+<h3 id="in-a-manifest">In a manifest<a class="headerlink" href="#in-a-manifest" title="Link to this section">&para;</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">hooks</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">event</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user_prompt_submit</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"./hooks/audit.sh"</span><span class="p p-Indicator">]</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">fail_closed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">event</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">task_completed</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="s">"./hooks/notify.sh</span><span class="nv"> </span><span class="s">--channel</span><span class="nv"> </span><span class="s">ops"</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">env_passthrough</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SLACK_TOKEN</span><span class="p p-Indicator">]</span>
+</span></code></pre></div>
+<p>Each entry is a <code>HookConfig</code> with a <code>command</code>. A manifest resolves <code>${VAR}</code> references when it is loaded, except in the <code>secrets:</code> section and in hook <code>env:</code> values: those stay <code>${VAR}</code> references in the loaded config and are resolved each time the hook runs. Loading still checks that every variable they name is set, so <code>env: {SLACK_TOKEN: ${SLACK_TOKEN}}</code> needs the variable at load time but never puts its value into the loaded config. <code>env_passthrough</code> hands a host variable to the program as it is. A <code>callback</code> key in a manifest is an error (<code>hooks[0]: a manifest hook runs a 'command'; Python callbacks are registered in code (process.hooks)</code>). The old top-level <code>entrypoint</code> key is not read by the runtime; a manifest that sets it loads with a <code>FutureWarning</code>.</p>
+<h3 id="deploying-command-hooks-over-the-control-api">Deploying command hooks over the control API<a class="headerlink" href="#deploying-command-hooks-over-the-control-api" title="Link to this section">&para;</a></h3>
+<p>A command hook runs a program on the runtime's host. The <a href="../api/">Orchestration API</a> therefore refuses a <code>POST /api/v1/processes</code> whose config has a command hook (or a stdio MCP server, or open-mode tool creation) with <code>403 COMMANDS_NOT_ALLOWED</code>, unless the API was created with <code>OrchestrationAPI(..., allow_command_deploys=True)</code> (<code>promptise runtime start --allow-command-deploys</code>). Anyone with the API token could otherwise run any command as the runtime's user. Callback hooks can't be sent over HTTP at all, and processes you load from manifests on the host are not checked.</p>
+<hr />
+<h2 id="the-13-lifecycle-events">The 13 lifecycle events<a class="headerlink" href="#the-13-lifecycle-events" title="Link to this section">&para;</a></h2>
+<p><code>ctx.data</code> holds the keys listed for each event. Secret values (from <a href="../governance/secrets/">secret scoping</a>) are redacted before any hook sees them.</p>
 <table>
 <thead>
 <tr>
 <th>Event</th>
-<th>When it fires</th>
+<th>Fires when</th>
+<th><code>ctx.data</code></th>
+<th>Blockable: what a block does</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>SESSION_START</code></td>
-<td>Process enters RUNNING for the first time</td>
+<td>The process entered <code>RUNNING</code> (every <code>start()</code>, including automatic restarts)</td>
+<td><code>restart</code> (bool), <code>recovered</code> (what journal recovery restored, or <code>None</code>)</td>
+<td>No</td>
 </tr>
 <tr>
 <td><code>SESSION_END</code></td>
-<td>Process is about to stop</td>
+<td>The process is about to stop, before teardown: an explicit <code>stop()</code> or a restart</td>
+<td><code>reason</code> (<code>"stop"</code> or <code>"restart"</code>), <code>invocation_count</code></td>
+<td>No (a stop always proceeds)</td>
 </tr>
 <tr>
 <td><code>USER_PROMPT_SUBMIT</code></td>
-<td>New prompt submitted by user or trigger</td>
+<td>A trigger event's prompt is about to be sent to the model</td>
+<td><code>prompt</code>, <code>event_id</code>, <code>trigger_id</code>, <code>trigger_type</code></td>
+<td>Yes: the run is skipped and the event dead-lettered (<code>"blocked by hook"</code>), before any budget is counted. A hook may also replace <code>prompt</code></td>
 </tr>
 <tr>
 <td><code>PERMISSION_REQUEST</code></td>
-<td>Tool requiring approval is about to execute</td>
+<td>A tool that needs approval (<code>ProcessConfig.approval</code>) is about to be sent to the approval handler</td>
+<td><code>tool_name</code>, <code>arguments</code> (the reviewer's redacted copy), <code>request_id</code></td>
+<td>Yes: the call is denied without asking the handler</td>
 </tr>
 <tr>
 <td><code>PERMISSION_DENIED</code></td>
-<td>Approval request was denied</td>
+<td>Something the agent was about to do was refused</td>
+<td><code>kind</code>, <code>tool_name</code>, <code>request_id</code>, <code>reason</code>, <code>decided_by</code>, plus per-kind keys (below)</td>
+<td>No</td>
 </tr>
 <tr>
 <td><code>SUBAGENT_START</code></td>
-<td>Agent spawns a subagent</td>
+<td>An open-mode agent is about to spawn a process (<code>spawn_process</code> meta-tool)</td>
+<td><code>process_name</code>, <code>execution_mode</code>, <code>trigger_count</code></td>
+<td>Yes: the spawn is refused</td>
 </tr>
 <tr>
 <td><code>SUBAGENT_STOP</code></td>
-<td>Spawned subagent finishes</td>
+<td>A process this one spawned stopped or failed</td>
+<td><code>process_name</code>, <code>state</code></td>
+<td>No</td>
 </tr>
 <tr>
 <td><code>PRE_COMPACT</code></td>
-<td>Before conversation buffer compaction</td>
+<td>The conversation buffer is about to drop its oldest messages (<code>context.conversation_max_messages</code>)</td>
+<td><code>buffer_size</code>, <code>max_messages</code>, <code>dropping</code> (the messages that will be dropped)</td>
+<td>No</td>
 </tr>
 <tr>
 <td><code>POST_COMPACT</code></td>
-<td>After compaction completes</td>
+<td>After that compaction</td>
+<td><code>buffer_size</code>, <code>dropped</code></td>
+<td>No</td>
 </tr>
 <tr>
 <td><code>FILE_CHANGED</code></td>
-<td>Watched file on disk changes</td>
+<td>A file-watch trigger reported a change</td>
+<td>The event payload (<code>path</code>, <code>event_type</code>, ...), <code>trigger_id</code>, <code>event_id</code></td>
+<td>Yes: the event is dropped and counted as filtered</td>
 </tr>
 <tr>
 <td><code>CONFIG_CHANGE</code></td>
-<td>Process config changes at runtime</td>
+<td>The process's effective configuration changed</td>
+<td><code>source</code> (<code>"agent"</code> or <code>"operator"</code>), <code>change</code>, plus details</td>
+<td>Only for <code>source="agent"</code>: the agent's change is not applied. Operator changes always apply</td>
 </tr>
 <tr>
 <td><code>TASK_CREATED</code></td>
-<td>New background task enqueued</td>
+<td>A trigger event is about to be queued (from a trigger or <code>inject()</code>)</td>
+<td><code>event_id</code>, <code>trigger_id</code>, <code>trigger_type</code>, <code>payload_summary</code> (the payload as one line of JSON, at most 120 characters, secrets redacted)</td>
+<td>Yes: the event is dead-lettered (<code>"blocked by hook"</code>) instead of queued</td>
 </tr>
 <tr>
 <td><code>TASK_COMPLETED</code></td>
-<td>Background task finishes</td>
+<td>A queued event finished</td>
+<td><code>event_id</code>, <code>trigger_id</code>, <code>trigger_type</code>, <code>outcome</code>, <code>duration_ms</code>, <code>error</code></td>
+<td>No</td>
 </tr>
 </tbody>
 </table>
+<p><code>PERMISSION_DENIED</code> covers three kinds of refusal:</p>
+<table>
+<thead>
+<tr>
+<th><code>kind</code></th>
+<th>What refused it</th>
+<th>Extra data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"approval"</code></td>
+<td>The approval handler, a classifier rule, the gate, or a <code>permission_request</code> hook</td>
+<td><code>decided_by</code> as in the <code>ApprovalDecision</code></td>
+</tr>
+<tr>
+<td><code>"budget"</code></td>
+<td>A budget limit refused a tool call (<code>tool_name</code> set) or a run (<code>max_runs_per_day</code>; <code>tool_name</code> is <code>None</code>)</td>
+<td><code>decided_by="budget"</code>, <code>limit_name</code>, <code>limit_value</code>, <code>current_value</code>; <code>event_id</code> for a refused run</td>
+</tr>
+<tr>
+<td><code>"guardrail"</code></td>
+<td>The payload scan (<code>decided_by="payload_scan"</code>) or the guardrail scanner (<code>decided_by="guardrail"</code>) refused a trigger event's run</td>
+<td><code>tool_name</code> is <code>None</code>; <code>event_id</code>, <code>trigger_type</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>CONFIG_CHANGE</code> names the change in <code>change</code>: <code>"instructions"</code>, <code>"tool"</code>, <code>"mcp_server"</code>, <code>"trigger_added"</code>, <code>"trigger_removed"</code>, <code>"budget"</code>, <code>"health"</code>, <code>"mission"</code>, <code>"rollback"</code> or <code>"rewind"</code>.</p>
+<p><code>TASK_COMPLETED</code>'s <code>outcome</code> is <code>"success"</code>, <code>"retrying"</code>, <code>"failed"</code>, <code>"blocked"</code>, <code>"dead_lettered"</code> or <code>"refused"</code> (the run did not start: <code>max_runs_per_day</code> was reached; the event is dead-lettered with reason <code>"budget: max_runs_per_day"</code>). The event is no longer the worker's when the hook runs: a <code>stop()</code> that arrives while a <code>task_completed</code> hook is still running doesn't dead-letter an event whose run has finished.</p>
+<p><code>HookEvent</code> values are the lowercase names (<code>HookEvent.USER_PROMPT_SUBMIT.value == "user_prompt_submit"</code>). <code>BLOCKABLE_EVENTS</code> is the frozenset of the six blockable events.</p>
 <hr />
 <h2 id="hookcontext">HookContext<a class="headerlink" href="#hookcontext" title="Link to this section">&para;</a></h2>
-<p>Every hook callback receives a single <code>HookContext</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@dataclass</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">HookContext</span><span class="p">:</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">event</span><span class="p">:</span> <span class="n">HookEvent</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">process_id</span><span class="p">:</span> <span class="nb">str</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>      <span class="c1"># event payload — hooks may mutate this</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-</span></code></pre></div>
-<p>For <code>USER_PROMPT_SUBMIT</code>, <code>data["prompt"]</code> contains the prompt text. Hooks can mutate <code>data</code> to alter downstream behavior.</p>
+<p>Every callback receives a single <code>HookContext</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event</code></td>
+<td><code>HookEvent</code></td>
+<td>The event that fired</td>
+</tr>
+<tr>
+<td><code>process_id</code></td>
+<td><code>str</code></td>
+<td>The dispatching process's <strong>name</strong></td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>datetime</code></td>
+<td>UTC time of the dispatch</td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td><code>dict[str, Any]</code></td>
+<td>The event payload (a copy; hooks may change it)</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td><code>dict[str, Any]</code></td>
+<td><code>process_name</code> and <code>process_id</code> (the process's UUID)</td>
+</tr>
+</tbody>
+</table>
+<p><code>ctx.get(key, default)</code> and <code>ctx.set(key, value)</code> are shorthands for <code>ctx.data</code>.</p>
 <hr />
-<h2 id="once-true-fire-and-forget-hooks">once: true — fire-and-forget hooks<a class="headerlink" href="#once-true-fire-and-forget-hooks" title="Link to this section">&para;</a></h2>
-<p>Pass <code>once=True</code> to auto-deregister after the first invocation:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@hooks</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_START</span><span class="p">,</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">first_run_setup</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">await</span> <span class="n">initialize_database</span><span class="p">()</span>
+<h2 id="blocking-data-and-errors">Blocking, data and errors<a class="headerlink" href="#blocking-data-and-errors" title="Link to this section">&para;</a></h2>
+<p><strong>Blocking.</strong> Raise <code>HookBlocked(reason)</code> to refuse the action. The remaining hooks for that dispatch don't run. Only the six blockable events can be refused; a block of any other event is logged as a warning and ignored.</p>
+<p><strong>Returned data.</strong> Hooks run one after another on the same <code>ctx.data</code>, so a later hook sees what an earlier one changed. The process reads one value back: the <code>prompt</code> of <code>USER_PROMPT_SUBMIT</code>. The hook sees the prompt with secrets redacted; only a prompt that a hook actually changed replaces the original. Changes to <code>data</code> of other events are not used.</p>
+<p><strong>Order.</strong> Hooks run by priority (highest first; ties in registration order). The process's own hooks run first, then those inherited from the process that spawned it, then the shared manager's. A <code>once=True</code> hook is removed before it runs, so it runs at most once even when dispatches overlap.</p>
+<p><strong>Timeouts.</strong> A hook that runs longer than its timeout is cancelled and recorded as an error. The manager an <code>AgentProcess</code> creates has a default timeout of 30 seconds; a standalone <code>HookManager()</code> has none unless you pass <code>HookManager(default_timeout=...)</code>. A command hook's program is killed at its own <code>timeout</code>; the manager allows 5 seconds more as a backstop.</p>
+<p><strong>Errors.</strong> An exception other than <code>HookBlocked</code> never reaches the process: it is logged and recorded in <code>DispatchResult.errors</code>, and the next hook runs. A hook with <code>fail_closed=True</code> turns its error or timeout into a block (<code>reason</code> starts with <code>"hook failed (fail_closed)"</code>), which is what you want for a hook that enforces a policy. On a non-blockable event, <code>fail_closed</code> has no effect.</p>
+<p><code>HookManager.dispatch()</code> returns a <code>DispatchResult</code> when you dispatch yourself:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fired</code></td>
+<td>Number of hooks that ran</td>
+</tr>
+<tr>
+<td><code>blocked</code></td>
+<td><code>True</code> if a hook raised <code>HookBlocked</code> (or a <code>fail_closed</code> hook failed)</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>The block reason</td>
+</tr>
+<tr>
+<td><code>errors</code></td>
+<td><code>(hook_id, exception)</code> pairs for hooks that raised or timed out</td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td>The payload after the hooks ran</td>
+</tr>
+</tbody>
+</table>
+<h3 id="managing-registrations">Managing registrations<a class="headerlink" href="#managing-registrations" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">hook_id</span> <span class="o">=</span> <span class="n">process</span><span class="o">.</span><span class="n">hooks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_END</span><span class="p">,</span> <span class="n">notify</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">"ops"</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">hooks</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">hook_id</span><span class="p">)</span>          <span class="c1"># True if it was registered</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">await</span> <span class="n">process</span><span class="o">.</span><span class="n">hooks</span><span class="o">.</span><span class="n">remove_by_tag</span><span class="p">(</span><span class="s2">"ops"</span><span class="p">)</span>     <span class="c1"># number removed</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">process</span><span class="o">.</span><span class="n">hooks</span><span class="o">.</span><span class="n">registered</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_END</span><span class="p">)</span>  <span class="c1"># hook IDs</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">process</span><span class="o">.</span><span class="n">hooks</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>                         <span class="c1"># everything (or clear(event))</span>
 </span></code></pre></div>
-<p>The hook runs exactly once, then is removed. Useful for first-run setup, one-shot notifications, or "next time X happens, do Y" patterns.</p>
+<p><code>process.status()["hook_count"]</code> reports how many hooks the process's own manager holds.</p>
 <hr />
-<h2 id="priority-ordering">Priority ordering<a class="headerlink" href="#priority-ordering" title="Link to this section">&para;</a></h2>
-<p>Higher-priority hooks run first:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">hooks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">USER_PROMPT_SUBMIT</span><span class="p">,</span> <span class="n">audit_hook</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">hooks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">USER_PROMPT_SUBMIT</span><span class="p">,</span> <span class="n">transform_hook</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">hooks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">USER_PROMPT_SUBMIT</span><span class="p">,</span> <span class="n">log_hook</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Runs: audit → transform → log</span>
-</span></code></pre></div>
-<hr />
-<h2 id="blocking-an-action">Blocking an action<a class="headerlink" href="#blocking-an-action" title="Link to this section">&para;</a></h2>
-<p>Raise <code>HookBlocked</code> to cancel the action that triggered the hook:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">HookBlocked</span>
+<h2 id="shellhook-external-commands">ShellHook: external commands<a class="headerlink" href="#shellhook-external-commands" title="Link to this section">&para;</a></h2>
+<p>A command hook (<code>HookConfig(command=...)</code> or a manifest entry) runs as a <code>ShellHook</code>. You can also build one in code and register its <code>callback</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">HookEvent</span><span class="p">,</span> <span class="n">ShellHook</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">content_filter</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">if</span> <span class="s2">"DROP TABLE"</span> <span class="ow">in</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"prompt"</span><span class="p">,</span> <span class="s2">""</span><span class="p">):</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="k">raise</span> <span class="n">HookBlocked</span><span class="p">(</span><span class="s2">"SQL injection attempt blocked"</span><span class="p">)</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">hook</span> <span class="o">=</span> <span class="n">ShellHook</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="p">[</span><span class="s2">"/opt/hooks/audit_prompt.sh"</span><span class="p">],</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">5.0</span><span class="p">)</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">process</span><span class="o">.</span><span class="n">hooks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">USER_PROMPT_SUBMIT</span><span class="p">,</span> <span class="n">hook</span><span class="o">.</span><span class="n">callback</span><span class="p">,</span> <span class="n">fail_closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span></code></pre></div>
-<p>The <code>HookManager.dispatch()</code> returns a <code>DispatchResult</code> with <code>blocked=True</code> so the caller can abort.</p>
-<hr />
-<h2 id="exception-isolation">Exception isolation<a class="headerlink" href="#exception-isolation" title="Link to this section">&para;</a></h2>
-<p>One broken hook never takes down the runtime. Exceptions (other than <code>HookBlocked</code>) are caught, logged, and recorded in <code>DispatchResult.errors</code>. The remaining hooks still run.</p>
-<hr />
-<h2 id="tag-based-deregistration">Tag-based deregistration<a class="headerlink" href="#tag-based-deregistration" title="Link to this section">&para;</a></h2>
-<p>Group hooks by tag for bulk removal:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">hooks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_START</span><span class="p">,</span> <span class="n">h1</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">"audit"</span><span class="p">)</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">hooks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">SESSION_END</span><span class="p">,</span> <span class="n">h2</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">"audit"</span><span class="p">)</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">await</span> <span class="n">hooks</span><span class="o">.</span><span class="n">remove_by_tag</span><span class="p">(</span><span class="s2">"audit"</span><span class="p">)</span>  <span class="c1"># removes both</span>
+<p>The program receives the event as JSON on <strong>stdin</strong>:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">"event"</span><span class="p">:</span><span class="w"> </span><span class="s2">"user_prompt_submit"</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">"process_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"support-bot"</span><span class="p">,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-10-19T10:30:00+00:00"</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"event_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"trigger_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"trigger_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"webhook"</span><span class="p">},</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">"metadata"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"process_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"support-bot"</span><span class="p">,</span><span class="w"> </span><span class="nt">"process_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"63712925-..."</span><span class="p">}</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">}</span>
 </span></code></pre></div>
-<hr />
-<h2 id="shellhook-delegate-to-an-external-command">ShellHook — delegate to an external command<a class="headerlink" href="#shellhook-delegate-to-an-external-command" title="Link to this section">&para;</a></h2>
-<p><code>ShellHook</code> runs an external script with the event as JSON on stdin and parses JSON from stdout:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ShellHook</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">hook</span> <span class="o">=</span> <span class="n">ShellHook</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="s2">"./hooks/audit_prompt.sh"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mf">5.0</span><span class="p">)</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">hooks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">HookEvent</span><span class="o">.</span><span class="n">USER_PROMPT_SUBMIT</span><span class="p">,</span> <span class="n">hook</span><span class="o">.</span><span class="n">callback</span><span class="p">)</span>
+<p>It may write one JSON object to <strong>stdout</strong> (all keys optional):</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">"block"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">"reason"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"REWRITTEN"</span><span class="p">},</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">"log"</span><span class="p">:</span><span class="w"> </span><span class="s2">"anything"</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">}</span>
 </span></code></pre></div>
-<p><strong>JSON contract — stdin (sent to script):</strong>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">"event"</span><span class="p">:</span><span class="w"> </span><span class="s2">"user_prompt_submit"</span><span class="p">,</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">"process_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"support-bot"</span><span class="p">,</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">"timestamp"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-04-08T10:30:00+00:00"</span><span class="p">,</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">}</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">}</span>
-</span></code></pre></div></p>
-<p><strong>JSON contract — stdout (from script, optional):</strong>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">"block"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">"reason"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">"data"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"prompt"</span><span class="p">:</span><span class="w"> </span><span class="s2">"REWRITTEN"</span><span class="p">},</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">"log"</span><span class="p">:</span><span class="w"> </span><span class="s2">"anything"</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">}</span>
-</span></code></pre></div></p>
+<table>
+<thead>
+<tr>
+<th>Result</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Exit 0, empty stdout</td>
+<td>Success, nothing changed</td>
+</tr>
+<tr>
+<td>Exit 0, a JSON object</td>
+<td><code>data</code> (an object) replaces the event data; <code>"block": true</code> refuses the action with <code>reason</code>; <code>log</code> is logged at debug level</td>
+</tr>
+<tr>
+<td>Non-zero exit</td>
+<td>Hook error (the message includes the exit code and up to 500 characters of stderr)</td>
+</tr>
+<tr>
+<td>Timeout</td>
+<td>The program is killed; hook error</td>
+</tr>
+<tr>
+<td>More than <code>max_output_bytes</code> on stdout</td>
+<td>The program is killed; hook error</td>
+</tr>
+<tr>
+<td>stdout that isn't a JSON object, or <code>data</code> that isn't an object</td>
+<td>Hook error</td>
+</tr>
+</tbody>
+</table>
+<p>A hook error is logged and ignored, or blocks the action when the hook is <code>fail_closed</code>. Blocking is done with <code>{"block": true}</code>, not with an exit code.</p>
+<p><strong>No shell.</strong> The command runs directly: a list is used as is, a string is split with <code>shlex.split</code> (quotes work as in a terminal), and the executable is looked up on <code>PATH</code>. The event never appears on the command line. Only a <code>ShellHook(shell=True)</code> built in code runs its command string through <code>/bin/sh -c</code>; a manifest or <code>HookConfig</code> can't.</p>
+<p><strong>Minimal environment.</strong> The program does not inherit the host environment, so API keys and tokens in it don't reach hook programs. It gets:</p>
 <ul>
-<li>Return <code>{"block": true, "reason": "..."}</code> to block the action</li>
-<li>Return <code>{"data": {...}}</code> to replace the event's data</li>
-<li>Return <code>{}</code> or nothing for a no-op</li>
-<li>Non-zero exit or timeout = broken hook (logged, not fatal)</li>
+<li>these host variables, when they are set: <code>PATH</code>, <code>HOME</code>, <code>USER</code>, <code>LOGNAME</code>, <code>SHELL</code>, <code>LANG</code>, <code>LANGUAGE</code>, <code>LC_ALL</code>, <code>LC_CTYPE</code>, <code>LC_MESSAGES</code>, <code>TZ</code>, <code>TMPDIR</code>, <code>TEMP</code>, <code>TMP</code>, <code>TERM</code>, and on Windows <code>SYSTEMROOT</code>, <code>SYSTEMDRIVE</code>, <code>WINDIR</code>, <code>COMSPEC</code>, <code>PATHEXT</code>, <code>USERPROFILE</code>, <code>APPDATA</code>, <code>LOCALAPPDATA</code>, <code>PROGRAMDATA</code>, <code>PROGRAMFILES</code> (<code>SAFE_ENV_VARS</code>);</li>
+<li>the host variables named in <code>env_passthrough</code>;</li>
+<li>the values in <code>env</code> (<code>${VAR}</code> and <code>${VAR:-default}</code> resolved when the hook runs);</li>
+<li><code>PROMPTISE_HOOK_EVENT</code> (the event value) and <code>PROMPTISE_PROCESS</code> (the process name).</li>
 </ul>
-<p>This lets you write hooks in Bash, Node, Go, or any language — and hot-reload them by editing the script.</p>
-<p>The command is tokenized like a terminal would (<code>shlex.split</code>) and its
-executable resolved on <code>PATH</code>; unless <code>cwd</code> is set, the process starts without
-<code>fork()</code> (CPython's <code>posix_spawn</code> path). That matters on macOS: a forked child
-of a multithreaded process that has used system frameworks — any <code>httpx</code>
-client does — can die with SIGSEGV before <code>exec</code> (<code>exited -11</code>). Prefer an
-absolute script path over <code>cwd</code> when you can.</p>
+<p><code>ShellHook(inherit_env=True)</code> (code only) passes the whole host environment instead.</p>
+<table>
+<thead>
+<tr>
+<th><code>ShellHook</code> attribute</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>command</code></td>
+<td>required</td>
+<td>List of program and arguments, or a string split with <code>shlex.split</code></td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>5.0</code></td>
+<td>Seconds before the program is killed</td>
+</tr>
+<tr>
+<td><code>cwd</code></td>
+<td><code>None</code></td>
+<td>Working directory</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td><code>None</code></td>
+<td>Extra variables (values may be <code>${VAR}</code> references)</td>
+</tr>
+<tr>
+<td><code>shell</code></td>
+<td><code>False</code></td>
+<td>Run a command string through the shell (code only)</td>
+</tr>
+<tr>
+<td><code>encoding</code></td>
+<td><code>"utf-8"</code></td>
+<td>stdin/stdout encoding</td>
+</tr>
+<tr>
+<td><code>inherit_env</code></td>
+<td><code>False</code></td>
+<td>Pass the whole host environment</td>
+</tr>
+<tr>
+<td><code>env_passthrough</code></td>
+<td><code>[]</code></td>
+<td>Host variables to pass through</td>
+</tr>
+<tr>
+<td><code>max_output_bytes</code></td>
+<td><code>65536</code></td>
+<td>Largest stdout accepted</td>
+</tr>
+</tbody>
+</table>
+<p><code>ShellHook.run(ctx)</code> runs the program and returns a <code>ShellHookResult</code> (<code>block</code>, <code>reason</code>, <code>data</code>, <code>log</code>, <code>raw</code>) without applying it, which is handy in tests.</p>
+<p>Unless <code>cwd</code> is set, the program starts without <code>fork()</code> (CPython's <code>posix_spawn</code> path). That matters on macOS: a forked child of a multithreaded process that has used system frameworks -- any <code>httpx</code> client does -- can die with SIGSEGV before <code>exec</code> (<code>exited -11</code>). Prefer an absolute script path over <code>cwd</code> when you can.</p>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong>Awaiting the process from its own hook.</strong> A hook must not <code>await process.stop()</code>, <code>start()</code> or <code>rewind()</code> of the process that dispatched it; that waits on itself. Schedule it with <code>asyncio.create_task(process.stop())</code>.</li>
+<li><strong>Expecting a block on an informational event.</strong> <code>HookBlocked</code> from <code>SESSION_END</code>, <code>TASK_COMPLETED</code> or <code>PERMISSION_DENIED</code> is ignored (with a warning). Refuse earlier: <code>TASK_CREATED</code>, <code>USER_PROMPT_SUBMIT</code> or <code>PERMISSION_REQUEST</code>.</li>
+<li><strong>A policy hook that fails open.</strong> Without <code>fail_closed=True</code>, a crashed or slow policy hook lets the action through. Set it on every hook that enforces something.</li>
+<li><strong>A hook script that needs a variable it doesn't get.</strong> Hook programs get a minimal environment. Name what they need in <code>env_passthrough</code>, or pass it through <code>env</code> with a <code>${VAR}</code> reference.</li>
+<li><strong>A sync callback.</strong> <code>def hook(ctx)</code> raises <code>TypeError</code> at registration; use <code>async def</code>.</li>
+<li><strong>Deploying a command hook over the API.</strong> It answers <code>403 COMMANDS_NOT_ALLOWED</code> unless the API allows command deploys; load the process from a manifest on the host, or use a callback hook in code.</li>
+<li><strong>A slow hook on a hot path.</strong> <code>USER_PROMPT_SUBMIT</code>, <code>TASK_CREATED</code> and <code>TASK_COMPLETED</code> run for every event, and the event waits for them. Keep them fast, or hand slow work to a background task.</li>
+</ul>
 <hr />
 <h2 id="related">Related<a class="headerlink" href="#related" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../../core/engine-hooks/">Reasoning Graph Hooks</a> — per-node and per-tool hooks for the reasoning engine</li>
-<li><a href="../../core/approval/">Approval</a> — human-in-the-loop for tool calls</li>
-<li><a href="../../core/events/">Events</a> — structured event notifications</li>
+<li><a href="../processes/">Agent Processes</a> -- the lifecycle that dispatches these events</li>
+<li><a href="../manifests/">Agent Manifests</a> -- the <code>hooks:</code> section</li>
+<li><a href="../api/">Orchestration API</a> -- <code>allow_command_deploys</code> and <code>COMMANDS_NOT_ALLOWED</code></li>
+<li><a href="../governance/secrets/">Secret Scoping</a> -- what is redacted from hook data</li>
+<li><a href="../../core/engine-hooks/">Reasoning Graph Hooks</a> -- per-node and per-tool hooks inside a run</li>
+<li><a href="../../core/approval/">Approval</a> -- the approval flow behind <code>PERMISSION_REQUEST</code></li>
+<li><a href="../../core/events/">Events</a> -- structured event notifications</li>
 </ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/autonomous-ai-agent-runtime">Autonomous AI Agent Runtime: Budgets, Crash Recovery, API</a> -- How a runtime supervises long-running agents and where hooks fit in.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-control-api">AI Agent Control API: Manage Running Agents Over HTTP</a> -- Deploy and manage processes over HTTP, and what the API refuses.</li>
+</ul>
+</div>
 
 
 
@@ -9789,7 +10180,7 @@ absolute script path over <code>cwd</code> when you can.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="September 19, 2026 13:53:14 UTC">2026-09-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 21:55:30 UTC">2026-10-20</span>
   </span>
 
     

@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8375,36 +8356,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,7 +9257,7 @@
           
           <li class="md-meta__item">
             
-              9 min read
+              8 min read
             
           </li>
         
@@ -9317,7 +9268,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="does-your-ai-agent-phone-home-telemetry-data-egress"><a class="toclink" href="../../ai-agent-no-data-egress/">Does Your AI Agent Phone Home? Telemetry &amp; Data Egress</a></h2>
-<p>The phrase <strong>AI agent no data egress</strong> shows up on every sovereign and regulated procurement checklist, and it means something precise: the agent — and the framework wrapped around it — must not send data outside your network without your explicit say-so. Most teams read that as a statement about the model endpoint. It isn't only that. Long before you invoke an LLM, the framework you chose may already open outbound connections for "anonymous telemetry" or route your execution traces through a hosted service. To a security reviewer, both are egress you have to justify, whether the payload is anonymous or not. This post audits what agent frameworks send outbound by default, and shows how to keep full observability — every LLM turn, tool call, latency, and cache hit — on transporters that never leave your network.</p>
+<p>The phrase <strong>AI agent no data egress</strong> shows up on every sovereign and air-gapped procurement checklist, and it means something precise: the agent — and the framework wrapped around it — must not send data outside your network without your explicit say-so. Most teams read that as a statement about the model endpoint. It isn't only that. Long before you invoke an LLM, the framework you chose may already open outbound connections for "anonymous telemetry" or route your execution traces through a hosted service. To a security reviewer, both are egress you have to justify, whether the payload is anonymous or not. This post audits what agent frameworks send outbound by default, and shows how to keep full observability — every LLM turn, tool call, latency, and cache hit — on transporters that never leave your network.</p>
 
     
       <nav class="md-post__action">
@@ -9358,7 +9309,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="air-gapped-agent-deployment-checklist-for-regulated-teams"><a class="toclink" href="../../air-gapped-agent-deployment-checklist/">Air-Gapped Agent Deployment Checklist for Regulated Teams</a></h2>
-<p>This <strong>air-gapped agent deployment checklist</strong> is written for the teams who cannot hand-wave the offline story: banks, hospitals, insurers, and government programs shipping an agent into a network with no route to the public internet. A general production checklist tells you to add auth, rate limits, and health checks — all necessary, none of which prove that nothing leaves the perimeter. The offline dimension is its own discipline: every model staged on-box, every guardrail running on-device, code execution locked to no network, memory kept local and injection-scanned, and every sensitive action captured in a tamper-evident chain your auditor can verify. This is the pre-production list that closes the gap a standard checklist skips.</p>
+<p>This <strong>air-gapped agent deployment checklist</strong> is written for the teams who cannot hand-wave the offline story: banks, hospitals, insurers, and government programs shipping an agent into a network with no route to the public internet. A general production checklist tells you to add auth, rate limits, and health checks — all necessary, none of which prove that nothing leaves the perimeter. The offline dimension is its own discipline: every model staged on-box, every guardrail running on-device, code execution locked to no network, memory kept local and injection-scanned, and every sensitive action captured in a tamper-evident chain your security team can verify. This is the pre-production list that closes the gap a standard checklist skips.</p>
 
     
       <nav class="md-post__action">
@@ -9399,7 +9350,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="air-gapped-ai-agent-framework-the-on-prem-guide"><a class="toclink" href="../../air-gapped-agent-framework/">Air-Gapped AI Agent Framework: The On-Prem Guide</a></h2>
-<p>Choosing an <strong>air-gapped agent framework</strong> is not the same as choosing a framework that can talk to a local model — and that distinction is exactly where most on-prem projects stall. Swapping a hosted LLM for Ollama is the easy 20%. The hard 80% is every other layer of a modern agent: the embedding model behind your vector memory, the moderation call that scores toxic output, the injection classifier guarding your input, the code sandbox your agent executes in, and the telemetry exporter shipping traces somewhere for debugging. Each one is a potential outbound connection, and in an isolated network a single one breaks the whole system — or worse, quietly passes a compliance review it should have failed. This guide is the hub for the whole picture: it maps every layer of an agent to a local implementation, shows the exact configuration that keeps each layer on-box, and is honest about what a truly <strong>fully offline agent stack</strong> requires versus what "supports local models" actually buys you.</p>
+<p>Choosing an <strong>air-gapped agent framework</strong> is not the same as choosing a framework that can talk to a local model — and that distinction is exactly where most on-prem projects stall. Swapping a hosted LLM for Ollama is the easy 20%. The hard 80% is every other layer of a modern agent: the embedding model behind your vector memory, the moderation call that scores toxic output, the injection classifier guarding your input, the code sandbox your agent executes in, and the telemetry exporter shipping traces somewhere for debugging. Each one is a potential outbound connection, and in an isolated network a single one breaks the whole system — or worse, quietly passes a security review it should have failed. This guide covers the whole picture: it maps every layer of an agent to a local implementation, shows the exact configuration that keeps each layer on-box, and is clear about what a truly <strong>fully offline agent stack</strong> requires versus what "supports local models" actually buys you.</p>
 
     
       <nav class="md-post__action">
@@ -9445,47 +9396,6 @@
     
       <nav class="md-post__action">
         <a href="../../air-gapped-ai-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Air-Gapped &amp; Sovereign</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="gdpr-right-to-erasure-purge-a-user-from-your-agent"><a class="toclink" href="../../gdpr-delete-user-data-ai-agent/">GDPR Right to Erasure: Purge a User From Your Agent</a></h2>
-<p>When a subject-access team hands you a <strong>GDPR delete user data AI agent</strong> request, the hard part is never the primary database — you already know how to run a <code>DELETE</code> there. The hard part is every <em>other</em> place the agent quietly kept a copy of that person: the long-term memory it embedded from their conversations, the semantic cache holding their answered questions, and the observability timeline recording who did what. A modern agent is not one store. It is three or four persistence layers wired behind one <code>build_agent()</code> call, and a right-to-erasure request has to reach all of them or it is not complete. This post shows how to erase one user from every store the agent wrote to — with a single call per layer, keyed to the exact principal so you delete that person and no one else.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../gdpr-delete-user-data-ai-agent/">
           Continue reading
         </a>
       </nav>
@@ -9609,47 +9519,6 @@
     
       <nav class="md-post__action">
         <a href="../../offline-guardrail-models/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Air-Gapped &amp; Sovereign</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              10 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-deploy-a-sovereign-ai-agent-for-eu-data-residency"><a class="toclink" href="../../sovereign-ai-agent-eu-data-residency/">How to Deploy a Sovereign AI Agent for EU Data Residency</a></h2>
-<p>When a European bank, hospital group, or public-sector team specifies a <strong>sovereign AI agent EU data residency</strong> deployment, they mean something exact and non-negotiable: every byte the agent touches — prompts, retrieved context, tool arguments, generated code — must stay on infrastructure inside the region, on components you operate, with no packet crossing to a US-hosted API. That is harder than pointing your model string at a European endpoint, because an agent framework has more channels to the internet than the model call. This post walks through a deployment where inference, embeddings, the vector store, the safety guardrails, and code execution are all bound to local, no-egress components — and, critically, where that binding lives in one declarative <code>.superagent</code> file an auditor can read top to bottom instead of trusting five separate integrations.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../sovereign-ai-agent-eu-data-residency/">
           Continue reading
         </a>
       </nav>

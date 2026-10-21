@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,129 +9257,6 @@
           
           <li class="md-meta__item">
             
-              7 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="agent-reasoning-patterns-the-complete-guide"><a class="toclink" href="../../agent-reasoning-patterns/">Agent Reasoning Patterns: The Complete Guide</a></h2>
-<p>Agent reasoning patterns are the different control flows an LLM follows to solve a task — a single tool-calling loop, a plan-then-act cycle, an adversarial debate, or a hand-built graph. Most guides quietly imply the opposite of what's true: they suggest that stacking more reasoning stages makes an agent smarter. On today's capable models it usually just adds latency and tokens. By the end of this guide you'll know what each of the built-in patterns actually does, when the extra stages earn their cost, and how to switch between them with a single argument.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../agent-reasoning-patterns/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Reasoning</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="when-agent-tool-loops-fail-fixing-context-bloat"><a class="toclink" href="../../agent-stuck-in-tool-loop/">When Agent Tool Loops Fail: Fixing Context Bloat</a></h2>
-<p>If your agent is stuck in a tool loop — calling the same lookup over and over, its answer never arriving, its token bill climbing every turn — you are hitting the single most common production failure on deep tool tasks. It is not a prompt-wording problem and it is not a model problem. It is context bloat: a naive tool-calling loop feeds the model its entire transcript on every turn, and once that transcript grows large enough, the model loses the thread and re-fetches facts it already has. By the end of this post you will know exactly why the loop degrades, how the <code>context_scope</code> lever bounds it, and how to flatten token growth with a one-argument switch.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../agent-stuck-in-tool-loop/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Reasoning</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="code-action-agents-write-one-program-not-30-tool-calls"><a class="toclink" href="../../code-action-agent/">Code-Action Agents: Write One Program, Not 30 Tool Calls</a></h2>
-<p>A <strong>code-action agent</strong> flips the action space of an LLM: instead of chaining dozens of conversational tool calls to gather facts and then guessing the arithmetic in its head, the model writes <strong>one Python program</strong> over your tools and runs it. If you have ever watched an agent re-query the same records, blow its context window, and still return the wrong total, this pattern is for you. By the end of this post you will know when the codeact pattern wins, how to switch it on in Promptise Foundry with a single argument, and why the sandbox it runs in is locked down by default — not a bolt-on you have to remember to add.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../code-action-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Reasoning</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               6 min read
             
           </li>
@@ -9445,129 +9273,6 @@
     
       <nav class="md-post__action">
         <a href="../../multi-agent-debate-llm/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Reasoning</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="plan-and-execute-agents-how-planning-loops-work"><a class="toclink" href="../../plan-and-execute-agent/">Plan-and-Execute Agents: How Planning Loops Work</a></h2>
-<p>A plan-and-execute agent writes an explicit plan before it touches a single tool, then works through that plan step by step instead of improvising one call at a time. It sounds strictly better than a plain tool-calling loop—and that intuition is the biggest trap in agent design. By the end of this post you'll understand exactly what the Plan → Act → Think → Reflect loop does, how to run one in Promptise Foundry with a single parameter, and—just as important—how to tell when the extra planning step earns its cost versus when it just burns tokens.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../plan-and-execute-agent/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Reasoning</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="the-react-agent-pattern-explained-with-code"><a class="toclink" href="../../react-agent-pattern/">The ReAct Agent Pattern Explained (with Code)</a></h2>
-<p>The ReAct agent pattern is the loop underneath almost every tool-using LLM agent you have ever built: the model reasons about what to do, acts by calling a tool, observes the result, and repeats until it can answer. It is simple enough to hand-roll in twenty lines — which is exactly why so many production agents ship with a fragile version of it that quietly degrades on longer tasks. By the end of this post you will understand the pattern from first principles, be able to name the specific failure mode that bites hand-rolled loops, and stand up a production ReAct agent in a single function call where context stays bounded automatically.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../react-agent-pattern/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Reasoning</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              6 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="react-vs-plan-and-execute-which-pattern-to-use"><a class="toclink" href="../../react-vs-plan-and-execute/">ReAct vs Plan-and-Execute: Which Pattern to Use?</a></h2>
-<p>Choosing between <strong>react vs plan and execute</strong> is one of the first real architecture decisions you make once an agent stops being a demo and starts doing work someone depends on. Both patterns are legitimate; the internet's advice is mostly vibes. This guide is grounded in how the two actually behave on capable models, names the specific task shapes where each one wins, and shows you how to settle the question empirically on your own task instead of arguing about it. By the end you'll know which to reach for first — and how to A/B the two in Promptise Foundry by flipping a single argument.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../react-vs-plan-and-execute/">
           Continue reading
         </a>
       </nav>

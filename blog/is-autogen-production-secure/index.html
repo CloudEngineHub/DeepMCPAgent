@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="AutoGen is a capable multi-agent research framework, but 'can it pass a compliance review?' is a different question — there is no tamper-evident audit trail…">
+        <meta name="description" content="Learn what AutoGen gives you in production, what it lacks for a verifiable record of agent actions, and how to add a tamper-evident audit trail and tool access.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/is-autogen-production-secure/">
       
       
-        <link rel="prev" href="../jwt-authentication-for-mcp-servers/">
+        <link rel="prev" href="../langgraph-checkpoint-vs-audit-log/">
       
       
-        <link rel="next" href="../human-in-the-loop-llm-approval/">
+        <link rel="next" href="../hot-reload-agent-instructions-without-losing-state/">
       
       
         
@@ -88,14 +88,14 @@
 
   
   
-    <meta name="keywords" content="is autogen production secure, autogen audit logging, tamper-evident agent audit trail, hmac chained audit ai agent, compliance audit ai agents">
+    <meta name="keywords" content="is autogen production secure, autogen audit logging, tamper-evident agent audit trail, hmac chained audit ai agent, ai agent security review">
   
 
   
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Is AutoGen Production-Secure? The Audit Trail Gap">
-  <meta property="og:description" content="AutoGen is a capable multi-agent research framework, but 'can it pass a compliance review?' is a different question — there is no tamper-evident audit trail…">
+  <meta property="og:description" content="Learn what AutoGen gives you in production, what it lacks for a verifiable record of agent actions, and how to add a tamper-evident audit trail and tool access.">
   <meta property="og:url" content="https://docs.promptise.com/blog/is-autogen-production-secure/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Is AutoGen Production-Secure? The Audit Trail Gap">
-  <meta name="twitter:description" content="AutoGen is a capable multi-agent research framework, but 'can it pass a compliance review?' is a different question — there is no tamper-evident audit trail…">
+  <meta name="twitter:description" content="Learn what AutoGen gives you in production, what it lacks for a verifiable record of agent actions, and how to add a tamper-evident audit trail and tool access.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Is AutoGen Production-Secure? The Audit Trail Gap",
       "name": "Is AutoGen Production-Secure? The Audit Trail Gap",
-      "description": "AutoGen is a capable multi-agent research framework, but \u0027can it pass a compliance review?\u0027 is a different question \u2014 there is no tamper-evident audit trail\u2026",
+      "description": "Learn what AutoGen gives you in production, what it lacks for a verifiable record of agent actions, and how to add a tamper-evident audit trail and tool access.",
       "url": "https://docs.promptise.com/blog/is-autogen-production-secure/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9297,10 +9248,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-primitive-an-audit-trail-an-auditor-can-verify" class="md-nav__link">
+  <a href="#the-primitive-an-audit-trail-a-reviewer-can-verify" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The primitive: an audit trail an auditor can verify
+        The primitive: an audit trail a reviewer can verify
       
     </span>
   </a>
@@ -9319,10 +9270,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-this-isnt-a-log-primitive-not-a-compliance-program" class="md-nav__link">
+  <a href="#what-this-isnt-a-log-primitive-not-a-full-governance-program" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What this isn't: a log primitive, not a compliance program
+        What this isn't: a log primitive, not a full governance program
       
     </span>
   </a>
@@ -9342,10 +9293,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#is-autogen-production-secure-enough-to-pass-a-compliance-audit" class="md-nav__link">
+  <a href="#is-autogen-production-secure-enough-to-pass-a-security-review" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Is AutoGen production secure enough to pass a compliance audit?
+        Is AutoGen production secure enough to pass a security review?
       
     </span>
   </a>
@@ -9375,10 +9326,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#how-do-i-honor-a-data-subject-erasure-request-without-breaking-the-audit-chain" class="md-nav__link">
+  <a href="#how-do-i-delete-one-users-data-on-request-without-breaking-the-audit-chain" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How do I honor a data-subject erasure request without breaking the audit chain?
+        How do I delete one user's data on request without breaking the audit chain?
       
     </span>
   </a>
@@ -9499,16 +9450,12 @@
 
 
 <h1 id="is-autogen-production-secure-the-audit-trail-gap">Is AutoGen Production-Secure? The Audit Trail Gap<a class="headerlink" href="#is-autogen-production-secure-the-audit-trail-gap" title="Link to this section">&para;</a></h1>
-<p>If you are asking <strong>is AutoGen production secure</strong> enough to survive a compliance review, the honest answer starts with a compliment: Microsoft's AutoGen is a genuinely capable multi-agent research framework, and the 0.4 line ships real infrastructure — a Docker code executor and a distributed gRPC runtime that coordinates agents across processes and machines. That is not a toy. But "capable in production" and "can pass an auditor's questions" are two different bars, and the gap between them is narrow, specific, and unforgiving: when your agents call tools that move money or touch regulated data, an auditor asks <em>who did it, prove the record wasn't edited, and prove nothing went missing</em> — and AutoGen has no answer built in. This post credits what AutoGen actually gives you, then shows the primitive it leaves to you: an HMAC-chained, tamper-evident audit trail with verified per-principal and per-tenant attribution.</p>
+<p>If you are asking <strong>is AutoGen production secure</strong> enough to survive a security review, the answer starts with a compliment: Microsoft's AutoGen is a genuinely capable multi-agent research framework, and the 0.4 line ships real infrastructure — a Docker code executor and a distributed gRPC runtime that coordinates agents across processes and machines. That is not a toy. But "capable in production" and "can answer an incident reviewer's questions" are two different bars, and the gap between them is narrow, specific, and unforgiving: when your agents call tools that move money or touch sensitive data, whoever reviews the incident asks <em>who did it, prove the record wasn't edited, and prove nothing went missing</em> — and AutoGen has no answer built in. This post covers what AutoGen actually gives you, then shows the primitive it leaves to you: an HMAC-chained, tamper-evident audit trail with verified per-principal and per-tenant attribution.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="production-capable-is-not-audit-ready">Production-capable is not audit-ready<a class="headerlink" href="#production-capable-is-not-audit-ready" title="Link to this section">&para;</a></h2>
 <p>The confusion is understandable, because AutoGen looks production-shaped from the outside. It has a runtime, a distributed topology, and a container for untrusted code. Those are exactly the boxes you tick when you ask "can it run at scale?"</p>
-<p>The trouble is that a compliance reviewer is not asking whether it <em>runs</em>. They are asking whether, six months after an incident, you can hand them a record that (a) attributes every consequential tool call to a verified principal, (b) proves that record has not been altered since it was written, and &copy; demonstrates that nothing was silently dropped. Those three properties — attribution, integrity, completeness — are the entire content of a SOC 2 monitoring control, a HIPAA §164.312(b) audit control, and an EU AI Act Article 12 logging obligation. A framework can be an excellent execution engine and still supply none of them, because they were never the design goal. AutoGen was built to make agents <em>reason together</em>, and it does that well. It was not built to make their actions <em>auditable</em>, and it does not pretend otherwise. That is the honest starting point behind the whole <a href="../../getting-started/why-promptise/">Why Promptise Foundry</a> argument: production agents need the boring, verifiable governance to be default behavior, not a research afterthought.</p>
+<p>The trouble is that a security reviewer is not asking whether it <em>runs</em>. They are asking whether, six months after an incident, you can hand them a record that (a) attributes every consequential tool call to a verified principal, (b) proves that record has not been altered since it was written, and &copy; demonstrates that nothing was silently dropped. Those three properties — attribution, integrity, completeness — are what separate an audit trail from a debugging log. A framework can be an excellent execution engine and still supply none of them, because they were never the design goal. AutoGen was built to make agents <em>reason together</em>, and it does that well. It was not built to make their actions <em>auditable</em>, and it does not pretend otherwise. That is the honest starting point behind the whole <a href="../../getting-started/why-promptise/">Why Promptise Foundry</a> argument: production agents need the boring, verifiable governance to be default behavior, not a research afterthought.</p>
 <h2 id="what-other-frameworks-do-today">What other frameworks do today<a class="headerlink" href="#what-other-frameworks-do-today" title="Link to this section">&para;</a></h2>
 <p>Being precise here matters, because it is easy to caricature a research framework and lose the reader's trust. Let me name AutoGen's actual behavior exactly, then state the exact delta.</p>
 <ul>
@@ -9517,10 +9464,10 @@
 <li><strong>AutoGen produces logs and traces.</strong> The 0.4 runtime emits structured events through Python's <code>logging</code> and can be wired to OpenTelemetry — excellent for debugging and replay. The properties to be precise about: that telemetry lands in a <em>mutable</em> store, and any identity attribute on an event is written by the emitting process, so the "who" is self-reported, not checked against an identity provider. Superb observability; not tamper-evidence.</li>
 <li><strong>AutoGen has human-in-the-loop, not capability authorization.</strong> <code>UserProxyAgent</code> can pause for human input, which is a real approval affordance. It is a different thing from <em>capability-based per-tool authorization</em> — a declarative rule that a given tool may only be called by a principal holding a specific role, scope, or tenant, enforced server-side and recorded when it denies.</li>
 </ul>
-<p>None of that is a knock. For prototyping and research it is exactly right. The delta an auditor lives in is narrow and concrete: a mutable telemetry store is not a record whose <em>edits and deletions are detectable</em>, a self-asserted attribute is not a <em>verified per-principal, per-tenant</em> attribution you can map to a control, and a human-in-the-loop prompt is not a <em>capability gate</em> whose denials are themselves logged. In AutoGen those three controls are entirely the developer's responsibility to research, build, and maintain. Promptise's edge is not "nobody else logs anything" — it is that tamper-evidence, verified attribution, and per-tool authorization are <em>first-class primitives</em>, structural rather than a metadata convention you have to remember to set correctly on every call site.</p>
-<h2 id="the-primitive-an-audit-trail-an-auditor-can-verify">The primitive: an audit trail an auditor can verify<a class="headerlink" href="#the-primitive-an-audit-trail-an-auditor-can-verify" title="Link to this section">&para;</a></h2>
+<p>None of that is a knock. For prototyping and research it is exactly right. The delta a reviewer lives in is narrow and concrete: a mutable telemetry store is not a record whose <em>edits and deletions are detectable</em>, a self-asserted attribute is not a <em>verified per-principal, per-tenant</em> attribution you can rely on after an incident, and a human-in-the-loop prompt is not a <em>capability gate</em> whose denials are themselves logged. In AutoGen those three controls are entirely the developer's responsibility to research, build, and maintain. Promptise's edge is not "nobody else logs anything" — it is that tamper-evidence, verified attribution, and per-tool authorization are <em>first-class primitives</em>, structural rather than a metadata convention you have to remember to set correctly on every call site.</p>
+<h2 id="the-primitive-an-audit-trail-a-reviewer-can-verify">The primitive: an audit trail a reviewer can verify<a class="headerlink" href="#the-primitive-an-audit-trail-a-reviewer-can-verify" title="Link to this section">&para;</a></h2>
 <p>Here is the whole mechanism in one runnable file. It stands up a ledger server, verifies a caller's token server-side, records a money-moving tool call, prints the <em>verified</em> principal and tenant the audit captured, confirms the chain, shows a caller <em>without</em> the required capability being denied <em>and that denial being recorded</em>, then simulates an insider rewriting history — and watches the chain catch it. Every API is real, and it runs in-process with <code>TestClient</code>: no network, no LLM key.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># audit_gap.py — what an auditor can actually verify.</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># audit_gap.py — what a reviewer can actually verify.</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.mcp.server</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -9593,22 +9540,22 @@
 <li><strong>Completeness — was anything dropped?</strong> Chain linkage: delete an entry and the <em>next</em> entry's <code>prev_hash</code> no longer matches, so a silent removal is detectable rather than invisible.</li>
 </ul>
 <p>There is a second attribution layer that answers a question a single-process chat loop can't even pose: <em>which agent asked another agent to do this?</em> When a Promptise agent delegates to a peer over HTTP+JWT, the delegating agent's identity rides along, and the peer's observability timeline stamps every event it records during that call with <code>delegated_by</code>. So a consequential action taken by a downstream specialist traces back to the coordinator that requested it — attribution across a delegation hop, not just within one process. That is complementary to the server-side audit's verified <code>subject</code>, and it is the kind of end-to-end wiring the <a href="../../guides/secure-multi-tenant-platform/">Secure Multi-Tenant Agent Platform</a> guide assembles from scratch.</p>
-<h2 id="what-this-isnt-a-log-primitive-not-a-compliance-program">What this isn't: a log primitive, not a compliance program<a class="headerlink" href="#what-this-isnt-a-log-primitive-not-a-compliance-program" title="Link to this section">&para;</a></h2>
-<p>Overclaiming on compliance is worse than saying nothing, so here is the boundary stated plainly. <code>AuditMiddleware</code> is a <em>log primitive</em>. It gives you attributable, tamper-evident, automatically-generated records with a mechanical <code>verify_chain()</code> proof, and capability guards give you enforceable per-tool authorization whose denials are recorded. It does not, by itself, make you SOC 2, HIPAA, or EU AI Act compliant — those are programs, not a middleware. It does not write your policies, run your risk assessments, or set your retention schedules. It does not make your storage immutable: pair it with write-once (WORM) or append-only storage and keep the HMAC secret out of the log-writer's reach, or an attacker who holds the key can re-sign a forged chain. And a verified <code>subject</code> is only as sound as the auth provider behind it — use <code>JwksAuth</code> against your IdP's published keys in production, where the <code>audience</code> check is load-bearing.</p>
-<p>It is equally fair to AutoGen to say that none of this is <em>impossible</em> on top of it. You can fork the executor, hand-roll a signing pipeline, and bolt authorization onto every tool. The point is the delta: with AutoGen those are yours to build and keep correct forever; in Promptise they are the default posture. Two more honest notes complete the picture. First, the audit trail is deliberately PII-minimal — <code>include_args</code> and <code>include_result</code> default to <code>False</code>, so tool payloads never enter the log unless you opt in, and the identity block records descriptors only. Second, GDPR erasure therefore targets the <em>mutable</em> stores where personal data actually lives — <code>purge_user()</code> is a first-class method on memory providers, the semantic cache (with a <code>tenant_id=</code> scope), and the observability recorder — leaving the PII-free, tamper-evident access record intact and verifiable. For the full list of what a framework hands you versus what stays your job, the <a href="../enterprise-ready-agent-framework-checklist/">Enterprise-Ready Agent Framework Checklist: What's Left to You</a> is the companion read.</p>
+<h2 id="what-this-isnt-a-log-primitive-not-a-full-governance-program">What this isn't: a log primitive, not a full governance program<a class="headerlink" href="#what-this-isnt-a-log-primitive-not-a-full-governance-program" title="Link to this section">&para;</a></h2>
+<p>Overclaiming is worse than saying nothing, so here is the boundary stated plainly. <code>AuditMiddleware</code> is a <em>log primitive</em>. It gives you attributable, tamper-evident, automatically-generated records with a mechanical <code>verify_chain()</code> proof, and capability guards give you enforceable per-tool authorization whose denials are recorded. It does not write your policies, run your risk assessments, or set your retention schedules. It does not make your storage immutable: pair it with write-once (WORM) or append-only storage and keep the HMAC secret out of the log-writer's reach, or an attacker who holds the key can re-sign a forged chain. And a verified <code>subject</code> is only as sound as the auth provider behind it — use <code>JwksAuth</code> against your IdP's published keys in production, where the <code>audience</code> check is load-bearing. Some uses of AI are regulated in some places. Ask your legal and compliance team what applies to you.</p>
+<p>It is equally fair to AutoGen to say that none of this is <em>impossible</em> on top of it. You can fork the executor, hand-roll a signing pipeline, and bolt authorization onto every tool. The point is the delta: with AutoGen those are yours to build and keep correct forever; in Promptise they are the default posture. Two more honest notes complete the picture. First, the audit trail is deliberately PII-minimal — <code>include_args</code> and <code>include_result</code> default to <code>False</code>, so tool payloads never enter the log unless you opt in, and the identity block records descriptors only. Second, a request to delete one user's data therefore targets the <em>mutable</em> stores where personal data actually lives — <code>purge_user()</code> is a first-class method on memory providers, the semantic cache (with a <code>tenant_id=</code> scope), and the observability recorder — leaving the PII-free, tamper-evident access record intact and verifiable. For the full list of what a framework hands you versus what stays your job, the <a href="../enterprise-ready-agent-framework-checklist/">Enterprise-Ready Agent Framework Checklist: What's Left to You</a> is the companion read.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
-<h3 id="is-autogen-production-secure-enough-to-pass-a-compliance-audit">Is AutoGen production secure enough to pass a compliance audit?<a class="headerlink" href="#is-autogen-production-secure-enough-to-pass-a-compliance-audit" title="Link to this section">&para;</a></h3>
-<p>AutoGen gives you real infrastructure — a Docker code executor and a 0.4 distributed gRPC runtime — but no tamper-evident audit trail, no verified per-principal or per-tenant attribution on tool calls, and no capability-based per-tool authorization primitive. Those three are precisely what a SOC 2, HIPAA, or EU AI Act reviewer asks for, and in AutoGen they are the developer's job to build. It can <em>run</em> in production; passing an audit is additional work you own.</p>
+<h3 id="is-autogen-production-secure-enough-to-pass-a-security-review">Is AutoGen production secure enough to pass a security review?<a class="headerlink" href="#is-autogen-production-secure-enough-to-pass-a-security-review" title="Link to this section">&para;</a></h3>
+<p>AutoGen gives you real infrastructure — a Docker code executor and a 0.4 distributed gRPC runtime — but no tamper-evident audit trail, no verified per-principal or per-tenant attribution on tool calls, and no capability-based per-tool authorization primitive. Those three are precisely what a security reviewer asks for after an incident, and in AutoGen they are the developer's job to build. It can <em>run</em> in production; passing that review is additional work you own.</p>
 <h3 id="doesnt-autogen-already-log-what-agents-do">Doesn't AutoGen already log what agents do?<a class="headerlink" href="#doesnt-autogen-already-log-what-agents-do" title="Link to this section">&para;</a></h3>
 <p>Yes — AutoGen 0.4 emits structured runtime events through Python <code>logging</code> and can export OpenTelemetry traces, which is excellent for debugging and replay. The gap is narrow and specific: that telemetry is a <em>mutable</em> store with <em>self-asserted</em> identity attributes. It is not a cryptographically chained record whose edits and deletions are detectable, nor a verified attribution checked against an identity provider. Promptise makes tamper-evidence and verified attribution structural fields inside the audit itself.</p>
 <h3 id="what-is-the-difference-between-human-in-the-loop-and-capability-based-authorization">What is the difference between human-in-the-loop and capability-based authorization?<a class="headerlink" href="#what-is-the-difference-between-human-in-the-loop-and-capability-based-authorization" title="Link to this section">&para;</a></h3>
 <p>AutoGen's <code>UserProxyAgent</code> can pause a run for human input — a real approval affordance. Capability-based authorization is different: a declarative, server-side rule (<code>guards=[HasScope("ledger:write")]</code>, <code>HasRole(...)</code>, <code>RequireTenant()</code>) that a tool may only be called by a principal holding a specific scope, role, or tenant — enforced before the handler runs, and recorded as an attributed entry when it denies. You typically want both.</p>
-<h3 id="how-do-i-honor-a-data-subject-erasure-request-without-breaking-the-audit-chain">How do I honor a data-subject erasure request without breaking the audit chain?<a class="headerlink" href="#how-do-i-honor-a-data-subject-erasure-request-without-breaking-the-audit-chain" title="Link to this section">&para;</a></h3>
-<p>Erase from the mutable stores, not the immutable log. Call <code>purge_user()</code> on your memory provider, semantic cache (with the <code>tenant_id=</code> scope where relevant), and observability recorder. The tamper-evident access trail — PII-minimal by design, since <code>include_args</code>/<code>include_result</code> default to <code>False</code> — is retained intact, which is exactly what retention rules expect.</p>
+<h3 id="how-do-i-delete-one-users-data-on-request-without-breaking-the-audit-chain">How do I delete one user's data on request without breaking the audit chain?<a class="headerlink" href="#how-do-i-delete-one-users-data-on-request-without-breaking-the-audit-chain" title="Link to this section">&para;</a></h3>
+<p>Erase from the mutable stores, not the immutable log. Call <code>purge_user()</code> on your memory provider, semantic cache (with the <code>tenant_id=</code> scope where relevant), and observability recorder. The tamper-evident access trail — PII-minimal by design, since <code>include_args</code>/<code>include_result</code> default to <code>False</code> — is retained intact, so <code>verify_chain()</code> still passes.</p>
 <h3 id="can-i-migrate-an-autogen-workflow-to-promptise">Can I migrate an AutoGen workflow to Promptise?<a class="headerlink" href="#can-i-migrate-an-autogen-workflow-to-promptise" title="Link to this section">&para;</a></h3>
 <p>Yes, usually incrementally. Keep your agent logic and instructions, re-express each agent with <code>build_agent()</code>, move tools onto MCP servers so they are discovered automatically, and add <code>AuthMiddleware</code> + <code>AuditMiddleware</code> plus per-tool guards to the servers. Because Promptise agents are services, you can migrate one agent at a time rather than rewriting the whole system.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>AutoGen is a strong multi-agent research framework; making it audit-ready is a project you own. In Promptise it is two lines of middleware and a per-tool guard. Add <code>AuthMiddleware(JWTAuth(...), tenant_claim="tenant_id")</code> and <code>AuditMiddleware(signed=True)</code> to your MCP server, gate consequential tools with <code>HasScope</code>/<code>HasRole</code>/<code>RequireTenant</code>, and run <code>verify_chain()</code> on a schedule. Start from the <a href="../../mcp/server/observability/">Observability &amp; Audit reference</a> for the full field list, wire tenant isolation and audit into one governed deployment with the <a href="../../guides/secure-multi-tenant-platform/">Secure Multi-Tenant Agent Platform</a> guide, and read <a href="../../getting-started/why-promptise/">Why Promptise Foundry</a> to see how auth, audit, and tenancy stay default-on as your system grows. See what an auditor can actually verify — then <code>pip install promptise</code>.</p>
+<p>AutoGen is a strong multi-agent research framework; making it audit-ready is a project you own. In Promptise it is two lines of middleware and a per-tool guard. Add <code>AuthMiddleware(JWTAuth(...), tenant_claim="tenant_id")</code> and <code>AuditMiddleware(signed=True)</code> to your MCP server, gate consequential tools with <code>HasScope</code>/<code>HasRole</code>/<code>RequireTenant</code>, and run <code>verify_chain()</code> on a schedule. Start from the <a href="../../mcp/server/observability/">Observability &amp; Audit reference</a> for the full field list, wire tenant isolation and audit into one governed deployment with the <a href="../../guides/secure-multi-tenant-platform/">Secure Multi-Tenant Agent Platform</a> guide, and read <a href="../../getting-started/why-promptise/">Why Promptise Foundry</a> to see how auth, audit, and tenancy stay default-on as your system grows. See what a reviewer can actually verify — then <code>pip install promptise</code>.</p>
 
 
 
@@ -9631,7 +9578,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

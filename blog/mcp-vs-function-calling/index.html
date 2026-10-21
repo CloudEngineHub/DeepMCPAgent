@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An honest breakdown: raw function calling is the right call for a handful of hardcoded tools in one process — MCP earns its keep once tools live behind a…">
+        <meta name="description" content="Learn the difference between MCP and function calling, when a few hardcoded tools in one process are enough, and when serving tools from an MCP server pays off.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="MCP vs Function Calling: What's the Difference?">
-  <meta property="og:description" content="An honest breakdown: raw function calling is the right call for a handful of hardcoded tools in one process — MCP earns its keep once tools live behind a…">
+  <meta property="og:description" content="Learn the difference between MCP and function calling, when a few hardcoded tools in one process are enough, and when serving tools from an MCP server pays off.">
   <meta property="og:url" content="https://docs.promptise.com/blog/mcp-vs-function-calling/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="MCP vs Function Calling: What's the Difference?">
-  <meta name="twitter:description" content="An honest breakdown: raw function calling is the right call for a handful of hardcoded tools in one process — MCP earns its keep once tools live behind a…">
+  <meta name="twitter:description" content="Learn the difference between MCP and function calling, when a few hardcoded tools in one process are enough, and when serving tools from an MCP server pays off.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "MCP vs Function Calling: What\u0027s the Difference?",
       "name": "MCP vs Function Calling: What\u0027s the Difference?",
-      "description": "An honest breakdown: raw function calling is the right call for a handful of hardcoded tools in one process \u2014 MCP earns its keep once tools live behind a\u2026",
+      "description": "Learn the difference between MCP and function calling, when a few hardcoded tools in one process are enough, and when serving tools from an MCP server pays off.",
       "url": "https://docs.promptise.com/blog/mcp-vs-function-calling/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9508,7 +9459,7 @@
 <p>For a handful of tools that live in one script, this is the correct design. There is no server to run, no auth to configure, nothing to version. If you have three functions and one deployment, adding an abstraction layer would be pure overhead.</p>
 <h2 id="what-mcp-adds-on-top-of-function-calling">What MCP adds on top of function calling<a class="headerlink" href="#what-mcp-adds-on-top-of-function-calling" title="Link to this section">&para;</a></h2>
 <p>MCP doesn't replace function calling — it standardizes the layer <em>above</em> it. Instead of hardcoding tool schemas into every agent, you expose your tools from an MCP server, and any MCP-compatible client discovers them at runtime by calling <code>tools/list</code>. The client still uses ordinary function calling under the hood to invoke them.</p>
-<p>The practical difference is who owns the tool definition. With raw function calling, the definition is copy-pasted into each agent that needs it. With MCP, the definition lives in one server and every agent — yours, Claude Desktop, Cursor, an internal support bot — reads the same source of truth. If you're new to the protocol, the <a href="../what-is-mcp/">What Is MCP? Model Context Protocol Explained</a> post and the <a href="../../getting-started/what-is-mcp/">What is MCP</a> guide walk through the wire format and the discovery handshake.</p>
+<p>The practical difference is who owns the tool definition. With raw function calling, the definition is copy-pasted into each agent that needs it. With MCP, the definition lives in one server and every agent — yours, Claude Desktop, Cursor, an internal support bot — reads the same source of truth. If you're new to the protocol, the <a href="https://www.promptise.com/guides/view/what-is-model-context-protocol">What Is MCP (Model Context Protocol)? A Developer's Guide</a> and the <a href="../../getting-started/what-is-mcp/">What is MCP</a> docs page walk through the wire format and the discovery handshake.</p>
 <p>This is why the honest framing isn't "MCP vs tool calling." It's <em>inline tools vs served tools</em>. Function calling is the mechanism; MCP is the deployment model.</p>
 <h2 id="when-to-use-mcp-and-when-to-skip-it">When to use MCP (and when to skip it)<a class="headerlink" href="#when-to-use-mcp-and-when-to-skip-it" title="Link to this section">&para;</a></h2>
 <p>Here's the crossover checklist. Stay on plain function calling while all of these are true:</p>
@@ -9598,7 +9549,7 @@
 </span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="p">)</span>
 </span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </span></code></pre></div>
-<p>That <code>refund</code> tool is now discoverable by any MCP client, and you can layer auth, roles, rate limits, and approval gates onto it without changing the agent code. The <a href="../../mcp/server/building-servers/">Building MCP Servers</a> guide covers decorators, guards, and middleware; the <a href="../../mcp/client/">native MCP client</a> shows how an agent consumes servers over stdio, HTTP, and SSE. For a full walkthrough of building one from scratch, see <a href="../mcp-server-python/">How to Build an MCP Server in Python (Tutorial)</a>.</p>
+<p>That <code>refund</code> tool is now discoverable by any MCP client, and you can layer auth, roles, rate limits, and approval gates onto it without changing the agent code. The <a href="../../mcp/server/building-servers/">Building MCP Servers</a> guide covers decorators, guards, and middleware; the <a href="../../mcp/client/">native MCP client</a> shows how an agent consumes servers over stdio, HTTP, and SSE. For a full walkthrough of building one from scratch, see <a href="https://www.promptise.com/guides/view/build-production-mcp-server-python">Build a Production MCP Server in Python (Step by Step)</a>.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="is-mcp-a-replacement-for-function-calling">Is MCP a replacement for function calling?<a class="headerlink" href="#is-mcp-a-replacement-for-function-calling" title="Link to this section">&para;</a></h3>
 <p>No. Function calling is how the model selects a tool and its arguments; MCP is how tools are served and discovered. An MCP client still uses function calling under the hood — MCP just moves the tool definitions out of your prompt and into a shared server, so multiple agents read one source of truth.</p>
@@ -9630,7 +9581,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

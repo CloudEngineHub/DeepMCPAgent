@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Separates the introspection techniques that pay for themselves from the ones that just cost tokens. A cheap single-pass self-verification (verify)…">
+        <meta name="description" content="Learn which reflection, self-critique and self-consistency techniques improve agent answers, which only cost tokens, and how to add self-verification cheaply.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/self-critique-agent/">
       
       
-        <link rel="prev" href="../self-modifying-ai-agent/">
+        <link rel="prev" href="../semantic-cache-cross-tenant-leak/">
       
       
-        <link rel="next" href="../secure-mcp-server-on-public-internet/">
+        <link rel="next" href="../secure-agent-to-agent-communication/">
       
       
         
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Reflection, Self-Critique & Self-Consistency Agents">
-  <meta property="og:description" content="Separates the introspection techniques that pay for themselves from the ones that just cost tokens. A cheap single-pass self-verification (verify)…">
+  <meta property="og:description" content="Learn which reflection, self-critique and self-consistency techniques improve agent answers, which only cost tokens, and how to add self-verification cheaply.">
   <meta property="og:url" content="https://docs.promptise.com/blog/self-critique-agent/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Reflection, Self-Critique & Self-Consistency Agents">
-  <meta name="twitter:description" content="Separates the introspection techniques that pay for themselves from the ones that just cost tokens. A cheap single-pass self-verification (verify)…">
+  <meta name="twitter:description" content="Learn which reflection, self-critique and self-consistency techniques improve agent answers, which only cost tokens, and how to add self-verification cheaply.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Reflection, Self-Critique \u0026 Self-Consistency Agents",
       "name": "Reflection, Self-Critique \u0026 Self-Consistency Agents",
-      "description": "Separates the introspection techniques that pay for themselves from the ones that just cost tokens. A cheap single-pass self-verification (verify)\u2026",
+      "description": "Learn which reflection, self-critique and self-consistency techniques improve agent answers, which only cost tokens, and how to add self-verification cheaply.",
       "url": "https://docs.promptise.com/blog/self-critique-agent/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9489,7 +9440,7 @@
 </ul>
 <p>All three are variations on the same idea — make the model examine its own reasoning instead of trusting the first token stream. Where they differ wildly is cost. A single-pass check adds a few hundred tokens; a five-turn reflexion loop or a five-sample self-consistency vote multiplies your bill and latency. The honest question is never "should my agent reflect?" It's "does <em>this</em> reflection technique earn its cost on <em>this</em> model?"</p>
 <h2 id="the-introspection-techniques-that-pay-for-themselves">The introspection techniques that pay for themselves<a class="headerlink" href="#the-introspection-techniques-that-pay-for-themselves" title="Link to this section">&para;</a></h2>
-<p>Here's the part the listicles skip: a modern frontier model already does a great deal of reasoning internally. Wrapping it in a heavy reflection pipeline often just makes it restate its own reasoning across several turns — same answer, higher bill. Reflection earns its keep in two specific places:</p>
+<p>Here's the part that often gets skipped: a modern frontier model already does a great deal of reasoning internally. Wrapping it in a heavy reflection pipeline often just makes it restate its own reasoning across several turns — same answer, higher bill. Reflection earns its keep in two specific places:</p>
 <ol>
 <li><strong>Weaker or mainstream models</strong> that don't reason strongly on their own. An explicit self-check recovers errors a single pass would miss.</li>
 <li><strong>Structurally hard tasks</strong> — arithmetic, multi-hop logic, constraint satisfaction — where a quick second look catches a careless slip regardless of model size.</li>
@@ -9541,7 +9492,7 @@
 <p>Self-consistency sits at the far end of the cost curve. Promptise doesn't ship a one-line prebuilt for it, because for most teams N full samples is a poor trade against a single <code>verify</code> pass that captures much of the same error-correction at a fraction of the spend. If you have a task where a majority vote across independent chains genuinely helps — and you can measure it — you can express that yourself as a custom reasoning graph; the <a href="../../core/engine/">reasoning engine overview</a> documents <code>PromptGraph</code>, parallel nodes, and how to wire your own topology. Reach for it only after <code>verify</code> has plateaued.</p>
 <h2 id="when-a-plain-pass-is-the-better-fit">When a plain pass is the better fit<a class="headerlink" href="#when-a-plain-pass-is-the-better-fit" title="Link to this section">&para;</a></h2>
 <p>Reflection is a tool, not a virtue, so here's the fair counter-case. <strong>If you're running a strong frontier model on straightforward tasks, skip the self-critique entirely.</strong> A well-prompted single pass is faster, cheaper, and — on that class of model — usually just as accurate. Adding <code>verify</code> there buys you a modest safety check; adding <code>deliberate</code> there usually buys you a bigger bill and nothing else. The same goes for latency-sensitive paths: a chatbot that must answer in under a second can't afford a five-stage loop no matter how careful it is.</p>
-<p>The efficient default for the large majority of agents is the plain ReAct loop, escalating to <code>verify</code> when you can measure that a small model needs the safety net. We break the baseline loop down step by step in <a href="../react-agent-pattern/">The ReAct Agent Pattern Explained (with Code)</a>, and map every pattern to when it actually helps in <a href="../agent-reasoning-patterns/">Agent Reasoning Patterns: The Complete Guide</a>. Start cheap, add stages only when your own numbers justify them.</p>
+<p>The efficient default for the large majority of agents is the plain ReAct loop, escalating to <code>verify</code> when you can measure that a small model needs the safety net. We build the baseline loop from scratch in <a href="https://www.promptise.com/guides/view/build-reliable-reason-and-act-agent-loops-react-from-scratch">ReAct Agent From Scratch in Python</a>, and compare nine patterns in <a href="https://www.promptise.com/guides/view/ai-agent-reasoning-patterns">AI Agent Reasoning Patterns in Python: 9 Patterns Tested</a>. Start cheap, add stages only when your own numbers justify them.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="what-is-the-difference-between-a-reflection-agent-and-a-self-consistency-agent">What is the difference between a reflection agent and a self-consistency agent?<a class="headerlink" href="#what-is-the-difference-between-a-reflection-agent-and-a-self-consistency-agent" title="Link to this section">&para;</a></h3>
 <p>A reflection agent (or reflexion pattern) has one model critique and revise its <em>own</em> single line of reasoning — draft, inspect, fix. A self-consistency LLM setup instead samples several independent answers to the same question and takes the majority vote, so it never critiques a specific draft; it relies on agreement across runs. Reflection is usually cheaper because it revises one chain; self-consistency multiplies your cost by the number of samples.</p>
@@ -9573,7 +9524,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

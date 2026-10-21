@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Teams building SaaS on LangChain eventually hit the moment two customers who both have a user named 'alice' can see each other's history — because LangChain…">
+        <meta name="description" content="Learn where LangChain apps leak data between tenants, for example two customers with the same user name, and how to make tenant isolation part of every lookup.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/does-langchain-support-multi-tenancy/">
       
       
-        <link rel="prev" href="../durable-execution-for-ai-agents/">
+        <link rel="prev" href="../encrypt-llm-cache-at-rest/">
       
       
         <link rel="next" href="../document-processing-ai-agent/">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Does LangChain Support Multi-Tenancy? The Honest Answer">
-  <meta property="og:description" content="Teams building SaaS on LangChain eventually hit the moment two customers who both have a user named 'alice' can see each other's history — because LangChain…">
+  <meta property="og:description" content="Learn where LangChain apps leak data between tenants, for example two customers with the same user name, and how to make tenant isolation part of every lookup.">
   <meta property="og:url" content="https://docs.promptise.com/blog/does-langchain-support-multi-tenancy/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Does LangChain Support Multi-Tenancy? The Honest Answer">
-  <meta name="twitter:description" content="Teams building SaaS on LangChain eventually hit the moment two customers who both have a user named 'alice' can see each other's history — because LangChain…">
+  <meta name="twitter:description" content="Learn where LangChain apps leak data between tenants, for example two customers with the same user name, and how to make tenant isolation part of every lookup.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Does LangChain Support Multi-Tenancy? The Honest Answer",
       "name": "Does LangChain Support Multi-Tenancy? The Honest Answer",
-      "description": "Teams building SaaS on LangChain eventually hit the moment two customers who both have a user named \u0027alice\u0027 can see each other\u0027s history \u2014 because LangChain\u2026",
+      "description": "Learn where LangChain apps leak data between tenants, for example two customers with the same user name, and how to make tenant isolation part of every lookup.",
       "url": "https://docs.promptise.com/blog/does-langchain-support-multi-tenancy/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9491,10 +9442,6 @@
 <p>If you are asking <strong>does LangChain support multi-tenancy</strong>, the honest answer is: not as a first-class concept — LangChain hands you excellent building blocks (memory stores, caches, retrievers, rate limiters), but there is no tenant identity that flows through them, so per-tenant isolation is something you wire and enforce yourself on every call. That is not a knock; it is a scope decision. This post is precise about exactly what LangChain gives you today, where the classic "two customers both named alice" leak comes from, and how Promptise Foundry turns tenancy from a filter you can forget into a structural invariant.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="where-the-leak-actually-comes-from">Where the leak actually comes from<a class="headerlink" href="#where-the-leak-actually-comes-from" title="Link to this section">&para;</a></h2>
 <p>Almost every SaaS team building on LangChain hits the same wall around the time their second real customer signs up. The prototype keyed everything on <code>user_id</code>. Then two organisations each onboard a user named <code>alice</code>, or two orgs both use the id <code>1</code>, and suddenly one tenant's conversation history, cached answers, or retrieved documents surface for another.</p>
 <p>The root cause is simple: <code>user_id</code> is not globally unique across tenants — only <em>within</em> a tenant. Any surface that isolates on <code>user_id</code> alone is one shared namespace. To be safe you actually need to isolate on the pair <code>(tenant_id, user_id)</code>, everywhere, without exception. In a <strong>langchain multi-tenant</strong> build, "everywhere without exception" is the hard part, because nothing in the framework knows what a tenant is. The correctness of your isolation depends on every call site remembering to add the org to the key — and the first one that forgets fails silently, in production, with real customer data.</p>
@@ -9552,7 +9499,7 @@
 </span></code></pre></div>
 <p>With a tenant present, the isolation propagates automatically to the surfaces that matter operationally: rate-limit buckets are tenant-qualified (one tenant can never exhaust another's quota, even for an identical <code>client_id</code>), and audit entries record the <code>tenant_id</code> in their identity descriptors, giving you tenant-scoped forensics without joining external data. This is the same "make the boring infrastructure default behavior" philosophy laid out on the <a href="../../getting-started/why-promptise/">Why Promptise</a> page — the same reasoning behind making tool approval structural rather than optional, which we compare across frameworks in <a href="../agent-framework-tool-approval-comparison/">which agent frameworks actually enforce tool approval</a>.</p>
 <h2 id="when-plain-langchain-is-still-fine">When plain LangChain is still fine<a class="headerlink" href="#when-plain-langchain-is-still-fine" title="Link to this section">&para;</a></h2>
-<p>If you are building a single-tenant internal tool, a prototype, or an app where every user genuinely shares one namespace, LangChain's single-namespace defaults are not a problem — adding a tenant abstraction would be overhead you do not need. The honest line is about <em>hard multi-tenant requirements</em>: the moment cross-tenant data leakage becomes an incident class you must design against — regulated data, per-customer SLAs, a SaaS control plane — you want isolation to be a structural invariant enforced in one place, not a filter argument repeated across a growing codebase. A <strong>multi-tenant ai agent langchain</strong> stack can absolutely get there; you are just the one carrying the correctness burden on every call.</p>
+<p>If you are building a single-tenant internal tool, a prototype, or an app where every user genuinely shares one namespace, LangChain's single-namespace defaults are not a problem — adding a tenant abstraction would be overhead you do not need. The honest line is about <em>hard multi-tenant requirements</em>: the moment cross-tenant data leakage becomes an incident class you must design against — sensitive customer data, per-customer SLAs, a SaaS control plane — you want isolation to be a structural invariant enforced in one place, not a filter argument repeated across a growing codebase. A <strong>multi-tenant ai agent langchain</strong> stack can absolutely get there; you are just the one carrying the correctness burden on every call.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="does-langchain-have-a-built-in-tenant_id-concept">Does LangChain have a built-in tenant_id concept?<a class="headerlink" href="#does-langchain-have-a-built-in-tenant_id-concept" title="Link to this section">&para;</a></h3>
 <p>No. LangChain and LangGraph provide isolation <em>primitives</em> — namespaced stores, thread-scoped checkpointers, caches, and rate limiters — but none of them share a tenant identity, and there is no framework-level <code>tenant_id</code> that flows through all of them. You isolate by composing the tenant into keys and namespaces yourself, on every call. Promptise adds <code>CallerContext.tenant_id</code> and derives one <code>tenant::user</code> <code>isolation_key</code> that every per-user surface reads.</p>
@@ -9586,7 +9533,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

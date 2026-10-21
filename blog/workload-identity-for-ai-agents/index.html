@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Explains why the shared-API-key anti-pattern that humans abandoned is exactly what most agent fleets still run, and maps agents onto the workload-identity…">
+        <meta name="description" content="Learn what workload identity means for AI agents, why shared API keys are risky, and how to map your agents onto the identity provider you already run.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="What Is Workload Identity for AI Agents?">
-  <meta property="og:description" content="Explains why the shared-API-key anti-pattern that humans abandoned is exactly what most agent fleets still run, and maps agents onto the workload-identity…">
+  <meta property="og:description" content="Learn what workload identity means for AI agents, why shared API keys are risky, and how to map your agents onto the identity provider you already run.">
   <meta property="og:url" content="https://docs.promptise.com/blog/workload-identity-for-ai-agents/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="What Is Workload Identity for AI Agents?">
-  <meta name="twitter:description" content="Explains why the shared-API-key anti-pattern that humans abandoned is exactly what most agent fleets still run, and maps agents onto the workload-identity…">
+  <meta name="twitter:description" content="Learn what workload identity means for AI agents, why shared API keys are risky, and how to map your agents onto the identity provider you already run.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "What Is Workload Identity for AI Agents?",
       "name": "What Is Workload Identity for AI Agents?",
-      "description": "Explains why the shared-API-key anti-pattern that humans abandoned is exactly what most agent fleets still run, and maps agents onto the workload-identity\u2026",
+      "description": "Learn what workload identity means for AI agents, why shared API keys are risky, and how to map your agents onto the identity provider you already run.",
       "url": "https://docs.promptise.com/blog/workload-identity-for-ai-agents/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -777,8 +777,6 @@
       
         
       
-        
-      
     
     
     
@@ -1016,34 +1014,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5905,6 +5875,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5924,8 +5898,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5939,8 +5914,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5952,6 +5933,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9478,10 +9429,6 @@
 <p>Workload identity for AI agents is the practice of giving every agent a stable, verifiable identity of its own — minted by the identity provider you already run — instead of handing the whole fleet one shared API key. If you deploy more than one agent, you have probably already felt the gap: your logs say "the model" did something, your audit trail can't name which agent hit which tool, and every agent holds the same credential so every agent has the same blast radius. By the end of this post you will know exactly what workload identity means for agents, why it is the same problem enterprises solved for services years ago, and how to give your first agent a real identity with no new secrets to manage.</p>
 <!-- more -->
 
-<div class="admonition warning">
-<p class="admonition-title">Not legal or compliance advice</p>
-<p>The information here is general technical information, not legal, regulatory, or compliance advice. Descriptions of any law, regulation, or standard (such as the GDPR, the EU AI Act, HIPAA, SOC 2, or PCI DSS) are simplified and may be incomplete, out of date, or inaccurate, and requirements vary by jurisdiction and situation. Promptise Foundry makes no warranty as to the accuracy or completeness of this content and is not responsible for how you use or rely on it. Using Promptise does not by itself make you or your product compliant with any law or standard. Consult a qualified lawyer or compliance professional before acting on anything here.</p>
-</div>
 <h2 id="the-shared-api-key-anti-pattern-humans-already-abandoned">The shared-API-key anti-pattern humans already abandoned<a class="headerlink" href="#the-shared-api-key-anti-pattern-humans-already-abandoned" title="Link to this section">&para;</a></h2>
 <p>Think back to how service-to-service auth used to work: one long-lived secret, copied into every box, rotated approximately never. The industry abandoned that for humans and services alike, and replaced it with workload identity — short-lived, provider-minted credentials scoped to a single principal. Microsoft Entra, AWS IAM, GCP service accounts, and SPIFFE/SPIRE all exist to answer one question reliably: <em>which workload did this?</em></p>
 <p>Agent fleets have quietly reintroduced the anti-pattern. An agent is a new kind of <strong>non-human workload identity</strong> — it calls tools, hits internal APIs, and acts continuously, often with no human in the loop. Yet most teams run agents with:</p>
@@ -9489,7 +9436,7 @@
 <li><strong>A shared LLM or API key</strong>, so every agent has identical access and nothing to distinguish them after the fact.</li>
 <li><strong>A self-asserted name</strong> — a string a process prints about itself in a log, which anyone or anything can print too.</li>
 </ul>
-<p>That breaks down on exactly the axes reviewers care about: attribution ("which agent did this?" has no trustworthy answer), least privilege (you can't scope one agent to billing and another to read-only when they share a key), and audit ("the model did it" is not a SOC 2 answer). The good news is that you do not need a new system to fix it. You need to plug agents into the workload-identity model you already trust.</p>
+<p>That breaks down on exactly the axes reviewers care about: attribution ("which agent did this?" has no trustworthy answer), least privilege (you can't scope one agent to billing and another to read-only when they share a key), and audit ("the model did it" is not an answer anyone reviewing an incident can use). The good news is that you do not need a new system to fix it. You need to plug agents into the workload-identity model you already trust.</p>
 <h2 id="what-workload-identity-for-ai-agents-actually-means">What workload identity for AI agents actually means<a class="headerlink" href="#what-workload-identity-for-ai-agents-actually-means" title="Link to this section">&para;</a></h2>
 <p>It helps to separate two tiers, because you can adopt the first today and the second when you need it. The <a href="../../identity/overview/">Agent Identity overview</a> lays out the same split in more depth.</p>
 <ul>
@@ -9549,7 +9496,7 @@
 <p>Swap the local <code>AgentIdentity(...)</code> for <code>AgentIdentity.auto("billing-bot")</code> once you are running on a supported platform, and <code>billing-bot</code> starts presenting a provider-signed token to the MCP servers and APIs it calls. The <a href="../../identity/providers/entra/">Entra provider guide</a> walks through managed-identity versus projected-token modes and the exact environment markers detection looks for.</p>
 <h2 id="least-privilege-agents-not-one-over-privileged-fleet">Least privilege agents, not one over-privileged fleet<a class="headerlink" href="#least-privilege-agents-not-one-over-privileged-fleet" title="Link to this section">&para;</a></h2>
 <p>Attribution is the first win; <strong>least privilege agents</strong> is the second. Once each agent presents a verifiable identity, the resources it calls can authorize <em>that</em> principal instead of trusting a shared key that grants everyone everything.</p>
-<p>On the receiving side, an MCP server verifies the IdP-signed token with asymmetric verification (RS256/ES256 via <code>AsymmetricJWTAuth</code>) and gates tools per role — <code>billing-bot</code> gets the billing tools, a read-only reporting agent gets none of the mutating ones. That server-side half is a short step if you have set up token auth before; the walkthrough in <a href="../jwt-authentication-for-mcp-servers/">JWT Authentication for MCP Servers: Step by Step</a> covers the verification and guard wiring. The result is a system where compromising one agent's short-lived credential exposes only that agent's scope — not the entire fleet — and every mutating action is attributable to a subject your IdP vouches for.</p>
+<p>On the receiving side, an MCP server verifies the IdP-signed token with asymmetric verification (RS256/ES256 via <code>AsymmetricJWTAuth</code>) and gates tools per role — <code>billing-bot</code> gets the billing tools, a read-only reporting agent gets none of the mutating ones. That server-side half is a short step if you have set up token auth before; <a href="https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth">MCP Authentication in Python: API Keys, JWT and OAuth</a> covers token verification on the server. The result is a system where compromising one agent's short-lived credential exposes only that agent's scope — not the entire fleet — and every mutating action is attributable to a subject your IdP vouches for.</p>
 <p>The end-to-end recipe, from minting the credential to recording the verified subject in the tamper-evident audit log, lives in the <a href="../../identity/guide/">Agent Identity guide</a>.</p>
 <h2 id="when-a-plain-local-identity-is-the-better-fit">When a plain local identity is the better fit<a class="headerlink" href="#when-a-plain-local-identity-is-the-better-fit" title="Link to this section">&para;</a></h2>
 <p>Verifiable identity is not always the right first move, and it is worth being straight about that. A <strong>local identity</strong> is genuinely the better fit when:</p>
@@ -9567,7 +9514,7 @@
 <h3 id="what-is-the-difference-between-local-and-verifiable-agent-identity">What is the difference between local and verifiable agent identity?<a class="headerlink" href="#what-is-the-difference-between-local-and-verifiable-agent-identity" title="Link to this section">&para;</a></h3>
 <p>A local identity is a stable <code>agent_id</code> used for attribution across your own logs, audit trail, and observability — zero infrastructure. A verifiable agent identity adds a provider-signed, short-lived JWT the agent presents to the resources it calls, so those resources can authenticate and authorize it cryptographically. You can start local and upgrade in place.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>See which provider fits your infrastructure and mint your agent's first short-lived credential: pick your platform in the <a href="../../identity/guide/">Agent Identity guide</a>, then wire it into <code>build_agent</code>. If you want the broader picture of how identity, authentication, and MCP auth fit together, read <a href="../ai-agent-identity/">AI Agent Identity &amp; Authentication: The Complete Guide</a>, and if you are new to the framework, start with the <a href="../../getting-started/quickstart/">Quick Start</a>.</p>
+<p>See which provider fits your infrastructure and mint your agent's first short-lived credential: pick your platform in the <a href="../../identity/guide/">Agent Identity guide</a>, then wire it into <code>build_agent</code>. If you want the broader picture of how identity, authentication, and MCP auth fit together, read <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">AI Agent Identity: Authenticate Agents to MCP Servers</a>, and if you are new to the framework, start with the <a href="../../getting-started/quickstart/">Quick Start</a>.</p>
 
 
 
@@ -9590,7 +9537,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

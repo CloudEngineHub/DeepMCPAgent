@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A code-writing agent with network access can quietly POST your data anywhere. The honest problem: most sandboxes force a trade-off — leave egress on (and…">
+        <meta name="description" content="Learn how to run agent-written code in a sandbox with no network, so it can't send your data anywhere, while your agent's tools stay reachable through a bridge.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/sandbox-agent-code-with-no-network/">
       
       
-        <link rel="prev" href="../sandboxed-code-execution-for-ai/">
+        <link rel="prev" href="../secret-detection-for-llm/">
       
       
         <link rel="next" href="../same-user-id-across-two-tenants/">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Can Your Agent Exfiltrate Data? Sandboxing Code With No Network">
-  <meta property="og:description" content="A code-writing agent with network access can quietly POST your data anywhere. The honest problem: most sandboxes force a trade-off — leave egress on (and…">
+  <meta property="og:description" content="Learn how to run agent-written code in a sandbox with no network, so it can't send your data anywhere, while your agent's tools stay reachable through a bridge.">
   <meta property="og:url" content="https://docs.promptise.com/blog/sandbox-agent-code-with-no-network/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Can Your Agent Exfiltrate Data? Sandboxing Code With No Network">
-  <meta name="twitter:description" content="A code-writing agent with network access can quietly POST your data anywhere. The honest problem: most sandboxes force a trade-off — leave egress on (and…">
+  <meta name="twitter:description" content="Learn how to run agent-written code in a sandbox with no network, so it can't send your data anywhere, while your agent's tools stay reachable through a bridge.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Can Your Agent Exfiltrate Data? Sandboxing Code With No Network",
       "name": "Can Your Agent Exfiltrate Data? Sandboxing Code With No Network",
-      "description": "A code-writing agent with network access can quietly POST your data anywhere. The honest problem: most sandboxes force a trade-off \u2014 leave egress on (and\u2026",
+      "description": "Learn how to run agent-written code in a sandbox with no network, so it can\u0027t send your data anywhere, while your agent\u0027s tools stay reachable through a bridge.",
       "url": "https://docs.promptise.com/blog/sandbox-agent-code-with-no-network/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9616,7 +9567,7 @@
 <li><strong>Watch the connection table.</strong> Run the code-action example under a network monitor. Outbound connections attributable to the sandboxed container should be zero, because the tool channel is a file on <code>/workspace</code>, not a socket.</li>
 <li><strong>Grep the pattern, not a firewall rule.</strong> Because <code>network="none"</code> is a config value on the run rather than an external network policy, "reject any sandbox config whose <code>network</code> isn't <code>none</code>" is a one-line check you can enforce in CI, per agent — not a cluster-wide rule someone has to remember to attach.</li>
 </ul>
-<p>One honest caveat, because it matters for untrusted or multi-tenant input: the bridge is a deliberate capability hole. The containment stops the model's <em>code</em> from escaping; it does not make your <em>tools</em> safe on its own — a program can call any tool the agent has. Keep the code-action tool set least-privilege, wrap mutating tools with an approval gate, set <code>max_tool_calls</code> conservatively, and prefer <code>sandbox={"backend": "gvisor", "network": "none"}</code> for kernel-level isolation. The end-to-end operational playbook — dependency pinning, resource sizing, and the rest of the production checklist — is in <a href="../run-ai-generated-code-safely/">How to Run AI-Generated Code Safely: The 2026 Field Guide</a>.</p>
+<p>One honest caveat, because it matters for untrusted or multi-tenant input: the bridge is a deliberate capability hole. The containment stops the model's <em>code</em> from escaping; it does not make your <em>tools</em> safe on its own — a program can call any tool the agent has. Keep the code-action tool set least-privilege, wrap mutating tools with an approval gate, set <code>max_tool_calls</code> conservatively, and prefer <code>sandbox={"backend": "gvisor", "network": "none"}</code> for kernel-level isolation. For more on running LLM-generated code safely, see <a href="https://www.promptise.com/guides/view/ai-agent-code-execution-sandbox-python">AI Agent Code Execution Sandbox: Run LLM Code Safely</a>.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="how-do-i-sandbox-agent-code-with-no-network-but-still-let-it-use-my-tools">How do I sandbox agent code with no network but still let it use my tools?<a class="headerlink" href="#how-do-i-sandbox-agent-code-with-no-network-but-still-let-it-use-my-tools" title="Link to this section">&para;</a></h3>
 <p>Use <code>agent_pattern="code-action"</code> in <code>build_agent</code>. It provisions a hardened Docker sandbox, auto-sets <code>NetworkMode.NONE</code>, and routes the program's tool calls through a filesystem bridge (request/response files on the writable <code>/workspace</code> tmpfs). The container has no network interface, so the code can't exfiltrate — but it still reaches your tools, because tool calls travel over the shared filesystem, not a socket.</p>
@@ -9652,7 +9603,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:47:11 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

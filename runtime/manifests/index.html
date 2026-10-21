@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Define agent processes declaratively using .agent YAML manifest files. Manifests let you version-control agent configurations, validate them before deployment,">
+        <meta name="description" content="A .agent manifest is a YAML file that declares one agent process: model, instructions, MCP servers, triggers, initial state, governance, hooks and process">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Agent Manifests">
-  <meta property="og:description" content="Define agent processes declaratively using .agent YAML manifest files. Manifests let you version-control agent configurations, validate them before deployment,">
+  <meta property="og:description" content="A .agent manifest is a YAML file that declares one agent process: model, instructions, MCP servers, triggers, initial state, governance, hooks and process">
   <meta property="og:url" content="https://docs.promptise.com/runtime/manifests/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Agent Manifests">
-  <meta name="twitter:description" content="Define agent processes declaratively using .agent YAML manifest files. Manifests let you version-control agent configurations, validate them before deployment,">
+  <meta name="twitter:description" content="A .agent manifest is a YAML file that declares one agent process: model, instructions, MCP servers, triggers, initial state, governance, hooks and process">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Agent Manifests",
       "name": "Agent Manifests",
-      "description": "Define agent processes declaratively using .agent YAML manifest files. Manifests let you version-control agent configurations, validate them before deployment,",
+      "description": "A .agent manifest is a YAML file that declares one agent process: model, instructions, MCP servers, triggers, initial state, governance, hooks and process",
       "url": "https://docs.promptise.com/runtime/manifests/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5397,22 +5367,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#manifest-schema" class="md-nav__link">
+  <a href="#top-level-keys" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manifest Schema
+        Top-level keys
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Manifest Schema">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strict-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strict validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sections">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#top-level-fields" class="md-nav__link">
+  <a href="#identity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Top-Level Fields
+        identity
       
     </span>
   </a>
@@ -5420,10 +5412,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#identity-section" class="md-nav__link">
+  <a href="#servers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        identity Section
+        servers
       
     </span>
   </a>
@@ -5431,10 +5423,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#servers-section" class="md-nav__link">
+  <a href="#triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        servers Section
+        triggers
       
     </span>
   </a>
@@ -5442,10 +5434,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#triggers-section" class="md-nav__link">
+  <a href="#world-and-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        triggers Section
+        world and context
       
     </span>
   </a>
@@ -5453,10 +5445,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#world-section" class="md-nav__link">
+  <a href="#memory" class="md-nav__link">
     <span class="md-ellipsis">
       
-        world Section
+        memory
       
     </span>
   </a>
@@ -5464,10 +5456,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#memory-section" class="md-nav__link">
+  <a href="#journal" class="md-nav__link">
     <span class="md-ellipsis">
       
-        memory Section
+        journal
       
     </span>
   </a>
@@ -5475,10 +5467,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#journal-section" class="md-nav__link">
+  <a href="#governance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        journal Section
+        Governance
       
     </span>
   </a>
@@ -5486,10 +5478,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#config-section" class="md-nav__link">
+  <a href="#hooks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        config Section
+        hooks
       
     </span>
   </a>
@@ -5500,7 +5492,18 @@
   <a href="#open-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Open Mode
+        Open mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        config
       
     </span>
   </a>
@@ -5509,6 +5512,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables-and-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment variables and secrets
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5516,7 +5530,7 @@
   <a href="#full-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Full Example
+        Full example
       
     </span>
   </a>
@@ -5524,113 +5538,35 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-reference" class="md-nav__link">
+  <a href="#python-api" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Reference
+        Python API
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="API Reference">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#load_manifestpath" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        load_manifest(path)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#validate_manifestpath" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validate_manifest(path)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#manifest_to_process_configmanifest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        manifest_to_process_config(manifest)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#save_manifestmanifest-path" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        save_manifest(manifest, path)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#cli-commands" class="md-nav__link">
+  <a href="#cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CLI Commands
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="CLI Commands">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#validate-a-manifest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validate a Manifest
+        CLI
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#start-from-a-manifest" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Start from a Manifest
+        Common pitfalls
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#generate-a-template" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Generate a Template
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5638,7 +5574,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next?
+        What's next
       
     </span>
   </a>
@@ -6221,6 +6157,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6243,8 +6183,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6258,8 +6199,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6271,6 +6218,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8517,8 +8466,6 @@
       
         
       
-        
-      
     
     
     
@@ -8671,36 +8618,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9579,22 +9496,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#manifest-schema" class="md-nav__link">
+  <a href="#top-level-keys" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manifest Schema
+        Top-level keys
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Manifest Schema">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#strict-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strict validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sections">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#top-level-fields" class="md-nav__link">
+  <a href="#identity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Top-Level Fields
+        identity
       
     </span>
   </a>
@@ -9602,10 +9541,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#identity-section" class="md-nav__link">
+  <a href="#servers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        identity Section
+        servers
       
     </span>
   </a>
@@ -9613,10 +9552,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#servers-section" class="md-nav__link">
+  <a href="#triggers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        servers Section
+        triggers
       
     </span>
   </a>
@@ -9624,10 +9563,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#triggers-section" class="md-nav__link">
+  <a href="#world-and-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        triggers Section
+        world and context
       
     </span>
   </a>
@@ -9635,10 +9574,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#world-section" class="md-nav__link">
+  <a href="#memory" class="md-nav__link">
     <span class="md-ellipsis">
       
-        world Section
+        memory
       
     </span>
   </a>
@@ -9646,10 +9585,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#memory-section" class="md-nav__link">
+  <a href="#journal" class="md-nav__link">
     <span class="md-ellipsis">
       
-        memory Section
+        journal
       
     </span>
   </a>
@@ -9657,10 +9596,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#journal-section" class="md-nav__link">
+  <a href="#governance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        journal Section
+        Governance
       
     </span>
   </a>
@@ -9668,10 +9607,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#config-section" class="md-nav__link">
+  <a href="#hooks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        config Section
+        hooks
       
     </span>
   </a>
@@ -9682,7 +9621,18 @@
   <a href="#open-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Open Mode
+        Open mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        config
       
     </span>
   </a>
@@ -9691,6 +9641,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables-and-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment variables and secrets
+      
+    </span>
+  </a>
   
 </li>
       
@@ -9698,7 +9659,7 @@
   <a href="#full-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Full Example
+        Full example
       
     </span>
   </a>
@@ -9706,113 +9667,35 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#api-reference" class="md-nav__link">
+  <a href="#python-api" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Reference
+        Python API
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="API Reference">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#load_manifestpath" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        load_manifest(path)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#validate_manifestpath" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        validate_manifest(path)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#manifest_to_process_configmanifest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        manifest_to_process_config(manifest)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#save_manifestmanifest-path" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        save_manifest(manifest, path)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#cli-commands" class="md-nav__link">
+  <a href="#cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CLI Commands
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="CLI Commands">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#validate-a-manifest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Validate a Manifest
+        CLI
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#start-from-a-manifest" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Start from a Manifest
+        Common pitfalls
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#generate-a-template" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Generate a Template
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -9820,7 +9703,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next?
+        What's next
       
     </span>
   </a>
@@ -9897,7 +9780,7 @@
 
 
 <h1 id="agent-manifests">Agent Manifests<a class="headerlink" href="#agent-manifests" title="Link to this section">&para;</a></h1>
-<p>Define agent processes declaratively using <code>.agent</code> YAML manifest files. Manifests let you version-control agent configurations, validate them before deployment, and start processes from the CLI without writing Python.</p>
+<p>A <code>.agent</code> manifest is a YAML file that declares one agent process: model, instructions, MCP servers, triggers, initial state, governance, hooks and process settings. Manifests let you review and version an agent's definition like any other config, validate it before deploying, and start it from the CLI without writing Python. The loader is strict: an unknown key anywhere fails with the list of valid keys, so a typo never silently keeps a default.</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># watcher.agent</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">"1.0"</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data-watcher</span>
@@ -9913,118 +9796,225 @@
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="nt">triggers</span><span class="p">:</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cron</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">    </span><span class="nt">cron_expression</span><span class="p">:</span><span class="w"> </span><span class="s">"*/5</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*"</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="nt">config</span><span class="p">:</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span><span class="nt">restart_policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">on_failure</span>
 </span></code></pre></div>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>watcher.agent
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>watcher.agent
 </span></code></pre></div>
 <hr />
-<h2 id="manifest-schema">Manifest Schema<a class="headerlink" href="#manifest-schema" title="Link to this section">&para;</a></h2>
-<p>The <code>.agent</code> format is a YAML file validated against <code>AgentManifestSchema</code>. All sections except <code>version</code> and <code>name</code> are optional.</p>
-<h3 id="top-level-fields">Top-Level Fields<a class="headerlink" href="#top-level-fields" title="Link to this section">&para;</a></h3>
+<h2 id="top-level-keys">Top-level keys<a class="headerlink" href="#top-level-keys" title="Link to this section">&para;</a></h2>
+<p><code>AgentManifestSchema</code> accepts exactly these keys. Only <code>name</code> is required.</p>
 <table>
 <thead>
 <tr>
-<th>Field</th>
+<th>Key</th>
 <th>Type</th>
-<th>Required</th>
-<th>Description</th>
+<th>Default</th>
+<th>Becomes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>version</code></td>
-<td><code>str</code></td>
-<td>yes</td>
-<td>Schema version. Must be <code>"1.0"</code></td>
+<td><code>"1.0"</code></td>
+<td><code>"1.0"</code></td>
+<td>Schema version; any other value is rejected</td>
 </tr>
 <tr>
 <td><code>name</code></td>
 <td><code>str</code></td>
-<td>yes</td>
-<td>Unique process name</td>
+<td>required</td>
+<td>The process name</td>
 </tr>
 <tr>
 <td><code>model</code></td>
 <td><code>str</code></td>
-<td>no</td>
-<td>LLM model ID (default: <code>"openai:gpt-5-mini"</code>)</td>
+<td><code>"openai:gpt-5-mini"</code></td>
+<td><code>ProcessConfig.model</code></td>
 </tr>
 <tr>
 <td><code>instructions</code></td>
 <td><code>str</code></td>
-<td>no</td>
-<td>System prompt for the agent</td>
+<td>none</td>
+<td><code>ProcessConfig.instructions</code></td>
 </tr>
 <tr>
 <td><code>identity</code></td>
-<td><code>dict</code></td>
-<td>no</td>
-<td>Agent identity — who the process is (see below)</td>
+<td>mapping</td>
+<td>none</td>
+<td><code>ProcessConfig.identity</code> (see <a href="#identity">identity</a>)</td>
 </tr>
 <tr>
 <td><code>servers</code></td>
-<td><code>dict</code></td>
-<td>no</td>
-<td>MCP server specifications</td>
+<td>mapping</td>
+<td><code>{}</code></td>
+<td><code>ProcessConfig.servers</code></td>
 </tr>
 <tr>
 <td><code>triggers</code></td>
-<td><code>list</code></td>
-<td>no</td>
-<td>Trigger configurations</td>
+<td>list</td>
+<td><code>[]</code></td>
+<td><code>ProcessConfig.triggers</code> (each a <code>TriggerConfig</code>)</td>
 </tr>
 <tr>
 <td><code>world</code></td>
-<td><code>dict</code></td>
-<td>no</td>
-<td>Initial world state (key-value pairs)</td>
+<td>mapping</td>
+<td><code>{}</code></td>
+<td><code>context.initial_state</code></td>
 </tr>
 <tr>
 <td><code>memory</code></td>
-<td><code>dict</code></td>
-<td>no</td>
-<td>Memory provider configuration</td>
+<td>mapping</td>
+<td>none</td>
+<td><code>context.memory_*</code> fields</td>
+</tr>
+<tr>
+<td><code>context</code></td>
+<td>mapping</td>
+<td>none</td>
+<td>Any <code>ContextConfig</code> field</td>
 </tr>
 <tr>
 <td><code>journal</code></td>
-<td><code>dict</code></td>
-<td>no</td>
-<td>Journal (audit log) configuration</td>
-</tr>
-<tr>
-<td><code>config</code></td>
-<td><code>dict</code></td>
-<td>no</td>
-<td>Additional <code>ProcessConfig</code> overrides</td>
+<td>mapping</td>
+<td><code>JournalConfig()</code></td>
+<td><code>ProcessConfig.journal</code> (see <a href="#journal">journal</a>)</td>
 </tr>
 <tr>
 <td><code>execution_mode</code></td>
-<td><code>str</code></td>
-<td>no</td>
-<td><code>"strict"</code> (default) or <code>"open"</code></td>
+<td><code>"strict"</code> or <code>"open"</code></td>
+<td><code>"strict"</code></td>
+<td><code>ProcessConfig.execution_mode</code></td>
 </tr>
 <tr>
 <td><code>open_mode</code></td>
-<td><code>dict</code></td>
-<td>no</td>
-<td>Open mode guardrails</td>
+<td>mapping</td>
+<td>defaults</td>
+<td><code>OpenModeConfig</code></td>
+</tr>
+<tr>
+<td><code>secrets</code></td>
+<td>mapping</td>
+<td>disabled</td>
+<td><code>SecretScopeConfig</code></td>
+</tr>
+<tr>
+<td><code>budget</code></td>
+<td>mapping</td>
+<td>disabled</td>
+<td><code>BudgetConfig</code></td>
+</tr>
+<tr>
+<td><code>health</code></td>
+<td>mapping</td>
+<td>disabled</td>
+<td><code>HealthConfig</code></td>
+</tr>
+<tr>
+<td><code>mission</code></td>
+<td>mapping</td>
+<td>disabled</td>
+<td><code>MissionConfig</code></td>
+</tr>
+<tr>
+<td><code>hooks</code></td>
+<td>list</td>
+<td><code>[]</code></td>
+<td><code>ProcessConfig.hooks</code> (command hooks)</td>
+</tr>
+<tr>
+<td><code>config</code></td>
+<td>mapping</td>
+<td><code>{}</code></td>
+<td>Any other <code>ProcessConfig</code> field</td>
 </tr>
 <tr>
 <td><code>entrypoint</code></td>
 <td><code>str</code></td>
-<td>no</td>
-<td>Python module for custom hooks</td>
+<td>none</td>
+<td>Reserved and not read; setting it emits a <code>FutureWarning</code></td>
 </tr>
 </tbody>
 </table>
-<h3 id="identity-section"><code>identity</code> Section<a class="headerlink" href="#identity-section" title="Link to this section">&para;</a></h3>
-<p>Optional. Gives the long-running process a stable, traceable
-<a href="../../identity/overview/">Agent Identity</a> — <em>who is acting</em>. Same shape as
-the <a href="../../core/agents/superagent-files/#identity"><code>.superagent</code> identity block</a>:
-a local identity tags the process's actions for attribution; a verifiable
-identity (Entra, AWS, GCP, SPIFFE, OIDC, or <code>auto</code>) additionally presents a
-signed credential — scoped to each server's <code>audience</code> — to the MCP servers
-the process calls. All string fields support <code>${ENV_VAR}</code>.</p>
+<p>Every field of every section is listed on the <a href="../configuration/">Configuration</a> page.</p>
+<hr />
+<h2 id="strict-validation">Strict validation<a class="headerlink" href="#strict-validation" title="Link to this section">&para;</a></h2>
+<p><code>load_manifest()</code> rejects:</p>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Error message (inside <code>ManifestValidationError</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unknown top-level key (<code>journal_level: full</code>)</td>
+<td><code>manifest: unknown key(s) ['journal_level']; valid keys are [...] (did you mean 'journal_level' -&gt; 'journal'?)</code></td>
+</tr>
+<tr>
+<td>Unknown key in a section (<code>health:</code>, <code>context:</code>, <code>journal:</code>, <code>open_mode:</code>, <code>secrets:</code>, <code>budget:</code>, <code>mission:</code>)</td>
+<td><code>health: unknown key(s) ['error_windw']; valid keys are ['cooldown', ..., 'stuck_threshold']</code></td>
+</tr>
+<tr>
+<td>Unknown key in <code>memory:</code></td>
+<td><code>memory: unknown key(s) ['provder']; valid keys are ['auto_store', 'collection', 'max', 'min_score', 'persist_directory', 'provider', 'timeout', 'user_id'] (did you mean 'provder' -&gt; 'provider'?)</code></td>
+</tr>
+<tr>
+<td>Unknown key in <code>config:</code></td>
+<td><code>config: unknown key(s) ['concurency']; valid keys are ['adaptive', 'approval', ...] (did you mean 'concurency' -&gt; 'concurrency'?)</code></td>
+</tr>
+<tr>
+<td>A <code>config:</code> key that has its own section</td>
+<td><code>config: ['instructions'] also set by the manifest's own section(s); set each option in one place (the top-level section)</code></td>
+</tr>
+<tr>
+<td><code>world:</code> and <code>context: initial_state</code> both set</td>
+<td><code>Initial state is set twice, in 'world:' and in 'context: initial_state'; use one of them</code></td>
+</tr>
+<tr>
+<td>The same option in <code>memory:</code> and <code>context:</code></td>
+<td><code>'memory: provider' and 'context: memory_provider' set the same option; use one of them</code></td>
+</tr>
+<tr>
+<td>Unknown key in a server entry</td>
+<td><code>servers.tools: timout: Extra inputs are not permitted</code></td>
+</tr>
+<tr>
+<td>A server without <code>url</code> or <code>command</code></td>
+<td><code>servers.tools: needs 'url' (an HTTP server) or 'command' (a stdio server)</code></td>
+</tr>
+<tr>
+<td>A trigger without <code>type</code></td>
+<td><code>Trigger at index 0 is missing required 'type' field</code></td>
+</tr>
+<tr>
+<td>An invalid trigger (an unknown key, a missing <code>cron_expression</code>, a bad time zone)</td>
+<td><code>triggers[0] (cron): unknown key(s) ['cron']; valid keys are [...]</code></td>
+</tr>
+<tr>
+<td>A hook with an unknown event</td>
+<td><code>hooks[0]: ... unknown hook event 'on_start'; valid events are ['session_start', ...]</code></td>
+</tr>
+<tr>
+<td>A hook with <code>callback:</code></td>
+<td><code>hooks[0]: a manifest hook runs a 'command'; Python callbacks are registered in code (process.hooks)</code></td>
+</tr>
+<tr>
+<td>Invalid <code>execution_mode</code></td>
+<td><code>execution_mode: 'auto' is not one of ['strict', 'open']</code></td>
+</tr>
+</tbody>
+</table>
+<p>The exception message starts with <code>Manifest validation failed:</code>; <code>exc.errors</code> holds the Pydantic error details and <code>exc.file_path</code> the file.</p>
+<p>Trigger entries are checked in full (unknown keys, the fields their type needs, a bad time zone) when the manifest is loaded, so <code>load_manifest()</code>, <code>promptise runtime validate</code> and <code>promptise runtime start</code> all report a bad trigger. Unknown keys, here and in every other section, come with "did you mean" hints.</p>
+<p>A <code>${VAR}</code> that is not set raises <code>ManifestEnvVarError</code>, which is both a <code>ManifestError</code> and an <code>EnvVarNotFoundError</code>. <code>promptise runtime validate</code> reports it for that file and goes on with the next one; <code>promptise runtime start</code> checks every manifest first and starts nothing when one fails.</p>
+<hr />
+<h2 id="sections">Sections<a class="headerlink" href="#sections" title="Link to this section">&para;</a></h2>
+<h3 id="identity">identity<a class="headerlink" href="#identity" title="Link to this section">&para;</a></h3>
+<p>Gives the process a stable, traceable <a href="../../identity/overview/">Agent Identity</a>. Same shape as the <a href="../../core/agents/superagent-files/#identity"><code>.superagent</code> identity block</a>: a local identity tags the process's actions for attribution; a verifiable identity (Entra, AWS, GCP, SPIFFE, OIDC, or <code>auto</code>) also presents a signed credential, scoped to each server's <code>audience</code>, to the MCP servers the process calls.</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">identity</span><span class="p">:</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oidc</span><span class="w">                 </span><span class="c1"># local|entra|aws|gcp|spiffe|oidc|auto</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">agent_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data-watcher</span>
@@ -10032,15 +10022,9 @@ the process calls. All string fields support <code>${ENV_VAR}</code>.</p>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">issuer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://gitlab.com</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">token_env_var</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CI_JOB_JWT_V2</span>
 </span></code></pre></div>
-<p>For <code>provider: local</code> only <code>agent_id</code> is required; for <code>provider: oidc</code>,
-<code>issuer</code> plus exactly one of <code>token_file</code> / <code>token_env_var</code>. See the
-<a href="../../core/agents/superagent-files/#identity"><code>.superagent</code> reference</a> for
-the full field list and the
-<a href="../../identity/guide/">Agent Identity guide</a> for the end-to-end flow.</p>
-<h3 id="servers-section"><code>servers</code> Section<a class="headerlink" href="#servers-section" title="Link to this section">&para;</a></h3>
-<p>MCP server specifications, same format as <code>.superagent</code> files. Add an
-<code>audience</code> to a server to receive an identity credential minted for it
-(see the <code>identity</code> section above):</p>
+<p>For <code>provider: local</code> only <code>agent_id</code> is required; for <code>provider: oidc</code>, <code>issuer</code> plus exactly one of <code>token_file</code> / <code>token_env_var</code>. See the <a href="../../core/agents/superagent-files/#identity"><code>.superagent</code> reference</a> for every field and the <a href="../../identity/guide/">Agent Identity guide</a> for the end-to-end flow.</p>
+<h3 id="servers">servers<a class="headerlink" href="#servers" title="Link to this section">&para;</a></h3>
+<p>MCP servers, the same format as <code>.superagent</code> files. <code>type</code> is <code>http</code>, <code>streamable-http</code>, <code>sse</code> or <code>stdio</code>; an HTTP server needs <code>url</code>, a stdio server <code>command</code>. Every key is passed to the server spec, and an unknown one fails.</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">servers</span><span class="p">:</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">my_tools</span><span class="p">:</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span>
@@ -10051,196 +10035,325 @@ the full field list and the
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">python</span>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"-m"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"mytools.server"</span><span class="p p-Indicator">]</span>
 </span></code></pre></div>
-<h3 id="triggers-section"><code>triggers</code> Section<a class="headerlink" href="#triggers-section" title="Link to this section">&para;</a></h3>
-<p>A list of trigger configurations. Each entry must have a <code>type</code> field:</p>
+<h3 id="triggers">triggers<a class="headerlink" href="#triggers" title="Link to this section">&para;</a></h3>
+<p>A list of trigger configurations, each with a <code>type</code> and the fields of that type (see <a href="../triggers/">Triggers</a>):</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">triggers</span><span class="p">:</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cron</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">cron_expression</span><span class="p">:</span><span class="w"> </span><span class="s">"*/5</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*"</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nt">webhook_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/events</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="nt">webhook_port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9090</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file_watch</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="nt">watch_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/data/inbox</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="nt">watch_patterns</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"*.csv"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"*.json"</span><span class="p p-Indicator">]</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">event</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="nt">event_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pipeline.degraded</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">cron_expression</span><span class="p">:</span><span class="w"> </span><span class="s">"0</span><span class="nv"> </span><span class="s">9</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">1-5"</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nt">cron_timezone</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Europe/Zurich</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="nt">webhook_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/events</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="nt">webhook_port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9090</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="nt">hmac_secret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${WEBHOOK_SECRET}</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file_watch</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="nt">watch_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/data/inbox</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="nt">watch_patterns</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"*.csv"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"*.json"</span><span class="p p-Indicator">]</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="nt">watch_backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">polling</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">event</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="nt">event_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pipeline.degraded</span>
 </span></code></pre></div>
-<h3 id="world-section"><code>world</code> Section<a class="headerlink" href="#world-section" title="Link to this section">&para;</a></h3>
-<p>Initial key-value state injected into <code>AgentContext</code>:</p>
+<h3 id="world-and-context">world and context<a class="headerlink" href="#world-and-context" title="Link to this section">&para;</a></h3>
+<p><code>world:</code> is the initial key-value state of the process's <a href="../context/"><code>AgentContext</code></a>. <code>context:</code> accepts any <code>ContextConfig</code> field, including <code>initial_state</code>; use one of <code>world:</code> or <code>context: initial_state</code>, not both. Keys recovered from the journal on start replace these initial values.</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">world</span><span class="p">:</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">pipeline_status</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unknown</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">last_check</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">alerts_created</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">alerts_created</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nt">context</span><span class="p">:</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">writable_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pipeline_status</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">alerts_created</span><span class="p p-Indicator">]</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">conversation_max_messages</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="nt">state_tool</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">          </span><span class="c1"># gives the agent an update_state(key, value) tool</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="nt">env_prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PIPELINE_</span>
 </span></code></pre></div>
-<h3 id="memory-section"><code>memory</code> Section<a class="headerlink" href="#memory-section" title="Link to this section">&para;</a></h3>
-<p>Configure the long-term memory provider:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">memory</span><span class="p">:</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">in_memory</span><span class="w">     </span><span class="c1"># "in_memory", "chroma", or "mem0"</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">auto_store</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">       </span><span class="c1"># Auto-store exchanges in memory</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">max</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">                  </span><span class="c1"># Max memories injected per invocation</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">min_score</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span><span class="w">          </span><span class="c1"># Min relevance score</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="c1"># ChromaDB-specific:</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="nt">collection</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agent_memory</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span><span class="nt">persist_directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.promptise/chroma</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span><span class="c1"># Mem0-specific:</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">  </span><span class="nt">user_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
+<p>Equivalent, with the state inside <code>context:</code>:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">context</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">initial_state</span><span class="p">:</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="nt">pipeline_status</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unknown</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nt">alerts_created</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">writable_keys</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pipeline_status</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">alerts_created</span><span class="p p-Indicator">]</span>
 </span></code></pre></div>
-<h3 id="journal-section"><code>journal</code> Section<a class="headerlink" href="#journal-section" title="Link to this section">&para;</a></h3>
-<p>Durable audit log configuration:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">journal</span><span class="p">:</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">full</span><span class="w">             </span><span class="c1"># "none", "checkpoint", or "full"</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file</span><span class="w">           </span><span class="c1"># "file" or "memory"</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.promptise/journal</span>
+<h3 id="memory">memory<a class="headerlink" href="#memory" title="Link to this section">&para;</a></h3>
+<p>Short names for the long-term memory fields of <code>ContextConfig</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>memory:</code> key</th>
+<th>Sets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>provider</code></td>
+<td><code>memory_provider</code> (<code>in_memory</code>, <code>chroma</code>, <code>mem0</code>)</td>
+</tr>
+<tr>
+<td><code>auto_store</code></td>
+<td><code>memory_auto_store</code></td>
+</tr>
+<tr>
+<td><code>max</code></td>
+<td><code>memory_max</code></td>
+</tr>
+<tr>
+<td><code>min_score</code></td>
+<td><code>memory_min_score</code></td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>memory_timeout</code></td>
+</tr>
+<tr>
+<td><code>collection</code></td>
+<td><code>memory_collection</code></td>
+</tr>
+<tr>
+<td><code>persist_directory</code></td>
+<td><code>memory_persist_directory</code></td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td><code>memory_user_id</code></td>
+</tr>
+</tbody>
+</table>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">memory</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chroma</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">collection</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">agent_memory</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">persist_directory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.promptise/chroma</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">max</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
 </span></code></pre></div>
-<h3 id="config-section"><code>config</code> Section<a class="headerlink" href="#config-section" title="Link to this section">&para;</a></h3>
-<p>Any additional <code>ProcessConfig</code> fields not covered by other sections:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">config</span><span class="p">:</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">heartbeat_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">idle_timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3600</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">max_consecutive_failures</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">restart_policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">on_failure</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="nt">max_restarts</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<p>You can set the same options as <code>memory_*</code> keys under <code>context:</code> instead, but not both ways for one option.</p>
+<h3 id="journal">journal<a class="headerlink" href="#journal" title="Link to this section">&para;</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">journal</span><span class="p">:</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">full</span><span class="w">             </span><span class="c1"># none | checkpoint | full</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file</span><span class="w">           </span><span class="c1"># file | memory</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.promptise/journal</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">recover_on_start</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </span></code></pre></div>
-<h3 id="open-mode">Open Mode<a class="headerlink" href="#open-mode" title="Link to this section">&para;</a></h3>
-<p>Enable self-modifying agent behavior with execution mode and guardrails:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">execution_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">open</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="nt">open_mode</span><span class="p">:</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">allow_identity_change</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">allow_tool_creation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nt">allow_mcp_connect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="nt">allow_trigger_management</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">  </span><span class="nt">allow_memory_management</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="nt">max_custom_tools</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">  </span><span class="nt">max_rebuilds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">  </span><span class="nt">sandbox_custom_tools</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<p>A manifest without a <code>journal:</code> section gets <code>JournalConfig()</code>: <code>level: checkpoint</code>, files under <code>.promptise/journal</code>, and recovery on start. A process loaded from a manifest therefore journals and, when started again under the same name, continues from its last checkpoint. Set <code>level: none</code> to turn the journal off, or <code>recover_on_start: false</code> to keep the journal but always start fresh. (A <code>ProcessConfig</code> built in Python has no journal unless you set one.)</p>
+<h3 id="governance">Governance<a class="headerlink" href="#governance" title="Link to this section">&para;</a></h3>
+<p><code>secrets:</code>, <code>budget:</code>, <code>health:</code> and <code>mission:</code> take the fields of <code>SecretScopeConfig</code>, <code>BudgetConfig</code>, <code>HealthConfig</code> and <code>MissionConfig</code>. Each needs <code>enabled: true</code>.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">secrets</span><span class="p">:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">secrets</span><span class="p">:</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nt">api_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${MONITORING_API_KEY}</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">default_ttl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3600</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="nt">budget</span><span class="p">:</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="nt">max_tool_calls_per_run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">  </span><span class="nt">max_cost_per_day</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">  </span><span class="nt">on_exceeded</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pause</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="nt">health</span><span class="p">:</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="w">  </span><span class="nt">on_anomaly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">escalate</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="w">  </span><span class="nt">escalation</span><span class="p">:</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="w">    </span><span class="nt">webhook_url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://hooks.example.com/agent-alerts</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="nt">mission</span><span class="p">:</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="w">  </span><span class="nt">objective</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Keep every pipeline healthy.</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="w">  </span><span class="nt">success_criteria</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">No pipeline degraded for more than 15 minutes.</span>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="w">  </span><span class="nt">eval_every</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
 </span></code></pre></div>
-<hr />
-<h2 id="full-example">Full Example<a class="headerlink" href="#full-example" title="Link to this section">&para;</a></h2>
-<p>This is the <code>pipeline_watcher.agent</code> manifest from the examples directory:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">"1.0"</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pipeline-watcher</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai:gpt-5-mini</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="nt">instructions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="no">You are a Data Pipeline Watchdog. When triggered, run a</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="no">system_health_check to assess infrastructure status. If any</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="no">pipeline is degraded, get detailed metrics and create an alert.</span>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
-</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="nt">servers</span><span class="p">:</span>
-</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">  </span><span class="nt">pipeline_tools</span><span class="p">:</span>
-</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span>
-</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">    </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://127.0.0.1:8200/mcp</span>
-</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>
-</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="nt">triggers</span><span class="p">:</span>
-</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cron</span>
-</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w">    </span><span class="nt">cron_expression</span><span class="p">:</span><span class="w"> </span><span class="s">"*/5</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*"</span>
-</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>
-</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="nt">world</span><span class="p">:</span>
-</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="w">  </span><span class="nt">pipeline_status</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unknown</span>
-</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="w">  </span><span class="nt">last_check</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">  </span><span class="nt">alerts_created</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>
-</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="nt">memory</span><span class="p">:</span>
-</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">in_memory</span>
-</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="w">  </span><span class="nt">auto_store</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="w">  </span><span class="nt">max</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>
-</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a><span class="nt">journal</span><span class="p">:</span>
-</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="w">  </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">full</span>
-</span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a><span class="w">  </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">file</span>
-</span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a><span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.promptise/journal</span>
-</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>
-</span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a><span class="nt">config</span><span class="p">:</span>
-</span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a><span class="w">  </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-</span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a><span class="w">  </span><span class="nt">heartbeat_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
-</span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="w">  </span><span class="nt">idle_timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3600</span>
-</span><span id="__span-10-37"><a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a><span class="w">  </span><span class="nt">max_consecutive_failures</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-</span><span id="__span-10-38"><a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a><span class="w">  </span><span class="nt">restart_policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">on_failure</span>
+<p><code>MissionConfig.success_check</code> is Python only and can't be set in a manifest.</p>
+<h3 id="hooks">hooks<a class="headerlink" href="#hooks" title="Link to this section">&para;</a></h3>
+<p>A list of <a href="../hooks/">lifecycle hooks</a> that run an external command. Each entry takes the <code>HookConfig</code> fields for a command hook: <code>event</code>, <code>command</code>, <code>timeout</code>, <code>priority</code>, <code>once</code>, <code>tag</code>, <code>fail_closed</code>, <code>cwd</code>, <code>env</code>, <code>env_passthrough</code>, <code>max_output_bytes</code>. The event arrives on the command's stdin as JSON; no shell runs it.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">hooks</span><span class="p">:</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">event</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user_prompt_submit</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"./hooks/audit.sh"</span><span class="p p-Indicator">]</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">fail_closed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">event</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">session_end</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="s">"python</span><span class="nv"> </span><span class="s">hooks/notify.py</span><span class="nv"> </span><span class="s">--channel</span><span class="nv"> </span><span class="s">ops"</span>
 </span></code></pre></div>
-<hr />
-<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Link to this section">&para;</a></h2>
-<h3 id="load_manifestpath"><code>load_manifest(path)</code><a class="headerlink" href="#load_manifestpath" title="Link to this section">&para;</a></h3>
-<p>Load and validate a <code>.agent</code> manifest file.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.manifest</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_manifest</span>
+<p>Python callbacks are registered in code: <code>process.hooks.on(...)</code> or <code>HookConfig(callback=...)</code>.</p>
+<h3 id="open-mode">Open mode<a class="headerlink" href="#open-mode" title="Link to this section">&para;</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">execution_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">open</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">manifest</span> <span class="o">=</span> <span class="n">load_manifest</span><span class="p">(</span><span class="s2">"agents/watcher.agent"</span><span class="p">)</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>        <span class="c1"># "pipeline-watcher"</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>       <span class="c1"># "openai:gpt-5-mini"</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">manifest</span><span class="o">.</span><span class="n">triggers</span><span class="p">))</span>  <span class="c1"># 1</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nt">open_mode</span><span class="p">:</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">allow_identity_change</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">allow_tool_creation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">  </span><span class="nt">allow_mcp_connect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">  </span><span class="nt">allow_trigger_management</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">  </span><span class="nt">allow_memory_management</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="nt">max_custom_tools</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">  </span><span class="nt">max_rebuilds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">  </span><span class="nt">sandbox_custom_tools</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </span></code></pre></div>
-<p><strong>Returns:</strong> <code>AgentManifestSchema</code>
-<strong>Raises:</strong> <code>ManifestError</code> (file/parse errors), <code>ManifestValidationError</code> (schema errors)</p>
-<h3 id="validate_manifestpath"><code>validate_manifest(path)</code><a class="headerlink" href="#validate_manifestpath" title="Link to this section">&para;</a></h3>
-<p>Validate a manifest file and return a list of warnings.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.manifest</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_manifest</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">warnings</span> <span class="o">=</span> <span class="n">validate_manifest</span><span class="p">(</span><span class="s2">"agents/watcher.agent"</span><span class="p">)</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># ["No triggers defined -- agent will only respond to manual events"]</span>
+<p><code>allow_tool_creation: true</code> lets the model run Python in the runtime's process; restricted builtins don't contain it. Keep it off unless that is acceptable. See <a href="../meta-tools/#security">Meta-Tools</a>.</p>
+<h3 id="config">config<a class="headerlink" href="#config" title="Link to this section">&para;</a></h3>
+<p>Any <code>ProcessConfig</code> field that has no section of its own, for example:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">config</span><span class="p">:</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">concurrency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">heartbeat_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="nt">idle_timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3600</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span><span class="nt">max_lifetime</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">86400</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span><span class="nt">max_consecutive_failures</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="nt">restart_policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">on_failure</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">  </span><span class="nt">max_restarts</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">  </span><span class="nt">restart_backoff</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">  </span><span class="nt">max_invocation_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">  </span><span class="nt">inbox</span><span class="p">:</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="w">  </span><span class="nt">trigger_delivery</span><span class="p">:</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">    </span><span class="nt">max_retries</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">    </span><span class="nt">dead_letter_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">200</span>
 </span></code></pre></div>
-<p><strong>Returns:</strong> <code>list[str]</code> -- warning messages (empty if fully valid)</p>
-<h3 id="manifest_to_process_configmanifest"><code>manifest_to_process_config(manifest)</code><a class="headerlink" href="#manifest_to_process_configmanifest" title="Link to this section">&para;</a></h3>
-<p>Convert a validated manifest into a <code>ProcessConfig</code> for use with <code>AgentProcess</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.manifest</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_manifest</span><span class="p">,</span> <span class="n">manifest_to_process_config</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">manifest</span> <span class="o">=</span> <span class="n">load_manifest</span><span class="p">(</span><span class="s2">"agents/watcher.agent"</span><span class="p">)</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">config</span> <span class="o">=</span> <span class="n">manifest_to_process_config</span><span class="p">(</span><span class="n">manifest</span><span class="p">)</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">manifest</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+<p>A key that has its own section (<code>model</code>, <code>instructions</code>, <code>identity</code>, <code>execution_mode</code>, <code>open_mode</code>, <code>servers</code>, <code>triggers</code>, <code>journal</code>, <code>context</code>, <code>secrets</code>, <code>budget</code>, <code>health</code>, <code>mission</code>, <code>hooks</code>) is refused in <code>config:</code> when that section is also set; set each option in one place.</p>
+<hr />
+<h2 id="environment-variables-and-secrets">Environment variables and secrets<a class="headerlink" href="#environment-variables-and-secrets" title="Link to this section">&para;</a></h2>
+<p><code>${VAR}</code> and <code>${VAR:-default}</code> references are resolved from the environment when the manifest is loaded, in every value of the file, with one exception: the values under <code>secrets.secrets</code>. Those stay references in the loaded config and are resolved by the process's <a href="../governance/secrets/">secret scope</a> when it starts, so the config, <code>repr()</code> and any dump of it never hold the secret value. A reference to an unset variable without a default fails at load time in both cases:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>ManifestEnvVarError: agents/monitor.agent: Environment variable 'MONITORING_API_KEY' not found (referenced in: secrets.secrets.api_key)
 </span></code></pre></div>
-<p><strong>Returns:</strong> <code>ProcessConfig</code></p>
-<h3 id="save_manifestmanifest-path"><code>save_manifest(manifest, path)</code><a class="headerlink" href="#save_manifestmanifest-path" title="Link to this section">&para;</a></h3>
-<p>Write a manifest to a YAML file.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.manifest</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_manifest</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">save_manifest</span><span class="p">(</span><span class="n">manifest</span><span class="p">,</span> <span class="s2">"agents/watcher-copy.agent"</span><span class="p">)</span>
+<p>To keep a credential out of plain config, put it in <code>secrets.secrets</code>. In <a href="../meta-tools/">open mode</a> the agent reads it with the <code>get_secret</code> tool; a strict-mode process has no such tool, so pass the credential to your own code or MCP server instead (see <a href="../governance/secrets/">Secret scoping</a>). Other secret-bearing values, such as a webhook's <code>hmac_secret</code> or a server's credential headers, are resolved at load time; they are stored as <code>SecretStr</code> (masked in <code>repr()</code> and JSON dumps) but held in memory in plain form.</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nt">secrets</span><span class="p">:</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nt">secrets</span><span class="p">:</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="nt">db_password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${DB_PASSWORD}</span><span class="w">             </span><span class="c1"># resolved when the process starts</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${AWS_REGION:-eu-central-1}</span><span class="w">     </span><span class="c1"># with a default</span>
 </span></code></pre></div>
 <hr />
-<h2 id="cli-commands">CLI Commands<a class="headerlink" href="#cli-commands" title="Link to this section">&para;</a></h2>
-<h3 id="validate-a-manifest">Validate a Manifest<a class="headerlink" href="#validate-a-manifest" title="Link to this section">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/watcher.agent
+<h2 id="full-example">Full example<a class="headerlink" href="#full-example" title="Link to this section">&para;</a></h2>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">"1.0"</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pipeline-watcher</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai:gpt-5-mini</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="nt">instructions</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="no">You are a data pipeline watchdog. When triggered, run a</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span><span class="no">system_health_check. If a pipeline is degraded, get its metrics</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">  </span><span class="no">and create an alert.</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="nt">servers</span><span class="p">:</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">  </span><span class="nt">pipeline_tools</span><span class="p">:</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">    </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://127.0.0.1:8200/mcp</span>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="nt">triggers</span><span class="p">:</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cron</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="w">    </span><span class="nt">cron_expression</span><span class="p">:</span><span class="w"> </span><span class="s">"*/5</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*</span><span class="nv"> </span><span class="s">*"</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook</span>
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="w">    </span><span class="nt">webhook_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/alerts</span>
+</span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="w">    </span><span class="nt">webhook_port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9091</span>
+</span><span id="__span-15-20"><a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="w">    </span><span class="nt">hmac_secret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${WEBHOOK_SECRET}</span>
+</span><span id="__span-15-21"><a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>
+</span><span id="__span-15-22"><a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="nt">world</span><span class="p">:</span>
+</span><span id="__span-15-23"><a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a><span class="w">  </span><span class="nt">pipeline_status</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unknown</span>
+</span><span id="__span-15-24"><a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a><span class="w">  </span><span class="nt">alerts_created</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-15-25"><a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a>
+</span><span id="__span-15-26"><a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a><span class="nt">memory</span><span class="p">:</span>
+</span><span id="__span-15-27"><a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a><span class="w">  </span><span class="nt">provider</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">in_memory</span>
+</span><span id="__span-15-28"><a id="__codelineno-15-28" name="__codelineno-15-28" href="#__codelineno-15-28"></a><span class="w">  </span><span class="nt">max</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</span><span id="__span-15-29"><a id="__codelineno-15-29" name="__codelineno-15-29" href="#__codelineno-15-29"></a>
+</span><span id="__span-15-30"><a id="__codelineno-15-30" name="__codelineno-15-30" href="#__codelineno-15-30"></a><span class="nt">journal</span><span class="p">:</span>
+</span><span id="__span-15-31"><a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a><span class="w">  </span><span class="nt">level</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">full</span>
+</span><span id="__span-15-32"><a id="__codelineno-15-32" name="__codelineno-15-32" href="#__codelineno-15-32"></a><span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.promptise/journal</span>
+</span><span id="__span-15-33"><a id="__codelineno-15-33" name="__codelineno-15-33" href="#__codelineno-15-33"></a>
+</span><span id="__span-15-34"><a id="__codelineno-15-34" name="__codelineno-15-34" href="#__codelineno-15-34"></a><span class="nt">budget</span><span class="p">:</span>
+</span><span id="__span-15-35"><a id="__codelineno-15-35" name="__codelineno-15-35" href="#__codelineno-15-35"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-15-36"><a id="__codelineno-15-36" name="__codelineno-15-36" href="#__codelineno-15-36"></a><span class="w">  </span><span class="nt">max_tool_calls_per_run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+</span><span id="__span-15-37"><a id="__codelineno-15-37" name="__codelineno-15-37" href="#__codelineno-15-37"></a><span class="w">  </span><span class="nt">on_exceeded</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pause</span>
+</span><span id="__span-15-38"><a id="__codelineno-15-38" name="__codelineno-15-38" href="#__codelineno-15-38"></a>
+</span><span id="__span-15-39"><a id="__codelineno-15-39" name="__codelineno-15-39" href="#__codelineno-15-39"></a><span class="nt">hooks</span><span class="p">:</span>
+</span><span id="__span-15-40"><a id="__codelineno-15-40" name="__codelineno-15-40" href="#__codelineno-15-40"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">event</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">session_start</span>
+</span><span id="__span-15-41"><a id="__codelineno-15-41" name="__codelineno-15-41" href="#__codelineno-15-41"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"./hooks/announce.sh"</span><span class="p p-Indicator">]</span>
+</span><span id="__span-15-42"><a id="__codelineno-15-42" name="__codelineno-15-42" href="#__codelineno-15-42"></a>
+</span><span id="__span-15-43"><a id="__codelineno-15-43" name="__codelineno-15-43" href="#__codelineno-15-43"></a><span class="nt">config</span><span class="p">:</span>
+</span><span id="__span-15-44"><a id="__codelineno-15-44" name="__codelineno-15-44" href="#__codelineno-15-44"></a><span class="w">  </span><span class="nt">heartbeat_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
+</span><span id="__span-15-45"><a id="__codelineno-15-45" name="__codelineno-15-45" href="#__codelineno-15-45"></a><span class="w">  </span><span class="nt">idle_timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3600</span>
+</span><span id="__span-15-46"><a id="__codelineno-15-46" name="__codelineno-15-46" href="#__codelineno-15-46"></a><span class="w">  </span><span class="nt">max_consecutive_failures</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</span><span id="__span-15-47"><a id="__codelineno-15-47" name="__codelineno-15-47" href="#__codelineno-15-47"></a><span class="w">  </span><span class="nt">restart_policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">on_failure</span>
+</span><span id="__span-15-48"><a id="__codelineno-15-48" name="__codelineno-15-48" href="#__codelineno-15-48"></a><span class="w">  </span><span class="nt">inbox</span><span class="p">:</span>
+</span><span id="__span-15-49"><a id="__codelineno-15-49" name="__codelineno-15-49" href="#__codelineno-15-49"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </span></code></pre></div>
-<p>Checks schema validity and prints a summary table with name, model, servers, and triggers.</p>
-<h3 id="start-from-a-manifest">Start from a Manifest<a class="headerlink" href="#start-from-a-manifest" title="Link to this section">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Start a single manifest</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1"># Start all manifests in a directory</span>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/
-</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
-</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1"># Start with the live dashboard</span>
-</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--dashboard
-</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
-</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="c1"># Override the process name</span>
-</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--name<span class="w"> </span>custom-watcher
-</span></code></pre></div>
-<h3 id="generate-a-template">Generate a Template<a class="headerlink" href="#generate-a-template" title="Link to this section">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Basic template</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>-o<span class="w"> </span>my-agent.agent
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c1"># Cron-based template</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--template<span class="w"> </span>cron<span class="w"> </span>-o<span class="w"> </span>watcher.agent
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="c1"># Full-featured template</span>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--template<span class="w"> </span>full<span class="w"> </span>-o<span class="w"> </span>production.agent
-</span></code></pre></div>
-<p>Available templates: <code>basic</code>, <code>cron</code>, <code>webhook</code>, <code>full</code>.</p>
 <hr />
-<div class="admonition tip">
-<p class="admonition-title">Environment variable resolution</p>
-<p>Manifests support environment variable resolution. If the <code>promptise.env_resolver</code> module is available, <code>${VAR_NAME}</code> patterns in YAML values are replaced with their environment variable values at load time.</p>
-</div>
+<h2 id="python-api">Python API<a class="headerlink" href="#python-api" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">load_manifest</span><span class="p">,</span> <span class="n">manifest_to_process_config</span><span class="p">,</span> <span class="n">save_manifest</span><span class="p">,</span> <span class="n">validate_manifest</span><span class="p">,</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="p">)</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="n">manifest</span> <span class="o">=</span> <span class="n">load_manifest</span><span class="p">(</span><span class="s2">"agents/watcher.agent"</span><span class="p">)</span>       <span class="c1"># AgentManifestSchema</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="n">config</span> <span class="o">=</span> <span class="n">manifest_to_process_config</span><span class="p">(</span><span class="n">manifest</span><span class="p">)</span>          <span class="c1"># ProcessConfig</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="n">process</span> <span class="o">=</span> <span class="n">AgentProcess</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">manifest</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="n">warnings</span> <span class="o">=</span> <span class="n">validate_manifest</span><span class="p">(</span><span class="s2">"agents/watcher.agent"</span><span class="p">)</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="c1"># ['No MCP servers configured — agent has no tools']</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="n">save_manifest</span><span class="p">(</span><span class="n">manifest</span><span class="p">,</span> <span class="s2">"agents/watcher-copy.agent"</span><span class="p">)</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Raises</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load_manifest(path)</code></td>
+<td><code>AgentManifestSchema</code></td>
+<td><code>ManifestError</code> (missing file, unreadable, invalid YAML, not a mapping), <code>ManifestValidationError</code> (schema), <code>ManifestEnvVarError</code> (unset <code>${VAR}</code>; also an <code>EnvVarNotFoundError</code>)</td>
+</tr>
+<tr>
+<td><code>validate_manifest(path)</code></td>
+<td><code>list[str]</code> of warnings: no instructions, no triggers, no MCP servers</td>
+<td>as <code>load_manifest()</code></td>
+</tr>
+<tr>
+<td><code>manifest_to_process_config(manifest)</code></td>
+<td><code>ProcessConfig</code></td>
+<td><code>pydantic.ValidationError</code> (for example an invalid trigger)</td>
+</tr>
+<tr>
+<td><code>save_manifest(manifest, path)</code></td>
+<td><code>None</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><code>save_manifest()</code> writes the loaded manifest, so <code>${VAR}</code> references outside <code>secrets.secrets</code> are written with their resolved values. <code>AgentRuntime.load_manifest(path, name_override=None)</code> and <code>AgentRuntime.load_directory(dir)</code> load and register in one step (see <a href="../runtime-manager/#loading-manifests">Runtime Manager</a>).</p>
 <hr />
-<h2 id="whats-next">What's Next?<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="cli">CLI<a class="headerlink" href="#cli" title="Link to this section">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c1"># Validate: schema check plus a summary table and warnings (a file or a directory)</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/watcher.agent
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>validate<span class="w"> </span>agents/
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="c1"># Start one manifest, or every *.agent file in a directory</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--name<span class="w"> </span>custom-watcher
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/watcher.agent<span class="w"> </span>--dashboard
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>start<span class="w"> </span>agents/<span class="w"> </span>--detach
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="c1"># Generate a template: basic, cron, webhook or full</span>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>promptise<span class="w"> </span>runtime<span class="w"> </span>init<span class="w"> </span>--template<span class="w"> </span>cron<span class="w"> </span>-o<span class="w"> </span>watcher.agent
+</span></code></pre></div>
+<p>See <a href="../cli/">CLI Commands</a> for every option.</p>
+<hr />
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../processes/">Agent Processes</a> -- <code>ProcessConfig</code> fields and trigger types in detail</li>
-<li><a href="../runtime-manager/">Runtime Manager</a> -- multi-process management with <code>AgentRuntime</code></li>
-<li><a href="../../core/cli/">CLI Reference</a> -- full CLI command reference</li>
+<li><strong>Expecting <code>get_secret</code> in strict mode.</strong> The agent's <code>get_secret</code> tool exists only in open mode; in strict mode <code>secrets.secrets</code> holds values for your code, not for the model.</li>
+<li><strong>A manifest process that "remembers" old state.</strong> Without a <code>journal:</code> section the process journals to <code>.promptise/journal</code> and recovers on start. Set <code>journal: {level: none}</code> or <code>recover_on_start: false</code> if each start should be fresh.</li>
+<li><strong>Putting an option in two places.</strong> <code>config: {instructions: ...}</code> next to a top-level <code>instructions:</code> fails; so do <code>world:</code> together with <code>context: initial_state</code>.</li>
+<li><strong>Secrets in plain values.</strong> Only <code>secrets.secrets</code> keeps <code>${VAR}</code> references until start. A literal API key anywhere else is in the file and in the loaded config.</li>
+<li><strong>Old keys from earlier examples.</strong> <code>journal_level</code>, <code>restart_on_failure</code> and similar keys don't exist; the loader rejects them with the list of valid keys.</li>
+<li><strong>Using <code>entrypoint</code>.</strong> It is not read. Declare command hooks in <code>hooks:</code> and register Python hooks in code.</li>
+</ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../configuration/">Configuration</a> -- every field of every section</li>
+<li><a href="../processes/">Agent Processes</a> -- what the process does with its config</li>
+<li><a href="../runtime-manager/">Runtime Manager</a> -- load many manifests into one runtime</li>
+<li><a href="../hooks/">Runtime Hooks</a> -- hook events and their data</li>
+<li><a href="../cli/">CLI Commands</a> -- <code>promptise runtime validate</code>, <code>start</code> and <code>init</code></li>
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
 <li><a href="https://www.promptise.com/guides/view/ai-agent-yaml-config-file">AI Agent YAML: Define and Run an Agent From a Config File</a> -- Keep an agent's definition in a reviewed config file.</li>
+<li><a href="https://www.promptise.com/guides/view/run-multiple-ai-agents">Run Multiple AI Agents: One Runtime, Many Processes</a> -- Load a directory of manifests into one runtime.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-secrets-management">AI Agent Secrets Management: Scoped, Expiring Credentials</a> -- Keep credentials out of config with scoped secrets.</li>
 </ul>
 </div>
 
@@ -10265,7 +10378,7 @@ the full field list and the
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 21:16:04 UTC">2026-10-20</span>
   </span>
 
     

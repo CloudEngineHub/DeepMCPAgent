@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="You have three MCP servers and want agents to see one clean toolbelt. FastMCP can mount servers with prefixes, but you still don't get per-client visibility…">
+        <meta name="description" content="Learn how to mount several MCP servers into one gateway with prefixes, then control which tools each client sees with visibility rules, tags and versions.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/compose-multiple-mcp-servers/">
       
       
-        <link rel="prev" href="../confidence-threshold-to-stop-ai-agent/">
+        <link rel="prev" href="../configure-ai-agent-budget-and-health/">
       
       
         <link rel="next" href="../code-interpreter-agent-with-approval-gates/">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="How to Compose Multiple MCP Servers Into One Gateway">
-  <meta property="og:description" content="You have three MCP servers and want agents to see one clean toolbelt. FastMCP can mount servers with prefixes, but you still don't get per-client visibility…">
+  <meta property="og:description" content="Learn how to mount several MCP servers into one gateway with prefixes, then control which tools each client sees with visibility rules, tags and versions.">
   <meta property="og:url" content="https://docs.promptise.com/blog/compose-multiple-mcp-servers/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="How to Compose Multiple MCP Servers Into One Gateway">
-  <meta name="twitter:description" content="You have three MCP servers and want agents to see one clean toolbelt. FastMCP can mount servers with prefixes, but you still don't get per-client visibility…">
+  <meta name="twitter:description" content="Learn how to mount several MCP servers into one gateway with prefixes, then control which tools each client sees with visibility rules, tags and versions.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "How to Compose Multiple MCP Servers Into One Gateway",
       "name": "How to Compose Multiple MCP Servers Into One Gateway",
-      "description": "You have three MCP servers and want agents to see one clean toolbelt. FastMCP can mount servers with prefixes, but you still don\u0027t get per-client visibility\u2026",
+      "description": "Learn how to mount several MCP servers into one gateway with prefixes, then control which tools each client sees with visibility rules, tags and versions.",
       "url": "https://docs.promptise.com/blog/compose-multiple-mcp-servers/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9471,7 +9422,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
                           <span class="md-ellipsis">
                             
-                              10 min read
+                              9 min read
                             
                           </span>
                         </div>
@@ -9578,7 +9529,7 @@
 <p>It is worth being precise here, because the interesting gap is not "who can prefix tool names" — several tools can — but what governance you can attach <em>across the merged surface</em>.</p>
 <p><strong>FastMCP has real composition.</strong> <code>mcp.mount(subserver, prefix="sub")</code> gives you live composition where calls route to the mounted server, and <code>import_server()</code> gives you a one-time static copy; both prefix tool names. So namespacing across composed servers is not a gap in FastMCP — it ships. FastMCP also has genuine tag support: you tag tools and set server-level <code>include_tags</code> / <code>exclude_tags</code> to control which tools are exposed, and its tool-transformation API (<code>Tool.from_tool(...)</code>) can rename a tool, hide or rename arguments, and rewrite descriptions. Those are real, useful primitives, and any honest comparison has to say so.</p>
 <p>The precise delta is two-fold. First, FastMCP's tag exposure is <strong>static and server-wide</strong> — <code>include_tags</code> / <code>exclude_tags</code> are set when you build the server and apply the same way to everyone. What it does not give you as a first-class primitive is a <strong>per-request, caller-aware</strong> filter: a predicate that runs at discovery time against <em>this</em> client's roles and decides, on that request, whether <code>pay_refund</code> is even in the list. Second, FastMCP has no built-in <strong>latest-alias-plus-pinned-version</strong> primitive across the composed surface — you can register <code>search_v1</code> and <code>search_v2</code> as separate names, but resolving <code>search</code> to the newest while keeping <code>search@1.0</code> reachable is convention you hand-roll, as the <a href="../version-mcp-tools-without-breaking-clients/">tool-versioning walkthrough</a> covers in depth.</p>
-<p><strong>Agent frameworks don't play in this layer at all.</strong> LangChain, CrewAI, and AutoGen consume MCP tools as <em>clients</em> — they connect to a server and pull its tools into an agent. They do not compose MCP <em>servers</em> into a gateway, because the gateway is a server-side concern and these frameworks sit on the other side of the wire. The composition question only becomes real once you are the one publishing the tools, which is exactly where Promptise's server SDK lives. For the broader stack-by-stack breakdown, see <a href="../fastmcp-alternative-for-production/">FastMCP vs Promptise: The Production MCP Stack Compared</a>.</p>
+<p><strong>Agent frameworks don't play in this layer at all.</strong> LangChain, CrewAI, and AutoGen consume MCP tools as <em>clients</em> — they connect to a server and pull its tools into an agent. They do not compose MCP <em>servers</em> into a gateway, because the gateway is a server-side concern and these frameworks sit on the other side of the wire. The composition question only becomes real once you are the one publishing the tools, which is exactly where Promptise's server SDK lives. For a broader look at the options, see <a href="https://www.promptise.com/guides/view/fastmcp-alternatives">FastMCP Alternatives for Production MCP Servers</a>.</p>
 <p>So the framing is not "competitors can't compose." It is: composition plus a per-client, role-aware discovery filter plus versioned coexistence, all applied uniformly over the merged surface, is where Promptise makes the capability structural rather than something you assemble by hand.</p>
 <h2 id="govern-the-composed-surface-visibility-tags-and-versions">Govern the composed surface: visibility, tags, and versions<a class="headerlink" href="#govern-the-composed-surface-visibility-tags-and-versions" title="Link to this section">&para;</a></h2>
 <p>A gateway that shows every tool to every caller is a liability — the whole point of a single endpoint is that you can also make a single decision about who sees what. Promptise's transforms are discovery-time filters: each one takes the list of tool definitions and returns a filtered or rewritten list, and because they compose in order, you chain them into the exact view a given client should get. <code>TagFilterTransform</code> keeps only tools carrying a required tag; <code>VisibilityTransform</code> drops tools whose predicate fires against the calling context; and <code>VersionedToolRegistry</code> lets two mounted servers advertise <code>pay_charge@1.0</code> and <code>pay_charge@2.0</code> side by side. This second script is also fully runnable:</p>
@@ -9666,7 +9617,7 @@
 <h3 id="can-i-still-add-auth-caching-and-rate-limits-to-a-gateway">Can I still add auth, caching, and rate limits to a gateway?<a class="headerlink" href="#can-i-still-add-auth-caching-and-rate-limits-to-a-gateway" title="Link to this section">&para;</a></h3>
 <p>Yes. The gateway is an ordinary <code>MCPServer</code>, so <code>AuthMiddleware</code>, <code>CacheMiddleware</code>, <code>RateLimitMiddleware</code>, circuit breakers, and audit logging attach to it exactly as they would to any single server. Guards and auth flags declared on a child tool survive the mount, because <code>mount()</code> copies the full tool definition rather than just its name and schema.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Start by listing every MCP endpoint an agent currently connects to; each one is a candidate to mount behind a single gateway. Stand up a thin <code>MCPServer</code>, <code>mount()</code> your existing servers with clear prefixes, and confirm the merged toolbelt with <code>TestClient.list_tools()</code>. Then layer governance: <code>TagFilterTransform</code> to scope the surface, <code>VisibilityTransform</code> for per-client role-aware discovery, and <code>VersionedToolRegistry</code> where two servers need overlapping tool contracts. Follow the composition walkthrough in the <a href="../../mcp/server/advanced-patterns/">Advanced Patterns</a> guide to build your gateway, fit it into the rest of your hardening work with the <a href="../../mcp/server/production-features/">Production Features</a> overview, and if you are weighing frameworks, read <a href="../fastmcp-alternative-for-production/">FastMCP vs Promptise: The Production MCP Stack Compared</a> to see where a governed composed surface changes the calculus.</p>
+<p>Start by listing every MCP endpoint an agent currently connects to; each one is a candidate to mount behind a single gateway. Stand up a thin <code>MCPServer</code>, <code>mount()</code> your existing servers with clear prefixes, and confirm the merged toolbelt with <code>TestClient.list_tools()</code>. Then layer governance: <code>TagFilterTransform</code> to scope the surface, <code>VisibilityTransform</code> for per-client role-aware discovery, and <code>VersionedToolRegistry</code> where two servers need overlapping tool contracts. Follow the composition walkthrough in the <a href="../../mcp/server/advanced-patterns/">Advanced Patterns</a> guide to build your gateway, fit it into the rest of your hardening work with the <a href="../../mcp/server/production-features/">Production Features</a> overview, and if you are weighing frameworks, read the <a href="https://www.promptise.com/guides/view/fastmcp-alternatives">FastMCP alternatives guide</a> to compare production MCP server options.</p>
 
 
 
@@ -9689,7 +9640,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

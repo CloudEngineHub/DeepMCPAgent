@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="In a zero-trust mesh the receiving MCP server must verify the calling agent cryptographically, not trust a self-asserted name. This how-to verifies the…">
+        <meta name="description" content="Learn how an MCP server should verify the calling AI agent's token, authorize it and record the verified identity, instead of trusting a self-asserted name.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/verify-the-calling-agent-server-side/">
       
       
-        <link rel="prev" href="../verify-webhook-signature-ai-agent/">
+        <link rel="prev" href="../version-mcp-tools-without-breaking-clients/">
       
       
         <link rel="next" href="../trim-messages-vs-facts-ledger/">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Zero-trust: verify the calling agent, not its name">
-  <meta property="og:description" content="In a zero-trust mesh the receiving MCP server must verify the calling agent cryptographically, not trust a self-asserted name. This how-to verifies the…">
+  <meta property="og:description" content="Learn how an MCP server should verify the calling AI agent's token, authorize it and record the verified identity, instead of trusting a self-asserted name.">
   <meta property="og:url" content="https://docs.promptise.com/blog/verify-the-calling-agent-server-side/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Zero-trust: verify the calling agent, not its name">
-  <meta name="twitter:description" content="In a zero-trust mesh the receiving MCP server must verify the calling agent cryptographically, not trust a self-asserted name. This how-to verifies the…">
+  <meta name="twitter:description" content="Learn how an MCP server should verify the calling AI agent's token, authorize it and record the verified identity, instead of trusting a self-asserted name.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Zero-trust: verify the calling agent, not its name",
       "name": "Zero-trust: verify the calling agent, not its name",
-      "description": "In a zero-trust mesh the receiving MCP server must verify the calling agent cryptographically, not trust a self-asserted name. This how-to verifies the\u2026",
+      "description": "Learn how an MCP server should verify the calling AI agent\u0027s token, authorize it and record the verified identity, instead of trusting a self-asserted name.",
       "url": "https://docs.promptise.com/blog/verify-the-calling-agent-server-side/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9480,7 +9431,7 @@
 <p>In a zero-trust agent mesh you must <strong>verify the calling agent server-side</strong> — cryptographically, on the resource that receives the call — because a self-asserted agent name in a request body is trivial to forge. Agent A tells your billing server "I am <code>billing-bot</code>"; your server believes it; a compromised or misconfigured Agent B says exactly the same thing. If the only thing standing between a caller and <code>issue_refund</code> is a string it chose for itself, you have no security boundary at all — you have a naming convention.</p>
 <!-- more -->
 
-<p>Zero-trust has one rule: never trust, always verify, and verify at the resource. For AI agents that means the <em>receiving</em> MCP server does the work. It checks that the caller's credential was minted by an identity provider you trust, that it was minted for <em>this</em> resource, that it belongs to the <em>specific</em> agent you allow, and it records the verified subject so an auditor can prove who did what. This post wires that server-side half end to end. It is the counterpart to the outbound question — <a href="../how-does-an-ai-agent-authenticate-to-an-api/">how does an AI agent authenticate to an API?</a> covers minting and presenting the credential; here we verify it.</p>
+<p>Zero-trust has one rule: never trust, always verify, and verify at the resource. For AI agents that means the <em>receiving</em> MCP server does the work. It checks that the caller's credential was minted by an identity provider you trust, that it was minted for <em>this</em> resource, that it belongs to the <em>specific</em> agent you allow, and it records the verified subject so you can prove who did what. This post wires that server-side half end to end. It is the counterpart to the outbound question — <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">the agent identity guide</a> covers how an agent gets and presents its credential; here we verify it.</p>
 <h2 id="why-a-self-asserted-agent-name-is-not-identity">Why a self-asserted agent name is not identity<a class="headerlink" href="#why-a-self-asserted-agent-name-is-not-identity" title="Link to this section">&para;</a></h2>
 <p>The failure mode is subtle because the happy path looks fine. Your agents each carry a name, they pass it along, tools log it, dashboards show it. Nothing is obviously broken — until you ask what stops a caller from claiming a name that isn't theirs.</p>
 <ul>
@@ -9495,7 +9446,7 @@
 <li><strong>Agent orchestration frameworks — LangChain/LangGraph, CrewAI, AutoGen, LlamaIndex — ship no resource-server SDK for verifying a <em>remote</em> calling agent.</strong> Their multi-agent handoffs address a peer by an in-process name or role; the "identity" of the agent you delegate to is a Python object or a routing key, not a verified credential. That is fine inside one trust boundary and offers nothing across one. AutoGen 0.4 does ship a distributed gRPC runtime that coordinates workers across processes and machines — but it routes messages between registered workers; it does not verify a calling agent's IdP token with a required audience, allow-list the specific agent per tool, and record the verified subject in a tamper-evident log.</li>
 <li><strong>General MCP server frameworks do verify bearer tokens.</strong> FastMCP, for example, validates JWTs against a JWKS endpoint and can enforce issuer, audience, and scopes. Credit where due: that closes the signature-and-audience gap. What it does not bundle is the rest of the stack as one enforced layer — per-agent allow-listing and role checks as composable per-tool primitives, and a verified-subject, HMAC-chained audit as a drop-in middleware.</li>
 </ul>
-<p>So the fair delta is not "they can't verify a token." It is that Promptise Foundry makes the <em>whole</em> server-side contract structural: audience is a <strong>required</strong> constructor argument (you cannot stand up signature-only verification by accident), per-agent authorization is a first-class <code>Guard</code>, and the tamper-evident audit of the verified subject is one line. Three checks that are easy to skip individually become one layer you compose deliberately. The <a href="../../mcp/server/auth-security/">server auth &amp; security reference</a> documents each piece.</p>
+<p>So the real difference is not "they can't verify a token." It is that Promptise Foundry makes the <em>whole</em> server-side contract structural: audience is a <strong>required</strong> constructor argument (you cannot stand up signature-only verification by accident), per-agent authorization is a first-class <code>Guard</code>, and the tamper-evident audit of the verified subject is one line. Three checks that are easy to skip individually become one layer you compose deliberately. The <a href="../../mcp/server/auth-security/">server auth &amp; security reference</a> documents each piece.</p>
 <h2 id="verify-authorize-audit-the-three-checks-a-resource-server-owes-you">Verify, authorize, audit — the three checks a resource server owes you<a class="headerlink" href="#verify-authorize-audit-the-three-checks-a-resource-server-owes-you" title="Link to this section">&para;</a></h2>
 <p>Here is the full server-side loop, and it is genuinely runnable on a laptop with no identity provider and no model key. It uses a local HS256 secret purely so the example is self-contained; the production swap to asymmetric IdP verification is the next section. What matters is the enforcement, and every check below is real:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
@@ -9586,7 +9537,7 @@
 <h3 id="do-agent-orchestration-frameworks-do-this-for-me">Do agent orchestration frameworks do this for me?<a class="headerlink" href="#do-agent-orchestration-frameworks-do-this-for-me" title="Link to this section">&para;</a></h3>
 <p>Not at the resource layer. LangGraph, CrewAI, AutoGen, and LlamaIndex address peer agents by in-process name or role and ship no SDK to verify a <em>remote</em> calling agent's credential. General MCP server frameworks like FastMCP do verify bearer tokens (JWKS, issuer, audience, scopes); Promptise adds per-agent allow-list guards and a verified-subject, tamper-evident audit as one enforced layer on top of that verification.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Link to this section">&para;</a></h2>
-<p>Stand up server-side verification by walking the zero-trust inbound section of the <a href="../../identity/guide/">end-to-end identity guide</a> — it verifies the caller with <code>JwksAuth</code> (audience required), authorizes the specific agent with <code>RequireClientId</code>, and records the verified subject in a signed audit. Then read the <a href="../../mcp/server/auth-security/">server auth &amp; security reference</a> for the full guard and middleware catalog, and the <a href="../../identity/security/">identity threat model</a> to see exactly which spoofing and replay attacks each check closes. Building the fleet these servers protect? Start by giving <a href="../give-each-ai-agent-its-own-identity/">each AI agent its own identity, not a shared key</a> — verification on the server is only as meaningful as the identities on the callers.</p>
+<p>Stand up server-side verification by walking the zero-trust inbound section of the <a href="../../identity/guide/">end-to-end identity guide</a> — it verifies the caller with <code>JwksAuth</code> (audience required), authorizes the specific agent with <code>RequireClientId</code>, and records the verified subject in a signed audit. Then read the <a href="../../mcp/server/auth-security/">server auth &amp; security reference</a> for the full guard and middleware catalog, and the <a href="../../identity/security/">identity threat model</a> to see exactly which spoofing and replay attacks each check closes. Building the fleet these servers protect? Start by giving each agent its own identity with <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">AI Agent Identity: Authenticate Agents to MCP Servers</a> — verification on the server is only as meaningful as the identities on the callers.</p>
 
 
 
@@ -9609,7 +9560,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:39:05 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Lightweight anomaly detection that identifies stuck agents, infinite loops, empty responses, and high error rates — without making any LLM calls. All detection">
+        <meta name="description" content="Behavioral health monitoring catches an agent that runs but no longer does useful work: stuck on the same tool call, looping through the same sequence, giving">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Behavioral Health">
-  <meta property="og:description" content="Lightweight anomaly detection that identifies stuck agents, infinite loops, empty responses, and high error rates — without making any LLM calls. All detection">
+  <meta property="og:description" content="Behavioral health monitoring catches an agent that runs but no longer does useful work: stuck on the same tool call, looping through the same sequence, giving">
   <meta property="og:url" content="https://docs.promptise.com/runtime/governance/health/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Behavioral Health">
-  <meta name="twitter:description" content="Lightweight anomaly detection that identifies stuck agents, infinite loops, empty responses, and high error rates — without making any LLM calls. All detection">
+  <meta name="twitter:description" content="Behavioral health monitoring catches an agent that runs but no longer does useful work: stuck on the same tool call, looping through the same sequence, giving">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Behavioral Health",
       "name": "Behavioral Health",
-      "description": "Lightweight anomaly detection that identifies stuck agents, infinite loops, empty responses, and high error rates \u2014 without making any LLM calls. All detection",
+      "description": "Behavioral health monitoring catches an agent that runs but no longer does useful work: stuck on the same tool call, looping through the same sequence, giving",
       "url": "https://docs.promptise.com/runtime/governance/health/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5604,6 +5574,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#how-the-process-feeds-the-monitor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the process feeds the monitor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#detectors" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5649,17 +5630,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#recovery" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recovery
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#error-rate-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5687,6 +5657,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cooldown" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5698,10 +5679,43 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reading-health-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading health status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changing-the-configuration-while-it-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changing the configuration while it runs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#as-an-in-run-guard" class="md-nav__link">
     <span class="md-ellipsis">
       
         As an in-run guard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
       
     </span>
   </a>
@@ -5743,6 +5757,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#anomaly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anomaly
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#anomalytype" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5755,6 +5780,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
   
 </li>
       
@@ -6149,6 +6185,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6171,8 +6211,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6186,8 +6227,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6199,6 +6246,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8445,8 +8494,6 @@
       
         
       
-        
-      
     
     
     
@@ -8599,36 +8646,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9529,6 +9546,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#how-the-process-feeds-the-monitor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How the process feeds the monitor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#detectors" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9574,17 +9602,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#recovery" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Recovery
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#error-rate-detection" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9612,6 +9629,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cooldown" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9623,10 +9651,43 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reading-health-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading health status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changing-the-configuration-while-it-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changing the configuration while it runs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#as-an-in-run-guard" class="md-nav__link">
     <span class="md-ellipsis">
       
         As an in-run guard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common pitfalls
       
     </span>
   </a>
@@ -9668,6 +9729,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#anomaly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anomaly
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#anomalytype" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9680,6 +9752,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
   
 </li>
       
@@ -9753,78 +9836,157 @@
 
 
 <h1 id="behavioral-health-monitoring">Behavioral Health Monitoring<a class="headerlink" href="#behavioral-health-monitoring" title="Link to this section">&para;</a></h1>
-<p>Lightweight anomaly detection that identifies stuck agents, infinite loops, empty responses, and high error rates — without making any LLM calls. All detection is pure pattern matching on tool call and response history.</p>
-<h2 id="when-you-need-it">When you need it<a class="headerlink" href="#when-you-need-it" title="Link to this section">&para;</a></h2>
-<p>System monitoring watches CPU and memory. Nobody watches whether the agent is actually doing what it should be doing. A stuck agent calling the same tool in a loop burns compute silently until it hits context limits. Behavioral health catches that.</p>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Link to this section">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">HealthConfig</span><span class="p">,</span> <span class="n">EscalationTarget</span>
+<p>Behavioral health monitoring catches an agent that runs but no longer does useful work: stuck on the same tool call, looping through the same sequence, giving empty replies, or failing run after run. Detection is pure pattern matching on the tool calls, final replies and run outcomes the process records; it makes no LLM calls. When it finds an anomaly, the process logs it, pauses, escalates or stops, as you configure.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">HealthConfig</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor data pipelines."</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">health</span><span class="o">=</span><span class="n">HealthConfig</span><span class="p">(</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">stuck_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>       <span class="c1"># 3 identical calls = stuck</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">loop_window</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>          <span class="c1"># Check last 20 tool calls for loops</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">loop_min_repeats</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>      <span class="c1"># 2+ repeats of a pattern = loop</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">empty_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>       <span class="c1"># 3 consecutive short responses = anomaly</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">empty_max_chars</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>      <span class="c1"># Below 10 chars = trivial response</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">error_rate_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="c1"># 50%+ error rate = anomaly</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">on_anomaly</span><span class="o">=</span><span class="s2">"escalate"</span><span class="p">,</span>   <span class="c1"># "log", "pause" or "escalate"</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">cooldown</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>            <span class="c1"># 5 min before the same anomaly is reported again</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">escalation</span><span class="o">=</span><span class="n">EscalationTarget</span><span class="p">(</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>            <span class="n">webhook_url</span><span class="o">=</span><span class="s2">"https://hooks.slack.com/..."</span><span class="p">,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="p">),</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="p">),</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">health</span><span class="o">=</span><span class="n">HealthConfig</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">on_anomaly</span><span class="o">=</span><span class="s2">"pause"</span><span class="p">),</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="when-you-need-it">When you need it<a class="headerlink" href="#when-you-need-it" title="Link to this section">&para;</a></h2>
+<p>System monitoring watches CPU and memory. Nobody watches whether the agent is actually doing what it should be doing. A stuck agent calling the same tool in a loop burns compute silently until it hits context limits, and a scheduled agent that answers "ok" to every run looks healthy from the outside. Behavioral health catches both.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">HealthConfig</span><span class="p">,</span> <span class="n">EscalationTarget</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor data pipelines."</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">health</span><span class="o">=</span><span class="n">HealthConfig</span><span class="p">(</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="n">stuck_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>        <span class="c1"># 3 identical calls in a row = stuck</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="n">loop_window</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>           <span class="c1"># check the last 20 tool calls for loops</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="n">loop_min_repeats</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>       <span class="c1"># a sequence repeated 2+ times = loop</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="n">empty_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>        <span class="c1"># 3 trivial final replies in a row = anomaly</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">empty_max_chars</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>       <span class="c1"># a reply of at most 10 chars is trivial</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="n">error_window</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>          <span class="c1"># error rate over the last 10 runs</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="n">error_rate_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="c1"># 50%+ failed runs = anomaly</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="n">on_anomaly</span><span class="o">=</span><span class="s2">"escalate"</span><span class="p">,</span>    <span class="c1"># "log", "pause", "escalate" or "stop"</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="n">cooldown</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>             <span class="c1"># 5 min before the same anomaly is reported again</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="n">escalation</span><span class="o">=</span><span class="n">EscalationTarget</span><span class="p">(</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>            <span class="n">webhook_url</span><span class="o">=</span><span class="s2">"https://hooks.slack.com/..."</span><span class="p">,</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        <span class="p">),</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="p">),</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>Or in a <code>.agent</code> manifest:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pipeline-monitor</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">health</span><span class="p">:</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">stuck_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">loop_window</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">on_anomaly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">escalate</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="nt">cooldown</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">escalation</span><span class="p">:</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="nt">webhook_url</span><span class="p">:</span><span class="w"> </span><span class="s">"https://hooks.slack.com/..."</span>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pipeline-monitor</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">health</span><span class="p">:</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">stuck_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">loop_window</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">error_window</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">on_anomaly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">escalate</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">cooldown</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">escalation</span><span class="p">:</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">webhook_url</span><span class="p">:</span><span class="w"> </span><span class="s">"https://hooks.slack.com/..."</span>
 </span></code></pre></div>
+<p>An unknown key under <code>health:</code> is rejected in a manifest; in Python, <code>HealthConfig</code> ignores it with a <code>FutureWarning</code>.</p>
+<h2 id="how-the-process-feeds-the-monitor">How the process feeds the monitor<a class="headerlink" href="#how-the-process-feeds-the-monitor" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Recorded when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tool call (name + hash of the arguments)</td>
+<td>Each tool call starts, through the process's callback handler</td>
+</tr>
+<tr>
+<td>Final reply length</td>
+<td>A run finishes without raising; the agent's final answer, not tool results</td>
+</tr>
+<tr>
+<td>Run success</td>
+<td>A run finishes without raising</td>
+</tr>
+<tr>
+<td>Run failure</td>
+<td>A run raised and used up its retries (<code>trigger_delivery.max_retries</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Tool history starts fresh at every run (stuck and loop detection look for repetition inside a run). Reply lengths and run outcomes carry over between runs. Runs blocked by a guardrail, a hook or the payload scan are not recorded.</p>
 <h2 id="detectors">Detectors<a class="headerlink" href="#detectors" title="Link to this section">&para;</a></h2>
 <h3 id="stuck-detection">Stuck detection<a class="headerlink" href="#stuck-detection" title="Link to this section">&para;</a></h3>
-<p>Tracks <code>(tool_name, hash(arguments))</code> tuples. When the agent calls the same tool with the same arguments <code>stuck_threshold</code> times consecutively <strong>within one invocation</strong>, it's stuck.</p>
-<p>Tool history starts fresh at every invocation (stuck and loop detection look for repetition inside a run). A scheduled agent that checks the same queue once per cron tick is behaving normally and is not reported as stuck.</p>
+<p>When the agent calls the same tool with the same arguments <code>stuck_threshold</code> times in a row <strong>within one run</strong>, it's stuck. A scheduled agent that checks the same queue once per cron tick is behaving normally and is not reported.</p>
+<p><code>details</code>: <code>tool_name</code>, <code>consecutive_count</code>.</p>
 <h3 id="loop-detection">Loop detection<a class="headerlink" href="#loop-detection" title="Link to this section">&para;</a></h3>
-<p>Examines the last <code>loop_window</code> tool calls for repeating patterns of any length. If a sequence like <code>search → read → analyze → search → read → analyze</code> repeats <code>loop_min_repeats</code> times, it's a loop.</p>
+<p>Examines the last <code>loop_window</code> tool calls of the run (at least 4) for a repeating sequence of two or more calls. If a sequence like <code>search → read → analyze → search → read → analyze</code> repeats <code>loop_min_repeats</code> times back to back, it's a loop.</p>
+<p><code>details</code>: <code>pattern</code> (tool names), <code>repeat_count</code>, <code>pattern_length</code>.</p>
 <h3 id="empty-response-detection">Empty response detection<a class="headerlink" href="#empty-response-detection" title="Link to this section">&para;</a></h3>
-<p>Counts consecutive <strong>final replies</strong> (the agent's answer at the end of an invocation) shorter than <code>empty_max_chars</code>. After <code>empty_threshold</code> consecutive trivial replies, the agent likely isn't making progress. Tool results are not replies: a tool that returns <code>[]</code> because a queue is empty does not count. Reply lengths carry over between invocations.</p>
-<h3 id="recovery">Recovery<a class="headerlink" href="#recovery" title="Link to this section">&para;</a></h3>
-<p>After an anomaly, the next successful invocation emits a single <code>health.recovered</code> event. Further successes do not emit it again until another anomaly fires.</p>
+<p>Counts consecutive <strong>final replies</strong> of at most <code>empty_max_chars</code> characters after stripping whitespace. With the default 10, a 10-character reply counts as empty and an 11-character one doesn't; <code>0</code> counts only blank replies. After <code>empty_threshold</code> such replies in a row, the anomaly fires. Tool results are not replies: a tool that returns <code>[]</code> because a queue is empty does not count.</p>
+<p><code>details</code>: <code>consecutive_count</code>, <code>max_chars</code>, <code>lengths</code>.</p>
 <h3 id="error-rate-detection">Error rate detection<a class="headerlink" href="#error-rate-detection" title="Link to this section">&para;</a></h3>
-<p>Sliding window error rate over the last <code>error_window</code> invocations. An invocation counts as failed when it raises and has used up its retries (<code>trigger_delivery.max_retries</code>). When the fraction of failed invocations reaches <code>error_rate_threshold</code>, something is systematically wrong.</p>
+<p>Once <code>error_window</code> run outcomes are recorded, the error rate is the share of failed runs among the last <code>error_window</code>. It fires when the rate is at or above <code>error_rate_threshold</code>. Before the window is full, nothing fires, so with the defaults a process needs 10 recorded runs first.</p>
+<p><code>details</code>: <code>error_rate</code>, <code>error_count</code>, <code>window_size</code>, <code>threshold</code>.</p>
 <h2 id="enforcement-actions">Enforcement actions<a class="headerlink" href="#enforcement-actions" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Action</th>
+<th><code>on_anomaly</code></th>
 <th>Behavior</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>"log"</code></td>
-<td>Log the anomaly, continue execution</td>
+<td><code>"log"</code> (default)</td>
+<td>Log the anomaly and emit <code>health.anomaly</code>; the process keeps running</td>
 </tr>
 <tr>
 <td><code>"pause"</code></td>
-<td>Suspend the process</td>
+<td>Suspend the process (<code>suspend_reason == "health"</code>)</td>
 </tr>
 <tr>
 <td><code>"escalate"</code></td>
-<td>Fire escalation notification, then suspend</td>
+<td>Send the escalation notification when <code>escalation</code> is set, then suspend the process. Without <code>escalation</code> it still suspends</td>
+</tr>
+<tr>
+<td><code>"stop"</code></td>
+<td>Stop the process</td>
 </tr>
 </tbody>
 </table>
-<p>The action runs when the invocation that produced the anomaly ends, whether the run succeeded or raised (a stuck tool loop often ends in <code>GraphIterationLimitError</code>), and however long the run went on after the anomaly was detected. An anomaly from a failed run that is only detected once the failure is recorded (<code>high_error_rate</code>) is acted on right then. Each anomaly is acted on once: a later healthy run does not pause the process again for it. Every new anomaly also emits a <code>health.anomaly</code> event (<code>process_name</code>, <code>anomaly_type</code>, <code>details</code>).</p>
+<p>The action runs once, when the run that produced the anomaly ends, whether the run succeeded or raised (a stuck tool loop often ends in <code>GraphIterationLimitError</code>), and however long the run went on after the anomaly was detected. An anomaly detected when a failure is recorded (<code>high_error_rate</code>) is acted on right then. Each anomaly is handled once: a later healthy run does not pause the process again for it. <code>pause</code> and <code>escalate</code> suspend only a <code>RUNNING</code> process.</p>
+<p>A process suspended for health does not resume by itself. Its trigger events keep queueing; <code>resume()</code> (or <code>POST /api/v1/processes/{name}/resume</code>) lets it continue in order. To stop a process outright on a hard limit, use <code>on_anomaly="stop"</code> or the <a href="../budget/">Autonomy Budget</a> with <code>on_exceeded="stop"</code>.</p>
+<p>The escalation is a POST to <code>escalation.webhook_url</code> and/or an <code>escalation.event_type</code> event on the runtime's event bus, with the latest anomaly of the run:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"health_anomaly"</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">"process_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"0c8e5d0a-6b8f-4c56-9a52-0f4f3c1e9b7d"</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">"process_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pipeline-monitor"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">"anomaly_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"stuck"</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">"details"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"tool_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"search"</span><span class="p">,</span><span class="w"> </span><span class="nt">"consecutive_count"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">}</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>The webhook URL must resolve to a public address; see <a href="../budget/#enforcement-actions">escalation delivery</a> for the SSRF rules, which apply here too.</p>
+<h2 id="events">Events<a class="headerlink" href="#events" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Severity</th>
+<th>Payload</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>health.anomaly</code></td>
+<td>warning</td>
+<td><code>process_name</code>, <code>anomaly_type</code> (<code>stuck</code>, <code>loop</code>, <code>empty_response</code>, <code>high_error_rate</code>), <code>details</code></td>
+</tr>
+<tr>
+<td><code>health.recovered</code></td>
+<td>info</td>
+<td><code>process_name</code></td>
+</tr>
+</tbody>
+</table>
+<p>Events reach the runtime's <a href="../../../core/events/">event notifier</a> sinks; their metadata carries <code>process_name</code>, <code>process_id</code> and the model. <code>health.anomaly</code> is emitted for every new anomaly, whatever <code>on_anomaly</code> is.</p>
+<p><code>health.recovered</code> is emitted once per incident: on the first run after an anomaly that finishes without raising. That can be the same run that produced a stuck or loop anomaly, if that run then finishes cleanly; the <code>health.recovered</code> event is then emitted before the <code>health.anomaly</code> event of that run. The reply of the recovering run may itself still be empty.</p>
 <h2 id="cooldown">Cooldown<a class="headerlink" href="#cooldown" title="Link to this section">&para;</a></h2>
 <p><code>cooldown</code> (default 300 s) stops the same anomaly from being reported over
 and over, so a stuck agent does not send an escalation per call. "The same"
@@ -9855,6 +10017,83 @@ means the same kind <strong>and</strong> the same evidence:</p>
 at once, also within the cooldown and in the same run. The cooldown carries
 over between invocations: a scheduled agent that gets stuck on the same call
 in every run reports it once per <code>cooldown</code>.</p>
+<p><code>clear_anomalies()</code> (and <code>DELETE /api/v1/processes/{name}/health/anomalies</code>) forgets the anomaly history <strong>and resets the cooldowns</strong>: after a clear, the next occurrence of any anomaly is reported and acted on at once.</p>
+<h2 id="reading-health-status">Reading health status<a class="headerlink" href="#reading-health-status" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">process</span><span class="o">.</span><span class="n">status</span><span class="p">()[</span><span class="s2">"health"</span><span class="p">]</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># {'is_healthy': False,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1">#  'anomaly_count': 1,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1">#  'anomalies_by_type': {'stuck': 1, 'loop': 0, 'empty_response': 0, 'high_error_rate': 0},</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1">#  'latest_anomaly': {'type': 'stuck',</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1">#                     'description': "Agent stuck: tool 'search' called 3 times consecutively with identical arguments",</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1">#                     'timestamp': '2026-10-19T20:21:57.600765+00:00'}}</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">process</span><span class="o">.</span><span class="n">status</span><span class="p">()[</span><span class="s2">"health_anomalies"</span><span class="p">]</span>  <span class="c1"># 1: anomalies in the history</span>
+</span></code></pre></div>
+<p><code>status()["health"]</code> is <code>HealthMonitor.health_status()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_healthy</code></td>
+<td><code>True</code> when no anomaly was reported within the last <code>cooldown</code> seconds</td>
+</tr>
+<tr>
+<td><code>anomaly_count</code></td>
+<td>Anomalies reported since the start or the last clear</td>
+</tr>
+<tr>
+<td><code>anomalies_by_type</code></td>
+<td>The same count per type</td>
+</tr>
+<tr>
+<td><code>latest_anomaly</code></td>
+<td><code>type</code>, <code>description</code> and ISO <code>timestamp</code> of the newest one, or <code>None</code></td>
+</tr>
+</tbody>
+</table>
+<p>Both keys are present only when health monitoring is enabled. <code>GET /api/v1/processes/{name}</code> returns the same status over HTTP.</p>
+<p>The anomaly history keeps the latest 1000 anomalies (<code>HealthMonitor.MAX_ANOMALIES</code>), oldest dropped first; <code>anomaly_count</code> counts all of them.</p>
+<p>Over the <a href="../../api/">orchestration API</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /api/v1/processes/{name}/health/anomalies</code></td>
+<td><code>{"name", "health_enabled": true, "anomalies": [{"type", "description", "timestamp"}], "count"}</code>; <code>{"health_enabled": false, "anomalies": []}</code> when monitoring is off</td>
+</tr>
+<tr>
+<td><code>DELETE /api/v1/processes/{name}/health/anomalies</code></td>
+<td><code>{"name", "anomalies_cleared": n}</code>; <code>400 HEALTH_DISABLED</code> when monitoring is off</td>
+</tr>
+<tr>
+<td><code>PATCH /api/v1/processes/{name}/health</code></td>
+<td><code>{"name", "health_updated": true, "live": true, "effective_from": "immediate"}</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="changing-the-configuration-while-it-runs">Changing the configuration while it runs<a class="headerlink" href="#changing-the-configuration-while-it-runs" title="Link to this section">&para;</a></h2>
+<p>Every <code>HealthConfig</code> field can change on a running process, through <code>PATCH /api/v1/processes/{name}/health</code> or the client:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">async</span> <span class="k">with</span> <span class="n">OrchestrationClient</span><span class="p">(</span><span class="s2">"http://127.0.0.1:9100"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">TOKEN</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">update_health</span><span class="p">(</span><span class="s2">"pipeline-monitor"</span><span class="p">,</span> <span class="n">error_window</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">on_anomaly</span><span class="o">=</span><span class="s2">"pause"</span><span class="p">)</span>
+</span></code></pre></div>
+<p>The patch is validated as a whole before anything changes (<code>422 UNKNOWN_FIELD</code> or <code>422 INVALID_CONFIG</code> otherwise) and applies at the next recorded signal:</p>
+<ul>
+<li><strong>Thresholds and actions</strong> apply to the next check.</li>
+<li><strong>Window sizes</strong> (<code>error_window</code>, <code>loop_window</code>, <code>stuck_threshold</code>, <code>empty_threshold</code>) resize the monitor's windows and keep the most recent data. Growing <code>error_window</code> from 10 to 20 keeps the 10 outcomes recorded so far; the error rate is checked again once 20 are recorded.</li>
+<li><strong><code>enabled</code></strong> builds the monitor (<code>true</code>) or drops it with its history (<code>false</code>).</li>
+</ul>
+<p>In Python, change <code>process.config.health</code> and call <code>process.apply_governance_config("health")</code>, or give a standalone monitor a new config with <code>monitor.apply_config(config)</code>. A monitor also picks up window-size changes made directly on the config object it reads.</p>
+<p>The monitor's history lives in memory. It survives <code>stop()</code> / <code>start()</code> and <code>restart_process()</code> of the same process, but it is not written to the journal, so a new process object (a new runtime, a redeploy) starts with an empty history.</p>
 <h2 id="as-an-in-run-guard">As an in-run guard<a class="headerlink" href="#as-an-in-run-guard" title="Link to this section">&para;</a></h2>
 <p><code>HealthMonitor</code> also works on its own, outside <code>AgentProcess</code>, as a guard
 inside a run: a <code>pre_tool</code> <a href="../../../core/engine-hooks/">engine hook</a> records
@@ -9862,33 +10101,41 @@ every call and blocks the one that keeps the agent stuck. Set <code>cooldown=0</
 for this. With the default cooldown, <code>record_tool_call()</code> returns the anomaly
 only the first time, so the guard would block the third identical call and
 let every later one through.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">HealthConfig</span><span class="p">,</span> <span class="n">HealthMonitor</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">LoopGuard</span><span class="p">:</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="sd">"""Blocks a tool call while the agent is repeating itself."""</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="c1"># cooldown=0: report every call that continues the anomaly</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">monitor</span> <span class="o">=</span> <span class="n">HealthMonitor</span><span class="p">(</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>            <span class="n">HealthConfig</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stuck_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">cooldown</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>            <span class="n">process_id</span><span class="o">=</span><span class="s2">"my-agent"</span><span class="p">,</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="p">)</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">pre_tool</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tool_name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>        <span class="n">anomaly</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor</span><span class="o">.</span><span class="n">record_tool_call</span><span class="p">(</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>        <span class="k">if</span> <span class="n">anomaly</span><span class="p">:</span>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">anomaly</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">. The result will not change in this run: "</span>
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>                <span class="s2">"stop calling it and continue with what you have."</span>
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>            <span class="p">)</span>
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>        <span class="k">return</span> <span class="n">args</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">HealthConfig</span><span class="p">,</span> <span class="n">HealthMonitor</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">LoopGuard</span><span class="p">:</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="sd">"""Blocks a tool call while the agent is repeating itself."""</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="c1"># cooldown=0: report every call that continues the anomaly</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">monitor</span> <span class="o">=</span> <span class="n">HealthMonitor</span><span class="p">(</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>            <span class="n">HealthConfig</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stuck_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">cooldown</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>            <span class="n">process_id</span><span class="o">=</span><span class="s2">"my-agent"</span><span class="p">,</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="p">)</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">pre_tool</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tool_name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        <span class="n">anomaly</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor</span><span class="o">.</span><span class="n">record_tool_call</span><span class="p">(</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="k">if</span> <span class="n">anomaly</span><span class="p">:</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">anomaly</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">. The result will not change in this run: "</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>                <span class="s2">"stop calling it and continue with what you have."</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>            <span class="p">)</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>        <span class="k">return</span> <span class="n">args</span>
 </span></code></pre></div>
 <p>Pass it in <code>hooks=[LoopGuard()]</code> of a <code>PromptGraphEngine</code>. The error goes back
 to the model as the tool's result. Use one guard per run, or call
 <code>monitor.begin_invocation()</code> at the start of each run, because stuck and loop
 detection look at the calls of one run.</p>
-<p>A suspended process keeps queueing its trigger events; <code>resume()</code> (or <code>POST /api/v1/processes/{name}/resume</code>) lets it continue. To stop a process outright on a hard limit, use the <a href="../budget/">Autonomy Budget</a> with <code>on_exceeded="stop"</code>.</p>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
+<ul>
+<li><strong><code>on_anomaly="escalate"</code> with no target.</strong> The process is suspended, but no one is notified. Set <code>escalation</code> with a <code>webhook_url</code> or an <code>event_type</code>.</li>
+<li><strong>A suspended process doesn't resume itself.</strong> After <code>pause</code> or <code>escalate</code>, resume it once you have looked at the cause; until then its events queue up.</li>
+<li><strong>Sparse schedules and the error window.</strong> An agent that runs twice a day needs five days to fill the default <code>error_window=10</code>. Use a smaller window for rare runs.</li>
+<li><strong>Short legitimate replies.</strong> An agent whose normal answer is "OK" or "none" trips the empty-response detector. Lower <code>empty_max_chars</code> (or set <code>0</code>) for such agents.</li>
+<li><strong><code>cooldown=0</code> in a process.</strong> Every repeat is reported, so <code>is_healthy</code> turns <code>True</code> again right away and a stuck agent sends one escalation per run.</li>
+<li><strong>Clearing anomalies resets cooldowns.</strong> After <code>DELETE /health/anomalies</code>, an ongoing problem is reported (and acted on) again on its next occurrence.</li>
+</ul>
 <h2 id="api-reference">API reference<a class="headerlink" href="#api-reference" title="Link to this section">&para;</a></h2>
 <h3 id="healthconfig"><code>HealthConfig</code><a class="headerlink" href="#healthconfig" title="Link to this section">&para;</a></h3>
 <table>
@@ -9909,65 +10156,72 @@ detection look at the calls of one run.</p>
 </tr>
 <tr>
 <td><code>stuck_threshold</code></td>
-<td><code>int</code></td>
+<td><code>int</code> (<code>&gt;= 2</code>)</td>
 <td><code>3</code></td>
-<td>Consecutive identical calls to trigger</td>
+<td>Consecutive identical calls (same tool and arguments) that count as stuck</td>
 </tr>
 <tr>
 <td><code>loop_window</code></td>
-<td><code>int</code></td>
+<td><code>int</code> (<code>&gt;= 4</code>)</td>
 <td><code>20</code></td>
-<td>Tool calls to examine for loops</td>
+<td>Recent tool calls examined for loops</td>
 </tr>
 <tr>
 <td><code>loop_min_repeats</code></td>
-<td><code>int</code></td>
+<td><code>int</code> (<code>&gt;= 2</code>)</td>
 <td><code>2</code></td>
-<td>Min pattern repeats to trigger</td>
+<td>Back-to-back repeats of a sequence that count as a loop</td>
 </tr>
 <tr>
 <td><code>empty_threshold</code></td>
-<td><code>int</code></td>
+<td><code>int</code> (<code>&gt;= 2</code>)</td>
 <td><code>3</code></td>
-<td>Consecutive short responses to trigger</td>
+<td>Consecutive trivial final replies that count as an anomaly</td>
 </tr>
 <tr>
 <td><code>empty_max_chars</code></td>
-<td><code>int</code></td>
+<td><code>int</code> (<code>&gt;= 0</code>)</td>
 <td><code>10</code></td>
-<td>Max chars for a "trivial" response</td>
+<td>A final reply of at most this many characters (after stripping whitespace) is trivial</td>
+</tr>
+<tr>
+<td><code>error_window</code></td>
+<td><code>int</code> (<code>&gt;= 2</code>)</td>
+<td><code>10</code></td>
+<td>Recent runs the error rate is computed over; checked once the window is full</td>
 </tr>
 <tr>
 <td><code>error_rate_threshold</code></td>
-<td><code>float</code></td>
+<td><code>float</code> (<code>&gt; 0</code>, <code>&lt;= 1</code>)</td>
 <td><code>0.5</code></td>
-<td>Error rate to trigger</td>
+<td>Error rate at or above which the anomaly fires</td>
 </tr>
 <tr>
 <td><code>on_anomaly</code></td>
-<td><code>str</code></td>
+<td><code>"log" \| "pause" \| "escalate" \| "stop"</code></td>
 <td><code>"log"</code></td>
-<td>Action when anomaly detected</td>
+<td>Action when a run produced an anomaly</td>
 </tr>
 <tr>
 <td><code>cooldown</code></td>
-<td><code>float</code></td>
-<td><code>300</code></td>
+<td><code>float</code> (<code>&gt;= 0</code>)</td>
+<td><code>300.0</code></td>
 <td>Seconds before the same anomaly (same kind and evidence) is reported again; <code>0</code> reports every repeat (in-run guards)</td>
 </tr>
 <tr>
 <td><code>escalation</code></td>
 <td><code>EscalationTarget \| None</code></td>
 <td><code>None</code></td>
-<td>Where to notify</td>
+<td>Where <code>"escalate"</code> sends its notification</td>
 </tr>
 </tbody>
 </table>
 <h3 id="healthmonitor"><code>HealthMonitor</code><a class="headerlink" href="#healthmonitor" title="Link to this section">&para;</a></h3>
+<p><code>HealthMonitor(config, process_id)</code></p>
 <table>
 <thead>
 <tr>
-<th>Method</th>
+<th>Member</th>
 <th>Description</th>
 </tr>
 </thead>
@@ -9982,38 +10236,91 @@ detection look at the calls of one run.</p>
 </tr>
 <tr>
 <td><code>.record_success()</code></td>
-<td>Record a successful invocation; returns <code>True</code> once, on the first success after an anomaly</td>
-</tr>
-<tr>
-<td><code>.begin_invocation()</code></td>
-<td>Start a new invocation: clears the tool history used by stuck/loop detection (the runtime calls it)</td>
+<td>Record a successful run; returns <code>True</code> once, on the first success after an anomaly</td>
 </tr>
 <tr>
 <td><code>.record_error()</code></td>
-<td>Record a failed invocation for error-rate detection</td>
+<td>Record a failed run for error-rate detection; returns the anomaly, if any</td>
+</tr>
+<tr>
+<td><code>.begin_invocation()</code></td>
+<td>Start a new run: clears the tool history used by stuck/loop detection (the runtime calls it)</td>
 </tr>
 <tr>
 <td><code>.take_new_anomalies()</code></td>
 <td>Anomalies detected since the previous call, each returned once (the runtime calls it when a run ends to apply <code>on_anomaly</code>)</td>
 </tr>
 <tr>
-<td><code>.anomalies</code></td>
-<td>List of all detected anomalies</td>
+<td><code>.apply_config(config)</code></td>
+<td>Switch to another <code>HealthConfig</code>, resizing the windows and keeping data, history and cooldowns</td>
 </tr>
 <tr>
-<td><code>.latest_anomaly</code></td>
-<td>Most recent anomaly (or None)</td>
+<td><code>.clear_anomalies()</code></td>
+<td>Forget the history, counts and cooldowns; returns how many anomalies were cleared</td>
 </tr>
 <tr>
 <td><code>.health_status()</code></td>
-<td>Summary dict used by <code>process.status()</code></td>
+<td>The summary dict shown as <code>process.status()["health"]</code></td>
+</tr>
+<tr>
+<td><code>.config</code></td>
+<td>The <code>HealthConfig</code> the monitor reads</td>
+</tr>
+<tr>
+<td><code>.anomalies</code></td>
+<td>Detected anomalies, oldest first (the latest <code>MAX_ANOMALIES</code>)</td>
+</tr>
+<tr>
+<td><code>.latest_anomaly</code></td>
+<td>Most recent anomaly, or <code>None</code></td>
+</tr>
+<tr>
+<td><code>.tool_history</code></td>
+<td>The run's recorded calls as <code>(tool_name, args_hash)</code></td>
+</tr>
+<tr>
+<td><code>.to_dict()</code> / <code>HealthMonitor.from_dict(data, config)</code></td>
+<td>Serialize and restore the windows and counts</td>
+</tr>
+<tr>
+<td><code>MAX_ANOMALIES</code></td>
+<td><code>1000</code>, the size of the anomaly history</td>
+</tr>
+</tbody>
+</table>
+<h3 id="anomaly"><code>Anomaly</code><a class="headerlink" href="#anomaly" title="Link to this section">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>anomaly_type</code></td>
+<td>An <code>AnomalyType</code></td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>Human-readable explanation</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td>When it was detected (UTC)</td>
+</tr>
+<tr>
+<td><code>details</code></td>
+<td>Evidence; keys per detector above</td>
 </tr>
 </tbody>
 </table>
 <h3 id="anomalytype"><code>AnomalyType</code><a class="headerlink" href="#anomalytype" title="Link to this section">&para;</a></h3>
+<p>A <code>str</code> enum; the value is what events and the API show.</p>
 <table>
 <thead>
 <tr>
+<th>Member</th>
 <th>Value</th>
 <th>Description</th>
 </tr>
@@ -10021,26 +10328,39 @@ detection look at the calls of one run.</p>
 <tbody>
 <tr>
 <td><code>STUCK</code></td>
+<td><code>"stuck"</code></td>
 <td>Same tool + args repeated consecutively</td>
 </tr>
 <tr>
 <td><code>LOOP</code></td>
-<td>Repeating pattern in tool call sequence</td>
+<td><code>"loop"</code></td>
+<td>Repeating pattern in the tool call sequence</td>
 </tr>
 <tr>
 <td><code>EMPTY_RESPONSE</code></td>
-<td>Consecutive trivial responses</td>
+<td><code>"empty_response"</code></td>
+<td>Consecutive trivial final replies</td>
 </tr>
 <tr>
 <td><code>HIGH_ERROR_RATE</code></td>
-<td>Error rate above threshold</td>
+<td><code>"high_error_rate"</code></td>
+<td>Error rate at or above the threshold</td>
 </tr>
 </tbody>
 </table>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../budget/">Autonomy Budget</a> -- hard limits on tool calls, runs and cost</li>
+<li><a href="../mission/">Mission</a> -- goal tracking with an LLM judge</li>
+<li><a href="../../api/">Orchestration API</a> -- read anomalies and patch the config over HTTP</li>
+<li><a href="../../../core/events/">Events &amp; Notifications</a> -- deliver <code>health.*</code> events to webhooks and logs</li>
+<li><a href="../../triggers/#what-happens-when-the-process-is-suspended">Triggers Overview</a> -- what happens to events while a process is suspended</li>
+</ul>
 <div class="admonition tip">
 <p class="admonition-title">Learn the concept</p>
 <ul>
 <li><a href="https://www.promptise.com/guides/view/ai-agent-stuck-in-loop">AI Agent Stuck in a Loop? How to Detect and Stop It</a> -- How agent loops get stuck and how to stop them.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-health-monitoring">AI Agent Health Monitoring: Catch Silent Failures</a> -- Empty replies, rising error rates and when to log, pause or escalate.</li>
 </ul>
 </div>
 
@@ -10065,7 +10385,7 @@ detection look at the calls of one run.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 19, 2026 21:20:11 UTC">2026-10-19</span>
   </span>
 
     

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The AgentRuntime is the central orchestrator for long-running agent processes. Think of it as the &quot;Docker daemon&quot; equivalent for AI agents: it manages">
+        <meta name="description" content="AgentRuntime runs several agent processes together in one Python process. It keeps a registry of named AgentProcess instances, starts and stops them together or">
       
       
         <meta name="author" content="Manser Ventures">
@@ -93,7 +93,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Runtime Manager">
-  <meta property="og:description" content="The AgentRuntime is the central orchestrator for long-running agent processes. Think of it as the &quot;Docker daemon&quot; equivalent for AI agents: it manages">
+  <meta property="og:description" content="AgentRuntime runs several agent processes together in one Python process. It keeps a registry of named AgentProcess instances, starts and stops them together or">
   <meta property="og:url" content="https://docs.promptise.com/runtime/runtime-manager/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -103,7 +103,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Runtime Manager">
-  <meta name="twitter:description" content="The AgentRuntime is the central orchestrator for long-running agent processes. Think of it as the &quot;Docker daemon&quot; equivalent for AI agents: it manages">
+  <meta name="twitter:description" content="AgentRuntime runs several agent processes together in one Python process. It keeps a registry of named AgentProcess instances, starts and stops them together or">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -179,7 +179,7 @@
       "@type": "TechArticle",
       "headline": "Runtime Manager",
       "name": "Runtime Manager",
-      "description": "The AgentRuntime is the central orchestrator for long-running agent processes. Think of it as the \u0026quot;Docker daemon\u0026quot; equivalent for AI agents: it manages",
+      "description": "AgentRuntime runs several agent processes together in one Python process. It keeps a registry of named AgentProcess instances, starts and stops them together or",
       "url": "https://docs.promptise.com/runtime/runtime-manager/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5158,55 +5128,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Concepts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#creating-a-runtime" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating a Runtime
+        Creating a runtime
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Creating a Runtime">
+    <nav class="md-nav" aria-label="Creating a runtime">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#default-configuration" class="md-nav__link">
+  <a href="#shared-resources" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Default configuration
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#with-shared-event-bus-and-message-broker" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        With shared event bus and message broker
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#from-a-full-runtimeconfig-with-pre-defined-processes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        From a full RuntimeConfig with pre-defined processes
+        Shared resources
       
     </span>
   </a>
@@ -5222,37 +5159,31 @@
   <a href="#registering-processes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Registering Processes
+        Registering processes
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#loading-manifests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Loading Manifests
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#lifecycle-control" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Lifecycle Control
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Lifecycle Control">
+    <nav class="md-nav" aria-label="Registering processes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#loading-manifests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading manifests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#starting-and-stopping" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5261,13 +5192,25 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Starting and stopping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run_forever" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_forever()
+      
+    </span>
+  </a>
+  
 </li>
         
           <li class="md-nav__item">
-  <a href="#context-manager" class="md-nav__link">
+  <a href="#async-with" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context manager
+        async with
       
     </span>
   </a>
@@ -5276,6 +5219,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-several-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running several processes
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5283,60 +5237,21 @@
   <a href="#status-and-monitoring" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status and Monitoring
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Status and Monitoring">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#global-status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Global status
+        Status and monitoring
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#single-process-status" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#distributed-mode-and-presets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Single process status
+        Distributed mode and presets
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#listing-processes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Listing processes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#accessing-processes-directly" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Accessing processes directly
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5344,7 +5259,7 @@
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
       
     </span>
   </a>
@@ -5352,10 +5267,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -5366,7 +5281,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -6188,6 +6103,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -6210,8 +6129,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -6225,8 +6145,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -6238,6 +6164,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8484,8 +8412,6 @@
       
         
       
-        
-      
     
     
     
@@ -8638,36 +8564,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9546,55 +9442,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#concepts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Concepts
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#creating-a-runtime" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creating a Runtime
+        Creating a runtime
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Creating a Runtime">
+    <nav class="md-nav" aria-label="Creating a runtime">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#default-configuration" class="md-nav__link">
+  <a href="#shared-resources" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Default configuration
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#with-shared-event-bus-and-message-broker" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        With shared event bus and message broker
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#from-a-full-runtimeconfig-with-pre-defined-processes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        From a full RuntimeConfig with pre-defined processes
+        Shared resources
       
     </span>
   </a>
@@ -9610,37 +9473,31 @@
   <a href="#registering-processes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Registering Processes
+        Registering processes
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#loading-manifests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Loading Manifests
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#lifecycle-control" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Lifecycle Control
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Lifecycle Control">
+    <nav class="md-nav" aria-label="Registering processes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#loading-manifests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading manifests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#starting-and-stopping" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9649,13 +9506,25 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Starting and stopping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run_forever" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_forever()
+      
+    </span>
+  </a>
+  
 </li>
         
           <li class="md-nav__item">
-  <a href="#context-manager" class="md-nav__link">
+  <a href="#async-with" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Context manager
+        async with
       
     </span>
   </a>
@@ -9664,6 +9533,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-several-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running several processes
+      
+    </span>
+  </a>
   
 </li>
       
@@ -9671,60 +9551,21 @@
   <a href="#status-and-monitoring" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Status and Monitoring
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Status and Monitoring">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#global-status" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Global status
+        Status and monitoring
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#single-process-status" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#distributed-mode-and-presets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Single process status
+        Distributed mode and presets
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#listing-processes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Listing processes
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#accessing-processes-directly" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Accessing processes directly
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -9732,7 +9573,7 @@
   <a href="#api-summary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Summary
+        API summary
       
     </span>
   </a>
@@ -9740,10 +9581,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#tips-and-gotchas" class="md-nav__link">
+  <a href="#common-pitfalls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Tips and Gotchas
+        Common pitfalls
       
     </span>
   </a>
@@ -9754,7 +9595,7 @@
   <a href="#whats-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What's Next
+        What's next
       
     </span>
   </a>
@@ -9831,259 +9672,272 @@
 
 
 <h1 id="runtime-manager">Runtime Manager<a class="headerlink" href="#runtime-manager" title="Link to this section">&para;</a></h1>
-<p>The <code>AgentRuntime</code> is the central orchestrator for long-running agent processes. Think of it as the "Docker daemon" equivalent for AI agents: it manages a registry of <code>AgentProcess</code> instances, coordinates their lifecycles, and provides both programmatic and CLI-driven control surfaces.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
+<p><code>AgentRuntime</code> runs several agent processes together in one Python process. It keeps a registry of named <code>AgentProcess</code> instances, starts and stops them together or one by one, shares an event notifier, hooks and an event bus between them, and shuts everything down cleanly on <code>SIGTERM</code> or Ctrl+C. Use it when you have more than one agent, or when one agent should run as a long-lived service.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">async</span> <span class="k">with</span> <span class="n">AgentRuntime</span><span class="p">()</span> <span class="k">as</span> <span class="n">runtime</span><span class="p">:</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="s2">"data-watcher"</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            <span class="n">instructions</span><span class="o">=</span><span class="s2">"You monitor data pipelines and alert on anomalies."</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">),</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="p">],</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">RuntimeConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">config</span> <span class="o">=</span> <span class="n">RuntimeConfig</span><span class="p">(</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">processes</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="s2">"watcher"</span><span class="p">:</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">instructions</span><span class="o">=</span><span class="s2">"You monitor data pipelines and report anomalies."</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">triggers</span><span class="o">=</span><span class="p">[</span><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">)],</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">restart_policy</span><span class="o">=</span><span class="s2">"on_failure"</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="p">),</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="p">)</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">runtime</span><span class="o">.</span><span class="n">status</span><span class="p">())</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">stop_all</span><span class="p">()</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="s2">"responder"</span><span class="p">:</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>            <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>            <span class="n">instructions</span><span class="o">=</span><span class="s2">"You handle alerts."</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="p">),</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="p">},</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># registers "watcher" and "responder"</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>     <span class="c1"># starts both; stops cleanly on SIGTERM / Ctrl+C</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
 <hr />
-<h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Link to this section">&para;</a></h2>
-<p><strong>AgentRuntime</strong> holds a dictionary of named <code>AgentProcess</code> instances. Each process wraps a fully configured agent (LLM, tools, triggers, context) and runs independently. The runtime provides shared resources -- an optional event bus for inter-process events and a message broker for message-based triggers. Both accept duck-typed objects, so you can plug in any implementation (Redis, Kafka, in-memory, etc.).</p>
-<p>Key responsibilities:</p>
+<h2 id="creating-a-runtime">Creating a runtime<a class="headerlink" href="#creating-a-runtime" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">AgentRuntime</span><span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>           <span class="c1"># RuntimeConfig: processes to register, distributed settings</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">event_bus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>        <span class="c1"># shared bus for "event" triggers</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">broker</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>           <span class="c1"># shared broker for "message" triggers</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">event_notifier</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>   <span class="c1"># EventNotifier shared by every process</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">hooks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>            <span class="c1"># HookManager whose hooks fire for every process</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>The processes in <code>config.processes</code> are registered when the runtime is created, in <code>CREATED</code> state; nothing starts until you call <code>start_all()</code>, <code>start_process()</code> or <code>run_forever()</code>. <code>await AgentRuntime.from_config(config, ...)</code> takes the same arguments and is equivalent.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">runtime</span><span class="o">.</span><span class="n">list_processes</span><span class="p">())</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># [{'name': 'watcher', 'state': 'created', 'process_id': '67b6...'},</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1">#  {'name': 'responder', 'state': 'created', 'process_id': '86e2...'}]</span>
+</span></code></pre></div>
+<h3 id="shared-resources">Shared resources<a class="headerlink" href="#shared-resources" title="Link to this section">&para;</a></h3>
 <ul>
-<li><strong>Process registry</strong> -- add, remove, and look up processes by name.</li>
-<li><strong>Manifest loading</strong> -- create processes from declarative <code>.agent</code> YAML files.</li>
-<li><strong>Lifecycle coordination</strong> -- start, stop, and restart individual or all processes.</li>
-<li><strong>Status monitoring</strong> -- query per-process metrics.</li>
+<li><strong><code>event_notifier</code></strong>: every process emits its <code>process.*</code>, <code>invocation.*</code> and governance events through it. A process never stops a shared notifier; <code>stop_all()</code> drains it after the last process has stopped, so every <code>process.stopped</code> is delivered before <code>stop_all()</code> returns.</li>
+<li><strong><code>hooks</code></strong>: a <a href="../hooks/"><code>HookManager</code></a> whose hooks run for every process's lifecycle events, after each process's own <code>hooks</code>. <code>ctx.process_id</code> names the process.</li>
+<li><strong><code>event_bus</code></strong> and <strong><code>broker</code></strong>: objects you provide; <code>AgentRuntime</code> does not create them. <code>promptise.runtime.InProcessEventBus</code> is a ready-made bus for processes in one Python process, and <code>promptise runtime start</code> gives its runtime one. <code>event</code> triggers call <code>await event_bus.subscribe(event_type, handler)</code> and <code>await event_bus.unsubscribe(event_type, handler)</code>; <code>message</code> triggers call <code>await broker.subscribe(topic, handler)</code> (which returns a subscription ID) and <code>await broker.unsubscribe(subscription_id)</code>. See <a href="../triggers/event-webhook/">Event &amp; Webhook triggers</a>.</li>
 </ul>
 <hr />
-<h2 id="creating-a-runtime">Creating a Runtime<a class="headerlink" href="#creating-a-runtime" title="Link to this section">&para;</a></h2>
-<h3 id="default-configuration">Default configuration<a class="headerlink" href="#default-configuration" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">()</span>
-</span></code></pre></div>
-<h3 id="with-shared-event-bus-and-message-broker">With shared event bus and message broker<a class="headerlink" href="#with-shared-event-bus-and-message-broker" title="Link to this section">&para;</a></h3>
-<p>The <code>event_bus</code> and <code>broker</code> parameters accept any object that implements the expected subscribe/publish interface. This lets you plug in your own event infrastructure (Redis Pub/Sub, Kafka, or a simple in-memory implementation):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Any object with subscribe(event_type, callback) and emit(event_type, data)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">event_bus</span> <span class="o">=</span> <span class="n">MyEventBus</span><span class="p">()</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Any object with subscribe(topic, callback) and publish(topic, message)</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">broker</span> <span class="o">=</span> <span class="n">MyMessageBroker</span><span class="p">()</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">runtime</span> <span class="o">=</span> <span class="n">AgentRuntime</span><span class="p">(</span><span class="n">event_bus</span><span class="o">=</span><span class="n">event_bus</span><span class="p">,</span> <span class="n">broker</span><span class="o">=</span><span class="n">broker</span><span class="p">)</span>
-</span></code></pre></div>
-<p>Event triggers subscribe via <code>event_bus.subscribe()</code> and message triggers subscribe via <code>broker.subscribe()</code>. The runtime passes these objects through to each <code>AgentProcess</code>.</p>
-<h3 id="from-a-full-runtimeconfig-with-pre-defined-processes">From a full RuntimeConfig with pre-defined processes<a class="headerlink" href="#from-a-full-runtimeconfig-with-pre-defined-processes" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">RuntimeConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span>
+<h2 id="registering-processes">Registering processes<a class="headerlink" href="#registering-processes" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">RuntimeConfig</span><span class="p">(</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">processes</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="s2">"watcher"</span><span class="p">:</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>            <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>            <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor pipelines."</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="p">),</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="s2">"responder"</span><span class="p">:</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>            <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>            <span class="n">instructions</span><span class="o">=</span><span class="s2">"Handle alerts."</span><span class="p">,</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="p">),</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="p">},</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="p">)</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">runtime</span> <span class="o">=</span> <span class="k">await</span> <span class="n">AgentRuntime</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">process</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="s2">"data-watcher"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">instructions</span><span class="o">=</span><span class="s2">"You monitor data pipelines."</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="n">triggers</span><span class="o">=</span><span class="p">[</span><span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">)],</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="p">),</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">)</span>
 </span></code></pre></div>
+<p><code>add_process(name, config, *, process_id=None, deploy_policy=None)</code> returns the new <code>AgentProcess</code> (in <code>CREATED</code> state). <code>deploy_policy</code> says where the config came from; the <a href="../api/#securing-the-control-api">control API</a> passes its own for deploys (limited <code>${VAR}</code> references, MCP allowlist, <code>data_dir</code>), and code you write leaves it out. Names are unique; a duplicate raises <code>RuntimeBaseError</code>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Process 'data-watcher' already exists. Use remove_process() first or choose a different name.
+</span></code></pre></div>
+<p><code>await runtime.remove_process(name)</code> works in every state. It stops the process (a <code>FAILED</code> one too, so its triggers, listeners and heartbeat end), closes it (long-term memory closed, secrets revoked, conversation cleared) and removes it from the registry. An unknown name raises <code>KeyError</code>.</p>
+<h3 id="loading-manifests">Loading manifests<a class="headerlink" href="#loading-manifests" title="Link to this section">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">process</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">load_manifest</span><span class="p">(</span><span class="s2">"agents/watcher.agent"</span><span class="p">)</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">process</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">load_manifest</span><span class="p">(</span><span class="s2">"agents/watcher.agent"</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="s2">"watcher-2"</span><span class="p">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">names</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">load_directory</span><span class="p">(</span><span class="s2">"agents/"</span><span class="p">)</span>  <span class="c1"># every *.agent file, in name order</span>
+</span></code></pre></div>
+<p><code>load_directory()</code> raises <code>ManifestError</code> when the path is not a directory, and stops at the first manifest that fails to load (re-raising its error); the manifests loaded before it stay registered. See <a href="../manifests/">Agent Manifests</a>.</p>
 <hr />
-<h2 id="registering-processes">Registering Processes<a class="headerlink" href="#registering-processes" title="Link to this section">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">process</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="s2">"data-watcher"</span><span class="p">,</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="n">instructions</span><span class="o">=</span><span class="s2">"You monitor data pipelines."</span><span class="p">,</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>            <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"cron"</span><span class="p">,</span> <span class="n">cron_expression</span><span class="o">=</span><span class="s2">"*/5 * * * *"</span><span class="p">),</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="p">],</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="p">),</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="p">)</span>
-</span></code></pre></div>
-<p>Each name must be unique. Attempting to register a duplicate raises <code>RuntimeBaseError</code>. To replace a process, remove it first:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">remove_process</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span></code></pre></div>
-<p><code>remove_process</code> stops the process automatically if it is still running before removing it from the registry.</p>
-<hr />
-<h2 id="loading-manifests">Loading Manifests<a class="headerlink" href="#loading-manifests" title="Link to this section">&para;</a></h2>
-<p>Instead of constructing <code>ProcessConfig</code> objects in code, you can load processes from <code>.agent</code> YAML manifest files:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Load a single manifest</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">process</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">load_manifest</span><span class="p">(</span><span class="s2">"agents/watcher.agent"</span><span class="p">)</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Override the process name from the manifest</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">process</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">load_manifest</span><span class="p">(</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s2">"agents/watcher.agent"</span><span class="p">,</span> <span class="n">name_override</span><span class="o">=</span><span class="s2">"my-watcher"</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Load all .agent files from a directory</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">names</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">load_directory</span><span class="p">(</span><span class="s2">"agents/"</span><span class="p">)</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1"># names = ["data-watcher", "alert-handler", ...]</span>
-</span></code></pre></div>
-<hr />
-<h2 id="lifecycle-control">Lifecycle Control<a class="headerlink" href="#lifecycle-control" title="Link to this section">&para;</a></h2>
-<h3 id="starting-and-stopping">Starting and stopping<a class="headerlink" href="#starting-and-stopping" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Start all registered processes</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Stop all running processes</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">stop_all</span><span class="p">()</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Start a single process by name</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_process</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Stop a single process</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">stop_process</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Restart (stop then start)</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">restart_process</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span></code></pre></div>
-<p><code>start_all()</code> only starts processes in <code>CREATED</code>, <code>STOPPED</code>, or <code>FAILED</code> states. <code>stop_all()</code> skips processes that are already stopped.</p>
-<p>When the runtime has an <code>event_notifier</code>, it is shared by every process. A process that stops no longer shuts the shared notifier down; <code>stop_all()</code> drains it after the last process has stopped, so every <code>process.stopped</code> event is delivered before <code>stop_all()</code> returns.</p>
-<h3 id="context-manager">Context manager<a class="headerlink" href="#context-manager" title="Link to this section">&para;</a></h3>
-<p><code>AgentRuntime</code> supports <code>async with</code> for automatic cleanup. When the context exits, <code>stop_all()</code> is called:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">async</span> <span class="k">with</span> <span class="n">AgentRuntime</span><span class="p">()</span> <span class="k">as</span> <span class="n">runtime</span><span class="p">:</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"watcher"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="c1"># runtime manages processes until the block exits</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># stop_all() is called automatically</span>
-</span></code></pre></div>
-<hr />
-<h2 id="status-and-monitoring">Status and Monitoring<a class="headerlink" href="#status-and-monitoring" title="Link to this section">&para;</a></h2>
-<h3 id="global-status">Global status<a class="headerlink" href="#global-status" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">status</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># {</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1">#     "process_count": 2,</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1">#     "processes": {</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1">#         "watcher": {"state": "running", "invocation_count": 5, ...},</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1">#         "responder": {"state": "running", "invocation_count": 3, ...},</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1">#     },</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># }</span>
-</span></code></pre></div>
-<h3 id="single-process-status">Single process status<a class="headerlink" href="#single-process-status" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">info</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">process_status</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="listing-processes">Listing processes<a class="headerlink" href="#listing-processes" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">processes</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">list_processes</span><span class="p">()</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># [</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1">#     {"name": "watcher", "state": "running", "process_id": "abc123..."},</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1">#     {"name": "responder", "state": "stopped", "process_id": "def456..."},</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># ]</span>
-</span></code></pre></div>
-<h3 id="accessing-processes-directly">Accessing processes directly<a class="headerlink" href="#accessing-processes-directly" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">process</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">get_process</span><span class="p">(</span><span class="s2">"data-watcher"</span><span class="p">)</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1"># Read-only dict of all processes</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">all_procs</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">processes</span>
-</span></code></pre></div>
-<hr />
-<h2 id="api-summary">API Summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<h2 id="starting-and-stopping">Starting and stopping<a class="headerlink" href="#starting-and-stopping" title="Link to this section">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Method / Property</th>
+<th>Method</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>await start_all()</code></td>
+<td>Starts every <code>CREATED</code>, <code>STOPPED</code> and <code>FAILED</code> process. A process that fails to start is logged and skipped. With <code>distributed.enabled</code>, the cluster node starts first, and its failure raises.</td>
+</tr>
+<tr>
+<td><code>await stop_all()</code></td>
+<td>Stops every process that is not <code>STOPPED</code> or <code>CREATED</code> (<code>FAILED</code> and <code>SUSPENDED</code> ones too), then drains the shared event notifier</td>
+</tr>
+<tr>
+<td><code>await start_process(name)</code></td>
+<td><code>get_process(name).start()</code></td>
+</tr>
+<tr>
+<td><code>await stop_process(name)</code></td>
+<td><code>get_process(name).stop()</code></td>
+</tr>
+<tr>
+<td><code>await restart_process(name, *, stop_timeout=30.0)</code></td>
+<td>Stops a running or suspended process, then starts it. A <code>FAILED</code> process is torn down by <code>start()</code> itself (old triggers, listeners and heartbeat end first), so nothing fires twice. A process that is already stopping (another stop or restart) is waited for, up to <code>stop_timeout</code> seconds; after that it raises <code>RuntimeError</code> and starts nothing. Context state, long-term memory and conversation history carry over.</td>
+</tr>
+<tr>
+<td><code>await shutdown()</code></td>
+<td><code>stop_all()</code>, then closes every process (memory, secrets, conversation), then stops the cluster node. The processes stay registered.</td>
+</tr>
+</tbody>
+</table>
+<p>Each method that takes a name raises <code>KeyError</code> for an unknown one.</p>
+<h3 id="run_forever">run_forever()<a class="headerlink" href="#run_forever" title="Link to this section">&para;</a></h3>
+<p><code>run_forever()</code> is the entry point for a service. It starts every process, waits until shutdown is requested, then calls <code>shutdown()</code>, so every process gets its <code>process.stopped</code> event, a final journal checkpoint and its dead letters before the program exits.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">run_forever</span><span class="p">()</span>                               <span class="c1"># handles SIGTERM and SIGINT</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">run_forever</span><span class="p">(</span><span class="n">install_signal_handlers</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># you handle signals</span>
+</span></code></pre></div>
+<p>It returns after:</p>
+<ul>
+<li><code>SIGTERM</code> (<code>docker stop</code>, Kubernetes, systemd) or <code>SIGINT</code> (Ctrl+C), when <code>install_signal_handlers=True</code> (the default). The handlers are installed on the running loop for the duration of the call and removed afterwards. Where the loop can't install them (Windows, or a thread other than the main one) they are skipped.</li>
+<li><code>runtime.request_shutdown()</code>, which is safe to call from your own signal handler or another task.</li>
+<li>Cancellation of the task running it.</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>AgentRuntime: received SIGTERM, shutting down
+</span></code></pre></div>
+<h3 id="async-with">async with<a class="headerlink" href="#async-with" title="Link to this section">&para;</a></h3>
+<p><code>async with AgentRuntime(...) as runtime:</code> calls <code>shutdown()</code> on exit, even when the block raises. It does not install signal handlers; a <code>SIGTERM</code> kills the program without a clean stop unless you use <code>run_forever()</code> or call <code>request_shutdown()</code> from your own handler.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">async</span> <span class="k">with</span> <span class="n">AgentRuntime</span><span class="p">()</span> <span class="k">as</span> <span class="n">runtime</span><span class="p">:</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"watcher"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># every process is stopped and closed here</span>
+</span></code></pre></div>
+<p>From the command line, <code>promptise runtime start agents/</code> runs a runtime with the same clean shutdown on <code>SIGTERM</code> and Ctrl+C, and <code>--detach</code> runs it in the background. See <a href="../cli/">CLI Commands</a>.</p>
+<hr />
+<h2 id="running-several-processes">Running several processes<a class="headerlink" href="#running-several-processes" title="Link to this section">&para;</a></h2>
+<p>Each process has its own agent, triggers, queue, context, conversation and journal entries. One process failing, restarting or being suspended does not affect the others, and <code>start_all()</code> keeps starting the rest when one fails to start.</p>
+<p>All processes share one asyncio event loop. Agent runs and tool calls are async, but a blocking call (a synchronous HTTP request, <code>time.sleep()</code>) in a tool or callback stalls every process until it returns. Each webhook trigger opens its own HTTP server, so give each one its own port.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">runtime</span><span class="o">.</span><span class="n">status</span><span class="p">()[</span><span class="s2">"processes"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s2">"state"</span><span class="p">],</span> <span class="n">info</span><span class="p">[</span><span class="s2">"invocation_count"</span><span class="p">],</span> <span class="n">info</span><span class="p">[</span><span class="s2">"restart_count"</span><span class="p">])</span>
+</span></code></pre></div>
+<hr />
+<h2 id="status-and-monitoring">Status and monitoring<a class="headerlink" href="#status-and-monitoring" title="Link to this section">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">runtime</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1"># {"process_count": 2,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1">#  "processes": {"watcher": {...process status...}, "responder": {...}},</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1">#  "cluster": {...}}            # only in distributed mode</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">runtime</span><span class="o">.</span><span class="n">process_status</span><span class="p">(</span><span class="s2">"watcher"</span><span class="p">)</span>  <span class="c1"># one process's status() dict</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">runtime</span><span class="o">.</span><span class="n">list_processes</span><span class="p">()</span>           <span class="c1"># [{"name", "state", "process_id"}, ...]</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">runtime</span><span class="o">.</span><span class="n">get_process</span><span class="p">(</span><span class="s2">"watcher"</span><span class="p">)</span>     <span class="c1"># the AgentProcess (KeyError if unknown)</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="n">runtime</span><span class="o">.</span><span class="n">processes</span>                  <span class="c1"># dict copy: name -&gt; AgentProcess</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">runtime</span><span class="p">)</span>                     <span class="c1"># AgentRuntime(processes=2, 2 running)</span>
+</span></code></pre></div>
+<p>The per-process fields are listed under <a href="../processes/#status">Status</a>.</p>
+<hr />
+<h2 id="distributed-mode-and-presets">Distributed mode and presets<a class="headerlink" href="#distributed-mode-and-presets" title="Link to this section">&para;</a></h2>
+<p>With <code>RuntimeConfig(distributed=DistributedConfig(enabled=True, ...))</code>, <code>start_all()</code> and <code>run_forever()</code> first start this node's management transport and then, depending on the config, the cluster coordinator or the registration with one. <code>shutdown()</code> stops them, and <code>runtime.cluster</code> is the running <code>ClusterNode</code> (or <code>None</code>). See <a href="../distributed/coordinator/">Distributed Coordinator</a> and <a href="../distributed/discovery-transport/">Discovery &amp; Transport</a>.</p>
+<p><code>DEFAULT_DEVELOPMENT_CONFIG</code> and <code>DEFAULT_PRODUCTION_CONFIG</code> are identical: no processes, distributed mode off. Production hardening is set per process (<code>journal</code>, <code>restart_policy</code>, <code>health</code>, <code>budget</code>, <code>trigger_delivery</code>), and distributed mode needs your cluster's coordinator and token, so no preset turns either on.</p>
+<hr />
+<h2 id="api-summary">API summary<a class="headerlink" href="#api-summary" title="Link to this section">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method / property</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>AgentRuntime(config, event_bus, broker)</code></td>
-<td>Create a runtime instance</td>
+<td><code>AgentRuntime(config=None, *, event_bus, broker, event_notifier, hooks)</code></td>
+<td>Create a runtime; registers <code>config.processes</code></td>
 </tr>
 <tr>
-<td><code>AgentRuntime.from_config(config)</code></td>
-<td>Class method: create with pre-registered processes</td>
+<td><code>await AgentRuntime.from_config(config, ...)</code></td>
+<td>Same as the constructor</td>
 </tr>
 <tr>
-<td><code>await add_process(name, config)</code></td>
-<td>Register a new process</td>
+<td><code>await add_process(name, config, *, process_id=None, deploy_policy=None)</code></td>
+<td>Register a process; returns it</td>
 </tr>
 <tr>
 <td><code>await remove_process(name)</code></td>
-<td>Remove (and stop) a process</td>
+<td>Stop, close and unregister a process</td>
 </tr>
 <tr>
 <td><code>get_process(name)</code></td>
-<td>Get a process by name</td>
+<td>The <code>AgentProcess</code></td>
 </tr>
 <tr>
 <td><code>processes</code></td>
-<td>Read-only dict of all processes</td>
+<td>Dict copy of all processes</td>
 </tr>
 <tr>
 <td><code>list_processes()</code></td>
-<td>Summary list of all processes</td>
+<td><code>name</code>, <code>state</code>, <code>process_id</code> per process</td>
 </tr>
 <tr>
-<td><code>await load_manifest(path)</code></td>
-<td>Load a process from a <code>.agent</code> file</td>
+<td><code>await load_manifest(path, *, name_override=None)</code></td>
+<td>Register a process from a <code>.agent</code> file</td>
 </tr>
 <tr>
 <td><code>await load_directory(path)</code></td>
-<td>Load all <code>.agent</code> files from a directory</td>
+<td>Register every <code>*.agent</code> file in a directory</td>
 </tr>
 <tr>
-<td><code>await start_all()</code></td>
-<td>Start all stopped/created processes</td>
+<td><code>await start_all()</code> / <code>await stop_all()</code></td>
+<td>Start / stop every process</td>
 </tr>
 <tr>
-<td><code>await stop_all()</code></td>
-<td>Stop all running processes, then drain the shared event notifier</td>
+<td><code>await start_process(name)</code> / <code>await stop_process(name)</code> / <code>await restart_process(name, *, stop_timeout=30.0)</code></td>
+<td>Control one process</td>
 </tr>
 <tr>
-<td><code>await start_process(name)</code></td>
-<td>Start a single process</td>
+<td><code>await shutdown()</code></td>
+<td>Stop and close every process, stop the cluster node</td>
 </tr>
 <tr>
-<td><code>await stop_process(name)</code></td>
-<td>Stop a single process</td>
+<td><code>await run_forever(*, install_signal_handlers=True)</code></td>
+<td>Start everything and run until a signal or <code>request_shutdown()</code></td>
 </tr>
 <tr>
-<td><code>await restart_process(name)</code></td>
-<td>Stop then start a process</td>
+<td><code>request_shutdown()</code></td>
+<td>Make <code>run_forever()</code> return</td>
 </tr>
 <tr>
-<td><code>status()</code></td>
-<td>Global status dict with usage</td>
+<td><code>status()</code> / <code>process_status(name)</code></td>
+<td>Status dicts</td>
 </tr>
 <tr>
-<td><code>process_status(name)</code></td>
-<td>Status dict for one process</td>
+<td><code>cluster</code></td>
+<td>The running <code>ClusterNode</code>, or <code>None</code></td>
+</tr>
+<tr>
+<td><code>await start_distributed()</code> / <code>await stop_distributed()</code></td>
+<td>Start / stop the cluster node (<code>start_all()</code> and <code>shutdown()</code> call them)</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="tips-and-gotchas">Tips and Gotchas<a class="headerlink" href="#tips-and-gotchas" title="Link to this section">&para;</a></h2>
-<div class="admonition tip">
-<p class="admonition-title">Use the context manager in scripts</p>
-<p>Always prefer <code>async with AgentRuntime() as runtime:</code> to ensure processes are cleanly stopped on exit, even if an exception is raised.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Process names must be unique</p>
-<p>Calling <code>add_process</code> with a name that already exists raises <code>RuntimeBaseError</code>. Remove the existing process first or choose a different name.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">start_all does not raise on individual failures</p>
-<p>If one process fails to start, the error is logged but other processes continue starting. Check <code>status()</code> after <code>start_all()</code> to verify all processes reached the <code>running</code> state.</p>
-</div>
-<hr />
-<h2 id="whats-next">What's Next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Link to this section">&para;</a></h2>
 <ul>
-<li><a href="../configuration/">Configuration</a> -- deep dive into <code>RuntimeConfig</code>, <code>ProcessConfig</code>, and all atomic configs</li>
-<li><a href="../lifecycle/">Lifecycle</a> -- the process state machine and transition rules</li>
-<li><a href="../cli/">CLI Commands</a> -- manage runtimes from the command line</li>
+<li><strong>Not checking after <code>start_all()</code>.</strong> A process that fails to start is only logged. Check <code>status()</code> (or watch for <code>process.failed</code>) to see that every process reached <code>running</code>.</li>
+<li><strong>Using <code>async with</code> in a container.</strong> It does not handle <code>SIGTERM</code>; <code>docker stop</code> then kills the program mid-run. Use <code>run_forever()</code>.</li>
+<li><strong>Reusing a name after a failure.</strong> <code>add_process()</code> with an existing name raises. <code>remove_process()</code> first, or use <code>restart_process()</code>.</li>
+<li><strong>Blocking the event loop.</strong> A synchronous call in one agent's tool pauses every process in the runtime.</li>
+<li><strong>Two webhook triggers on one port.</strong> Each webhook trigger binds its own server, so two of them on the same port conflict.</li>
+<li><strong>Expecting the production preset to change behavior.</strong> <code>DEFAULT_PRODUCTION_CONFIG</code> is the same as the development preset; configure each process instead.</li>
 </ul>
+<hr />
+<h2 id="whats-next">What's next<a class="headerlink" href="#whats-next" title="Link to this section">&para;</a></h2>
+<ul>
+<li><a href="../processes/">Agent Processes</a> -- what each process does on start, stop and restart</li>
+<li><a href="../lifecycle/">Process Lifecycle</a> -- states, transitions and <code>process.*</code> events</li>
+<li><a href="../configuration/">Configuration</a> -- <code>RuntimeConfig</code>, <code>ProcessConfig</code> and every sub-config</li>
+<li><a href="../api/">Orchestration API</a> -- manage a running runtime over HTTP</li>
+<li><a href="../cli/">CLI Commands</a> -- <code>promptise runtime start</code>, <code>status</code>, <code>stop</code> and <code>restart</code></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Learn the concept</p>
+<ul>
+<li><a href="https://www.promptise.com/guides/view/run-multiple-ai-agents">Run Multiple AI Agents: One Runtime, Many Processes</a> -- Add and remove processes, load manifests, contain failures and shut down cleanly on SIGTERM.</li>
+<li><a href="https://www.promptise.com/guides/view/ai-agent-auto-restart">AI Agent Auto-Restart: Restart Policies and Timeouts</a> -- Restart policies, backoff and an alert when the runtime gives up.</li>
+<li><a href="https://www.promptise.com/guides/view/autonomous-ai-agent-runtime">Autonomous AI Agent Runtime: Budgets, Crash Recovery, API</a> -- What a runtime adds around an agent: budgets, restarts and crash recovery.</li>
+</ul>
+</div>
 
 
 
@@ -10106,7 +9960,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 20:22:26 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:59:21 UTC">2026-10-20</span>
   </span>
 
     

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Cuts through OAuth confusion for the machine-to-machine (client_credentials) case that agents actually use — no user redirect, just a signed token verified…">
+        <meta name="description" content="Learn how AI agents use OAuth client_credentials, and how an MCP server verifies their tokens with JWKS or RS256 public keys instead of a shared secret.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="OAuth for AI Agents: client_credentials & JWKS">
-  <meta property="og:description" content="Cuts through OAuth confusion for the machine-to-machine (client_credentials) case that agents actually use — no user redirect, just a signed token verified…">
+  <meta property="og:description" content="Learn how AI agents use OAuth client_credentials, and how an MCP server verifies their tokens with JWKS or RS256 public keys instead of a shared secret.">
   <meta property="og:url" content="https://docs.promptise.com/blog/oauth-for-ai-agents/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="OAuth for AI Agents: client_credentials & JWKS">
-  <meta name="twitter:description" content="Cuts through OAuth confusion for the machine-to-machine (client_credentials) case that agents actually use — no user redirect, just a signed token verified…">
+  <meta name="twitter:description" content="Learn how AI agents use OAuth client_credentials, and how an MCP server verifies their tokens with JWKS or RS256 public keys instead of a shared secret.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "OAuth for AI Agents: client_credentials \u0026 JWKS",
       "name": "OAuth for AI Agents: client_credentials \u0026 JWKS",
-      "description": "Cuts through OAuth confusion for the machine-to-machine (client_credentials) case that agents actually use \u2014 no user redirect, just a signed token verified\u2026",
+      "description": "Learn how AI agents use OAuth client_credentials, and how an MCP server verifies their tokens with JWKS or RS256 public keys instead of a shared secret.",
       "url": "https://docs.promptise.com/blog/oauth-for-ai-agents/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9584,7 +9535,7 @@
 </span></code></pre></div>
 <p>Swap the hand-signed token for a real one from your IdP and change <code>AsymmetricJWTAuth</code> to <code>JwksAuth(jwks_url=..., audience=...)</code> — the server code and the tool don't change. That's the point: your tools stay auth-agnostic while the verification layer plugs into whatever issuer you already run.</p>
 <h2 id="the-other-side-agents-that-present-verifiable-identity">The other side: agents that present verifiable identity<a class="headerlink" href="#the-other-side-agents-that-present-verifiable-identity" title="Link to this section">&para;</a></h2>
-<p>Verification only means something if the agent presents a real, IdP-backed credential in the first place. Promptise agents can do that natively through <a href="../../identity/overview/">Agent Identity</a>: <code>build_agent(..., identity=AgentIdentity.auto())</code> gives an agent a non-human, service-account-style identity from Entra, AWS, GCP, SPIFFE, or an OIDC source, and automatically attaches the right bearer token — minted per <code>audience</code> — to every MCP server it calls. The <a href="../../identity/guide/">Agent Identity guide</a> walks through wiring a specific provider and shows the inbound-verification counterpart with <code>JwksAuth</code>, so the outbound and inbound halves line up. For the identity concepts underneath all of this, the <a href="../ai-agent-identity/">AI Agent Identity &amp; Authentication: The Complete Guide</a> is the pillar to start from; if you're weighing HS256 shared secrets against the asymmetric route, <a href="../jwt-authentication-for-mcp-servers/">JWT Authentication for MCP Servers: Step by Step</a> covers the symmetric case in depth.</p>
+<p>Verification only means something if the agent presents a real, IdP-backed credential in the first place. Promptise agents can do that natively through <a href="../../identity/overview/">Agent Identity</a>: <code>build_agent(..., identity=AgentIdentity.auto())</code> gives an agent a non-human, service-account-style identity from Entra, AWS, GCP, SPIFFE, or an OIDC source, and automatically attaches the right bearer token — minted per <code>audience</code> — to every MCP server it calls. The <a href="../../identity/guide/">Agent Identity guide</a> walks through wiring a specific provider and shows the inbound-verification counterpart with <code>JwksAuth</code>, so the outbound and inbound halves line up. For the identity concepts underneath all of this, <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">AI Agent Identity: Authenticate Agents to MCP Servers</a> is the place to start; if you're weighing HS256 shared secrets against the asymmetric route, <a href="https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth">MCP Authentication in Python: API Keys, JWT and OAuth</a> covers the server-side options.</p>
 <h2 id="when-a-shared-secret-is-the-better-fit">When a shared secret is the better fit<a class="headerlink" href="#when-a-shared-secret-is-the-better-fit" title="Link to this section">&para;</a></h2>
 <p><code>JwksAuth</code> and <code>AsymmetricJWTAuth</code> are the right default when tokens come from an external or shared IdP, when many services must accept the same tokens, or when you want key rotation to be a non-event. But they aren't always the simplest choice:</p>
 <ul>
@@ -9623,7 +9574,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

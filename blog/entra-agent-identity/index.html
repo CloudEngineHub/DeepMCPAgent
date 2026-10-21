@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A framework-specific walkthrough for teams already standardized on Entra: back an agent with a managed identity or Agent ID, present a resource-scoped token…">
+        <meta name="description" content="Learn how to give an AI agent a Microsoft Entra identity, get resource-scoped tokens from IMDS or AKS workload identity, and verify them on your MCP server.">
       
       
         <meta name="author" content="Manser Ventures">
@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.promptise.com/blog/entra-agent-identity/">
       
       
-        <link rel="prev" href="../escalate-ai-agent-to-human/">
+        <link rel="prev" href="../fail-closed-approval-timeout-ai-agent/">
       
       
         <link rel="next" href="../enterprise-ready-agent-framework-checklist/">
@@ -95,7 +95,7 @@
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Promptise Foundry">
   <meta property="og:title" content="Microsoft Entra Agent ID with Promptise Foundry">
-  <meta property="og:description" content="A framework-specific walkthrough for teams already standardized on Entra: back an agent with a managed identity or Agent ID, present a resource-scoped token…">
+  <meta property="og:description" content="Learn how to give an AI agent a Microsoft Entra identity, get resource-scoped tokens from IMDS or AKS workload identity, and verify them on your MCP server.">
   <meta property="og:url" content="https://docs.promptise.com/blog/entra-agent-identity/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -105,7 +105,7 @@
   
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Microsoft Entra Agent ID with Promptise Foundry">
-  <meta name="twitter:description" content="A framework-specific walkthrough for teams already standardized on Entra: back an agent with a managed identity or Agent ID, present a resource-scoped token…">
+  <meta name="twitter:description" content="Learn how to give an AI agent a Microsoft Entra identity, get resource-scoped tokens from IMDS or AKS workload identity, and verify them on your MCP server.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -181,7 +181,7 @@
       "@type": "TechArticle",
       "headline": "Microsoft Entra Agent ID with Promptise Foundry",
       "name": "Microsoft Entra Agent ID with Promptise Foundry",
-      "description": "A framework-specific walkthrough for teams already standardized on Entra: back an agent with a managed identity or Agent ID, present a resource-scoped token\u2026",
+      "description": "Learn how to give an AI agent a Microsoft Entra identity, get resource-scoped tokens from IMDS or AKS workload identity, and verify them on your MCP server.",
       "url": "https://docs.promptise.com/blog/entra-agent-identity/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -779,8 +779,6 @@
       
         
       
-        
-      
     
     
     
@@ -1018,34 +1016,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5907,6 +5877,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5926,8 +5900,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5941,8 +5916,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5954,6 +5935,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8208,8 +8191,6 @@
       
         
       
-        
-      
     
     
     
@@ -8365,36 +8346,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9449,7 +9400,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
                           <span class="md-ellipsis">
                             
-                              7 min read
+                              6 min read
                             
                           </span>
                         </div>
@@ -9574,7 +9525,7 @@
 </span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="c1"># ctx.client.subject -&gt; the verified Entra id of the calling agent</span>
 </span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"Refunded </span><span class="si">{</span><span class="n">amount</span><span class="si">}</span><span class="s2"> on </span><span class="si">{</span><span class="n">invoice_id</span><span class="si">}</span><span class="s2">"</span>
 </span></code></pre></div>
-<p>The credential is verified cryptographically against Entra's keys, and the validated subject lands on <code>ctx.client</code>, so guards like <code>RequireClientId</code> and <code>HasRole</code> decide <em>which</em> agent may call <em>which</em> tool. If you want the mechanics of JWKS-based verification in depth — issuer discovery, key caching, audience checks — the companion post <a href="../jwt-authentication-for-mcp-servers/">JWT Authentication for MCP Servers: Step by Step</a> covers the server-side auth surface end to end.</p>
+<p>The credential is verified cryptographically against Entra's keys, and the validated subject lands on <code>ctx.client</code>, so guards like <code>RequireClientId</code> and <code>HasRole</code> decide <em>which</em> agent may call <em>which</em> tool. For the rest of the server-side auth surface, see <a href="https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth">MCP Authentication in Python: API Keys, JWT and OAuth</a>.</p>
 <h2 id="when-entra-is-the-right-fit-and-when-it-isnt">When Entra is the right fit — and when it isn't<a class="headerlink" href="#when-entra-is-the-right-fit-and-when-it-isnt" title="Link to this section">&para;</a></h2>
 <p>Entra agent identity is the right choice when your workloads already run on Azure with managed identities or AKS Workload Identity, and Entra is where you inventory and govern service principals. In that case Promptise adds almost no surface area: register once in the directory, consume the token, done.</p>
 <p>It is <em>not</em> the right fit in a few honest cases:</p>
@@ -9583,7 +9534,7 @@
 <li><strong>You only need attribution, not authentication.</strong> If your MCP servers are internal and don't verify callers yet, a local <code>AgentIdentity("billing-bot")</code> already tags the observability timeline — you don't need Entra to answer "which agent did this?" across a fleet.</li>
 <li><strong>You're multi-cloud and don't want to pick.</strong> <code>AgentIdentity.auto()</code> detects the platform from environment markers and dispatches to the right factory, which is often the better default for portable deployments.</li>
 </ul>
-<p>For the full decision matrix across providers and tiers, the pillar <a href="../ai-agent-identity/">AI Agent Identity &amp; Authentication: The Complete Guide</a> compares them side by side.</p>
+<p>For how agent identity works beyond Entra, read <a href="https://www.promptise.com/guides/view/ai-agent-identity-authentication">AI Agent Identity: Authenticate Agents to MCP Servers</a>.</p>
 <h2 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this section">&para;</a></h2>
 <h3 id="does-promptise-create-the-entra-agent-id-for-me">Does Promptise create the Entra Agent ID for me?<a class="headerlink" href="#does-promptise-create-the-entra-agent-id-for-me" title="Link to this section">&para;</a></h3>
 <p>No. Registering the identity — as a managed identity, a federated app credential, or an Entra Agent ID — is an Azure-side operation you do once. Promptise consumes the token that identity produces (via IMDS or the AKS projected file) and presents it to the resources the agent calls. The directory stays the system of record.</p>
@@ -9615,7 +9566,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="July 17, 2026 19:53:17 UTC">2026-07-17</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
   </span>
 
     

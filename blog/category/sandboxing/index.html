@@ -775,8 +775,6 @@
       
         
       
-        
-      
     
     
     
@@ -1014,34 +1012,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5903,6 +5873,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5922,8 +5896,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5937,8 +5912,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5950,6 +5931,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -8206,8 +8189,6 @@
       
         
       
-        
-      
     
     
     
@@ -8363,36 +8344,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -9306,47 +9257,6 @@
           
           <li class="md-meta__item">
             
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="autogen-docker-executor-vs-a-hardened-agent-sandbox"><a class="toclink" href="../../autogen-docker-code-executor-isolation/">AutoGen Docker Executor vs a Hardened Agent Sandbox</a></h2>
-<p>If you are evaluating <strong>autogen docker code executor isolation</strong> for running model-written code, start with the good news: AutoGen genuinely ships <code>DockerCommandLineCodeExecutor</code>, and it really does put generated code in a Docker container instead of your Python process. That is a meaningful boundary and a real step up from executing code in-process. This post credits that up front, then draws the honest line between "a container" and a <em>hardened agent code sandbox</em> — the difference between Docker's defaults and a profile purpose-built for untrusted model code, plus the piece AutoGen's executor does not do at all: bridging each tool call back through host governance.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../autogen-docker-code-executor-isolation/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Sandboxing</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
               9 min read
             
           </li>
@@ -9358,7 +9268,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="give-a-code-interpreter-agent-your-tools-keep-approval-gates"><a class="toclink" href="../../code-interpreter-agent-with-approval-gates/">Give a Code-Interpreter Agent Your Tools, Keep Approval Gates</a></h2>
-<p>Building a <strong>code interpreter agent with approval gates</strong> means letting the model write and run one program over <em>your</em> tools while every mutating call it makes still stops at a human — and gets counted against a hard per-run budget. That combination is the whole point of this guide. The code-interpreter (codeact) pattern itself is easy; the interesting engineering is the governance you refuse to give up when you hand a model an execution surface. This post is scoped to exactly that: enable <code>agent_pattern="code-action"</code>, wrap the tools that change state with an approval gate, keep a hard <code>max_tool_calls</code> cap on the generated program, and pick the gVisor backend when the input is untrusted.</p>
+<p>Building a <strong>code interpreter agent with approval gates</strong> means letting the model write and run one program over <em>your</em> tools while every mutating call it makes still stops at a human — and gets counted against a hard per-run budget. That combination is the whole point of this guide. The code-interpreter (codeact) pattern itself is easy; the interesting engineering is the governance you refuse to give up when you hand a model an execution surface. This post covers exactly that: enable <code>agent_pattern="code-action"</code>, wrap the tools that change state with an approval gate, keep a hard <code>max_tool_calls</code> cap on the generated program, and pick the gVisor backend when the input is untrusted.</p>
 
     
       <nav class="md-post__action">
@@ -9399,7 +9309,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="hot-reload-an-agents-instructions-without-losing-state"><a class="toclink" href="../../hot-reload-agent-instructions-without-losing-state/">Hot-Reload an Agent's Instructions Without Losing State</a></h2>
-<p>You can <strong>hot-reload agent instructions without losing state</strong> — rewrite a running agent's system prompt mid-conversation, let its graph rebuild around the new prompt, and keep every message the agent has already exchanged — and then undo the whole thing with a single <code>rollback()</code> call. This post is deliberately narrow. It isn't a tour of open mode's fourteen meta-tools; it's about the one mechanic that decides whether a self-modifying agent is safe to run in production: when the agent changes itself, does the live conversation survive, and can you get back? In Promptise Foundry the answer is yes on both counts, and the machinery that guarantees it — a preserved conversation buffer, a <code>max_rebuilds</code> cap, and one-call rollback — is what this article walks through.</p>
+<p>You can <strong>hot-reload agent instructions without losing state</strong> — rewrite a running agent's system prompt mid-conversation, let its graph rebuild around the new prompt, and keep every message the agent has already exchanged — and then undo the whole thing with a single <code>rollback()</code> call. This post focuses on the one mechanic that decides whether a self-modifying agent is safe to run in production: when the agent changes itself, does the live conversation survive, and can you get back? In Promptise Foundry the answer is yes on both counts, and the machinery that guarantees it — a preserved conversation buffer, a <code>max_rebuilds</code> cap, and one-call rollback — is what this article walks through.</p>
 
     
       <nav class="md-post__action">
@@ -9429,7 +9339,7 @@
           
           <li class="md-meta__item">
             
-              10 min read
+              9 min read
             
           </li>
         
@@ -9481,52 +9391,11 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="the-real-risks-of-running-ai-generated-code-in-process"><a class="toclink" href="../../risks-of-running-ai-generated-code/">The Real Risks of Running AI-Generated Code In-Process</a></h2>
-<p>The risks of running AI-generated code are easy to underestimate, because the failure mode is invisible right up until the day it isn't: the program runs, prints a plausible answer, and only later do you notice it also read your <code>.env</code>, listed <code>/</code>, and made an outbound request you never authorized. This post is a threat-model walkthrough rather than another isolation-layer reference. We are going to trace exactly what a model-written Python snippet can reach when it executes inside your process — the working directory and everything around it, environment-variable secrets, and the open network — using LangChain's <code>PythonREPLTool</code> as the worked example, and then show why Promptise Foundry treats a hardened container as the default path instead of something you remember to bolt on.</p>
+<p>The risks of running AI-generated code are easy to underestimate, because the failure mode is invisible right up until the day it isn't: the program runs, prints a plausible answer, and only later do you notice it also read your <code>.env</code>, listed <code>/</code>, and made an outbound request you never authorized. This post is a threat-model walkthrough. We trace exactly what a model-written Python snippet can reach when it executes inside your process — the working directory and everything around it, environment-variable secrets, and the open network — using LangChain's <code>PythonREPLTool</code> as the worked example, and then show why Promptise Foundry treats a hardened container as the default path instead of something you remember to bolt on.</p>
 
     
       <nav class="md-post__action">
         <a href="../../risks-of-running-ai-generated-code/">
-          Continue reading
-        </a>
-      </nav>
-    
-    
-  </div>
-</article>
-      
-        <article class="md-post md-post--excerpt">
-  <header class="md-post__header">
-    
-    <div class="md-post__meta md-meta">
-      <ul class="md-meta__list">
-        <li class="md-meta__item">
-          <time datetime="2026-07-16 00:00:00+00:00">July 16, 2026</time></li>
-        
-          <li class="md-meta__item">
-            in
-            
-              <a href="./" class="md-meta__link">Sandboxing</a></li>
-        
-        
-          
-          <li class="md-meta__item">
-            
-              8 min read
-            
-          </li>
-        
-        
-      </ul>
-      
-    </div>
-  </header>
-  <div class="md-post__content md-typeset">
-    <h2 id="how-to-run-ai-generated-code-safely-the-2026-field-guide"><a class="toclink" href="../../run-ai-generated-code-safely/">How to Run AI-Generated Code Safely: The 2026 Field Guide</a></h2>
-<p>To <strong>run AI-generated code safely</strong> you have to satisfy two requirements at once, and most stacks only meet one of them: <em>can the model's code escape the box?</em> and <em>is every tool that code reaches inside the box still governed the way the rest of your agent is?</em> Containment answers the first. Almost nothing answers the second. This field guide contrasts the three ways teams actually run model-written code today — an in-process REPL, a bolt-on third-party sandbox, and a hardened first-party sandbox with a governed tool bridge — and shows why Promptise Foundry treats <em>both</em> containment and per-call tool governance as first-class parts of one layer instead of two separate integrations you assemble yourself.</p>
-
-    
-      <nav class="md-post__action">
-        <a href="../../run-ai-generated-code-safely/">
           Continue reading
         </a>
       </nav>
@@ -9604,7 +9473,7 @@
   </header>
   <div class="md-post__content md-typeset">
     <h2 id="smolagents-codeagent-vs-promptise-where-do-tool-calls-run"><a class="toclink" href="../../smolagents-codeagent-vs-promptise-code-action/">Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?</a></h2>
-<p>The <strong>smolagents codeagent vs promptise code-action</strong> question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls <code>issue_refund()</code> or <code>delete_customer()</code>, <em>where does that call execute, and what governs it?</em> This is a precise-delta piece, not a "they have nothing" one. By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.</p>
+<p>The <strong>smolagents codeagent vs promptise code-action</strong> question is not "who lets the model write one program over your tools" — both frameworks do, and both do it well. It is a narrower, more consequential question: when that program calls <code>issue_refund()</code> or <code>delete_customer()</code>, <em>where does that call execute, and what governs it?</em> By the end you will know exactly what smolagents' CodeAgent does today, where Promptise's bridge draws a different line, and how a sandboxed program can still trip your approval gate and a hard call cap.</p>
 
     
       <nav class="md-post__action">

@@ -777,8 +777,6 @@
       
         
       
-        
-      
     
     
     
@@ -1016,34 +1014,6 @@
     
   
     What is MCP?
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/best-llms-for-agents/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Best LLMs for Agents
   
 
     
@@ -5905,6 +5875,10 @@
     
       
         
+          
+        
+      
+        
       
         
       
@@ -5924,8 +5898,9 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7" >
         
           
-          <label class="md-nav__link" for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../runtime/distributed/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
@@ -5939,8 +5914,14 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_7_7">
@@ -5952,6 +5933,8 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -7534,6 +7517,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#promptise.sandbox.config.SandboxConfig.runs_as_root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runs_as_root
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#promptise.sandbox.config.SandboxConfig.from_dict" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7560,6 +7554,17 @@
     <span class="md-ellipsis">
       
         validate_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.sandbox.config.SandboxConfig.validate_user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate_user
       
     </span>
   </a>
@@ -9321,8 +9326,6 @@
       
         
       
-        
-      
     
     
     
@@ -9475,36 +9478,6 @@
     
   
     Comparisons
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    
-  
-  
-    <li class="md-nav__item">
-      <a href="../../blog/category/compliance--audit/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Compliance &amp; Audit
   
 
     
@@ -10407,6 +10380,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#promptise.sandbox.config.SandboxConfig.runs_as_root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runs_as_root
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#promptise.sandbox.config.SandboxConfig.from_dict" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -10433,6 +10417,17 @@
     <span class="md-ellipsis">
       
         validate_size
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.sandbox.config.SandboxConfig.validate_user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate_user
       
     </span>
   </a>
@@ -11684,6 +11679,19 @@ instead of <code>network</code>) fails loudly instead of being ignored.</p>
             </td>
           </tr>
           <tr class="doc-section-item">
+            <td><code><span title="promptise.sandbox.config.SandboxConfig.user">user</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>User the container and every command run as, <code>"uid[:gid]"</code>
+or a user name from the image (default: <code>"65534:65534"</code>,
+<code>nobody</code>). Set <code>"root"</code> to run as root, the 1.5.0 behaviour.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code><span title="promptise.sandbox.config.SandboxConfig.runtime">runtime</span></code></td>
             <td>
                   <code><span title="str">str</span> | None</code>
@@ -11739,6 +11747,28 @@ instead of <code>network</code>) fails loudly instead of being ignored.</p>
 
 
 
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="promptise.sandbox.config.SandboxConfig.runs_as_root" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">runs_as_root</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#promptise.sandbox.config.SandboxConfig.runs_as_root" class="headerlink" title="Link to this section">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Whether sandboxed code runs as root (<code>user="root"</code> or uid 0).</p>
+
+    </div>
+
+</div>
 
 
 
@@ -11934,6 +11964,28 @@ instead of <code>network</code>) fails loudly instead of being ignored.</p>
     <div class="doc doc-contents ">
 
         <p>Validate memory/disk size format.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="promptise.sandbox.config.SandboxConfig.validate_user" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">validate_user</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#promptise.sandbox.config.SandboxConfig.validate_user" class="headerlink" title="Link to this section">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Validate the <code>user[:group]</code> the container runs as.</p>
 
 
     </div>
