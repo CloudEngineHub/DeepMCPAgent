@@ -132,8 +132,13 @@ class TestBuildDeepAgent:
     @pytest.mark.asyncio
     async def test_extra_tools_appended(self) -> None:
         """extra_tools parameter should append tools to the tool list."""
-        fake_tool = MagicMock()
-        fake_tool.name = "my_custom_tool"
+        from promptise import tool
+
+        @tool
+        def my_custom_tool(x: str) -> str:
+            """Echo."""
+            return x
+
         mock_graph = _make_mock_inner()
 
         with (
@@ -146,12 +151,13 @@ class TestBuildDeepAgent:
             agent = await build_agent(
                 servers={},
                 model="openai:gpt-5-mini",
-                extra_tools=[fake_tool],
+                extra_tools=[my_custom_tool],
             )
 
             assert isinstance(agent, PromptiseAgent)
             # Engine should have been constructed
             mock_react.assert_called_once()
+            assert "my_custom_tool" in agent.tool_names
 
 
 # ===========================================================================
