@@ -63,6 +63,18 @@ class NodeUnreachableError(RuntimeError):
         self.node_id = node_id
 
 
+def _prefixed(prefix: str, exc: RuntimeError) -> RuntimeError:
+    """*exc* with *prefix* added to its message, keeping its error type.
+
+    An unreachable node stays a :class:`NodeUnreachableError` (with its
+    ``node_id``), so failover code can still catch it.
+    """
+    message = f"{prefix}: {exc}"
+    if isinstance(exc, NodeUnreachableError):
+        return NodeUnreachableError(message, node_id=exc.node_id)
+    return RuntimeError(message)
+
+
 @dataclass
 class NodeInfo:
     """Information about a runtime node in the cluster.
@@ -355,7 +367,7 @@ class RuntimeCoordinator:
         try:
             return await self._request("GET", node, "/health", timeout=10, session=session)
         except RuntimeError as exc:
-            raise RuntimeError(f"Health check failed: {exc}") from exc
+            raise _prefixed("Health check failed", exc) from exc
 
     # ------------------------------------------------------------------
     # Cluster status
@@ -397,15 +409,16 @@ class RuntimeCoordinator:
 
         Raises:
             KeyError: If node doesn't exist.
-            RuntimeError: If aiohttp is not available, the node answers with
-                an error status, or (:class:`NodeUnreachableError`) it can't
-                be reached.
+            NodeUnreachableError: If the node can't be reached (a
+                :class:`RuntimeError`).
+            RuntimeError: If aiohttp is not available or the node answers
+                with an error status.
         """
         node = self.get_node(node_id)
         try:
             return await self._request("GET", node, "/status", timeout=10)
         except RuntimeError as exc:
-            raise RuntimeError(f"Status request failed: {exc}") from exc
+            raise _prefixed("Status request failed", exc) from exc
 
     # ------------------------------------------------------------------
     # Remote operations

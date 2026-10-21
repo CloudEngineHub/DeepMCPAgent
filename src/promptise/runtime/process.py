@@ -2495,6 +2495,7 @@ class AgentProcess:
         except AttributeError:  # a custom trigger with a read-only ID
             logger.debug("AgentProcess %s: trigger keeps its own id", self.name)
         _label_trigger_type(trigger, trigger_config.type)
+        self._set_overflow_handler(trigger)
         if (
             trigger_config.filter_expression is not None
             and getattr(trigger, "event_filter", None) is None
@@ -2503,6 +2504,19 @@ class AgentProcess:
                 trigger_config.filter_expression
             )
         return trigger
+
+    def _set_overflow_handler(self, trigger: BaseTrigger) -> None:
+        """Dead-letter the events *trigger*'s full buffer drops.
+
+        Event and message triggers count such an event in
+        ``dropped_events`` and hand it to this handler, which dead-letters
+        it with reason ``"trigger buffer full"``.  Set when the trigger is
+        created, before ``start()`` subscribes it, so an event dropped
+        before its listener runs is dead-lettered too.
+        """
+        set_overflow = getattr(trigger, "set_overflow_handler", None)
+        if callable(set_overflow):
+            set_overflow(lambda event: self._dead_letter(event, "trigger buffer full"))
 
     # ------------------------------------------------------------------
     # Live trigger management
@@ -2658,6 +2672,7 @@ class AgentProcess:
                 config, event_bus=self._event_bus, broker=self._broker
             )
             _label_trigger_type(trigger, config.type)
+            self._set_overflow_handler(trigger)
             if (
                 config.filter_expression is not None
                 and getattr(trigger, "event_filter", None) is None
@@ -2785,11 +2800,9 @@ class AgentProcess:
         set_check = getattr(trigger, "set_availability_check", None)
         if callable(set_check):
             set_check(self._availability_reason)
-        set_overflow = getattr(trigger, "set_overflow_handler", None)
-        if callable(set_overflow):
-            # Event and message triggers: an event their full buffer drops
-            # is dead-lettered (and counted in status()), not lost silently.
-            set_overflow(lambda event: self._dead_letter(event, "trigger buffer full"))
+        # The overflow handler is set when the trigger is created
+        # (_set_overflow_handler): an event dropped before this listener
+        # ran is dead-lettered too.
         event_filter = self._trigger_filters.get(trigger.trigger_id)
         errors = 0
         # The event between wait_for_next() and the queue, and whether it
