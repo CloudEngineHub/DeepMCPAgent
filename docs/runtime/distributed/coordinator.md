@@ -216,6 +216,8 @@ node_status = await coordinator.get_node_status("node-1")
 # Full runtime.status() response from the remote node
 ```
 
+Like the [remote operations](#remote-operations), it raises `RuntimeError` when the node answers with an error status and `NodeUnreachableError` (a `RuntimeError` subclass) when the node can't be reached.
+
 ---
 
 ## Remote Operations

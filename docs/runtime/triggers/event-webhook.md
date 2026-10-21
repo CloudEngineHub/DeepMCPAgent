@@ -35,7 +35,7 @@ config = ProcessConfig(
 Each trigger buffers events in its own `asyncio.Queue` until the process's listener takes them. What happens when a buffer is full differs:
 
 - **Webhook:** the request is refused with `503` and a `Retry-After: 30` header, so the sender can retry. Nothing is dropped silently.
-- **Event and message:** the queue holds 100 events; beyond that, new events are dropped with a warning in the log.
+- **Event and message:** the queue holds 100 events. When it is full, a new event is counted in `dropped_events` (in `process.status()["triggers"]`) and the process [dead-letters](index.md#retries-and-dead-letters) it with reason `trigger buffer full`, so `redeliver_dead_letters()` can queue it again. This applies from the moment the trigger starts, before its listener runs.
 
 ---
 
@@ -402,8 +402,8 @@ The agent sees only the payload, not the metadata.
 
 All three triggers use `asyncio.Queue` to buffer events:
 
-- `EventTrigger`: maxsize=100 (drops new events with a warning when full)
-- `MessageTrigger`: maxsize=100 (drops new events with a warning when full)
+- `EventTrigger`: maxsize=100 (when full, a new event is counted in `dropped_events` and dead-lettered)
+- `MessageTrigger`: maxsize=100 (when full, a new message is counted in `dropped_events` and dead-lettered)
 - `WebhookTrigger`: maxsize=1000 (answers `503` when full)
 
 ### Graceful stop

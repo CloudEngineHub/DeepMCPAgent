@@ -260,6 +260,7 @@ The process sets `trigger_id` to the trigger's [stable ID](#trigger-ids), so kee
 | `trigger_type: str` | Shown as `type` in `process.status()["triggers"]` (otherwise the class name) |
 | `dropped_events: int`, `pending_events: int` | Reported in `process.status()["triggers"]` |
 | `set_availability_check(callback)` | The process installs a callback that returns `None` while it accepts events, or a reason (`"process failed"`, `"process stopped"`, `"queue full"`); use it to push back on the sender, as the webhook does with `503` |
+| `set_overflow_handler(callback)` | The process calls it when it creates the trigger, before `start()`; pass each event the trigger has to drop (a full buffer) to `callback(event)` and the process dead-letters it with reason `trigger buffer full` |
 | `event_filter` | When the trigger has this attribute set, the trigger applies the `filter_expression` itself and the process doesn't |
 | `drain_pending() -> list[TriggerEvent]` | Called after `stop()` when the process stops or restarts: the events the trigger still buffered are dead-lettered (on a stop) or moved to the process queue (on a restart) instead of being lost |
 
@@ -510,7 +511,7 @@ When the process queue holds 1000 events:
 - Listener tasks wait for space instead of dropping events. A cron tick is delivered late, not lost.
 - The webhook answers `503 Service Unavailable` with a `Retry-After: 30` header, so the sender (GitHub, Stripe, …) retries later.
 - A file watch keeps changed files in its own bounded backlog and merges repeated changes to the same file; only when `watch_max_pending_events` different files are waiting is a change dropped (see [back-pressure](file-watch.md#back-pressure)).
-- `event` and `message` triggers buffer up to 100 events each in their own queue; beyond that, new events are dropped with a warning.
+- `event` and `message` triggers buffer up to 100 events each in their own queue; beyond that, a new event is counted in the trigger's `dropped_events` and dead-lettered with reason `trigger buffer full`.
 - Events injected with `process.inject()` while the queue is full go to the [dead-letter list](#retries-and-dead-letters).
 
 For high-throughput scenarios, increase `concurrency`.
@@ -612,6 +613,7 @@ process.clear_dead_letters()
 | `process stopped` | `stop()` was called: events still queued, still buffered in a trigger (webhook, file watch, event and message triggers), held by a waiting worker or a listener, waiting for a retry, or running (`error: "run cancelled"`) |
 | `process restarting` | The process was recycled (`max_lifetime`) or restarted after `FAILED` while the event was held by a worker or waiting for a retry. Queued events, and events still buffered in the old triggers, stay for the next run (dead-lettered with this reason only if the queue is full) |
 | `trigger removed` | The trigger was removed while the event was still buffered in it or held by its listener |
+| `trigger buffer full` | An `event` or `message` trigger's 100-event buffer was full (also counted in the trigger's `dropped_events`) |
 | `queue full` | `inject()` or a retry found the queue full |
 | `flagged by payload scan` | The [payload scan](#scanning-payloads-for-prompt-injection) flagged the event |
 | `blocked by guardrails` | The agent's `guardrails` raised `GuardrailViolation` |
