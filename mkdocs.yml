@@ -1,7 +1,7 @@
 site_name: Promptise Foundry
 site_description: "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference."
 site_url: https://docs.promptise.com
-site_author: Manser Ventures
+site_author: Promptise Team
 
 hooks:
   # Search titles from each page's own heading, not its nav label.
@@ -459,8 +459,8 @@ extra:
   generator: false
   homepage: https://promptise.com
   organization:
-    name: Manser Ventures
-    url: https://www.manserventures.com/
+    name: Promptise Team
+    url: https://www.promptise.com/
   product:
     name: Promptise Foundry
     description: Production Python framework for AI agents, MCP servers, and autonomous runtimes.
