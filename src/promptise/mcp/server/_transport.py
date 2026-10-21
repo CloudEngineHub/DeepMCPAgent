@@ -436,6 +436,102 @@ async def _send_json(send: Any, status: int, body: dict[str, Any]) -> None:
 # =====================================================================
 
 
+def _rpc_message(item: Any) -> tuple[str | None, Any, Any]:
+    """``(method, id, params)`` of a stdio message (either SDK's classes).
+
+    A request has a method and an id, a notification only a method, a
+    response or an error only an id; a parse error (an ``Exception``)
+    has neither.
+    """
+    message = getattr(item, "message", None)
+    root = getattr(message, "root", message)  # mcp 1.x wraps it in a RootModel
+    return getattr(root, "method", None), getattr(root, "id", None), getattr(root, "params", None)
+
+
+#: Requests that stay open until the client leaves (a 2026-07-28 listen
+#: stream): nothing to wait for once stdin has closed.
+_STREAM_METHODS = frozenset({"subscriptions/listen"})
+
+
+class _StdinDrain:
+    """Answers a stdio client's last requests after it closes stdin.
+
+    Both SDKs cancel the requests still running when the session's read
+    stream ends, so a client that writes a request and closes stdin at
+    once (a shell pipe, a one-shot script) never got the answer.  The
+    session reads from :meth:`forward_in` instead: after stdin's EOF it
+    keeps the read side open until every request it passed on has been
+    answered and handed to the stdout writer, for at most *timeout*
+    seconds (``None``: no limit).  It stops waiting at once when the
+    server waits on the client (an elicitation or sampling request),
+    which can no longer answer.
+    """
+
+    def __init__(self, timeout: float | None) -> None:
+        self._timeout = timeout
+        self._pending: set[Any] = set()  # client requests not answered yet
+        self._asking: set[Any] = set()  # server requests the client has not answered
+        self._changed: Any = None  # anyio.Event set when either set changes
+
+    def _notify(self) -> None:
+        if self._changed is not None:
+            self._changed.set()
+
+    async def forward_in(self, source: Any, sink: Any) -> None:
+        """Pass stdin's messages to the session; hold it open after EOF."""
+        import anyio
+
+        async with source, sink:
+            try:
+                async for item in source:
+                    method, rpc_id, params = _rpc_message(item)
+                    if method is not None and rpc_id is not None:
+                        if method not in _STREAM_METHODS:
+                            self._pending.add(rpc_id)
+                    elif method == "notifications/cancelled" and isinstance(params, dict):
+                        # A cancelled request gets no answer.
+                        self._pending.discard(params.get("requestId"))
+                    elif method is None and rpc_id is not None:
+                        self._asking.discard(rpc_id)
+                    await sink.send(item)
+            except (anyio.BrokenResourceError, anyio.ClosedResourceError):
+                return  # the session ended before stdin did
+            await self._wait_for_answers()
+
+    async def forward_out(self, source: Any, sink: Any) -> None:
+        """Pass the session's messages to the stdout writer, noting answers."""
+        async with source, sink:
+            async for item in source:
+                await sink.send(item)
+                method, rpc_id, _ = _rpc_message(item)
+                if rpc_id is None:
+                    continue
+                if method is None:
+                    self._pending.discard(rpc_id)
+                else:
+                    self._asking.add(rpc_id)
+                self._notify()
+
+    async def _wait_for_answers(self) -> None:
+        import anyio
+
+        if not self._pending:
+            return
+        logger.debug("stdin closed; answering %d request(s) before exiting", len(self._pending))
+        with anyio.move_on_after(self._timeout):
+            while self._pending and not self._asking:
+                self._changed = anyio.Event()
+                await self._changed.wait()
+        if self._pending:
+            logger.warning(
+                "stdin closed; exiting without answering %d request(s) %s",
+                len(self._pending),
+                "that wait on the client"
+                if self._asking
+                else f"still running after {self._timeout:g}s (shutdown_timeout)",
+            )
+
+
 async def run_stdio(
     server: LowLevelServer,
     init_options: Any,
@@ -445,22 +541,45 @@ async def run_stdio(
 ) -> None:
     """Run the server over stdio (stdin/stdout).
 
-    This is the default transport for local MCP connections.
+    This is the default transport for local MCP connections.  When the
+    client closes stdin, requests still running are answered before the
+    server exits, waiting at most *shutdown_timeout* seconds (see
+    :class:`_StdinDrain`).
     """
+    import anyio
     from mcp.server.stdio import stdio_server
 
     await lifecycle.startup()
     try:
         async with stdio_server() as (read_stream, write_stream):
             logger.info("MCP server running on stdio")
-            await server.run(
-                read_stream,
-                write_stream,
-                init_options,
-                raise_exceptions=False,
-            )
+            drain = _StdinDrain(shutdown_timeout)
+            to_session, session_in = anyio.create_memory_object_stream[Any](0)
+            session_out, from_session = anyio.create_memory_object_stream[Any](0)
+            reading = anyio.CancelScope()
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(drain.forward_out, from_session, write_stream)
+                tg.start_soon(_in_scope, reading, drain.forward_in, read_stream, to_session)
+                try:
+                    await server.run(
+                        session_in,
+                        session_out,
+                        init_options,
+                        raise_exceptions=False,
+                    )
+                finally:
+                    # The session closes its write stream when it ends; make
+                    # sure, so forward_out flushes what is left and returns.
+                    await session_out.aclose()
+                    reading.cancel()
     finally:
         await lifecycle.shutdown(timeout=shutdown_timeout)
+
+
+async def _in_scope(scope: Any, func: Callable[..., Any], *args: Any) -> None:
+    """Run ``func(*args)`` under *scope*, so the caller can cancel just this task."""
+    with scope:
+        await func(*args)
 
 
 # =====================================================================

@@ -236,8 +236,9 @@ def _is_session_terminated(exc: BaseException) -> bool:
     return mcp_error_message(exc) == _SESSION_TERMINATED
 
 
-#: JSON-RPC code both SDKs answer pending requests with when the transport closed.
-_CONNECTION_CLOSED = -32000
+#: The JSON-RPC error both SDKs answer pending requests with when the
+#: transport closed: code -32000 with this exact message and no data.
+_CONNECTION_CLOSED = (-32000, "Connection closed")
 
 
 def _is_connection_closed(exc: BaseException) -> bool:
@@ -246,12 +247,21 @@ def _is_connection_closed(exc: BaseException) -> bool:
     Depending on timing, the SDK reports it as a JSON-RPC error
     (``Connection closed``) or as the closed stream the request was
     written to (an ``anyio`` error with no message).
+
+    The code alone is not enough: -32000 is the first JSON-RPC "server
+    error" code, which servers use for their own errors (a Promptise
+    server answers a ``ToolError`` raised in a resource or prompt handler
+    with it). Such an answer arrived over a live connection and is the
+    server's error, so only the SDK's own error (that message, no
+    ``data``) counts.
     """
     import anyio
 
     if isinstance(exc, (anyio.ClosedResourceError, anyio.BrokenResourceError, anyio.EndOfStream)):
         return True
-    return mcp_error_code(exc) == _CONNECTION_CLOSED
+    if (mcp_error_code(exc), mcp_error_message(exc)) != _CONNECTION_CLOSED:
+        return False
+    return getattr(getattr(exc, "error", None), "data", None) is None
 
 
 def _is_not_found(exc: BaseException) -> bool:
