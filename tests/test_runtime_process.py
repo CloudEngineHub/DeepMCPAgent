@@ -179,6 +179,62 @@ class TestAgentProcessTriggers:
         status = process.status()
         assert status["queue_size"] == 1
 
+    async def test_queue_size_counts_events_a_suspended_worker_holds(self) -> None:
+        """A worker takes the next event off the queue and holds it while the
+        process is suspended; it still counts as queued until it runs."""
+        agent = _make_mock_agent()
+        with _patch_build(agent):
+            process = AgentProcess("test", ProcessConfig())
+            await process.start()
+            await process.suspend()
+            for i in range(2):
+                await process.inject(
+                    TriggerEvent(trigger_id="t", trigger_type="test", payload={"i": i})
+                )
+            await asyncio.sleep(0.05)  # let a worker take one off the queue
+
+            assert process.status()["queue_size"] == 2
+            agent.ainvoke.assert_not_called()
+
+            await process.resume()
+            for _ in range(100):
+                if process._invocation_count == 2:
+                    break
+                await asyncio.sleep(0.01)
+            assert process.status()["queue_size"] == 0
+            await process.stop()
+
+    async def test_queue_size_counts_an_event_waiting_for_a_running_one(self) -> None:
+        release = asyncio.Event()
+        started = asyncio.Event()
+
+        async def blocking_invoke(x: dict, **kwargs) -> dict:
+            started.set()
+            await release.wait()
+            return {"messages": [{"role": "assistant", "content": "ok"}]}
+
+        agent = _make_mock_agent()
+        agent.ainvoke = AsyncMock(side_effect=blocking_invoke)
+        with _patch_build(agent):
+            process = AgentProcess("test", ProcessConfig(concurrency=1))
+            await process.start()
+            for i in range(2):
+                await process.inject(
+                    TriggerEvent(trigger_id="t", trigger_type="test", payload={"i": i})
+                )
+            await asyncio.wait_for(started.wait(), 5)
+            await asyncio.sleep(0.05)
+
+            assert process.status()["queue_size"] == 1
+
+            release.set()
+            for _ in range(100):
+                if process._invocation_count == 2:
+                    break
+                await asyncio.sleep(0.01)
+            assert process.status()["queue_size"] == 0
+            await process.stop()
+
 
 # =========================================================================
 # Concurrency

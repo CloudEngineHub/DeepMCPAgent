@@ -2088,6 +2088,16 @@ class AgentProcess:
         msg_id = await self._inbox.add(message)
         return await self._inbox.wait_for_response(msg_id, timeout=timeout)
 
+    def _queued_events(self) -> int:
+        """Events waiting to run: in the queue, or held by a worker that has not started them.
+
+        A worker takes the next event off the queue at once and holds it
+        while the process is starting or suspended, or until a concurrency
+        slot frees up, so the queue alone undercounts what is waiting.
+        """
+        held = sum(1 for task in self._worker_events if task not in self._running_workers)
+        return self._trigger_queue.qsize() + held
+
     def status(self) -> dict[str, Any]:
         """Serializable status snapshot.
 
@@ -2132,7 +2142,7 @@ class AgentProcess:
             "conversation_messages": len(self._conversation_buffer),
             "has_memory": self._long_term_memory is not None,
             "suspend_reason": self.suspend_reason,
-            "queue_size": self._trigger_queue.qsize(),
+            "queue_size": self._queued_events(),
             "dead_letter_count": len(self._dead_letters),
             "filtered_count": self._filtered_count,
             "pending_retries": len(self._retry_handles),
@@ -3867,7 +3877,7 @@ class AgentProcess:
                     self.config.idle_timeout > 0
                     and self._last_activity is not None
                     and self._inflight == 0
-                    and self._trigger_queue.empty()
+                    and self._queued_events() == 0
                     and self.state == ProcessState.RUNNING
                 ):
                     idle = time.monotonic() - self._last_activity
