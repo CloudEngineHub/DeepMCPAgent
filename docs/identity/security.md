@@ -7,7 +7,7 @@ description: "What Agent Identity guarantees and what it does not: the threat mo
 
 Agent Identity is about knowing *who acted*. This page states what it
 guarantees, what it does not, and how it handles the one secret it
-touches — a verifiable identity's short-lived credential.
+touches: a verifiable identity's short-lived credential.
 
 ## Guarantees
 
@@ -18,7 +18,7 @@ touches — a verifiable identity's short-lived credential.
   persisted, never serialized.
 - **No credential is ever logged.** Not at `DEBUG`, not at any level.
 - **`repr()` is identifier-only.** `repr(AgentIdentity(...))` shows the
-  `agent_id`, name, owner, and a `verifiable` flag — never a credential.
+  `agent_id`, name, owner, and a `verifiable` flag; never a credential.
 - **`claims()` carries no token.** The dict stamped onto traces and
   audit contains only identifiers.
 
@@ -42,13 +42,13 @@ touches — a verifiable identity's short-lived credential.
   projected token file can impersonate the workload. That is the
   platform's trust boundary.
 - **Trusting a local identity as proof.** A *local* identity is a label,
-  not a credential — anything in the process can set it. Use a
+  not a credential: anything in the process can set it. Use a
   verifiable identity when a resource must *authenticate* the agent.
 - **`subject()` from an untrusted credential source.** `subject()` reads
   the `sub`/`oid` claim **without verifying the credential's signature**
   (the holder trusts its own IdP-issued token; the *resource* verifies on
   presentation). It is authoritative for attribution only insofar as the
-  credential source is trusted — a hand-wired `token_fn`/env var/file can
+  credential source is trusted; a hand-wired `token_fn`/env var/file can
   return any subject. Cross-system trust comes from the resource verifying
   the signature (e.g. [`JwksAuth`](../mcp/server/auth-security.md#jwksauth),
   which **requires** the audience to prevent token substitution).
@@ -101,7 +101,7 @@ In the spirit of honest production claims, here is exactly what is verified:
   **real token** in CI (`.github/workflows/identity-integration.yml`). The other
   providers ship opt-in live smoke tests (`tests/identity/integration/`, marked
   `@pytest.mark.integration`) that run inside the actual platform (Azure IMDS,
-  GCP metadata, AWS STS, a SPIRE socket) — run them in your environment to
+  GCP metadata, AWS STS, a SPIRE socket); run them in your environment to
   confirm the live round-trip before you depend on it.
 - **Resilience:** active providers retry transient metadata/STS failures
   (timeout / connection / 429 / 5xx) with jittered backoff, and never retry an
@@ -114,5 +114,5 @@ tests rather than asserted blindly.
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication) -- Token refresh and the honest limits of agent identity.
-    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices) -- Token audience binding and per-tool scopes.
+    - [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication): Token refresh and the honest limits of agent identity.
+    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices): Token audience binding and per-tool scopes.

@@ -5,7 +5,7 @@ description: "API reference for AgentIdentity, the Entra, AWS, GCP, SPIFFE and O
 
 # Agent Identity API Reference
 
-Identity, tracing, and attribution for agents — every public class,
+Identity, tracing, and attribution for agents: every public class,
 factory, and exception across `promptise.identity`.
 
 For concepts and setup, start with the [Agent Identity overview](../identity/overview.md).
@@ -147,6 +147,10 @@ The verifiable backing of an identity. Use the factory classmethods on
     options:
       show_source: false
       heading_level: 4
+
+### CREDENTIAL_REFRESH_BUFFER_SECONDS
+
+`promptise.identity.CREDENTIAL_REFRESH_BUFFER_SECONDS = 60`: a cached credential is re-acquired once it is this close to its `exp` (or within half its lifetime, for a credential that lives less than twice that). See [Credential lifecycle](../identity/architecture.md#credential-lifecycle).
 
 ---
 
