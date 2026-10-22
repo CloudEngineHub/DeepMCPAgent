@@ -2231,17 +2231,67 @@ class GuardNode(BaseNode):
 # ---------------------------------------------------------------------------
 
 
+MERGE_STRATEGIES = ("dict", "concatenate", "custom")
+
+
+def check_merge_strategy(strategy: str, merge_fn: Callable | None) -> str:
+    """Validate a ``ParallelNode`` / ``FanOutNode`` merge strategy."""
+    if strategy not in MERGE_STRATEGIES:
+        raise ValueError(f"merge_strategy must be one of {MERGE_STRATEGIES}, not {strategy!r}")
+    if strategy == "custom" and merge_fn is None:
+        raise ValueError('merge_strategy="custom" needs a merge_fn')
+    return strategy
+
+
+def _output_text(output: Any) -> str:
+    if output is None:
+        return ""
+    if isinstance(output, str):
+        return output
+    try:
+        return json.dumps(output, default=str)
+    except (TypeError, ValueError):
+        return str(output)
+
+
+def merge_outputs(
+    strategy: str, outputs: dict[str, Any], merge_fn: Callable | None
+) -> tuple[Any, str]:
+    """Merge child outputs (``{child_name: output}``, in child order).
+
+    Returns ``(output, raw_output)``: ``"dict"`` gives the mapping,
+    ``"concatenate"`` one text with a ``[child_name]`` section per child
+    that produced output, ``"custom"`` whatever ``merge_fn(outputs)``
+    returns.
+    """
+    if strategy == "concatenate":
+        text = "\n\n".join(
+            f"[{name}]\n{_output_text(output)}"
+            for name, output in outputs.items()
+            if _output_text(output)
+        )
+        return text, text
+    if strategy == "custom" and merge_fn is not None:
+        merged = merge_fn(outputs)
+        return merged, _output_text(merged)
+    return outputs, _output_text(outputs)
+
+
 class ParallelNode(BaseNode):
     """Run multiple child nodes concurrently and merge results.
 
+    Each child runs once (one ``execute()``, so one model call for a
+    ``PromptNode``) on a copy of the state; successful tool calls are added
+    to the parent's observations whatever the strategy.
+
     Args:
         nodes: Child nodes to execute in parallel.
-        merge_strategy: How to merge results.
-            ``"concatenate"`` — append all observations.
-            ``"dict"`` — return ``{node_name: output}`` dict.
-            ``"custom"`` — use ``merge_fn``.
-        merge_fn: Custom merge function (when merge_strategy is
-            ``"custom"``).
+        merge_strategy: How the children's outputs become this node's output.
+            ``"dict"`` (default) — ``{node_name: output}``.
+            ``"concatenate"`` — one text with a ``[node_name]`` section for
+            each child's output (dict outputs as JSON), in child order.
+            ``"custom"`` — ``merge_fn({node_name: output})``.
+        merge_fn: Custom merge function (required for ``"custom"``).
     """
 
     def __init__(
@@ -2249,13 +2299,13 @@ class ParallelNode(BaseNode):
         name: str,
         *,
         nodes: list[BaseNode] | None = None,
-        merge_strategy: str = "concatenate",
+        merge_strategy: str = "dict",
         merge_fn: Callable | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(name, **kwargs)
         self.child_nodes = list(nodes) if nodes else []
-        self.merge_strategy = merge_strategy
+        self.merge_strategy = check_merge_strategy(merge_strategy, merge_fn)
         self.merge_fn = merge_fn
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
@@ -2303,12 +2353,9 @@ class ParallelNode(BaseNode):
         if errors:
             result.error = "; ".join(errors)
 
-        if self.merge_strategy == "dict":
-            result.output = outputs
-        elif self.merge_strategy == "custom" and self.merge_fn:
-            result.output = self.merge_fn(outputs)
-        else:
-            result.output = outputs
+        result.output, result.raw_output = merge_outputs(
+            self.merge_strategy, outputs, self.merge_fn
+        )
 
         result.duration_ms = (time.perf_counter() - start) * 1000
         return result
@@ -2385,13 +2432,24 @@ class LoopNode(BaseNode):
 class HumanNode(BaseNode):
     """Pause execution and wait for human input.
 
-    Integrates with the existing ``ApprovalPolicy`` system.
+    The node asks the run's human handler, an async
+    ``handler(prompt, state) -> bool`` (an object with an ``approved``
+    attribute, like an ``ApprovalDecision``, counts by that attribute).
+    ``build_agent(approval=...)`` provides one that asks the agent's
+    approval handler; a graph run directly takes
+    ``PromptGraphEngine(human_handler=...)`` or ``config["_human_handler"]``.
+
+    Without a handler the node fails (it never approves on its own): the
+    run raises :class:`~promptise.engine.GraphExecutionError` unless an
+    ``on_error`` edge routes the failure.  A handler that raises fails the
+    node the same way.
 
     Args:
-        prompt_template: Template shown to the human.
+        prompt_template: Template shown to the human, formatted with
+            ``state.context``.
         timeout: Seconds to wait before applying ``on_timeout``.
         on_approve: Next node if human approves.
-        on_deny: Next node if human denies.
+        on_deny: Next node if human denies (else ``default_next``).
         on_timeout: Next node if timeout expires.
     """
 
@@ -2418,18 +2476,26 @@ class HumanNode(BaseNode):
         start = time.perf_counter()
         result = NodeResult(node_name=self.name, node_type="human", iteration=state.iteration)
 
-        # Check if there's a human handler in config
         handler = config.get("_human_handler")
         if handler is None:
-            # No handler — auto-approve
-            result.next_node = self.on_approve
-            result.transition_reason = "No human handler configured, auto-approved"
+            # Fail closed: an approval step nobody can answer is not an approval.
+            record_failure(
+                result,
+                RuntimeError(
+                    f"HumanNode {self.name!r} has no human handler, so nobody can approve "
+                    "and the node does not approve on its own. Pass build_agent(approval=...), "
+                    "PromptGraphEngine(human_handler=...) or config['_human_handler'] (an "
+                    "async handler(prompt, state) -> bool)."
+                ),
+            )
             result.duration_ms = (time.perf_counter() - start) * 1000
             return result
 
         try:
             prompt = self.prompt_template.format(**state.context)
             decision = await asyncio.wait_for(handler(prompt, state), timeout=self.timeout)
+            if hasattr(decision, "approved"):
+                decision = bool(decision.approved)
 
             if decision:
                 result.next_node = self.on_approve
@@ -2509,15 +2575,18 @@ class TransformNode(BaseNode):
 class SubgraphNode(BaseNode):
     """Embed a complete sub-graph as a single node.
 
-    The subgraph runs to completion, then the parent graph continues.
-    State can be shared (``inherit_state=True``) or isolated.
+    The subgraph runs to completion with its own engine (the parent's
+    model and ``max_iterations``), then the parent graph continues.
 
     Args:
         subgraph: A ``PromptGraph`` instance to run.
-        inherit_state: If ``True``, the subgraph shares the parent's
-            state (messages, context, observations).  If ``False``,
-            the subgraph gets a fresh state and only its final
-            messages are appended to the parent.
+        inherit_state: If ``True``, the subgraph starts from a copy of the
+            parent's conversation and the messages it adds (its answer
+            included) are appended to the parent's.  If ``False``, the
+            subgraph starts from an empty conversation and all its
+            messages are appended to the parent.  Either way the subgraph
+            runs on its own ``GraphState``: the parent's ``context``,
+            observations and plan are not shared.
     """
 
     def __init__(
@@ -2564,11 +2633,14 @@ class SubgraphNode(BaseNode):
         try:
             sub_output = await engine.ainvoke(sub_input, config=config)
 
-            if not self.inherit_state:
-                # Append subgraph's messages to parent state
-                for msg in sub_output.get("messages", []):
-                    state.messages.append(msg)
-                    result.messages_added.append(msg)
+            # Append what the subgraph added (with inherit_state, the
+            # messages it started from are the parent's own already).
+            known = {id(msg) for msg in state.messages} if self.inherit_state else set()
+            for msg in sub_output.get("messages", []):
+                if id(msg) in known:
+                    continue
+                state.messages.append(msg)
+                result.messages_added.append(msg)
 
             result.output = sub_output
             _last_report = getattr(engine, "_last_report", None)

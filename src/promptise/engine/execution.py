@@ -278,6 +278,10 @@ class PromptGraphEngine:
             ``tool_summary`` of their own: ``"off"`` (``None``, the
             default), ``"names"`` or ``"full"``.  The model receives the
             tool definitions either way.
+        human_handler: The async ``handler(prompt, state) -> bool`` that
+            ``HumanNode`` nodes ask (put in ``config["_human_handler"]``
+            unless the run's config has one).  Without a handler a
+            ``HumanNode`` fails instead of approving.
     """
 
     def __init__(
@@ -294,6 +298,7 @@ class PromptGraphEngine:
         tools: list[Any] | None = None,
         compaction: Any | None = None,
         tool_summary: str | None = None,
+        human_handler: Any | None = None,
     ) -> None:
         from .nodes import _check_tool_summary
 
@@ -308,6 +313,7 @@ class PromptGraphEngine:
         self.allow_self_modification = allow_self_modification
         self.max_mutations_per_run = max_mutations_per_run
         self.lightweight_model = lightweight_model
+        self.human_handler = human_handler
         self._last_report: ExecutionReport | None = None
 
     # ──────────────────────────────────────────────────────────────────
@@ -391,6 +397,8 @@ class PromptGraphEngine:
             config["_engine_compaction"] = self.compaction
         if self.tool_summary is not None and "_engine_tool_summary" not in config:
             config["_engine_tool_summary"] = self.tool_summary
+        if self.human_handler is not None and config.get("_human_handler") is None:
+            config["_human_handler"] = self.human_handler
 
         # Collect all tools from all nodes for runtime injection
         if "_engine_tools" not in config:
@@ -581,7 +589,8 @@ class PromptGraphEngine:
                 result = skip_result
             else:
                 # ── Execute node (with retry if RETRYABLE) ──
-                if node.has_flag(NodeFlag.RETRYABLE):
+                # A node that retries itself (RetryNode) is not retried again.
+                if node.has_flag(NodeFlag.RETRYABLE) and not getattr(node, "retries_itself", False):
                     result = await self._execute_with_retry(node, state, config)
                 else:
                     result = NodeResult(node_name=node.name)

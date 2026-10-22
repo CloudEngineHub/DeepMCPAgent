@@ -1,8 +1,15 @@
 """Specialized reasoning nodes — composable building bricks for agent reasoning.
 
-Each node comes fully configured with its own instructions, output schema,
-context management, and state updates.  Developers just pick which nodes
-to include — the node handles everything else internally.
+Each node comes fully configured with its own instructions, context
+management, and state updates.  Developers just pick which nodes to
+include — the node handles everything else internally.
+
+The nodes that act on their reply (``ReflectNode``, ``ObserveNode``,
+``JustifyNode``, ``CritiqueNode``, ``PlanNode``, ``ValidateNode``) read named
+fields from it.  Pass an ``output_schema`` with those fields to get them as
+structured output; without one the node asks the model to end its reply with
+a JSON object holding them and parses that object (the reply text stays in
+the conversation).  ``ThinkNode`` and ``SynthesizeNode`` work on plain text.
 
 Usage::
 
@@ -29,10 +36,17 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 from typing import Any
 
 from .base import BaseNode
-from .nodes import PromptNode
+from .nodes import (
+    PromptNode,
+    check_merge_strategy,
+    failure_cause,
+    merge_outputs,
+    record_failure,
+)
 from .state import GraphState, NodeFlag, NodeResult
 
 logger = logging.getLogger("promptise.engine")
@@ -97,8 +111,16 @@ class ReflectNode(PromptNode):
     - Instructions for honest self-assessment
     - Auto-injects observations and past reflections
     - Auto-stores new reflections in state
-    - Outputs: progress_assessment, mistake, correction, confidence, route
+    - Outputs: progress, mistake, correction, confidence, route
     """
+
+    text_output_fields = (
+        ("progress", "one sentence on overall progress"),
+        ("mistake", "a mistake or wrong turn so far, or an empty string"),
+        ("correction", "how to correct it, or an empty string"),
+        ("confidence", "confidence in the current direction, 1 to 5"),
+        ("route", '"continue", "replan" or "answer"'),
+    )
 
     def __init__(self, name: str = "reflect", *, review_depth: int = 3, **kwargs: Any) -> None:
         kwargs.setdefault(
@@ -171,6 +193,13 @@ class ObserveNode(PromptNode):
     - Outputs: summary, entities, facts, key_findings
     """
 
+    text_output_fields = (
+        ("summary", "what was found, in 2-3 sentences"),
+        ("entities", "a list of named entities (people, companies, dates, locations)"),
+        ("facts", "a list of verifiable factual claims"),
+        ("key_findings", "a list of the findings that matter most for the task"),
+    )
+
     def __init__(self, name: str = "observe", **kwargs: Any) -> None:
         kwargs.setdefault(
             "instructions",
@@ -233,6 +262,13 @@ class JustifyNode(PromptNode):
     - Stores justification in state for audit trail
     - Outputs: reasoning_chain, evidence, conclusion, confidence
     """
+
+    text_output_fields = (
+        ("reasoning_chain", "a list of the reasoning steps"),
+        ("evidence", "a list of the evidence for those steps"),
+        ("conclusion", "the conclusion, in one or two sentences"),
+        ("confidence", "confidence in this justification, 1 to 5"),
+    )
 
     def __init__(self, name: str = "justify", **kwargs: Any) -> None:
         kwargs.setdefault(
@@ -301,6 +337,13 @@ class CritiqueNode(PromptNode):
     - Outputs: weaknesses, counter_arguments, improvements, severity
     """
 
+    text_output_fields = (
+        ("weaknesses", "a list of weaknesses and gaps"),
+        ("counter_arguments", "a list of counter-arguments"),
+        ("improvements", "a list of specific improvements"),
+        ("severity", "overall severity from 0.0 (perfect) to 1.0 (fundamentally flawed)"),
+    )
+
     def __init__(
         self, name: str = "critique", *, severity_threshold: float = 0.5, **kwargs: Any
     ) -> None:
@@ -367,9 +410,15 @@ class PlanNode(PromptNode):
     Pre-configured with:
     - Instructions for creating prioritized subgoals
     - Quality self-evaluation (re-plans if below threshold)
-    - Auto-manages state.plan and state.completed
-    - Outputs: subgoals, priorities, active_subgoal, quality_score
+    - Auto-manages state.plan (the first uncompleted subgoal is active)
+    - Outputs: subgoals, active_subgoal, quality_score
     """
+
+    text_output_fields = (
+        ("subgoals", "a list of the subgoals, most impactful first"),
+        ("active_subgoal", "the subgoal to work on first"),
+        ("quality_score", "plan quality from 1 (poor) to 5 (excellent)"),
+    )
 
     def __init__(
         self,
@@ -494,6 +543,13 @@ class ValidateNode(PromptNode):
     - Outputs: passes, issues, suggestions, confidence
     """
 
+    text_output_fields = (
+        ("passes", "true when the output meets every criterion, else false"),
+        ("issues", "a list of the issues found; empty when it passes"),
+        ("suggestions", "a list of improvements, one for each issue"),
+        ("confidence", "confidence in this assessment, 1 to 5"),
+    )
+
     def __init__(
         self,
         name: str = "validate",
@@ -564,8 +620,16 @@ class RetryNode(BaseNode):
     """Wraps another node with retry logic and error enrichment.
 
     On failure, enriches the state with error context so the
-    wrapped node can adapt on the next attempt.
+    wrapped node can adapt on the next attempt.  The wrapped node runs at
+    most ``max_retries + 1`` times per execution of this node, with
+    ``backoff_factor * 2**attempt`` seconds (at most 8) between attempts.
+    The engine does not retry a ``RetryNode`` again (it is not
+    ``RETRYABLE``).
     """
+
+    #: The node retries itself: the engine never wraps it in its own
+    #: RETRYABLE retry loop (also when a saved graph carries the flag).
+    retries_itself: bool = True
 
     def __init__(
         self,
@@ -580,12 +644,12 @@ class RetryNode(BaseNode):
         self.wrapped_node = wrapped_node
         self.max_retries = max_retries
         self.backoff_factor = backoff_factor
-        self.flags.add(NodeFlag.RETRYABLE)
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
         """Execute wrapped node with retries."""
         start = time.perf_counter()
         last_error = None
+        last_cause: BaseException | None = None
 
         for attempt in range(self.max_retries + 1):
             try:
@@ -595,8 +659,10 @@ class RetryNode(BaseNode):
                     result.duration_ms = (time.perf_counter() - start) * 1000
                     return result
                 last_error = result.error
+                last_cause = failure_cause(result)
             except Exception as exc:
                 last_error = str(exc)
+                last_cause = exc
 
             # Enrich state with error context for next attempt
             state.context["_retry_attempt"] = attempt + 1
@@ -607,11 +673,14 @@ class RetryNode(BaseNode):
                 delay = min(self.backoff_factor * (2**attempt), 8.0)  # Cap at 8s
                 await asyncio.sleep(delay)
 
-        return NodeResult(
+        failed = NodeResult(
             node_name=self.name,
             error=f"All {self.max_retries + 1} attempts failed. Last error: {last_error}",
             duration_ms=(time.perf_counter() - start) * 1000,
         )
+        if last_cause is not None:
+            record_failure(failed, last_cause, failed.error)
+        return failed
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -624,6 +693,17 @@ class FanOutNode(BaseNode):
 
     Unlike ParallelNode (which runs the same state through each child),
     FanOutNode gives each child a focused sub-question via state overrides.
+
+    Args:
+        branches: ``(node, context_overrides)`` pairs; each node runs once
+            with the parent's context updated by its overrides.
+        merge_strategy: How the branch outputs become this node's output,
+            as for :class:`~promptise.engine.nodes.ParallelNode`:
+            ``"dict"`` (default) ``{branch_name: output}``,
+            ``"concatenate"`` one text with a section per branch, or
+            ``"custom"`` ``merge_fn({branch_name: output})``.  A branch that
+            raised contributes ``{"error": "..."}``.
+        merge_fn: The merge function for ``"custom"``.
     """
 
     def __init__(
@@ -632,11 +712,13 @@ class FanOutNode(BaseNode):
         *,
         branches: list[tuple[BaseNode, dict[str, Any]]] | None = None,
         merge_strategy: str = "dict",
+        merge_fn: Callable[[dict[str, Any]], Any] | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(name, description="Fan-out to parallel sub-questions", **kwargs)
         self.branches = list(branches) if branches else []
-        self.merge_strategy = merge_strategy
+        self.merge_strategy = check_merge_strategy(merge_strategy, merge_fn)
+        self.merge_fn = merge_fn
         self.flags.add(NodeFlag.PARALLEL_SAFE)
 
     async def execute(self, state: GraphState, config: dict[str, Any]) -> NodeResult:
@@ -669,6 +751,8 @@ class FanOutNode(BaseNode):
                 result.tool_calls.extend(child_result.tool_calls)
                 result.total_tokens += child_result.total_tokens
 
-        result.output = outputs
+        result.output, result.raw_output = merge_outputs(
+            self.merge_strategy, outputs, self.merge_fn
+        )
         result.duration_ms = (time.perf_counter() - start) * 1000
         return result
