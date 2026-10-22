@@ -114,7 +114,7 @@ agent = await build_agent(
 | `agent_pattern` | `str \| PromptGraph \| None` | `None` (`"react"`) | The reasoning graph: `"react"`, `"verify"`, `"managed"`, `"code-action"`, `"peoatr"`, `"research"`, `"autonomous"`, `"deliberate"`, `"debate"`, or your own `PromptGraph`. An unknown name raises `ValueError`. See [Reasoning Patterns](reasoning-patterns.md). |
 | `pattern` | `str \| PromptGraph \| None` | `None` | Deprecated alias of `agent_pattern`. |
 | `node_pool` | `list[BaseNode] \| None` | `None` | Build an autonomous graph from these nodes (the agent picks the next node each step). Takes precedence over `agent_pattern`. |
-| `graph_blocks` | `list \| None` | `None` | Prompt blocks added to the nodes of a built-in pattern (`agent_pattern` given as a name). |
+| `graph_blocks` | `list \| None` | `None` | Prompt blocks added to the nodes of a built-in pattern when `agent_pattern` is given as a name. In 1.6.0 they are not applied when `agent_pattern` is left out or with `node_pool`. |
 | `max_agent_iterations` | `int` | `25` | Most node executions per run. With the default ReAct graph, `N` allows at most `N` model calls. A run that stops after the model asked for tools raises `GraphIterationLimitError`. |
 | `tool_summary` | `str` | `"off"` | Also list the tools in the system prompt: `"off"`, `"names"` or `"full"` (parameters and the start of each description). |
 | `context_engine` | `ContextEngine \| None` | `None` | Token-budgeted assembly of the system prompt layers. See [Context Engine](../context-engine.md). |
