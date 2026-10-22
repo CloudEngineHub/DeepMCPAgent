@@ -369,6 +369,53 @@ class TestCredentials:
         assert "ghp_" not in r.redacted_text
         assert "[GITHUB_PAT]" in r.redacted_text
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("token", "category"),
+        [
+            ("gho_FAKEaaaabbbbccccddddeeeeffffgggg1234", "github_oauth"),
+            ("ghu_FAKEaaaabbbbccccddddeeeeffffgggg1234", "github_app_token"),
+            ("ghs_FAKEaaaabbbbccccddddeeeeffffgggg1234", "github_installation_token"),
+            ("ghr_FAKEaaaabbbbccccddddeeeeffffgggg1234", "github_refresh_token"),
+            (
+                "ghs_123456_eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9."
+                "eyJpc3MiOiJodHRwczovL2dpdGh1Yi5jb20ifQ.c2lnbmF0dXJlLXZhbHVlLWhlcmU",
+                "github_installation_token",
+            ),
+            ("github_pat_11FAKE0000aaaabbbbcccc_" + "d" * 59, "github_pat_fine"),
+        ],
+    )
+    async def test_github_token_formats_are_redacted_whole(self, token, category):
+        r = await _scan(f"GH_TOKEN={token} done")
+        assert any(f.category == category for f in r.findings)
+        assert r.redacted_text is not None
+        assert token[4:12] not in r.redacted_text
+        assert r.redacted_text.endswith(" done")
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "request: Authorization: Bearer 7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a",
+            "authorization=Bearer 7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a",
+            "Authorization: Basic 7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a",
+            "curl -H 'Authorization: 7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a'",
+            "sent bearer 7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a upstream",
+        ],
+    )
+    async def test_bearer_finding_includes_the_token(self, text):
+        r = await _scan(text)
+        found = [f for f in r.findings if f.category == "bearer_token"]
+        assert found and "7f3cFAKE" in found[0].matched_text
+        assert r.redacted_text is not None
+        assert "7f3cFAKE" not in r.redacted_text
+        assert "[BEARER_TOKEN]" in r.redacted_text
+
+    @pytest.mark.asyncio
+    async def test_bearer_in_prose_is_not_a_finding(self):
+        r = await _scan("The bearer token expired, so the request was rejected.")
+        assert not any(f.category == "bearer_token" for f in r.findings)
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # Prompt Injection — model-only (no regex), tested in test_guardrails_ml_models.py

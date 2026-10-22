@@ -34,7 +34,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from .events import _PII_PATTERNS
+from .events import _PII_PATTERNS, _is_secret_key
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +118,8 @@ def _redact_value(value: Any, key: str | None = None) -> Any:
     if isinstance(value, str):
         if key in _UNREDACTED_KEYS:
             return value
+        if _is_secret_key(key):
+            return "[REDACTED]"
         for pattern, replacement in _REDACTION_PATTERNS:
             value = pattern.sub(replacement, value)
         return value
@@ -136,9 +138,14 @@ def redact_sensitive(metadata: dict[str, Any]) -> dict[str, Any]:
     default), so tool arguments, tool results, error messages and recorded
     prompt text cannot carry secrets into reports, log files or exported
     traces.  It uses the same patterns as the event notifier: API keys
-    (``sk-…``), AWS access keys, GitHub tokens, ``Bearer`` tokens,
-    credentials in URLs (``://user:password@``), card numbers, US social
-    security numbers and email addresses.
+    (OpenAI/Anthropic ``sk-…``, Stripe, Google), AWS access key IDs and
+    secret access keys, GitHub tokens (``ghp_``, ``gho_``, ``ghu_``,
+    ``ghs_``, ``ghr_``, ``github_pat_``), GitLab and Slack tokens, JWTs,
+    PEM private keys, ``Bearer`` tokens and every ``Authorization`` value
+    (any scheme), credentials in URLs (``://user:password@``), card
+    numbers, US social security numbers and email addresses.  The value
+    of a credential key (``Authorization``, ``password``, ``api_key``,
+    ``access_token``...) is replaced whatever it looks like.
 
     String values are scrubbed at any depth; other values (numbers, flags)
     are kept as they are.  Pattern matching cannot recognise every kind of

@@ -818,6 +818,70 @@ class TestSecretRedaction:
         assert out["nested"] == {"dsn": "postgres://[REDACTED]@db.internal:5432/ledger"}
         assert meta["nested"]["dsn"] == DB_URL  # input not mutated
 
+    # Every value below is fake, in the real format.
+    @pytest.mark.parametrize(
+        ("secret", "placeholder"),
+        [
+            ("ghp_FAKEaaaabbbbccccddddeeeeffffgggg1234", "[GITHUB_TOKEN]"),
+            ("gho_FAKEaaaabbbbccccddddeeeeffffgggg1234", "[GITHUB_TOKEN]"),
+            ("ghu_FAKEaaaabbbbccccddddeeeeffffgggg1234", "[GITHUB_TOKEN]"),
+            ("ghs_FAKEaaaabbbbccccddddeeeeffffgggg1234", "[GITHUB_TOKEN]"),
+            ("ghr_FAKEaaaabbbbccccddddeeeeffffgggg1234", "[GITHUB_TOKEN]"),
+            (
+                "ghs_123456_eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJnaXRodWIifQ.c2lnbmF0dXJl",
+                "[GITHUB_TOKEN]",
+            ),
+            ("github_pat_11FAKE0000aaaabbbbcccc_" + "d" * 59, "[GITHUB_TOKEN]"),
+            ("ASIAFAKE1234567890AB", "[AWS_KEY]"),
+            ("sk_live_FAKEaaaabbbbccccdddd", "[API_KEY]"),
+            ("AIzaFAKEaaaabbbbccccddddeeeeffffgggghhh", "[API_KEY]"),
+            ("glpat-" + "FAKEaaaabbbbcccc1234", "[GITLAB_TOKEN]"),
+            ("xoxb-" + "1234567890-FAKEaaaabbbbcccc", "[SLACK_TOKEN]"),
+            ("eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJGQUtFIn0.FAKEsignatureFAKE", "[JWT]"),
+        ],
+    )
+    def test_redact_sensitive_covers_current_token_formats(self, secret, placeholder) -> None:
+        out = redact_sensitive({"result_preview": f"debug: TOKEN={secret} end"})
+        assert out == {"result_preview": f"debug: TOKEN={placeholder} end"}
+
+    def test_redact_sensitive_takes_the_whole_authorization_value(self) -> None:
+        out = redact_sensitive(
+            {
+                "a": "request: Authorization: Bearer 7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a",
+                "b": "Authorization: Basic dXNlcjpGQUtFcGFzcw==",
+                "c": "sent bearer 7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a upstream",
+                "d": "the bearer token expired",
+                "e": "aws_secret_access_key=FAKEwJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPL",
+                "f": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIFAKE\n-----END EC PRIVATE KEY-----",
+            }
+        )
+        assert out == {
+            "a": "request: Authorization: Bearer [REDACTED]",
+            "b": "Authorization: Basic [REDACTED]",
+            "c": "sent Bearer [REDACTED] upstream",
+            "d": "the bearer token expired",
+            "e": "aws_secret_access_key=[AWS_SECRET]",
+            "f": "[PRIVATE_KEY]",
+        }
+        # Redacting twice changes nothing.
+        assert redact_sensitive(out) == out
+
+    def test_redact_sensitive_redacts_credential_keys_whatever_the_value(self) -> None:
+        out = redact_sensitive(
+            {
+                "headers": {"Authorization": "7f3cFAKE", "X-API-Key": "FAKEkey", "Accept": "*/*"},
+                "arguments": {"password": "hunter2", "user": "dana"},
+                "result_preview": '{"access_token": "FAKE\\"tok", "expires_in": 3600}',
+                "tokens": 812,
+            }
+        )
+        assert out == {
+            "headers": {"Authorization": "[REDACTED]", "X-API-Key": "[REDACTED]", "Accept": "*/*"},
+            "arguments": {"password": "[REDACTED]", "user": "dana"},
+            "result_preview": '{"access_token": "[REDACTED]", "expires_in": 3600}',
+            "tokens": 812,
+        }
+
     @pytest.mark.asyncio
     async def test_guardrail_violation_is_recorded_without_the_matched_text(self) -> None:
         from promptise.guardrails import (

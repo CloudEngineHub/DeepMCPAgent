@@ -253,7 +253,7 @@ Automatic provider failover. Uses a circuit breaker to route around unhealthy pr
 
 ## Security Guardrails
 
-Multi-head security scanner: prompt injection (DeBERTa ML), PII detection (69 regex patterns), credential detection (96 patterns), NER (GLiNER), content safety, custom rules.
+Multi-head security scanner: prompt injection (DeBERTa ML), PII detection (69 regex patterns), credential detection (97 patterns), NER (GLiNER), content safety, custom rules.
 
 ### PromptiseSecurityScanner
 

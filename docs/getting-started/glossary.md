@@ -100,7 +100,7 @@ Trigger type that fires when files matching a glob pattern change in a watched d
 
 ## Guardrails
 
-Input/output security checks. Promptise Foundry's `PromptiseSecurityScanner` has six detection heads — DeBERTa for prompt injection, regex for PII (69 patterns), regex for credentials (96 patterns), GLiNER for NER, Llama Guard / Azure AI for content safety, and custom rules. All run locally.
+Input/output security checks. Promptise Foundry's `PromptiseSecurityScanner` has six detection heads — DeBERTa for prompt injection, regex for PII (69 patterns), regex for credentials (97 patterns), GLiNER for NER, Llama Guard / Azure AI for content safety, and custom rules. All run locally.
 
 ## Health (governance)
 

@@ -1157,10 +1157,14 @@ _cred(
 )
 
 # ── GitHub ──
+# GitHub's token formats: the prefix names the token type, and GitHub
+# documents no fixed length (installation tokens in the newer
+# ``ghs_<app id>_<JWT>`` format are about 520 characters, with ``_``, ``-``
+# and the JWT's two dots), so the patterns take the whole token.
 _cred(
     "github_pat",
     "github_pat",
-    r"ghp_[a-zA-Z0-9]{36}",
+    r"\bghp_[a-zA-Z0-9]{36,}",
     Severity.CRITICAL,
     "GitHub personal access token (classic)",
     group="github",
@@ -1168,7 +1172,7 @@ _cred(
 _cred(
     "github_pat_fine",
     "github_pat_fine",
-    r"github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}",
+    r"\bgithub_pat_[a-zA-Z0-9]{22,}_[a-zA-Z0-9]{59,}",
     Severity.CRITICAL,
     "GitHub fine-grained personal access token",
     group="github",
@@ -1176,7 +1180,7 @@ _cred(
 _cred(
     "github_oauth",
     "github_oauth",
-    r"gho_[a-zA-Z0-9]{36}",
+    r"\bgho_[a-zA-Z0-9]{36,}",
     Severity.HIGH,
     "GitHub OAuth access token",
     group="github",
@@ -1184,15 +1188,23 @@ _cred(
 _cred(
     "github_app",
     "github_app_token",
-    r"ghu_[a-zA-Z0-9]{36}",
+    r"\bghu_[a-zA-Z0-9]{36,}",
     Severity.HIGH,
-    "GitHub App user token",
+    "GitHub App user access token",
+    group="github",
+)
+_cred(
+    "github_installation",
+    "github_installation_token",
+    r"\bghs_(?=[A-Za-z0-9_.-]{36})[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+){0,2}",
+    Severity.HIGH,
+    "GitHub App installation access token",
     group="github",
 )
 _cred(
     "github_refresh",
     "github_refresh_token",
-    r"ghr_[a-zA-Z0-9]{36}",
+    r"\bghr_[a-zA-Z0-9]{36,}",
     Severity.HIGH,
     "GitHub refresh token",
     group="github",
@@ -1372,7 +1384,14 @@ _cred(
 _cred(
     "bearer",
     "bearer_token",
-    r"(?i)(?:bearer|authorization)\s*[:=]\s*[A-Za-z0-9\-._~+/]+=*",
+    # The whole credential: "Authorization: Bearer <token>" (any scheme, or
+    # none) and "Bearer <token>" on its own.  Matching only the label left
+    # the token itself in the text.  A bare "bearer" needs a token-sized
+    # value, so prose such as "the bearer token expired" is not a finding.
+    r"(?i)\b(?:(?:proxy-)?authorization\s*[:=]\s*"
+    r"(?:(?:bearer|basic|token|digest|negotiate|apikey)\s+(?=[A-Za-z0-9\-._~+/]))?"
+    r"|bearer(?:\s*[:=]\s*|\s+(?=[A-Za-z0-9\-._~+/]{16})))"
+    r"[A-Za-z0-9\-._~+/]+=*",
     Severity.HIGH,
     "Bearer/Authorization token",
     group="bearer",
@@ -2053,7 +2072,7 @@ class PIIDetector:
 
 
 class CredentialDetector:
-    """Detect leaked credentials using 96 regex patterns from gitleaks/trufflehog.
+    """Detect leaked credentials using 97 regex patterns from gitleaks/trufflehog.
 
     Covers API keys for 60+ services, database URLs, private keys, and tokens.
 

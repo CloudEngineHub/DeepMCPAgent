@@ -102,7 +102,22 @@ Two switches decide whether user and model text lands in your traces:
 
 Tool arguments are on by default because they are what makes a trace debuggable — but they often carry user data (names, emails, account numbers). Set `record_tool_io=False` when traces leave your trust boundary (a hosted APM, a shared log pipeline). Cache events never copy the user's query into their text.
 
-Whatever is recorded is scrubbed first: with `redact_sensitive=True` (the default) every event's metadata and details pass through `promptise.observability.redact_sensitive` before they are stored or reach a transporter. API keys (`sk-…`), AWS access keys, GitHub tokens, `Bearer` tokens, passwords in URLs (`postgres://user:pw@host`), card numbers, US social security numbers and email addresses become `[API_KEY]`, `[AWS_KEY]`, `[GITHUB_TOKEN]`, `Bearer [REDACTED]`, `://[REDACTED]@`, `[CARD]`, `[SSN]` and `[EMAIL]` — in the HTML report, the NDJSON stream, log files, webhooks and OpenTelemetry spans alike. Pattern matching cannot recognise names or addresses, so it complements `record_tool_io=False` rather than replacing it. When an agent run fails on a guardrail, `agent.error` records the direction, the number of blocked findings and their categories, never the matched text.
+Whatever is recorded is scrubbed first: with `redact_sensitive=True` (the default) every event's metadata and details pass through `promptise.observability.redact_sensitive` before they are stored or reach a transporter, so the HTML report, the NDJSON stream, log files, webhooks and OpenTelemetry spans all get the redacted text:
+
+| Found in the text | Becomes |
+|---|---|
+| OpenAI and Anthropic keys (`sk-…`), Stripe keys (`sk_live_…`, `rk_test_…`), Google API keys (`AIza…`) | `[API_KEY]` |
+| AWS access key IDs (`AKIA…`, temporary `ASIA…`) | `[AWS_KEY]` |
+| An AWS secret access key after `aws_secret_access_key=` (or `:`) | `aws_secret_access_key=[AWS_SECRET]` |
+| GitHub tokens: `ghp_`, `gho_`, `ghu_`, `ghs_` (including the longer `ghs_<app id>_<JWT>` installation tokens), `ghr_`, `github_pat_` | `[GITHUB_TOKEN]` |
+| GitLab tokens (`glpat-`, `gldt-`, `glptt-`, `glrt-`) and Slack tokens (`xoxb-`, `xoxp-`...) | `[GITLAB_TOKEN]`, `[SLACK_TOKEN]` |
+| JSON Web Tokens and PEM private keys | `[JWT]`, `[PRIVATE_KEY]` |
+| An `Authorization` value with any scheme, or none (`Authorization: Basic …`, `authorization=…`) | `Authorization: Basic [REDACTED]` |
+| A bearer token wherever it appears (`Bearer …`, `bearer …`) | `Bearer [REDACTED]` |
+| The value of a credential key (`Authorization`, `Proxy-Authorization`, `X-API-Key`, `api_key`, `access_token`, `refresh_token`, `id_token`, `client_secret`, `password`, `passwd`), as a dict key or in JSON text | `[REDACTED]` |
+| Passwords in URLs (`postgres://user:pw@host`), card numbers, US social security numbers, email addresses | `://[REDACTED]@`, `[CARD]`, `[SSN]`, `[EMAIL]` |
+
+Pattern matching cannot recognise names, addresses or credentials without a known format or label, so it complements `record_tool_io=False` rather than replacing it. When an agent run fails on a guardrail, `agent.error` records the direction, the number of blocked findings and their categories, never the matched text.
 
 The redaction applies to the collector `build_agent()` creates. A collector you pass as `observer=` keeps its own `sanitizer` — pass `ObservabilityCollector(sanitizer=redact_sensitive)` to get the same behavior.
 

@@ -265,7 +265,7 @@ agent = await build_agent(..., events=notifier, observer_agent_id="billing-agent
 
 - **SSRF protection**: WebhookSink validates URLs at construction and again, against the address it connects to, before every delivery — rejects private, loopback, link-local (cloud metadata), CGNAT and other non-public addresses unless `allow_private_networks=True`
 - **Signing with replay protection**: every webhook carries `X-Promptise-Signature` (HMAC over timestamp + raw body); verify with `verify_event_signature()`
-- **Payload redaction**: WebhookSink scans the whole payload — `data`, `user_id`, `session_id`, `metadata` — for PII/credentials before sending (regex patterns, no ML models). A `user_id` that is an email address arrives as `[EMAIL]`; pass `redact_sensitive=False` if your receiver needs it
+- **Payload redaction**: WebhookSink scans the whole payload — `data`, `user_id`, `session_id`, `metadata` — for PII/credentials before sending (regex patterns, no ML models; the same ones as [trace redaction](observability.md#what-text-is-recorded), listed there). A `user_id` that is an email address arrives as `[EMAIL]`; pass `redact_sensitive=False` if your receiver needs it
 - **Queue bounds**: `max_queue_size` prevents memory exhaustion. When a sink's queue is full, events are dropped for that sink with a warning log
 - **Sink isolation**: One failing or slow sink never affects others
 

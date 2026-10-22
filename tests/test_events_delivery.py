@@ -551,6 +551,30 @@ class TestWebhookRedactionScope:
         assert redacted == {"error": f"could not connect to {expected}"}
         assert "admin" not in str(redacted) and "s3cret" not in str(redacted)
 
+    def test_sanitizer_redacts_github_tokens_and_authorization_values(self):
+        from promptise.events import default_pii_sanitizer
+
+        payload = {
+            "error": "push failed for gho_FAKEaaaabbbbccccddddeeeeffffgggg1234",
+            "note": "request: Authorization: Bearer 7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a",
+            "headers": {"authorization": "7f3cFAKE9a1e5b2d4f6a8c0e1b3d5f7a"},
+            "body": '{"client_secret": "FAKEsecret", "scope": "repo"}',
+            "count": 3,
+        }
+        assert default_pii_sanitizer(payload) == {
+            "error": "push failed for [GITHUB_TOKEN]",
+            "note": "request: Authorization: Bearer [REDACTED]",
+            "headers": {"authorization": "[REDACTED]"},
+            "body": '{"client_secret": "[REDACTED]", "scope": "repo"}',
+            "count": 3,
+        }
+
+    def test_sanitizer_redacts_keys_and_keeps_non_json_values(self):
+        from promptise.events import default_pii_sanitizer
+
+        out = default_pii_sanitizer({"maya@shop.example": {1, 2}, "n": None})
+        assert out == {"[EMAIL]": "{1, 2}", "n": None}
+
     def test_url_credentials_pattern_stays_within_one_value(self):
         from promptise.events import default_pii_sanitizer
 

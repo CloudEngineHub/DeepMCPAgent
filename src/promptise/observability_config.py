@@ -155,9 +155,11 @@ class ObservabilityConfig:
     redact_sensitive: bool = True
     """Replace credentials and common PII in every recorded event with
     placeholders before it is stored or exported (see
-    :func:`promptise.observability.redact_sensitive`): API keys, AWS and
-    GitHub tokens, ``Bearer`` tokens, passwords in URLs, card numbers, US
-    social security numbers and email addresses become ``[API_KEY]``,
+    :func:`promptise.observability.redact_sensitive`): API keys, AWS,
+    GitHub, GitLab and Slack credentials, JWTs, private keys, ``Bearer``
+    tokens and other ``Authorization`` values, the values of credential
+    keys such as ``password``, passwords in URLs, card numbers, US social
+    security numbers and email addresses become ``[API_KEY]``,
     ``Bearer [REDACTED]``, ``[EMAIL]`` and so on.  Applies to the collector
     :func:`~promptise.agent.build_agent` creates; a collector passed as
     ``observer=`` keeps its own ``sanitizer``.  On by default; set

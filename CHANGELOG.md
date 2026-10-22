@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.1 — Unreleased
+
+### Fixed
+
+- **Trace and webhook redaction missed most GitHub tokens.** `redact_sensitive` (the sanitizer `build_agent` installs on its observability collector) and the event notifier's payload redaction knew only classic `ghp_` personal access tokens, so a GitHub CLI token (`gho_`) in a tool result reached the HTML report, log files, webhooks and OpenTelemetry spans as it was. They now redact every GitHub token format: `ghp_`, `gho_`, `ghu_`, `ghs_` (including the longer `ghs_<app id>_<JWT>` installation tokens GitHub is rolling out), `ghr_` and `github_pat_`, with no fixed length. The same review added the credentials that also went through unredacted: temporary AWS access key IDs (`ASIA…`), an AWS secret access key after `aws_secret_access_key=`, Stripe (`sk_live_…`, `rk_test_…`) and Google (`AIza…`) API keys, GitLab and Slack tokens, JWTs and PEM private keys. The guardrails' `CredentialDetector` already knew `gho_`, `ghu_` and `ghr_`; it now also detects `ghs_` installation tokens (97 patterns), and its GitHub patterns take tokens longer than 40 characters whole.
+- **The guardrails' bearer pattern left the token in the text.** `CredentialDetector`'s `bearer_token` pattern matched `Authorization: Bearer` and stopped at the space, so `Authorization: Bearer 7f3c…` was redacted to `[BEARER_TOKEN] 7f3c…`: the opaque token reached the model, and the trace sanitizer, which looked for the word `Bearer`, no longer recognised it either. The pattern now takes the whole value: `Authorization:` (or `=`) with any scheme (`Bearer`, `Basic`, `Token`...) or none, and a bearer token on its own (`Bearer <token>`, any case, at least 16 characters so prose such as "the bearer token expired" is not a finding). The trace and webhook sanitizer also redacts every `Authorization` value whatever its scheme (`Authorization: Basic [REDACTED]`), a lower-case `bearer <token>`, and the value of a credential key whatever it looks like: `Authorization`, `Proxy-Authorization`, `X-API-Key`, `api_key`, `access_token`, `refresh_token`, `id_token`, `client_secret`, `password` and `passwd`, as a dict key (a request's headers, a tool's arguments) or in JSON text (a tool result).
+
+### Changed
+
+- The event notifier's `default_pii_sanitizer` redacts each key and string value of the payload on its own instead of running its patterns over the payload's JSON text, so a replacement can no longer break the JSON and send the payload out unredacted.
+- Docs: the observability page lists what the trace redaction replaces and with which placeholder; the guardrails page lists the GitHub token formats and the `BEARER` category.
+
+
 ## 1.6.0 — 2026-10-21
 
 Python functions are tools: `from promptise import tool` declares one, with its schema taken from the type hints and the docstring and no `langchain_core` import. `MCPClient` reuses its HTTP connections over Streamable HTTP instead of opening one per request, `promptise runtime start --detach` on Windows no longer loses track of a runtime that has started, a `promptise run --tui` run ends after its program's last output line, and every page of docs.promptise.com has a title and description that say what it covers.

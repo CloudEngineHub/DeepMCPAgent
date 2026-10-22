@@ -47,7 +47,7 @@ The scanner is built from composable **detectors**. Each detector is a self-cont
 |----------|----------------|--------|------|
 | `InjectionDetector` | Prompt injection and system prompt extraction (English) | Local DeBERTa transformer model | ~750 MB |
 | `PIIDetector` | Credit cards, SSNs, government IDs (22+ countries), emails, phones, medical records | 69 regex patterns + Luhn validation | 0 MB |
-| `CredentialDetector` | API keys for 60+ services, database URLs, private keys, tokens | 96 regex patterns (gitleaks/trufflehog) | 0 MB |
+| `CredentialDetector` | API keys for 60+ services, database URLs, private keys, tokens | 97 regex patterns (gitleaks/trufflehog) | 0 MB |
 | `NERDetector` | Person names, physical addresses, organizations | GLiNER zero-shot NER model (`pip install gliner`) | ~500 MB |
 | `ContentSafetyDetector` | 13 harm categories: violence, hate, self-harm, sexual content, weapons, elections, etc. | Llama Guard (local) or Azure AI Content Safety (cloud) | 4.9 GB local |
 | `CustomRule` | Anything you define | Your regex pattern | 0 MB |
@@ -236,7 +236,7 @@ PIIDetector(exclude={"blood_type", "ip_address"})                 # exclude nois
 
 ### CredentialDetector
 
-Detects leaked API keys, tokens, and secrets using 96 regex patterns sourced from [gitleaks](https://github.com/gitleaks/gitleaks) (41k+ stars) and [trufflehog](https://github.com/trufflesecurity/trufflehog) (17k+ stars).
+Detects leaked API keys, tokens, and secrets using 97 regex patterns sourced from [gitleaks](https://github.com/gitleaks/gitleaks) (41k+ stars) and [trufflehog](https://github.com/trufflesecurity/trufflehog) (17k+ stars).
 
 ```python
 CredentialDetector()                                              # all credentials
@@ -260,7 +260,7 @@ CredentialDetector(exclude={"firebase"})
 | `OPENAI` | API key (new + legacy formats) |
 | `ANTHROPIC` | API key, admin key |
 | `HUGGINGFACE` | Access token, org token |
-| `GITHUB` | PAT classic, PAT fine-grained, OAuth, App, refresh |
+| `GITHUB` | PAT classic (`ghp_`), PAT fine-grained (`github_pat_`), OAuth (`gho_`), App user (`ghu_`), App installation (`ghs_`, including the `ghs_<app id>_<JWT>` format), refresh (`ghr_`) |
 | `GITLAB` | PAT, CI token, deploy token |
 | `STRIPE` | Live key, test key, restricted key |
 | `SLACK` | Bot token, user token, webhook URL |
@@ -272,6 +272,7 @@ CredentialDetector(exclude={"firebase"})
 | `GRAFANA` | API key, cloud token, service account token |
 | `SENTRY` | User token |
 | `JWT` | Generic JWT tokens |
+| `BEARER` | `Authorization` values with their credential (`Authorization: Bearer <token>`, any scheme) and bearer tokens on their own |
 | `PRIVATE_KEY` | RSA, DSA, EC, SSH, PGP private keys |
 | `DATABASE_URL` | PostgreSQL, MySQL, MongoDB, Redis connection strings |
 | Plus: | Alibaba, DigitalOcean, Fly.io, Plaid, Braintree, Square, Twilio, Flutterwave, Mailgun, MailChimp, Sendinblue, Datadog, New Relic, Dynatrace, Doppler, Pulumi, 1Password, Atlassian, Notion, Postman, Airtable, Typeform, npm, PyPI, RubyGems, Databricks, PlanetScale, Buildkite, Mapbox, Duffel, EasyPost, Shippo, Frame.io, Cloudinary, Heroku, Replicate |

@@ -62,30 +62,146 @@ __all__ = [
 # PII / credential redaction (shared by all sinks + observability)
 # ---------------------------------------------------------------------------
 
+#: Keys whose value is a credential whatever it looks like (matched against
+#: the whole key, ignoring case): in a dict, and in JSON text held in a string.
+_SECRET_KEYS = (
+    "authorization",
+    "proxy-authorization",
+    "x-api-key",
+    "api[-_]?key",
+    "access[-_]?token",
+    "refresh[-_]?token",
+    "id[-_]?token",
+    "client[-_]?secret",
+    "password",
+    "passwd",
+)
+_SECRET_KEY_RE = _re.compile("(?i:" + "|".join(_SECRET_KEYS) + ")")
+
+# Characters of a token in an HTTP ``Authorization`` value (RFC 6750 b64token).
+_TOKEN_CHARS = r"[A-Za-z0-9\-._~+/]+=*"
+_AUTH_SCHEMES = r"(?:bearer|basic|token|digest|negotiate|apikey)"
+
 _PII_PATTERNS: list[tuple[_re.Pattern[str], str]] = [
     # URL credentials first: the email pattern would otherwise consume
     # ``password@host`` and leave the user name behind.  User info never
     # contains whitespace, quotes, ``/`` or (unencoded) ``@``, so a match
     # cannot run on into the next field of a serialised payload.
     (_re.compile(r"://[^\s:/@\"']+:[^\s/@\"']+@"), "://[REDACTED]@"),
+    # A credential key's value in JSON text (a tool result, a request body).
+    (
+        _re.compile(r'"(' + _SECRET_KEY_RE.pattern + r')"(\s*:\s*)"(?:[^"\\]|\\.)*"'),
+        r'"\1"\2"[REDACTED]"',
+    ),
+    # An ``Authorization`` value with any scheme (``Bearer``, ``Basic``,
+    # ``Token``...) or none: the label and the scheme stay, the credential goes.
+    # A scheme already followed by a placeholder is left as it is.
+    (
+        _re.compile(
+            r"(?i)\b((?:proxy-)?authorization[\"']?\s*[:=]\s*[\"']?)"
+            r"(?:("
+            + _AUTH_SCHEMES
+            + r"\s+)(?=[A-Za-z0-9\-._~+/])|(?!"
+            + _AUTH_SCHEMES
+            + r"\b))"
+            + _TOKEN_CHARS
+        ),
+        r"\1\2[REDACTED]",
+    ),
+    # A bearer token wherever it appears.  These run before the token
+    # formats below, so "Bearer ghp_…" keeps its scheme.  Lower-case
+    # "bearer" needs a token-sized value, so prose such as "missing bearer
+    # token" is kept.
+    (_re.compile(r"\bBearer\s+(?!\[REDACTED\])" + _TOKEN_CHARS), "Bearer [REDACTED]"),
+    (_re.compile(r"(?i)\bbearer\s+[A-Za-z0-9\-._~+/]{16,}=*"), "Bearer [REDACTED]"),
     (_re.compile(r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"), "[CARD]"),
     (_re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "[SSN]"),
     (_re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"), "[EMAIL]"),
     # OpenAI (``sk-proj-…``, ``sk-svcacct-…``), Anthropic (``sk-ant-…``) and
     # legacy ``sk-…`` keys; the newer formats contain ``-`` and ``_``.
     (_re.compile(r"(?<![A-Za-z0-9_-])sk-[A-Za-z0-9][A-Za-z0-9_-]{19,}"), "[API_KEY]"),
-    (_re.compile(r"\b(AKIA[A-Z0-9]{16})\b"), "[AWS_KEY]"),
-    (_re.compile(r"\b(ghp_[a-zA-Z0-9]{36})\b"), "[GITHUB_TOKEN]"),
-    (_re.compile(r"Bearer\s+[A-Za-z0-9\-._~+/]+=*"), "Bearer [REDACTED]"),
+    # Stripe secret and restricted keys (live and test).
+    (_re.compile(r"\b[sr]k_(?:live|test)_[A-Za-z0-9]{16,}"), "[API_KEY]"),
+    # Google API keys.
+    (_re.compile(r"\bAIza[0-9A-Za-z_-]{35}"), "[API_KEY]"),
+    # AWS access key IDs: long-term (``AKIA``) and temporary STS (``ASIA``).
+    (_re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"), "[AWS_KEY]"),
+    # The AWS secret access key next to its usual names.
+    (
+        _re.compile(
+            r"(?i)\b(aws_?secret_?access_?key|aws_?secret)([\"']?\s*[:=]\s*[\"']?)"
+            r"[A-Za-z0-9/+=]{40}"
+        ),
+        r"\1\2[AWS_SECRET]",
+    ),
+    # GitHub: personal access tokens (classic ``ghp_``), OAuth (``gho_``),
+    # GitHub App user (``ghu_``), installation (``ghs_``) and refresh
+    # (``ghr_``) tokens, and fine-grained personal access tokens
+    # (``github_pat_``).  GitHub documents no fixed length; installation
+    # tokens in the newer ``ghs_<app id>_<JWT>`` format are about 520
+    # characters and contain ``_``, ``-`` and the JWT's two dots.
+    (
+        _re.compile(r"\bgh[pousr]_(?=[A-Za-z0-9_.-]{36})[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+){0,2}"),
+        "[GITHUB_TOKEN]",
+    ),
+    (_re.compile(r"\bgithub_pat_[A-Za-z0-9_]{36,}"), "[GITHUB_TOKEN]"),
+    # GitLab personal, deploy, pipeline trigger and runner tokens.
+    (_re.compile(r"\bgl(?:pat|dt|ptt|rt)-[A-Za-z0-9_-]{20,}"), "[GITLAB_TOKEN]"),
+    # Slack bot, user, app and refresh tokens.
+    (_re.compile(r"\bxox[abposr]-[A-Za-z0-9-]{10,}"), "[SLACK_TOKEN]"),
+    # JSON Web Tokens (also the value of most bearer headers).
+    (
+        _re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),
+        "[JWT]",
+    ),
+    # PEM private keys: the header, the base64 body and the footer if present.
+    (
+        _re.compile(
+            r"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[A-Za-z0-9+/=\s]*"
+            r"(?:-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----)?"
+        ),
+        "[PRIVATE_KEY]",
+    ),
 ]
+
+
+def _redact_text(text: str) -> str:
+    """*text* with every credential and PII pattern replaced by its placeholder."""
+    for pattern, replacement in _PII_PATTERNS:
+        text = pattern.sub(replacement, text)
+    return text
+
+
+def _is_secret_key(key: Any) -> bool:
+    """Whether *key* names a credential (``Authorization``, ``password``...)."""
+    return isinstance(key, str) and _SECRET_KEY_RE.fullmatch(key) is not None
+
+
+def _redact_tree(value: Any) -> Any:
+    """*value* (decoded JSON) with credentials redacted in every key and string."""
+    if isinstance(value, str):
+        return _redact_text(value)
+    if isinstance(value, dict):
+        return {
+            _redact_text(k) if isinstance(k, str) else k: (
+                "[REDACTED]" if _is_secret_key(k) and isinstance(v, str) else _redact_tree(v)
+            )
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_tree(v) for v in value]
+    return value
 
 
 def default_pii_sanitizer(data: dict[str, Any]) -> dict[str, Any]:
     """Redact PII and credentials from a data dictionary.
 
-    Serialises the dict to JSON, applies regex patterns, and
-    deserialises back.  Safe to call on any dict — returns the
-    original on serialization failure.
+    Round-trips the dict through JSON (values that are not JSON become
+    their ``str()``), then replaces sensitive substrings in every key and
+    string value with placeholders.  The value of a credential key
+    (``Authorization``, ``password``, ``api_key``, ``access_token``...) is
+    replaced whatever it looks like.  Safe to call on any dict — returns
+    the original on serialization failure.
 
     Args:
         data: Arbitrary dict (event payload, observability metadata, etc.).
@@ -94,10 +210,7 @@ def default_pii_sanitizer(data: dict[str, Any]) -> dict[str, Any]:
         A new dict with sensitive values replaced by placeholders.
     """
     try:
-        text = json.dumps(data, default=str)
-        for pattern, replacement in _PII_PATTERNS:
-            text = pattern.sub(replacement, text)
-        return json.loads(text)
+        return _redact_tree(json.loads(json.dumps(data, default=str)))
     except Exception:
         return data
 
