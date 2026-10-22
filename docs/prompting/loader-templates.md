@@ -321,7 +321,7 @@ result = render_template(
 The engine processes templates in this order:
 
 1. `{% include "name" %}`: resolved from the includes registry (unknown name: `ValueError`)
-2. `` !`cmd` ``: shell interpolation, only when a `shell_executor` is set (see [Shell Context Injection](shell-interpolation.md))
+2. `` !`cmd` ``: shell interpolation, only when a `shell_executor` is set (see [Shell Context Injection](shell-interpolation.md)); the output is literal text, braces included
 3. `{% if %}...{% else %}...{% endif %}`: truthiness of the variable (missing counts as false)
 4. `{% for item in items %}...{% endfor %}`: iteration (missing collection: `KeyError`)
 5. `{{` / `}}`: literal brace escapes

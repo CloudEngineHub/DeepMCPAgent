@@ -67,6 +67,7 @@ All notable changes to Promptise Foundry are documented here.
 - **`StructuredLoggingMiddleware(include_args=True)` logged no arguments.** The flag was stored and never used. The `tool_call_start` line now has `args`, the call's validated arguments after `redact_sensitive` (credential keys become `[REDACTED]`, credentials and common PII in strings become placeholders).
 - **`WebhookMiddleware` held up every tool call and kept every payload.** The docstring said deliveries never block, but each one was awaited inside the call, so a slow endpoint added up to `timeout` seconds per event (twice per call with the default events), and `sent` grew for the life of the process. Events now go on a bounded queue (`max_queue=1000`) and are sent by background tasks (`max_concurrency=4`, one HTTP client each); a full queue drops the event with a warning and counts it in `dropped`. `sent` keeps the last `history=100` payloads. New `flush()` waits for queued deliveries and `aclose()` stops the delivery tasks.
 - **`APIKeyAuth(header="X-API-Key")` never authenticated over HTTP, and the transport gate ignored a custom header.** Headers reach `ctx.meta` lower-cased and the name was used as given; the `require_auth=True` gate only read `x-api-key`. The header name is now matched case-insensitively, and the gate reads the API key from the header `APIKeyAuth` was configured with (its 401 message names it).
+- **Security: `SubprocessShellExecutor(allowlist=...)` could be bypassed.** With the default `shell=True`, only the first word was checked and the whole line went to `/bin/sh`, so `` !`echo hi; <any command>` `` ran the second command, although the docstring recommended the allowlist for templates from untrusted sources. With an allowlist, a command now never runs through a shell (`shell` is ignored): it is split with `shlex`, its first word must be an allowlisted name exactly, and it is started directly; an unquoted shell operator (`;`, `|`, `&`, `<`, `>`, `(`, `)`) raises `ShellExecutionError`. Shell builtins can't be allowlisted any more (`echo` on Windows), and pipes or redirections in allowlisted commands are refused. Command output is now literal text in the template: braces in it no longer raise `KeyError` or get read as `{variable}` syntax.
 
 ### Changed
 
@@ -85,6 +86,7 @@ All notable changes to Promptise Foundry are documented here.
 - Docs: the advanced patterns page describes how `OpenAPIProvider` maps a spec to tools; the server guide lists Pydantic models among the tool return types.
 - Docs: the advanced patterns page documents `@server.tool(version=...)` and `server.add_transform()` in place of the workarounds it described.
 - Docs: the observability, resilience, authentication and deployment pages describe the logged `args`, the webhook queue and the case-insensitive API key header in place of the earlier limitations.
+- Docs: the shell interpolation page says what the allowlist enforces and that command output is literal text.
 
 
 ## v1.6.0 — 2026-10-21
