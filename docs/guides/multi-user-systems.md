@@ -486,14 +486,15 @@ agent = await build_agent(
 The embedding model runs locally (no API calls, no data leaving your infrastructure). For custom models or air-gapped deployments:
 
 ```python
-from promptise.tools import ToolOptimizationConfig, OptimizationLevel
+from promptise import OptimizationLevel, ToolOptimizationConfig
 
 agent = await build_agent(
-    ...,
+    model="openai:gpt-5-mini",
+    servers=servers,
     optimize_tools=ToolOptimizationConfig(
         level=OptimizationLevel.SEMANTIC,
-        max_tools=8,                                    # Send at most 8 tools per request
-        embedding_model="/models/local/all-MiniLM-L6-v2",  # Fully offline
+        semantic_top_k=8,                                  # offer at most 8 tools per model call
+        embedding_model="/models/local/all-MiniLM-L6-v2",  # a local directory: fully offline
     ),
 )
 ```

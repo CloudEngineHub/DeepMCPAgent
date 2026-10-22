@@ -195,7 +195,7 @@ Use the CACHEABLE flag to avoid re-executing identical queries:
 
 ```python
 PromptNode("execute",
-    ...,
+    inject_tools=True,
     flags={NodeFlag.RETRYABLE, NodeFlag.CACHEABLE},
     input_keys=["query_plan"],  # Cache key based on the plan
 )
@@ -230,4 +230,4 @@ The key difference: the schema-aware prompt tells the LLM exact column names and
 
 - [Custom Reasoning Guide](custom-reasoning.md) — Build more complex patterns
 - [Node Flags Reference](../core/engine-flags.md) — All 18 production flags
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — 10 built-in patterns
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — 9 built-in patterns

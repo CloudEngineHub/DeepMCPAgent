@@ -526,17 +526,19 @@ reply = await agent.chat("Hi, I'd like to sign up.", session_id=session_id, user
 #### 2. Chain-of-thought analysis with self-critique
 
 ```python
-from promptise.prompts import prompt, ChainOfThought, SelfCritique
+from promptise.prompts import prompt
+from promptise.prompts.strategies import chain_of_thought, self_critique
 
-@prompt(model="openai:gpt-5-mini", strategy=ChainOfThought() + SelfCritique())
+@prompt(model="openai:gpt-5-mini")
 async def analyze_risk(scenario: str) -> str:
     """Analyze the business risk of: {scenario}
 
     Consider financial, operational, and reputational factors.
     Provide a risk score from 1-10 with justification."""
 
-# The agent thinks step-by-step, then critiques its own reasoning
-result = await analyze_risk("Expanding into the Japanese market without local partners")
+# The model thinks step by step, then critiques its own reasoning
+careful = analyze_risk.with_strategy(chain_of_thought + self_critique)
+result = await careful("Expanding into the Japanese market without local partners")
 ```
 
 ---

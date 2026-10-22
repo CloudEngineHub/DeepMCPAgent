@@ -67,7 +67,7 @@ for brevity; in production `JWTAuth` extracts the tenant from a claim
 
 ```python
 from promptise.mcp.server import MCPServer, AuthMiddleware
-from promptise.mcp.server._auth import APIKeyAuth
+from promptise.mcp.server import APIKeyAuth
 
 # require_tenant=True makes tenancy a server-wide INVARIANT: every tool
 # authenticates AND must carry a tenant, or the call is denied.
@@ -176,14 +176,16 @@ same-named user. Each caller's `bearer_token` is what the billing server
 authenticates, so one agent serves every tenant.
 
 ```python
-from promptise import CallerContext, build_agent
+from promptise import CallerContext, ChromaProvider, SemanticCache, build_agent
+from promptise.config import HTTPServerSpec
+from promptise.conversations import SQLiteConversationStore
 
 agent = await build_agent(
     model="openai:gpt-5-mini",
     # The agent's own credential: opens the connection and discovers tools.
-    # Tool calls are made with each caller's bearer_token instead.
-    servers={"billing": {"url": "https://billing.internal/mcp",
-                         "transport": "http", "bearer_token": service_jwt}},
+    # Tool calls are made with each caller's bearer_token instead
+    # (forward_caller_token defaults to forwarding when the server has no API key).
+    servers={"billing": HTTPServerSpec(url="https://billing.internal/mcp", bearer_token=service_jwt)},
     memory=ChromaProvider(persist_directory="./mem"),
     cache=SemanticCache(),
     conversation_store=SQLiteConversationStore("chat.db"),

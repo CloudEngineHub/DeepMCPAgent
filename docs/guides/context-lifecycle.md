@@ -302,7 +302,7 @@ the other's raw messages.
 
 ## See also
 
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — all 10 built-in patterns
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — all 9 built-in patterns
 - [Code-Action](code-action.md) — the most radical context move: collapse a long tool loop into one program
 - [Nodes reference: Context scope](../core/engine-nodes.md#context-scope) — the full mechanism
 - [Prebuilt Patterns](../core/engine-prebuilts.md) — `verify` and `managed` factories

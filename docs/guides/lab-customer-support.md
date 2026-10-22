@@ -247,14 +247,19 @@ response = await agent.chat(
 Use approval workflows for sensitive actions:
 
 ```python
-from promptise.agent import ApprovalConfig
+from promptise import ApprovalDecision, ApprovalPolicy
+
+async def review(request):
+    # Show request.tool_name and request.arguments to a person, then decide.
+    return ApprovalDecision(approved=True, reviewer_id="support-lead")
 
 agent = await build_agent(
-    ...,
-    approval=ApprovalConfig(
-        # Require human approval before creating tickets
-        tools_requiring_approval=["crm_create_ticket"],
-        handler="callback",
+    model="openai:gpt-5-mini",
+    servers=servers,
+    approval=ApprovalPolicy(
+        tools=["crm_create_ticket"],  # glob patterns of the tools that need approval
+        handler=review,
+        timeout=300,                  # seconds to wait; on_timeout="deny" by default
     ),
 )
 ```

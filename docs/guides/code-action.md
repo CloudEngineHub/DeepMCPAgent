@@ -265,7 +265,7 @@ PromptGraph.code_action(
 
 ## See also
 
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — all 10 built-in patterns
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — all 9 built-in patterns
 - [Prebuilt Patterns](../core/engine-prebuilts.md#code-action-one-sandboxed-program) — the factory
 - [Context Lifecycle Management](context-lifecycle.md) — the broader cost/rot story
 - [Sandbox](../core/sandbox.md) — the container security layers code-action runs on

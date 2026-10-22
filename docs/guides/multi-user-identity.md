@@ -71,7 +71,7 @@ result = await agent.ainvoke(
 
 # Or with conversation persistence
 response = await agent.chat(
-    user_message="What's my balance?",
+    "What's my balance?",
     session_id="session-alice-001",
     caller=alice,  # ← Isolated memory, cache, conversations
 )
@@ -143,8 +143,8 @@ async def run_query(sql: str, ctx: RequestContext) -> str:
     """Run a SQL query. Analyst role required."""
     return f"Query by {ctx.client.client_id}: {sql}"
 
-# Scope-guarded tool — requires 'admin' scope
-@server.tool(auth=True, scopes=["admin"])
+# Scope-guarded tool: requires the 'admin' scope
+@server.tool(auth=True, guards=[HasScope("admin")])
 async def delete_user(user_id: str, ctx: RequestContext) -> str:
     """Delete a user. Admin scope required."""
     return f"Deleted {user_id} by {ctx.client.client_id}"

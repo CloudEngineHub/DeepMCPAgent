@@ -218,29 +218,34 @@ async def main():
 asyncio.run(main())
 ```
 
-## Step 3 — Per-Node Model Override
+## Step 3: Per-Node Model Override
 
 Use a cheaper model for reading files, a powerful model for security analysis:
 
 ```python
-# Cheap model reads files (just fetching data, no reasoning needed)
-PromptNode("read_code",
-    model_override="openai:gpt-4o-mini",
-    ...
-)
+from promptise.engine import NodeFlag, PromptGraph, PromptNode
+from promptise.engine.reasoning_nodes import CritiqueNode, JustifyNode, SynthesizeNode, ThinkNode
 
-# Powerful model for security analysis
-ThinkNode("analyze",
-    model_override="openai:gpt-4o",  # Better at catching subtle vulns
-    ...
-)
-
-# Cheap model for final formatting
-SynthesizeNode("report",
-    model_override="openai:gpt-4o-mini",
-    ...
-)
+graph = PromptGraph("code-reviewer", nodes=[
+    # Cheap model reads files (fetching data, little reasoning)
+    PromptNode("read_code",
+        instructions="Read ALL files with list_files and read_file before analysis.",
+        inject_tools=True,
+        is_entry=True,
+        flags={NodeFlag.RETRYABLE},
+        model_override="openai:gpt-4o-mini",
+    ),
+    # Stronger model for the security analysis
+    ThinkNode("analyze", model_override="openai:gpt-4o"),
+    CritiqueNode("challenge", severity_threshold=0.3),
+    JustifyNode("evidence"),
+    # Cheap model for the final formatting
+    SynthesizeNode("report", is_terminal=True, model_override="openai:gpt-4o-mini"),
+])
 ```
+
+Nodes without `model_override` use the agent's `model`. A model override is a model
+string, a `Model(...)` or a LangChain chat model.
 
 ## Expected Output
 
