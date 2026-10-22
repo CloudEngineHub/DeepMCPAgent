@@ -27,7 +27,8 @@ Example::
 
 For a long-running service, :meth:`AgentRuntime.run_forever` starts every
 process and stops them cleanly on ``SIGTERM`` / ``SIGINT`` (``docker
-stop``, Ctrl+C)::
+stop``, Ctrl+C), letting runs in flight finish first for up to each
+process's ``drain_timeout`` seconds::
 
     runtime = AgentRuntime(RuntimeConfig(processes={"watcher": config}))
     await runtime.run_forever()
@@ -374,21 +375,37 @@ class AgentRuntime:
                 except Exception as exc:
                     logger.error("AgentRuntime: failed to start %s: %s", name, exc)
 
-    async def stop_all(self) -> None:
+    async def stop_all(self, *, drain_timeout: float | None = 0.0) -> None:
         """Stop all processes that are not stopped (``FAILED`` ones too).
 
         Afterwards the shared event notifier (if any) is drained, so every
         ``process.stopped`` event is delivered before this returns.
+
+        Args:
+            drain_timeout: Passed to :meth:`AgentProcess.stop`: ``0``
+                (default) cancels runs in flight at once, a positive value
+                lets them finish for up to that many seconds, ``None``
+                uses each process's ``config.drain_timeout``.  A graceful
+                stop stops the processes concurrently, so the wait is not
+                multiplied by the number of processes.
         """
-        for name, process in list(self._processes.items()):
-            if process.state not in (
-                ProcessState.STOPPED,
-                ProcessState.CREATED,
-            ):
-                try:
-                    await process.stop()
-                except Exception as exc:
-                    logger.error("AgentRuntime: failed to stop %s: %s", name, exc)
+        targets = [
+            (name, process)
+            for name, process in list(self._processes.items())
+            if process.state not in (ProcessState.STOPPED, ProcessState.CREATED)
+        ]
+
+        async def _stop(name: str, process: AgentProcess) -> None:
+            try:
+                await process.stop(drain_timeout=drain_timeout)
+            except Exception as exc:
+                logger.error("AgentRuntime: failed to stop %s: %s", name, exc)
+
+        if drain_timeout == 0:
+            for name, process in targets:
+                await _stop(name, process)
+        else:
+            await asyncio.gather(*(_stop(name, process) for name, process in targets))
         # The shared notifier outlives single processes; deliver what the
         # processes emitted (process.stopped included) and stop it last.
         if self._event_notifier is not None and hasattr(self._event_notifier, "stop"):
@@ -463,14 +480,18 @@ class AgentRuntime:
     async def __aexit__(self, *exc: object) -> None:
         await self.shutdown()
 
-    async def shutdown(self) -> None:
+    async def shutdown(self, *, drain_timeout: float | None = 0.0) -> None:
         """Stop every process (:meth:`stop_all`), then close them all.
 
         Closing releases what a process keeps across restarts (long-term
         memory, secrets, conversation history).  The processes stay
         registered.  The cluster node (distributed mode) stops last.
+
+        Args:
+            drain_timeout: How long runs in flight may finish first (see
+                :meth:`stop_all`; default ``0``: cancel them at once).
         """
-        await self.stop_all()
+        await self.stop_all(drain_timeout=drain_timeout)
         for name, process in list(self._processes.items()):
             try:
                 await process.close()
@@ -520,13 +541,27 @@ class AgentRuntime:
             except Exception as exc:
                 logger.error("AgentRuntime: failed to stop the cluster node: %s", exc)
 
-    def request_shutdown(self) -> None:
-        """Ask :meth:`run_forever` to stop (safe from a signal handler)."""
+    def request_shutdown(self, *, force: bool = False) -> None:
+        """Ask :meth:`run_forever` to stop (safe from a signal handler).
+
+        Args:
+            force: Also end the graceful wait of a shutdown already in
+                progress: runs still in flight are cancelled now (see
+                :meth:`AgentProcess.abort_drain`).
+        """
         if self._shutdown_event is None:
             self._shutdown_event = asyncio.Event()
         self._shutdown_event.set()
+        if force:
+            for process in list(self._processes.values()):
+                process.abort_drain()
 
-    async def run_forever(self, *, install_signal_handlers: bool = True) -> None:
+    async def run_forever(
+        self,
+        *,
+        install_signal_handlers: bool = True,
+        drain_timeout: float | None = None,
+    ) -> None:
         """Start all processes and run until shutdown is requested.
 
         Returns after :meth:`request_shutdown`, ``SIGTERM`` or ``SIGINT``
@@ -536,6 +571,12 @@ class AgentRuntime:
         process off without ``process.stopped``, a final checkpoint and
         its dead letters.
 
+        The stop is graceful: no new trigger event starts, and runs in
+        flight get up to *drain_timeout* seconds to finish before they
+        are cancelled (a cancelled run is journaled, see
+        :meth:`AgentProcess.stop`).  A second signal during that wait
+        cancels them at once.
+
         Args:
             install_signal_handlers: Install ``SIGTERM`` / ``SIGINT``
                 handlers on the running loop for the duration of the call
@@ -543,6 +584,10 @@ class AgentRuntime:
                 SIGINT to ``KeyboardInterrupt``).  Skipped
                 where the loop doesn't support them (Windows, or a thread
                 other than the main one).
+            drain_timeout: Seconds runs in flight may take to finish at
+                shutdown.  ``None`` (default) uses each process's
+                ``config.drain_timeout`` (5 seconds unless set); ``0``
+                cancels them at once.
         """
         if self._shutdown_event is None:
             self._shutdown_event = asyncio.Event()
@@ -559,15 +604,32 @@ class AgentRuntime:
             await self.start_all()
             await self._shutdown_event.wait()
         finally:
-            for sig in installed:
-                with contextlib.suppress(Exception):
-                    loop.remove_signal_handler(sig)
+            # Also when cancelled: a signal from here on is the second one.
+            self._shutdown_event.set()
             try:
-                await self.shutdown()
+                # The handlers stay during the shutdown: a second signal
+                # cancels the runs still in flight instead of killing the
+                # program before they are journaled.
+                await self.shutdown(drain_timeout=drain_timeout)
             finally:
+                for sig in installed:
+                    with contextlib.suppress(Exception):
+                        loop.remove_signal_handler(sig)
                 self._shutdown_event = None
 
     def _on_signal(self, sig: signal.Signals) -> None:
+        if self._shutdown_event is not None and self._shutdown_event.is_set():
+            logger.warning(
+                "AgentRuntime: received %s again; cancelling the runs still in flight",
+                sig.name,
+            )
+            self.request_shutdown(force=True)
+            # A further signal gets the default action (exit at once).
+            loop = asyncio.get_running_loop()
+            for other in (signal.SIGTERM, signal.SIGINT):
+                with contextlib.suppress(Exception):
+                    loop.remove_signal_handler(other)
+            return
         logger.info("AgentRuntime: received %s, shutting down", sig.name)
         self.request_shutdown()
 

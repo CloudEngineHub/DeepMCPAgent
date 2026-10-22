@@ -123,6 +123,7 @@ Configuration for one agent process. Unknown keys are rejected.
 | `max_lifetime` | `float` | `0.0` | Seconds after start at which the process stops, or is recycled with `restart_policy="always"` (0 = unlimited) |
 | `max_consecutive_failures` | `int` | `3` | Failed events in a row before `FAILED` (> 0) |
 | `restart_policy` | `Literal["always", "on_failure", "never"]` | `"never"` | See [Restart policies](processes.md#restart-policies) |
+| `drain_timeout` | `float` | `5.0` | Seconds a graceful stop (`run_forever()` on `SIGTERM` / Ctrl+C, `stop(drain_timeout=None)`) lets runs in flight finish before cancelling them (0 to 3600) |
 | `max_restarts` | `int` | `3` | Automatic restart attempts in a row; the count resets after a successful run (>= 0) |
 | `restart_backoff` | `float` | `1.0` | Seconds before the first restart; doubles per attempt, capped at 60 s (>= 0) |
 | `secrets` | `SecretScopeConfig` | `SecretScopeConfig()` | Disabled |

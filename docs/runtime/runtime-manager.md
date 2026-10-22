@@ -121,15 +121,19 @@ Each method that takes a name raises `KeyError` for an unknown one.
 
 `run_forever()` is the entry point for a service. It starts every process, waits until shutdown is requested, then calls `shutdown()`, so every process gets its `process.stopped` event, a final journal checkpoint and its dead letters before the program exits.
 
+The shutdown is graceful: no new trigger event starts, and runs in flight get up to `drain_timeout` seconds to finish (default: each process's `ProcessConfig.drain_timeout`, 5 seconds) before they are cancelled. The processes drain at the same time. A run that is cancelled is journaled and comes back as a dead letter in the next process object (see [Graceful stop](processes.md#graceful-stop)). A second `SIGTERM` or Ctrl+C during the wait cancels the runs at once; a third one gets the default action. Keep the drain shorter than your platform's kill deadline: `docker stop` sends `SIGKILL` after 10 seconds unless you pass `--time`, Kubernetes after `terminationGracePeriodSeconds` (30 by default).
+
 ```python
 await runtime.run_forever()                               # handles SIGTERM and SIGINT
 await runtime.run_forever(install_signal_handlers=False)  # you handle signals
+await runtime.run_forever(drain_timeout=20)               # wait up to 20 s for runs in flight
+await runtime.run_forever(drain_timeout=0)                # cancel runs in flight at once
 ```
 
 It returns after:
 
-- `SIGTERM` (`docker stop`, Kubernetes, systemd) or `SIGINT` (Ctrl+C), when `install_signal_handlers=True` (the default). The handlers are installed on the running loop for the duration of the call and removed afterwards. Where the loop can't install them (Windows, or a thread other than the main one) they are skipped.
-- `runtime.request_shutdown()`, which is safe to call from your own signal handler or another task.
+- `SIGTERM` (`docker stop`, Kubernetes, systemd) or `SIGINT` (Ctrl+C), when `install_signal_handlers=True` (the default). The handlers are installed on the running loop for the duration of the call, including the shutdown, and removed afterwards. Where the loop can't install them (Windows, or a thread other than the main one) they are skipped.
+- `runtime.request_shutdown()`, which is safe to call from your own signal handler or another task. `request_shutdown(force=True)` also ends a graceful wait that is in progress.
 - Cancellation of the task running it.
 
 ```text
@@ -205,11 +209,11 @@ With `RuntimeConfig(distributed=DistributedConfig(enabled=True, ...))`, `start_a
 | `list_processes()` | `name`, `state`, `process_id` per process |
 | `await load_manifest(path, *, name_override=None)` | Register a process from a `.agent` file |
 | `await load_directory(path)` | Register every `*.agent` file in a directory |
-| `await start_all()` / `await stop_all()` | Start / stop every process |
+| `await start_all()` / `await stop_all(*, drain_timeout=0.0)` | Start / stop every process (`drain_timeout`: let runs in flight finish first; `None` = each process's `drain_timeout`) |
 | `await start_process(name)` / `await stop_process(name)` / `await restart_process(name, *, stop_timeout=30.0)` | Control one process |
-| `await shutdown()` | Stop and close every process, stop the cluster node |
-| `await run_forever(*, install_signal_handlers=True)` | Start everything and run until a signal or `request_shutdown()` |
-| `request_shutdown()` | Make `run_forever()` return |
+| `await shutdown(*, drain_timeout=0.0)` | Stop and close every process, stop the cluster node |
+| `await run_forever(*, install_signal_handlers=True, drain_timeout=None)` | Start everything and run until a signal or `request_shutdown()`, then stop gracefully |
+| `request_shutdown(*, force=False)` | Make `run_forever()` return (`force=True`: cancel runs still draining) |
 | `status()` / `process_status(name)` | Status dicts |
 | `cluster` | The running `ClusterNode`, or `None` |
 | `await start_distributed()` / `await stop_distributed()` | Start / stop the cluster node (`start_all()` and `shutdown()` call them) |

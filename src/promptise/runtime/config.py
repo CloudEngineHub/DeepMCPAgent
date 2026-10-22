@@ -1108,6 +1108,12 @@ class ProcessConfig(BaseModel):
             ``max_consecutive_failures`` reached); ``always`` also
             restarts it when it stops itself at ``max_lifetime``.  An
             explicit :meth:`~AgentProcess.stop` never triggers a restart.
+        drain_timeout: Seconds a graceful stop lets runs in flight finish
+            before cancelling them (default 5).  :meth:`AgentRuntime.run_forever`
+            (``SIGTERM``, ``SIGINT``) and ``stop(drain_timeout=None)`` use
+            it; a plain :meth:`~AgentProcess.stop` cancels at once.  Keep it
+            below the platform's kill deadline (``docker stop`` sends
+            ``SIGKILL`` after 10 seconds by default).
         max_restarts: Max consecutive restart attempts after failures.
             The count resets after a successful invocation.
         restart_backoff: Delay in seconds before the first restart
@@ -1168,6 +1174,12 @@ class ProcessConfig(BaseModel):
     )
     restart_policy: Literal["always", "on_failure", "never"] = Field(
         "never", description="Restart policy for failed processes"
+    )
+    drain_timeout: float = Field(
+        5.0,
+        ge=0,
+        le=3600,
+        description="Seconds a graceful stop waits for runs in flight before cancelling them",
     )
     max_restarts: int = Field(3, ge=0, description="Max restart attempts")
     restart_backoff: float = Field(

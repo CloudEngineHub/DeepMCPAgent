@@ -620,6 +620,13 @@ class AgentProcess:
         # running); _running_workers are the ones whose run started.
         self._worker_events: dict[asyncio.Task[Any], TriggerEvent] = {}
         self._running_workers: set[asyncio.Task[Any]] = set()
+        # Graceful stop: set while stop(drain_timeout=...) waits for the
+        # runs in flight (no new event starts); the event ends the wait early.
+        self._draining = False
+        self._drain_abort: asyncio.Event | None = None
+        # Events whose run a stop cut off.  Kept in the journal checkpoint
+        # (while they are dead letters) and restored by recovery.
+        self._interrupted_ids: set[str] = set()
         self._trigger_listener_tasks: list[asyncio.Task[None]] = []
         self._heartbeat_task: asyncio.Task[None] | None = None
         self._background_tasks: set[asyncio.Task[Any]] = set()
@@ -1285,6 +1292,9 @@ class AgentProcess:
         if self._mission is not None:
             with contextlib.suppress(Exception):
                 state["mission"] = self._mission.to_dict()
+        interrupted = self._interrupted_dead_letters()
+        if interrupted:
+            state["interrupted_runs"] = interrupted
         try:
             await self._journal.checkpoint(self.name, state)
         except Exception:
@@ -1477,6 +1487,8 @@ class AgentProcess:
             await self._lifecycle.transition(ProcessState.STARTING, reason="start() called")
             self._stop_requested = False
             self._recycled = False
+            self._draining = False
+            self._drain_abort = None
             # A (re)started process gets a fresh failure streak; otherwise
             # the first error after a restart would fail it again at once.
             self._consecutive_failures = 0
@@ -1642,6 +1654,7 @@ class AgentProcess:
             await self._conversation_buffer.async_replace(conversation)
         with contextlib.suppress(TypeError, ValueError):
             self._invocation_count = int(checkpoint.get("invocation_count", 0) or 0)
+        interrupted_runs = self._restore_interrupted(checkpoint.get("interrupted_runs"))
 
         self._recovered = {
             "lifecycle_state": recovered.get("lifecycle_state"),
@@ -1651,6 +1664,7 @@ class AgentProcess:
             "budget_restored": budget_restored,
             "conversation_messages": len(conversation) if isinstance(conversation, list) else 0,
             "invocation_count": self._invocation_count,
+            "interrupted_runs": interrupted_runs,
         }
         logger.info(
             "AgentProcess %s: recovered from journal (last state %s, %d keys)",
@@ -1667,8 +1681,9 @@ class AgentProcess:
         Keys: ``lifecycle_state`` (the state the journal last recorded:
         ``"stopped"`` after a clean stop, ``"running"`` after a crash),
         ``entries_replayed``, ``context_keys``, ``mission_restored``,
-        ``budget_restored``, ``conversation_messages`` and
-        ``invocation_count``.
+        ``budget_restored``, ``conversation_messages``,
+        ``invocation_count`` and ``interrupted_runs`` (runs a stop
+        cancelled, back in :attr:`dead_letters`).
         """
         return dict(self._recovered) if self._recovered is not None else None
 
@@ -1678,8 +1693,8 @@ class AgentProcess:
         self._context._memory_provider = self._long_term_memory
         self._memory_closed = False
 
-    async def stop(self) -> None:
-        """Gracefully stop: cancel workers, stop triggers, shutdown agent.
+    async def stop(self, *, drain_timeout: float | None = 0.0) -> None:
+        """Stop: cancel workers, stop triggers, shutdown agent.
 
         Transitions: ``RUNNING / SUSPENDED / STARTING / FAILED → STOPPING →
         STOPPED`` (emits ``process.stopped``), or ``CREATED → STOPPED`` for
@@ -1687,15 +1702,35 @@ class AgentProcess:
         process does nothing.
 
         Trigger events still queued, held by a suspended worker or running
-        are moved to :attr:`dead_letters` (reason ``"process stopped"``);
-        a run in flight is cancelled.  Secrets are revoked unless
-        ``secrets.revoke_on_stop`` is ``False``.  Long-term memory, the
-        context state and the conversation history are kept (unless
+        are moved to :attr:`dead_letters` (reason ``"process stopped"``).
+        A run in flight is cancelled at once by default.  With
+        *drain_timeout* the stop is graceful: no new event starts (the
+        triggers' events and :meth:`inject` go to the dead letters, a
+        webhook answers 503), the runs in flight get up to that many
+        seconds to finish, and only the ones still running then are
+        cancelled.
+
+        A cancelled run's event (error ``"run cancelled"``) may have had
+        tool calls with effects already.  It is journaled as a
+        ``run_interrupted`` entry and kept in the journal checkpoint, so
+        the next process object with the same name and journal lists it
+        in :attr:`dead_letters` again after :meth:`start`.
+
+        Secrets are revoked unless ``secrets.revoke_on_stop`` is
+        ``False``.  Long-term memory, the context state and the
+        conversation history are kept (unless
         ``context.conversation_clear_on_stop``), so a later :meth:`start`
         continues where this one stopped; :meth:`close` releases them.
 
         An explicit stop also cancels any pending automatic restart.
+
+        Args:
+            drain_timeout: Seconds to let runs in flight finish before
+                cancelling them.  ``0`` (default) cancels them at once;
+                ``None`` uses ``config.drain_timeout`` (what
+                :meth:`AgentRuntime.run_forever` does on ``SIGTERM``).
         """
+        timeout = self.config.drain_timeout if drain_timeout is None else drain_timeout
         self._stop_requested = True
         current = asyncio.current_task()
         if (
@@ -1707,6 +1742,8 @@ class AgentProcess:
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await self._restart_task
         self._restart_task = None
+        if timeout > 0:
+            await self._drain_runs(timeout)
         await self._end_session("stop")
         async with self._lock:
             if self.state == ProcessState.STOPPED and self._recycled:
@@ -1723,6 +1760,59 @@ class AgentProcess:
                 await self._release(emit_stopped=False)
                 return
             await self._shutdown(final=True)
+
+    async def _drain_runs(self, timeout: float) -> None:
+        """Graceful part of a stop: wait up to *timeout* s for runs in flight.
+
+        From here on no new event starts (see :attr:`_draining`); the
+        following teardown cancels whatever still runs.  Ends early when
+        :meth:`abort_drain` is called.
+        """
+        if self.state not in (
+            ProcessState.RUNNING,
+            ProcessState.AWAITING,
+            ProcessState.SUSPENDED,
+        ):
+            return
+        self._draining = True
+        current = asyncio.current_task()
+        running = {t for t in self._running_workers if t is not current}
+        if not running:
+            return
+        if self._drain_abort is None:
+            self._drain_abort = asyncio.Event()
+        abort = self._drain_abort
+        logger.info(
+            "AgentProcess %s: stopping; waiting up to %gs for %d run(s) in flight",
+            self.name,
+            timeout,
+            len(running),
+        )
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while running & self._running_workers and not abort.is_set():
+            remaining = deadline - loop.time()
+            if remaining <= 0:
+                break
+            with contextlib.suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(abort.wait(), min(0.05, remaining))
+        left = len(running & self._running_workers)
+        if left:
+            logger.warning(
+                "AgentProcess %s: cancelling %d run(s) still in flight (%s)",
+                self.name,
+                left,
+                "stop forced" if abort.is_set() else f"drain_timeout of {timeout:g}s reached",
+            )
+
+    def abort_drain(self) -> None:
+        """End a graceful stop's wait now: the runs in flight are cancelled.
+
+        For a second ``SIGTERM`` / Ctrl+C during
+        ``stop(drain_timeout=...)``.  Does nothing when no stop is waiting.
+        """
+        if self._drain_abort is not None:
+            self._drain_abort.set()
 
     async def close(self) -> None:
         """Stop the process and release what lives as long as the object.
@@ -1774,13 +1864,18 @@ class AgentProcess:
         # 1. Cancel worker tasks (and pending retries).  The events they
         # hold (waiting while suspended, or running) are dead-lettered.
         self._cancel_pending_retries(reason)
+        interrupted: list[TriggerEvent] = []
         for task, event in list(self._worker_events.items()):
             if task is current:
                 continue
             ran = task in self._running_workers
             self._dead_letter(event, reason, error="run cancelled" if ran else None)
+            if ran:
+                interrupted.append(event)
             self._worker_events.pop(task, None)
         await _cancel_and_wait([t for t in self._worker_tasks if t is not current])
+        for event in interrupted:
+            await self._record_interrupted_run(event, reason)
 
         # 2. Cancel trigger listeners
         await _cancel_and_wait([t for t in self._trigger_listener_tasks if t is not current])
@@ -1829,6 +1924,8 @@ class AgentProcess:
         self._heartbeat_task = None
         self._triggers.clear()
         self._dynamic_triggers.clear()
+        self._draining = False
+        self._drain_abort = None
 
         if final:
             # The state a later process (or recovery) starts from.
@@ -2005,6 +2102,9 @@ class AgentProcess:
         Args:
             event: The trigger event to inject.
         """
+        if self._draining:
+            self._dead_letter(event, "process stopped")
+            return
         if not await self._admit_event(event):
             return
         await self._wake_if_idle()
@@ -2902,6 +3002,9 @@ class AgentProcess:
                 if self.state == ProcessState.FAILED:
                     self._dead_letter(event, "process failed")
                     continue
+                if self._draining:
+                    self._dead_letter(event, "process stopped")
+                    continue
                 if not await self._admit_event(event):
                     continue
                 admitted = True
@@ -2927,7 +3030,7 @@ class AgentProcess:
         state = self.state
         if state == ProcessState.FAILED:
             return "process failed"
-        if state in (ProcessState.STOPPING, ProcessState.STOPPED):
+        if self._draining or state in (ProcessState.STOPPING, ProcessState.STOPPED):
             return "process stopped"
         if self._trigger_queue.full():
             return "queue full"
@@ -3076,6 +3179,65 @@ class AgentProcess:
             except asyncio.QueueFull:
                 self._dead_letter(event, reason)
 
+    async def _record_interrupted_run(self, event: TriggerEvent, reason: str) -> None:
+        """A stop cancelled *event*'s run: log it and journal it.
+
+        Written as a ``run_interrupted`` entry at every journal level, and
+        kept in the checkpoints while it is a dead letter (see
+        :meth:`_journal_checkpoint`), so it survives the program's exit.
+        """
+        self._interrupted_ids.add(event.event_id)
+        logger.warning(
+            "AgentProcess %s: run for event %s (%s) was cancelled by the stop; "
+            "its tool calls may already have taken effect",
+            self.name,
+            event.event_id,
+            event.trigger_type,
+        )
+        await self._journal_record(
+            "run_interrupted",
+            {"event": event.to_dict(), "reason": reason, "error": "run cancelled"},
+        )
+
+    def _interrupted_dead_letters(self) -> list[dict[str, Any]]:
+        """Dead letters of cancelled runs, JSON-ready (for the checkpoint)."""
+        kept: list[dict[str, Any]] = []
+        present: set[str] = set()
+        for entry in self._dead_letters:
+            event = entry["event"]
+            if event.event_id not in self._interrupted_ids:
+                continue
+            present.add(event.event_id)
+            kept.append({**entry, "event": event.to_dict()})
+        # Redelivered, cleared or rotated out: no longer tracked.
+        self._interrupted_ids &= present
+        return kept
+
+    def _restore_interrupted(self, entries: Any) -> int:
+        """Put the cancelled runs of a checkpoint back into the dead letters."""
+        if not isinstance(entries, list):
+            return 0
+        restored = 0
+        for item in entries:
+            try:
+                event = TriggerEvent.from_dict(item["event"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if event.event_id in self._interrupted_ids:
+                continue
+            self._dead_letters.append(
+                {
+                    "event": event,
+                    "reason": item.get("reason", "process stopped"),
+                    "error": item.get("error", "run cancelled"),
+                    "attempts": item.get("attempts", 0),
+                    "dead_lettered_at": item.get("dead_lettered_at"),
+                }
+            )
+            self._interrupted_ids.add(event.event_id)
+            restored += 1
+        return restored
+
     def _drain_queue_to_dead_letters(self, reason: str) -> None:
         while True:
             try:
@@ -3207,6 +3369,10 @@ class AgentProcess:
             return False
 
         async with self._semaphore:
+            if self._draining:
+                # A graceful stop is waiting for the runs in flight: no new one.
+                self._dead_letter(event, "process stopped")
+                return False
             if me is not None:
                 self._running_workers.add(me)
             started = time.perf_counter()

@@ -93,7 +93,7 @@ They are code only, like a hook's `callback`: `model_dump()` and `RuntimeConfig.
 | Method | Transition | What it does |
 |---|---|---|
 | `await start()` | `CREATED`, `STOPPED` or `FAILED` → `STARTING` → `RUNNING` | Recovers from the journal (first start only), resolves secrets, builds the agent and connects MCP servers, starts triggers, workers and the heartbeat |
-| `await stop()` | → `STOPPING` → `STOPPED` (from `CREATED`: straight to `STOPPED`) | Cancels workers and runs in flight, stops triggers, dead-letters queued events, writes a journal checkpoint (with a journal), closes the agent and its MCP connections, revokes secrets |
+| `await stop(*, drain_timeout=0.0)` | → `STOPPING` → `STOPPED` (from `CREATED`: straight to `STOPPED`) | Cancels workers and runs in flight (with `drain_timeout`: lets runs in flight finish first, see [Graceful stop](#graceful-stop)), stops triggers, dead-letters queued events, writes a journal checkpoint (with a journal), closes the agent and its MCP connections, revokes secrets |
 | `await close()` | as `stop()` | `stop()`, then closes long-term memory, revokes secrets and clears the conversation history |
 | `await suspend(reason="manual")` | `RUNNING` → `SUSPENDED` | Pauses processing; triggers keep queueing events |
 | `await resume(reason="manual")` | `SUSPENDED` → `RUNNING` | Runs the queued events in order; restarts the idle clock |
@@ -116,6 +116,20 @@ Calling `start()` on a process that is already `STARTING`, `RUNNING` or `SUSPEND
 - `STOPPED` or `STOPPING`: does nothing.
 
 An explicit `stop()` never triggers an automatic restart and cancels one that is pending. A run in flight is cancelled, and every event that hasn't run goes to the [dead letters](#dead-letters) with reason `"process stopped"`: events still in the queue, events a suspended worker or a trigger listener was holding, events still inside a trigger (a file watch's backlog, a webhook's accepted requests), and the cancelled run's event (with error `"run cancelled"`). An automatic restart keeps the queue instead, and adds the triggers' leftover events to it.
+
+#### Graceful stop
+
+`stop(drain_timeout=N)` lets the runs in flight finish before the process stops. From the moment it is called, no new event starts: trigger events and `inject()` go to the dead letters (`"process stopped"`), a webhook answers 503, and queued events are not picked up. The runs in flight get up to `N` seconds; only the ones still running then are cancelled. `drain_timeout=None` uses `ProcessConfig.drain_timeout` (default 5 seconds), and `process.abort_drain()` ends the wait early. A plain `stop()` keeps cancelling at once.
+
+```python
+await process.stop(drain_timeout=30)    # wait up to 30 s for the current run
+await process.stop(drain_timeout=None)  # wait up to config.drain_timeout
+await process.stop()                    # cancel at once
+```
+
+`AgentRuntime.run_forever()` stops this way on `SIGTERM` and Ctrl+C (see [Runtime Manager](runtime-manager.md#run_forever)).
+
+A cancelled run may have called tools that already took effect, so it is not dropped silently: the process logs a warning, writes a `run_interrupted` journal entry (at every journal level) with the event, and keeps the event in its journal checkpoint. A new process object with the same name and journal lists it in `dead_letters` again after `start()` (and counts it in `recovered["interrupted_runs"]`), so you can inspect it and call `redeliver_dead_letters()` if it should run again. Once redelivered or cleared, it is no longer carried over.
 
 ### suspend() and resume()
 
@@ -146,7 +160,7 @@ await process.resume()
 | Long-term memory | Provider stays open | Provider closed; `start()` opens a new one | Whatever the provider persists (Chroma, Mem0) |
 | Secrets | Revoked on stop (unless `secrets.revoke_on_stop=False`), resolved again on start | Revoked | Resolved on start |
 | Invocation count, budget counters, mission | Kept | Kept | Restored from the journal |
-| Dead letters | Kept | Kept | Not restored |
+| Dead letters | Kept | Kept | Runs a stop cancelled are restored (with a journal); the others are not |
 | Agent-added triggers (open mode) | Stopped and dropped | Dropped | Not restored |
 
 ---
