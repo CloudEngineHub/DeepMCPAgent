@@ -380,6 +380,79 @@ class TestWindowedInjection:
         assert [f.detector for f in report.warnings] == ["toxicity"]
 
 
+class _DilutingClassifier(_FakeClassifier):
+    """Scores the marker by the share of the chunk it fills, as the real model behaves.
+
+    A 0.99 hit on its own, below the 0.85 threshold once ordinary text makes
+    up more than half of the chunk.
+    """
+
+    def __call__(self, texts: list[str]) -> list[dict[str, Any]]:
+        self.calls.append(list(texts))
+        out = []
+        for t in texts:
+            share = len(self.marker) / len(t) if self.marker in t else 0.0
+            out.append(
+                {"label": "INJECTION", "score": 0.99}
+                if share >= 0.5
+                else {"label": "SAFE", "score": 0.99}
+            )
+        return out
+
+
+PAGE = (
+    "Clean the outdoor coil\n"
+    "A dirty coil lowers the efficiency of your heat pump. Clean it twice a year.\n"
+    "Switch the unit off at the outdoor isolator and wait 5 minutes.\n"
+    "Rinse the coil with a garden hose at low pressure, from the inside out.\n"
+    "Only remove snow and leaves. Rinse the coil when it is above 5 degrees.\n"
+    f"{ATTACK}\n"
+)
+
+
+class TestParagraphInjection:
+    """InjectionDetector(paragraphs=True): a short instruction is not diluted."""
+
+    @pytest.fixture
+    def diluting(self, monkeypatch: pytest.MonkeyPatch) -> _DilutingClassifier:
+        pipe = _DilutingClassifier()
+        monkeypatch.setattr(g, "_load_classifier", lambda name: pipe)
+        return pipe
+
+    @pytest.mark.asyncio
+    async def test_windows_alone_miss_a_short_instruction_in_a_page(self, diluting):
+        report = await PromptiseSecurityScanner(detectors=[InjectionDetector()]).scan_text(
+            PAGE, direction="tool"
+        )
+        assert report.passed
+        assert diluting.calls == [[PAGE]]
+
+    @pytest.mark.asyncio
+    async def test_paragraphs_catch_it_and_point_at_it(self, diluting):
+        scanner = PromptiseSecurityScanner(detectors=[InjectionDetector(paragraphs=True)])
+        report = await scanner.scan_text(PAGE, direction="tool")
+        [finding] = report.blocked
+        assert PAGE[finding.start : finding.end] == ATTACK
+        assert finding.metadata["windows"] == len(diluting.calls[0])
+
+    @pytest.mark.asyncio
+    async def test_one_line_is_classified_once(self, fake_classifier):
+        scanner = PromptiseSecurityScanner(detectors=[InjectionDetector(paragraphs=True)])
+        await scanner.scan_text("Hello there, how are you today?")
+        assert fake_classifier.calls == [["Hello there, how are you today?"]]
+
+    def test_segments_are_the_lines_worth_classifying(self):
+        long_line = "Sentence number one is here. " * 30
+        text = f"Title\n\n  A paragraph long enough to be classified.  \n{long_line}\nLast line here, done.\n"
+        segments = g._segments(text)
+        assert all(text[o : o + len(c)] == c for o, c in segments)
+        # The title is too short, the long line is left to the windows.
+        assert [c for _, c in segments] == [
+            "A paragraph long enough to be classified.",
+            "Last line here, done.",
+        ]
+
+
 class TestWindowedNER:
     @pytest.mark.asyncio
     async def test_entities_past_the_first_window_are_redacted(self, monkeypatch):

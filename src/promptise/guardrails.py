@@ -1993,6 +1993,29 @@ def _windows(text: str, size: int, stride: int) -> list[tuple[int, str]]:
         start += stride
 
 
+# Paragraph segments for InjectionDetector(paragraphs=True).  A short
+# instruction that shares a 512-character window with ordinary text can score
+# far below the threshold (0.58 against 0.99 for the same paragraph on its
+# own), so each paragraph (line) of up to a window's length is classified on
+# its own as well; longer lines are covered by the windows.  Lines with fewer
+# than _MIN_SEGMENT non-space characters are headings and labels, never a
+# whole instruction.
+_MIN_SEGMENT = 16
+
+
+def _segments(text: str) -> list[tuple[int, str]]:
+    """``(offset, paragraph)`` for every line of *text* worth classifying alone."""
+    out: list[tuple[int, str]] = []
+    pos = 0
+    for line in text.splitlines(keepends=True):
+        stripped = line.strip()
+        start = pos + len(line) - len(line.lstrip())
+        pos += len(line)
+        if len(stripped) <= _CLASSIFIER_WINDOW and len(stripped.replace(" ", "")) >= _MIN_SEGMENT:
+            out.append((start, stripped))
+    return out
+
+
 def _top_prediction(item: Any) -> dict[str, Any]:
     """Return the top ``{label, score}`` dict from one pipeline result.
 
@@ -2012,14 +2035,29 @@ def _top_prediction(item: Any) -> dict[str, Any]:
 class InjectionDetector:
     """Detect prompt injection attacks using a local DeBERTa model.
 
+    Text is classified in overlapping 512-character windows.  A short
+    instruction that shares its window with ordinary text can score below
+    ``threshold`` (a one-sentence instruction at the end of a web page
+    scored 0.58 in its window and 0.99 on its own).  ``paragraphs=True``
+    also classifies every paragraph (line) of up to 512 characters on its
+    own and blocks on the highest score.  An instruction inside a longer
+    paragraph still shares its chunk with the rest of that paragraph.  It
+    costs one classification per paragraph, and the default model flags
+    short lines of technical text (code, commands, headings, imperative
+    how-to steps) much more often than whole windows, so expect more false
+    positives on such text.
+
     Args:
         model: HuggingFace model ID or local directory path.
         threshold: Confidence threshold for blocking (0.0-1.0).
+        paragraphs: Also classify each paragraph (line) on its own
+            (default ``False``: windows only).
 
     Example::
 
         InjectionDetector()
         InjectionDetector(model="/models/local/deberta", threshold=0.9)
+        InjectionDetector(paragraphs=True)  # web pages, emails, tickets
     """
 
     def __init__(
@@ -2027,9 +2065,11 @@ class InjectionDetector:
         *,
         model: str = _DEFAULT_INJECTION_MODEL,
         threshold: float = 0.85,
+        paragraphs: bool = False,
     ) -> None:
         self.model = model
         self.threshold = threshold
+        self.paragraphs = paragraphs
 
     def warmup(self) -> None:
         """Pre-load the model."""
@@ -2615,6 +2655,7 @@ class PromptiseSecurityScanner:
             inj = next((d for d in detectors if isinstance(d, InjectionDetector)), None)
             self._injection_model_name = inj.model if inj else injection_model
             self._injection_threshold = inj.threshold if inj else injection_threshold
+            self._injection_paragraphs = inj.paragraphs if inj else False
 
             self._toxicity_model_name = toxicity_model
             self._toxicity_threshold = toxicity_threshold
@@ -2657,6 +2698,7 @@ class PromptiseSecurityScanner:
             self._injection_model_name = injection_model
             self._toxicity_model_name = toxicity_model
             self._injection_threshold = injection_threshold
+            self._injection_paragraphs = False
             self._toxicity_threshold = toxicity_threshold
             self._on_pii = on_pii
             self._on_credentials = on_credentials
@@ -3038,15 +3080,22 @@ class PromptiseSecurityScanner:
                 )
         return findings
 
-    async def _classify(self, model_name: str, text: str) -> list[tuple[int, str, str, float]]:
+    async def _classify(
+        self, model_name: str, text: str, *, paragraphs: bool = False
+    ) -> list[tuple[int, str, str, float]]:
         """Run a text classifier over overlapping windows of *text*.
 
-        Returns ``(offset, window, label, score)`` per window.  Raises if
+        With *paragraphs*, every paragraph (see :func:`_segments`) is
+        classified on its own too.
+        Returns ``(offset, chunk, label, score)`` per chunk.  Raises if
         the model cannot be loaded or run; the caller decides whether that
         fails open or closed.
         """
         pipe = _load_classifier(model_name)
         windows = _windows(text, _CLASSIFIER_WINDOW, _CLASSIFIER_STRIDE)
+        if paragraphs:
+            seen = set(windows)
+            windows += [seg for seg in _segments(text) if seg not in seen]
         loop = asyncio.get_running_loop()
         results = await loop.run_in_executor(None, pipe, [chunk for _, chunk in windows])
         out: list[tuple[int, str, str, float]] = []
@@ -3061,14 +3110,19 @@ class PromptiseSecurityScanner:
         No regex pre-filter — the model handles all classification to
         avoid false positives on benign phrases like "pretend to be".
         The whole text is classified in overlapping windows, so padding
-        cannot push an attack past the model's input limit.
+        cannot push an attack past the model's input limit.  With
+        ``InjectionDetector(paragraphs=True)`` every paragraph is
+        classified on its own too, so ordinary text around a short
+        instruction cannot dilute its score below the threshold.
         """
         # Agent replies aren't an injection vector; user input and tool
         # results are.
         if direction == "output" or not text.strip():
             return []
 
-        windows = await self._classify(self._injection_model_name, text)
+        windows = await self._classify(
+            self._injection_model_name, text, paragraphs=self._injection_paragraphs
+        )
         hits = [
             (score, offset, chunk, label.upper())
             for offset, chunk, label, score in windows

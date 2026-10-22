@@ -152,12 +152,14 @@ Detects prompt injection attacks using a local transformer model. No regex — p
 InjectionDetector()                                          # defaults
 InjectionDetector(model="protectai/deberta-v3-base-prompt-injection-v2")  # explicit
 InjectionDetector(model="/models/local/deberta", threshold=0.9)  # local + strict
+InjectionDetector(paragraphs=True)                           # also each paragraph on its own
 ```
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `model` | `str` | `protectai/deberta-v3-base-prompt-injection-v2` | HuggingFace model ID or local directory path |
 | `threshold` | `float` | `0.85` | Confidence threshold for blocking (0.0-1.0) |
+| `paragraphs` | `bool` | `False` | Also classify every paragraph (line of up to 512 characters) on its own. See [Short instructions in longer text](#short-instructions-in-longer-text). |
 
 **What it catches:**
 
@@ -174,7 +176,20 @@ InjectionDetector(model="/models/local/deberta", threshold=0.9)  # local + stric
 - "Can you give me instructions on baking a cake?" (benign use of word "instructions")
 - "What are the rules for chess?" (benign use of word "rules")
 
-**Runs on input and on tool results** (with `scan_tool_results=True`). Agent output is skipped — the agent's own replies are not an injection vector, so `"injection"` is not listed in `scanners_run` for an output scan. Text of any length is classified in overlapping 512-character windows; the finding's `start` / `end` point at the window that scored highest.
+**Runs on input and on tool results** (with `scan_tool_results=True`). Agent output is skipped — the agent's own replies are not an injection vector, so `"injection"` is not listed in `scanners_run` for an output scan. Text of any length is classified in overlapping 512-character windows; the finding's `start` / `end` point at the window (or paragraph) that scored highest.
+
+#### Short instructions in longer text
+
+A window's score is about the whole window, so a short instruction that shares its window with ordinary text can score below `threshold`. On a support page whose last paragraph was a one-sentence instruction for AI assistants, the window holding it scored 0.58 and the same paragraph on its own 0.99, so the page passed. With `paragraphs=True` the scanner also classifies every paragraph (every line of up to 512 characters with at least 16 non-space characters) on its own and blocks on the highest score of all:
+
+```python
+scanner = PromptiseSecurityScanner(
+    detectors=[InjectionDetector(paragraphs=True)],
+    scan_tool_results=True,
+)
+```
+
+It is off by default for two reasons. Each paragraph is one more classification, so a long page costs many more model calls. And the default model flags short lines of technical text (code, shell commands, headings, how-to steps written as instructions) much more often than whole windows: on Promptise's own documentation it flagged about one paragraph in five, against about one window in twenty. Turn it on for text where an instruction aimed at the model is likely and code is rare, such as web pages, emails and tickets, and check it against your own tool results. An instruction in the middle of a paragraph longer than 512 characters is still scored with the text around it.
 
 ---
 

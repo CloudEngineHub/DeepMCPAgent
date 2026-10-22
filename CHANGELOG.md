@@ -5,6 +5,7 @@
 ### Added
 
 - **Sandbox: `docker_network`** -- `SandboxConfig(docker_network="agent-egress")` (also in `.superagent` files) attaches the sandbox container to an existing Docker network instead of Docker's default bridge, with `network="full"` or `"restricted"`. With an `--internal` network whose only way out is an egress proxy, sandboxed code reaches only the hosts the proxy allows; `network="restricted"` alone filters ports, not hosts. A network that does not exist stops the session from starting with a message that says how to create it, and the host's network, `none` and another container's network are refused. See "Allowing only some hosts" in docs/core/sandbox.md.
+- **Guardrails: `InjectionDetector(paragraphs=True)`** -- also classifies every paragraph (line of up to 512 characters) of the scanned text on its own and blocks on the highest score. The 512-character windows can dilute a short instruction: on a support page whose last paragraph was an instruction for AI assistants, its window scored 0.58 (below the 0.85 threshold) and the paragraph alone 0.99, so a tool result with it passed. Off by default: it costs one classification per paragraph, and the default model flags short lines of technical text (code, commands, headings) much more often than whole windows. See "Short instructions in longer text" in docs/core/guardrails.md.
 
 ### Fixed
 
@@ -21,6 +22,7 @@
 - Docs: the observability page lists what the trace redaction replaces and with which placeholder; the guardrails page lists the GitHub token formats and the `BEARER` category.
 - Docs: the sandbox page says exactly what `network="restricted"` allows (DNS to any server, TCP 80/443 to any host outside the link-local range, so any web server is reachable) and shows how to allow only some hosts with an egress proxy and `docker_network`; the sandbox README no longer calls `"restricted"` the default (the default is `"none"`).
 - Docs: the memory page warns that the default `SHARED` scope shares every caller's memories and shows `purge_user` for a caller with a tenant.
+- Docs: the guardrails page explains how the injection windows can dilute a short instruction and when to use `paragraphs=True`.
 
 
 ## 1.6.0 — 2026-10-21
