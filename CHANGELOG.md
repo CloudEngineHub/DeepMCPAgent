@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **A call to a tool the agent doesn't have tells the model which tools it has.** The error result was `Error: Unknown tool 'get_ordr'`, so a model that invented or misspelled a tool name had nothing to correct it with and often tried the same name again. It now lists the agent's tools, the names closest to the one called first, at most 20 of them followed by how many more there are, and suggests the tool whose name the called one looks like a misspelling of: `Error: Unknown tool 'get_ordr'. Did you mean 'get_order'? Call one of the available tools: get_order, refund_order.` A name that only shares a word with a tool (`cancel_order` and `get_order`) gets no suggestion. This applies to the tool calls of every built-in agent pattern and of a `ToolNode`. The text still starts with `Error: Unknown tool '<name>'`.
+
+
 ## 1.6.0 — 2026-10-21
 
 Python functions are tools: `from promptise import tool` declares one, with its schema taken from the type hints and the docstring and no `langchain_core` import. `MCPClient` reuses its HTTP connections over Streamable HTTP instead of opening one per request, `promptise runtime start --detach` on Windows no longer loses track of a runtime that has started, a `promptise run --tui` run ends after its program's last output line, and every page of docs.promptise.com has a title and description that say what it covers.
