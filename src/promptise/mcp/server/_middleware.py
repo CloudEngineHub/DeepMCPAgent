@@ -190,34 +190,76 @@ class TimeoutMiddleware:
         try:
             return await asyncio.wait_for(call_next(ctx), timeout=timeout)
         except asyncio.TimeoutError:
-            raise tool_timeout_error(ctx.tool_name, timeout) from None
+            annotations = getattr(tool_def, "annotations", None)
+            raise tool_timeout_error(
+                ctx.tool_name,
+                timeout,
+                read_only=bool(getattr(annotations, "read_only_hint", False)),
+                idempotent=bool(getattr(annotations, "idempotent_hint", False)),
+            ) from None
 
 
-def tool_timeout_error(tool_name: str, timeout: float) -> Any:
-    """The retryable ``TIMEOUT`` error for a call that ran past *timeout*."""
+def tool_timeout_error(
+    tool_name: str,
+    timeout: float,
+    *,
+    read_only: bool = False,
+    idempotent: bool = False,
+    still_running: bool = False,
+) -> Any:
+    """The ``TIMEOUT`` error for a call that ran past *timeout*.
+
+    A call that timed out may have done its work anyway (sent the email,
+    charged the card) before it was stopped, or, for a synchronous
+    function in a thread, may still finish.  So the error says the outcome
+    is unknown, and is ``retryable`` only for a tool marked read-only or
+    idempotent, which is safe to call again.  Any other tool's caller is
+    told to check whether the call took effect before calling it again.
+
+    Args:
+        tool_name: The tool that timed out.
+        timeout: Its limit, in seconds.
+        read_only: The tool is marked read-only (``readOnlyHint``).
+        idempotent: The tool is marked idempotent (``idempotentHint``).
+        still_running: The call could not be stopped and keeps running.
+    """
     from ._errors import ToolError
 
+    running = " It is still running and may complete." if still_running else ""
+    if read_only or idempotent:
+        kind = "read-only" if read_only else "idempotent"
+        suggestion = (
+            f"The tool is marked {kind}, so calling it again is safe: retry later, "
+            "or continue without it."
+        )
+    else:
+        suggestion = (
+            "Whether the call took effect is unknown: it may have completed before it "
+            "was stopped" + (" or may still complete" if still_running else "") + ". Check "
+            "whether it did (for example by looking the result up) before calling the "
+            "tool again; do not simply retry it."
+        )
     return ToolError(
-        f"Tool '{tool_name}' timed out after {timeout}s",
+        f"Tool '{tool_name}' did not finish within {timeout}s, so its outcome is unknown.{running}",
         code="TIMEOUT",
-        retryable=True,
-        suggestion=(
-            f"The tool did not finish within {timeout}s. It may depend on a slow "
-            "or unavailable service: retry later, or continue without it."
-        ),
+        retryable=read_only or idempotent,
+        suggestion=suggestion,
+        details={"outcome": "unknown", "timeout_seconds": timeout},
     )
 
 
 def with_tool_timeout(
-    handler: Callable[..., Any], timeout: float, tool_name: str
+    handler: Callable[..., Any], timeout: float, tool_name: str, annotations: Any = None
 ) -> Callable[..., Any]:
     """Bound *handler* by a ``@server.tool(timeout=...)`` limit.
 
     Applied by the server (and ``TestClient``) to every tool that declares
     a timeout, with or without :class:`TimeoutMiddleware`.  Only the tool's
-    own run is timed — not middleware in front of it, such as an approval
+    own run is timed, not middleware in front of it, such as an approval
     gate waiting for a human.  A synchronous handler blocks the event loop
     and cannot be interrupted, so the limit only applies to ``async`` tools.
+    *annotations* (the tool's ``ToolAnnotations``) decide whether the
+    ``TIMEOUT`` error is retryable (see :func:`tool_timeout_error`).
     """
 
     async def _timed(**kwargs: Any) -> Any:
@@ -230,6 +272,11 @@ def with_tool_timeout(
         try:
             return await asyncio.wait_for(_run(), timeout=timeout)
         except asyncio.TimeoutError:
-            raise tool_timeout_error(tool_name, timeout) from None
+            raise tool_timeout_error(
+                tool_name,
+                timeout,
+                read_only=bool(getattr(annotations, "read_only_hint", False)),
+                idempotent=bool(getattr(annotations, "idempotent_hint", False)),
+            ) from None
 
     return _timed

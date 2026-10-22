@@ -869,8 +869,12 @@ class TestTimeout:
             await slow.ainvoke({})
         assert time.perf_counter() - started < 1.5
         assert info.value.code == "TIMEOUT"
-        assert info.value.retryable is True
-        assert info.value.message == "Tool 'slow' timed out after 0.1s"
+        # The call may have done its work before it was stopped.
+        assert info.value.retryable is False
+        assert (
+            info.value.message
+            == "Tool 'slow' did not finish within 0.1s, so its outcome is unknown."
+        )
         await asyncio.wait_for(cancelled.wait(), 1)  # the function was cancelled
 
     async def test_sync_tool_times_out_without_blocking(self):
@@ -884,11 +888,50 @@ class TestTimeout:
 
         started = time.perf_counter()
         try:
-            with pytest.raises(FunctionToolError, match="TIMEOUT"):
+            with pytest.raises(FunctionToolError, match="TIMEOUT") as info:
                 await stuck.ainvoke({})
             assert time.perf_counter() - started < 1.5
         finally:
             release.set()
+        # A thread can't be stopped: the call keeps running and may complete.
+        assert "still running and may complete" in info.value.message
+        assert info.value.retryable is False
+        assert "Check whether it did" in info.value.error.suggestion
+
+    @pytest.mark.parametrize(
+        ("hint", "kind"), [("read_only", "read-only"), ("idempotent", "idempotent")]
+    )
+    async def test_timeout_of_a_tool_safe_to_repeat_is_retryable(self, hint, kind):
+        @tool(timeout=0.05, **{hint: True})
+        async def lookup() -> str:
+            """Look something up."""
+            await asyncio.sleep(5)
+            return "late"
+
+        with pytest.raises(FunctionToolError) as info:
+            await lookup.ainvoke({})
+        assert info.value.retryable is True
+        assert f"marked {kind}" in info.value.error.suggestion
+
+    def test_hints_are_mcp_annotations_in_metadata(self):
+        @tool(read_only=True)
+        def find(q: str) -> str:
+            """Find."""
+            return q
+
+        @tool(idempotent=True)
+        def put(key: str) -> str:
+            """Put."""
+            return key
+
+        @tool
+        def send(to: str) -> str:
+            """Send."""
+            return to
+
+        assert find.metadata == {"readOnlyHint": True, "idempotentHint": True}
+        assert put.metadata == {"idempotentHint": True}
+        assert not send.metadata
 
     async def test_fast_tool_is_not_affected(self):
         @tool(timeout=5)

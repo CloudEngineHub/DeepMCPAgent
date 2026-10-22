@@ -1672,7 +1672,9 @@ class MCPServer:
                     effective_handler = _guarded
 
                 if tdef.timeout:
-                    effective_handler = with_tool_timeout(effective_handler, tdef.timeout, name)
+                    effective_handler = with_tool_timeout(
+                        effective_handler, tdef.timeout, name, tdef.annotations
+                    )
 
                 # Use pre-compiled middleware chain (avoids per-request
                 # closure construction)

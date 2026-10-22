@@ -100,9 +100,11 @@ def is_upstream_failure(exc: BaseException) -> bool:
 
     * any exception that is not an ``MCPError`` — a crash, a connection
       error, an upstream SDK raising: the tool is unhealthy;
-    * a *retryable* ``MCPError`` other than the caller-side ones below —
-      e.g. a ``TIMEOUT``, or ``ToolError("upstream unavailable",
-      retryable=True)``.
+    * a ``TIMEOUT`` (retryable or not: a tool that is not idempotent
+      reports its timeouts as non-retryable, and they still mean a slow
+      upstream);
+    * a *retryable* ``MCPError`` other than the caller-side ones below,
+      e.g. ``ToolError("upstream unavailable", retryable=True)``.
 
     Does not count:
 
@@ -117,7 +119,7 @@ def is_upstream_failure(exc: BaseException) -> bool:
         return True
     if isinstance(exc, _CALLER_ERRORS):
         return False
-    return exc.retryable
+    return exc.retryable or exc.code == "TIMEOUT"
 
 
 class CircuitBreakerMiddleware:

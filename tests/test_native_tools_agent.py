@@ -339,7 +339,9 @@ class TestErrorsReachTheModel:
         assert msg.status == "error"
         error = json.loads(msg.content)["error"]
         assert error["code"] == "TIMEOUT"
-        assert error["retryable"] is True
+        # Not marked read-only or idempotent: the model must not just retry.
+        assert error["retryable"] is False
+        assert "outcome is unknown" in error["message"]
 
     async def test_model_corrects_the_call(self):
         model = _Model(

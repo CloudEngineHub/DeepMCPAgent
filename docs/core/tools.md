@@ -179,10 +179,16 @@ reported the same way.  Any other exception is a tool that failed, as for
 every tool: the model reads `Error: <type>: <message>`, so don't put secrets
 in exception messages.
 
-With `timeout=` a call that runs longer is answered with a retryable `TIMEOUT`
-error (`Tool 'refund_order' timed out after 10s`).  An async function is
-cancelled; a sync function's thread can't be stopped, so it finishes in the
-background and its result is dropped.
+With `timeout=` a call that runs longer is answered with a `TIMEOUT` error
+(`Tool 'refund_order' did not finish within 10s, so its outcome is unknown.`).
+An async function is cancelled; a sync function's thread can't be stopped, so
+it finishes in the background and its result is dropped (the error says it is
+still running). The call may have taken effect before it was stopped, so the
+error is `retryable` only for a tool marked `@tool(read_only=True)` or
+`@tool(idempotent=True)`; for any other tool it tells the model to check
+whether the call took effect before calling it again. `read_only` and
+`idempotent` are the MCP `readOnlyHint` and `idempotentHint` annotations, so
+the semantic cache and approval rules read them too.
 
 ### Results
 

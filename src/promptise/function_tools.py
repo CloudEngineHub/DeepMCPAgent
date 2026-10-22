@@ -265,6 +265,8 @@ class FunctionTool(BaseTool):
         name: str | None = None,
         description: str | None = None,
         timeout: float | None = None,
+        read_only: bool = False,
+        idempotent: bool = False,
     ) -> FunctionTool:
         """Make a tool from *func* (what :func:`tool` does).
 
@@ -277,6 +279,9 @@ class FunctionTool(BaseTool):
                 there is no docstring.
             timeout: Seconds a call may run before it is answered with a
                 ``TIMEOUT`` error; ``None`` for no limit.
+            read_only: The tool only reads (MCP ``readOnlyHint``).
+            idempotent: Calling the tool again with the same arguments has
+                no further effect (MCP ``idempotentHint``).
 
         Raises:
             TypeError: *func* is not a callable that can be a tool (a class,
@@ -343,8 +348,17 @@ class FunctionTool(BaseTool):
             not inspect.isroutine(func) and inspect.iscoroutinefunction(type(func).__call__)
         )
 
+        # Flat MCP annotation keys, where the agent reads them for MCP tools
+        # (semantic cache write detection, approval, timeout errors).
+        hints = {"readOnlyHint": True} if read_only else {}
+        if idempotent or read_only:
+            hints["idempotentHint"] = True
         made = cls(
-            name=tool_name, description=description, args_schema=args_schema, timeout=timeout
+            name=tool_name,
+            description=description,
+            args_schema=args_schema,
+            timeout=timeout,
+            metadata=hints or None,
         )
         made._func = func
         made._is_async = is_async
@@ -453,7 +467,15 @@ class FunctionTool(BaseTool):
             task.cancel()
             # A result or error that arrives after the timeout is dropped.
             task.add_done_callback(lambda t: t.cancelled() or t.exception())
-            raise tool_timeout_error(self.name, self.timeout)
+            hints = self.metadata or {}
+            raise tool_timeout_error(
+                self.name,
+                self.timeout,
+                read_only=bool(hints.get("readOnlyHint")),
+                idempotent=bool(hints.get("idempotentHint")),
+                # A thread can't be stopped: a sync function keeps running.
+                still_running=not self._is_async,
+            )
         return task.result()
 
     async def _arun(self, **kwargs: Any) -> Any:
@@ -498,6 +520,8 @@ def tool(
     *,
     description: str | None = None,
     timeout: float | None = None,
+    read_only: bool = False,
+    idempotent: bool = False,
 ) -> Callable[[Callable[..., Any]], FunctionTool]: ...
 
 
@@ -507,6 +531,8 @@ def tool(
     name: str | None = None,
     description: str | None = None,
     timeout: float | None = None,
+    read_only: bool = False,
+    idempotent: bool = False,
 ) -> Callable[[Callable[..., Any]], FunctionTool]: ...
 
 
@@ -517,6 +543,8 @@ def tool(
     name: str | None = None,
     description: str | None = None,
     timeout: float | None = None,
+    read_only: bool = False,
+    idempotent: bool = False,
 ) -> Any:
     """Make a Python function a tool an agent can call.
 
@@ -557,7 +585,13 @@ def tool(
         description: The tool's description; defaults to the docstring
             without its parameter section.
         timeout: Seconds a call may run before the model gets a ``TIMEOUT``
-            error; ``None`` (default) for no limit.
+            error; ``None`` (default) for no limit.  The error says the
+            call's outcome is unknown, and is retryable only for a tool
+            marked ``read_only`` or ``idempotent``.
+        read_only: The tool only reads data (MCP ``readOnlyHint``): safe to
+            call again, and its answers may be cached.
+        idempotent: Calling it again with the same arguments has no further
+            effect (MCP ``idempotentHint``): safe to call again.
 
     Returns:
         A :class:`FunctionTool`, or a decorator that makes one.
@@ -570,11 +604,23 @@ def tool(
 
         def decorate(f: Callable[..., Any]) -> FunctionTool:
             return FunctionTool.from_function(
-                f, name=name, description=description, timeout=timeout
+                f,
+                name=name,
+                description=description,
+                timeout=timeout,
+                read_only=read_only,
+                idempotent=idempotent,
             )
 
         return decorate
-    return FunctionTool.from_function(func, name=name, description=description, timeout=timeout)
+    return FunctionTool.from_function(
+        func,
+        name=name,
+        description=description,
+        timeout=timeout,
+        read_only=read_only,
+        idempotent=idempotent,
+    )
 
 
 def as_tools(items: Iterable[Any] | None, *, argument: str = "extra_tools") -> list[BaseTool]:

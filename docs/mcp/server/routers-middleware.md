@@ -190,7 +190,7 @@ from promptise.mcp.server import TimeoutMiddleware
 server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
 ```
 
-If a tool exceeds the timeout, a retryable `ToolError` with code `TIMEOUT` is returned to the client.
+If a tool exceeds the timeout, a `ToolError` with code `TIMEOUT` is returned to the client. It says the call's outcome is unknown, and is `retryable` only for a tool declared with `read_only_hint=True` or `idempotent_hint=True`.
 
 #### ConcurrencyLimiter
 

@@ -458,8 +458,12 @@ in front of it such as an approval gate waiting for a human. It applies to
 interrupted.
 
 When the limit is hit the call is cancelled and the agent receives a
-`TIMEOUT` error with `retryable=True` and a suggestion to retry later or
-continue without the tool. A timeout counts as a failure for the
+`TIMEOUT` error saying the call's outcome is unknown: it may have taken
+effect before it was cancelled. For a tool declared with
+`read_only_hint=True` or `idempotent_hint=True` the error is
+`retryable=True` and suggests retrying later; for any other tool it is not
+retryable and tells the model to check whether the call took effect before
+calling it again. A timeout counts as a failure for the
 [circuit breaker](resilience-patterns.md#circuit-breaker): a dependency that
 keeps hanging gets paused.
 

@@ -403,6 +403,7 @@ class TestBreakerClassification:
             (ToolError("No product BAD"), False),
             (ToolError("upstream 503", retryable=True), True),
             (ToolError("slow", code="TIMEOUT", retryable=True), True),
+            (ToolError("slow", code="TIMEOUT"), True),
             (RateLimitError(retry_after=1), False),
             (ConcurrencyLimitError("busy"), False),
             (CircuitOpenError("t", 1), False),
@@ -667,8 +668,31 @@ class TestToolTimeout:
         start = time.perf_counter()
         err = (await _call(TestClient(server), "hang"))["error"]
         assert time.perf_counter() - start < 1
-        assert (err["code"], err["retryable"]) == ("TIMEOUT", True)
+        assert (err["code"], err["retryable"]) == ("TIMEOUT", False)
         assert "simpler input" not in err["suggestion"]
+        assert "Check whether it did" in err["suggestion"]
+
+    @pytest.mark.parametrize("hint", ["read_only_hint", "idempotent_hint"])
+    async def test_a_tool_safe_to_repeat_gets_a_retryable_timeout(self, hint):
+        from promptise.mcp.server import TimeoutMiddleware
+
+        server = MCPServer("timeouts")
+        server.add_middleware(TimeoutMiddleware(default_timeout=0.05))
+
+        @server.tool(timeout=0.05, **{hint: True})
+        async def lookup() -> str:
+            await asyncio.sleep(5)
+            return "finished"
+
+        @server.tool()
+        async def send() -> str:
+            await asyncio.sleep(5)
+            return "sent"
+
+        lookup_err = (await _call(TestClient(server), "lookup"))["error"]
+        send_err = (await _call(TestClient(server), "send"))["error"]
+        assert (lookup_err["code"], lookup_err["retryable"]) == ("TIMEOUT", True)
+        assert (send_err["code"], send_err["retryable"]) == ("TIMEOUT", False)
 
     async def test_enforced_on_the_live_path(self):
         server = MCPServer("timeouts-live")

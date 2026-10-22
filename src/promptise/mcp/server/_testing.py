@@ -269,7 +269,9 @@ class TestClient:
             if tdef.timeout:
                 from ._middleware import with_tool_timeout
 
-                effective_handler = with_tool_timeout(effective_handler, tdef.timeout, name)
+                effective_handler = with_tool_timeout(
+                    effective_handler, tdef.timeout, name, tdef.annotations
+                )
 
             if all_mw:
                 chain = MiddlewareChain(all_mw)

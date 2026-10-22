@@ -431,7 +431,8 @@ class TestMiddleware:
         result = await client.call_tool("slow_task", {})
         parsed = json.loads(result[0].text)
         assert parsed["error"]["code"] == "TIMEOUT"
-        assert parsed["error"]["retryable"] is True
+        assert parsed["error"]["retryable"] is False
+        assert parsed["error"]["details"]["outcome"] == "unknown"
 
     async def test_cache_middleware_caches_results(self):
         """CacheMiddleware returns cached results on repeated calls."""

@@ -73,8 +73,9 @@ count towards `failure_threshold`:
 
 - **Unexpected exceptions**: anything that isn't an `MCPError` (a crash, a
   `ConnectionError`, an upstream SDK raising).
-- **Retryable `MCPError`s** that signal a transient failure: a `TIMEOUT`
-  (from `@server.tool(timeout=...)` or `TimeoutMiddleware`), or your own
+- **A `TIMEOUT`** (from `@server.tool(timeout=...)` or `TimeoutMiddleware`),
+  retryable or not.
+- **Retryable `MCPError`s** that signal a transient failure, such as your own
   `ToolError("Upstream unavailable", retryable=True)`.
 
 These never count:
