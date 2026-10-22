@@ -2983,6 +2983,23 @@ AGENT_PATTERNS: tuple[str, ...] = (
 )
 
 
+def _with_graph_blocks(nodes: Sequence[Any], blocks: list[Any] | None) -> list[Any]:
+    """*nodes* with ``build_agent(graph_blocks=...)`` ahead of each prompt
+    node's own blocks.  The nodes are copied, never changed in place."""
+    if not blocks:
+        return list(nodes)
+    import copy
+
+    out: list[Any] = []
+    for item in nodes:
+        own = getattr(item, "blocks", None)
+        if isinstance(own, list):
+            item = copy.copy(item)
+            item.blocks = [*blocks, *[b for b in own if b not in blocks]]
+        out.append(item)
+    return out
+
+
 def _check_agent_pattern(agent_pattern: Any) -> None:
     """Raise ``ValueError`` for an ``agent_pattern`` string that names no
     built-in pattern (instead of silently running ReAct)."""
@@ -3206,7 +3223,9 @@ async def build_agent(
             does only the latter.  Without ``approval`` the agent declares
             no elicitation support and such servers deny the call.  See
             :func:`~promptise.approval.approval_elicitation_callback` for
-            the mapping and its fail-closed rules.
+            the mapping and its fail-closed rules.  It also answers the
+            ``HumanNode`` steps of the agent's graph; without ``approval``
+            a ``HumanNode`` fails the run instead of approving.
         guardrails: Optional input/output scanner — a
             :class:`~promptise.guardrails.PromptiseSecurityScanner` or any
             object with ``check_input`` / ``check_output``.  ``True`` uses
@@ -3216,13 +3235,21 @@ async def build_agent(
             ``scan_tool_results=True``, every tool is wrapped so its result
             is scanned before the model reads it.
 
+        graph_blocks: Prompt blocks added ahead of the blocks of every
+            prompt node: those of a pattern given by name, of the default
+            ReAct graph, and of ``node_pool`` (the pool's nodes are copied,
+            not changed).  A ``PromptGraph`` passed as ``agent_pattern``
+            keeps its nodes as they are.
+        node_pool: Nodes for an autonomous graph: the agent picks the next
+            node at each step.  Takes precedence over ``agent_pattern``.
         max_agent_iterations: The most node executions one run may make
             (the engine's ``max_iterations``).  With the default ReAct
-            graph each execution of the ``reason`` node is one model call
-            plus the tool calls it asks for, so ``N`` allows at most ``N``
-            model calls (the ``reason`` node's limit is ``N`` too).  Other
-            patterns count each node execution
-            (planner, tools, reflection...).  A run that reaches the limit
+            graph (and ``"react"`` / ``"managed"``) each execution of the
+            ``reason`` node is one model call plus the tool calls it asks
+            for, so ``N`` allows at most ``N`` model calls (the ``reason``
+            node's limit is ``N`` too).  Other patterns count each node
+            execution (planner, tools, reflection...), and their nodes
+            keep their own budgets.  A run that reaches the limit
             after the model asked for tools, before it saw their results,
             raises :class:`~promptise.engine.GraphIterationLimitError`.
             Defaults to ``25``.
@@ -3485,6 +3512,14 @@ async def build_agent(
                 "approval must be an ApprovalPolicy, an ApprovalHandler or a callable, "
                 f"got {type(approval).__name__}"
             )
+
+    # A HumanNode in the agent's graph asks the same reviewer; without
+    # ``approval`` it has no handler and fails instead of approving.
+    _human_handler: Any = None
+    if approval is not None:
+        from .approval import _human_node_handler
+
+        _human_handler = _human_node_handler(approval)
 
     # Only create MCP client if there are servers to connect to
     tools: list[BaseTool] = []
@@ -3815,7 +3850,11 @@ async def build_agent(
 
         # Priority 1: node_pool — build autonomous graph from pool
         if node_pool:
-            graph = PromptGraph.from_pool(node_pool, system_prompt=sys_prompt, name="autonomous")
+            graph = PromptGraph.from_pool(
+                _with_graph_blocks(node_pool, graph_blocks),
+                system_prompt=sys_prompt,
+                name="autonomous",
+            )
         # Priority 2: PromptGraph instance passed directly
         elif isinstance(_pattern, PromptGraph):
             graph = _pattern
@@ -3831,11 +3870,19 @@ async def build_agent(
         # Priority 3: String pattern name
         elif isinstance(_pattern, str):
             builders = {
+                # The single-node patterns: the run's limit is the node's
+                # limit, so N allows N model calls.
                 "react": lambda: PromptGraph.react(
-                    tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
+                    tools=graph_tools,
+                    system_prompt=sys_prompt,
+                    blocks=graph_blocks,
+                    max_node_iterations=max_agent_iterations,
                 ),
                 "managed": lambda: PromptGraph.managed(
-                    tools=graph_tools, system_prompt=sys_prompt, blocks=graph_blocks
+                    tools=graph_tools,
+                    system_prompt=sys_prompt,
+                    blocks=graph_blocks,
+                    max_node_iterations=max_agent_iterations,
                 ),
                 "code-action": lambda: PromptGraph.code_action(
                     tools=graph_tools,
@@ -3875,6 +3922,7 @@ async def build_agent(
             graph = PromptGraph.react(
                 tools=graph_tools,
                 system_prompt=sys_prompt,
+                blocks=graph_blocks,
                 max_node_iterations=max_agent_iterations,
             )
 
@@ -3886,10 +3934,11 @@ async def build_agent(
                 graph=graph,
                 model=cast(BaseChatModel, chat),
                 max_iterations=max_agent_iterations,
-                # The engine-wide per-node ceiling (25 by default) must not
-                # cap the run below max_agent_iterations either.
-                max_node_iterations=max(25, max_agent_iterations),
+                # No engine-wide per-node ceiling: each node's own budget
+                # applies, and max_agent_iterations caps the run.
                 tool_summary=tool_summary,
+                # HumanNode steps ask the agent's approval handler.
+                human_handler=_human_handler,
                 # inject_tools nodes in a custom graph get these tools
                 tools=graph_tools,
                 compaction=_compaction,

@@ -454,7 +454,8 @@ def test_reuse_results_survives_graph_serialization() -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_reason_node_limit_mid_tool_loop_raises() -> None:
+async def test_default_run_limit_mid_tool_loop_raises() -> None:
+    # max_agent_iterations (25) is the reason node's limit and the run's.
     job_status, calls = _job_tool()
     agent = await build_agent(model=_Scripted(_polls(100)), servers={}, extra_tools=[job_status])
     try:
@@ -465,11 +466,11 @@ async def test_reason_node_limit_mid_tool_loop_raises() -> None:
 
     err = info.value
     assert isinstance(err, GraphExecutionError)
-    assert (err.node_name, err.limit, err.pending_tools) == ("reason", 15, ["job_status"])
-    assert "reached its iteration limit (15) before the model gave an answer" in str(err)
+    assert (err.node_name, err.limit, err.pending_tools) == ("reason", 25, ["job_status"])
+    assert "max_iterations (25) before the model gave an answer" in str(err)
     assert "job_status" in str(err)
     assert err.report is not None and err.report.error == err.error
-    assert len(calls) == 15
+    assert len(calls) == 25
 
 
 async def test_stream_with_tools_ends_with_an_error_not_an_answer() -> None:

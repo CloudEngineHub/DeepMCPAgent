@@ -99,8 +99,9 @@ class GraphIterationLimitError(GraphExecutionError):
     answer.  A subclass of :class:`GraphExecutionError`.
 
     Which limit: the node's own budget (``PromptNode(max_iterations=...)``,
-    capped by the engine's ``max_node_iterations``; the ``reason`` node of
-    ``build_agent``'s default ReAct graph gets ``max_agent_iterations``) or
+    capped by the engine's ``max_node_iterations`` when one is set; the
+    ``reason`` node of ``build_agent``'s ``react`` and ``managed`` graphs
+    gets ``max_agent_iterations``) or
     the engine's ``max_iterations`` for the whole run
     (``build_agent(max_agent_iterations=...)``).
 
@@ -255,10 +256,12 @@ class PromptGraphEngine:
         model: LangChain ``BaseChatModel`` for LLM calls.
         max_iterations: Maximum node executions per run: ``N`` allows
             exactly ``N`` (in the ReAct graph, ``N`` model calls).
-        max_node_iterations: Engine-wide ceiling on how many times a single
-            node can execute in one run (each tool-loop round counts). A
-            node's own ``max_iterations`` applies when it is lower. When a
-            node has used its budget, the engine does not run it again: it
+        max_node_iterations: Optional engine-wide ceiling on how many times a
+            single node can execute in one run (each tool-loop round
+            counts).  ``None`` (the default) leaves each node's own
+            ``max_iterations`` in charge; with a value, the lower of the
+            two applies.  When a node has used its budget, the engine does
+            not run it again: it
             follows the node's ``"error"`` transition, else an ``__error__``
             node, else ends the run.  A run that ends this way (or on
             ``max_iterations``) in the middle of a tool loop raises
@@ -290,7 +293,7 @@ class PromptGraphEngine:
         model: BaseChatModel,
         *,
         max_iterations: int = 50,
-        max_node_iterations: int = 25,
+        max_node_iterations: int | None = None,
         hooks: list[Any] | None = None,
         allow_self_modification: bool = True,
         max_mutations_per_run: int = 10,
@@ -924,11 +927,14 @@ class PromptGraphEngine:
 
     def _node_limit(self, node: BaseNode, state: GraphState) -> int:
         """*node*'s execution budget for this run: the lowest of its own
-        ``max_iterations``, the engine's ``max_node_iterations`` and a
-        ``loop_until(max_iterations=...)``."""
-        limit = min(
-            getattr(node, "max_iterations", self.max_node_iterations), self.max_node_iterations
-        )
+        ``max_iterations``, the engine's ``max_node_iterations`` (when set)
+        and a ``loop_until(max_iterations=...)``."""
+        limits = [
+            int(value)
+            for value in (getattr(node, "max_iterations", None), self.max_node_iterations)
+            if value is not None
+        ]
+        limit = min(limits) if limits else self.max_iterations
         loop_limit = getattr(state.graph, "loop_limit", None)
         loop = loop_limit(node.name) if loop_limit is not None else None
         if loop is not None:
