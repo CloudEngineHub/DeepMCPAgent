@@ -7,11 +7,11 @@ description: "MCPToolAdapter discovers tools on MCP servers and turns them into 
 
 The `MCPToolAdapter` discovers tools from connected MCP servers and converts
 them into fully-typed LangChain `BaseTool` instances.  It builds recursive
-Pydantic models from MCP JSON Schemas -- preserving nested objects, arrays,
-unions, `$ref`/`$defs`, enums, defaults, and descriptions -- so LLMs can
+Pydantic models from MCP JSON Schemas (preserving nested objects, arrays,
+unions, `$ref`/`$defs`, enums, defaults, and descriptions) so LLMs can
 generate correct tool calls on the first attempt.
 
-**Source:** `src/promptise/mcp/client/_tool_adapter.py`
+Import it from `promptise` or `promptise.mcp.client`.
 
 ## Quick example
 
@@ -53,16 +53,16 @@ authentication, and provides recursive schema conversion.
 
 ### How it works
 
-1. **Discovery** -- `as_langchain_tools()` calls `MCPMultiClient.list_tools()`
+1. **Discovery**: `as_langchain_tools()` calls `MCPMultiClient.list_tools()`
    to fetch tool definitions from all connected servers.
-2. **Schema conversion** -- Each tool's `inputSchema` (a JSON Schema dict) is
+2. **Schema conversion**: Each tool's `inputSchema` (a JSON Schema dict) is
    recursively converted to a Pydantic `BaseModel` using
    `_jsonschema_to_pydantic`.
-3. **Tool wrapping** -- Each tool is wrapped in a `_PromptiseMCPTool` (a
+3. **Tool wrapping**: Each tool is wrapped in a `_PromptiseMCPTool` (a
    `BaseTool` subclass) that calls `MCPMultiClient.call_tool()` on invocation.
    With `forward_caller_token`, the call carries the invoking
    `CallerContext.bearer_token` (see below).
-4. **Result extraction** -- The MCP `CallToolResult` is converted to a plain
+4. **Result extraction**: The MCP `CallToolResult` is converted to a plain
    string by concatenating all text content parts.
 
 ### Creating an adapter
@@ -134,7 +134,7 @@ async with multi:
         print(f"  Schema keys: {list(info.input_schema.get('properties', {}).keys())}")
 ```
 
-This returns a list of `ToolInfo` dataclass instances -- useful for debugging,
+This returns a list of `ToolInfo` dataclass instances: useful for debugging,
 logging, or building tool registries.
 
 ### Callback hooks
@@ -197,7 +197,7 @@ joins them with newlines:
 ```
 
 If the result is an error (`isError=True`, or the `{"error": {...}}` envelope a
-Promptise server returns for a `ToolError`), the tool raises `MCPToolError` — see
+Promptise server returns for a `ToolError`), the tool raises `MCPToolError`: see
 below.
 
 ### Error handling
@@ -236,6 +236,9 @@ return the error text to the model instead of raising.
 | `on_before` | `OnBefore \| None` | `None` | Callback fired before each tool invocation |
 | `on_after` | `OnAfter \| None` | `None` | Callback fired after each tool invocation |
 | `on_error` | `OnError \| None` | `None` | Callback fired on tool errors |
+| `optimize` | tool optimization config \| `None` | `None` | Static optimizations (schema minification, description truncation) applied when the tools are built; see [Tool Optimization](../../core/tool-optimization.md) |
+| `forward_caller_token` | `bool \| Collection[str]` | `False` | Send the invoking `CallerContext.bearer_token`: `True` for every server, a collection of server names for those only |
+| `on_progress` | `OnProgress \| None` | `None` | `(tool_name, progress, total, message)`, sync or async, for each progress notification; without it no progress is requested |
 
 ### Methods
 
@@ -251,6 +254,7 @@ return the error text to the model instead of raising.
 | `OnBefore` | `Callable[[str, dict[str, Any]], None]` |
 | `OnAfter` | `Callable[[str, Any], None]` |
 | `OnError` | `Callable[[str, Exception], None]` |
+| `OnProgress` | `Callable[[str, float, float \| None, str \| None], Any]` (may return an awaitable) |
 
 ### ToolInfo
 
@@ -265,7 +269,7 @@ return the error text to the model instead of raising.
 
 !!! tip
     `MCPToolAdapter` uses persistent connections via `MCPMultiClient`.  Create
-    the adapter once and reuse the tools for the entire agent session -- do not
+    the adapter once and reuse the tools for the entire agent session: do not
     recreate the adapter per invocation.
 
 !!! warning
@@ -286,7 +290,7 @@ return the error text to the model instead of raising.
 
 !!! warning
     Callback hooks (`on_before`, `on_after`, `on_error`) are silenced on
-    failure -- they never propagate exceptions.  If your callback raises,
+    failure: they never propagate exceptions.  If your callback raises,
     the error is swallowed and the tool call proceeds normally.  Use proper
     error handling inside your callbacks.
 
@@ -298,10 +302,10 @@ return the error text to the model instead of raising.
 
 ## What's next
 
-- [MCP Client](index.md) -- the `MCPClient` and `MCPMultiClient` that power the adapter
-- [Tools](../../core/tools.md) -- `@tool` functions, and the schema conversion logic shared with the legacy loader
-- [Building Agents](../../core/agents/building-agents.md) -- use adapted tools with `build_agent`
+- [MCP Client](index.md): the `MCPClient` and `MCPMultiClient` that power the adapter
+- [Tools](../../core/tools.md): `@tool` functions, and the schema conversion logic shared with the legacy loader
+- [Building Agents](../../core/agents/building-agents.md): use adapted tools with `build_agent`
 
 !!! tip "Learn the concept"
 
-    - [How LLM Tool Calling Works: The Model Never Runs Tools](https://www.promptise.com/guides/view/llm-as-a-tool-orchestrator) -- How tool calling works: the model never runs the tool.
+    - [How LLM Tool Calling Works: The Model Never Runs Tools](https://www.promptise.com/guides/view/llm-as-a-tool-orchestrator): How tool calling works: the model never runs the tool.
