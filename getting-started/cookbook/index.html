@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Copy-paste recipes for the most common Promptise Foundry tasks — add memory, cache, guardrails, streaming, per-user identity, multi-tenancy, human approval, rate limits, sandboxed code, and more. Each recipe links to the full guide.">
+        <meta name="description" content="Copy-paste recipes: add memory, cache, guardrails, identity, tenancy and sandboxing to agents, and auth, rate limits and approval to MCP servers.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/getting-started/cookbook/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Cookbook — Recipes for common Promptise Foundry tasks - Promptise Foundry</title>
-      
-    
+  
+    <title>AI Agent and MCP Server Recipes | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/getting-started/cookbook/">
 
   
   
@@ -83,8 +83,8 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
@@ -93,9 +93,9 @@
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Cookbook — Recipes for common Promptise Foundry tasks">
-  <meta property="og:description" content="Copy-paste recipes for the most common Promptise Foundry tasks — add memory, cache, guardrails, streaming, per-user identity, multi-tenancy, human approval, rate limits, sandboxed code, and more. Each recipe links to the full guide.">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="AI Agent and MCP Server Recipes | Promptise Docs">
+  <meta property="og:description" content="Copy-paste recipes: add memory, cache, guardrails, identity, tenancy and sandboxing to agents, and auth, rate limits and approval to MCP servers.">
   <meta property="og:url" content="https://docs.promptise.com/getting-started/cookbook/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -104,8 +104,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Cookbook — Recipes for common Promptise Foundry tasks">
-  <meta name="twitter:description" content="Copy-paste recipes for the most common Promptise Foundry tasks — add memory, cache, guardrails, streaming, per-user identity, multi-tenancy, human approval, rate limits, sandboxed code, and more. Each recipe links to the full guide.">
+  <meta name="twitter:title" content="AI Agent and MCP Server Recipes | Promptise Docs">
+  <meta name="twitter:description" content="Copy-paste recipes: add memory, cache, guardrails, identity, tenancy and sandboxing to agents, and auth, rate limits and approval to MCP servers.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -113,8 +113,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -131,11 +131,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -162,8 +162,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -179,9 +179,9 @@
     {
       "@context": "https://schema.org",
       "@type": "HowTo",
-      "headline": "Cookbook \u2014 Recipes for common Promptise Foundry tasks",
-      "name": "Cookbook \u2014 Recipes for common Promptise Foundry tasks",
-      "description": "Copy-paste recipes for the most common Promptise Foundry tasks \u2014 add memory, cache, guardrails, streaming, per-user identity, multi-tenancy, human approval, rate limits, sandboxed code, and more. Each recipe links to the full guide.",
+      "headline": "AI Agent and MCP Server Recipes",
+      "name": "AI Agent and MCP Server Recipes",
+      "description": "Copy-paste recipes: add memory, cache, guardrails, identity, tenancy and sandboxing to agents, and auth, rate limits and approval to MCP servers.",
       "url": "https://docs.promptise.com/getting-started/cookbook/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -197,12 +197,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -241,7 +241,7 @@
       ,{
         "@type": "ListItem",
         "position": 3,
-        "name": "Cookbook \u2014 Recipes for common Promptise Foundry tasks",
+        "name": "AI Agent and MCP Server Recipes",
         "item": "https://docs.promptise.com/getting-started/cookbook/"
       }
     ]
@@ -268,7 +268,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cookbook" class="md-skip">
+        <a href="#agent-and-mcp-server-cookbook" class="md-skip">
           Skip to content
         </a>
       
@@ -2556,6 +2556,8 @@
       
         
       
+        
+      
     
     
     
@@ -2616,6 +2618,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3524,8 +3554,6 @@
       
         
       
-        
-      
     
     
     
@@ -3670,34 +3698,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9790,7 +9790,7 @@
   
 
 
-<h1 id="cookbook">Cookbook<a class="headerlink" href="#cookbook" title="Link to this section">&para;</a></h1>
+<h1 id="agent-and-mcp-server-cookbook">Agent and MCP Server Cookbook<a class="headerlink" href="#agent-and-mcp-server-cookbook" title="Link to this section">&para;</a></h1>
 <p>Short, copy-paste recipes for the tasks you'll reach for most. Each is the
 minimal correct form; follow the link for the full guide.</p>
 <p>Every agent capability is <strong>one parameter</strong> on <code>build_agent()</code> — enable only
@@ -9952,7 +9952,7 @@ what you need; the rest has zero overhead.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 19:41:49 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 16:19:27 UTC">2026-10-21</span>
   </span>
 
     

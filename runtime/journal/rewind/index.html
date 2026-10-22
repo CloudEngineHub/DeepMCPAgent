@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off">
+        <meta name="description" content="Roll a live agent process back to before a journal entry: its context state, conversation history or both, from Python, the orchestration API or the CLI.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/runtime/journal/rewind/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Rewind Engine - Promptise Foundry</title>
-      
-    
+  
+    <title>Rewind an Agent Process to Earlier State | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/runtime/journal/rewind/">
 
   
   
@@ -83,17 +83,17 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Rewind Engine">
-  <meta property="og:description" content="Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="Rewind an Agent Process to Earlier State | Promptise Docs">
+  <meta property="og:description" content="Roll a live agent process back to before a journal entry: its context state, conversation history or both, from Python, the orchestration API or the CLI.">
   <meta property="og:url" content="https://docs.promptise.com/runtime/journal/rewind/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -102,8 +102,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Rewind Engine">
-  <meta name="twitter:description" content="Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off">
+  <meta name="twitter:title" content="Rewind an Agent Process to Earlier State | Promptise Docs">
+  <meta name="twitter:description" content="Roll a live agent process back to before a journal entry: its context state, conversation history or both, from Python, the orchestration API or the CLI.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -111,8 +111,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -129,11 +129,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -160,8 +160,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -177,9 +177,9 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "Rewind Engine",
-      "name": "Rewind Engine",
-      "description": "Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off",
+      "headline": "Rewind an Agent Process to Earlier State",
+      "name": "Rewind an Agent Process to Earlier State",
+      "description": "Roll a live agent process back to before a journal entry: its context state, conversation history or both, from Python, the orchestration API or the CLI.",
       "url": "https://docs.promptise.com/runtime/journal/rewind/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -195,12 +195,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -245,7 +245,7 @@
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "Rewind Engine",
+        "name": "Rewind an Agent Process to Earlier State",
         "item": "https://docs.promptise.com/runtime/journal/rewind/"
       }
     ]
@@ -272,7 +272,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#rewind" class="md-skip">
+        <a href="#agent-process-rewind" class="md-skip">
           Skip to content
         </a>
       
@@ -2254,6 +2254,8 @@
       
         
       
+        
+      
     
     
     
@@ -2314,6 +2316,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3222,8 +3252,6 @@
       
         
       
-        
-      
     
     
     
@@ -3368,34 +3396,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9615,7 +9615,7 @@
   
 
 
-<h1 id="rewind">Rewind<a class="headerlink" href="#rewind" title="Link to this section">&para;</a></h1>
+<h1 id="agent-process-rewind">Agent Process Rewind<a class="headerlink" href="#agent-process-rewind" title="Link to this section">&para;</a></h1>
 <p>Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off track -- a bad tool result written into its state, a conversation that drifted -- and you want it to continue from an earlier point instead of starting over. It is non-destructive: the journal is only appended to, so a rewind can itself be rewound.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentProcess</span><span class="p">,</span> <span class="n">JournalConfig</span><span class="p">,</span> <span class="n">ProcessConfig</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileJournal</span>
@@ -10083,7 +10083,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:59:21 UTC">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 16:19:27 UTC">2026-10-21</span>
   </span>
 
     

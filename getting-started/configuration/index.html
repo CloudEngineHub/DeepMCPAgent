@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Where to put your LLM API keys and provider settings when using Promptise Foundry — a .env file (loaded automatically), environment variables, in code with Model(...), or a .superagent file with ${VAR} references. Precedence, what to commit, and how to check what is missing.">
+        <meta name="description" content="Where to keep LLM API keys: a .env file loaded automatically, environment variables, Model(...) in code or a .superagent file, and which one wins.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/getting-started/configuration/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Configuration & Secrets — where API keys live in Promptise Foundry - Promptise Foundry</title>
-      
-    
+  
+    <title>Where to Put LLM API Keys: .env and Secrets | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/getting-started/configuration/">
 
   
   
@@ -83,8 +83,8 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
@@ -93,9 +93,9 @@
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Configuration & Secrets — where API keys live in Promptise Foundry">
-  <meta property="og:description" content="Where to put your LLM API keys and provider settings when using Promptise Foundry — a .env file (loaded automatically), environment variables, in code with Model(...), or a .superagent file with ${VAR} references. Precedence, what to commit, and how to check what is missing.">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="Where to Put LLM API Keys: .env and Secrets | Promptise Docs">
+  <meta property="og:description" content="Where to keep LLM API keys: a .env file loaded automatically, environment variables, Model(...) in code or a .superagent file, and which one wins.">
   <meta property="og:url" content="https://docs.promptise.com/getting-started/configuration/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -104,8 +104,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Configuration & Secrets — where API keys live in Promptise Foundry">
-  <meta name="twitter:description" content="Where to put your LLM API keys and provider settings when using Promptise Foundry — a .env file (loaded automatically), environment variables, in code with Model(...), or a .superagent file with ${VAR} references. Precedence, what to commit, and how to check what is missing.">
+  <meta name="twitter:title" content="Where to Put LLM API Keys: .env and Secrets | Promptise Docs">
+  <meta name="twitter:description" content="Where to keep LLM API keys: a .env file loaded automatically, environment variables, Model(...) in code or a .superagent file, and which one wins.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -113,8 +113,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -131,11 +131,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -162,8 +162,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -179,9 +179,9 @@
     {
       "@context": "https://schema.org",
       "@type": "HowTo",
-      "headline": "Configuration \u0026 Secrets \u2014 where API keys live in Promptise Foundry",
-      "name": "Configuration \u0026 Secrets \u2014 where API keys live in Promptise Foundry",
-      "description": "Where to put your LLM API keys and provider settings when using Promptise Foundry \u2014 a .env file (loaded automatically), environment variables, in code with Model(...), or a .superagent file with ${VAR} references. Precedence, what to commit, and how to check what is missing.",
+      "headline": "Where to Put LLM API Keys: .env and Secrets",
+      "name": "Where to Put LLM API Keys: .env and Secrets",
+      "description": "Where to keep LLM API keys: a .env file loaded automatically, environment variables, Model(...) in code or a .superagent file, and which one wins.",
       "url": "https://docs.promptise.com/getting-started/configuration/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -197,12 +197,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -241,7 +241,7 @@
       ,{
         "@type": "ListItem",
         "position": 3,
-        "name": "Configuration \u0026 Secrets \u2014 where API keys live in Promptise Foundry",
+        "name": "Where to Put LLM API Keys: .env and Secrets",
         "item": "https://docs.promptise.com/getting-started/configuration/"
       }
     ]
@@ -2401,6 +2401,8 @@
       
         
       
+        
+      
     
     
     
@@ -2461,6 +2463,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3369,8 +3399,6 @@
       
         
       
-        
-      
     
     
     
@@ -3515,34 +3543,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9881,7 +9881,7 @@ the rest:</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="September 19, 2026 13:53:24 UTC">2026-09-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 16:19:27 UTC">2026-10-21</span>
   </span>
 
     

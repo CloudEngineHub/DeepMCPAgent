@@ -6,16 +6,16 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="The in-depth reference for the model an agent runs on. Three ways to specify it (string, Model object, config file), every configuration word, Azure AI Foundry deployments and catalog, every provider with its exact environment variables, custom and self-hosted endpoints, failover, per-node models, and troubleshooting.">
+        <meta name="description" content="Configure the LLM an agent runs on: model strings, the Model object, Azure AI Foundry, each provider's env variables, self-hosted endpoints and failover.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/core/agents/models/">
       
       
-        <link rel="prev" href="../building-agents/">
+        <link rel="prev" href="../../tools/">
       
       
         <link rel="next" href="../server-specs/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Models & Providers — configure any LLM for a Promptise agent (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, self-hosted) - Promptise Foundry</title>
-      
-    
+  
+    <title>LLM Providers: OpenAI, Azure, Bedrock, Ollama | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/core/agents/models/">
 
   
   
@@ -83,8 +83,8 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
@@ -93,9 +93,9 @@
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Models & Providers — configure any LLM for a Promptise agent (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, self-hosted)">
-  <meta property="og:description" content="The in-depth reference for the model an agent runs on. Three ways to specify it (string, Model object, config file), every configuration word, Azure AI Foundry deployments and catalog, every provider with its exact environment variables, custom and self-hosted endpoints, failover, per-node models, and troubleshooting.">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="LLM Providers: OpenAI, Azure, Bedrock, Ollama | Promptise Docs">
+  <meta property="og:description" content="Configure the LLM an agent runs on: model strings, the Model object, Azure AI Foundry, each provider's env variables, self-hosted endpoints and failover.">
   <meta property="og:url" content="https://docs.promptise.com/core/agents/models/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -104,8 +104,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Models & Providers — configure any LLM for a Promptise agent (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, self-hosted)">
-  <meta name="twitter:description" content="The in-depth reference for the model an agent runs on. Three ways to specify it (string, Model object, config file), every configuration word, Azure AI Foundry deployments and catalog, every provider with its exact environment variables, custom and self-hosted endpoints, failover, per-node models, and troubleshooting.">
+  <meta name="twitter:title" content="LLM Providers: OpenAI, Azure, Bedrock, Ollama | Promptise Docs">
+  <meta name="twitter:description" content="Configure the LLM an agent runs on: model strings, the Model object, Azure AI Foundry, each provider's env variables, self-hosted endpoints and failover.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -113,8 +113,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -131,11 +131,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -162,8 +162,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -179,9 +179,9 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "Models \u0026 Providers \u2014 configure any LLM for a Promptise agent (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, self-hosted)",
-      "name": "Models \u0026 Providers \u2014 configure any LLM for a Promptise agent (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, self-hosted)",
-      "description": "The in-depth reference for the model an agent runs on. Three ways to specify it (string, Model object, config file), every configuration word, Azure AI Foundry deployments and catalog, every provider with its exact environment variables, custom and self-hosted endpoints, failover, per-node models, and troubleshooting.",
+      "headline": "LLM Providers: OpenAI, Azure, Bedrock, Ollama",
+      "name": "LLM Providers: OpenAI, Azure, Bedrock, Ollama",
+      "description": "Configure the LLM an agent runs on: model strings, the Model object, Azure AI Foundry, each provider\u0027s env variables, self-hosted endpoints and failover.",
       "url": "https://docs.promptise.com/core/agents/models/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -197,12 +197,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -247,7 +247,7 @@
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "Models \u0026 Providers \u2014 configure any LLM for a Promptise agent (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, self-hosted)",
+        "name": "LLM Providers: OpenAI, Azure, Bedrock, Ollama",
         "item": "https://docs.promptise.com/core/agents/models/"
       }
     ]
@@ -2263,6 +2263,8 @@
       
         
       
+        
+      
     
     
     
@@ -2326,6 +2328,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3668,8 +3698,6 @@
       
         
       
-        
-      
     
     
     
@@ -3817,34 +3845,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -11311,7 +11311,7 @@ listening).</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 18, 2026 13:13:42 UTC">2026-10-18</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 16:19:27 UTC">2026-10-21</span>
   </span>
 
     

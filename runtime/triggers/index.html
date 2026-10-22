@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Triggers decide when an agent process runs. Each trigger produces TriggerEvent objects; the AgentProcess queues them and invokes its agent once per event. The">
+        <meta name="description" content="How triggers decide when an agent process runs: the five built-in types, TriggerEvent, custom triggers, event filters, untrusted payloads and concurrency.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/runtime/triggers/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Triggers Overview - Promptise Foundry</title>
-      
-    
+  
+    <title>Agent Triggers: Cron, Webhook, File, Events | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/runtime/triggers/">
 
   
   
@@ -83,17 +83,17 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Triggers Overview">
-  <meta property="og:description" content="Triggers decide when an agent process runs. Each trigger produces TriggerEvent objects; the AgentProcess queues them and invokes its agent once per event. The">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="Agent Triggers: Cron, Webhook, File, Events | Promptise Docs">
+  <meta property="og:description" content="How triggers decide when an agent process runs: the five built-in types, TriggerEvent, custom triggers, event filters, untrusted payloads and concurrency.">
   <meta property="og:url" content="https://docs.promptise.com/runtime/triggers/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -102,8 +102,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Triggers Overview">
-  <meta name="twitter:description" content="Triggers decide when an agent process runs. Each trigger produces TriggerEvent objects; the AgentProcess queues them and invokes its agent once per event. The">
+  <meta name="twitter:title" content="Agent Triggers: Cron, Webhook, File, Events | Promptise Docs">
+  <meta name="twitter:description" content="How triggers decide when an agent process runs: the five built-in types, TriggerEvent, custom triggers, event filters, untrusted payloads and concurrency.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -111,8 +111,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -129,11 +129,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -160,8 +160,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -177,9 +177,9 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "Triggers Overview",
-      "name": "Triggers Overview",
-      "description": "Triggers decide when an agent process runs. Each trigger produces TriggerEvent objects; the AgentProcess queues them and invokes its agent once per event. The",
+      "headline": "Agent Triggers: Cron, Webhook, File, Events",
+      "name": "Agent Triggers: Cron, Webhook, File, Events",
+      "description": "How triggers decide when an agent process runs: the five built-in types, TriggerEvent, custom triggers, event filters, untrusted payloads and concurrency.",
       "url": "https://docs.promptise.com/runtime/triggers/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -195,12 +195,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -245,7 +245,7 @@
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "Triggers Overview",
+        "name": "Agent Triggers: Cron, Webhook, File, Events",
         "item": "https://docs.promptise.com/runtime/triggers/"
       }
     ]
@@ -2254,6 +2254,8 @@
       
         
       
+        
+      
     
     
     
@@ -2314,6 +2316,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3222,8 +3252,6 @@
       
         
       
-        
-      
     
     
     
@@ -3368,34 +3396,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9990,6 +9990,10 @@
 <td>The process installs a callback that returns <code>None</code> while it accepts events, or a reason (<code>"process failed"</code>, <code>"process stopped"</code>, <code>"queue full"</code>); use it to push back on the sender, as the webhook does with <code>503</code></td>
 </tr>
 <tr>
+<td><code>set_overflow_handler(callback)</code></td>
+<td>The process calls it when it creates the trigger, before <code>start()</code>; pass each event the trigger has to drop (a full buffer) to <code>callback(event)</code> and the process dead-letters it with reason <code>trigger buffer full</code></td>
+</tr>
+<tr>
 <td><code>event_filter</code></td>
 <td>When the trigger has this attribute set, the trigger applies the <code>filter_expression</code> itself and the process doesn't</td>
 </tr>
@@ -10303,7 +10307,7 @@
 <li>Listener tasks wait for space instead of dropping events. A cron tick is delivered late, not lost.</li>
 <li>The webhook answers <code>503 Service Unavailable</code> with a <code>Retry-After: 30</code> header, so the sender (GitHub, Stripe, …) retries later.</li>
 <li>A file watch keeps changed files in its own bounded backlog and merges repeated changes to the same file; only when <code>watch_max_pending_events</code> different files are waiting is a change dropped (see <a href="file-watch/#back-pressure">back-pressure</a>).</li>
-<li><code>event</code> and <code>message</code> triggers buffer up to 100 events each in their own queue; beyond that, new events are dropped with a warning.</li>
+<li><code>event</code> and <code>message</code> triggers buffer up to 100 events each in their own queue; beyond that, a new event is counted in the trigger's <code>dropped_events</code> and dead-lettered with reason <code>trigger buffer full</code>.</li>
 <li>Events injected with <code>process.inject()</code> while the queue is full go to the <a href="#retries-and-dead-letters">dead-letter list</a>.</li>
 </ul>
 <p>For high-throughput scenarios, increase <code>concurrency</code>.</p>
@@ -10407,6 +10411,10 @@
 <td>The trigger was removed while the event was still buffered in it or held by its listener</td>
 </tr>
 <tr>
+<td><code>trigger buffer full</code></td>
+<td>An <code>event</code> or <code>message</code> trigger's 100-event buffer was full (also counted in the trigger's <code>dropped_events</code>)</td>
+</tr>
+<tr>
 <td><code>queue full</code></td>
 <td><code>inject()</code> or a retry found the queue full</td>
 </tr>
@@ -10483,7 +10491,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 21:45:05 UTC">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 16:19:27 UTC">2026-10-21</span>
   </span>
 
     

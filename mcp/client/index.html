@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Promptise Foundry's native MCP client connects to one or many MCP servers, auto-discovers tools, and invokes them with full schema typing. Single-server, multi-server, and LangChain BaseTool adapter variants. HTTP, SSE, and stdio transports. Bearer token and API key authentication. No third-party MCP dependencies.">
+        <meta name="description" content="Connect to one or many MCP servers with MCPClient and MCPMultiClient: bearer token and API key auth, HTTP, SSE and stdio, tool calls, resources and prompts.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/mcp/client/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>MCP Client — Native Python client for the Model Context Protocol - Promptise Foundry</title>
-      
-    
+  
+    <title>Python MCP Client: Connect to MCP Servers | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/mcp/client/">
 
   
   
@@ -83,8 +83,8 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
@@ -93,9 +93,9 @@
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="MCP Client — Native Python client for the Model Context Protocol">
-  <meta property="og:description" content="Promptise Foundry's native MCP client connects to one or many MCP servers, auto-discovers tools, and invokes them with full schema typing. Single-server, multi-server, and LangChain BaseTool adapter variants. HTTP, SSE, and stdio transports. Bearer token and API key authentication. No third-party MCP dependencies.">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="Python MCP Client: Connect to MCP Servers | Promptise Docs">
+  <meta property="og:description" content="Connect to one or many MCP servers with MCPClient and MCPMultiClient: bearer token and API key auth, HTTP, SSE and stdio, tool calls, resources and prompts.">
   <meta property="og:url" content="https://docs.promptise.com/mcp/client/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -104,8 +104,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MCP Client — Native Python client for the Model Context Protocol">
-  <meta name="twitter:description" content="Promptise Foundry's native MCP client connects to one or many MCP servers, auto-discovers tools, and invokes them with full schema typing. Single-server, multi-server, and LangChain BaseTool adapter variants. HTTP, SSE, and stdio transports. Bearer token and API key authentication. No third-party MCP dependencies.">
+  <meta name="twitter:title" content="Python MCP Client: Connect to MCP Servers | Promptise Docs">
+  <meta name="twitter:description" content="Connect to one or many MCP servers with MCPClient and MCPMultiClient: bearer token and API key auth, HTTP, SSE and stdio, tool calls, resources and prompts.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -113,8 +113,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -131,11 +131,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -162,8 +162,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -179,9 +179,9 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "MCP Client \u2014 Native Python client for the Model Context Protocol",
-      "name": "MCP Client \u2014 Native Python client for the Model Context Protocol",
-      "description": "Promptise Foundry\u0027s native MCP client connects to one or many MCP servers, auto-discovers tools, and invokes them with full schema typing. Single-server, multi-server, and LangChain BaseTool adapter variants. HTTP, SSE, and stdio transports. Bearer token and API key authentication. No third-party MCP dependencies.",
+      "headline": "Python MCP Client: Connect to MCP Servers",
+      "name": "Python MCP Client: Connect to MCP Servers",
+      "description": "Connect to one or many MCP servers with MCPClient and MCPMultiClient: bearer token and API key auth, HTTP, SSE and stdio, tool calls, resources and prompts.",
       "url": "https://docs.promptise.com/mcp/client/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -197,12 +197,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -247,7 +247,7 @@
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "MCP Client \u2014 Native Python client for the Model Context Protocol",
+        "name": "Python MCP Client: Connect to MCP Servers",
         "item": "https://docs.promptise.com/mcp/client/"
       }
     ]
@@ -2256,6 +2256,8 @@
       
         
       
+        
+      
     
     
     
@@ -2316,6 +2318,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3224,8 +3254,6 @@
       
         
       
-        
-      
     
     
     
@@ -3370,34 +3398,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9461,6 +9461,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#connections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connections
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -9974,8 +9985,8 @@ calls as the invoking user (<code>CallerContext.bearer_token</code>):</p>
 use, reused by later calls with the same token, and closed after
 <code>caller_session_idle_timeout</code> seconds unused (default 300). At most
 <code>max_caller_sessions</code> idle sessions stay open (default 256; least recently
-used first). Concurrent calls with different tokens never share a session
-or a header, and a session in use is never closed. The token replaces any
+used first). Concurrent calls with different tokens never share a session,
+a header or an HTTP connection, and a session in use is never closed. The token replaces any
 <code>Authorization</code> header the client was configured with; other headers,
 including <code>x-api-key</code>, are kept. A server that rejects the token raises
 <code>MCPConnectionRejectedError</code> for that call only.</p>
@@ -10012,7 +10023,7 @@ you manage sessions yourself.</p>
 </span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>Check the URL (http://localhost:8080); Promptise servers serve MCP at /mcp.
 </span></code></pre></div>
 <p>Retrying with the same configuration fails the same way, so fix the credentials or URL instead of retrying.</p>
-<p>Other connection failures (server down, connection refused) raise a plain <code>MCPClientError</code> such as <code>Failed to connect to http://localhost:8080/mcp (ConnectError: ...)</code>. If an established connection drops during a call, that call raises <code>MCPClientError</code> (<code>Connection to ... was lost</code>) at once. The failure never cancels the task that opened the client, because the client owns its transport in a task of its own. That also makes it safe to close a client from a different task than the one that opened it.</p>
+<p>Other connection failures (server down, connection refused) raise a plain <code>MCPClientError</code> such as <code>Failed to connect to http://localhost:8080/mcp (ConnectError: ...)</code>. If an established connection drops during a call, that call raises <code>MCPClientError</code> (<code>Connection to ... was lost</code>) at once. An error the server answers with is not a lost connection, whatever its JSON-RPC code: reading a resource whose handler raised <code>ToolError</code> raises <code>MCPClientError: Failed to read resource 'docs://pages/holidays': There is no handbook page 'holidays'.</code>, and the session keeps working. The failure never cancels the task that opened the client, because the client owns its transport in a task of its own. That also makes it safe to close a client from a different task than the one that opened it.</p>
 <h3 id="reconnecting-after-a-server-restart">Reconnecting after a server restart<a class="headerlink" href="#reconnecting-after-a-server-restart" title="Link to this section">&para;</a></h3>
 <p>A Streamable HTTP server keeps its sessions in memory. After a restart or redeploy it answers the old <code>mcp-session-id</code> with <code>404</code>, and the MCP specification requires the client to start a new session. <code>MCPClient</code> does this transparently:</p>
 <ol>
@@ -10029,6 +10040,9 @@ you manage sessions yourself.</p>
 <p><code>client.session_generation</code> counts the sessions the client has opened (<code>1</code> after connecting). Pass <code>auto_reconnect=False</code> to handle a lost session yourself; the call then raises <code>MCPClientError</code> saying the server no longer knows the session.</p>
 <p>If the retry is answered <code>404</code> as well, the request reached a process that does not hold the brand-new session either — typically several replicas or workers behind a load balancer without sticky sessions. The error says so; route each <code>mcp-session-id</code> to one process, or serve the app stateless (see <a href="../server/deployment/#sessions-restarts-and-replicas">Deployment — Sessions, restarts and replicas</a>).</p>
 <p>The legacy SSE transport has no session-level <code>404</code>: when its stream breaks, the call in progress fails and the next call opens a new session.</p>
+<h3 id="connections">Connections<a class="headerlink" href="#connections" title="Link to this section">&para;</a></h3>
+<p>An <code>MCPClient</code> keeps one MCP session while it is open, and its HTTP requests share keep-alive connections: calls made one after another reuse one connection, and concurrent calls take one each. A Streamable HTTP session also holds one connection for the event stream the server sends on. Idle connections stay open for 5 seconds (at most 20 of them); one that the server has closed meanwhile is replaced on the next call, on the same session.</p>
+<p>With a busy agent this matters: a client that opened a new TCP connection per request would leave each closed one in <code>TIME_WAIT</code> for 30 seconds or more, and at a few hundred calls per second the machine would run out of local ports (<code>Can't assign requested address</code>).</p>
 <h2 id="resources-and-prompts">Resources and prompts<a class="headerlink" href="#resources-and-prompts" title="Link to this section">&para;</a></h2>
 <p>Besides tools, an MCP server can publish <strong>resources</strong> (documents and data, by URI) and <strong>prompts</strong> (ready-made instructions, by name). <code>MCPClient</code> and <code>MCPMultiClient</code> read both:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="k">async</span> <span class="k">with</span> <span class="n">MCPClient</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">"http://localhost:8080/mcp"</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="s2">"sk-docs"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
@@ -10348,7 +10362,7 @@ you manage sessions yourself.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 22:22:15 UTC">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 18:05:26 UTC">2026-10-21</span>
   </span>
 
     

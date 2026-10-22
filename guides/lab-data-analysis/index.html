@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Build an agent that converts natural language questions into SQL queries, cross-references data across tables, and produces accurate analytical reports. Uses a">
+        <meta name="description" content="Build an agent that turns natural language questions into SQL, cross-references tables and writes reports, with a custom reasoning pattern and caching.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/guides/lab-data-analysis/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Lab: Data Analysis Agent - Promptise Foundry</title>
-      
-    
+  
+    <title>Lab: Build a Text-to-SQL Data Analysis Agent | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/guides/lab-data-analysis/">
 
   
   
@@ -83,17 +83,17 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Lab: Data Analysis Agent">
-  <meta property="og:description" content="Build an agent that converts natural language questions into SQL queries, cross-references data across tables, and produces accurate analytical reports. Uses a">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="Lab: Build a Text-to-SQL Data Analysis Agent | Promptise Docs">
+  <meta property="og:description" content="Build an agent that turns natural language questions into SQL, cross-references tables and writes reports, with a custom reasoning pattern and caching.">
   <meta property="og:url" content="https://docs.promptise.com/guides/lab-data-analysis/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -102,8 +102,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Lab: Data Analysis Agent">
-  <meta name="twitter:description" content="Build an agent that converts natural language questions into SQL queries, cross-references data across tables, and produces accurate analytical reports. Uses a">
+  <meta name="twitter:title" content="Lab: Build a Text-to-SQL Data Analysis Agent | Promptise Docs">
+  <meta name="twitter:description" content="Build an agent that turns natural language questions into SQL, cross-references tables and writes reports, with a custom reasoning pattern and caching.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -111,8 +111,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -129,11 +129,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -160,8 +160,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -177,9 +177,9 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "Lab: Data Analysis Agent",
-      "name": "Lab: Data Analysis Agent",
-      "description": "Build an agent that converts natural language questions into SQL queries, cross-references data across tables, and produces accurate analytical reports. Uses a",
+      "headline": "Lab: Build a Text-to-SQL Data Analysis Agent",
+      "name": "Lab: Build a Text-to-SQL Data Analysis Agent",
+      "description": "Build an agent that turns natural language questions into SQL, cross-references tables and writes reports, with a custom reasoning pattern and caching.",
       "url": "https://docs.promptise.com/guides/lab-data-analysis/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -195,12 +195,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -245,7 +245,7 @@
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "Lab: Data Analysis Agent",
+        "name": "Lab: Build a Text-to-SQL Data Analysis Agent",
         "item": "https://docs.promptise.com/guides/lab-data-analysis/"
       }
     ]
@@ -2405,6 +2405,8 @@
       
         
       
+        
+      
     
     
     
@@ -2465,6 +2467,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3373,8 +3403,6 @@
       
         
       
-        
-      
     
     
     
@@ -3519,34 +3547,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9742,7 +9742,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 10, 2026 20:24:39 UTC">2026-10-10</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 16:19:27 UTC">2026-10-21</span>
   </span>
 
     

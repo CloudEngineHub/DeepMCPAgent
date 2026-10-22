@@ -9,7 +9,7 @@
         <meta name="description" content="Compare smolagents CodeAgent and Promptise code-action: where each one runs the tool calls in a model-written program, and how approval gates still apply.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/blog/smolagents-codeagent-vs-promptise-code-action/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run? - Promptise Foundry</title>
-      
-    
+  
+    <title>Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?</title>
+  
+
     
       <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/blog/smolagents-codeagent-vs-promptise-code-action/">
 
   
   
@@ -83,8 +83,8 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
@@ -93,7 +93,7 @@
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
+  <meta property="og:site_name" content="Promptise Docs">
   <meta property="og:title" content="Smolagents CodeAgent vs Promptise: Where Do Tool Calls Run?">
   <meta property="og:description" content="Compare smolagents CodeAgent and Promptise code-action: where each one runs the tool calls in a model-written program, and how approval gates still apply.">
   <meta property="og:url" content="https://docs.promptise.com/blog/smolagents-codeagent-vs-promptise-code-action/">
@@ -113,8 +113,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -131,11 +131,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -162,8 +162,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -197,12 +197,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -2258,6 +2258,8 @@
       
         
       
+        
+      
     
     
     
@@ -2318,6 +2320,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3226,8 +3256,6 @@
       
         
       
-        
-      
     
     
     
@@ -3372,34 +3400,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9469,56 +9469,55 @@
 <h2 id="run-it-a-sandboxed-program-that-still-trips-your-approval-gate">Run it: a sandboxed program that still trips your approval gate<a class="headerlink" href="#run-it-a-sandboxed-program-that-still-trips-your-approval-gate" title="Link to this section">&para;</a></h2>
 <p>Here is the delta as runnable code. The program the model writes will call <code>issue_refund</code> from <em>inside</em> the sandbox — and your host-side reviewer still gets the final say on each call. Set <code>OPENAI_API_KEY</code> and have Docker running.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_agent</span><span class="p">,</span> <span class="n">ApprovalPolicy</span><span class="p">,</span> <span class="n">CallbackApprovalHandler</span><span class="p">,</span> <span class="n">ApprovalDecision</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">ORDERS</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">"O-1001"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"customer"</span><span class="p">:</span> <span class="s2">"acme"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">:</span> <span class="mf">42.0</span><span class="p">,</span>  <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"shipped"</span><span class="p">},</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">"O-1002"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"customer"</span><span class="p">:</span> <span class="s2">"acme"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">:</span> <span class="mf">890.0</span><span class="p">,</span> <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"shipped"</span><span class="p">},</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">}</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nd">@tool</span><span class="p">(</span><span class="s2">"list_orders"</span><span class="p">)</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">list_orders</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="sd">"""Return every order id."""</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">ORDERS</span><span class="p">)</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nd">@tool</span><span class="p">(</span><span class="s2">"get_order"</span><span class="p">)</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_order</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="sd">"""Return {customer, total, status} for an order id."""</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">"order_id"</span><span class="p">:</span> <span class="n">order_id</span><span class="p">,</span> <span class="o">**</span><span class="n">ORDERS</span><span class="p">[</span><span class="n">order_id</span><span class="p">]}</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="nd">@tool</span><span class="p">(</span><span class="s2">"issue_refund"</span><span class="p">)</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="k">def</span><span class="w"> </span><span class="nf">issue_refund</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">    </span><span class="sd">"""Refund `amount` to the customer for `order_id`. Mutating + irreversible."""</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"refunded $</span><span class="si">{</span><span class="n">amount</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">order_id</span><span class="si">}</span><span class="s2">"</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="c1"># This reviewer runs on YOUR host — not in the sandbox — so it sees and governs</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="c1"># every bridged call the model-written program makes.</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">review</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="n">amount</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"amount"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="n">approved</span> <span class="o">=</span> <span class="n">amount</span> <span class="o">&lt;=</span> <span class="mi">100</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[approval] </span><span class="si">{</span><span class="n">request</span><span class="o">.</span><span class="n">tool_name</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">request</span><span class="o">.</span><span class="n">arguments</span><span class="si">}</span><span class="s2">) -&gt; "</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'APPROVE'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">approved</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'DENY (refund over $100 needs a human)'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    <span class="k">return</span> <span class="n">ApprovalDecision</span><span class="p">(</span><span class="n">approved</span><span class="o">=</span><span class="n">approved</span><span class="p">,</span> <span class="n">reviewer_id</span><span class="o">=</span><span class="s2">"policy-bot"</span><span class="p">)</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>    <span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>        <span class="n">servers</span><span class="o">=</span><span class="p">{},</span>                          <span class="c1"># or your MCP servers</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>        <span class="n">agent_pattern</span><span class="o">=</span><span class="s2">"code-action"</span><span class="p">,</span>         <span class="c1"># sandbox auto-enabled (Docker required)</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>        <span class="n">extra_tools</span><span class="o">=</span><span class="p">[</span><span class="n">list_orders</span><span class="p">,</span> <span class="n">get_order</span><span class="p">,</span> <span class="n">issue_refund</span><span class="p">],</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>        <span class="n">approval</span><span class="o">=</span><span class="n">ApprovalPolicy</span><span class="p">(</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>            <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"issue_refund"</span><span class="p">],</span>          <span class="c1"># gate only the mutating tool</span>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>            <span class="n">handler</span><span class="o">=</span><span class="n">CallbackApprovalHandler</span><span class="p">(</span><span class="n">review</span><span class="p">),</span>
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>            <span class="n">timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>        <span class="p">),</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>    <span class="p">)</span>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>        <span class="s2">"Refund order O-1002 in full."</span><span class="p">}]})</span>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"messages"</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>    <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_agent</span><span class="p">,</span> <span class="n">tool</span><span class="p">,</span> <span class="n">ApprovalPolicy</span><span class="p">,</span> <span class="n">CallbackApprovalHandler</span><span class="p">,</span> <span class="n">ApprovalDecision</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">ORDERS</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="s2">"O-1001"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"customer"</span><span class="p">:</span> <span class="s2">"acme"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">:</span> <span class="mf">42.0</span><span class="p">,</span>  <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"shipped"</span><span class="p">},</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">"O-1002"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"customer"</span><span class="p">:</span> <span class="s2">"acme"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">:</span> <span class="mf">890.0</span><span class="p">,</span> <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"shipped"</span><span class="p">},</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">}</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nd">@tool</span><span class="p">(</span><span class="s2">"list_orders"</span><span class="p">)</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">list_orders</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="sd">"""Return every order id."""</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">ORDERS</span><span class="p">)</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="nd">@tool</span><span class="p">(</span><span class="s2">"get_order"</span><span class="p">)</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_order</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="sd">"""Return {customer, total, status} for an order id."""</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">"order_id"</span><span class="p">:</span> <span class="n">order_id</span><span class="p">,</span> <span class="o">**</span><span class="n">ORDERS</span><span class="p">[</span><span class="n">order_id</span><span class="p">]}</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="nd">@tool</span><span class="p">(</span><span class="s2">"issue_refund"</span><span class="p">)</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">issue_refund</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">amount</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span><span class="sd">"""Refund `amount` to the customer for `order_id`. Mutating + irreversible."""</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"refunded $</span><span class="si">{</span><span class="n">amount</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">order_id</span><span class="si">}</span><span class="s2">"</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="c1"># This reviewer runs on YOUR host — not in the sandbox — so it sees and governs</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="c1"># every bridged call the model-written program makes.</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">review</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="n">amount</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"amount"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="n">approved</span> <span class="o">=</span> <span class="n">amount</span> <span class="o">&lt;=</span> <span class="mi">100</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[approval] </span><span class="si">{</span><span class="n">request</span><span class="o">.</span><span class="n">tool_name</span><span class="si">}</span><span class="s2">(</span><span class="si">{</span><span class="n">request</span><span class="o">.</span><span class="n">arguments</span><span class="si">}</span><span class="s2">) -&gt; "</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'APPROVE'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">approved</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'DENY (refund over $100 needs a human)'</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>    <span class="k">return</span> <span class="n">ApprovalDecision</span><span class="p">(</span><span class="n">approved</span><span class="o">=</span><span class="n">approved</span><span class="p">,</span> <span class="n">reviewer_id</span><span class="o">=</span><span class="s2">"policy-bot"</span><span class="p">)</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    <span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>        <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>        <span class="n">servers</span><span class="o">=</span><span class="p">{},</span>                          <span class="c1"># or your MCP servers</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>        <span class="n">agent_pattern</span><span class="o">=</span><span class="s2">"code-action"</span><span class="p">,</span>         <span class="c1"># sandbox auto-enabled (Docker required)</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>        <span class="n">extra_tools</span><span class="o">=</span><span class="p">[</span><span class="n">list_orders</span><span class="p">,</span> <span class="n">get_order</span><span class="p">,</span> <span class="n">issue_refund</span><span class="p">],</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>        <span class="n">approval</span><span class="o">=</span><span class="n">ApprovalPolicy</span><span class="p">(</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>            <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"issue_refund"</span><span class="p">],</span>          <span class="c1"># gate only the mutating tool</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>            <span class="n">handler</span><span class="o">=</span><span class="n">CallbackApprovalHandler</span><span class="p">(</span><span class="n">review</span><span class="p">),</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>            <span class="n">timeout</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>        <span class="p">),</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>    <span class="p">)</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>        <span class="s2">"Refund order O-1002 in full."</span><span class="p">}]})</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"messages"</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>    <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
 <p>The model writes one program: look up <code>O-1002</code>, read its <code>total</code>, call <code>issue_refund</code>. That <code>issue_refund</code> call leaves the sandbox as a request file, and Promptise runs the <strong>approval-wrapped</strong> host tool. Because <code>build_agent</code> wraps your tools with the <code>ApprovalPolicy</code> <em>before</em> handing them to the code-action node, the reviewer decides — and an \$890 refund is denied by policy, not silently executed inside a scratch container. Swap <code>list_orders</code>/<code>get_order</code> for read-only tools and only the mutating one carries a gate.</p>
 <h2 id="governance-that-travels-with-each-bridged-call">Governance that travels with each bridged call<a class="headerlink" href="#governance-that-travels-with-each-bridged-call" title="Link to this section">&para;</a></h2>
@@ -9562,7 +9561,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:38:11 UTC">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 19:04:28 UTC">2026-10-21</span>
   </span>
 
     

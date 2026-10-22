@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Create intelligent agents that connect to MCP servers, discover tools automatically, and execute tasks with full observability.">
+        <meta name="description" content="Reference for build_agent() and PromptiseAgent: connect to MCP servers, discover tools, combine capabilities and pass per-request identity with CallerContext.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/core/agents/building-agents/">
@@ -18,7 +18,7 @@
         <link rel="prev" href="../../">
       
       
-        <link rel="next" href="../models/">
+        <link rel="next" href="../../tools/">
       
       
         
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Building Agents - Promptise Foundry</title>
-      
-    
+  
+    <title>build_agent Reference: Create AI Agents | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/core/agents/building-agents/">
 
   
   
@@ -83,17 +83,17 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Building Agents">
-  <meta property="og:description" content="Create intelligent agents that connect to MCP servers, discover tools automatically, and execute tasks with full observability.">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="build_agent Reference: Create AI Agents | Promptise Docs">
+  <meta property="og:description" content="Reference for build_agent() and PromptiseAgent: connect to MCP servers, discover tools, combine capabilities and pass per-request identity with CallerContext.">
   <meta property="og:url" content="https://docs.promptise.com/core/agents/building-agents/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -102,8 +102,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Building Agents">
-  <meta name="twitter:description" content="Create intelligent agents that connect to MCP servers, discover tools automatically, and execute tasks with full observability.">
+  <meta name="twitter:title" content="build_agent Reference: Create AI Agents | Promptise Docs">
+  <meta name="twitter:description" content="Reference for build_agent() and PromptiseAgent: connect to MCP servers, discover tools, combine capabilities and pass per-request identity with CallerContext.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -111,8 +111,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -129,11 +129,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -160,8 +160,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -177,9 +177,9 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "Building Agents",
-      "name": "Building Agents",
-      "description": "Create intelligent agents that connect to MCP servers, discover tools automatically, and execute tasks with full observability.",
+      "headline": "build_agent Reference: Create AI Agents",
+      "name": "build_agent Reference: Create AI Agents",
+      "description": "Reference for build_agent() and PromptiseAgent: connect to MCP servers, discover tools, combine capabilities and pass per-request identity with CallerContext.",
       "url": "https://docs.promptise.com/core/agents/building-agents/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -195,12 +195,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -245,7 +245,7 @@
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "Building Agents",
+        "name": "build_agent Reference: Create AI Agents",
         "item": "https://docs.promptise.com/core/agents/building-agents/"
       }
     ]
@@ -2261,6 +2261,8 @@
       
         
       
+        
+      
     
     
     
@@ -2434,6 +2436,17 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#your-own-tools-extra_tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Your own tools: extra_tools
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2712,6 +2725,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -3624,8 +3665,6 @@
       
         
       
-        
-      
     
     
     
@@ -3773,34 +3812,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9676,6 +9687,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#your-own-tools-extra_tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Your own tools: extra_tools
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#the-promptiseagent-class" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -10073,7 +10095,7 @@
 </span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">observer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>                      <span class="c1"># shared ObservabilityCollector</span>
 </span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">observer_agent_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>             <span class="c1"># agent id for shared observer</span>
 </span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="n">cross_agents</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>                  <span class="c1"># peer agents for delegation</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="n">extra_tools</span><span class="o">=</span><span class="p">[],</span>                     <span class="c1"># additional BaseTool instances</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="n">extra_tools</span><span class="o">=</span><span class="p">[],</span>                     <span class="c1"># @tool functions, plain functions, LangChain tools</span>
 </span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    <span class="n">flow</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>                          <span class="c1"># ConversationFlow for multi-turn prompts</span>
 </span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="p">)</span>
 </span></code></pre></div>
@@ -10174,9 +10196,9 @@
 </tr>
 <tr>
 <td><code>extra_tools</code></td>
-<td><code>list[BaseTool] \| None</code></td>
+<td><code>Sequence[BaseTool \| Callable] \| None</code></td>
 <td><code>None</code></td>
-<td>Additional LangChain tools appended alongside MCP-discovered tools.</td>
+<td>Your own tools, next to the MCP-discovered ones: functions decorated with <code>@tool</code> (<code>from promptise import tool</code>), plain functions (made tools as if decorated), and LangChain tools. Anything else raises <code>TypeError</code> before any server is connected. See <a href="#your-own-tools-extra_tools">Your own tools</a>.</td>
 </tr>
 <tr>
 <td><code>flow</code></td>
@@ -10240,24 +10262,55 @@
 </tr>
 </tbody>
 </table>
+<h3 id="your-own-tools-extra_tools">Your own tools: <code>extra_tools</code><a class="headerlink" href="#your-own-tools-extra_tools" title="Link to this section">&para;</a></h3>
+<p>Give the agent Python functions as tools with <code>@tool</code>.  The name, description
+and parameter schema come from the function's name, docstring and type hints,
+arguments are validated before the function runs, and a <code>CallerContext</code>
+parameter receives the caller of the current invocation:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallerContext</span><span class="p">,</span> <span class="n">ToolError</span><span class="p">,</span> <span class="n">build_agent</span><span class="p">,</span> <span class="n">tool</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPServerSpec</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nd">@tool</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_order</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">caller</span><span class="p">:</span> <span class="n">CallerContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="sd">"""Look up an order by its ID.</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="sd">    Args:</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="sd">        order_id: The order ID, for example "A-1001".</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="sd">    """</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="n">order</span> <span class="o">=</span> <span class="k">await</span> <span class="n">orders</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">order_id</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="n">caller</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>        <span class="k">raise</span> <span class="n">ToolError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No order </span><span class="si">{</span><span class="n">order_id</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="k">return</span> <span class="n">order</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"crm"</span><span class="p">:</span> <span class="n">HTTPServerSpec</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">"http://localhost:8000/mcp"</span><span class="p">)},</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    <span class="n">extra_tools</span><span class="o">=</span><span class="p">[</span><span class="n">get_order</span><span class="p">],</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><code>ToolError</code> sends the model an error it can act on; the dict is sent as JSON.
+See <a href="../../tools/#declare-tools-with-tool">Tools</a> for parameter descriptions,
+validation, results, timeouts and testing.</p>
 <h3 id="the-promptiseagent-class">The <code>PromptiseAgent</code> Class<a class="headerlink" href="#the-promptiseagent-class" title="Link to this section">&para;</a></h3>
 <p><code>build_agent()</code> returns a <code>PromptiseAgent</code>. This is the unified agent object with opt-in capabilities -- disabled features no-op or return sensible defaults, so you never need to check what is active.</p>
 <h4 id="invocation-methods">Invocation Methods<a class="headerlink" href="#invocation-methods" title="Link to this section">&para;</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Async invocation (recommended)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Summarize sales.csv"</span><span class="p">}]</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">})</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Async streaming: the conversation after each step of the agent's graph</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">astream</span><span class="p">({</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Explain quantum computing"</span><span class="p">}]</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">}):</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">chunk</span><span class="p">[</span><span class="s2">"messages"</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># the last chunk is what ainvoke() returns</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># Synchronous invocation (convenience wrapper)</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hello"</span><span class="p">}]</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">})</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Async invocation (recommended)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Summarize sales.csv"</span><span class="p">}]</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">})</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Async streaming: the conversation after each step of the agent's graph</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">async</span> <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">agent</span><span class="o">.</span><span class="n">astream</span><span class="p">({</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Explain quantum computing"</span><span class="p">}]</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}):</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">chunk</span><span class="p">[</span><span class="s2">"messages"</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># the last chunk is what ainvoke() returns</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># Synchronous invocation (convenience wrapper)</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hello"</span><span class="p">}]</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="p">})</span>
 </span></code></pre></div>
 <p><code>astream()</code> yields <code>{"messages": [...]}</code> once per step (a model call and the
 tools it asked for), applying input and output guardrails, memory and
@@ -10269,88 +10322,88 @@ what a chat UI needs — use <a href="../../streaming/"><code>astream_with_tools
 </div>
 <h4 id="observability-methods">Observability Methods<a class="headerlink" href="#observability-methods" title="Link to this section">&para;</a></h4>
 <p>When <code>observe=True</code> is passed to <code>build_agent()</code>, the agent records every LLM turn, tool call, and token count.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">servers</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">observe</span><span class="o">=</span><span class="kc">True</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hello"</span><span class="p">}]})</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Retrieve aggregate statistics</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># Generate an interactive HTML report</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">report_path</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">generate_report</span><span class="p">(</span><span class="s2">"report.html"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"My Agent Report"</span><span class="p">)</span>
-</span></code></pre></div>
-<p><code>get_stats()</code> returns an empty dict when observability is disabled. <code>generate_report()</code> raises <code>RuntimeError</code> if observability is not enabled.</p>
-<h4 id="programmatic-metrics">Programmatic Metrics<a class="headerlink" href="#programmatic-metrics" title="Link to this section">&para;</a></h4>
-<p>When <code>observe=True</code>, the agent internally creates a <code>PromptiseCallbackHandler</code> that captures all LLM and tool events. Use <code>get_stats()</code> to access aggregate metrics:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">servers</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">observe</span><span class="o">=</span><span class="kc">True</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">)</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hello"</span><span class="p">}]})</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"total_tokens"</span><span class="p">]</span>           <span class="c1"># Total tokens used (prompt + completion)</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"total_prompt_tokens"</span><span class="p">]</span>    <span class="c1"># Total input tokens</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"total_completion_tokens"</span><span class="p">]</span> <span class="c1"># Total output tokens</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"llm_call_count"</span><span class="p">]</span>         <span class="c1"># Number of LLM calls</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"tool_call_count"</span><span class="p">]</span>        <span class="c1"># Number of tool calls</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"error_count"</span><span class="p">]</span>            <span class="c1"># Number of errors</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"retry_count"</span><span class="p">]</span>            <span class="c1"># Number of retries</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Retrieve aggregate statistics</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># Generate an interactive HTML report</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">report_path</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">generate_report</span><span class="p">(</span><span class="s2">"report.html"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"My Agent Report"</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>get_stats()</code> returns an empty dict when observability is disabled. <code>generate_report()</code> raises <code>RuntimeError</code> if observability is not enabled.</p>
+<h4 id="programmatic-metrics">Programmatic Metrics<a class="headerlink" href="#programmatic-metrics" title="Link to this section">&para;</a></h4>
+<p>When <code>observe=True</code>, the agent internally creates a <code>PromptiseCallbackHandler</code> that captures all LLM and tool events. Use <code>get_stats()</code> to access aggregate metrics:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">servers</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">observe</span><span class="o">=</span><span class="kc">True</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">)</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Hello"</span><span class="p">}]})</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"total_tokens"</span><span class="p">]</span>           <span class="c1"># Total tokens used (prompt + completion)</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"total_prompt_tokens"</span><span class="p">]</span>    <span class="c1"># Total input tokens</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"total_completion_tokens"</span><span class="p">]</span> <span class="c1"># Total output tokens</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"llm_call_count"</span><span class="p">]</span>         <span class="c1"># Number of LLM calls</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"tool_call_count"</span><span class="p">]</span>        <span class="c1"># Number of tool calls</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"error_count"</span><span class="p">]</span>            <span class="c1"># Number of errors</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="n">stats</span><span class="p">[</span><span class="s2">"retry_count"</span><span class="p">]</span>            <span class="c1"># Number of retries</span>
 </span></code></pre></div>
 <p>See <a href="../../observability/">Observability</a> for full details on the callback handler, transporter configuration, and HTML report generation.</p>
 <h4 id="lifecycle-shutdown">Lifecycle: <code>shutdown()</code><a class="headerlink" href="#lifecycle-shutdown" title="Link to this section">&para;</a></h4>
 <p>Always call <code>shutdown()</code> when the agent is no longer needed. It closes MCP connections, flushes observability transporters, and releases the memory provider.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">try</span><span class="p">:</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]})</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">finally</span><span class="p">:</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">]})</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">finally</span><span class="p">:</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
 </span></code></pre></div>
 <p><code>shutdown()</code> is always safe to call -- it no-ops for features that are not enabled.</p>
 <h3 id="combining-capabilities">Combining Capabilities<a class="headerlink" href="#combining-capabilities" title="Link to this section">&para;</a></h3>
 <p>Capabilities compose naturally. Here is an agent with observability, memory, and cross-agent delegation all enabled at once:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_agent</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPServerSpec</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.cross_agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">CrossAgent</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryProvider</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># Build a peer agent first</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="n">researcher</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"search"</span><span class="p">:</span> <span class="n">HTTPServerSpec</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">"http://localhost:8001/mcp"</span><span class="p">)},</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="p">)</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1"># Build the main agent with all capabilities</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"files"</span><span class="p">:</span> <span class="n">HTTPServerSpec</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">"http://localhost:8002/mcp"</span><span class="p">)},</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="n">observe</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>    <span class="n">memory</span><span class="o">=</span><span class="n">InMemoryProvider</span><span class="p">(),</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="n">memory_auto_store</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>    <span class="n">cross_agents</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="s2">"researcher"</span><span class="p">:</span> <span class="n">CrossAgent</span><span class="p">(</span><span class="n">agent</span><span class="o">=</span><span class="n">researcher</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Web research"</span><span class="p">),</span>
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>    <span class="p">},</span>
-</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="p">)</span>
-</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>
-</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span>
-</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>    <span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Research and summarize recent AI papers"</span><span class="p">}]</span>
-</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="p">})</span>
-</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
-</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a><span class="k">await</span> <span class="n">researcher</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_agent</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPServerSpec</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.cross_agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">CrossAgent</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryProvider</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># Build a peer agent first</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">researcher</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"search"</span><span class="p">:</span> <span class="n">HTTPServerSpec</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">"http://localhost:8001/mcp"</span><span class="p">)},</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="p">)</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="c1"># Build the main agent with all capabilities</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"files"</span><span class="p">:</span> <span class="n">HTTPServerSpec</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">"http://localhost:8002/mcp"</span><span class="p">)},</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>    <span class="n">observe</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>    <span class="n">memory</span><span class="o">=</span><span class="n">InMemoryProvider</span><span class="p">(),</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>    <span class="n">memory_auto_store</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>    <span class="n">cross_agents</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>        <span class="s2">"researcher"</span><span class="p">:</span> <span class="n">CrossAgent</span><span class="p">(</span><span class="n">agent</span><span class="o">=</span><span class="n">researcher</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Web research"</span><span class="p">),</span>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>    <span class="p">},</span>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="p">)</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span>
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>    <span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"Research and summarize recent AI papers"</span><span class="p">}]</span>
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="p">})</span>
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a><span class="k">await</span> <span class="n">researcher</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
 </span></code></pre></div>
 <h3 id="security-guardrails">Security Guardrails<a class="headerlink" href="#security-guardrails" title="Link to this section">&para;</a></h3>
 <p>Protect your agent from prompt injection attacks on input and PII/credential leakage on output. The <code>guardrails</code> parameter accepts a <code>PromptiseSecurityScanner</code> — a composable scanner built from detection heads.</p>
 <h4 id="basic-block-injections-redact-pii-and-credentials">Basic — block injections, redact PII and credentials<a class="headerlink" href="#basic-block-injections-redact-pii-and-credentials" title="Link to this section">&para;</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_agent</span><span class="p">,</span> <span class="n">PromptiseSecurityScanner</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">PromptiseSecurityScanner</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">scanner</span><span class="o">.</span><span class="n">warmup</span><span class="p">()</span>  <span class="c1"># Pre-load models at startup, not on first message</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">servers</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">guardrails</span><span class="o">=</span><span class="n">scanner</span><span class="p">,</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_agent</span><span class="p">,</span> <span class="n">PromptiseSecurityScanner</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">PromptiseSecurityScanner</span><span class="o">.</span><span class="n">default</span><span class="p">()</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">scanner</span><span class="o">.</span><span class="n">warmup</span><span class="p">()</span>  <span class="c1"># Pre-load models at startup, not on first message</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">servers</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">guardrails</span><span class="o">=</span><span class="n">scanner</span><span class="p">,</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>With this configuration:</p>
 <ul>
@@ -10358,51 +10411,51 @@ what a chat UI needs — use <a href="../../streaming/"><code>astream_with_tools
 <li><strong>Output</strong>: Credit card numbers, SSNs, API keys, and other sensitive data are replaced with labels like <code>[CREDIT_CARD_VISA]</code>, <code>[AWS_ACCESS_KEY]</code>.</li>
 </ul>
 <h4 id="custom-pick-specific-detectors">Custom — pick specific detectors<a class="headerlink" href="#custom-pick-specific-detectors" title="Link to this section">&para;</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">PromptiseSecurityScanner</span><span class="p">,</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">InjectionDetector</span><span class="p">,</span> <span class="n">PIIDetector</span><span class="p">,</span> <span class="n">CredentialDetector</span><span class="p">,</span> <span class="n">CustomRule</span><span class="p">,</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">PIICategory</span><span class="p">,</span> <span class="n">CredentialCategory</span><span class="p">,</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">)</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">PromptiseSecurityScanner</span><span class="p">(</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">detectors</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>        <span class="n">InjectionDetector</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">),</span>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>        <span class="n">PIIDetector</span><span class="p">(</span><span class="n">categories</span><span class="o">=</span><span class="p">{</span><span class="n">PIICategory</span><span class="o">.</span><span class="n">CREDIT_CARDS</span><span class="p">,</span> <span class="n">PIICategory</span><span class="o">.</span><span class="n">SSN</span><span class="p">,</span> <span class="n">PIICategory</span><span class="o">.</span><span class="n">EMAIL</span><span class="p">}),</span>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>        <span class="n">CredentialDetector</span><span class="p">(</span><span class="n">categories</span><span class="o">=</span><span class="p">{</span><span class="n">CredentialCategory</span><span class="o">.</span><span class="n">AWS</span><span class="p">,</span> <span class="n">CredentialCategory</span><span class="o">.</span><span class="n">OPENAI</span><span class="p">}),</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    <span class="p">],</span>
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="n">custom_rules</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>        <span class="n">CustomRule</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"internal_id"</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"EMP-\d</span><span class="si">{6}</span><span class="s2">"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Employee ID"</span><span class="p">),</span>
-</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    <span class="p">],</span>
-</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="p">)</span>
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>
-</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">servers</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">guardrails</span><span class="o">=</span><span class="n">scanner</span><span class="p">,</span>
-</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">PromptiseSecurityScanner</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">InjectionDetector</span><span class="p">,</span> <span class="n">PIIDetector</span><span class="p">,</span> <span class="n">CredentialDetector</span><span class="p">,</span> <span class="n">CustomRule</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">PIICategory</span><span class="p">,</span> <span class="n">CredentialCategory</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">)</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">PromptiseSecurityScanner</span><span class="p">(</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">detectors</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>        <span class="n">InjectionDetector</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">),</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>        <span class="n">PIIDetector</span><span class="p">(</span><span class="n">categories</span><span class="o">=</span><span class="p">{</span><span class="n">PIICategory</span><span class="o">.</span><span class="n">CREDIT_CARDS</span><span class="p">,</span> <span class="n">PIICategory</span><span class="o">.</span><span class="n">SSN</span><span class="p">,</span> <span class="n">PIICategory</span><span class="o">.</span><span class="n">EMAIL</span><span class="p">}),</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>        <span class="n">CredentialDetector</span><span class="p">(</span><span class="n">categories</span><span class="o">=</span><span class="p">{</span><span class="n">CredentialCategory</span><span class="o">.</span><span class="n">AWS</span><span class="p">,</span> <span class="n">CredentialCategory</span><span class="o">.</span><span class="n">OPENAI</span><span class="p">}),</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="p">],</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">custom_rules</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>        <span class="n">CustomRule</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"internal_id"</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">"EMP-\d</span><span class="si">{6}</span><span class="s2">"</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Employee ID"</span><span class="p">),</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="p">],</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="p">)</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>    <span class="n">servers</span><span class="o">=</span><span class="n">servers</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span> <span class="n">guardrails</span><span class="o">=</span><span class="n">scanner</span><span class="p">,</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="p">)</span>
 </span></code></pre></div>
 <h4 id="handling-blocked-input">Handling blocked input<a class="headerlink" href="#handling-blocked-input" title="Link to this section">&para;</a></h4>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.guardrails</span><span class="w"> </span><span class="kn">import</span> <span class="n">GuardrailViolation</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">try</span><span class="p">:</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">user_input</span><span class="p">}]})</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="k">except</span> <span class="n">GuardrailViolation</span> <span class="k">as</span> <span class="n">v</span><span class="p">:</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Blocked: </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">report</span><span class="o">.</span><span class="n">blocked</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.guardrails</span><span class="w"> </span><span class="kn">import</span> <span class="n">GuardrailViolation</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">try</span><span class="p">:</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">({</span><span class="s2">"messages"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"role"</span><span class="p">:</span> <span class="s2">"user"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">user_input</span><span class="p">}]})</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="k">except</span> <span class="n">GuardrailViolation</span> <span class="k">as</span> <span class="n">v</span><span class="p">:</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Blocked: </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">report</span><span class="o">.</span><span class="n">blocked</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">description</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </span></code></pre></div>
 <p>See <a href="../../guardrails/">Guardrails</a> for the full reference — all 6 detector types, 165+ built-in patterns, model configuration, air-gapped deployments, and content safety classification.</p>
 <hr />
 <h2 id="callercontext-per-request-identity">CallerContext — Per-Request Identity<a class="headerlink" href="#callercontext-per-request-identity" title="Link to this section">&para;</a></h2>
 <p>Every <code>ainvoke()</code> and <code>chat()</code> call can carry a <code>CallerContext</code> that identifies the user making the request. This is the foundation for multi-user systems.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallerContext</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">caller</span> <span class="o">=</span> <span class="n">CallerContext</span><span class="p">(</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">user_id</span><span class="o">=</span><span class="s2">"user-alice-001"</span><span class="p">,</span>           <span class="c1"># Scopes memory, cache, conversations</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">tenant_id</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span>                   <span class="c1"># Tenant-qualifies ALL isolation keys (multi-tenant SaaS)</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">bearer_token</span><span class="o">=</span><span class="s2">"eyJhbGciOi..."</span><span class="p">,</span>       <span class="c1"># Sent to HTTP MCP servers on this invocation's tool calls</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">roles</span><span class="o">=</span><span class="p">{</span><span class="s2">"analyst"</span><span class="p">,</span> <span class="s2">"viewer"</span><span class="p">},</span>         <span class="c1"># Agent-side role info</span>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">scopes</span><span class="o">=</span><span class="p">{</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">},</span>            <span class="c1"># Agent-side scope info</span>
-</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"team"</span><span class="p">:</span> <span class="s2">"finance"</span><span class="p">},</span>        <span class="c1"># Custom metadata</span>
-</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="p">)</span>
-</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
-</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">caller</span><span class="o">=</span><span class="n">caller</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallerContext</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">caller</span> <span class="o">=</span> <span class="n">CallerContext</span><span class="p">(</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">user_id</span><span class="o">=</span><span class="s2">"user-alice-001"</span><span class="p">,</span>           <span class="c1"># Scopes memory, cache, conversations</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">tenant_id</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span>                   <span class="c1"># Tenant-qualifies ALL isolation keys (multi-tenant SaaS)</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="n">bearer_token</span><span class="o">=</span><span class="s2">"eyJhbGciOi..."</span><span class="p">,</span>       <span class="c1"># Sent to HTTP MCP servers on this invocation's tool calls</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">roles</span><span class="o">=</span><span class="p">{</span><span class="s2">"analyst"</span><span class="p">,</span> <span class="s2">"viewer"</span><span class="p">},</span>         <span class="c1"># Agent-side role info</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="n">scopes</span><span class="o">=</span><span class="p">{</span><span class="s2">"read"</span><span class="p">,</span> <span class="s2">"write"</span><span class="p">},</span>            <span class="c1"># Agent-side scope info</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"team"</span><span class="p">:</span> <span class="s2">"finance"</span><span class="p">},</span>        <span class="c1"># Custom metadata</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">)</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">ainvoke</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">caller</span><span class="o">=</span><span class="n">caller</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="what-callercontext-does">What CallerContext Does<a class="headerlink" href="#what-callercontext-does" title="Link to this section">&para;</a></h3>
 <table>
@@ -10442,40 +10495,43 @@ what a chat UI needs — use <a href="../../streaming/"><code>astream_with_tools
 </tbody>
 </table>
 <h3 id="identity-flow-agent-mcp-server">Identity Flow: Agent → MCP Server<a class="headerlink" href="#identity-flow-agent-mcp-server" title="Link to this section">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>CallerContext(bearer_token="eyJ...")
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    → the tool call goes over an MCP session opened with this token
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>      (one per caller; never shared with another caller)
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>        → HTTP request to MCP server with Authorization: Bearer eyJ...
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>            → AuthMiddleware validates JWT
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>                → Extracts roles, scopes, claims
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>                → Builds ClientContext
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>                    → Guards check HasRole, HasScope
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>                        → Handler receives ctx.client
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>CallerContext(bearer_token="eyJ...")
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    → the tool call goes over an MCP session opened with this token
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>      (one per caller; never shared with another caller)
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        → HTTP request to MCP server with Authorization: Bearer eyJ...
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>            → AuthMiddleware validates JWT
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>                → Extracts roles, scopes, claims
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>                → Builds ClientContext
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>                    → Guards check HasRole, HasScope
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>                        → Handler receives ctx.client
 </span></code></pre></div>
 <p>Only the <code>bearer_token</code> crosses the wire. Everything else is extracted server-side from the JWT payload.</p>
 <h3 id="per-user-isolation">Per-User Isolation<a class="headerlink" href="#per-user-isolation" title="Link to this section">&para;</a></h3>
 <p>When <code>CallerContext</code> is passed, these features automatically isolate per user:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="o">...</span><span class="p">,</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">memory</span><span class="o">=</span><span class="n">ChromaProvider</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>          <span class="c1"># Memory scoped to caller.user_id</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">conversation_store</span><span class="o">=</span><span class="n">SQLiteStore</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="c1"># Sessions owned by caller.user_id</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="n">cache</span><span class="o">=</span><span class="n">SemanticCache</span><span class="p">(),</span>               <span class="c1"># Cache keyed by caller.user_id</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="n">observe</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                        <span class="c1"># Traces tagged with caller.user_id</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="p">)</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="c1"># Alice and Bob have completely separate state</span>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="s2">"question"</span><span class="p">,</span> <span class="n">session_id</span><span class="o">=</span><span class="s2">"s1"</span><span class="p">,</span> <span class="n">caller</span><span class="o">=</span><span class="n">alice_ctx</span><span class="p">)</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="s2">"question"</span><span class="p">,</span> <span class="n">session_id</span><span class="o">=</span><span class="s2">"s2"</span><span class="p">,</span> <span class="n">caller</span><span class="o">=</span><span class="n">bob_ctx</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">agent</span> <span class="o">=</span> <span class="k">await</span> <span class="n">build_agent</span><span class="p">(</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="o">...</span><span class="p">,</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">memory</span><span class="o">=</span><span class="n">ChromaProvider</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>          <span class="c1"># Memory scoped to caller.user_id</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">conversation_store</span><span class="o">=</span><span class="n">SQLiteStore</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="c1"># Sessions owned by caller.user_id</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">cache</span><span class="o">=</span><span class="n">SemanticCache</span><span class="p">(),</span>               <span class="c1"># Cache keyed by caller.user_id</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="n">observe</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                        <span class="c1"># Traces tagged with caller.user_id</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="p">)</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="c1"># Alice and Bob have completely separate state</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="s2">"question"</span><span class="p">,</span> <span class="n">session_id</span><span class="o">=</span><span class="s2">"s1"</span><span class="p">,</span> <span class="n">caller</span><span class="o">=</span><span class="n">alice_ctx</span><span class="p">)</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="k">await</span> <span class="n">agent</span><span class="o">.</span><span class="n">chat</span><span class="p">(</span><span class="s2">"question"</span><span class="p">,</span> <span class="n">session_id</span><span class="o">=</span><span class="s2">"s2"</span><span class="p">,</span> <span class="n">caller</span><span class="o">=</span><span class="n">bob_ctx</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="accessing-callercontext-in-custom-code">Accessing CallerContext in Custom Code<a class="headerlink" href="#accessing-callercontext-in-custom-code" title="Link to this section">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_caller</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="c1"># Inside guardrails, hooks, or custom tools:</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">caller</span> <span class="o">=</span> <span class="n">get_current_caller</span><span class="p">()</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">if</span> <span class="n">caller</span><span class="p">:</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">caller</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>    <span class="c1"># "user-alice-001"</span>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">caller</span><span class="o">.</span><span class="n">roles</span><span class="p">)</span>      <span class="c1"># {"analyst", "viewer"}</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_caller</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c1"># Inside guardrails, hooks, or other code running in an invocation:</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">caller</span> <span class="o">=</span> <span class="n">get_current_caller</span><span class="p">()</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="k">if</span> <span class="n">caller</span><span class="p">:</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">caller</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span>    <span class="c1"># "user-alice-001"</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">caller</span><span class="o">.</span><span class="n">roles</span><span class="p">)</span>      <span class="c1"># {"analyst", "viewer"}</span>
 </span></code></pre></div>
+<p>A <code>@tool</code> function takes the caller as a parameter instead: annotate one
+<code>CallerContext</code> and the agent fills it in, hidden from the model (see
+<a href="../../tools/#the-caller">Tools → The caller</a>).</p>
 <p>See <a href="../../../guides/multi-user-identity/">CallerContext: Agent to MCP Identity</a> for the complete end-to-end guide with JWT structure, guard reference, and server-side handler examples.</p>
 <hr />
 <h2 id="from-agent-to-production-governance-runtime">From Agent to Production: Governance &amp; Runtime<a class="headerlink" href="#from-agent-to-production-governance-runtime" title="Link to this section">&para;</a></h2>
@@ -10524,47 +10580,47 @@ what a chat UI needs — use <a href="../../streaming/"><code>astream_with_tools
 </tr>
 </tbody>
 </table>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span><span class="p">,</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">BudgetConfig</span><span class="p">,</span> <span class="n">HealthConfig</span><span class="p">,</span> <span class="n">MissionConfig</span><span class="p">,</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="p">)</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor the data pipeline."</span><span class="p">,</span>
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"tools"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">:</span> <span class="s2">"http://localhost:8000/mcp"</span><span class="p">}},</span>
-</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
-</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span> <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/alerts"</span><span class="p">,</span> <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">),</span>
-</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>    <span class="p">],</span>
-</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>
-</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>    <span class="c1"># Budget — prevent runaway tool calls</span>
-</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>    <span class="n">budget</span><span class="o">=</span><span class="n">BudgetConfig</span><span class="p">(</span>
-</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>        <span class="n">max_tool_calls_per_run</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-</span><span id="__span-14-18"><a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>        <span class="n">max_cost_per_day</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span>
-</span><span id="__span-14-19"><a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>        <span class="n">on_exceeded</span><span class="o">=</span><span class="s2">"pause"</span><span class="p">,</span>
-</span><span id="__span-14-20"><a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a>    <span class="p">),</span>
-</span><span id="__span-14-21"><a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a>
-</span><span id="__span-14-22"><a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a>    <span class="c1"># Health — catch stuck agents</span>
-</span><span id="__span-14-23"><a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a>    <span class="n">health</span><span class="o">=</span><span class="n">HealthConfig</span><span class="p">(</span>
-</span><span id="__span-14-24"><a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-14-25"><a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a>        <span class="n">stuck_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-14-26"><a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a>        <span class="n">on_anomaly</span><span class="o">=</span><span class="s2">"escalate"</span><span class="p">,</span>
-</span><span id="__span-14-27"><a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a>    <span class="p">),</span>
-</span><span id="__span-14-28"><a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a>
-</span><span id="__span-14-29"><a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a>    <span class="c1"># Mission — evaluate progress every 10 invocations</span>
-</span><span id="__span-14-30"><a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a>    <span class="n">mission</span><span class="o">=</span><span class="n">MissionConfig</span><span class="p">(</span>
-</span><span id="__span-14-31"><a id="__codelineno-14-31" name="__codelineno-14-31" href="#__codelineno-14-31"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-14-32"><a id="__codelineno-14-32" name="__codelineno-14-32" href="#__codelineno-14-32"></a>        <span class="n">objective</span><span class="o">=</span><span class="s2">"Keep all services above 99.9</span><span class="si">% u</span><span class="s2">ptime."</span><span class="p">,</span>
-</span><span id="__span-14-33"><a id="__codelineno-14-33" name="__codelineno-14-33" href="#__codelineno-14-33"></a>        <span class="n">success_criteria</span><span class="o">=</span><span class="s2">"No unresolved P1 incidents for &gt;15 minutes."</span><span class="p">,</span>
-</span><span id="__span-14-34"><a id="__codelineno-14-34" name="__codelineno-14-34" href="#__codelineno-14-34"></a>        <span class="n">eval_every</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-</span><span id="__span-14-35"><a id="__codelineno-14-35" name="__codelineno-14-35" href="#__codelineno-14-35"></a>    <span class="p">),</span>
-</span><span id="__span-14-36"><a id="__codelineno-14-36" name="__codelineno-14-36" href="#__codelineno-14-36"></a><span class="p">)</span>
-</span><span id="__span-14-37"><a id="__codelineno-14-37" name="__codelineno-14-37" href="#__codelineno-14-37"></a>
-</span><span id="__span-14-38"><a id="__codelineno-14-38" name="__codelineno-14-38" href="#__codelineno-14-38"></a><span class="k">async</span> <span class="k">with</span> <span class="n">AgentRuntime</span><span class="p">()</span> <span class="k">as</span> <span class="n">runtime</span><span class="p">:</span>
-</span><span id="__span-14-39"><a id="__codelineno-14-39" name="__codelineno-14-39" href="#__codelineno-14-39"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"pipeline-observer"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
-</span><span id="__span-14-40"><a id="__codelineno-14-40" name="__codelineno-14-40" href="#__codelineno-14-40"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
-</span><span id="__span-14-41"><a id="__codelineno-14-41" name="__codelineno-14-41" href="#__codelineno-14-41"></a>    <span class="c1"># Process runs autonomously until stopped.</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">promptise.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="n">AgentRuntime</span><span class="p">,</span> <span class="n">ProcessConfig</span><span class="p">,</span> <span class="n">TriggerConfig</span><span class="p">,</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">BudgetConfig</span><span class="p">,</span> <span class="n">HealthConfig</span><span class="p">,</span> <span class="n">MissionConfig</span><span class="p">,</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="p">)</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ProcessConfig</span><span class="p">(</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>    <span class="n">model</span><span class="o">=</span><span class="s2">"openai:gpt-5-mini"</span><span class="p">,</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="n">instructions</span><span class="o">=</span><span class="s2">"Monitor the data pipeline."</span><span class="p">,</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="n">servers</span><span class="o">=</span><span class="p">{</span><span class="s2">"tools"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"http"</span><span class="p">,</span> <span class="s2">"url"</span><span class="p">:</span> <span class="s2">"http://localhost:8000/mcp"</span><span class="p">}},</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    <span class="n">triggers</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>        <span class="n">TriggerConfig</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span> <span class="n">webhook_path</span><span class="o">=</span><span class="s2">"/alerts"</span><span class="p">,</span> <span class="n">webhook_port</span><span class="o">=</span><span class="mi">9090</span><span class="p">),</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>    <span class="p">],</span>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>    <span class="c1"># Budget — prevent runaway tool calls</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>    <span class="n">budget</span><span class="o">=</span><span class="n">BudgetConfig</span><span class="p">(</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>        <span class="n">max_tool_calls_per_run</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a>        <span class="n">max_cost_per_day</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span>
+</span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a>        <span class="n">on_exceeded</span><span class="o">=</span><span class="s2">"pause"</span><span class="p">,</span>
+</span><span id="__span-15-20"><a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a>    <span class="p">),</span>
+</span><span id="__span-15-21"><a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>
+</span><span id="__span-15-22"><a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a>    <span class="c1"># Health — catch stuck agents</span>
+</span><span id="__span-15-23"><a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a>    <span class="n">health</span><span class="o">=</span><span class="n">HealthConfig</span><span class="p">(</span>
+</span><span id="__span-15-24"><a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-15-25"><a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a>        <span class="n">stuck_threshold</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-15-26"><a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a>        <span class="n">on_anomaly</span><span class="o">=</span><span class="s2">"escalate"</span><span class="p">,</span>
+</span><span id="__span-15-27"><a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a>    <span class="p">),</span>
+</span><span id="__span-15-28"><a id="__codelineno-15-28" name="__codelineno-15-28" href="#__codelineno-15-28"></a>
+</span><span id="__span-15-29"><a id="__codelineno-15-29" name="__codelineno-15-29" href="#__codelineno-15-29"></a>    <span class="c1"># Mission — evaluate progress every 10 invocations</span>
+</span><span id="__span-15-30"><a id="__codelineno-15-30" name="__codelineno-15-30" href="#__codelineno-15-30"></a>    <span class="n">mission</span><span class="o">=</span><span class="n">MissionConfig</span><span class="p">(</span>
+</span><span id="__span-15-31"><a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a>        <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-15-32"><a id="__codelineno-15-32" name="__codelineno-15-32" href="#__codelineno-15-32"></a>        <span class="n">objective</span><span class="o">=</span><span class="s2">"Keep all services above 99.9</span><span class="si">% u</span><span class="s2">ptime."</span><span class="p">,</span>
+</span><span id="__span-15-33"><a id="__codelineno-15-33" name="__codelineno-15-33" href="#__codelineno-15-33"></a>        <span class="n">success_criteria</span><span class="o">=</span><span class="s2">"No unresolved P1 incidents for &gt;15 minutes."</span><span class="p">,</span>
+</span><span id="__span-15-34"><a id="__codelineno-15-34" name="__codelineno-15-34" href="#__codelineno-15-34"></a>        <span class="n">eval_every</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-15-35"><a id="__codelineno-15-35" name="__codelineno-15-35" href="#__codelineno-15-35"></a>    <span class="p">),</span>
+</span><span id="__span-15-36"><a id="__codelineno-15-36" name="__codelineno-15-36" href="#__codelineno-15-36"></a><span class="p">)</span>
+</span><span id="__span-15-37"><a id="__codelineno-15-37" name="__codelineno-15-37" href="#__codelineno-15-37"></a>
+</span><span id="__span-15-38"><a id="__codelineno-15-38" name="__codelineno-15-38" href="#__codelineno-15-38"></a><span class="k">async</span> <span class="k">with</span> <span class="n">AgentRuntime</span><span class="p">()</span> <span class="k">as</span> <span class="n">runtime</span><span class="p">:</span>
+</span><span id="__span-15-39"><a id="__codelineno-15-39" name="__codelineno-15-39" href="#__codelineno-15-39"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">add_process</span><span class="p">(</span><span class="s2">"pipeline-observer"</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+</span><span id="__span-15-40"><a id="__codelineno-15-40" name="__codelineno-15-40" href="#__codelineno-15-40"></a>    <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start_all</span><span class="p">()</span>
+</span><span id="__span-15-41"><a id="__codelineno-15-41" name="__codelineno-15-41" href="#__codelineno-15-41"></a>    <span class="c1"># Process runs autonomously until stopped.</span>
 </span></code></pre></div>
 <h3 id="persistence-journal-crash-recovery-audit-trail">Persistence — journal, crash recovery, audit trail<a class="headerlink" href="#persistence-journal-crash-recovery-audit-trail" title="Link to this section">&para;</a></h3>
 <p>The <strong>FileJournal</strong> records every state transition, trigger event, invocation, and tool call to an append-only JSONL file on disk. On crash, the <strong>ReplayEngine</strong> reconstructs the last known state so the agent can pick up where it left off.</p>
@@ -10624,6 +10680,16 @@ what a chat UI needs — use <a href="../../streaming/"><code>astream_with_tools
 <td><code>build_agent()</code></td>
 <td><code>from promptise import build_agent</code></td>
 <td>Async factory that discovers tools and returns a <code>PromptiseAgent</code>.</td>
+</tr>
+<tr>
+<td><code>tool</code></td>
+<td><code>from promptise import tool</code></td>
+<td>Decorator that makes a Python function a tool for <code>extra_tools</code>.</td>
+</tr>
+<tr>
+<td><code>ToolError</code></td>
+<td><code>from promptise import ToolError</code></td>
+<td>Raise in a tool to send the model an error it can act on.</td>
 </tr>
 <tr>
 <td><code>PromptiseAgent</code></td>
@@ -10721,7 +10787,7 @@ what a chat UI needs — use <a href="../../streaming/"><code>astream_with_tools
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 20:43:59 UTC">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 19:04:28 UTC">2026-10-21</span>
   </span>
 
     

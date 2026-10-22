@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Full reference for building MCP servers with decorator-based tool registration, Pydantic validation, and lifecycle hooks.">
+        <meta name="description" content="Build an MCP server in Python: register tools with decorators and Pydantic validation, add resources, templates and prompts, lifecycle hooks, then run it.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/mcp/server/building-servers/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Server Fundamentals - Promptise Foundry</title>
-      
-    
+  
+    <title>Build an MCP Server: Tools, Resources, Prompts | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/mcp/server/building-servers/">
 
   
   
@@ -83,17 +83,17 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Server Fundamentals">
-  <meta property="og:description" content="Full reference for building MCP servers with decorator-based tool registration, Pydantic validation, and lifecycle hooks.">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="Build an MCP Server: Tools, Resources, Prompts | Promptise Docs">
+  <meta property="og:description" content="Build an MCP server in Python: register tools with decorators and Pydantic validation, add resources, templates and prompts, lifecycle hooks, then run it.">
   <meta property="og:url" content="https://docs.promptise.com/mcp/server/building-servers/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -102,8 +102,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Server Fundamentals">
-  <meta name="twitter:description" content="Full reference for building MCP servers with decorator-based tool registration, Pydantic validation, and lifecycle hooks.">
+  <meta name="twitter:title" content="Build an MCP Server: Tools, Resources, Prompts | Promptise Docs">
+  <meta name="twitter:description" content="Build an MCP server in Python: register tools with decorators and Pydantic validation, add resources, templates and prompts, lifecycle hooks, then run it.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -111,8 +111,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -129,11 +129,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -160,8 +160,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -177,9 +177,9 @@
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "Server Fundamentals",
-      "name": "Server Fundamentals",
-      "description": "Full reference for building MCP servers with decorator-based tool registration, Pydantic validation, and lifecycle hooks.",
+      "headline": "Build an MCP Server: Tools, Resources, Prompts",
+      "name": "Build an MCP Server: Tools, Resources, Prompts",
+      "description": "Build an MCP server in Python: register tools with decorators and Pydantic validation, add resources, templates and prompts, lifecycle hooks, then run it.",
       "url": "https://docs.promptise.com/mcp/server/building-servers/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -195,12 +195,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -245,7 +245,7 @@
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "Server Fundamentals",
+        "name": "Build an MCP Server: Tools, Resources, Prompts",
         "item": "https://docs.promptise.com/mcp/server/building-servers/"
       }
     ]
@@ -272,7 +272,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#server-fundamentals" class="md-skip">
+        <a href="#mcp-server-fundamentals" class="md-skip">
           Skip to content
         </a>
       
@@ -2254,6 +2254,8 @@
       
         
       
+        
+      
     
     
     
@@ -2314,6 +2316,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3222,8 +3252,6 @@
       
         
       
-        
-      
     
     
     
@@ -3368,34 +3396,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -9879,7 +9879,7 @@
   
 
 
-<h1 id="server-fundamentals">Server Fundamentals<a class="headerlink" href="#server-fundamentals" title="Link to this section">&para;</a></h1>
+<h1 id="mcp-server-fundamentals">MCP Server Fundamentals<a class="headerlink" href="#mcp-server-fundamentals" title="Link to this section">&para;</a></h1>
 <p>Full reference for building MCP servers with decorator-based tool registration, Pydantic validation, and lifecycle hooks.</p>
 <div class="admonition tip">
 <p class="admonition-title">New to MCP servers?</p>
@@ -10233,7 +10233,7 @@ tenant guards or <code>MCPServer(require_tenant=True)</code> (see
 </span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
 </span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Database disconnected"</span><span class="p">)</span>
 </span></code></pre></div>
-<p>Startup hooks run before the server begins accepting requests. Shutdown hooks run during graceful shutdown (configurable via <code>shutdown_timeout</code>).</p>
+<p>Startup hooks run before the server begins accepting requests. Shutdown hooks run during graceful shutdown (configurable via <code>shutdown_timeout</code>). Over stdio, when the client closes stdin, the server first answers the requests still running, waiting at most <code>shutdown_timeout</code> seconds for them.</p>
 <h2 id="server-configuration">Server Configuration<a class="headerlink" href="#server-configuration" title="Link to this section">&para;</a></h2>
 <h3 id="constructor-options">Constructor options<a class="headerlink" href="#constructor-options" title="Link to this section">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">server</span> <span class="o">=</span> <span class="n">MCPServer</span><span class="p">(</span>
@@ -10447,7 +10447,7 @@ tenant guards or <code>MCPServer(require_tenant=True)</code> (see
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 20, 2026 22:22:15 UTC">2026-10-20</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 16:19:27 UTC">2026-10-21</span>
   </span>
 
     

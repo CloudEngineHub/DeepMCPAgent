@@ -6,10 +6,10 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Core agent creation, invocation, identity, conversations, and the full reasoning engine — every public class across promptise.agent, promptise.engine, and">
+        <meta name="description" content="API reference for build_agent, PromptiseAgent, CallerContext and the reasoning graph engine: node types, graph state, hooks, processors and conversations.">
       
       
-        <meta name="author" content="Manser Ventures">
+        <meta name="author" content="Promptise Team">
       
       
         <link rel="canonical" href="https://docs.promptise.com/api/agent/">
@@ -28,10 +28,10 @@
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
-      
-        <title>Agent - Promptise Foundry</title>
-      
-    
+  
+    <title>Agent and Reasoning Engine API Reference | Promptise Docs</title>
+  
+
     
       <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
@@ -71,11 +71,11 @@
     
     
     
+    
   
   
 
   
-  <link rel="canonical" href="https://docs.promptise.com/api/agent/">
 
   
   
@@ -83,17 +83,17 @@
   
 
   
-  <meta name="author" content="Manser Ventures">
-  <meta name="publisher" content="Manser Ventures">
+  <meta name="author" content="Promptise Team">
+  <meta name="publisher" content="Promptise Team">
 
   
   
 
   
   <meta property="og:type" content="article">
-  <meta property="og:site_name" content="Promptise Foundry">
-  <meta property="og:title" content="Agent">
-  <meta property="og:description" content="Core agent creation, invocation, identity, conversations, and the full reasoning engine — every public class across promptise.agent, promptise.engine, and">
+  <meta property="og:site_name" content="Promptise Docs">
+  <meta property="og:title" content="Agent and Reasoning Engine API Reference | Promptise Docs">
+  <meta property="og:description" content="API reference for build_agent, PromptiseAgent, CallerContext and the reasoning graph engine: node types, graph state, hooks, processors and conversations.">
   <meta property="og:url" content="https://docs.promptise.com/api/agent/">
   <meta property="og:image" content="https://docs.promptise.com//assets/social-preview.png">
   <meta property="og:image:width" content="1280">
@@ -102,8 +102,8 @@
 
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Agent">
-  <meta name="twitter:description" content="Core agent creation, invocation, identity, conversations, and the full reasoning engine — every public class across promptise.agent, promptise.engine, and">
+  <meta name="twitter:title" content="Agent and Reasoning Engine API Reference | Promptise Docs">
+  <meta name="twitter:description" content="API reference for build_agent, PromptiseAgent, CallerContext and the reasoning graph engine: node types, graph state, hooks, processors and conversations.">
   <meta name="twitter:image" content="https://docs.promptise.com//assets/social-preview.png">
 
   
@@ -111,8 +111,8 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Manser Ventures",
-    "url": "https://www.manserventures.com/",
+    "name": "Promptise Team",
+    "url": "https://www.promptise.com/",
     "logo": "https://docs.promptise.com//assets/logo.png",
     "sameAs": [
       "https://github.com/promptise-com",
@@ -129,11 +129,11 @@
     "name": "Promptise Foundry Documentation",
     "alternateName": ["Promptise Docs", "Promptise Foundry Docs"],
     "url": "https://docs.promptise.com//",
-    "description": "Promptise Foundry is the production Python framework for building AI agents, MCP servers, and autonomous runtimes \u2014 secure by default, model-agnostic, MCP-native. The modern alternative to LangChain, LangGraph, and CrewAI.",
+    "description": "Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.",
     "publisher": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "potentialAction": {
       "@type": "SearchAction",
@@ -160,8 +160,8 @@
     "url": "https://promptise.com",
     "author": {
       "@type": "Organization",
-      "name": "Manser Ventures",
-      "url": "https://www.manserventures.com/"
+      "name": "Promptise Team",
+      "url": "https://www.promptise.com/"
     },
     "keywords": "AI agent framework, Python AI agents, MCP server, Model Context Protocol, autonomous agents, agentic AI, LangChain alternative, LangGraph alternative, CrewAI alternative, prompt engineering, multi-agent systems"
   }
@@ -177,9 +177,9 @@
     {
       "@context": "https://schema.org",
       "@type": "APIReference",
-      "headline": "Agent",
-      "name": "Agent",
-      "description": "Core agent creation, invocation, identity, conversations, and the full reasoning engine \u2014 every public class across promptise.agent, promptise.engine, and",
+      "headline": "Agent and Reasoning Engine API Reference",
+      "name": "Agent and Reasoning Engine API Reference",
+      "description": "API reference for build_agent, PromptiseAgent, CallerContext and the reasoning graph engine: node types, graph state, hooks, processors and conversations.",
       "url": "https://docs.promptise.com/api/agent/",
       "image": "https://docs.promptise.com//assets/social-preview.png",
       "isPartOf": {
@@ -195,12 +195,12 @@
       },
       "author": {
         "@type": "Organization",
-        "name": "Manser Ventures",
-        "url": "https://www.manserventures.com/"
+        "name": "Promptise Team",
+        "url": "https://www.promptise.com/"
       },
       "publisher": {
         "@type": "Organization",
-        "name": "Manser Ventures",
+        "name": "Promptise Team",
         "logo": {
           "@type": "ImageObject",
           "url": "https://docs.promptise.com//assets/logo.png"
@@ -245,7 +245,7 @@
       ,{
         "@type": "ListItem",
         "position": 4,
-        "name": "Agent",
+        "name": "Agent and Reasoning Engine API Reference",
         "item": "https://docs.promptise.com/api/agent/"
       }
     ]
@@ -2256,6 +2256,8 @@
       
         
       
+        
+      
     
     
     
@@ -2316,6 +2318,34 @@
     
   
     Building Agents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../core/tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools (@tool)
   
 
     
@@ -3224,8 +3254,6 @@
       
         
       
-        
-      
     
     
     
@@ -3370,34 +3398,6 @@
     
   
     Callback Handler
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../core/tools/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Tools & Schema Helpers
   
 
     
@@ -7380,6 +7380,111 @@
     <span class="md-ellipsis">
       
         build_agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functiontool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FunctionTool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionTool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FunctionTool
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FunctionTool">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionTool.func" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        func
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionTool.timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionTool.from_function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_function
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functiontoolerror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FunctionToolError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionToolError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FunctionToolError
       
     </span>
   </a>
@@ -13435,6 +13540,111 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functiontool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FunctionTool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionTool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FunctionTool
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FunctionTool">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionTool.func" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        func
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionTool.timeout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        timeout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionTool.from_function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        from_function
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functiontoolerror" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FunctionToolError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#promptise.function_tools.FunctionToolError" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FunctionToolError
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#promptiseagent" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -17599,7 +17809,7 @@
 
 
 <h1 id="agent-api-reference">Agent API Reference<a class="headerlink" href="#agent-api-reference" title="Link to this section">&para;</a></h1>
-<p>Core agent creation, invocation, identity, conversations, and the full reasoning engine — every public class across <code>promptise.agent</code>, <code>promptise.engine</code>, and <code>promptise.conversations</code>.</p>
+<p>Core agent creation, native tools, invocation, identity, conversations, and the full reasoning engine — every public class across <code>promptise.agent</code>, <code>promptise.function_tools</code>, <code>promptise.engine</code>, and <code>promptise.conversations</code>.</p>
 <h2 id="building-agents">Building Agents<a class="headerlink" href="#building-agents" title="Link to this section">&para;</a></h2>
 <h3 id="build_agent">build_agent<a class="headerlink" href="#build_agent" title="Link to this section">&para;</a></h3>
 
@@ -18010,13 +18220,15 @@ the <code>agent_id</code> of every event the agent emits (see <code>events</code
                 <code>extra_tools</code>
             </td>
             <td>
-                  <code><span title="list">list</span>[<span title="langchain_core.tools.BaseTool">BaseTool</span>] | None</code>
+                  <code><span title="collections.abc.Sequence">Sequence</span>[<span title="langchain_core.tools.BaseTool">BaseTool</span> | <span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Optional additional :class:<code>BaseTool</code> instances to
-include alongside MCP-discovered tools.  Used by the runtime
-for meta-tools (open mode) and custom agent-created tools.</p>
+                <p>Tools the agent can call next to the MCP-discovered
+ones: functions made tools with :func:<code>promptise.tool</code>, plain
+functions (made tools as if decorated with <code>@tool</code>), and
+LangChain <code>BaseTool</code> instances.  Anything else raises
+<code>TypeError</code> before any server is connected.</p>
               </div>
             </td>
             <td>
@@ -18442,7 +18654,598 @@ An unknown name raises <code>ValueError</code>.</p>
 
     </div>
 
-</div><h3 id="promptiseagent">PromptiseAgent<a class="headerlink" href="#promptiseagent" title="Link to this section">&para;</a></h3>
+</div><h3 id="tool">tool<a class="headerlink" href="#tool" title="Link to this section">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="promptise.function_tools.tool" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">promptise</span><span class="o">.</span><span class="n">function_tools</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+<a href="#promptise.function_tools.tool" class="headerlink" title="Link to this section">&para;</a></h3>
+          <div class="doc-overloads">
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">tool</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">FunctionTool</span>
+</span></code></pre></div><div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">tool</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">/</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">FunctionTool</span><span class="p">]</span>
+</span></code></pre></div><div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">tool</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">FunctionTool</span><span class="p">]</span>
+</span></code></pre></div>          </div>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Make a Python function a tool an agent can call.</p>
+<p>Works bare (<code>@tool</code>), with options (<code>@tool(name=..., description=...,
+timeout=...)</code>) and with the name as the only argument
+(<code>@tool("get_order")</code>), on <code>async def</code> and plain <code>def</code> functions.
+The result is a :class:<code>FunctionTool</code>; see it for how calls, results
+and errors work.</p>
+<p>Example::</p>
+<div class="language-text highlight"><pre><span></span><code>from promptise import ToolError, tool
+
+@tool
+async def get_order(order_id: str) -&gt; dict:
+    """Look up an order by its ID.
+
+    Args:
+        order_id: The order ID, for example "A-1001".
+    """
+    order = await db.orders.get(order_id)
+    if order is None:
+        raise ToolError(f"No order {order_id}.")
+    return order
+</code></pre></div>
+<p>The tool's name is the function's name.  Its description is the
+docstring without the parameter section, which describes the
+parameters instead (Google <code>Args:</code>, NumPy <code>Parameters</code> or Sphinx
+<code>:param:</code>).  <code>Annotated[T, Field(description=...)]</code> or
+<code>Annotated[T, "text"]</code> describe a parameter too, and win over the
+docstring.  Type hints, defaults and <code>Field</code> constraints make the
+parameter schema, validated before every call.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>func</code>
+            </td>
+            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The function (when used bare), or the tool's name
+(<code>@tool("get_order")</code>).</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The tool's name; defaults to the function's name.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>description</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The tool's description; defaults to the docstring
+without its parameter section.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Seconds a call may run before the model gets a <code>TIMEOUT</code>
+error; <code>None</code> (default) for no limit.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>A</code></td>            <td>
+                  <code><span title="typing.Any">Any</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h3 id="functiontool">FunctionTool<a class="headerlink" href="#functiontool" title="Link to this section">&para;</a></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="promptise.function_tools.FunctionTool" class="doc doc-heading">
+            <code>promptise.function_tools.FunctionTool</code>
+
+
+<a href="#promptise.function_tools.FunctionTool" class="headerlink" title="Link to this section">&para;</a></h3>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="langchain_core.tools.BaseTool">BaseTool</span></code></p>
+
+
+
+        <p>A tool made from a Python function by :func:<code>tool</code>.</p>
+<p>A LangChain <code>BaseTool</code>: pass it to <code>build_agent(extra_tools=[...])</code>
+and approval policies, guardrails (<code>scan_tool_results</code>), tracing,
+events and tool optimization treat it like any other tool.</p>
+<p><strong>Calling the tool directly</strong> runs the function as it was written:
+<code>await get_order("A-1001")</code> for an <code>async def</code>, <code>refund(...)</code> for a
+plain <code>def</code>, with no validation and no injected caller.  Use it in
+unit tests.  <code>await get_order.ainvoke({"order_id": "A-1001"})</code> runs it
+the way the agent does: validated, with the caller injected, and returns
+what the model reads.</p>
+<p><strong>When the agent calls it</strong>, the arguments are validated against
+:attr:<code>args_schema</code> first (with defaults filled in, and nested objects
+the model sent as JSON text decoded); invalid ones are answered with a
+:class:<code>~promptise.tools.ToolArgumentError</code> the model can correct.  A
+synchronous function runs in a worker thread, so it never blocks the
+event loop.  A <code>CallerContext</code> parameter receives the caller of the
+current <code>agent.ainvoke(..., caller=...)</code> (an empty <code>CallerContext()</code>
+when there is none, or <code>None</code> when the parameter is
+<code>CallerContext | None</code>).</p>
+<p><strong>Results</strong> go to the model as text: a string as it is, <code>None</code> as an
+empty result, anything else as JSON (dicts, lists, numbers, Pydantic
+models, dataclasses ...).</p>
+<p><strong>Errors:</strong> raise :class:<code>~promptise.ToolError</code> to give the model an
+error it can act on: it sees the same <code>{"error": {"code", "message",
+...}}</code> envelope a Promptise MCP server sends (raised to callbacks as
+:class:<code>FunctionToolError</code>).  Any other exception is a tool that failed:
+the model sees <code>Error: &lt;type&gt;: &lt;message&gt;</code>, as for every tool.  With
+:attr:<code>timeout</code>, a call that runs longer is answered with a retryable
+<code>TIMEOUT</code> error; a synchronous function's thread can't be stopped, so
+it finishes in the background and its result is dropped.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="timeout = None
+
+  
+      class-attribute
+      instance-attribute
+   (promptise.function_tools.FunctionTool.timeout)" href="#promptise.function_tools.FunctionTool.timeout">timeout</a></code></td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Seconds a call may run, or <code>None</code> for no limit.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="promptise.function_tools.FunctionTool.func" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">func</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#promptise.function_tools.FunctionTool.func" class="headerlink" title="Link to this section">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>The function the tool was made from.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="promptise.function_tools.FunctionTool.timeout" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">timeout</span> <span class="o">=</span> <span class="kc">None</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#promptise.function_tools.FunctionTool.timeout" class="headerlink" title="Link to this section">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="promptise.function_tools.FunctionTool.from_function" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">from_function</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
+  </span>
+
+<a href="#promptise.function_tools.FunctionTool.from_function" class="headerlink" title="Link to this section">&para;</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Make a tool from <em>func</em> (what :func:<code>tool</code> does).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>func</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="typing.Any">Any</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A function, <code>async</code> or not, or another callable.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The tool's name; defaults to the function's <code>__name__</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>description</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>What the model is told about the tool; defaults to
+the docstring without its parameter section (<code>Args:</code>,
+NumPy <code>Parameters</code>, Sphinx <code>:param:</code>), or the name when
+there is no docstring.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>timeout</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Seconds a call may run before it is answered with a
+<code>TIMEOUT</code> error; <code>None</code> for no limit.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><em>func</em> is not a callable that can be a tool (a class,
+a generator function), takes an argument LangChain injects
+(<code>RunnableConfig</code>, <code>InjectedToolArg</code>), or has a parameter
+type Pydantic can't build a schema for.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An invalid name or timeout.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="functiontoolerror">FunctionToolError<a class="headerlink" href="#functiontoolerror" title="Link to this section">&para;</a></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="promptise.function_tools.FunctionToolError" class="doc doc-heading">
+            <code>promptise.function_tools.FunctionToolError</code>
+
+
+<a href="#promptise.function_tools.FunctionToolError" class="headerlink" title="Link to this section">&para;</a></h3>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="langchain_core.tools.ToolException">ToolException</span></code></p>
+
+
+
+        <p>A native tool reported a failure the model should see.</p>
+<p>Raised by a :class:<code>FunctionTool</code> when its function raises
+:class:<code>~promptise.ToolError</code> (or another
+:class:<code>~promptise.mcp.server.MCPError</code>) or runs past the tool's
+<code>timeout</code>.  The agent shows the model :attr:<code>text</code>, the same error
+envelope a Promptise MCP server returns for that error
+(<code>{"error": {"code": ..., "message": ..., "retryable": ...}}</code>), and
+callbacks receive <code>on_tool_error</code>, so the call counts as failed in
+observability, events and adaptive strategy.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="promptise.function_tools.FunctionToolError.tool_name">tool_name</span></code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The tool that failed.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="promptise.function_tools.FunctionToolError.code">code</span></code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The error's code (<code>"TOOL_ERROR"</code>, <code>"TIMEOUT"</code> ...).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="promptise.function_tools.FunctionToolError.message">message</span></code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The error's message.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="promptise.function_tools.FunctionToolError.retryable">retryable</span></code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether retrying the same call might succeed.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="promptise.function_tools.FunctionToolError.text">text</span></code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>What the model sees: the JSON error envelope.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="promptise.function_tools.FunctionToolError.error">error</span></code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The :class:<code>~promptise.mcp.server.MCPError</code> behind it.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><p><code>ToolError</code> (<code>from promptise import ToolError</code>) is the MCP server's error class; see <a href="../mcp-server/#toolerror">ToolError</a>.</p>
+<h3 id="promptiseagent">PromptiseAgent<a class="headerlink" href="#promptiseagent" title="Link to this section">&para;</a></h3>
 
 
 <div class="doc doc-object doc-class">
@@ -30493,7 +31296,7 @@ Ideal for ephemeral sessions, caching, or high-throughput scenarios.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 15, 2026 17:43:35 UTC">2026-10-15</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date" title="October 21, 2026 19:04:28 UTC">2026-10-21</span>
   </span>
 
     
