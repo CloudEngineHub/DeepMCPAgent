@@ -207,7 +207,7 @@ A browser client needs **both** settings: `allowed_origins` (the server's `Origi
 |-----------|---------|-------------|
 | `allow_origins` | `[]` (none) | Allowed origin URLs. `["*"]` allows any origin |
 | `allow_methods` | `["GET", "POST", "DELETE", "OPTIONS"]` | Allowed HTTP methods |
-| `allow_headers` | `["Content-Type", "Authorization", "x-api-key", "mcp-session-id", "mcp-protocol-version", "last-event-id"]` | Request headers the preflight admits. If you replace the list, keep `mcp-session-id` and `mcp-protocol-version` — the browser refuses every request after `initialize` without them |
+| `allow_headers` | `["Content-Type", "Authorization", "x-api-key", "mcp-session-id", "mcp-protocol-version", "last-event-id", "mcp-method", "mcp-name"]` | Request headers the preflight admits. If you replace the list, keep `mcp-session-id` and `mcp-protocol-version` (the browser refuses every request after `initialize` without them) and `mcp-method` and `mcp-name` (it refuses every 2026-07-28 request without them) |
 | `expose_headers` | `["mcp-session-id"]` | Response headers the page may read. Without `mcp-session-id` a browser client cannot continue the session it opened |
 | `allow_credentials` | `False` | Allow cookies and auth headers. Cannot be combined with `allow_origins=["*"]` — `CORSConfig` raises `ValueError` |
 | `max_age` | `600` | Preflight cache duration (seconds) |

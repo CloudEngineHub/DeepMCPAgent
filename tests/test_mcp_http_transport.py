@@ -38,7 +38,6 @@ import pytest
 from _live_server import serve_asgi, serve_mcp
 
 from promptise.mcp._compat import MCP_V2
-
 from promptise.mcp.client import (
     MCPClient,
     MCPClientError,
@@ -416,7 +415,13 @@ class TestCORS:
     def test_defaults_cover_the_mcp_headers(self):
         cors = CORSConfig()
         assert cors.allow_origins == []
-        for header in ("mcp-session-id", "mcp-protocol-version", "last-event-id"):
+        for header in (
+            "mcp-session-id",
+            "mcp-protocol-version",
+            "last-event-id",
+            "mcp-method",
+            "mcp-name",
+        ):
             assert header in cors.allow_headers
         assert cors.expose_headers == ["mcp-session-id"]
         assert list(MCP_CORS_ALLOW_HEADERS) == cors.allow_headers

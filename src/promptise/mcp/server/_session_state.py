@@ -52,7 +52,8 @@ def session_unavailable_error(tool_name: str, protocol_version: str | None) -> T
             "(each request stands alone)"
         )
         fix = (
-            "Connect with the initialize handshake (mode='legacy' in the MCP Python SDK) to use it"
+            "Connect with the initialize handshake to use it (Promptise's MCPClient does by "
+            "default, protocol='handshake'; the MCP Python SDK client with mode='legacy')"
         )
     else:
         why = "this server is stateless (asgi_app(stateless=True)), so no request has a session"

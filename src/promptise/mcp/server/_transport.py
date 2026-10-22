@@ -190,9 +190,13 @@ MCP_CORS_ALLOW_HEADERS: tuple[str, ...] = (
     "mcp-session-id",
     "mcp-protocol-version",
     "last-event-id",
+    "mcp-method",
+    "mcp-name",
 )
 """Request headers a browser MCP client sends: auth, plus the Streamable
-HTTP session, protocol-version and stream-resumption headers."""
+HTTP session, protocol-version and stream-resumption headers, and the
+``mcp-method`` / ``mcp-name`` headers a 2026-07-28 client adds to every
+request."""
 
 MCP_CORS_EXPOSE_HEADERS: tuple[str, ...] = ("mcp-session-id",)
 """Response headers a browser MCP client must read: the session id the
@@ -220,7 +224,9 @@ class CORSConfig:
         allow_methods: Allowed HTTP methods.
         allow_headers: Allowed request headers.  When you replace the
             default, keep ``mcp-session-id`` and ``mcp-protocol-version``
-            or the browser refuses every request after ``initialize``.
+            or the browser refuses every request after ``initialize``, and
+            ``mcp-method`` and ``mcp-name`` or it refuses every 2026-07-28
+            request.
         expose_headers: Response headers the page may read.  Keep
             ``mcp-session-id``: without it a browser client cannot continue
             the session it opened.
