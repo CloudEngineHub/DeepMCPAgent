@@ -50,7 +50,7 @@ claude mcp add myapi -- python myapi-mcp/server.py
 
 Read-only by default; writes, deletes and money-moving calls are only generated when you opt in, and every one of them is approval-gated **server-side**: so any MCP client can drive your product safely. Drop `--no-curate` to have a model design a smaller intent-tool surface. Start with [**MCPcast, end to end**](mcpcast/index.md): how MCP works, a real API turned into a real server, and the review checklist, then the [step-by-step guide](guides/mcpcast-existing-api.md) and the [reference](mcp/server/mcpcast.md).
 
-## Five Subsystems
+## Subsystems
 
 | Subsystem | What it does | Start here |
 |-----------|-------------|------------|
@@ -59,6 +59,8 @@ Read-only by default; writes, deletes and money-moving calls are only generated 
 | **[MCP Server](mcp/index.md)** | Build tool APIs that agents call. JWT auth, guards, middleware, rate limiting, audit logs, TestClient. The FastAPI of MCP. | [Building Servers](guides/production-mcp-servers.md) |
 | **[Agent Runtime](runtime/index.md)** | Run agents autonomously. Cron triggers, crash recovery, budget enforcement, health monitoring, mission tracking, distributed coordination. | [Runtime Systems](guides/agentic-runtime.md) |
 | **[Prompting](prompting/index.md)** | Prompts as software. Typed blocks with token budgeting, conversation flows, composable strategies, guards, version control, testing. | [Prompt Engineering](guides/prompt-engineering.md) |
+| **[MCPcast](mcpcast/index.md)** | Turn an existing OpenAPI or Swagger API into a curated MCP server, read-only by default, with writes approval-gated on the server. | [MCPcast an Existing API](guides/mcpcast-existing-api.md) |
+| **[Agent Identity](identity/overview.md)** | Give each agent its own identity, backed by Entra ID, AWS, Google Cloud, SPIFFE or OIDC, so MCP servers can verify and attribute it. | [Identity Quickstart](identity/quickstart.md) |
 
 ## Hands-On Labs
 
@@ -68,6 +70,7 @@ Complete, runnable tutorials for real-world use cases:
 - [Lab: Data Analysis Agent](guides/lab-data-analysis.md): SQL queries, cross-table analysis, specialized reasoning pattern
 - [Lab: Code Review Agent](guides/lab-code-review.md): Adversarial critique, per-node models, security scanning
 - [Lab: MCPcast Your SaaS API](guides/lab-mcpcast-storefront.md): Generated tools, an agent doing real work, a refund held by the approval gate, an Agent Readiness Score
+- [Lab: Pipeline Observer Agent](guides/lab-pipeline-observer.md): An autonomous runtime agent that watches a pipeline, reacts to events and escalates
 
 ## Install
 
@@ -96,3 +99,5 @@ promptise models check openai:gpt-5-mini --ping
 - [Model Setup](getting-started/model-setup.md): Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, or any provider
 - [Key Concepts](getting-started/concepts.md): Architecture and design principles
 - [Reasoning Engine](core/engine.md): The custom execution runtime that powers every agent
+- [Public API Index](reference/public-api.md): Every name Promptise exports, and the page that documents it
+- [Environment Variables](reference/environment-variables.md): Every variable Promptise reads or sets
