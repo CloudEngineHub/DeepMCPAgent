@@ -432,7 +432,7 @@ def run_command(opts: RunOptions) -> int:
         import difflib
 
         close = difflib.get_close_matches(opts.target, list(manifest.scripts), n=1)
-        hint = f" — did you mean {close[0]!r}?" if close else ""
+        hint = f" (did you mean {close[0]!r}?)" if close else ""
         return _problem(
             f"no script or file named {opts.target!r}{hint} (scripts: {known}). "
             "To pass arguments to the main file, name it: promptise run main.py ARGS"

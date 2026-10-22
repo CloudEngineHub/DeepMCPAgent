@@ -116,12 +116,12 @@ class CallerContext:
                 raise ValueError("tenant_id must be non-empty when provided")
             if ":" in self.tenant_id:
                 raise ValueError(
-                    f"tenant_id must not contain ':' (got {self.tenant_id!r}) — "
+                    f"tenant_id must not contain ':' (got {self.tenant_id!r}): "
                     "it delimits the tenant isolation key"
                 )
         if self.user_id is not None and "::" in self.user_id:
             raise ValueError(
-                f"user_id must not contain '::' (got {self.user_id!r}) — "
+                f"user_id must not contain '::' (got {self.user_id!r}): "
                 "it is the tenant isolation-key separator"
             )
 

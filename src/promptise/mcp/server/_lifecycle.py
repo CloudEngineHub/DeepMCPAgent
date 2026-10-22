@@ -63,7 +63,7 @@ class LifecycleManager:
                 await asyncio.wait_for(_run_hooks(), timeout=timeout)
             except asyncio.TimeoutError:
                 logger.warning(
-                    "Shutdown timed out after %.1fs — some hooks may not have completed",
+                    "Shutdown timed out after %.1fs; some hooks may not have completed",
                     timeout,
                 )
         else:

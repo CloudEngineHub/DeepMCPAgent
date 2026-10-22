@@ -946,7 +946,7 @@ class RuntimeDashboard:
                     result_msg = f"Usage: {cmd} <process_name>"
                     success = False
                 elif self._runtime is None:
-                    result_msg = "No runtime reference — command not available"
+                    result_msg = "No runtime reference: command not available"
                     success = False
                 else:
                     name = args[0]
@@ -975,7 +975,7 @@ class RuntimeDashboard:
                     result_msg = "Usage: inject <name> [payload_json]"
                     success = False
                 elif self._runtime is None:
-                    result_msg = "No runtime reference — command not available"
+                    result_msg = "No runtime reference: command not available"
                     success = False
                 else:
                     name = args[0]

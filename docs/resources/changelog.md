@@ -38,6 +38,7 @@ All notable changes to Promptise Foundry are documented here.
 - Docs: the memory page warns that the default `SHARED` scope shares every caller's memories and shows `purge_user` for a caller with a tenant.
 - Docs: the guardrails page explains how the injection windows can dilute a short instruction and when to use `paragraphs=True`.
 - Docs: the MCP server pages say what elicitation and `SessionState` do on handshake and 2026-07-28 connections and on stateless servers.
+- Log, warning and exception messages no longer contain em dashes; they use a colon, semicolon, comma or parentheses instead. For example the `WebhookTrigger` warning now reads `WebhookTrigger on port 9090 has no HMAC secret: any HTTP client can trigger this webhook.` and the budget warning `Budget violation: max_irreversible_per_run (limit=3, current=4), action=pause`. Code that matches these messages by their exact text needs the new punctuation; the docs quoting them are updated.
 
 
 ## v1.6.0 — 2026-10-21

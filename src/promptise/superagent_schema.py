@@ -727,7 +727,7 @@ class IdentityConfig(BaseModel):
         """Enforce the per-provider required fields up front."""
         if self.provider == "local" and not (self.agent_id and self.agent_id.strip()):
             raise ValueError(
-                "identity.provider 'local' requires 'agent_id' — a local "
+                "identity.provider 'local' requires 'agent_id': a local "
                 "identity has no IdP to derive its identifier from."
             )
         if self.provider == "oidc":

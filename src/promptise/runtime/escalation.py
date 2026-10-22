@@ -100,7 +100,7 @@ async def _fire_webhook(url: str, payload: dict[str, Any]) -> None:
     try:
         import httpx
     except ImportError:
-        logger.warning("httpx not installed — cannot send escalation webhook")
+        logger.warning("httpx not installed: cannot send escalation webhook")
         return
 
     from promptise._outbound import BlockedTarget, pin_target

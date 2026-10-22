@@ -525,7 +525,7 @@ class PromptGraphEngine:
                 node = None
             if node is None:
                 logger.error(
-                    "Node %r not found in graph %r — ending execution",
+                    "Node %r not found in graph %r: ending execution",
                     state.current_node,
                     live_graph.name,
                 )
@@ -542,7 +542,7 @@ class PromptGraphEngine:
                 route = self._stuck_route(node, live_graph)
                 if route is None:
                     # Nothing routes the node anywhere: the limit ends the run.
-                    logger.warning("Stuck node %r — forcing graph end", node.name)
+                    logger.warning("Stuck node %r: forcing graph end", node.name)
                     limit_stop = stopped
                     route = "__end__"
                 state.current_node = route
@@ -618,9 +618,7 @@ class PromptGraphEngine:
 
             # ── CRITICAL flag — abort on error ──
             if critical:
-                logger.error(
-                    "CRITICAL node %r failed — aborting graph: %s", node.name, result.error
-                )
+                logger.error("CRITICAL node %r failed, aborting graph: %s", node.name, result.error)
                 state.node_history.append(result)
                 state.record_node_timing(node.name, result.duration_ms)
                 state.trim_messages()
@@ -868,7 +866,7 @@ class PromptGraphEngine:
             return node.default_next
 
         # 6. No transition found — end
-        logger.debug("No transition from node %r — ending graph", node.name)
+        logger.debug("No transition from node %r: ending graph", node.name)
         return "__end__"
 
     # ──────────────────────────────────────────────────────────────────
@@ -895,7 +893,7 @@ class PromptGraphEngine:
         if state.node_iterations.get(node.name, 0) < limit:
             return False
         logger.warning(
-            "Node %r reached its iteration limit (%d) in graph %r — not running it again",
+            "Node %r reached its iteration limit (%d) in graph %r; not running it again",
             node.name,
             limit,
             state.graph.name if state.graph is not None else "?",
@@ -911,7 +909,7 @@ class PromptGraphEngine:
         """Route away from a node that has used its iteration budget."""
         route = self._stuck_route(node, graph)
         if route is None:
-            logger.warning("Stuck node %r — forcing graph end", node.name)
+            logger.warning("Stuck node %r: forcing graph end", node.name)
             return "__end__"
         return route
 
@@ -998,7 +996,7 @@ class PromptGraphEngine:
             last = state.node_history[-1]
             if last.error:
                 logger.info(
-                    "Skipping node %r (SKIP_ON_ERROR) — previous node %r errored",
+                    "Skipping node %r (SKIP_ON_ERROR): previous node %r errored",
                     node.name,
                     last.node_name,
                 )

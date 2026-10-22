@@ -436,7 +436,7 @@ def _strip_phantoms(text: str, phantoms: dict[str, str]) -> str:
 
 def _dangling(where: str, named: list[str], phantoms: dict[str, str], exposed: list[str]) -> str:
     return (
-        f"{where} names {', '.join(f'{n} ({phantoms[n]})' for n in named)} — no such tool "
+        f"{where} names {', '.join(f'{n} ({phantoms[n]})' for n in named)}: no such tool "
         "will exist in the generated server; remove the reference or name one of: "
         + ", ".join(exposed)
     )

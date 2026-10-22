@@ -1477,7 +1477,7 @@ def approval_elicitation_callback(
         if mode != "form":
             logger.warning(
                 "Approval: %s sent a %s-mode elicitation; an approval handler only "
-                "answers confirmation forms — declined",
+                "answers confirmation forms; declined",
                 where,
                 mode,
             )
@@ -1487,7 +1487,7 @@ def approval_elicitation_callback(
         schema = mcp_field(params, "requested_schema")
         if _confirmation_content(schema, None) is None:
             logger.warning(
-                "Approval: %s asked for input that is not a confirmation (%r) — declined",
+                "Approval: %s asked for input that is not a confirmation (%r); declined",
                 where,
                 message,
             )
@@ -1564,7 +1564,7 @@ def approval_elicitation_callback(
             decision = await asyncio.wait_for(task, timeout=effective_timeout)
         except asyncio.TimeoutError:
             logger.warning(
-                "Approval: no decision on %s's request within %.0fs (request_id=%s) — declined",
+                "Approval: no decision on %s's request within %.0fs (request_id=%s); declined",
                 where,
                 effective_timeout,
                 request.request_id,
@@ -1580,7 +1580,7 @@ def approval_elicitation_callback(
             return decline
         except Exception as exc:
             logger.error(
-                "Approval: handler error on %s's request (%s: %s) — declined",
+                "Approval: handler error on %s's request (%s: %s); declined",
                 where,
                 type(exc).__name__,
                 exc,
@@ -1613,7 +1613,7 @@ def approval_elicitation_callback(
         if decision.modified_arguments is not None:
             logger.warning(
                 "Approval: reviewer modified the arguments of %s's request "
-                "(request_id=%s); a server-side gate cannot apply that — declined",
+                "(request_id=%s); a server-side gate cannot apply that; declined",
                 where,
                 request.request_id,
             )

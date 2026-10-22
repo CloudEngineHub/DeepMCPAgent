@@ -210,7 +210,7 @@ def from_spiffe(
     if resolved_mode == "file":
         if token_file is None:
             raise ProviderConfigError(
-                "from_spiffe file mode requires token_file=... — the path "
+                "from_spiffe file mode requires token_file=..., the path "
                 "spiffe-helper writes the JWT-SVID to. Most common cause: "
                 "mode='file' was requested without supplying the path."
             )

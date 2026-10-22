@@ -161,7 +161,7 @@ class WebhookTrigger:
         self._availability_check: Callable[[], str | None] | None = None
         if self._hmac_secret is None:
             logger.warning(
-                "WebhookTrigger on port %d has no HMAC secret — "
+                "WebhookTrigger on port %d has no HMAC secret: "
                 "any HTTP client can trigger this webhook. "
                 "Set hmac_secret for production use.",
                 port,

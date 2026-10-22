@@ -462,7 +462,7 @@ def refuse_unrelayable_credential(auth: AuthMode, credential: CredentialSlot) ->
         raise MCPcastError(
             f"the spec authenticates with a credential in {credential.describe()}, which "
             "--auth passthrough cannot relay (it forwards only the caller's Authorization "
-            "header) — generate with --auth env-token (one upstream credential from "
+            "header); generate with --auth env-token (one upstream credential from "
             "MCPCAST_UPSTREAM_TOKEN, presented there) or --auth api-key (one per tenant)"
         )
 

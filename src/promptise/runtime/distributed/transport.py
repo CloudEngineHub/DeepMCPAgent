@@ -160,7 +160,7 @@ class RuntimeTransport:
         if not self._loopback and auth_token is None and not allow_unauthenticated:
             raise ValueError(
                 f"RuntimeTransport {node_id}: refusing to bind {host!r} without "
-                "auth_token — anyone who can reach the port could start, stop and "
+                "auth_token: anyone who can reach the port could start, stop and "
                 "drive this runtime's agents. Pass auth_token=..., bind 127.0.0.1, "
                 "or set allow_unauthenticated=True if an authenticating proxy or "
                 "private network protects the port."

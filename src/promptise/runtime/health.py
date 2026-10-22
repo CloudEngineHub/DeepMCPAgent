@@ -491,7 +491,7 @@ class HealthMonitor:
         self._unrecovered = True
         self._anomaly_this_run = True
         logger.warning(
-            "Behavioral anomaly detected: %s — %s",
+            "Behavioral anomaly detected: %s (%s)",
             anomaly.anomaly_type.value,
             anomaly.description,
         )

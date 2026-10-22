@@ -717,7 +717,7 @@ class PrometheusTransporter(BaseTransporter):
 
         except ImportError:
             logger.warning(
-                "prometheus_client not installed — PrometheusTransporter will "
+                "prometheus_client not installed: PrometheusTransporter will "
                 "track metrics internally only (not exported to Prometheus). "
                 "Install with: pip install prometheus_client"
             )

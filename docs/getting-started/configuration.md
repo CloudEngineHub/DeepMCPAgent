@@ -210,7 +210,7 @@ provider's console, and the three ways to supply it:
 
 ```text
 Cannot use model openai:'gpt-5-mini' (OpenAI) yet:
-  - OPENAI_API_KEY is not set — platform.openai.com → API keys (e.g. sk-...)
+  - OPENAI_API_KEY is not set: platform.openai.com → API keys (e.g. sk-...)
   - put OPENAI_API_KEY in a .env file next to your script (loaded automatically, never
     overrides a set variable), export it, or pass it in code: Model(..., api_key=) — see
     promptise models env openai

@@ -424,7 +424,7 @@ def verify_audit_log(
                 "missing_start",
                 rec,
                 f"the log does not start a chain: the first {count}entries are missing "
-                "(deleted, or this file continues a rotated one — verify the files "
+                "(deleted, or this file continues a rotated one; verify the files "
                 "together, in order)",
             )
         else:

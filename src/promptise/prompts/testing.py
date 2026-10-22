@@ -189,4 +189,4 @@ class PromptTestCase:
         so a non-None result means all guards passed).
         """
         if result is None:
-            raise AssertionError("Result is None — may have been blocked")
+            raise AssertionError("Result is None (it may have been blocked)")

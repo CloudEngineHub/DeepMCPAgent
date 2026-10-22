@@ -686,7 +686,7 @@ budget=BudgetConfig(
 **Real example from our test run:** When we sent 3 events in rapid succession and the agent kept processing them, it eventually hit `max_cost_per_day=5.0`. The daemon log showed:
 
 ```
-Budget violation: max_cost_per_day (limit=5.0, current=6.0) — action=pause
+Budget violation: max_cost_per_day (limit=5.0, current=6.0), action=pause
 ```
 
 The runtime paused the process automatically. No runaway costs. This is exactly what budget enforcement should do.

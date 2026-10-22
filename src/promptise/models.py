@@ -119,7 +119,7 @@ def _stat_dotenv(candidate: Path) -> os.stat_result | None:
     except (FileNotFoundError, NotADirectoryError):
         return None
     except OSError as exc:
-        raise ModelSetupError(f"cannot read {candidate}: {exc} — {_DOTENV_FIX}") from exc
+        raise ModelSetupError(f"cannot read {candidate}: {exc}; {_DOTENV_FIX}") from exc
 
 
 def _unsafe_dotenv(candidate: Path, st: os.stat_result) -> str | None:
@@ -138,7 +138,7 @@ def _unsafe_dotenv(candidate: Path, st: os.stat_result) -> str | None:
     if os.name != "posix":
         return None
     if st.st_mode & stat.S_IWOTH:
-        return f"world-writable (mode {stat.S_IMODE(st.st_mode):o}) — run: chmod o-w {candidate}"
+        return f"world-writable (mode {stat.S_IMODE(st.st_mode):o}); run: chmod o-w {candidate}"
     if hasattr(os, "geteuid"):
         me = os.geteuid()
         owners = {st.st_uid}
@@ -164,7 +164,7 @@ def _read_dotenv(path: str) -> dict[str, str | None]:
     try:
         return dotenv_values(path, encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
-        raise ModelSetupError(f"cannot read {path}: {exc} — {_DOTENV_FIX}") from exc
+        raise ModelSetupError(f"cannot read {path}: {exc}; {_DOTENV_FIX}") from exc
 
 
 def load_dotenv_if_present(*, cwd: str | os.PathLike[str] | None = None) -> str | None:
@@ -438,7 +438,7 @@ PROVIDERS: tuple[Provider, ...] = (
         example="azure:chat-prod",
         model_hint=(
             "in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with "
-            "Model(...), the model name (gpt-4o) — the deployment goes in deployment="
+            "Model(...), the model name (gpt-4o); the deployment goes in deployment="
         ),
         notes=(
             "Azure routes requests by deployment name, not model name: "
@@ -861,11 +861,11 @@ class ModelCheck:
             empty = [n for n in (var.name, *var.aliases) if os.environ.get(n) == ""]
             if empty:
                 out.append(
-                    f"{empty[0]} is exported but empty, which counts as not set — "
-                    f"unset it or give it a value — {var.where}{hint}"
+                    f"{empty[0]} is exported but empty, which counts as not set. "
+                    f"Unset it or give it a value: {var.where}{hint}"
                 )
             else:
-                out.append(f"{var.name} is not set — {var.where}{hint}")
+                out.append(f"{var.name} is not set: {var.where}{hint}")
         if self.missing_env:
             names = ", ".join(v.name for v in self.missing_env)
             words = ", ".join(f"{v.word}=" for v in self.missing_env)
@@ -873,7 +873,7 @@ class ModelCheck:
                 f"put {names} in a .env file next to your script (loaded automatically; a "
                 f"variable already exported with a non-empty value wins, an empty one is "
                 f"filled from the file), export it, or pass it in code: "
-                f"Model(..., {words}) — see promptise models env {p.display}"
+                f"Model(..., {words}). See promptise models env {p.display}"
             )
         return out
 
@@ -999,7 +999,7 @@ class Model:
         if self.provider is not None and find_provider(self.provider) is None:
             known = ", ".join(p.display for p in PROVIDERS)
             raise ModelSetupError(
-                f"unknown provider {self.provider!r}; use one of {known} (or an alias — "
+                f"unknown provider {self.provider!r}; use one of {known} (or an alias: "
                 "`promptise models list` shows them)"
             )
 
@@ -1056,7 +1056,7 @@ def _unsupported(provider: Provider, word: str) -> str:
         (
             "deployment",
             None,
-        ): "only Azure OpenAI addresses models by deployment name — put the name in model=",
+        ): "only Azure OpenAI addresses models by deployment name; put the name in model=",
         ("api_key", "ollama"): "a local Ollama needs no key; for a protected proxy pass "
         "extra={'default_headers': {...}}",
         ("api_version", None): "only Azure uses an API version",
@@ -1105,7 +1105,7 @@ def _vertex_token() -> Callable[[], str] | None:
     except Exception as exc:
         raise ModelSetupError(
             f"google-auth could not mint a Vertex AI access token "
-            f"({type(exc).__name__}: {exc}) — {_VERTEX_TOKEN_FIX}"
+            f"({type(exc).__name__}: {exc}); {_VERTEX_TOKEN_FIX}"
         ) from exc
     if not credentials.token:
         return None
@@ -1119,13 +1119,13 @@ def _vertex_token() -> Callable[[], str] | None:
                 except Exception as exc:
                     raise ModelSetupError(
                         f"google-auth could not refresh the Vertex AI access token "
-                        f"({type(exc).__name__}: {exc}) — {_VERTEX_TOKEN_FIX}"
+                        f"({type(exc).__name__}: {exc}); {_VERTEX_TOKEN_FIX}"
                     ) from exc
             value = credentials.token
         if not value:
             raise ModelSetupError(
                 f"google-auth refreshed the Vertex AI credentials but returned no access "
-                f"token — {_VERTEX_TOKEN_FIX}"
+                f"token; {_VERTEX_TOKEN_FIX}"
             )
         return str(value)
 
@@ -1164,7 +1164,7 @@ def _pinned_vertex_token(token: Callable[[], str]) -> str:
     warnings.warn(
         "the installed langchain-openai takes only a string api_key, so the Vertex AI "
         "access token minted now is pinned for the life of this model and expires after "
-        "about 1 h — upgrade langchain-openai (1.0.1 and later accept a callable api_key) "
+        "about 1 h. Upgrade langchain-openai (1.0.1 and later accept a callable api_key) "
         "so it is refreshed automatically",
         stacklevel=3,
     )

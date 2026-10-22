@@ -741,7 +741,7 @@ class PromptNode(BaseNode):
                     model_to_use = model_to_use.with_structured_output(self.output_schema)
                 except Exception as exc:
                     logger.warning(
-                        "Node %r: model does not support structured output (%s) — "
+                        "Node %r: model does not support structured output (%s); "
                         "output_schema ignored",
                         self.name,
                         exc,
@@ -1054,7 +1054,7 @@ class PromptNode(BaseNode):
                 result.strategy_applied = type(self.strategy).__name__
             else:
                 logger.warning(
-                    "Strategy %r returned None — using unwrapped prompt",
+                    "Strategy %r returned None: using unwrapped prompt",
                     type(self.strategy).__name__,
                 )
 
@@ -2313,9 +2313,7 @@ class AutonomousNode(BaseNode):
             return chosen
         for nname, nobj in self.node_pool.items():
             if chosen in self._step_tools(nobj, config):
-                logger.info(
-                    "Autonomous: %r is a tool of step %r — running that step", chosen, nname
-                )
+                logger.info("Autonomous: %r is a tool of step %r; running that step", chosen, nname)
                 return nname
         return None
 

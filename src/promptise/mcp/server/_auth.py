@@ -637,7 +637,7 @@ class JwksAuth:
     ) -> None:
         if not audience:
             raise ValueError(
-                "JwksAuth requires a non-empty audience — the resource this "
+                "JwksAuth requires a non-empty audience: the resource this "
                 "server represents. Verifying only the signature would accept "
                 "any token from this IdP, including ones minted for other "
                 "resources (token substitution)."

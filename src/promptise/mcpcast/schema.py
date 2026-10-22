@@ -357,7 +357,7 @@ def _url_token(value: str, label: str) -> str:
         host = _URL_TOKEN_BREAKERS.sub("?", authority.rpartition("@")[2])
         raise ValueError(
             f"{label} must not carry credentials (user:password@ before {host!r}): the "
-            "generated server never stores an upstream credential in its files — use "
+            "generated server never stores an upstream credential in its files; use "
             "--auth env-token and set MCPCAST_UPSTREAM_TOKEN in its environment instead"
         )
     breaker = _URL_TOKEN_BREAKERS.search(value)
@@ -371,7 +371,7 @@ def _url_token(value: str, label: str) -> str:
         raise ValueError(
             f"{label} must not carry a query string or fragment: route paths are appended to "
             "it and the value is copied into config.py, README.md, .env.example and the "
-            "server instructions — pass query parameters through the tool's own arguments, "
+            "server instructions; pass query parameters through the tool's own arguments, "
             "or a credential via --auth env-token"
         )
     return value
@@ -650,7 +650,7 @@ class ToolPlan(BaseModel):
                 if effective[j] <= later:
                     raise ValueError(
                         f"tool {self.name!r}: route {self.routes[i].operation_id!r} can never "
-                        f"be selected — route {self.routes[j].operation_id!r} (listed earlier) "
+                        f"be selected: route {self.routes[j].operation_id!r} (listed earlier) "
                         "is satisfied by any call that satisfies it; reorder the routes so "
                         "the more specific one comes first"
                     )
@@ -749,7 +749,7 @@ class ApiPlan(BaseModel):
         if self.approval is ApprovalMode.PENDING and self.auth is not AuthMode.API_KEY:
             raise ValueError(
                 "approval mode 'pending' (independent four-eyes review) needs identified "
-                "callers so a caller can never approve their own request — use "
+                "callers so a caller can never approve their own request; use "
                 "--auth api-key, or approval 'elicitation'"
             )
         return self

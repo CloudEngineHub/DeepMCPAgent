@@ -43,7 +43,7 @@ if not result.ok:
 try:
     llm = resolve_model("groq:llama-3.3-70b-versatile")
 except ModelSetupError as exc:
-    print(exc)   # GROQ_API_KEY is not set — console.groq.com → API Keys ... put it in .env, export it, or pass api_key=
+    print(exc)   # GROQ_API_KEY is not set: console.groq.com → API Keys ... put it in .env, export it, or pass api_key=
 
 async def main():
     # A string: build_agent() calls resolve_model() for you; .env or env vars supply the credentials
@@ -138,11 +138,11 @@ The message always says what to do. Missing credentials, nothing set:
 
 ```text
 Cannot use model azure:'chat-prod' (Azure OpenAI (OpenAI models deployed in Azure AI Foundry)) yet:
-  - AZURE_OPENAI_ENDPOINT is not set — Azure AI Foundry portal → your resource → Overview → Endpoint (https://<resource>.openai.azure.com/, no path) (e.g. https://my-resource.openai.azure.com/)
-  - AZURE_OPENAI_API_KEY is not set — Azure AI Foundry portal → your resource → Keys and Endpoint → KEY 1 (or Entra ID: pass extra={'azure_ad_token_provider': ...})
-  - OPENAI_API_VERSION is not set — the REST API version your deployment supports, e.g. 2024-10-21 (Azure docs → 'API version lifecycle') (e.g. 2024-10-21)
-  - put AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, OPENAI_API_VERSION in a .env file next to your script (loaded automatically, never overrides a set variable), export it, or pass it in code: Model(..., endpoint=, api_key=, api_version=) — see promptise models env azure
-  Model part means: in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o) — the deployment goes in deployment=.
+  - AZURE_OPENAI_ENDPOINT is not set: Azure AI Foundry portal → your resource → Overview → Endpoint (https://<resource>.openai.azure.com/, no path) (e.g. https://my-resource.openai.azure.com/)
+  - AZURE_OPENAI_API_KEY is not set: Azure AI Foundry portal → your resource → Keys and Endpoint → KEY 1 (or Entra ID: pass extra={'azure_ad_token_provider': ...})
+  - OPENAI_API_VERSION is not set: the REST API version your deployment supports, e.g. 2024-10-21 (Azure docs → 'API version lifecycle') (e.g. 2024-10-21)
+  - put AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, OPENAI_API_VERSION in a .env file next to your script (loaded automatically, never overrides a set variable), export it, or pass it in code: Model(..., endpoint=, api_key=, api_version=). See promptise models env azure
+  Model part means: in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o); the deployment goes in deployment=.
   Example: azure:chat-prod
   Diagnose any model string with: promptise models check azure:chat-prod
 ```

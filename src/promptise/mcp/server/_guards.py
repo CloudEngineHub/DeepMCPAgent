@@ -59,7 +59,7 @@ class RequireAuth(Guard):
         return ctx.client_id is not None
 
     def describe_denial(self, ctx: RequestContext) -> str:
-        return "Authentication required — no client identity found on the request"
+        return "Authentication required: no client identity found on the request"
 
 
 class HasRole(Guard):

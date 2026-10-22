@@ -303,7 +303,7 @@ class MissionTracker:
 
         # Avoid concurrent evaluations
         if self._eval_lock.locked():
-            logger.debug("Skipping evaluation — another is in progress")
+            logger.debug("Skipping evaluation: another is in progress")
             return MissionEvaluation(
                 achieved=False,
                 confidence=0.5,

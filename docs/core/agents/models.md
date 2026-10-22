@@ -257,7 +257,7 @@ Provider docs: <https://platform.openai.com/docs/models>
 
 ### Azure OpenAI (OpenAI models deployed in Azure AI Foundry)
 
-**Provider:** `azure_openai`, `azure`, `azure-openai`, `azureopenai`, `aoai` · **Route:** its native LangChain integration (core) · **Model:** in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o) — the deployment goes in deployment=.
+**Provider:** `azure_openai`, `azure`, `azure-openai`, `azureopenai`, `aoai` · **Route:** its native LangChain integration (core) · **Model:** in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o); the deployment goes in deployment=.
 
 ```python
 Model("gpt-4o", provider="azure", deployment="chat-prod",
@@ -691,7 +691,7 @@ listening).
 
 | You see | Cause | Fix |
 |---|---|---|
-| `Cannot use model … yet: … is not set — …` | A required environment variable is missing | Set it (the message says where the value is), or pass it in code with `Model(...)` |
+| `Cannot use model … yet: … is not set: …` | A required environment variable is missing | Set it (the message says where the value is), or pass it in code with `Model(...)` |
 | `native=True needs the langchain_… package → pip install langchain-…` | You opted into a provider's own integration without having it | Install it, or drop `native=True` — the default route needs nothing |
 | `unknown provider 'x'` (from `Model(provider="x")` or `promptise models env x`), or `Unable to infer model provider for model='x:…'` followed by `Promptise understands these prefixes …` (from a string) | A prefix Promptise does not know | `promptise models list` for the prefixes and aliases |
 | `Unable to infer model provider for model='…'` | A bare model name LangChain cannot classify | Add `provider=` / the prefix |

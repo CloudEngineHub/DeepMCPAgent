@@ -440,7 +440,7 @@ def _ref_of(obj: Any, where: str) -> str:
         else:
             reason = f"a {type(obj).__name__} instance has no import path"
         raise GraphSerializationError(
-            f"{where}: can't be saved — {reason}. Define it at module level in an "
+            f"{where}: can't be saved ({reason}). Define it at module level in an "
             "importable module, or set it in code after loading the graph."
         )
     ref = f"{module}:{qualname}"
@@ -705,7 +705,7 @@ class _Resolver:
         raise GraphSerializationError(
             f"{where}: {ref!r} is a Python reference. Pass the object in "
             "load_graph(..., refs=[...]), or allow_imports=True to import it "
-            "(only for files you trust — importing runs the module's code)."
+            "(only for files you trust: importing runs the module's code)."
         )
 
 
@@ -740,7 +740,7 @@ def _decode(field: _Field, value: Any, where: str, resolver: _Resolver) -> Any:
     if _is_empty(value):
         return None
     raise GraphSerializationError(
-        f"{where}: can't be loaded from YAML — set it in code after loading the graph."
+        f"{where}: can't be loaded from YAML; set it in code after loading the graph."
     )
 
 

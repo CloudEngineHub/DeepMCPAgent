@@ -488,7 +488,7 @@ class WebhookSink:
         try:
             import httpx
         except ImportError:
-            logger.warning("httpx not installed — WebhookSink cannot deliver events")
+            logger.warning("httpx not installed: WebhookSink cannot deliver events")
             return
 
         payload = event.to_dict()

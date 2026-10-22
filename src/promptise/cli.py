@@ -1455,7 +1455,7 @@ def mcpcast(
         ):
             if conflicts:
                 raise typer.BadParameter(
-                    f"{flag} cannot be combined with the guided setup — choose it in the "
+                    f"{flag} cannot be combined with the guided setup: choose it in the "
                     "wizard, or pass SPEC to run non-interactively"
                 )
         if not _interactive_terminal():
@@ -1527,7 +1527,7 @@ def mcpcast(
             ):
                 if value is not None:
                     raise typer.BadParameter(
-                        f"{flag} cannot be combined with a plan file — edit mcpcast.plan.yaml "
+                        f"{flag} cannot be combined with a plan file: edit mcpcast.plan.yaml "
                         "and regenerate instead"
                     )
             # The document is already loaded (file, URL or inline text alike).
@@ -1645,13 +1645,13 @@ def mcpcast(
         )
         if existing_plan.exists() and not regenerating_in_place and not force:
             raise MCPcastError(
-                f"{out_dir} already contains an mcpcast project — pass --force to overwrite "
+                f"{out_dir} already contains an mcpcast project: pass --force to overwrite "
                 f"it, or regenerate from {existing_plan} to keep your edits"
             )
         if out_dir.is_dir() and not existing_plan.exists() and not force and any(out_dir.iterdir()):
             # Somebody else's folder: README.md, server.py and tests/ would be replaced.
             raise MCPcastError(
-                f"{out_dir} has files in it and is not an mcpcast project — choose another "
+                f"{out_dir} has files in it and is not an mcpcast project: choose another "
                 "--out, or pass --force to write into it anyway"
             )
         try:

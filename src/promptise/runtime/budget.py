@@ -447,7 +447,7 @@ class BudgetEnforcer:
         """
         action = self._config.on_exceeded
         logger.warning(
-            "Budget violation: %s (limit=%s, current=%s) — action=%s",
+            "Budget violation: %s (limit=%s, current=%s), action=%s",
             violation.limit_name,
             violation.limit_value,
             violation.current_value,

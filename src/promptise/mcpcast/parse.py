@@ -769,7 +769,7 @@ def extract_operations(
                 "spec declares only webhooks (calls the API sends to you); there are no "
                 "operations an agent can call"
             )
-        raise MCPcastError("spec has no 'paths' — is this an OpenAPI document?")
+        raise MCPcastError("spec has no 'paths'; is this an OpenAPI document?")
 
     base = spec_base_url(spec, base_url, spec_url=spec_url)
     global_security = spec.get("security")

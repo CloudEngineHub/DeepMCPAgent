@@ -254,7 +254,7 @@ class PromptGraph:
                     import logging as _log
 
                     _log.getLogger("promptise.engine").warning(
-                        "Duplicate conditional edge %s → %s (same priority %d) — ensure conditions are mutually exclusive",
+                        "Duplicate conditional edge %s → %s (same priority %d): ensure conditions are mutually exclusive",
                         from_node,
                         to_node,
                         priority,

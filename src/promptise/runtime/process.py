@@ -1340,7 +1340,7 @@ class AgentProcess:
             return
         if self._restart_count >= self.config.max_restarts:
             logger.error(
-                "AgentProcess %s: not restarting — max_restarts (%d) reached",
+                "AgentProcess %s: not restarting, max_restarts (%d) reached",
                 self.name,
                 self.config.max_restarts,
             )
@@ -1384,7 +1384,7 @@ class AgentProcess:
         if counts:
             self._restart_count += 1
         attempt = f"{self._restart_count}/{self.config.max_restarts}" if counts else "recycle"
-        logger.warning("AgentProcess %s: restarting (%s) — %s", self.name, attempt, reason)
+        logger.warning("AgentProcess %s: restarting (%s): %s", self.name, attempt, reason)
         await self._journal_record(
             "restart",
             {"reason": reason, "attempt": self._restart_count if counts else None},
@@ -4081,7 +4081,7 @@ class AgentProcess:
 
             self._rebuild_count += 1
             logger.info(
-                "AgentProcess %s: hot reload #%d (%s) — "
+                "AgentProcess %s: hot reload #%d (%s): "
                 "%d custom tools, %d dynamic servers, %d dynamic triggers",
                 self.name,
                 self._rebuild_count,

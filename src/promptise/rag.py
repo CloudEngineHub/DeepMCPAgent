@@ -997,7 +997,7 @@ class RAGPipeline:
         if removed is None:
             logger.warning(
                 "VectorStore %s does not implement delete_by_document and this "
-                "pipeline has not indexed document %s. Nothing was deleted — "
+                "pipeline has not indexed document %s. Nothing was deleted: "
                 "implement delete_by_document on your VectorStore or delete "
                 "chunks by id.",
                 type(self._store).__name__,

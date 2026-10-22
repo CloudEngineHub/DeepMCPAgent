@@ -521,11 +521,11 @@ def validate_manifest(path: str | Path) -> list[str]:
     manifest = load_manifest(path)
 
     if not manifest.instructions:
-        warnings.append("No instructions provided — agent will use default behavior")
+        warnings.append("No instructions provided: agent will use default behavior")
     if not manifest.triggers:
-        warnings.append("No triggers defined — agent will only respond to manual events")
+        warnings.append("No triggers defined: agent will only respond to manual events")
     if not manifest.servers:
-        warnings.append("No MCP servers configured — agent has no tools")
+        warnings.append("No MCP servers configured: agent has no tools")
 
     return warnings
 

@@ -943,7 +943,7 @@ def _build_dynamic_tool(
                 import logging as _logging
 
                 _logging.getLogger(__name__).warning(
-                    "Agent-created tool %r running with sandbox=False — "
+                    "Agent-created tool %r running with sandbox=False: "
                     "restricted builtins with safe imports allowed.",
                     name,
                 )

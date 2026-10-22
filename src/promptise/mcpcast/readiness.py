@@ -517,7 +517,7 @@ class EvalTransport(httpx.AsyncBaseTransport):
                     "code": "EVAL_NO_MOCK",
                     "message": (
                         f"the evaluation transport has no route for {where}: the plan's "
-                        f"routes are expected under base path {expected} — check "
+                        f"routes are expected under base path {expected}; check "
                         "MCPCAST_BASE_URL and the spec's base path"
                     ),
                 }
@@ -1114,7 +1114,7 @@ async def _run_tasks(
     if all(r.error for r in results):
         raise MCPcastError(
             f"the evaluation could not run: all {len(results)} task"
-            f"{'s' if len(results) != 1 else ''} crashed before the agent answered — "
+            f"{'s' if len(results) != 1 else ''} crashed before the agent answered: "
             f"{results[0].error}"
         )
     return score(plan, results, unmatched=unmatched)

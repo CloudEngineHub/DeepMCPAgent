@@ -568,7 +568,7 @@ class RedisCacheBackend:
         if not key:
             key = Fernet.generate_key().decode()
             logger.warning(
-                "PROMPTISE_CACHE_KEY not set — auto-generated encryption key. "
+                "PROMPTISE_CACHE_KEY not set: auto-generated encryption key. "
                 "Cache will not survive restarts. Set the env var for persistence."
             )
         self._fernet = Fernet(key if isinstance(key, bytes) else key.encode())
@@ -1088,7 +1088,7 @@ class SemanticCache:
         if scope_key is None:
             self._backend._stats.misses += 1
             logger.debug(
-                "Cache: no CallerContext or user_id provided — caching disabled "
+                "Cache: no CallerContext or user_id provided: caching disabled "
                 "for this request. Pass caller=CallerContext(user_id=...) to "
                 "enable caching, or use scope='shared' for public data."
             )

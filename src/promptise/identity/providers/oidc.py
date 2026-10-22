@@ -169,14 +169,14 @@ def from_oidc(
             "from_oidc requires exactly one token source but none was "
             "supplied. Pass one of token_file=..., token_fn=..., or "
             "token_env_var=.... Most common cause: the JWT source for your "
-            "CI system was not wired up — e.g. GitLab CI exposes the token "
+            "CI system was not wired up. For example GitLab CI exposes the token "
             "in CI_JOB_JWT_V2, so pass token_env_var='CI_JOB_JWT_V2'."
         )
     if len(supplied) > 1:
         raise ProviderConfigError(
             f"from_oidc requires exactly one token source but "
             f"{len(supplied)} were supplied ({', '.join(supplied)}). These "
-            f"are mutually exclusive — choose the single way the issuer's "
+            f"are mutually exclusive: choose the single way the issuer's "
             f"JWT reaches this workload and remove the others."
         )
 

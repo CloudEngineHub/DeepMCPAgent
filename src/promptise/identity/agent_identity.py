@@ -259,8 +259,8 @@ class AgentIdentity:
                 f"AgentIdentity {self.agent_id!r} is a local identity with no "
                 f"verifiable credential backing, so it cannot produce a "
                 f"signed credential to present to a resource. Build it with a "
-                f"credential factory — AgentIdentity.from_entra/from_aws/"
-                f"from_gcp/from_spiffe/from_oidc — to make it verifiable."
+                f"credential factory (AgentIdentity.from_entra/from_aws/"
+                f"from_gcp/from_spiffe/from_oidc) to make it verifiable."
             )
         return self._credential.get_credential(audience, force_refresh=force_refresh)
 

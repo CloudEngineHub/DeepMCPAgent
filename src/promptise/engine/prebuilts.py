@@ -702,7 +702,7 @@ def build_pipeline_graph(*nodes: BaseNode) -> PromptGraph:
         )
     """
     if not nodes:
-        logger.warning("build_pipeline_graph() called with no nodes — returning empty graph")
+        logger.warning("build_pipeline_graph() called with no nodes: returning empty graph")
         return PromptGraph(name="pipeline", mode="static")
 
     graph = PromptGraph(name="pipeline", mode="static")

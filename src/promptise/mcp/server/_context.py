@@ -215,7 +215,7 @@ def get_context() -> RequestContext:
     ctx = _current_context.get()
     if ctx is None:
         raise RuntimeError(
-            "No active RequestContext — this function must be called "
+            "No active RequestContext: this function must be called "
             "from within a tool/resource/prompt handler."
         )
     return ctx
