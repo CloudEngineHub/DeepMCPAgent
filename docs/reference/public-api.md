@@ -26,7 +26,7 @@ Top level. `from promptise import ...`
 | `AgentIdentity` | class | The identity of an agent: for tracing and attributing its actions. | [Agent Identity Architecture](../identity/architecture.md) |
 | `AgentProcess` | class | Lifecycle container for a long-running agent process. | [Agent Processes](../runtime/processes.md) |
 | `AgentRuntime` | class | Multi-process agent runtime manager. | [Runtime Manager](../runtime/runtime-manager.md) |
-| `AgentSection` | class | Agent-level configuration section. | [SuperAgent API Reference](../api/superagent.md) |
+| `AgentSection` | class | Agent-level configuration section. | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `approval_elicitation_callback` | function | Build an MCP `elicitation_callback` that asks an approval handler. | [Human-in-the-Loop Approval](../core/approval.md) |
 | `ApprovalDecision` | class | The decision on an approval request. | [Human-in-the-Loop Approval](../core/approval.md) |
 | `ApprovalHandler` | class | Protocol for approval handlers. | [Human-in-the-Loop Approval](../core/approval.md) |
@@ -58,7 +58,7 @@ Top level. `from promptise import ...`
 | `CredentialCategory` | enum | Credential detection categories. Pass a set of these to `PromptiseSecurityScanner(enable_credentials={...})`. | [Security Guardrails](../core/guardrails.md) |
 | `CredentialDetector` | class | Detect leaked credentials using 96 regex patterns from gitleaks/trufflehog. | [Security Guardrails](../core/guardrails.md) |
 | `CrossAgent` | class | Metadata wrapper for a peer agent to be exposed as a tool. | [Cross-Agent Delegation](../core/agents/cross-agent.md) |
-| `CrossAgentConfig` | class | Cross-agent reference configuration. | [SuperAgent API Reference](../api/superagent.md) |
+| `CrossAgentConfig` | class | Cross-agent reference configuration. | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `CustomRule` | class | A developer-defined regex detection rule. | [Security Guardrails](../core/guardrails.md) |
 | `DEFAULT_DESTRUCTIVE_VERBS` | constant | tuple of 63 values | [AutoApprovalClassifier](../core/approval-classifier.md) |
 | `DEFAULT_READ_ONLY_PREFIXES` | constant | tuple of 15 values | [AutoApprovalClassifier](../core/approval-classifier.md) |
@@ -67,7 +67,7 @@ Top level. `from promptise import ...`
 | `Document` | class | A raw document loaded from a data source. | [RAG (Retrieval-Augmented Generation)](../core/rag.md) |
 | `DocumentLoader` | class | Fetches raw documents from a data source. | [RAG (Retrieval-Augmented Generation)](../core/rag.md) |
 | `DoneEvent` | class | The agent has finished processing. | [Streaming with Tool Visibility](../core/streaming.md) |
-| `Edge` | class | A directed edge between two nodes. | [Graph Edges & Transitions](../core/engine-edges.md) |
+| `Edge` | class | A directed edge between two nodes. | [Reasoning Graph](../core/engine.md) |
 | `Embedder` | class | Converts text into vector embeddings. | [RAG (Retrieval-Augmented Generation)](../core/rag.md) |
 | `EmbeddingProvider` | class | Protocol for embedding providers. | [Semantic Cache](../core/cache.md) |
 | `EnvVarNotFoundError` | exception | Raised when a required environment variable is not found. | [Configuration Exceptions](../core/exceptions.md) |
@@ -81,10 +81,10 @@ Top level. `from promptise import ...`
 | `FallbackChain` | class | Chain of LLM models with automatic failover. | [Model Fallback](../core/fallback.md) |
 | `generate_session_id` | function | Generate a cryptographically secure session identifier. | [Conversation Persistence](../core/conversations.md) |
 | `get_current_caller` | function | Return the `CallerContext` for the current invocation. | [Building Agents](../core/agents/building-agents.md) |
-| `GraphState` | class | The complete state of a graph execution. | [Graph Hooks & Observability](../core/engine-hooks.md) |
+| `GraphState` | class | The complete state of a graph execution. | [Reasoning Graph](../core/engine.md) |
 | `GuardrailViolation` | exception | Raised when input or output is blocked by guardrails. | [Security Guardrails](../core/guardrails.md) |
 | `HealthConfig` | class | Behavioral health monitoring configuration. | [Runtime Configuration](../runtime/configuration.md) |
-| `HTTPServerConfig` | class | HTTP/SSE MCP server configuration. | [SuperAgent API Reference](../api/superagent.md) |
+| `HTTPServerConfig` | class | HTTP/SSE MCP server configuration. | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `HTTPServerSpec` | class | Specification for a remote MCP server reachable via HTTP/SSE. | [MCP Server Configuration for Agents](../core/agents/server-specs.md) |
 | `IdentityError` | exception | Base exception for every Agent Identity failure. | [Agent Identity Security](../identity/security.md) |
 | `IndexReport` | class | Summary of an `index` operation. | [RAG (Retrieval-Augmented Generation)](../core/rag.md) |
@@ -105,11 +105,11 @@ Top level. `from promptise import ...`
 | `MemoryAgent` | class | Wraps an agent with automatic memory context injection. | [Agent Memory](../core/memory.md) |
 | `MemoryProvider` | class | Interface for memory backends. | [Agent Memory](../core/memory.md) |
 | `MemoryResult` | class | A single memory search result. | [Agent Memory](../core/memory.md) |
-| `MemorySection` | class | Memory configuration section for .superagent files. | [SuperAgent API Reference](../api/superagent.md) |
+| `MemorySection` | class | Memory configuration section for .superagent files. | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `MissionConfig` | class | Mission-oriented process configuration. | [Runtime Configuration](../runtime/configuration.md) |
 | `MissionState` | enum | Mission lifecycle states. | [Mission-Oriented Process Model](../runtime/governance/mission.md) |
 | `Model` | class | Provider, model and credentials **in code**: the LangChain shape. | [Models & Providers](../core/agents/models.md) |
-| `ModelConfig` | constant | Represent a PEP 604 union type | [SuperAgent API Reference](../api/superagent.md) |
+| `ModelConfig` | constant | Represent a PEP 604 union type | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `ModelSetupError` | exception | A model cannot be used yet: the message says exactly what to do. | [Models & Providers](../core/agents/models.md) |
 | `NERDetector` | class | Detect unstructured PII using GLiNER zero-shot NER model. | [Security Guardrails](../core/guardrails.md) |
 | `NodeResult` | class | Everything that happened during a single node execution. | [Reasoning Graph](../core/engine.md) |
@@ -142,20 +142,20 @@ Top level. `from promptise import ...`
 | `resolve_model` | function | Turn a `"provider:model"` string (plus optional words) into a chat model. | [Models & Providers](../core/agents/models.md) |
 | `RetrievalResult` | class | A single hit returned by `search`. | [RAG (Retrieval-Augmented Generation)](../core/rag.md) |
 | `RuntimeConfig` | class | Top-level runtime configuration (composite). | [Runtime Configuration](../runtime/configuration.md) |
-| `SandboxConfigSection` | class | Sandbox configuration section for .superagent files. | [SuperAgent API Reference](../api/superagent.md) |
+| `SandboxConfigSection` | class | Sandbox configuration section for .superagent files. | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `sanitize_memory_content` | function | Sanitize memory content before injection into agent messages. | [Agent Memory](../core/memory.md) |
 | `ScanReport` | class | Complete scan result with all findings and metadata. | [Security Guardrails](../core/guardrails.md) |
 | `SecretScopeConfig` | class | Per-process secret scoping configuration. | [Runtime Configuration](../runtime/configuration.md) |
 | `SecurityFinding` | class | A single detection result from a scanner. | [Security Guardrails](../core/guardrails.md) |
 | `SemanticCache` | class | Semantic cache for agent responses. | [Semantic Cache](../core/cache.md) |
-| `ServerConfig` | callable | Runtime representation of an annotated type. | [SuperAgent API Reference](../api/superagent.md) |
+| `ServerConfig` | callable | Runtime representation of an annotated type. | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `servers_to_mcp_config` | function | Convert programmatic server specs to a configuration dict. | [Config & Server Specs](../core/config.md) |
 | `ServerSpec` | constant | Represent a PEP 604 union type | [Config & Server Specs](../core/config.md) |
 | `SessionAccessDenied` | exception | Raised when a user attempts to access a session they do not own. | [Conversation Persistence](../core/conversations.md) |
 | `SessionInfo` | class | Metadata about a conversation session. | [Conversation Persistence](../core/conversations.md) |
 | `Severity` | enum | Severity level of a security finding. | [Security Guardrails](../core/guardrails.md) |
 | `SQLiteConversationStore` | class | SQLite-backed conversation store using `aiosqlite`. | [Conversation Persistence](../core/conversations.md) |
-| `StdioServerConfig` | class | Stdio (local process) MCP server configuration. | [SuperAgent API Reference](../api/superagent.md) |
+| `StdioServerConfig` | class | Stdio (local process) MCP server configuration. | [SuperAgent Files](../core/agents/superagent-files.md) |
 | `StdioServerSpec` | class | Specification for a local MCP server launched via stdio. | [MCP Server Configuration for Agents](../core/agents/server-specs.md) |
 | `StreamEvent` | class | Base event yielded by `astream_with_tools()`. | [Streaming with Tool Visibility](../core/streaming.md) |
 | `SuperAgentConfig` | class | Processed configuration ready for agent building. | [SuperAgent Files](../core/agents/superagent-files.md) |
@@ -185,7 +185,7 @@ Reasoning graph. `from promptise.engine import ...`
 |---|---|---|---|
 | `AutonomousNode` | class | Meta-node: the LLM receives a pool of configured nodes and dynamically composes its own reasoning path at runtime. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
 | `BudgetHook` | class | Enforces a token and/or cost budget for each graph run. | [Graph Hooks & Observability](../core/engine-hooks.md) |
-| `CodeActionBudgetError` | exception | A code-action run could not do the whole job within `max_tool_calls`. | [Code-Action: one program beats a 20-call tool loop](../guides/code-action.md) |
+| `CodeActionBudgetError` | exception | A code-action run could not do the whole job within `max_tool_calls`. | [Reasoning Graph](../core/engine.md) |
 | `CodeActionConfig` | class | Tuning knobs for the `code-action` pattern. | [Code-Action: one program beats a 20-call tool loop](../guides/code-action.md) |
 | `CodeActionNode` | class | A node that solves a task by writing and running one sandboxed program. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
 | `ContextCompaction` | class | Settings for compacting a long tool loop. | [Context Lifecycle Management](../guides/context-lifecycle.md) |
@@ -197,7 +197,7 @@ Reasoning graph. `from promptise.engine import ...`
 | `GraphBudgetExceededError` | exception | A `BudgetHook` stopped a run over its token or cost budget before the model gave an answer. | [Reasoning Graph](../core/engine.md) |
 | `GraphExecutionError` | exception | A graph run ended on a node failure the graph did not recover from. | [Reasoning Graph](../core/engine.md) |
 | `GraphIterationLimitError` | exception | A run hit an iteration limit in the middle of a tool loop. | [Reasoning Graph](../core/engine.md) |
-| `GraphMutation` | class | A single graph modification requested during execution. | [Graph Hooks & Observability](../core/engine-hooks.md) |
+| `GraphMutation` | class | A single graph modification requested during execution. | [Reasoning Graph](../core/engine.md) |
 | `GraphStoppedError` | exception | A hook ended a run in the middle of a tool loop. | [Reasoning Graph](../core/engine.md) |
 | `GuardNode` | class | Validate state against guards and route based on pass/fail. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
 | `Hook` | class | Protocol for engine hooks. | [Graph Hooks & Observability](../core/engine-hooks.md) |
@@ -207,9 +207,9 @@ Reasoning graph. `from promptise.engine import ...`
 | `LoopNode` | class | Repeat a subgraph until a condition is met. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
 | `MetricsHook` | class | Collects per-node metrics: tokens, latency, errors, call counts. | [Graph Hooks & Observability](../core/engine-hooks.md) |
 | `node` | function | Decorator that turns an async function into a graph node. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
-| `NodeEvent` | class | An event emitted during streaming execution. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
+| `NodeEvent` | class | An event emitted during streaming execution. | [Reasoning Graph](../core/engine.md) |
 | `NodeFlag` | enum | Typed flags that declare a node's role and capabilities. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
-| `NodeProtocol` | class | Minimal protocol that every graph node must satisfy. | [Agent API Reference](../api/agent.md) |
+| `NodeProtocol` | class | Minimal protocol that every graph node must satisfy. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
 | `ObserveNode` | class | Processes raw tool results into structured, actionable data. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
 | `ParallelNode` | class | Run multiple child nodes concurrently and merge results. | [Reasoning Graph Nodes](../core/engine-nodes.md) |
 | `parse_frontmatter` | function | Extract a YAML-ish frontmatter dict from a Python source file. | [Path-Scoped Skill Activation](../core/skill-registry.md) |
