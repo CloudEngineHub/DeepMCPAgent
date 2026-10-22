@@ -142,7 +142,10 @@ class TestClient:
         if warn_shared is not None:
             warn_shared()
 
-        tdef = self._server._tool_registry.get(name)
+        resolve = getattr(self._server, "_resolve_tool", None)
+        tdef = resolve(name) if resolve is not None else self._server._tool_registry.get(name)
+        if tdef is not None:
+            name = tdef.name  # a transform's listed name runs the registered tool
 
         # Approval invariant parity: an ungated requires_approval tool is a
         # configuration error — the live server refuses to build, so raise
@@ -329,23 +332,19 @@ class TestClient:
         """List the registered tools (including annotations).
 
         With ``MCPServer(hide_unauthorized_tools=True)`` only the tools the
-        client's credentials may call are listed, as on the live server.
+        client's credentials may call are listed, and transforms added with
+        ``add_transform()`` are applied, as on the live server.
 
         Args:
             headers: Simulated HTTP headers, merged over the client meta.
         """
         if getattr(self._server, "_require_tenant", False):
             self._server._apply_require_tenant()
-        tdefs = self._server._tool_registry.list_all()
-        if getattr(self._server, "_hide_unauthorized_tools", False):
-            from ._visibility import visible_tools
-
-            tdefs = await visible_tools(
-                tdefs,
-                self._server._middlewares,
-                server_name=self._server.name,
-                meta=self._request_meta(headers),
-            )
+        listed = getattr(self._server, "_listed_tools", None)
+        if listed is not None:
+            tdefs = await listed(self._request_meta(headers))
+        else:
+            tdefs = self._server._tool_registry.list_all()
         tools: list[Tool] = []
         for tdef in tdefs:
             mcp_annotations = None

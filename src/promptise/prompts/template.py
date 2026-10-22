@@ -90,14 +90,25 @@ class SubprocessShellExecutor:
         timeout: Max seconds the command may run before being killed.
             Default 5.0.
         shell: Whether to invoke through ``/bin/sh -c``. Default True
-            (matches the ``!`cmd``` ergonomic).
+            (matches the ``!`cmd``` ergonomic). Ignored when an
+            *allowlist* is set: allowlisted commands never run through
+            a shell.
         cwd: Working directory for the subprocess. Default None
             (inherits caller's cwd).
         env: Optional environment variables to merge in.
-        allowlist: Optional set of command prefixes that are allowed
-            to run. If set, the executor refuses any command not
-            starting with one of these tokens. Use for hardening when
-            templates come from untrusted sources.
+        allowlist: Optional set of executable names that are allowed to
+            run. When set, the command is split into words like a shell
+            would (:func:`shlex.split`), its first word must be one of
+            these names exactly (``"git"`` does not allow
+            ``/usr/bin/git``), and it is run directly, without a shell.
+            Shell syntax is refused rather than passed on: a command
+            with an unquoted operator (``;``, ``|``, ``&``, ``<``,
+            ``>``, ``(``, ``)``) raises :class:`ShellExecutionError`, so
+            ``echo hi; rm -rf ~`` cannot run a second command. The
+            arguments of an allowlisted command are not checked: allow
+            only commands that cannot do harm whatever arguments they
+            get (``git`` with ``-c``, ``find`` with ``-exec`` can run
+            other programs).
     """
 
     def __init__(
@@ -119,10 +130,12 @@ class SubprocessShellExecutor:
         cmd = command.strip()
         if not cmd:
             return ""
+        use_shell = self.shell
         if self.allowlist is not None:
-            head = cmd.split(None, 1)[0]
-            if head not in self.allowlist:
-                raise ShellExecutionError(f"command {head!r} not in shell executor allowlist")
+            # Fail closed: an allowlisted command never reaches /bin/sh, and
+            # shell syntax is refused instead of silently passed as words.
+            use_shell = False
+            words = _allowlisted_argv(cmd, self.allowlist)
 
         merged_env = None
         if self.env is not None:
@@ -134,9 +147,10 @@ class SubprocessShellExecutor:
         # Without a shell the command line is tokenized here and its executable
         # resolved to a path, so the spawn can avoid fork() (see spawn_options).
         argv: str | list[str] = cmd
-        if not self.shell:
+        if not use_shell:
             try:
-                argv = resolve_executable(shlex.split(cmd))
+                words = words if self.allowlist is not None else shlex.split(cmd)
+                argv = resolve_executable(words)
             except (ValueError, OSError) as exc:  # unbalanced quotes, unknown command
                 raise ShellExecutionError(f"shell command failed to start: {exc}") from exc
         result = None
@@ -149,7 +163,7 @@ class SubprocessShellExecutor:
                 # vulnerability — suppress bandit's generic warning here.
                 result = subprocess.run(  # noqa: S602  # nosec B602
                     argv,
-                    shell=self.shell,
+                    shell=use_shell,
                     capture_output=True,
                     text=True,
                     timeout=self.timeout,
@@ -178,6 +192,31 @@ class SubprocessShellExecutor:
                 f"shell command exited {result.returncode}: {cmd}\n{stderr[:500]}"
             )
         return (result.stdout or "").strip()
+
+
+_SHELL_OPERATOR_CHARS = frozenset("();<>|&")
+
+
+def _allowlisted_argv(cmd: str, allowlist: set[str]) -> list[str]:
+    """Split *cmd* into words, refusing shell operators and executables not in *allowlist*."""
+    try:
+        lexer = shlex.shlex(cmd, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+        words = shlex.split(cmd)
+    except ValueError as exc:  # unbalanced quotes
+        raise ShellExecutionError(f"shell command could not be parsed: {exc}") from exc
+    for token in tokens:
+        if token and set(token) <= _SHELL_OPERATOR_CHARS:
+            raise ShellExecutionError(
+                f"shell operator {token!r} is not allowed with a shell executor allowlist "
+                "(allowlisted commands run without a shell)"
+            )
+    if not words:
+        raise ShellExecutionError("empty shell command")
+    if words[0] not in allowlist:
+        raise ShellExecutionError(f"command {words[0]!r} not in shell executor allowlist")
+    return words
 
 
 class _SafeFormatter(string.Formatter):
@@ -261,7 +300,9 @@ class TemplateEngine:
         1. ``{% include "name" %}`` — resolved from *includes* registry
         2. ``!`shell command``` — replaced with stdout (only if a
            ``shell_executor`` was provided to the engine; otherwise
-           the syntax is left as-is).
+           the syntax is left as-is).  The output is literal text:
+           braces in it are kept as they are, never read as
+           ``{variable}`` or ``{% %}`` syntax.
         3. ``{% if condition %}...{% else %}...{% endif %}`` — truthiness
         4. ``{% for item in items %}...{% endfor %}`` — iteration
         5. ``{{`` / ``}}`` — literal brace escapes
@@ -307,7 +348,10 @@ class TemplateEngine:
 
         def _replace(m: re.Match[str]) -> str:
             cmd = m.group(1)
-            return executor(cmd)
+            output = executor(cmd)
+            # Literal text: braces must not become template syntax (a
+            # KeyError, or a {variable} the command's output names).
+            return str(output).replace("{", _LBRACE).replace("}", _RBRACE)
 
         return _SHELL_PATTERN.sub(_replace, text)
 

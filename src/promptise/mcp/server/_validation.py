@@ -396,6 +396,12 @@ def validate_arguments(
     try:
         instance = model.model_validate(arguments)
 
+        # A model built for a hand-written schema (OpenAPIProvider) says how
+        # its validated arguments are passed on.
+        dump = getattr(model, "__promptise_dump_arguments__", None)
+        if dump is not None:
+            return dump(instance)  # type: ignore[no-any-return]
+
         # Fast path: no BaseModel subclass fields -> model_dump is faster
         # and allocates fewer intermediate objects.
         if not has_models:

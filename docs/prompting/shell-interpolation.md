@@ -45,10 +45,9 @@ from promptise.prompts import SubprocessShellExecutor
 
 executor = SubprocessShellExecutor(
     timeout=5.0,          # max seconds per command (default 5)
-    shell=True,           # run via /bin/sh -c (default True)
+    shell=True,           # run via /bin/sh -c (default True; ignored with an allowlist)
     cwd="/path/to/repo",  # working directory (default: inherited)
     env={"API_KEY": "x"}, # extra env vars (merged with os.environ)
-    allowlist={"echo", "date", "git"},  # restrict allowed commands
 )
 ```
 
@@ -62,21 +61,31 @@ command with an absolute path over changing directory.
 
 ### Allowlist
 
-When `allowlist` is set, only commands whose first token matches are permitted:
+When `allowlist` is set, a command runs only if its first word is one of the allowlisted executable names, and it never runs through a shell, whatever `shell` says. The command line is split into words like a shell would (`shlex.split`, so quotes work), and the program is started directly:
 
 ```python
 from promptise.prompts import ShellExecutionError, SubprocessShellExecutor, TemplateEngine
 
-executor = SubprocessShellExecutor(allowlist={"echo", "git"})
+executor = SubprocessShellExecutor(allowlist={"git", "date"})
 engine = TemplateEngine(shell_executor=executor)
 
-print(engine.render("!`echo hello`", {}))   # hello
+print(engine.render("Branch: !`git rev-parse --abbrev-ref HEAD`", {}))   # Branch: main
 
-try:
-    engine.render("!`rm -rf /tmp/x`", {})
-except ShellExecutionError as exc:
-    print(exc)                               # command 'rm' not in shell executor allowlist
+for command in ["rm -rf /tmp/x", "git status; rm -rf /tmp/x"]:
+    try:
+        engine.render(f"!`{command}`", {})
+    except ShellExecutionError as exc:
+        print(exc)
+# command 'rm' not in shell executor allowlist
+# shell operator ';' is not allowed with a shell executor allowlist (allowlisted commands run without a shell)
 ```
+
+What the allowlist enforces:
+
+- **Shell syntax is refused**, not passed on. An unquoted `;`, `|`, `&`, `&&`, `||`, `<`, `>`, `(` or `)` raises `ShellExecutionError`, so a second command can't be chained, piped or substituted (`$(...)`). Quoted, these characters are ordinary text in an argument (`git log --grep 'a;b'`). `$HOME` and globs such as `*` are not expanded.
+- **The first word must match exactly**: `{"git"}` allows `git ...` (found on `PATH`) but not `/usr/bin/git` or `./git`.
+- **Programs only**: shell builtins can't be allowlisted, since no shell runs them (`echo` works on Linux and macOS, where it is also a program, but not on Windows, where it is a `cmd.exe` builtin).
+- **Arguments are not checked.** Allowlist only programs that can't do harm whatever arguments they get: `git -c core.pager=...`, `find -exec` or an interpreter (`python -c`) run other code.
 
 ---
 
@@ -112,15 +121,11 @@ Shell interpolation runs **after** template includes and **before** conditionals
 
 - **Non-zero exit code** → raises `ShellExecutionError`
 - **Timeout** → raises `ShellExecutionError`
-- **Command not in allowlist** → raises `ShellExecutionError`
+- **Command not in allowlist, or shell syntax with an allowlist** → raises `ShellExecutionError`
 
 All errors propagate to the caller: there is no silent fallback. A command that can't start (unknown executable with `shell=False`, unbalanced quotes) also raises `ShellExecutionError`. Empty commands render as an empty string.
 
-!!! warning "Braces in command output"
-    Command output is inserted before variable interpolation, so `{` and `}` in the output are read as template syntax: output such as `{"ok": true}` raises `KeyError` or `ValueError`. Pass such output as a variable instead (run the command yourself and use `{status}`).
-
-!!! warning "The allowlist checks the first word only"
-    With `shell=True` (the default) the whole line goes to `/bin/sh`, so `echo hi; rm -rf /tmp/x` passes an allowlist containing `echo`. When templates are not fully trusted, use `shell=False` together with an allowlist: the command is split with `shlex` and run without a shell, so `;`, `|` and `&&` are plain arguments.
+Command output is literal text: braces in it are kept as they are and never read as `{variable}` or `{% if %}` syntax, so output such as `{"ok": true}` renders unchanged and can't pull a template variable into the prompt.
 
 ## Parameter reference
 
@@ -129,10 +134,10 @@ All errors propagate to the caller: there is no silent fallback. A command that 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `timeout` | `5.0` | Seconds before the command is killed (`ShellExecutionError`) |
-| `shell` | `True` | Run through `/bin/sh -c`; `False` splits with `shlex` and runs the executable directly |
+| `shell` | `True` | Run through `/bin/sh -c`; `False` splits with `shlex` and runs the executable directly. Ignored with an `allowlist` (never a shell) |
 | `cwd` | `None` | Working directory (inherits the caller's) |
 | `env` | `None` | Variables merged over `os.environ` |
-| `allowlist` | `None` | Set of allowed first words; any other command raises `ShellExecutionError` |
+| `allowlist` | `None` | Set of allowed executable names. The command runs without a shell; any other first word, or an unquoted shell operator, raises `ShellExecutionError` |
 
 The executor returns stdout with surrounding whitespace stripped. A non-zero exit raises `ShellExecutionError` with the exit code and up to 500 characters of stderr.
 

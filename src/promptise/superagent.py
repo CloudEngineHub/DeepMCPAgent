@@ -521,21 +521,22 @@ class SuperAgentLoader:
             else:
                 observe_config = schema.observability.model_dump()
 
-        # Convert tool optimization config if present
-        optimize_config: bool | str | dict[str, Any] | None = None
+        # Convert tool optimization config if present: a mapping becomes a
+        # ToolOptimizationConfig (build_agent takes True, a level or that)
+        optimize_config: Any = None
         if schema.optimize_tools is not None:
             if isinstance(schema.optimize_tools, (bool, str)):
                 optimize_config = schema.optimize_tools
             else:
-                optimize_config = schema.optimize_tools.model_dump()
+                optimize_config = schema.optimize_tools.to_config()
 
-        # Convert cache config if present
+        # Convert cache config if present (SemanticCache keyword arguments)
         cache_config: bool | dict[str, Any] | None = None
         if schema.cache is not None:
             if isinstance(schema.cache, bool):
                 cache_config = schema.cache
             else:
-                cache_config = schema.cache.model_dump()
+                cache_config = schema.cache.to_kwargs()
 
         # Convert approval config if present
         approval_config: dict[str, Any] | None = None
@@ -621,7 +622,7 @@ class SuperAgentConfig:
         sandbox: bool | dict[str, Any] | None = None,
         memory: dict[str, Any] | None = None,
         observe: bool | dict[str, Any] | None = None,
-        optimize_tools: bool | str | dict[str, Any] | None = None,
+        optimize_tools: Any = None,
         cache: bool | dict[str, Any] | None = None,
         approval: dict[str, Any] | None = None,
         events: dict[str, Any] | None = None,
@@ -644,8 +645,12 @@ class SuperAgentConfig:
             sandbox: Optional sandbox configuration (bool or dict).
             memory: Optional memory configuration dict.
             observe: Optional observability config (bool or dict).
-            optimize_tools: Optional tool optimization (bool, str, or dict).
-            cache: Optional semantic cache config (bool or dict).
+            optimize_tools: Optional tool optimization: ``True``, a level
+                name, a ``ToolOptimizationConfig``, or a mapping with the
+                ``optimize_tools:`` fields of a ``.superagent`` file.
+            cache: Optional semantic cache config: ``True``, or
+                ``SemanticCache`` keyword arguments (``embedding_model`` is
+                accepted for ``embedding``).
         """
         self.model = model
         self.model_kwargs = model_kwargs or {}
@@ -735,7 +740,13 @@ class SuperAgentConfig:
             kwargs["observe"] = self.observe
 
         if self.optimize_tools is not None:
-            kwargs["optimize_tools"] = self.optimize_tools
+            optimize: Any = self.optimize_tools
+            if isinstance(optimize, dict):
+                # A mapping as written in a .superagent file
+                from .superagent_schema import ToolOptimizationSection
+
+                optimize = ToolOptimizationSection(**optimize).to_config()
+            kwargs["optimize_tools"] = optimize
 
         if self.cache is not None:
             if isinstance(self.cache, bool) and self.cache:
@@ -745,7 +756,11 @@ class SuperAgentConfig:
             elif isinstance(self.cache, dict):
                 from .cache import SemanticCache
 
-                kwargs["cache"] = SemanticCache(**self.cache)
+                cache_kwargs = dict(self.cache)
+                if "embedding_model" in cache_kwargs:
+                    # The .superagent name for SemanticCache's ``embedding``
+                    cache_kwargs["embedding"] = cache_kwargs.pop("embedding_model")
+                kwargs["cache"] = SemanticCache(**cache_kwargs)
 
         if self.approval is not None:
             from .approval import ApprovalPolicy, QueueApprovalHandler, WebhookApprovalHandler

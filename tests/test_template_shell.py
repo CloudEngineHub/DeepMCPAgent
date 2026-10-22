@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import shlex
+import sys
+
 import pytest
 
 from promptise.prompts.template import (
@@ -57,15 +60,79 @@ class TestShellInterpolationOptIn:
             engine.render("!`sleep 5`", {})
 
     def test_subprocess_executor_allowlist_blocks_others(self):
-        executor = SubprocessShellExecutor(timeout=2.0, allowlist={"echo"})
+        executor = SubprocessShellExecutor(timeout=_GENEROUS, allowlist={_PYTHON})
         engine = TemplateEngine(shell_executor=executor)
 
         # Allowed command works
-        assert engine.render("!`echo ok`", {}) == "ok"
+        assert engine.render(f"!`{_PYTHON_CMD} -c 'print(\"ok\")'`", {}) == "ok"
 
         # Disallowed command is blocked
         with pytest.raises(ShellExecutionError, match="not in shell executor allowlist"):
             engine.render("!`whoami`", {})
+
+
+# An allowlisted command runs without a shell, so it must be a real program
+# (``echo`` is a cmd.exe builtin on Windows). Forward slashes: shlex treats
+# backslashes as escapes.
+_PYTHON = sys.executable.replace("\\", "/")
+_PYTHON_CMD = shlex.quote(_PYTHON)
+
+
+class TestAllowlistCannotBeBypassed:
+    """With an allowlist, nothing reaches a shell (security regression tests)."""
+
+    def _engine(self) -> TemplateEngine:
+        return TemplateEngine(
+            shell_executor=SubprocessShellExecutor(timeout=_GENEROUS, allowlist={_PYTHON})
+        )
+
+    @pytest.mark.parametrize(
+        "suffix",
+        ["; whoami", "&& whoami", "|| whoami", "| whoami", "> owned.txt", "& whoami", "$(whoami)"],
+    )
+    def test_shell_operators_are_refused(self, suffix: str, tmp_path, monkeypatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(ShellExecutionError, match="shell operator"):
+            self._engine().render(f"!`{_PYTHON_CMD} -c 'print(1)' {suffix}`", {})
+        assert not (tmp_path / "owned.txt").exists()
+
+    def test_quoted_operators_are_plain_arguments(self) -> None:
+        out = self._engine().render(
+            f"!`{_PYTHON_CMD} -c 'import sys; print(sys.argv[1])' 'a; b | c'`", {}
+        )
+        assert out == "a; b | c"
+
+    def test_variables_are_not_expanded(self) -> None:
+        out = self._engine().render(
+            f"!`{_PYTHON_CMD} -c 'import sys; print(sys.argv[1])' $HOME`", {}
+        )
+        assert out == "$HOME"
+
+    def test_shell_true_is_ignored_with_an_allowlist(self) -> None:
+        executor = SubprocessShellExecutor(timeout=_GENEROUS, shell=True, allowlist={"echo"})
+        with pytest.raises(ShellExecutionError, match="shell operator"):
+            executor("echo hi; echo injected")
+
+    def test_path_to_an_allowlisted_name_is_refused(self) -> None:
+        executor = SubprocessShellExecutor(allowlist={"python"})
+        with pytest.raises(ShellExecutionError, match="not in shell executor allowlist"):
+            executor("/tmp/python -c 1")
+
+    def test_unbalanced_quotes_are_refused(self) -> None:
+        with pytest.raises(ShellExecutionError, match="could not be parsed"):
+            SubprocessShellExecutor(allowlist={"echo"})("echo 'oops")
+
+
+class TestCommandOutputIsLiteral:
+    def test_braces_in_output_are_kept(self) -> None:
+        engine = TemplateEngine(shell_executor=lambda cmd: '{"a": 1} {secret}')
+        assert engine.render("out: !`x` {name}", {"name": "n", "secret": "S"}) == (
+            'out: {"a": 1} {secret} n'
+        )
+
+    def test_output_is_not_template_syntax(self) -> None:
+        engine = TemplateEngine(shell_executor=lambda cmd: "{% if flag %}yes{% endif %}")
+        assert engine.render("!`x`", {"flag": True}) == "{% if flag %}yes{% endif %}"
 
 
 class TestShellInterpolationOrderOfOperations:

@@ -84,11 +84,11 @@ print(inspector.summary())
 | `total_tokens_estimated` | `int` | Estimated tokens of the assembled **blocks** (not the whole prompt) |
 | `blocks_included` | `list[str]` | Blocks included in assembly |
 | `blocks_excluded` | `list[str]` | Blocks not included |
-| `context_providers` | `list[ContextTrace]` | Per-provider details, filled only by your own `record_context()` calls; `@prompt` leaves it empty |
+| `context_providers` | `list[ContextTrace]` | One entry per context provider that ran: class name, characters it added, time it took |
 | `input_text` | `str` | Final text sent to the LLM (after input guards) |
 | `output_text` | `str` | Raw LLM response after the strategy's `parse()` (standalone calls only) |
 | `latency_ms` | `float` | Execution time in milliseconds (standalone calls only) |
-| `guards_passed` | `list[str]` | Output guards that passed (input guards are recorded only when they fail) |
+| `guards_passed` | `list[str]` | Guards that passed every check they ran, each listed once (a guard attached with `@guard` or `with_guards()` checks both the input and the output) |
 | `guards_failed` | `list[str]` | Guards that rejected the input or output |
 | `flow_phase` | `str` | Conversation flow phase (if used) |
 | `flow_turn` | `int` | Conversation flow turn number |
@@ -148,38 +148,33 @@ collector = ObservabilityCollector()
 observer = PromptObserver(collector)
 ```
 
-In 1.6.0, prompts don't call the observer for you: `@prompt` has no `observer` parameter, and `observe=True` only stores a flag. Call the observer from the prompt's lifecycle hooks:
+A prompt records its calls with an observer when you ask for it: `@prompt(observe=...)`, `PromptBuilder.observe(...)`, `observe: true` in a YAML prompt file, or `with_observer(...)` on any prompt:
 
 ```python
-import time
-from promptise.prompts import prompt
-from promptise.prompts.observe import PromptObserver
 from promptise.observability import ObservabilityCollector
+from promptise.prompts import prompt
 
 collector = ObservabilityCollector()
-observer = PromptObserver(collector)
 
-@prompt(model="openai:gpt-5-mini")
+@prompt(model="openai:gpt-5-mini", observe=collector)   # or observe=observer
 async def analyze(text: str) -> str:
     """Analyze: {text}"""
 
-started: dict[str, float] = {}
-
-def before(ctx):
-    started[ctx.prompt_name] = time.perf_counter()
-    observer.record_start(ctx.prompt_name, ctx.model, ctx.rendered_text)
-
-def after(ctx, result):
-    ms = (time.perf_counter() - started.pop(ctx.prompt_name, time.perf_counter())) * 1000
-    observer.record_end(ctx.prompt_name, ctx.model, ms, len(str(result)))
-
-def failed(ctx, exc):
-    observer.record_error(ctx.prompt_name, exc)
-
-observed = analyze.on_before(before).on_after(after).on_error(failed)
-result = await observed("Q3 revenue $3.2M")
+result = await analyze("Q3 revenue $3.2M")
 print([e.event_type for e in collector.get_timeline()])
+# [<TimelineEventType.PROMPT_START: 'prompt.start'>, <TimelineEventType.PROMPT_END: 'prompt.end'>]
 ```
+
+| `observe=` | Events go to |
+|------------|--------------|
+| `False` (default) | Nowhere; `prompt.observer` is `None` |
+| `True` | The prompt's own `ObservabilityCollector`: `analyze.observer.collector.get_timeline()` |
+| An `ObservabilityCollector` | That collector (share one between prompts, or with an agent's collector) |
+| A `PromptObserver` | That observer |
+
+Each standalone call (`await analyze(...)`) records `PROMPT_START` when it starts, `PROMPT_CONTEXT` for each context provider, `PROMPT_GUARD_BLOCK` when a guard rejects the input or output, then `PROMPT_END` on success or `PROMPT_ERROR` on failure. Copies made with `with_*()` record to the same observer. Rendering without an LLM call (`render_async()`, a prompt used as agent `instructions`) records nothing; the agent's own [observability](../core/observability.md) covers those runs. An observer that raises is logged at debug level and never fails the call.
+
+You can also call the observer yourself, for example from lifecycle hooks, with the methods below.
 
 ### Events Recorded
 

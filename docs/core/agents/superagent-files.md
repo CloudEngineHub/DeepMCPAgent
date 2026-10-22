@@ -424,23 +424,59 @@ tools. See [Tool Optimization](../tool-optimization.md).
 optimize_tools: semantic   # or minimal / standard; true means minimal
 ```
 
-!!! warning "Use the string form"
-    The schema also accepts a mapping (`level`, `embedding_model`, `top_k`,
-    `score_threshold`), but in 1.6.0 its settings are not applied: the agent runs with
-    the `minimal` preset. Write the level as a string, or build the agent in Python
-    with a `ToolOptimizationConfig` for finer control.
+A mapping sets the level and overrides parts of its preset; it becomes a
+`ToolOptimizationConfig`:
+
+```yaml
+optimize_tools:
+  level: semantic
+  top_k: 5
+  preserve_tools: [search_orders]
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `level` | `"minimal" \| "standard" \| "semantic"` | `"semantic"` | The preset. |
+| `top_k` | `int \| None` | preset (8) | Tools offered per model call (`semantic`; `semantic_top_k`). |
+| `context_turns` | `int \| None` | preset (3) | Recent user turns in the selection query (`semantic_context_turns`). |
+| `embedding_model` | `str \| None` | `all-MiniLM-L6-v2` | Sentence-transformers model name or local path (`semantic`). |
+| `max_description_length` | `int \| None` | preset | Truncate tool descriptions at this many characters. |
+| `preserve_tools` | `list[str] \| None` | `None` | Tools never optimized and always offered. |
+| `always_include_fallback` | `bool \| None` | preset (`true`) | Offer the `request_more_tools` fallback (`semantic`). |
+| `score_threshold` | `float \| None` | `None` | Not used: semantic selection offers the `top_k` most relevant tools whatever their score. Accepted so older files load, with a warning. |
 
 #### `cache`
 
 Optional. `cache: true` adds a [`SemanticCache`](../cache.md) with its defaults
-(in-memory, per-user, similarity 0.92, one-hour TTL).
+(in-memory, per-user, similarity 0.92, one-hour TTL). A mapping passes its fields
+to `SemanticCache`, under the same names except `embedding_model` (its `embedding`):
 
-!!! warning "Use `cache: true`"
-    The schema accepts a mapping (`backend`, `redis_url`, `similarity_threshold`,
-    `default_ttl`, `scope`, `max_entries_per_user`, `encrypt_values`,
-    `embedding_model`), but in 1.6.0 building an agent from a file with a `cache:`
-    mapping fails with `TypeError: ... unexpected keyword argument 'embedding_model'`.
-    For other cache settings, build the agent in Python with `SemanticCache(...)`.
+```yaml
+cache:
+  backend: redis
+  redis_url: "${REDIS_URL}"
+  similarity_threshold: 0.9
+  scope: per_user
+  write_tools: ["create_*", "update_*"]
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `backend` | `"memory" \| "redis"` | `"memory"` | Where entries live. |
+| `redis_url` | `str \| None` | `None` | Redis URL (backend `redis`). |
+| `similarity_threshold` | `float` | `0.92` | Minimum similarity for a hit. |
+| `default_ttl` | `int` | `3600` | Seconds an entry lives. |
+| `ttl_patterns` | `dict[str, int] \| None` | `None` | Regex on the query → TTL in seconds. |
+| `scope` | `"per_user" \| "per_session" \| "shared"` | `"per_user"` | Who shares entries. |
+| `shared_data_acknowledged` | `bool` | `false` | Confirms `scope: shared` (otherwise a warning). |
+| `max_entries_per_user` | `int` | `1000` | Most entries per scope. |
+| `max_total_entries` | `int` | `100000` | Most entries in all. |
+| `embedding_model` | `str` | `all-MiniLM-L6-v2` | Sentence-transformers model name or local path. |
+| `encrypt_values` | `bool` | `false` | Encrypt cached values at rest. |
+| `invalidate_on_write` | `bool` | `true` | Clear the caller's entries after a write tool runs. |
+| `write_tools` / `read_only_tools` | `list[str] \| None` | `None` | Tool name patterns that do / never count as writes. |
+| `cache_multi_turn` | `bool` | `false` | Also cache answers in conversations with history. |
+| `cache_tool_turns` | `bool` | `false` | Also cache answers that called tools. |
 
 #### `events`
 
@@ -481,8 +517,9 @@ Each sink:
 #### `adaptive`
 
 Optional. [Adaptive strategy](../adaptive-strategy.md): the agent learns from failed
-tool calls. It needs a `memory` section; without one it is turned off with a warning.
-`true` uses the defaults below.
+tool calls. It needs a `memory` section, where it stores failures and lessons: a file
+with `adaptive` (and `enabled` not `false`) but no `memory` fails validation with a
+message saying so. `true` uses the defaults below.
 
 | Field | Type | Default | Description |
 |---|---|---|---|

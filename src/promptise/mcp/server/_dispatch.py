@@ -205,13 +205,33 @@ async def _run(
 # ------------------------------------------------------------------
 
 
+def json_default(value: Any) -> Any:
+    """``json.dumps`` fallback shared by tool and resource results.
+
+    A Pydantic model becomes its JSON form (``model_dump(mode="json")``),
+    so models nested in a ``dict`` or ``list`` serialise as objects; any
+    other unknown value becomes ``str(value)``.
+    """
+    if isinstance(value, BaseModel):
+        return value.model_dump(mode="json")
+    return str(value)
+
+
+def dumps_json(value: Any) -> str:
+    """Serialise a handler result to JSON text (see :func:`json_default`)."""
+    if isinstance(value, BaseModel):
+        return value.model_dump_json()
+    return json.dumps(value, default=json_default)
+
+
 def serialise_resource_result(result: Any, mime_type: str) -> list[ReadResourceContents]:
     """Convert a resource handler's return value to MCP resource contents.
 
     - ``str`` → text with the declared MIME type
     - ``bytes`` / ``bytearray`` / ``memoryview`` → binary (sent base64-encoded
       as ``BlobResourceContents``)
-    - ``dict`` / ``list`` / ``tuple`` → JSON text
+    - ``dict`` / ``list`` / ``tuple`` → JSON text (Pydantic models inside
+      become JSON objects)
     - a Pydantic model → its JSON
     - ``ReadResourceContents`` or a list of them → passed through (several
       contents, or per-content MIME types)
@@ -240,10 +260,8 @@ def serialise_resource_result(result: Any, mime_type: str) -> list[ReadResourceC
     if result is None:
         return [ReadResourceContents("", mime_type)]
     json_mime = "application/json" if default_mime else mime_type
-    if isinstance(result, BaseModel):
-        return [ReadResourceContents(result.model_dump_json(), json_mime)]
-    if isinstance(result, (dict, list, tuple)):
-        return [ReadResourceContents(json.dumps(result, default=str), json_mime)]
+    if isinstance(result, (BaseModel, dict, list, tuple)):
+        return [ReadResourceContents(dumps_json(result), json_mime)]
     return [ReadResourceContents(str(result), mime_type)]
 
 

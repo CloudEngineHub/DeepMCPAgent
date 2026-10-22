@@ -207,7 +207,7 @@ prompt = await flow.next_turn(
 prompt = await flow.transition("resolution")
 ```
 
-A transition to an unknown phase raises `ValueError`. If the handler run by `transition()` itself calls `ctx.transition()`, the flow enters that next phase but does not run its handler until the next turn (in `start()` and `next_turn()` the next handler runs in the same turn).
+A transition to an unknown phase raises `ValueError`. If the handler run by `transition()` itself calls `ctx.transition()`, the flow enters that next phase and runs its handler too, in the same call, as `start()` and `next_turn()` do. Transitions requested by those handlers are followed the same way. One call runs at most 5 phases: circular transitions (`a` → `b` → `a` ...) raise `RecursionError`.
 
 ### Reading the Current Prompt
 

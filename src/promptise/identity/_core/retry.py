@@ -3,10 +3,11 @@
 Cloud metadata/token services briefly fail under normal operation: Azure IMDS
 and the GCP metadata server return 429/5xx or time out right after instance
 start or under load, and AWS STS throttles. A single-shot fetch surfaces that
-blip as a hard :class:`CredentialAcquisitionError` — and in ``build_agent`` that
-is swallowed to a warning, silently degrading a *verifiable* agent to
-**unauthenticated**, which is the opposite of what an operator asked for by
-configuring identity.
+blip as a hard :class:`CredentialAcquisitionError`. An agent built with an
+identity fails closed on it: the MCP request that needed the credential is not
+sent and fails with ``MCPCredentialError`` (it never goes out unauthenticated),
+so a short outage of the token service would fail tool calls that a retry
+would have saved.
 
 These helpers retry only genuinely transient conditions (connection/timeout and
 429/5xx). They never retry an authentication/authorization failure (4xx): a

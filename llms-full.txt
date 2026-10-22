@@ -951,7 +951,7 @@ provider's console, and the three ways to supply it:
 
 ```text
 Cannot use model openai:'gpt-5-mini' (OpenAI) yet:
-  - OPENAI_API_KEY is not set — platform.openai.com → API keys (e.g. sk-...)
+  - OPENAI_API_KEY is not set: platform.openai.com → API keys (e.g. sk-...)
   - put OPENAI_API_KEY in a .env file next to your script (loaded automatically, never
     overrides a set variable), export it, or pass it in code: Model(..., api_key=) — see
     promptise models env openai
@@ -1006,17 +1006,17 @@ self-hosted endpoints, failover, per-node models: is
 ```text
 $ promptise models check azure:chat-prod
 azure:chat-prod → azure_openai:chat-prod  (Azure OpenAI (OpenAI models deployed in Azure AI Foundry))
-  model part: chat-prod — in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o) — the deployment goes in deployment=
+  model part: chat-prod — in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o); the deployment goes in deployment=
   route: native integration (core)
   AZURE_OPENAI_ENDPOINT: MISSING — Azure AI Foundry portal → your resource → Overview → Endpoint (https://<resource>.openai.azure.com/, no path)
   AZURE_OPENAI_API_KEY: MISSING — Azure AI Foundry portal → your resource → Keys and Endpoint → KEY 1 (or Entra ID: pass extra={'azure_ad_token_provider': ...})
   OPENAI_API_VERSION: MISSING — the REST API version your deployment supports, e.g. 2024-10-21 (Azure docs → 'API version lifecycle')
   Azure routes requests by deployment name, not model name: Model('gpt-4o', provider='azure', deployment='chat-prod', ...).
 Not usable yet.
-  - AZURE_OPENAI_ENDPOINT is not set — Azure AI Foundry portal → your resource → Overview → Endpoint (https://<resource>.openai.azure.com/, no path) (e.g. https://my-resource.openai.azure.com/)
-  - AZURE_OPENAI_API_KEY is not set — Azure AI Foundry portal → your resource → Keys and Endpoint → KEY 1 (or Entra ID: pass extra={'azure_ad_token_provider': ...})
-  - OPENAI_API_VERSION is not set — the REST API version your deployment supports, e.g. 2024-10-21 (Azure docs → 'API version lifecycle') (e.g. 2024-10-21)
-  - put AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, OPENAI_API_VERSION in a .env file next to your script (loaded automatically; a variable already exported with a non-empty value wins, an empty one is filled from the file), export it, or pass it in code: Model(..., endpoint=, api_key=, api_version=) — see promptise models env azure
+  - AZURE_OPENAI_ENDPOINT is not set: Azure AI Foundry portal → your resource → Overview → Endpoint (https://<resource>.openai.azure.com/, no path) (e.g. https://my-resource.openai.azure.com/)
+  - AZURE_OPENAI_API_KEY is not set: Azure AI Foundry portal → your resource → Keys and Endpoint → KEY 1 (or Entra ID: pass extra={'azure_ad_token_provider': ...})
+  - OPENAI_API_VERSION is not set: the REST API version your deployment supports, e.g. 2024-10-21 (Azure docs → 'API version lifecycle') (e.g. 2024-10-21)
+  - put AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, OPENAI_API_VERSION in a .env file next to your script (loaded automatically; a variable already exported with a non-empty value wins, an empty one is filled from the file), export it, or pass it in code: Model(..., endpoint=, api_key=, api_version=). See promptise models env azure
 ```
 
 **2. Give it the values: in `.env`, or in code.**
@@ -1656,7 +1656,7 @@ Trigger type that fires when files matching a glob pattern change in a watched d
 
 ## Guardrails
 
-Input/output security checks. Promptise Foundry's `PromptiseSecurityScanner` has six detection heads — DeBERTa for prompt injection, regex for PII (69 patterns), regex for credentials (96 patterns), GLiNER for NER, Llama Guard / Azure AI for content safety, and custom rules. All run locally.
+Input/output security checks. Promptise Foundry's `PromptiseSecurityScanner` has six detection heads — DeBERTa for prompt injection, regex for PII (69 patterns), regex for credentials (97 patterns), GLiNER for NER, Llama Guard / Azure AI for content safety, and custom rules. All run locally.
 
 ## Health (governance)
 
@@ -2699,6 +2699,15 @@ Invalid arguments for tool 'refund_order':
 Correct the arguments and call the tool again.
 ```
 
+Arguments that are not JSON at all (a Python-style dict with single quotes, a
+cut-off object) never reach the function.  The agent answers the call with an
+error that says what is wrong and names the tool's parameters, and the model
+can call again:
+
+```text
+Error: The arguments for 'refund_order' were not valid JSON (Expecting property name enclosed in double quotes at line 1 column 2). Call the tool again with a JSON object that matches its parameters: order_id (required), amount (required).
+```
+
 ### The caller
 
 A parameter annotated `CallerContext` receives the caller of the current
@@ -2736,10 +2745,16 @@ reported the same way.  Any other exception is a tool that failed, as for
 every tool: the model reads `Error: <type>: <message>`, so don't put secrets
 in exception messages.
 
-With `timeout=` a call that runs longer is answered with a retryable `TIMEOUT`
-error (`Tool 'refund_order' timed out after 10s`).  An async function is
-cancelled; a sync function's thread can't be stopped, so it finishes in the
-background and its result is dropped.
+With `timeout=` a call that runs longer is answered with a `TIMEOUT` error
+(`Tool 'refund_order' did not finish within 10s, so its outcome is unknown.`).
+An async function is cancelled; a sync function's thread can't be stopped, so
+it finishes in the background and its result is dropped (the error says it is
+still running). The call may have taken effect before it was stopped, so the
+error is `retryable` only for a tool marked `@tool(read_only=True)` or
+`@tool(idempotent=True)`; for any other tool it tells the model to check
+whether the call took effect before calling it again. `read_only` and
+`idempotent` are the MCP `readOnlyHint` and `idempotentHint` annotations, so
+the semantic cache and approval rules read them too.
 
 ### Results
 
@@ -2774,6 +2789,9 @@ assert refund("A-1001", 20.0, CallerContext(user_id="alice")).startswith("Refund
 `await get_order.ainvoke({"order_id": "A-1001"})` runs it the way the agent
 does (validated, with the caller injected) and returns the text the model
 reads.
+
+To test the agent that calls your tools without a model provider, script the
+model's tool calls with `ScriptedModel` (see [Testing Agents](testing.md)).
 
 ### Approval, guardrails and tracing
 
@@ -3046,6 +3064,7 @@ adapter = MCPToolAdapter(
 
 ## What's next
 
+- [Testing Agents](testing.md) -- run an agent and its tools on scripted model replies
 - [Approval (HITL)](approval.md) -- gate tool calls behind a human decision
 - [Guardrails](guardrails.md) -- scan tool results before the model reads them
 - [CallerContext: Agent to MCP Identity](../guides/multi-user-identity.md) -- per-request identity end to end
@@ -3053,6 +3072,553 @@ adapter = MCPToolAdapter(
 - [MCP Tool Adapter](../mcp/client/tool-adapter.md) -- the newer adapter using the Promptise MCP Client
 - [Config & Server Specs](config.md) -- define the servers that tools are discovered from
 - [Callback Handler](callback-handler.md) -- observe tool calls via the observability pipeline
+
+================================================================================
+Page: Test AI Agents Without API Calls: ScriptedModel
+URL: https://docs.promptise.com/core/testing/
+================================================================================
+
+# Testing Agents
+
+An agent's behavior depends on what the model answers, and a real model costs
+money, needs an API key and answers differently from run to run.
+`promptise.testing.ScriptedModel` takes the model's place: you write its
+replies in advance, the agent runs exactly as it would with a provider (tools
+are bound and called, results go back to the model, streaming works), and the
+model records every request it received so you can assert on it.
+
+Nothing leaves the process, so these tests run in CI without secrets, and
+you don't import LangChain to write them.
+
+**Source:** `src/promptise/testing.py`
+
+## A first test
+
+Script one tool call and the final answer, run the agent, and check both the
+answer and what the model was sent:
+
+```python
+import asyncio
+import json
+
+from promptise import build_agent, tool
+from promptise.testing import ScriptedModel, ToolCall
+
+ORDERS = {"A-1001": {"order_id": "A-1001", "status": "shipped"}}
+
+
+@tool
+def get_order(order_id: str) -> dict:
+    """Look up an order by its ID.
+
+    Args:
+        order_id: The order ID, for example "A-1001".
+    """
+    return ORDERS[order_id]
+
+
+async def ask(model: ScriptedModel, question: str) -> str:
+    agent = await build_agent(model=model, extra_tools=[get_order])
+    try:
+        result = await agent.ainvoke({"messages": [{"role": "user", "content": question}]})
+    finally:
+        await agent.shutdown()
+    return result["messages"][-1].content
+
+
+def test_agent_looks_up_the_order():
+    model = ScriptedModel([
+        ToolCall("get_order", {"order_id": "A-1001"}),
+        "Order A-1001 has shipped.",
+    ])
+
+    answer = asyncio.run(ask(model, "Where is order A-1001?"))
+
+    assert answer == "Order A-1001 has shipped."
+    # The model was called twice, with the get_order tool bound both times.
+    assert [call.tools for call in model.calls] == [["get_order"], ["get_order"]]
+    # The second call carried the tool's result.
+    assert model.calls[1].messages[-1].content == json.dumps(ORDERS["A-1001"])
+```
+
+Run it with `pytest`.  The test wraps the agent in `asyncio.run()`, so it
+needs no plugin; with `pytest-asyncio` you can write `async def` tests and
+`await` the agent directly.
+
+Each model call takes the next reply.  The first reply asks for `get_order`,
+the agent runs the real tool, and the second reply is the answer.  The tool
+itself is not mocked: only the model is scripted.
+
+## Replies
+
+A reply is one model turn.  It can be:
+
+| Reply | The model's turn |
+|---|---|
+| `"text"` | Text with no tool calls: the agent's answer |
+| `ToolCall(name, args)` | One tool call |
+| `[ToolCall(...), ToolCall(...)]` | Several tool calls in one turn (the agent runs them in parallel); a string in the list is the turn's text |
+| `Malformed.tool_call_as_text(...)` | A tool call written into the text instead of sent as one |
+| `Malformed.unparseable_arguments(...)` | A tool call whose arguments are not valid JSON |
+| an `AIMessage` | That LangChain message, as it is |
+
+`ToolCall(name, args, id=None)` takes the tool's name and arguments.  Leave
+`id` out and the model numbers its calls `call_1`, `call_2`, ... in the order
+it sends them, so the ids in a test are always the same.
+
+A reply that isn't one of these raises `TypeError` when the model is created,
+so a typo in a script fails at once rather than in the middle of a run.
+
+## Assert on what the model received
+
+`model.calls` holds a `ModelCall` for every request, in order:
+
+| Attribute | What it holds |
+|---|---|
+| `messages` | The messages the model was sent (system prompt, conversation, tool results) |
+| `tools` | The names of the tools bound for that call |
+| `tool_schemas` | Those tools as the model was offered them (OpenAI-style function definitions) |
+| `reply` | The message the model answered with (`None` when it had no reply left) |
+
+`model.remaining` is the number of replies not yet sent.  Checking it at the
+end of a test shows that the agent made as many model calls as you expected:
+
+```python
+import asyncio
+
+from promptise import build_agent, tool
+from promptise.testing import ScriptedModel, ToolCall
+
+
+@tool
+def get_order(order_id: str) -> dict:
+    """Look up an order by its ID."""
+    return {"order_id": order_id, "status": "shipped"}
+
+
+async def main():
+    model = ScriptedModel([ToolCall("get_order", {"order_id": "A-1001"}), "Shipped."])
+    agent = await build_agent(
+        model=model,
+        instructions="You answer questions about orders.",
+        extra_tools=[get_order],
+    )
+    await agent.ainvoke({"messages": [{"role": "user", "content": "Where is A-1001?"}]})
+    await agent.shutdown()
+
+    first = model.calls[0]
+    print(first.messages[0].type, "|", first.messages[0].content[:33])
+    print(first.messages[-1].type, "|", first.messages[-1].content)
+    print(first.tool_schemas[0]["function"]["parameters"]["required"])
+    print(model.calls[1].messages[-1].type, model.calls[1].messages[-1].tool_call_id)
+    print("replies left:", model.remaining)
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+system | You answer questions about orders
+human | Where is A-1001?
+['order_id']
+tool call_1
+replies left: 0
+```
+
+The messages are LangChain message objects: `.type` is `"system"`, `"human"`,
+`"ai"` or `"tool"`, and `.content` is the text.  A tool result also has
+`.tool_call_id` and `.status` (`"success"` or `"error"`).
+
+## Test failure handling
+
+Small and local models get tool calling wrong more often than large hosted
+ones: they invent tool names, send arguments that don't match the schema or
+aren't JSON, or write the tool call into their text.  Scripting these replies tests what your
+agent does when it happens, without waiting for a model to make the mistake.
+
+### A tool name the agent doesn't have
+
+Script a `ToolCall` with a name the agent has no tool for.  The agent doesn't
+fail: the model gets an error result that names the tools it can call, and its
+next turn can use the right one.
+
+```python
+import asyncio
+
+from promptise import build_agent, tool
+from promptise.testing import ScriptedModel, ToolCall
+
+
+@tool
+def get_order(order_id: str) -> dict:
+    """Look up an order by its ID."""
+    return {"order_id": order_id, "status": "shipped"}
+
+
+@tool
+def refund_order(order_id: str, amount: float) -> str:
+    """Refund part of an order."""
+    return f"Refunded {amount:.2f} EUR on {order_id}."
+
+
+async def main():
+    model = ScriptedModel([
+        ToolCall("get_order_status", {"order_id": "A-1001"}),  # invented name
+        ToolCall("get_order", {"order_id": "A-1001"}),         # the model corrects it
+        "Order A-1001 has shipped.",
+    ])
+    agent = await build_agent(model=model, extra_tools=[get_order, refund_order])
+    result = await agent.ainvoke({"messages": [{"role": "user", "content": "Where is A-1001?"}]})
+    await agent.shutdown()
+
+    error = model.calls[1].messages[-1]
+    print(error.status, "|", error.content)
+    print(result["messages"][-1].content)
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+error | Error: Unknown tool 'get_order_status'. Call one of the available tools: get_order, refund_order.
+Order A-1001 has shipped.
+```
+
+The error lists the agent's tools with the names closest to the one called
+first, at most 20 of them, followed by how many more there are.  When the
+name looks like a misspelling of a tool's name (`get_ordr`, `getOrder`), the
+error also asks "Did you mean 'get_order'?".  A name that only shares a word
+with a tool, such as `cancel_order`, gets no suggestion, so the model isn't
+pointed at a tool that does something else.
+
+### Invalid arguments
+
+Arguments that don't match the tool's schema are a `ToolCall` too.  A
+[`@tool`](tools.md) function checks its arguments before it runs, and the
+model gets the problems to correct:
+
+```python
+import asyncio
+
+from promptise import build_agent, tool
+from promptise.testing import ScriptedModel, ToolCall
+
+
+@tool
+def get_order(order_id: str) -> dict:
+    """Look up an order by its ID."""
+    return {"order_id": order_id, "status": "shipped"}
+
+
+async def main():
+    model = ScriptedModel([
+        ToolCall("get_order", {"id": "A-1001"}),        # wrong argument name
+        ToolCall("get_order", {"order_id": "A-1001"}),
+        "Order A-1001 has shipped.",
+    ])
+    agent = await build_agent(model=model, extra_tools=[get_order])
+    await agent.ainvoke({"messages": [{"role": "user", "content": "Where is A-1001?"}]})
+    await agent.shutdown()
+
+    print(model.calls[1].messages[-1].content)
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+Invalid arguments for tool 'get_order':
+- order_id: Field required
+Correct the arguments and call the tool again.
+```
+
+### A tool call written as text
+
+Some models answer with the tool call as JSON in their text instead of as a
+tool call.  `Malformed.tool_call_as_text(name, args)` sends that reply, in one
+of three styles:
+
+| `style` | Text of the reply |
+|---|---|
+| `"json"` (default) | `{"name": "get_order", "arguments": {"order_id": "A-1001"}}` |
+| `"tagged"` | The same object inside `<tool_call>` and `</tool_call>` lines |
+| `"fenced"` | The same object in a Markdown `json` code block |
+
+The reply has no tool call, so the agent takes the text as the answer and no
+tool runs.  A test can check that your code catches such an answer, for
+example a check that rejects answers that look like JSON:
+
+```python
+import asyncio
+
+from promptise import build_agent, tool
+from promptise.testing import Malformed, ScriptedModel
+
+
+@tool
+def get_order(order_id: str) -> dict:
+    """Look up an order by its ID."""
+    return {"order_id": order_id, "status": "shipped"}
+
+
+def looks_like_a_tool_call(answer: str) -> bool:
+    text = answer.strip().strip("`").removeprefix("json").strip()
+    return text.startswith(("{", "<tool_call>")) and '"name"' in text
+
+
+async def main():
+    for style in ("json", "tagged", "fenced"):
+        model = ScriptedModel([
+            Malformed.tool_call_as_text("get_order", {"order_id": "A-1001"}, style=style),
+        ])
+        agent = await build_agent(model=model, extra_tools=[get_order])
+        result = await agent.ainvoke({"messages": [{"role": "user", "content": "Where is A-1001?"}]})
+        await agent.shutdown()
+        answer = result["messages"][-1].content
+        print(style, looks_like_a_tool_call(answer))
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+json True
+tagged True
+fenced True
+```
+
+### Arguments that aren't JSON
+
+`Malformed.unparseable_arguments(name, raw_args)` sends a tool call whose
+argument text can't be parsed, such as a Python-style dict with single
+quotes (the default).  LangChain keeps such a call in the message's
+`invalid_tool_calls`, not its `tool_calls`, as it does for a provider's reply.
+The agent doesn't run a call it can't read.  It answers the call with a tool
+error (`status="error"`, the call's own `tool_call_id`) that says what is
+wrong and names the tool's parameters, and the loop goes on, so the model can
+call the tool again:
+
+```python
+import asyncio
+
+from promptise import build_agent, tool
+from promptise.testing import Malformed, ScriptedModel, ToolCall
+
+
+@tool
+def get_order(order_id: str) -> dict:
+    """Look up an order by its ID."""
+    return {"order_id": order_id, "status": "shipped"}
+
+
+async def main():
+    model = ScriptedModel([
+        Malformed.unparseable_arguments("get_order", "{'order_id': 'A-1001'}"),
+        ToolCall("get_order", {"order_id": "A-1001"}),  # the model calls again
+        "Order A-1001 has shipped.",
+    ])
+    agent = await build_agent(model=model, extra_tools=[get_order])
+    result = await agent.ainvoke({"messages": [{"role": "user", "content": "Where is A-1001?"}]})
+    await agent.shutdown()
+
+    error = model.calls[1].messages[-1]
+    print(error.status, error.tool_call_id)
+    print(error.content)
+    print(result["messages"][-1].content)
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+error call_1
+Error: The arguments for 'get_order' were not valid JSON (Expecting property name enclosed in double quotes at line 1 column 2). Call the tool again with a JSON object that matches its parameters: order_id (required).
+Order A-1001 has shipped.
+```
+
+Such a call counts as a failed tool call: `NodeResult.tool_calls` records it
+with `success: False`, `invalid: True` and the text the model sent under
+`raw_args`, callbacks get its start and an `on_tool_error`
+(`ToolArgumentError`), and `astream_with_tools()` yields a `ToolEndEvent`
+with `success=False`.  Each retry is a model call, so `max_agent_iterations`
+still ends a model that never sends valid arguments.  A call that names a tool
+the agent doesn't have gets the
+[unknown-tool error](#a-tool-name-the-agent-doesnt-have) instead.
+
+When this reply is streamed, LangChain reads the arguments as a partial JSON
+object, as it does for a provider's stream: a cut-off object such as
+`'{"order_id"'` becomes a tool call with the arguments read so far (`{}`),
+while text that can't start a JSON object stays an invalid call and gets the
+same error.  A streamed run (`astream_with_tools()`) recovers the same way.
+
+## When the replies run out
+
+A model call after the last reply raises `ScriptExhaustedError`, which says
+which call it was and how many replies the script has.  In an agent run it
+fails the run: `ainvoke()` raises `GraphExecutionError`, whose `__cause__` is
+the `ScriptExhaustedError`.  An agent that makes more model calls than you
+scripted is usually the bug a test is looking for, so this is the default.
+
+```python
+import asyncio
+
+from promptise import build_agent
+from promptise.engine import GraphExecutionError
+from promptise.testing import ScriptedModel, ScriptExhaustedError
+
+
+async def main():
+    model = ScriptedModel(["Hello!"])
+    agent = await build_agent(model=model)
+    ask = {"messages": [{"role": "user", "content": "Hi"}]}
+    await agent.ainvoke(ask)
+    try:
+        await agent.ainvoke(ask)
+    except GraphExecutionError as exc:
+        assert isinstance(exc.__cause__, ScriptExhaustedError)
+        print(exc.__cause__)
+    finally:
+        await agent.shutdown()
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+ScriptedModel has no reply for model call 2: the script has 1 reply. Add a reply, or pass on_exhausted='repeat_last' to repeat the last one.
+```
+
+The call is still recorded in `model.calls`, with `reply=None`, so you can
+see what the agent asked for.
+
+`ScriptedModel(replies, on_exhausted="repeat_last")` answers every call after
+the last reply with the last reply again, for a test that calls the agent
+many times with the same answer.  A script with no replies raises either way.
+
+## Streaming and sync calls
+
+The model streams too.  Its text comes word by word and each tool call as one
+chunk, so `astream_with_tools()` and `astream()` emit the same events as with
+a provider:
+
+```python
+import asyncio
+
+from promptise import build_agent, tool
+from promptise.testing import ScriptedModel, ToolCall
+
+
+@tool
+def get_order(order_id: str) -> dict:
+    """Look up an order by its ID."""
+    return {"order_id": order_id, "status": "shipped"}
+
+
+async def main():
+    model = ScriptedModel([
+        ToolCall("get_order", {"order_id": "A-1001"}),
+        "Order A-1001 has shipped.",
+    ])
+    agent = await build_agent(model=model, extra_tools=[get_order])
+    async for event in agent.astream_with_tools(
+        {"messages": [{"role": "user", "content": "Where is A-1001?"}]}
+    ):
+        if event.type == "token":
+            print(f"token {event.text!r}")
+        else:
+            print(event.type)
+    await agent.shutdown()
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+tool_start
+tool_end
+token 'Order '
+token 'A-1001 '
+token 'has '
+token 'shipped.'
+done
+```
+
+`model.invoke()` and `model.stream()` work as well, for code that calls a
+chat model synchronously:
+
+```python
+from promptise.testing import ScriptedModel
+
+model = ScriptedModel(["Bonjour", "Hello there"])
+print(model.invoke("Say hello in French").content)
+print([chunk.content for chunk in model.stream("Now in English") if chunk.content])
+```
+
+Output:
+
+```
+Bonjour
+['Hello ', 'there']
+```
+
+## Where to use it
+
+`ScriptedModel` is a LangChain chat model, so it goes wherever a model
+instance is accepted: `build_agent(model=...)`, every agent pattern
+(`agent_pattern="react"`, `"peoatr"`, your own `PromptGraph`), a
+[`FallbackChain`](fallback.md) and a graph node's model.  Tools are bound
+with `bind_tools()` as for a provider model, and `calls` records the tools of
+each call.
+
+Things to know:
+
+- **The replies don't depend on the input.**  A script fixes the order of
+  the model's turns, not what it reads.  Assert on `model.calls` to check
+  what the agent sent; to make a reply depend on the conversation, script an
+  `AIMessage` you build in the test, or subclass the model.
+- **There is no token usage.**  Replies carry no usage data, so budgets and
+  cost reports see zero tokens.
+- **An `AgentProcess` runs on it too.**  Pass it as the process's model,
+  `ProcessConfig(model=ScriptedModel([...]))` or
+  `AgentProcess(name, config, model=...)`, and inject a `TriggerEvent`: the
+  process runs the agent on the script without a provider
+  ([The agent's model](../runtime/processes.md#the-agents-model)).
+- **Concurrent runs share the script.**  Each call takes the next reply
+  whichever run makes it, so give each concurrent run its own model.
+
+## API summary
+
+| Name | What it is |
+|---|---|
+| `ScriptedModel(replies, *, on_exhausted="raise")` | The chat model; `calls`, `remaining` |
+| `ToolCall(name, args={}, id=None)` | A tool call in a reply |
+| `Malformed.tool_call_as_text(name, args=None, *, style="json")` | A tool call written as text |
+| `Malformed.unparseable_arguments(name, raw_args="{'arg': 'value'}", *, id=None)` | A tool call whose arguments are not JSON |
+| `ModelCall` | One recorded request: `messages`, `tools`, `tool_schemas`, `reply` |
+| `ScriptExhaustedError` | Raised by a call after the last reply (a `RuntimeError`) |
+
+All of them are imported from `promptise.testing`.
+
+## What's next
+
+- [Tools (@tool)](tools.md) -- declare the tools your agent calls
+- [Building Agents](agents/building-agents.md) -- everything `build_agent()` takes
+- [Streaming](streaming.md) -- the events `astream_with_tools()` emits
+- [Custom Reasoning Patterns](agents/reasoning-patterns.md) -- graphs you can test the same way
 
 ================================================================================
 Page: LLM Providers: OpenAI, Azure, Bedrock, Ollama
@@ -3333,7 +3899,7 @@ Provider docs: <https://platform.openai.com/docs/models>
 
 ### Azure OpenAI (OpenAI models deployed in Azure AI Foundry)
 
-**Provider:** `azure_openai`, `azure`, `azure-openai`, `azureopenai`, `aoai` · **Route:** its native LangChain integration (core) · **Model:** in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o) — the deployment goes in deployment=.
+**Provider:** `azure_openai`, `azure`, `azure-openai`, `azureopenai`, `aoai` · **Route:** its native LangChain integration (core) · **Model:** in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o); the deployment goes in deployment=.
 
 ```python
 Model("gpt-4o", provider="azure", deployment="chat-prod",
@@ -3788,7 +4354,7 @@ listening).
 
 | You see | Cause | Fix |
 |---|---|---|
-| `Cannot use model … yet: … is not set — …` | A required environment variable is missing | Set it (the message says where the value is), or pass it in code with `Model(...)` |
+| `Cannot use model … yet: … is not set: …` | A required environment variable is missing | Set it (the message says where the value is), or pass it in code with `Model(...)` |
 | `native=True needs the langchain_… package → pip install langchain-…` | You opted into a provider's own integration without having it | Install it, or drop `native=True` — the default route needs nothing |
 | `unknown provider 'x'` (from `Model(provider="x")` or `promptise models env x`), or `Unable to infer model provider for model='x:…'` followed by `Promptise understands these prefixes …` (from a string) | A prefix Promptise does not know | `promptise models list` for the prefixes and aliases |
 | `Unable to infer model provider for model='…'` | A bare model name LangChain cannot classify | Add `provider=` / the prefix |
@@ -4487,7 +5053,8 @@ the agent fails instead of running it without a sandbox.
 | `memory_limit` | `str` | `"4G"` | Maximum memory. |
 | `disk_limit` | `str` | `"1G"` | Size of the writable workspace. |
 | `pids_limit` | `int` | `256` | Maximum processes and threads. |
-| `network` | `"none" \| "restricted" \| "full"` | `"none"` | Network isolation mode. `"restricted"` needs `iptables` in the image and refuses to start without it. |
+| `network` | `"none" \| "restricted" \| "full"` | `"none"` | Network isolation mode. `"restricted"` allows DNS and TCP 80/443 to any host (it filters ports, not hosts), needs `iptables` in the image and refuses to start without it. |
+| `docker_network` | `str` | none | Existing Docker network to attach the container to instead of the default bridge, for example one behind an egress proxy. Needs `network` `"full"` or `"restricted"`. |
 | `persistent` | `bool` | `false` | Keep the container after the session ends. |
 | `timeout` | `int` | `300` | Max execution time in seconds (1--3600). |
 | `workdir` | `str` | `"/workspace"` | Working directory inside container. |
@@ -4524,23 +5091,59 @@ tools. See [Tool Optimization](../tool-optimization.md).
 optimize_tools: semantic   # or minimal / standard; true means minimal
 ```
 
-!!! warning "Use the string form"
-    The schema also accepts a mapping (`level`, `embedding_model`, `top_k`,
-    `score_threshold`), but in 1.6.0 its settings are not applied: the agent runs with
-    the `minimal` preset. Write the level as a string, or build the agent in Python
-    with a `ToolOptimizationConfig` for finer control.
+A mapping sets the level and overrides parts of its preset; it becomes a
+`ToolOptimizationConfig`:
+
+```yaml
+optimize_tools:
+  level: semantic
+  top_k: 5
+  preserve_tools: [search_orders]
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `level` | `"minimal" \| "standard" \| "semantic"` | `"semantic"` | The preset. |
+| `top_k` | `int \| None` | preset (8) | Tools offered per model call (`semantic`; `semantic_top_k`). |
+| `context_turns` | `int \| None` | preset (3) | Recent user turns in the selection query (`semantic_context_turns`). |
+| `embedding_model` | `str \| None` | `all-MiniLM-L6-v2` | Sentence-transformers model name or local path (`semantic`). |
+| `max_description_length` | `int \| None` | preset | Truncate tool descriptions at this many characters. |
+| `preserve_tools` | `list[str] \| None` | `None` | Tools never optimized and always offered. |
+| `always_include_fallback` | `bool \| None` | preset (`true`) | Offer the `request_more_tools` fallback (`semantic`). |
+| `score_threshold` | `float \| None` | `None` | Not used: semantic selection offers the `top_k` most relevant tools whatever their score. Accepted so older files load, with a warning. |
 
 #### `cache`
 
 Optional. `cache: true` adds a [`SemanticCache`](../cache.md) with its defaults
-(in-memory, per-user, similarity 0.92, one-hour TTL).
+(in-memory, per-user, similarity 0.92, one-hour TTL). A mapping passes its fields
+to `SemanticCache`, under the same names except `embedding_model` (its `embedding`):
 
-!!! warning "Use `cache: true`"
-    The schema accepts a mapping (`backend`, `redis_url`, `similarity_threshold`,
-    `default_ttl`, `scope`, `max_entries_per_user`, `encrypt_values`,
-    `embedding_model`), but in 1.6.0 building an agent from a file with a `cache:`
-    mapping fails with `TypeError: ... unexpected keyword argument 'embedding_model'`.
-    For other cache settings, build the agent in Python with `SemanticCache(...)`.
+```yaml
+cache:
+  backend: redis
+  redis_url: "${REDIS_URL}"
+  similarity_threshold: 0.9
+  scope: per_user
+  write_tools: ["create_*", "update_*"]
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `backend` | `"memory" \| "redis"` | `"memory"` | Where entries live. |
+| `redis_url` | `str \| None` | `None` | Redis URL (backend `redis`). |
+| `similarity_threshold` | `float` | `0.92` | Minimum similarity for a hit. |
+| `default_ttl` | `int` | `3600` | Seconds an entry lives. |
+| `ttl_patterns` | `dict[str, int] \| None` | `None` | Regex on the query → TTL in seconds. |
+| `scope` | `"per_user" \| "per_session" \| "shared"` | `"per_user"` | Who shares entries. |
+| `shared_data_acknowledged` | `bool` | `false` | Confirms `scope: shared` (otherwise a warning). |
+| `max_entries_per_user` | `int` | `1000` | Most entries per scope. |
+| `max_total_entries` | `int` | `100000` | Most entries in all. |
+| `embedding_model` | `str` | `all-MiniLM-L6-v2` | Sentence-transformers model name or local path. |
+| `encrypt_values` | `bool` | `false` | Encrypt cached values at rest. |
+| `invalidate_on_write` | `bool` | `true` | Clear the caller's entries after a write tool runs. |
+| `write_tools` / `read_only_tools` | `list[str] \| None` | `None` | Tool name patterns that do / never count as writes. |
+| `cache_multi_turn` | `bool` | `false` | Also cache answers in conversations with history. |
+| `cache_tool_turns` | `bool` | `false` | Also cache answers that called tools. |
 
 #### `events`
 
@@ -4581,8 +5184,9 @@ Each sink:
 #### `adaptive`
 
 Optional. [Adaptive strategy](../adaptive-strategy.md): the agent learns from failed
-tool calls. It needs a `memory` section; without one it is turned off with a warning.
-`true` uses the defaults below.
+tool calls. It needs a `memory` section, where it stores failures and lessons: a file
+with `adaptive` (and `enabled` not `false`) but no `memory` fails validation with a
+message saying so. `true` uses the defaults below.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
@@ -5628,7 +6232,7 @@ class MemoryProvider(Protocol):
         self, content: str, *, metadata: dict | None = None, user_id: str | None = None
     ) -> str: ...
     async def delete(self, memory_id: str, *, user_id: str | None = None) -> bool: ...
-    async def purge_user(self, user_id: str) -> int: ...
+    async def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int: ...
     async def close(self) -> None: ...
 ```
 
@@ -5637,7 +6241,7 @@ class MemoryProvider(Protocol):
 | `search(query, limit=5, user_id=None)` | `list[MemoryResult]` | Search for memories relevant to the query. In `PER_USER` scope, results are filtered to that user. |
 | `add(content, metadata=None, user_id=None)` | `str` | Store a new memory, returns its ID. In `PER_USER` scope, stamps ownership. |
 | `delete(memory_id, user_id=None)` | `bool` | Delete a memory by ID. In `PER_USER` scope, only the owner can delete. |
-| `purge_user(user_id)` | `int` | Delete every entry owned by `user_id`. Returns the count removed. Use it to delete one user's data on request. |
+| `purge_user(user_id, tenant_id=None)` | `int` | Delete every entry owned by that user (of that tenant). Returns the count removed. Use it to delete one user's data on request. See [Deleting one user's data](#deleting-one-users-data). |
 | `close()` | `None` | Release resources (connections, file handles) |
 
 The built-in providers also implement an optional method that is not part of the protocol:
@@ -5658,6 +6262,20 @@ Every built-in provider supports two isolation modes controlled by the `scope` p
 |---|---|---|
 | `MemoryScope.SHARED` (default) | Legacy global pool. `user_id` is ignored. All callers read/write the same entries. | Knowledge-base bots, shared org memory, public FAQ agents |
 | `MemoryScope.PER_USER` | Every operation is scoped to a `user_id`. Users cannot read or delete each other's entries. | Personal assistants, multi-tenant SaaS, workloads that hold sensitive personal data |
+
+!!! danger "The default shares every caller's memories"
+    A provider created without `scope=` is `SHARED`: whatever is stored for one caller
+    is found by every other caller's memory search. With `memory_auto_store=True` the
+    agent stores every exchange, so a note one user gives the agent ("Priya's new
+    salary is 145,000") is recalled in another user's conversation. An agent that
+    serves more than one user needs `scope=MemoryScope.PER_USER`.
+
+    When a provider left at the default scope is used by a second caller identity
+    (a different `CallerContext.isolation_key`), the agent logs a warning once:
+    `Memory provider InMemoryProvider uses the default scope=SHARED, and this agent
+    now serves more than one caller...`. Create the provider with
+    `scope=MemoryScope.SHARED` to say the pool is shared on purpose; that also
+    silences the warning.
 
 ```python
 from promptise.memory import InMemoryProvider, MemoryScope, MemoryIsolationError
@@ -5696,8 +6314,15 @@ If no caller is set (e.g., background tasks), a `PER_USER` provider raises `Memo
 ### Deleting one user's data
 
 ```python
-removed = await provider.purge_user("alice")   # → int count of deleted entries
+removed = await provider.purge_user("alice")                     # → int count of deleted entries
+removed = await provider.purge_user("alice", tenant_id="acme")   # a caller with a tenant
 ```
+
+Pass the `user_id` and `tenant_id` the caller had. The agent stores a caller's
+entries under its isolation key, `"acme::alice"` for
+`CallerContext(user_id="alice", tenant_id="acme")`, so `purge_user("alice")`
+alone finds nothing for that caller. `purge_user("acme::alice")` (the key) works
+too, and `promptise.memory.owner_key("alice", "acme")` returns it.
 
 Works on every provider. `InMemoryProvider` drops in-process entries. `ChromaProvider` deletes every entry whose metadata contains `_promptise_user_id: alice`. `Mem0Provider` counts the user's entries with `get_all` and removes them with Mem0's `delete_all(user_id=…)`.
 
@@ -7545,7 +8170,7 @@ The scanner is built from composable **detectors**. Each detector is a self-cont
 |----------|----------------|--------|------|
 | `InjectionDetector` | Prompt injection and system prompt extraction (English) | Local DeBERTa transformer model | ~750 MB |
 | `PIIDetector` | Credit cards, SSNs, government IDs (22+ countries), emails, phones, medical records | 69 regex patterns + Luhn validation | 0 MB |
-| `CredentialDetector` | API keys for 60+ services, database URLs, private keys, tokens | 96 regex patterns (gitleaks/trufflehog) | 0 MB |
+| `CredentialDetector` | API keys for 60+ services, database URLs, private keys, tokens | 97 regex patterns (gitleaks/trufflehog) | 0 MB |
 | `NERDetector` | Person names, physical addresses, organizations | GLiNER zero-shot NER model (`pip install gliner`) | ~500 MB |
 | `ContentSafetyDetector` | 13 harm categories: violence, hate, self-harm, sexual content, weapons, elections, etc. | Llama Guard (local) or Azure AI Content Safety (cloud) | 4.9 GB local |
 | `CustomRule` | Anything you define | Your regex pattern | 0 MB |
@@ -7650,12 +8275,14 @@ Detects prompt injection attacks using a local transformer model. No regex — p
 InjectionDetector()                                          # defaults
 InjectionDetector(model="protectai/deberta-v3-base-prompt-injection-v2")  # explicit
 InjectionDetector(model="/models/local/deberta", threshold=0.9)  # local + strict
+InjectionDetector(paragraphs=True)                           # also each paragraph on its own
 ```
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `model` | `str` | `protectai/deberta-v3-base-prompt-injection-v2` | HuggingFace model ID or local directory path |
 | `threshold` | `float` | `0.85` | Confidence threshold for blocking (0.0-1.0) |
+| `paragraphs` | `bool` | `False` | Also classify every paragraph (line of up to 512 characters) on its own. See [Short instructions in longer text](#short-instructions-in-longer-text). |
 
 **What it catches:**
 
@@ -7672,7 +8299,20 @@ InjectionDetector(model="/models/local/deberta", threshold=0.9)  # local + stric
 - "Can you give me instructions on baking a cake?" (benign use of word "instructions")
 - "What are the rules for chess?" (benign use of word "rules")
 
-**Runs on input and on tool results** (with `scan_tool_results=True`). Agent output is skipped — the agent's own replies are not an injection vector, so `"injection"` is not listed in `scanners_run` for an output scan. Text of any length is classified in overlapping 512-character windows; the finding's `start` / `end` point at the window that scored highest.
+**Runs on input and on tool results** (with `scan_tool_results=True`). Agent output is skipped — the agent's own replies are not an injection vector, so `"injection"` is not listed in `scanners_run` for an output scan. Text of any length is classified in overlapping 512-character windows; the finding's `start` / `end` point at the window (or paragraph) that scored highest.
+
+#### Short instructions in longer text
+
+A window's score is about the whole window, so a short instruction that shares its window with ordinary text can score below `threshold`. On a support page whose last paragraph was a one-sentence instruction for AI assistants, the window holding it scored 0.58 and the same paragraph on its own 0.99, so the page passed. With `paragraphs=True` the scanner also classifies every paragraph (every line of up to 512 characters with at least 16 non-space characters) on its own and blocks on the highest score of all:
+
+```python
+scanner = PromptiseSecurityScanner(
+    detectors=[InjectionDetector(paragraphs=True)],
+    scan_tool_results=True,
+)
+```
+
+It is off by default for two reasons. Each paragraph is one more classification, so a long page costs many more model calls. And the default model flags short lines of technical text (code, shell commands, headings, how-to steps written as instructions) much more often than whole windows: on Promptise's own documentation it flagged about one paragraph in five, against about one window in twenty. Turn it on for text where an instruction aimed at the model is likely and code is rare, such as web pages, emails and tickets, and check it against your own tool results. An instruction in the middle of a paragraph longer than 512 characters is still scored with the text around it.
 
 ---
 
@@ -7734,7 +8374,7 @@ PIIDetector(exclude={"blood_type", "ip_address"})                 # exclude nois
 
 ### CredentialDetector
 
-Detects leaked API keys, tokens, and secrets using 96 regex patterns sourced from [gitleaks](https://github.com/gitleaks/gitleaks) (41k+ stars) and [trufflehog](https://github.com/trufflesecurity/trufflehog) (17k+ stars).
+Detects leaked API keys, tokens, and secrets using 97 regex patterns sourced from [gitleaks](https://github.com/gitleaks/gitleaks) (41k+ stars) and [trufflehog](https://github.com/trufflesecurity/trufflehog) (17k+ stars).
 
 ```python
 CredentialDetector()                                              # all credentials
@@ -7758,7 +8398,7 @@ CredentialDetector(exclude={"firebase"})
 | `OPENAI` | API key (new + legacy formats) |
 | `ANTHROPIC` | API key, admin key |
 | `HUGGINGFACE` | Access token, org token |
-| `GITHUB` | PAT classic, PAT fine-grained, OAuth, App, refresh |
+| `GITHUB` | PAT classic (`ghp_`), PAT fine-grained (`github_pat_`), OAuth (`gho_`), App user (`ghu_`), App installation (`ghs_`, including the `ghs_<app id>_<JWT>` format), refresh (`ghr_`) |
 | `GITLAB` | PAT, CI token, deploy token |
 | `STRIPE` | Live key, test key, restricted key |
 | `SLACK` | Bot token, user token, webhook URL |
@@ -7770,6 +8410,7 @@ CredentialDetector(exclude={"firebase"})
 | `GRAFANA` | API key, cloud token, service account token |
 | `SENTRY` | User token |
 | `JWT` | Generic JWT tokens |
+| `BEARER` | `Authorization` values with their credential (`Authorization: Bearer <token>`, any scheme) and bearer tokens on their own |
 | `PRIVATE_KEY` | RSA, DSA, EC, SSH, PGP private keys |
 | `DATABASE_URL` | PostgreSQL, MySQL, MongoDB, Redis connection strings |
 | Plus: | Alibaba, DigitalOcean, Fly.io, Plaid, Braintree, Square, Twilio, Flutterwave, Mailgun, MailChimp, Sendinblue, Datadog, New Relic, Dynatrace, Doppler, Pulumi, 1Password, Atlassian, Notion, Postman, Airtable, Typeform, npm, PyPI, RubyGems, Databricks, PlanetScale, Buildkite, Mapbox, Duffel, EasyPost, Shippo, Frame.io, Cloudinary, Heroku, Replicate |
@@ -9390,7 +10031,7 @@ agent = await build_agent(
 The sandbox provides a secure execution environment for agent-generated code. When an agent creates or runs code (especially in [Open Mode](../runtime/meta-tools.md)), the sandbox ensures that code runs inside an isolated container with:
 
 - **Resource limits** -- CPU, memory, process count, workspace size, and execution time
-- **Network isolation** -- no network by default; restricted (DNS + HTTP/HTTPS egress) or full when you ask for it
+- **Network isolation** -- no network by default; restricted (DNS and ports 80/443 to any host) or full when you ask for it, optionally on a Docker network of your own (for an egress proxy that allows only some hosts)
 - **Filesystem isolation** -- read-only root, size-capped writable workspace
 - **A non-root user** -- code runs as `nobody` (uid 65534) unless you set `user="root"`
 - **Capability dropping** -- ~40 Linux capabilities dropped, `no-new-privileges` always set
@@ -9412,6 +10053,7 @@ The sandbox provides a secure execution environment for agent-generated code. Wh
 | `disk_limit` | `str` | `"1G"` | Size of the writable workspace (a tmpfs at `workdir`; counts toward `memory_limit`). `/tmp` and `/var/tmp` are capped at the same size or less. |
 | `pids_limit` | `int` | `256` | Maximum processes and threads (contains fork bombs) |
 | `network` | `NetworkMode` | `NONE` | Network isolation mode |
+| `docker_network` | `str \| None` | `None` | Name of an existing Docker network to attach the container to instead of Docker's default bridge. Needs `network` `"full"` or `"restricted"`. See [Allowing only some hosts](#allowing-only-some-hosts). |
 | `persistent` | `bool` | `False` | Keep the container after the session ends |
 | `timeout` | `int` | `300` | Default per-command timeout in seconds (1-3600) |
 | `workdir` | `str` | `"/workspace"` | Working directory inside container |
@@ -9439,7 +10081,7 @@ built `FROM python:3.11-slim` with the packages baked in).
 | Mode | Description |
 |---|---|
 | `NetworkMode.NONE` | No network interface besides loopback (default) |
-| `NetworkMode.RESTRICTED` | Outbound DNS (port 53) and TCP 80/443 to any host; everything else dropped, IPv4 and IPv6 |
+| `NetworkMode.RESTRICTED` | Outbound DNS (port 53) to any host and TCP 80/443 to any host outside the link-local range; everything else dropped, IPv4 and IPv6 |
 | `NetworkMode.FULL` | Full unrestricted network access |
 
 The network is `"none"` unless you set `network` explicitly, for `sandbox=True`,
@@ -9449,9 +10091,52 @@ for a custom dict, and for `agent_pattern="code-action"`.
 container before any sandboxed code runs. It **fails closed**: if the image
 does not ship `iptables` and `ip6tables` (the default `python:3.11-slim` does
 not), the container is removed and the session refuses to start. Use an image
-that includes them, or choose `"none"` or `"full"` explicitly. Note that
-restricted mode does not filter by host name: any host is reachable on ports
-80 and 443.
+that includes them, or choose `"none"` or `"full"` explicitly.
+
+`"restricted"` filters **ports, not hosts**. Exactly what it allows:
+
+- loopback;
+- DNS (UDP and TCP port 53) to any server, so DNS queries can carry data out;
+- TCP ports 80 and 443 to any host on the internet (`example.com`, `pypi.org`,
+  an attacker's server alike), and to private addresses the container can
+  route to;
+- nothing on the link-local ranges `169.254.0.0/16` and `fe80::/10` and on
+  `fd00:ec2::254` (other than DNS), so code can't read cloud instance
+  metadata and credentials from `169.254.169.254`.
+
+Everything else (other ports, UDP other than DNS, ICMP) is dropped. Use it to
+keep code off databases, SSH and other services on non-web ports, not to stop
+it from sending data to a web server.
+
+### Allowing only some hosts
+
+To let sandboxed code reach only some hosts (a package index, one API), put an
+egress proxy that allows those hosts between the sandbox and the internet, and
+attach the sandbox to a Docker network whose only way out is that proxy:
+
+```bash
+# A network with no route out, and a proxy on it and on the default bridge
+docker network create --internal agent-egress
+docker run -d --name egress-proxy --network bridge my-allowlist-proxy
+docker network connect agent-egress egress-proxy
+```
+
+```python
+config = SandboxConfig(
+    network="full",                 # no port filter; the network has no route out
+    docker_network="agent-egress",  # created above
+    env={"HTTPS_PROXY": "http://egress-proxy:3128", "HTTP_PROXY": "http://egress-proxy:3128"},
+)
+```
+
+On an `--internal` network the container has no route to the internet, so
+code that ignores the proxy settings can't connect anywhere directly; the
+proxy decides which hosts a `CONNECT` may reach. The network must exist
+before the sandbox starts (the session refuses to start otherwise).
+`docker_network` also works with `network="restricted"`, which adds the port
+filter on top (then the proxy must listen on port 80 or 443). The sandbox
+never joins the host's network or another container's: `docker_network`
+can't be `"host"`, `"none"` or `"container:…"`.
 
 ```python
 from promptise.sandbox.config import SandboxConfig, NetworkMode
@@ -10460,7 +11145,7 @@ agent = await build_agent(..., memory=provider, adaptive=True)
 agent = await build_agent(..., memory=provider, adaptive={"scope": "per_tenant"})
 ```
 
-Without `memory`, `adaptive` is ignored with a warning.
+Without `memory`, `build_agent(adaptive=...)` turns adaptive strategy off with a warning. A `.superagent` file with `adaptive` but no `memory` section is refused when it is loaded (`SuperAgentValidationError`), so the mistake can't go unnoticed.
 
 ### .superagent files
 
@@ -11239,7 +11924,7 @@ agent = await build_agent(..., events=notifier, observer_agent_id="billing-agent
 
 - **SSRF protection**: WebhookSink validates URLs at construction and again, against the address it connects to, before every delivery — rejects private, loopback, link-local (cloud metadata), CGNAT and other non-public addresses unless `allow_private_networks=True`
 - **Signing with replay protection**: every webhook carries `X-Promptise-Signature` (HMAC over timestamp + raw body); verify with `verify_event_signature()`
-- **Payload redaction**: WebhookSink scans the whole payload — `data`, `user_id`, `session_id`, `metadata` — for PII/credentials before sending (regex patterns, no ML models). A `user_id` that is an email address arrives as `[EMAIL]`; pass `redact_sensitive=False` if your receiver needs it
+- **Payload redaction**: WebhookSink scans the whole payload — `data`, `user_id`, `session_id`, `metadata` — for PII/credentials before sending (regex patterns, no ML models; the same ones as [trace redaction](observability.md#what-text-is-recorded), listed there). A `user_id` that is an email address arrives as `[EMAIL]`; pass `redact_sensitive=False` if your receiver needs it
 - **Queue bounds**: `max_queue_size` prevents memory exhaustion. When a sink's queue is full, events are dropped for that sink with a warning log
 - **Sink isolation**: One failing or slow sink never affects others
 
@@ -11491,7 +12176,22 @@ Two switches decide whether user and model text lands in your traces:
 
 Tool arguments are on by default because they are what makes a trace debuggable — but they often carry user data (names, emails, account numbers). Set `record_tool_io=False` when traces leave your trust boundary (a hosted APM, a shared log pipeline). Cache events never copy the user's query into their text.
 
-Whatever is recorded is scrubbed first: with `redact_sensitive=True` (the default) every event's metadata and details pass through `promptise.observability.redact_sensitive` before they are stored or reach a transporter. API keys (`sk-…`), AWS access keys, GitHub tokens, `Bearer` tokens, passwords in URLs (`postgres://user:pw@host`), card numbers, US social security numbers and email addresses become `[API_KEY]`, `[AWS_KEY]`, `[GITHUB_TOKEN]`, `Bearer [REDACTED]`, `://[REDACTED]@`, `[CARD]`, `[SSN]` and `[EMAIL]` — in the HTML report, the NDJSON stream, log files, webhooks and OpenTelemetry spans alike. Pattern matching cannot recognise names or addresses, so it complements `record_tool_io=False` rather than replacing it. When an agent run fails on a guardrail, `agent.error` records the direction, the number of blocked findings and their categories, never the matched text.
+Whatever is recorded is scrubbed first: with `redact_sensitive=True` (the default) every event's metadata and details pass through `promptise.observability.redact_sensitive` before they are stored or reach a transporter, so the HTML report, the NDJSON stream, log files, webhooks and OpenTelemetry spans all get the redacted text:
+
+| Found in the text | Becomes |
+|---|---|
+| OpenAI and Anthropic keys (`sk-…`), Stripe keys (`sk_live_…`, `rk_test_…`), Google API keys (`AIza…`) | `[API_KEY]` |
+| AWS access key IDs (`AKIA…`, temporary `ASIA…`) | `[AWS_KEY]` |
+| An AWS secret access key after `aws_secret_access_key=` (or `:`) | `aws_secret_access_key=[AWS_SECRET]` |
+| GitHub tokens: `ghp_`, `gho_`, `ghu_`, `ghs_` (including the longer `ghs_<app id>_<JWT>` installation tokens), `ghr_`, `github_pat_` | `[GITHUB_TOKEN]` |
+| GitLab tokens (`glpat-`, `gldt-`, `glptt-`, `glrt-`) and Slack tokens (`xoxb-`, `xoxp-`...) | `[GITLAB_TOKEN]`, `[SLACK_TOKEN]` |
+| JSON Web Tokens and PEM private keys | `[JWT]`, `[PRIVATE_KEY]` |
+| An `Authorization` value with any scheme, or none (`Authorization: Basic …`, `authorization=…`) | `Authorization: Basic [REDACTED]` |
+| A bearer token wherever it appears (`Bearer …`, `bearer …`) | `Bearer [REDACTED]` |
+| The value of a credential key (`Authorization`, `Proxy-Authorization`, `X-API-Key`, `api_key`, `access_token`, `refresh_token`, `id_token`, `client_secret`, `password`, `passwd`), as a dict key or in JSON text | `[REDACTED]` |
+| Passwords in URLs (`postgres://user:pw@host`), card numbers, US social security numbers, email addresses | `://[REDACTED]@`, `[CARD]`, `[SSN]`, `[EMAIL]` |
+
+Pattern matching cannot recognise names, addresses or credentials without a known format or label, so it complements `record_tool_io=False` rather than replacing it. When an agent run fails on a guardrail, `agent.error` records the direction, the number of blocked findings and their categories, never the matched text.
 
 The redaction applies to the collector `build_agent()` creates. A collector you pass as `observer=` keeps its own `sanitizer` — pass `ObservabilityCollector(sanitizer=redact_sensitive)` to get the same behavior.
 
@@ -14224,17 +14924,17 @@ With nothing configured, `promptise models check azure:chat-prod` prints:
 ```text
 $ promptise models check azure:chat-prod
 azure:chat-prod → azure_openai:chat-prod  (Azure OpenAI (OpenAI models deployed in Azure AI Foundry))
-  model part: chat-prod — in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o) — the deployment goes in deployment=
+  model part: chat-prod — in the string form, your DEPLOYMENT name (Foundry → Deployments → Name); with Model(...), the model name (gpt-4o); the deployment goes in deployment=
   route: native integration (core)
   AZURE_OPENAI_ENDPOINT: MISSING — Azure AI Foundry portal → your resource → Overview → Endpoint (https://<resource>.openai.azure.com/, no path)
   AZURE_OPENAI_API_KEY: MISSING — Azure AI Foundry portal → your resource → Keys and Endpoint → KEY 1 (or Entra ID: pass extra={'azure_ad_token_provider': ...})
   OPENAI_API_VERSION: MISSING — the REST API version your deployment supports, e.g. 2024-10-21 (Azure docs → 'API version lifecycle')
   Azure routes requests by deployment name, not model name: Model('gpt-4o', provider='azure', deployment='chat-prod', ...).
 Not usable yet.
-  - AZURE_OPENAI_ENDPOINT is not set — Azure AI Foundry portal → your resource → Overview → Endpoint (https://<resource>.openai.azure.com/, no path) (e.g. https://my-resource.openai.azure.com/)
-  - AZURE_OPENAI_API_KEY is not set — Azure AI Foundry portal → your resource → Keys and Endpoint → KEY 1 (or Entra ID: pass extra={'azure_ad_token_provider': ...})
-  - OPENAI_API_VERSION is not set — the REST API version your deployment supports, e.g. 2024-10-21 (Azure docs → 'API version lifecycle') (e.g. 2024-10-21)
-  - put AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, OPENAI_API_VERSION in a .env file next to your script (loaded automatically; a variable already exported with a non-empty value wins, an empty one is filled from the file), export it, or pass it in code: Model(..., endpoint=, api_key=, api_version=) — see promptise models env azure
+  - AZURE_OPENAI_ENDPOINT is not set: Azure AI Foundry portal → your resource → Overview → Endpoint (https://<resource>.openai.azure.com/, no path) (e.g. https://my-resource.openai.azure.com/)
+  - AZURE_OPENAI_API_KEY is not set: Azure AI Foundry portal → your resource → Keys and Endpoint → KEY 1 (or Entra ID: pass extra={'azure_ad_token_provider': ...})
+  - OPENAI_API_VERSION is not set: the REST API version your deployment supports, e.g. 2024-10-21 (Azure docs → 'API version lifecycle') (e.g. 2024-10-21)
+  - put AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, OPENAI_API_VERSION in a .env file next to your script (loaded automatically; a variable already exported with a non-empty value wins, an empty one is filled from the file), export it, or pass it in code: Model(..., endpoint=, api_key=, api_version=). See promptise models env azure
 $ echo $?
 1
 ```
@@ -14331,7 +15031,7 @@ promptise runtime stop                                  # stop the runtime
 |---|---|
 | `promptise runtime start MANIFEST` | Start the process(es) of a `.agent` file or directory, in the foreground or with `--detach` |
 | `promptise runtime status [NAME]` | Show the processes of the running runtime(s), or one process (`--process`, `--json`) |
-| `promptise runtime stop [NAME]` | Stop a runtime (or one process with `--process`); `--timeout`, `--force` |
+| `promptise runtime stop [NAME]` | Stop a runtime (or one process with `--process`); `--drain-timeout`, `--timeout`, `--force` |
 | `promptise runtime restart [NAME]` | Restart every process of a runtime, or one process |
 | `promptise runtime logs NAME` | Show the newest journal entries of a process (`--lines`, `--follow`, `--journal-path`) |
 | `promptise runtime rewind PROCESS [ENTRY_ID]` | Roll a process back to just before a journal entry (`--mode`, `--plan`, `--yes`) |
@@ -14353,7 +15053,7 @@ promptise runtime stop                                  # stop the runtime
 | `--allow-command-deploys` | off | Let the control API deploy processes with stdio MCP servers or command hooks (refused with `403 COMMANDS_NOT_ALLOWED` otherwise) |
 | `--import`, `-i` | -- | Import a Python module before loading the manifests, e.g. one that registers custom trigger types with `register_trigger_type()` (repeatable; the current directory is importable) |
 
-A foreground runtime stops gracefully on Ctrl+C, on SIGTERM (`docker stop`) and on `promptise runtime stop`. `stop` asks over the control API first, falls back to SIGTERM, and kills the runtime only with `--force`.
+A foreground runtime stops gracefully on Ctrl+C, on SIGTERM (`docker stop`) and on `promptise runtime stop`. `stop` asks over the control API first, falls back to SIGTERM, and kills the runtime only with `--force`. Runs in flight get up to `--drain-timeout` seconds to finish (default: each process's `drain_timeout`; `0` cancels them at once).
 
 **Exit codes.** `0` success, `1` an error with a message (no runtime running, unknown name, API error, invalid manifest, no process could start, a stop that timed out, an unconfirmed rewind), `2` a usage error, `130` a second Ctrl+C or SIGTERM during shutdown.
 
@@ -14820,8 +15520,8 @@ to an `"error"` transition or `__error__` node, ends the run as before.
 Both limits count node executions, and a limit of N allows exactly N. In the
 ReAct graph `build_agent` uses by default, one execution of `reason` is one
 model call plus the tool calls that call asked for, so
-`max_agent_iterations=N` allows at most N model calls (and the reason node's
-own budget of 15 applies when N is higher). If the Nth model call asks for
+`max_agent_iterations=N` allows at most N model calls (`build_agent` gives the
+reason node the same budget). If the Nth model call asks for
 tools, they run, the run stops before the model sees their results, and it
 raises `GraphIterationLimitError`. In a graph with separate nodes (a `ToolNode`,
 a planner, a reflection step) every node execution counts.
@@ -15611,6 +16311,20 @@ call goes through the same steps and is reported the same way:
   ([Streaming](streaming.md#what-a-streamed-run-does)). A `ToolNode` runs one
   turn's calls one after another, in order, so each call's `tool_end` comes
   before the next call's `tool_start`.
+- A call whose arguments are not valid JSON (LangChain keeps it in the
+  assistant message's `invalid_tool_calls`) does not run, and neither do the
+  `pre_tool` / `post_tool` hooks. Its `ToolMessage` (`status="error"`, the
+  call's own `tool_call_id`) says what is wrong and names the tool's
+  parameters (`Error: The arguments for 'get_order' were not valid JSON (...).
+  Call the tool again with a JSON object that matches its parameters: order_id
+  (required).`), or is the unknown-tool error when the name is not one of the
+  node's tools. The call counts as failed (`tool_calls_failed`; in
+  `NodeResult.tool_calls` with `success: False`, `invalid: True`, `args: {}` and
+  the text the model sent as `raw_args`), callbacks get its start and an
+  `on_tool_error` with a `ToolArgumentError`, and the stream shows it with
+  `status: "error"`. The model's next turn can call again; iteration limits
+  apply as for any tool call. A call without an id gets one, on the assistant
+  message as well, so every call has exactly one result.
 
 **What `validate_inputs=True` checks.** After the `pre_tool` hooks, the
 arguments are validated against the schema the model is offered for the tool
@@ -19478,7 +20192,7 @@ graph LR
 | 5a | [Caching & Performance](server/caching-performance.md) | `@cached`, `InMemoryCache`, `RedisCache`, rate limiting, concurrency, timeouts |
 | 5b | [Observability & Monitoring](server/observability.md) | Metrics, OTel, Prometheus, structured logging, audit trails, dashboard |
 | 5c | [Resilience Patterns](server/resilience-patterns.md) | Circuit breaker, health checks, webhooks, background tasks, cancellation |
-| 5d | [Advanced Patterns](server/advanced-patterns.md) | Versioning, per-caller tool lists, composition, batch, streaming, elicitation, sampling |
+| 5d | [Advanced Patterns](server/advanced-patterns.md) | Versioning, transforms, per-caller tool lists, composition, batch, streaming, elicitation, sampling |
 | 6 | [Deployment](server/deployment.md) | HTTP transport, CORS, reverse proxy, Docker, CLI serve, hot reload |
 | 7 | [Testing](server/testing.md) | Test servers in-process with `TestClient`: no transport needed |
 
@@ -19567,8 +20281,10 @@ Build MCP servers with the patterns you know from web frameworks:
 | **Prometheus** | `PrometheusMiddleware` for standard metrics export |
 | **Structured logging** | `StructuredLoggingMiddleware` for JSON log output |
 | **Redis cache** | `RedisCache` distributed cache backend for multi-instance deployments |
-| **OpenAPI** | `promptise mcpcast` generates a curated server from an OpenAPI/Swagger spec ([MCPcast](server/mcpcast.md)); the older `OpenAPIProvider` has [known limits in 1.6.0](server/advanced-patterns.md#openapi-bridge) |
+| **OpenAPI** | `promptise mcpcast` generates a curated server from an OpenAPI/Swagger spec ([MCPcast](server/mcpcast.md)); `OpenAPIProvider` registers one tool per operation at startup ([OpenAPI bridge](server/advanced-patterns.md#openapi-bridge)) |
 | **Server composition** | `mount()` composes child servers into a gateway with prefixed tools |
+| **Tool versioning** | `@server.tool(version="2.0")` serves each version under a pinned name (`search_v2_0`) and the bare name as the latest |
+| **Tool transforms** | `server.add_transform(...)` prefixes, filters or rewrites the tool list per caller (`NamespaceTransform`, `TagFilterTransform`, `VisibilityTransform`) |
 | **Hot reload** | `hot_reload()` watches files and restarts the server during development |
 | **CLI serve** | `promptise serve module:server` runs servers from the command line |
 | **Asymmetric JWT** | `AsymmetricJWTAuth` for RS256/ES256 JWT verification |
@@ -19622,7 +20338,7 @@ Connect to one or many MCP servers with authentication and LangChain integration
 | Rate limit agents | `RateLimitMiddleware` + `TokenBucketLimiter` ([Caching & Performance](server/caching-performance.md)) |
 | Add metrics, tracing, audit logs | `MetricsMiddleware`, `OTelMiddleware`, `AuditMiddleware` ([Observability](server/observability.md)) |
 | Protect against downstream failures | `CircuitBreakerMiddleware` + `HealthCheck` ([Resilience](server/resilience-patterns.md)) |
-| Version tools or compose servers | New tool names, `mount()` ([Advanced Patterns](server/advanced-patterns.md)) |
+| Version tools or compose servers | `@server.tool(version=...)`, `server.add_transform(...)`, `mount()` ([Advanced Patterns](server/advanced-patterns.md)) |
 | Generate a safe, curated server from an OpenAPI spec | `promptise mcpcast` ([MCPcast](server/mcpcast.md), [step-by-step guide](../guides/mcpcast-existing-api.md), [recipes](server/mcpcast-recipes.md)) |
 | Deploy with HTTP, CORS, Docker | Transport config + `CORSConfig` ([Deployment](server/deployment.md)) |
 | Test my server without HTTP | `TestClient` ([Testing](server/testing.md)) |
@@ -20558,7 +21274,8 @@ Supported return types:
 | Return type | Behaviour |
 |---|---|
 | `str`, `int`, `float`, etc. | `str(value)` in one `TextContent` |
-| `dict`, `list` (plain data) | JSON-serialised into `TextContent` (non-JSON values with `str()`) |
+| `dict`, `list` (plain data) | JSON-serialised into `TextContent` (Pydantic models inside become JSON objects, other non-JSON values `str()`) |
+| A Pydantic model | Its JSON (`model_dump(mode="json")`) in one `TextContent`, the same form a resource sends |
 | `None` | `TextContent` with the text `OK` |
 | `ImageContent(data, mime_type="image/png")` | Converted to MCP `ImageContent` (base64-encoded) |
 | `TextContent(type="text", text=...)` | Passed through as-is |
@@ -20566,8 +21283,21 @@ Supported return types:
 | Mixed `list` of the above | Each item serialised individually |
 | `ToolResponse(content, metadata={})` | `content` serialised as above; `metadata` stored in `ctx.state["response_metadata"]` for middleware and audit |
 
-!!! warning "Return Pydantic models as dicts"
-    A tool that returns a Pydantic model is serialised with `str()`, so the client receives `title='Dune' year=1965`, not JSON (a `list` of models becomes a JSON list of those strings). Return `model.model_dump(mode="json")` (or a list of them) to send JSON. Resources do serialise models as JSON.
+```python
+from pydantic import BaseModel
+
+class Book(BaseModel):
+    title: str
+    year: int
+
+@server.tool()
+async def get_book() -> Book:
+    return Book(title="Dune", year=1965)        # client receives {"title": "Dune", "year": 1965}
+
+@server.tool()
+async def list_books() -> list[Book]:
+    return [Book(title="Dune", year=1965)]      # [{"title": "Dune", "year": 1965}]
+```
 
 ## Registering Resources
 
@@ -20783,7 +21513,7 @@ For async code, use `await server.run_async(...)` instead.
 
 A Promptise server runs on the MCP SDK you have installed, 1.x (`mcp>=1.9`) or 2.x (see [MCP SDK versions](../../getting-started/installation-extras.md#mcp-sdk-versions)), and serves clients of both SDK generations. On the 2.x SDK it answers `server/discover`, so a 2.x client (current Pydantic AI and OpenAI Agents SDK releases, for example) uses the 2026-07-28 protocol revision, and 1.x clients use the `initialize` handshake as before. On the 1.x SDK, which doesn't know `server/discover`, the server answers it with `-32601 Method not found` and a 2.x client falls back to the `initialize` handshake. On either, a request for a method the server does not implement gets `-32601` without a log warning, and a notification of an unknown method is ignored.
 
-On a 2026-07-28 connection the server cannot send requests to the client, so features that ask the client mid-call (elicitation, including the [approval gate](../../core/approval.md)'s elicitation approver, and sampling) fail closed there; a client that needs them connects with the handshake (the 2.x SDK's `Client(..., mode="legacy")`; Promptise's `MCPClient` always does).
+On a 2026-07-28 connection the server cannot send requests to the client and there is no session. `Elicitor.ask()` (and with it the [approval gate](../../core/approval.md)'s elicitation approver) asks the client in an input round instead: the call ends with an `InputRequiredResult`, and the client calls again with the answer (see [Elicitation on the 2026-07-28 protocol](advanced-patterns.md#elicitation-on-the-2026-07-28-protocol)). A tool that takes a `SessionState` answers those requests with a `SESSION_REQUIRED` error, because its state would start empty on every call; sampling returns `None`. A client that needs session state connects with the handshake (the 2.x SDK's `Client(..., mode="legacy")`; Promptise's `MCPClient` always does).
 
 ## Complete Example
 
@@ -21079,7 +21809,7 @@ from promptise.mcp.server import TimeoutMiddleware
 server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
 ```
 
-If a tool exceeds the timeout, a retryable `ToolError` with code `TIMEOUT` is returned to the client. `TimeoutMiddleware(default_timeout=30.0)` applies to every request that passes through it (tools, resources and prompts), so include it only when you want a server-wide default.
+If a tool exceeds the timeout, a `ToolError` with code `TIMEOUT` is returned to the client. It says the call's outcome is unknown, and is `retryable` only for a tool declared with `read_only_hint=True` or `idempotent_hint=True`. `TimeoutMiddleware(default_timeout=30.0)` applies to every request that passes through it (tools, resources and prompts), so include it only when you want a server-wide default.
 
 #### ConcurrencyLimiter
 
@@ -21392,8 +22122,7 @@ Rich keys automatically populate `ctx.state["roles"]`, so role-based guards (`Ha
 
 Clients send their key via the `x-api-key` header (configurable via `header`). The matching client ID becomes `ctx.client_id`. Keys are compared in constant time.
 
-!!! warning "Give `header` in lower case"
-    Request headers reach `ctx.meta` with lower-case names, and `APIKeyAuth` looks the header up exactly as given. `APIKeyAuth(keys, header="X-API-Key")` never finds the key over HTTP; write `header="x-api-key"`. With `MCPServer(require_auth=True)`, the [transport gate](deployment.md#transport-level-auth-gate) only reads `Authorization: Bearer` and `x-api-key`, so keep the default header name there.
+The header name is matched case-insensitively, as HTTP header names are: `header="X-Custom-Key"` and `header="x-custom-key"` read the same header. With `MCPServer(require_auth=True)`, the [transport gate](deployment.md#transport-level-auth-gate) reads the API key from the same header.
 
 ### AsymmetricJWTAuth
 
@@ -22577,7 +23306,7 @@ server.add_middleware(ConcurrencyLimiter(max_concurrent=50))
 
 ### [Advanced Patterns](advanced-patterns.md)
 
-Tool versioning, per-caller tool lists, `mount()`, `OpenAPIProvider` (see its 1.6.0 warning), `register_batch_tool()`, `StreamingResult`, `Elicitor`, `Sampler`, `register_manifest()`, `hot_reload()`, CLI serve.
+Tool versioning, per-caller tool lists, `mount()`, `OpenAPIProvider`, `register_batch_tool()`, `StreamingResult`, `Elicitor`, `Sampler`, `register_manifest()`, `hot_reload()`, CLI serve.
 
 ### [Deployment](deployment.md)
 
@@ -23069,8 +23798,12 @@ in front of it such as an approval gate waiting for a human. It applies to
 interrupted.
 
 When the limit is hit the call is cancelled and the agent receives a
-`TIMEOUT` error with `retryable=True` and a suggestion to retry later or
-continue without the tool. A timeout counts as a failure for the
+`TIMEOUT` error saying the call's outcome is unknown: it may have taken
+effect before it was cancelled. For a tool declared with
+`read_only_hint=True` or `idempotent_hint=True` the error is
+`retryable=True` and suggests retrying later; for any other tool it is not
+retryable and tells the model to check whether the call took effect before
+calling it again. A timeout counts as a failure for the
 [circuit breaker](resilience-patterns.md#circuit-breaker): a dependency that
 keeps hanging gets paused.
 
@@ -23408,7 +24141,11 @@ On error, the end line has `"status": "error"` and `"error"` with the exception 
 {"event": "tool_call_end", "tool": "search_employees", "request_id": "b4c3d2e1f0a9", "duration_ms": 12.1, "status": "error", "error": "database unreachable"}
 ```
 
-`client_id` is present only for authenticated callers (put the middleware after `AuthMiddleware` to see it). The lines carry no timestamp of their own: configure your log handler's formatter to add one. The message is the JSON text, so emit it as-is (for example with `logging.Formatter("%(message)s")`) for a log aggregator. `include_args` is accepted, but in 1.6.0 arguments are not logged.
+`client_id` is present only for authenticated callers (put the middleware after `AuthMiddleware` to see it). The lines carry no timestamp of their own: configure your log handler's formatter to add one. The message is the JSON text, so emit it as-is (for example with `logging.Formatter("%(message)s")`) for a log aggregator. With `include_args=True` the start line also has `args`, the call's validated arguments after the framework's redaction (the same as the agent's trace redaction): the value of a credential key (`password`, `api_key`, `token`...) becomes `[REDACTED]`, and credentials and common PII in strings (API keys, JWTs, card numbers, email addresses) are replaced with placeholders. Pattern matching can't recognise every kind of personal data (names, addresses), so leave it off for tools that take such data.
+
+```json
+{"event": "tool_call_start", "tool": "sign_in", "request_id": "c1d2e3f4a5b6", "args": {"user": "ada", "password": "[REDACTED]"}}
+```
 
 ```python
 import logging
@@ -23777,8 +24514,9 @@ count towards `failure_threshold`:
 
 - **Unexpected exceptions**: anything that isn't an `MCPError` (a crash, a
   `ConnectionError`, an upstream SDK raising).
-- **Retryable `MCPError`s** that signal a transient failure: a `TIMEOUT`
-  (from `@server.tool(timeout=...)` or `TimeoutMiddleware`), or your own
+- **A `TIMEOUT`** (from `@server.tool(timeout=...)` or `TimeoutMiddleware`),
+  retryable or not.
+- **Retryable `MCPError`s** that signal a transient failure, such as your own
   `ToolError("Upstream unavailable", retryable=True)`.
 
 These never count:
@@ -23929,7 +24667,7 @@ server.add_middleware(WebhookMiddleware(
     url="https://hooks.slack.com/services/T.../B.../xxx",
     events={"tool.error"},              # Only fire on errors
     headers={"Authorization": "Bearer slack-token"},
-    timeout=5.0,                        # Don't block tool calls
+    timeout=5.0,                        # Per delivery
 ))
 ```
 
@@ -23954,7 +24692,9 @@ server.add_middleware(WebhookMiddleware(
 }
 ```
 
-`WebhookMiddleware(url, *, events=None, headers=None, timeout=5.0)`; `events=None` fires all three events. A delivery failure never fails the tool call: an unreachable endpoint is logged at `DEBUG` and the call proceeds. Delivery is awaited in the request, though, so a slow endpoint adds up to `timeout` seconds per event to the call (with the default events, `tool.call` and the result event both wait). Keep `timeout` short, or limit `events` to `{"tool.error"}`. Each payload is also kept in `middleware.sent` (a list that is never cleared), which helps in tests but grows for the life of the process. The event names are `tool.*`, but the middleware runs for resource reads and prompt requests too; `tool` then holds the resource or prompt name.
+`WebhookMiddleware(url, *, events=None, headers=None, timeout=5.0, max_queue=1000, max_concurrency=4, history=100)`; `events=None` fires all three events.
+
+Deliveries never delay the tool call: each event goes on a queue of at most `max_queue` events, and background tasks send them, at most `max_concurrency` at a time. When the queue is full (the endpoint is slower than the event rate), the event is dropped with a warning and counted in `middleware.dropped`. A failed delivery (unreachable endpoint, timeout) is logged at `DEBUG` and not retried. `await middleware.flush(timeout=None)` waits until the queue is empty, which tests and shutdown code can use, and `await middleware.aclose()` delivers what is queued (up to 5 seconds) and stops the delivery tasks. `middleware.sent` holds the most recent `history` payloads, in the order they were queued, which helps in tests. The event names are `tool.*`, but the middleware runs for resource reads and prompt requests too; `tool` then holds the resource or prompt name.
 
 ---
 
@@ -24733,9 +25473,9 @@ Patterns for evolving, composing, and extending MCP servers: tool versioning for
 
 You ship `search` to production and agents depend on its arguments. Now you want to add a `filters` parameter without breaking the agents that use the old shape.
 
-### What works in 1.6.0
+### `@server.tool(version=...)`
 
-`MCPServer` serves one tool per name: `@server.tool()` has no `version` parameter. Ship a new version under its own name and keep the old one until its callers move:
+Register each version of the tool with `version=`. Every version is served under a pinned name, `search_v1_0` and `search_v2_0`, and the bare name `search` runs the highest version:
 
 ```python
 from promptise.mcp.server import MCPServer
@@ -24744,20 +25484,32 @@ server = MCPServer(name="search-api")
 
 DOCS = [{"id": 1, "title": "Refund policy", "score": 0.9}, {"id": 2, "title": "Shipping", "score": 0.4}]
 
-@server.tool(name="search_v1", description="Full-text search (v1, kept for older agents).")
-async def search_v1(query: str) -> list[dict]:
+@server.tool(version="1.0")
+async def search(query: str) -> list[dict]:
+    """Full-text search."""
     return [d for d in DOCS if query.lower() in d["title"].lower()]
 
-@server.tool(description="Full-text search with an optional minimum score.")
+@server.tool(version="2.0")
 async def search(query: str, min_score: float = 0.0) -> list[dict]:
+    """Full-text search with an optional minimum score."""
     return [d for d in DOCS if query.lower() in d["title"].lower() and d["score"] >= min_score]
+
+# tools/list: search (runs 2.0), search_v1_0, search_v2_0
 ```
 
-New optional parameters with defaults (like `min_score` above) are backwards compatible on their own: an agent that doesn't send them gets the old behaviour.
+An agent that binds to `search_v1_0` keeps the old contract when you ship `3.0`; agents that use `search` move to each new version. How it behaves:
+
+- **Pinned names** are `<name>_v<version>`, with every run of characters other than letters and digits replaced by `_` (`"2.1-beta"` gives `search_v2_1_beta`). They use only characters LLM providers accept in function names, so agents can call them. MCP has no per-tool version field, so the version lives in the name.
+- **The bare name** is a copy of the highest version: same description, schema, guards and settings. Versions are compared numerically per dot-separated part: `"2.0"` > `"1.0"`, `"1.10"` > `"1.9"` (a non-numeric part counts as 0), not by registration order.
+- **Each version is its own tool**: its own input schema and validation, `auth`, `roles`, `rate_limit` and other options, as given on its decorator.
+- **Every registration of a versioned name needs `version=`.** Registering the same version twice, a version next to an unversioned tool of the same name (in either order), or a version with no letter or digit raises `ValueError`.
+- **Routers**: `@router.tool(version=...)` works the same; the router's prefix applies to all names (`billing_charge`, `billing_charge_v1_0`).
+
+New optional parameters with defaults (like `min_score` above) are backwards compatible on their own: an agent that doesn't send them gets the old behaviour, so a version is only needed for a breaking change (a renamed or removed parameter, a different result shape).
 
 ### `VersionedToolRegistry`
 
-`VersionedToolRegistry` is a standalone helper for code that keeps several `ToolDef` versions under one base name, for example a gateway that builds its own tool list. The server does not consult it: registering a `ToolDef` here does not serve it.
+`VersionedToolRegistry` is the registry behind `version=` (`server._tool_versions`). It also works on its own for code that keeps several `ToolDef` versions under one base name, for example a gateway that builds its own tool list, and resolves `name@version` there:
 
 ```python
 from promptise.mcp.server import VersionedToolRegistry, ToolDef
@@ -24765,8 +25517,8 @@ from promptise.mcp.server import VersionedToolRegistry, ToolDef
 async def handler(query: str) -> list:
     return []
 
-v1 = ToolDef(name="search@1.0", description="v1", handler=handler, input_schema={"type": "object"})
-v2 = ToolDef(name="search@2.0", description="v2", handler=handler, input_schema={"type": "object"})
+v1 = ToolDef(name="search_v1_0", description="v1", handler=handler, input_schema={"type": "object"})
+v2 = ToolDef(name="search_v2_0", description="v2", handler=handler, input_schema={"type": "object"})
 
 vr = VersionedToolRegistry()
 vr.register("search", "1.0", v1)
@@ -24779,7 +25531,7 @@ print(vr.has("search"))                  # True
 print(len(vr.list_all()))                # 2: every registered version
 ```
 
-Versions are compared numerically per dot-separated part: `"2.0"` > `"1.0"`, `"1.10"` > `"1.9"` (a non-numeric part counts as 0). Registering the same version twice raises `ValueError`; `get()` returns `None` for an unknown name or version.
+Registering the same version twice raises `ValueError`; `get()` returns `None` for an unknown name or version. Registering a `ToolDef` in a registry you created yourself does not serve it; use `@server.tool(version=...)` for that.
 
 ---
 
@@ -24787,63 +25539,69 @@ Versions are compared numerically per dot-separated part: `"2.0"` > `"1.0"`, `"1
 
 ### When you need it
 
-You want different agents to discover different tools: prefixed names, hidden admin tools, only public tools.
+You want different agents to discover different tools: prefixed names, hidden admin tools, only public tools, descriptions rewritten for one audience.
 
-### What works in 1.6.0
+### `server.add_transform()`
 
-`MCPServer` has no transform hook (there is no `server.add_transform()`). Use these server features instead:
-
-| Goal | Use |
-|------|-----|
-| Prefix tool names | `MCPRouter(prefix="analytics")` or `mount(gateway, child, prefix="analytics")` |
-| Hide tools a caller can't use | Guards or `roles=` on the tools, plus `MCPServer(hide_unauthorized_tools=True)`: `tools/list` is filtered per caller and the guards still block calls |
-| Expose only a subset to one audience | A separate `MCPServer` (or gateway) that mounts or includes only those routers |
+A transform changes the tool list clients discover. `server.add_transform(transform)` adds one; transforms run in the order they were added, on every `tools/list` and on the `docs://manifest` resource, each on the output of the previous one (after `hide_unauthorized_tools` filtering).
 
 ```python
-from promptise.mcp.server import MCPServer, MCPRouter, AuthMiddleware, APIKeyAuth
+from promptise.mcp.server import MCPServer, NamespaceTransform, TagFilterTransform
 
-server = MCPServer(name="admin-api", hide_unauthorized_tools=True)
-server.add_middleware(AuthMiddleware(APIKeyAuth({
-    "sk-admin": {"client_id": "ops", "roles": ["admin"]},
-    "sk-view": {"client_id": "viewer", "roles": ["viewer"]},
-})))
+server = MCPServer(name="analytics")
 
-users = MCPRouter(prefix="users")
+@server.tool(tags=["public"])
+async def query(sql: str) -> list[dict]:
+    """Run a read-only query."""
+    return []
 
-@users.tool(auth=True)
-async def list_all() -> list[str]:
-    """List all users."""
-    return ["alice", "bob"]
+@server.tool(tags=["admin"], roles=["admin"])
+async def reset() -> str:
+    """Reset the warehouse."""
+    return "reset"
 
-@users.tool(roles=["admin"], destructive_hint=True)
-async def delete(user_id: str) -> dict:
-    """Delete a user permanently."""
-    return {"deleted": user_id}
-
-server.include_router(users)
-# The viewer key lists users_list_all only; the admin key also sees users_delete.
+server.add_transform(TagFilterTransform(required_tags={"public"}))
+server.add_transform(NamespaceTransform(prefix="analytics"))
+# tools/list: analytics_query
 ```
 
-### Transform classes
+| Transform | What it does |
+|-----------|--------------|
+| `NamespaceTransform(prefix)` | Lists every tool as `<prefix>_<name>`. A call by the prefixed name runs the tool; the registered name keeps working too. |
+| `TagFilterTransform(required_tags)` | Lists only tools with at least one of the tags. |
+| `VisibilityTransform(hidden={name: predicate})` | Leaves out a tool when `predicate(ctx)` returns true. A predicate that raises hides its tool. |
 
-`NamespaceTransform(prefix)`, `VisibilityTransform(hidden=None)` and `TagFilterTransform(required_tags)` implement the `ToolTransform` protocol, `apply(tools: list[ToolDef], ctx: RequestContext | None = None) -> list[ToolDef]`. They are standalone helpers for code that works with `ToolDef` lists (a custom gateway, a manifest, tests); the server does not apply them.
+Each transform receives the listing request's context. When the server has an `AuthMiddleware`, the context is authenticated from the request's headers first, so `ctx.client_id`, `ctx.client` and `ctx.state["roles"]` describe the caller (they are empty for a caller whose credentials don't verify):
 
 ```python
-from promptise.mcp.server import ToolDef, NamespaceTransform, VisibilityTransform, TagFilterTransform
+from promptise.mcp.server import APIKeyAuth, AuthMiddleware, VisibilityTransform
 
-async def noop() -> str:
-    return "ok"
-
-tools = [
-    ToolDef(name="query", description="Run a query", handler=noop, input_schema={}, tags=["public"]),
-    ToolDef(name="reset", description="Reset data", handler=noop, input_schema={}, tags=["admin"]),
-]
-
-public = TagFilterTransform(required_tags={"public"}).apply(tools)          # tools with any of the tags
-visible = VisibilityTransform(hidden={"reset": lambda ctx: True}).apply(tools)  # drop when predicate is true
-named = NamespaceTransform(prefix="analytics").apply(public)                 # "analytics_query"
-print([t.name for t in named], [t.name for t in visible])
+server.add_middleware(AuthMiddleware(APIKeyAuth({"sk-ops": "ops", "sk-bi": "bi-team"})))
+server.add_transform(VisibilityTransform(hidden={"analytics_reset": lambda ctx: ctx.client_id != "ops"}))
 ```
+
+!!! warning "Transforms change discovery, not access"
+    A tool a transform leaves out can still be called by its name: a client with an old tool list, or one that guesses the name, reaches it. Put access decisions in guards (`roles=`, `guards=`), as `reset` above does with `roles=["admin"]`, and use transforms to keep each caller's list short and relevant. `MCPServer(hide_unauthorized_tools=True)` lists only the tools a caller's guards allow, without a transform.
+
+### Writing a transform
+
+A transform is any object with `apply(tools: list[ToolDef], ctx: RequestContext | None = None) -> list[ToolDef]` (the `ToolTransform` protocol); `apply` may be `async`. Return copies made with `dataclasses.replace`, never change the definitions you receive. A transform that renames tools also defines `resolve_name(name) -> str | None`, which returns the registered name for a listed one (or `None` when the name is not one of its renamings), so that calls by the listed name reach the tool:
+
+```python
+from dataclasses import replace
+
+from promptise.mcp.server import RequestContext, ToolDef
+
+class AudienceNote:
+    """Add a note for one audience to every description."""
+
+    def apply(self, tools: list[ToolDef], ctx: RequestContext | None = None) -> list[ToolDef]:
+        return [replace(t, description=f"{t.description} Results are in EUR.") for t in tools]
+
+server.add_transform(AudienceNote())
+```
+
+The transform classes also work on their own, on any `ToolDef` list (a custom gateway, tests): `TagFilterTransform(required_tags={"public"}).apply(tools)`.
 
 ---
 
@@ -24928,10 +25686,27 @@ mount(gateway, users, prefix="usr", tags=["user-management"])
 
 You have an existing REST API with an OpenAPI (or Swagger 2) spec and want agents to call it through MCP.
 
-!!! warning "Use MCPcast for OpenAPI in 1.6.0"
-    `OpenAPIProvider` registers one tool per operation, but in 1.6.0 the generated tools are not usable: their input schema is a single required `kwargs` field instead of the operation's parameters, so a call with the real arguments fails with `VALIDATION_ERROR`, and the method-based annotations are not attached. Use [MCPcast](mcpcast.md) (`promptise mcpcast ./openapi.yaml`), which generates a typed, curated server from the same spec.
+`OpenAPIProvider` registers one tool per operation. Each tool's input schema is the operation's parameters (path-level ones included) plus its JSON request body, with every `$ref` inlined; calls are validated against it and each argument is sent where the spec puts it: path (URL-encoded), query, header, cookie or body. Arguments the caller leaves out are not sent, so the API applies its own defaults.
 
-`OpenAPIProvider(spec, *, base_url=None, prefix="", include=None, exclude=None, auth_header=None, tags=None)` and `provider.register(server) -> int` (the number of tools) remain available:
+```python
+import os
+
+from promptise.mcp.server import MCPServer, OpenAPIProvider
+
+server = MCPServer(name="petstore-bridge")
+provider = OpenAPIProvider(
+    "./openapi.json",
+    prefix="pets_",
+    auth_header=("Authorization", "Bearer " + os.environ["PETSTORE_TOKEN"]),
+)
+count = provider.register(server)   # one tool per operation
+```
+
+Annotations come from the HTTP method: `GET`/`HEAD` are read-only, `DELETE` is destructive, `GET`/`HEAD`/`PUT`/`DELETE` are idempotent, and every tool has `open_world_hint=True`; the title is the operation's summary. A JSON object body contributes its properties as arguments (a parameter with the same name wins); any other JSON body (an array, a string) is the single `body` argument. Only `application/json` bodies are mapped. The tool returns the response's JSON, or `{"status": ..., "body": ...}` when the response is not JSON, whatever the status code.
+
+For a curated, typed server (descriptions written for agents, selected operations, generated tests), use [MCPcast](mcpcast.md) (`promptise mcpcast ./openapi.yaml`) instead.
+
+`OpenAPIProvider(spec, *, base_url=None, prefix="", include=None, exclude=None, auth_header=None, tags=None)` and `provider.register(server) -> int` (the number of tools):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -25164,13 +25939,52 @@ async def delete_project(project_id: str, elicit: Elicitor = Depends(Elicitor)) 
     return {"status": "deleted", "project_id": project_id}
 ```
 
-`ask(message, schema=None, *, timeout=None)`; without a schema the request is a bare confirmation (an empty object form). Elicitation needs a session that can send requests to the client, so it doesn't work with `asgi_app(stateless=True)`.
+`elicit.last_failure` says why the last `ask()` returned `None` (for example `"the client did not declare the elicitation capability"` or `"the client answered 'decline'"`), so a tool can tell the user.
+
+`ask(message, schema=None, *, timeout=None)`; without a schema the request is a bare confirmation (an empty object form). Over the initialize handshake, elicitation needs a session that can send requests to the client, so it doesn't work for handshake clients of a server served with `asgi_app(stateless=True)`. 2026-07-28 clients are asked in input rounds instead: see [Elicitation on the 2026-07-28 protocol](#elicitation-on-the-2026-07-28-protocol).
 
 ### Configuration
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `timeout` | `60.0` | Seconds to wait for user response |
+| `timeout` | `60.0` | Seconds to wait for user response (handshake connections only) |
+
+### Elicitation on the 2026-07-28 protocol
+
+How `ask()` reaches the client depends on the protocol version the client connected with (on the mcp 2.x SDK; with the 1.x SDK every client uses the handshake):
+
+| Connection | What `ask()` does | Per-session state (`SessionState`) |
+|---|---|---|
+| `initialize` handshake (1.x clients, Promptise's `MCPClient`, 2.x clients with `mode="legacy"`) | Sends `elicitation/create` and waits up to `timeout` for the answer | Kept for the connection |
+| 2026-07-28 (2.x clients by default) | Ends the call with an `InputRequiredResult` holding the question; the client asks its user and calls the tool again with the answer, and the tool runs again from the start, where `ask()` now returns the answer | None: the tool answers `SESSION_REQUIRED` |
+| A stateless server (`asgi_app(stateless=True)`) with a handshake client | No elicitation (no way back to the client): `ask()` returns `None` | None: the tool answers `SESSION_REQUIRED` |
+
+On 2026-07-28, **the tool runs once per question**, so code before `ask()` runs again on every round. Put side effects after the answer:
+
+```python
+@server.tool()
+async def delete_project(project_id: str, elicit: Elicitor = Depends(Elicitor)) -> str:
+    """Delete a project after the user confirms."""
+    project = await load_project(project_id)          # read-only: fine to repeat
+    answer = await elicit.ask(f"Delete {project.name}?", schema=CONFIRM)
+    if not answer or not answer.get("confirm"):
+        return f"Not deleted: {elicit.last_failure or 'not confirmed'}"
+    await really_delete(project_id)                   # runs once, after the answer
+    return "Deleted"
+```
+
+A tool that asks several questions takes one round per question. The answers to earlier questions travel in the result's `request_state`, which the server encrypts and binds to the tool, its arguments and the server's name (the SDK's `RequestStateBoundary`), so a client can only send back state this server minted for that call. By default the key is made at startup and held by the process: a round answered by another worker, or after a restart, is refused with `Invalid or expired requestState`. With several workers or replicas, share a key:
+
+```python
+from mcp.server.request_state import RequestStateSecurity
+
+server = MCPServer(
+    name="deploy-api",
+    request_state_security=RequestStateSecurity(keys=[os.environ["MCP_STATE_KEY"]]),  # 32+ bytes
+)
+```
+
+A client that did not declare the elicitation capability gets no question: `ask()` returns `None` and `last_failure` says why. The [approval gate](../../core/approval.md)'s `ElicitationApprover` works the same way: the client approves in an input round, and a client that can't answer is denied with that reason. `Sampler` is not available on 2026-07-28 (the spec deprecates sampling) and returns `None` with a warning.
 
 ---
 
@@ -25464,14 +26278,16 @@ The current directory is put on `sys.path`, so `promptise serve server:server` f
 
 | Symbol | Type | Description |
 |--------|------|-------------|
-| `VersionedToolRegistry` | Class | Standalone helper: several `ToolDef` versions per name (not used by the server) |
-| `ToolTransform` | Protocol | `apply(tools, ctx=None) -> list[ToolDef]` (not applied by the server) |
+| `@server.tool(version=...)` | Decorator option | Several versions of a tool: pinned names `<name>_v<version>`, the bare name runs the latest |
+| `server.add_transform(transform)` | Method | Apply a transform to `tools/list` and the manifest |
+| `VersionedToolRegistry` | Class | Versions of tools under one base name (`get("name@version")`) |
+| `ToolTransform` | Protocol | `apply(tools, ctx=None) -> list[ToolDef]`, optional `resolve_name(name)` |
 | `NamespaceTransform(prefix)` | Class | Prefix tool names in a `ToolDef` list |
 | `VisibilityTransform(hidden)` | Class | Drop tools whose predicate returns true |
 | `TagFilterTransform(required_tags)` | Class | Keep tools with at least one of the tags |
 | `ToolDef` | Dataclass | A registered tool: `name`, `description`, `handler`, `input_schema`, `tags`, `auth`, `rate_limit`, `timeout`, `guards`, `roles`, `router_middleware`, `annotations`, `max_concurrent`, `requires_approval`, `cache` |
 | `mount(parent, child, prefix, tags)` | Function | Compose servers |
-| `OpenAPIProvider(spec, ...)` | Class | Generate tools from OpenAPI (see the warning above; prefer MCPcast) |
+| `OpenAPIProvider(spec, ...)` | Class | One tool per OpenAPI operation, with the spec's input schema |
 | `register_batch_tool(server, ...)` | Function | Parallel batch execution |
 | `StreamingResult` | Class | Incremental result collection |
 | `Elicitor` | Class | Ask user for input mid-execution (via DI) |
@@ -25701,7 +26517,7 @@ A browser client needs **both** settings: `allowed_origins` (the server's `Origi
 |-----------|---------|-------------|
 | `allow_origins` | `[]` (none) | Allowed origin URLs. `["*"]` allows any origin |
 | `allow_methods` | `["GET", "POST", "DELETE", "OPTIONS"]` | Allowed HTTP methods |
-| `allow_headers` | `["Content-Type", "Authorization", "x-api-key", "mcp-session-id", "mcp-protocol-version", "last-event-id"]` | Request headers the preflight admits. If you replace the list, keep `mcp-session-id` and `mcp-protocol-version`: the browser refuses every request after `initialize` without them |
+| `allow_headers` | `["Content-Type", "Authorization", "x-api-key", "mcp-session-id", "mcp-protocol-version", "last-event-id", "mcp-method", "mcp-name"]` | Request headers the preflight admits. If you replace the list, keep `mcp-session-id` and `mcp-protocol-version` (the browser refuses every request after `initialize` without them) and `mcp-method` and `mcp-name` (it refuses every 2026-07-28 request without them) |
 | `expose_headers` | `["mcp-session-id"]` | Response headers the page may read. Without `mcp-session-id` a browser client cannot continue the session it opened |
 | `allow_credentials` | `False` | Allow cookies and auth headers. Cannot be combined with `allow_origins=["*"]`: `CORSConfig` raises `ValueError` |
 | `max_age` | `600` | Preflight cache duration (seconds) |
@@ -25752,7 +26568,7 @@ server.run(transport="http", host="127.0.0.1", port=8080)
 With `require_auth=True` and an `AuthMiddleware` installed, the server checks every HTTP request for:
 
 1. **Bearer token**: `Authorization: Bearer <jwt-token>`: verified with the configured auth provider
-2. **API key**: `x-api-key: <key>`: verified with the API key provider
+2. **API key**: `x-api-key: <key>` (or the header given to `APIKeyAuth(header=...)`): verified with the API key provider
 
 Unauthenticated requests receive a `401` JSON response:
 
@@ -26715,6 +27531,7 @@ async with MCPClient(
 | `elicitation_callback` | SDK `ElicitationFnT \| None` | `None` | Answers the server's MCP elicitation requests; the elicitation capability is declared only when set. See [Answering elicitation](#answering-elicitation-server-side-approval-gates) |
 | `auto_reconnect` | `bool` | `True` | Open a new session and retry once when an HTTP/SSE server has lost the session: see [Reconnecting after a server restart](#reconnecting-after-a-server-restart). Ignored for stdio |
 | `bearer_token_provider` | `Callable[[bool], str \| None]` (or async) | `None` | Returns the current token on every request, instead of `bearer_token`: see [Short-lived tokens](#short-lived-tokens). HTTP/SSE only |
+| `protocol` | `str` | `"handshake"` | `"handshake"` always opens the connection with `initialize`. `"auto"` (mcp 2.x, HTTP and stdio) uses the 2026-07-28 protocol when the server offers it. See [Protocol versions](#protocol-versions) |
 
 ### Fetching tokens
 
@@ -26844,6 +27661,18 @@ What the client guarantees:
 on every client that has none of its own. The SDK callback does not say which
 server asked, so give each `MCPClient` its own callback when the handler needs
 the server name.
+
+### Protocol versions
+
+By default `MCPClient` opens every connection with the `initialize` handshake, which every MCP server accepts. The connection then has a session: the server can keep per-session state and send elicitation requests mid-call. With `protocol="auto"` (mcp 2.x SDK, HTTP or stdio) the client asks the server with `server/discover` first and uses the 2026-07-28 protocol revision when the server offers it, or falls back to the handshake:
+
+```python
+async with MCPClient(url=url, protocol="auto", elicitation_callback=answer) as client:
+    print(client.protocol_version)  # "2026-07-28" against a server that offers it
+    result = await client.call_tool("checkout", {"cart": "c1"})
+```
+
+At 2026-07-28 each request stands alone. A server that needs input answers a tool call with an `InputRequiredResult`; the client runs `elicitation_callback` on each question and sends the call again with the answers (up to 10 rounds), so `call_tool` returns the final result as before. Without a callback the server is told the client can't answer. There is no session, so a server tool that keeps per-session state answers with an error (a Promptise server's `SESSION_REQUIRED`): keep the handshake for such servers. `build_agent` and the Agent Runtime connect with the handshake.
 
 ## MCPMultiClient
 
@@ -30947,7 +31776,7 @@ model calls, so keep it on the schedule that matches your budget.
 | `spec has no 'paths' — is this an OpenAPI document?` | The file loaded but is not an OpenAPI 3.x / Swagger 2 document (a config file, an AsyncAPI spec, an HTML error page from a URL) | Point at the actual spec document |
 | `base_url must start with http:// or https:// (got ''); pass --base-url if the spec does not declare a server` | The spec has no `servers:` entry, and mcpcast will not guess | `--base-url https://api.yourcompany.com` |
 | `approval mode 'pending' … needs identified callers so a caller can never approve their own request` | `--approval pending` without `--auth api-key` | Add `--auth api-key`, or use `--approval elicitation` |
-| `model 'foundry:…' could not be used for curation: ModelSetupError: Cannot use model … yet: - AZURE_INFERENCE_ENDPOINT is not set — …` | The `--model` provider's env vars are missing (the message lists each one, where to find it, and the `.env` / export / `Model(...)` ways to supply it) | Follow the listed fixes, or check any string first with `promptise models check <string>`; `--no-curate` needs no model at all |
+| `model 'foundry:…' could not be used for curation: ModelSetupError: Cannot use model … yet: - AZURE_INFERENCE_ENDPOINT is not set: …` | The `--model` provider's env vars are missing (the message lists each one, where to find it, and the `.env` / export / `Model(...)` ways to supply it) | Follow the listed fixes, or check any string first with `promptise models check <string>`; `--no-curate` needs no model at all |
 | `curation failed after 3 attempt(s): curation proposal rejected: …` | The model's design broke a post-condition three times running: usually merges forced by a tight `--max-tools` | Raise the budget, or fall back to `--no-curate`. The message names the exact violation |
 | `the curation prompt for N operations is … characters (limit 600,000); narrow the spec first` | A very large spec | Curate one tag or path prefix at a time, or run `--no-curate` with `--max-tools` |
 | `--profile cannot be combined with a plan file — edit mcpcast.plan.yaml and regenerate instead` | Spec-only flags passed alongside a plan file | Change the value in the plan and regenerate |
@@ -34684,12 +35513,88 @@ class AgentProcess:
         event_notifier=None,          # EventNotifier for process.* and agent events
         hooks=None,                   # shared HookManager, dispatched after the process's own hooks
         deploy_policy=None,           # set by the Orchestration API for configs it deploys
+        extra_tools=None,             # local tools, added after config.extra_tools
+        model=None,                   # the agent's model, instead of config.model
     ) -> None: ...
 ```
 
 `deploy_policy` is internal: the [Orchestration API](api.md) passes it for configs deployed over HTTP, so that `${VAR}` references, `open_mode.allowed_mcp_urls` and file paths are limited to what the operator allowed. Leave it at `None` in your own code.
 
 The constructor checks each entry of `config.servers` and raises `ValueError` for one it can't use. Every setting lives in `ProcessConfig`; see [Configuration](configuration.md#processconfig) for all fields and defaults. Inside an `AgentRuntime`, use `runtime.add_process(name, config)` instead: it passes the runtime's bus, broker, notifier and hooks.
+
+### Local tools
+
+Python functions the agent can call need no MCP server: pass them in `extra_tools`, on `ProcessConfig` or the `AgentProcess` constructor (or both; the constructor's come after the config's). They take what `build_agent(extra_tools=...)` takes: functions made tools with `@tool`, plain functions (made tools as if decorated) and LangChain tools.
+
+```python
+from promptise import tool
+from promptise.runtime import AgentProcess, BudgetConfig, ProcessConfig
+
+@tool
+def lookup_order(order_id: str) -> str:
+    """Look up an order's status."""
+    return f"{order_id}: shipped"
+
+process = AgentProcess(
+    "orders",
+    ProcessConfig(
+        instructions="Answer questions about orders.",
+        extra_tools=[lookup_order],
+        budget=BudgetConfig(enabled=True, max_tool_calls_per_run=10),
+    ),
+)
+```
+
+They sit next to the MCP servers' tools, and budget, approval, health and the journal treat them the same way. Every agent the process builds has them: after a restart, a hot reload or new instructions. Anything that is not a tool raises `TypeError` when the config or process is created.
+
+They are code only, like a hook's `callback`: `model_dump()` and `RuntimeConfig.to_dict()` leave them out, and a manifest or YAML config can't name them (serve such tools from an MCP server instead). Processes spawned in open mode don't get them, and the agent can't create a tool with the name of one.
+
+### The agent's model
+
+`ProcessConfig.model` is usually a model id such as `"openai:gpt-5-mini"`. In code it can also be a model object, as `build_agent(model=...)` takes it: a LangChain chat model you configured yourself, a [`promptise.Model`](../core/agents/models.md) with its provider settings, a [`FallbackChain`](../core/fallback.md), or a [`ScriptedModel`](../core/testing.md) in a test. `AgentProcess(..., model=...)` does the same for one process and wins over `config.model`. Every agent the process builds uses it (after a restart, a hot reload or new instructions), and so does the mission evaluator.
+
+```python
+import asyncio
+
+from promptise import tool
+from promptise.runtime import AgentProcess, ProcessConfig, TriggerEvent
+from promptise.testing import ScriptedModel, ToolCall
+
+
+@tool
+def lookup_order(order_id: str) -> str:
+    """Look up an order's status."""
+    return f"{order_id}: shipped"
+
+
+async def main():
+    model = ScriptedModel([
+        ToolCall("lookup_order", {"order_id": "A-1001"}),
+        "Order A-1001 has shipped.",
+    ])
+    process = AgentProcess(
+        "orders",
+        ProcessConfig(model=model, instructions="Answer questions about orders.", extra_tools=[lookup_order]),
+    )
+    await process.start()
+    await process.inject(TriggerEvent(trigger_id="manual", trigger_type="manual", payload={"order": "A-1001"}))
+    while process.status()["invocation_count"] < 1:
+        await asyncio.sleep(0.05)
+    await process.stop()
+
+    print(len(model.calls), model.calls[1].messages[-1].content)
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+2 A-1001: shipped
+```
+
+A model object is code only, like `extra_tools`: `model_dump()` and `RuntimeConfig.to_dict()` leave `model` out, so a config read back from them has the default model id, and a manifest or YAML config names a model by its id. Events, the dashboard and the open-mode `list_capabilities` tool show a model object by its class and model name, such as `ChatOpenAI(gpt-5-mini)`; a `promptise.Model` is shown without its key. Processes spawned in open mode run on the parent's model unless the agent names another one. Anything that isn't a model id or a model object raises a `ValidationError` (`ValueError` from the `AgentProcess` constructor).
 
 ---
 
@@ -34698,7 +35603,7 @@ The constructor checks each entry of `config.servers` and raises `ValueError` fo
 | Method | Transition | What it does |
 |---|---|---|
 | `await start()` | `CREATED`, `STOPPED` or `FAILED` → `STARTING` → `RUNNING` | Recovers from the journal (first start only), resolves secrets, builds the agent and connects MCP servers, starts triggers, workers and the heartbeat |
-| `await stop()` | → `STOPPING` → `STOPPED` (from `CREATED`: straight to `STOPPED`) | Cancels workers and runs in flight, stops triggers, dead-letters queued events, writes a journal checkpoint (with a journal), closes the agent and its MCP connections, revokes secrets |
+| `await stop(*, drain_timeout=0.0)` | → `STOPPING` → `STOPPED` (from `CREATED`: straight to `STOPPED`) | Cancels workers and runs in flight (with `drain_timeout`: lets runs in flight finish first, see [Graceful stop](#graceful-stop)), stops triggers, dead-letters queued events, writes a journal checkpoint (with a journal), closes the agent and its MCP connections, revokes secrets |
 | `await close()` | as `stop()` | `stop()`, then closes long-term memory, revokes secrets and clears the conversation history |
 | `await suspend(reason="manual")` | `RUNNING` → `SUSPENDED` | Pauses processing; triggers keep queueing events |
 | `await resume(reason="manual")` | `SUSPENDED` → `RUNNING` | Runs the queued events in order; restarts the idle clock |
@@ -34721,6 +35626,28 @@ Calling `start()` on a process that is already `STARTING`, `RUNNING` or `SUSPEND
 - `STOPPED` or `STOPPING`: does nothing.
 
 An explicit `stop()` never triggers an automatic restart and cancels one that is pending. A run in flight is cancelled, and every event that hasn't run goes to the [dead letters](#dead-letters) with reason `"process stopped"`: events still in the queue, events a suspended worker or a trigger listener was holding, events still inside a trigger (a file watch's backlog, a webhook's accepted requests), and the cancelled run's event (with error `"run cancelled"`). An automatic restart keeps the queue instead, and adds the triggers' leftover events to it.
+
+#### Graceful stop
+
+`stop(drain_timeout=N)` lets the runs in flight finish before the process stops. From the moment it is called, no new event starts: trigger events and `inject()` go to the dead letters (`"process stopped"`), a webhook answers 503, and queued events are not picked up. The runs in flight get up to `N` seconds; only the ones still running then are cancelled. `drain_timeout=None` uses `ProcessConfig.drain_timeout` (default 5 seconds), and `process.abort_drain()` ends the wait early. A plain `stop()` keeps cancelling at once.
+
+```python
+await process.stop(drain_timeout=30)    # wait up to 30 s for the current run
+await process.stop(drain_timeout=None)  # wait up to config.drain_timeout
+await process.stop()                    # cancel at once
+```
+
+`AgentRuntime.run_forever()` stops this way on `SIGTERM` and Ctrl+C (see [Runtime Manager](runtime-manager.md#run_forever)).
+
+The [control API](api.md#stopping-with-a-drain) and `promptise runtime stop` stop this way too. There the default is the process's configured `drain_timeout`, as on `SIGTERM`, so an operator's stop doesn't cut off a run by surprise; `0` cancels at once:
+
+```bash
+promptise runtime stop prod --process data-watcher --drain-timeout 30
+curl -X POST -H "Authorization: Bearer $TOKEN" -d '{"drain_timeout": 0}' \
+    http://127.0.0.1:9100/api/v1/processes/data-watcher/stop
+```
+
+A cancelled run may have called tools that already took effect, so it is not dropped silently: the process logs a warning, writes a `run_interrupted` journal entry (at every journal level) with the event, and keeps the event in its journal checkpoint. A new process object with the same name and journal lists it in `dead_letters` again after `start()` (and counts it in `recovered["interrupted_runs"]`), so you can inspect it and call `redeliver_dead_letters()` if it should run again. Once redelivered or cleared, it is no longer carried over.
 
 ### suspend() and resume()
 
@@ -34751,7 +35678,7 @@ await process.resume()
 | Long-term memory | Provider stays open | Provider closed; `start()` opens a new one | Whatever the provider persists (Chroma, Mem0) |
 | Secrets | Revoked on stop (unless `secrets.revoke_on_stop=False`), resolved again on start | Revoked | Resolved on start |
 | Invocation count, budget counters, mission | Kept | Kept | Restored from the journal |
-| Dead letters | Kept | Kept | Not restored |
+| Dead letters | Kept | Kept | Runs a stop cancelled are restored (with a journal); the others are not |
 | Agent-added triggers (open mode) | Stopped and dropped | Dropped | Not restored |
 
 ---
@@ -35108,7 +36035,7 @@ class OrchestrationAPI:
 | `host` | `"127.0.0.1"` | Bind address |
 | `port` | `9100` | Port. `0` lets the OS pick a free port; read it from `api.port` after `start()` |
 | `auth_token` | `None` | Bearer token required on every route except `GET /api/v1/health`. Required when `host` is not a loopback address. `"${VAR}"` reads it from the environment |
-| `on_shutdown` | `None` | Sync or async callable without arguments. When set, `POST /api/v1/runtime/shutdown` exists: it answers `202` and then calls the callable (for example `runtime.request_shutdown`). Without it the route answers `404` |
+| `on_shutdown` | `None` | Sync or async callable. When set, `POST /api/v1/runtime/shutdown` exists: it answers `202` and then calls the callable (for example `runtime.request_shutdown`), without arguments or, when the request body has a `drain_timeout`, with `drain_timeout=<seconds>`. A callable without a `drain_timeout` parameter makes such a request `422 INVALID_FIELD`. Without it the route answers `404` |
 | `allow_command_deploys` | `False` | Let `POST /api/v1/processes` deploy configs that run programs or code on the host (stdio MCP servers, command hooks, open mode with `allow_tool_creation`). See [Deploys that run programs](#deploys-that-run-programs) |
 | `allow_env_references` | `False` | Let deployed configs use `${VAR}` references to any environment variable of the host. See [Environment references](#environment-references) |
 | `allowed_env_vars` | `None` | Names of the variables deployed configs may reference when `allow_env_references` is off, e.g. `{"SEARCH_API_KEY"}` |
@@ -35227,8 +36154,8 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `GET` | `/health` | Load-balancer probe, no auth: `{"status": "healthy", "process_count"}` | `200` |
 | `GET` | `/runtime/status` | `{"process_count", "processes": {name: status}}` (plus `cluster` in distributed mode) | `200` |
 | `POST` | `/runtime/start-all` | Start every process: `{"status": "started"}` | `200` |
-| `POST` | `/runtime/stop-all` | Stop every process: `{"status": "stopped"}` | `200` |
-| `POST` | `/runtime/shutdown` | Only with `on_shutdown`: answers `{"status": "shutting_down"}`, then calls `on_shutdown` | `202` |
+| `POST` | `/runtime/stop-all` | Stop every process, optional body `{"drain_timeout"}` (see [Stopping with a drain](#stopping-with-a-drain)): `{"status": "stopped", "interrupted_runs"}` | `200` |
+| `POST` | `/runtime/shutdown` | Only with `on_shutdown`: optional body `{"drain_timeout"}`; answers `{"status": "shutting_down"}` (plus the `drain_timeout`), then calls `on_shutdown` | `202` |
 
 ### Processes
 
@@ -35239,7 +36166,7 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `GET` | `/processes/{name}` | Process status: state, counters, triggers, budget, health, mission state, active secret count | `200` |
 | `DELETE` | `/processes/{name}` | Stop and close the process, then remove it (memory closed, secrets revoked, conversation cleared) | `204` |
 | `POST` | `/processes/{name}/start` | Start: `{"name", "state"}` | `200` |
-| `POST` | `/processes/{name}/stop` | Stop: `{"name", "state"}` | `200` |
+| `POST` | `/processes/{name}/stop` | Stop, optional body `{"drain_timeout"}` (see [Stopping with a drain](#stopping-with-a-drain)): `{"name", "state", "drain_timeout", "interrupted_runs"}` | `200` |
 | `POST` | `/processes/{name}/restart` | Stop (if running), then start: `{"name", "state"}` | `200` |
 | `POST` | `/processes/{name}/suspend` | Pause trigger processing: `{"name", "suspended": true, "state"}` | `200` |
 | `POST` | `/processes/{name}/resume` | Resume a suspended process: `{"name", "resumed": true, "state"}` | `200` |
@@ -35337,6 +36264,30 @@ The `config` object follows `ProcessConfig`:
     }
 }
 ```
+
+---
+
+## Stopping with a drain
+
+`POST /processes/{name}/stop` and `POST /runtime/stop-all` stop gracefully, like `SIGTERM` (see [Graceful stop](processes.md#graceful-stop)): no new event starts, the runs in flight get up to `drain_timeout` seconds to finish, and only the ones still running then are cancelled. Each cancelled run is journaled as `run_interrupted` and kept in the dead letters for `redeliver_dead_letters()`.
+
+| Body | Effect |
+|---|---|
+| none, `{}` or `{"drain_timeout": null}` | Wait up to the process's `ProcessConfig.drain_timeout` (5 seconds unless set) |
+| `{"drain_timeout": 30}` | Wait up to 30 seconds |
+| `{"drain_timeout": 0}` | Cancel runs in flight at once |
+
+`drain_timeout` is a number from 0 to 3600; anything else (a negative number, a string, `true`) is `422 INVALID_FIELD` and nothing is stopped. The default is the configured value rather than `0` so that a stop from a dashboard or a script treats a run the same way `docker stop` does; pass `0` when you want it gone now.
+
+The request is answered once the process has stopped, so it takes at most the drain plus the teardown. The stop finishes even if the client disconnects. The answer says what happened:
+
+```json
+{"name": "data-watcher", "state": "stopped", "drain_timeout": 5.0, "interrupted_runs": 0}
+```
+
+`interrupted_runs` counts the runs this stop cancelled (`stop-all` answers the total over its processes, which drain at the same time). `OrchestrationClient.stop_process(name, drain_timeout=...)` and `stop_all(drain_timeout=...)` wait for the answer as long as the drain may take, on top of the client's `timeout`.
+
+`POST /runtime/shutdown` answers `202` at once and shuts down afterwards; a `drain_timeout` in its body is passed to `on_shutdown` (`runtime.request_shutdown` accepts it). `promptise runtime stop --drain-timeout` sends it.
 
 ---
 
@@ -35639,14 +36590,14 @@ Use it with `async with`, or call `await client.aclose()` when done.
 | `GET /health` | `health()` | `dict` |
 | `GET /runtime/status` | `runtime_status()` | `dict` |
 | `POST /runtime/start-all` | `start_all()` | `dict` |
-| `POST /runtime/stop-all` | `stop_all()` | `dict` |
-| `POST /runtime/shutdown` | `shutdown()` | `{"status": "shutting_down"}`; `404` error without `on_shutdown` |
+| `POST /runtime/stop-all` | `stop_all(*, drain_timeout=None)` | `dict` |
+| `POST /runtime/shutdown` | `shutdown(*, drain_timeout=None)` | `{"status": "shutting_down"}`; `404` error without `on_shutdown` |
 | `GET /processes` | `list_processes()` | `list[dict]` |
 | `POST /processes` | `deploy(name, config, *, start=False)` | `dict` |
 | `GET /processes/{name}` | `get_process(name)` | `dict` |
 | `DELETE /processes/{name}` | `remove_process(name)` | `{}` |
 | `POST .../start` | `start_process(name)` | `dict` |
-| `POST .../stop` | `stop_process(name)` | `dict` |
+| `POST .../stop` | `stop_process(name, *, drain_timeout=None)` | `dict` |
 | `POST .../restart` | `restart_process(name)` | `dict` |
 | `POST .../suspend` | `suspend_process(name)` | `dict` |
 | `POST .../resume` | `resume_process(name)` | `dict` |
@@ -35934,7 +36885,7 @@ names = await runtime.load_directory("agents/")  # every *.agent file, in name o
 | `await start_all()` | Starts every `CREATED`, `STOPPED` and `FAILED` process. A process that fails to start is logged and skipped. With `distributed.enabled`, the cluster node starts first, and its failure raises. |
 | `await stop_all()` | Stops every process that is not `STOPPED` or `CREATED` (`FAILED` and `SUSPENDED` ones too), then drains the shared event notifier |
 | `await start_process(name)` | `get_process(name).start()` |
-| `await stop_process(name)` | `get_process(name).stop()` |
+| `await stop_process(name, *, drain_timeout=0.0)` | `get_process(name).stop(drain_timeout=...)` |
 | `await restart_process(name, *, stop_timeout=30.0)` | Stops a running or suspended process, then starts it. A `FAILED` process is torn down by `start()` itself (old triggers, listeners and heartbeat end first), so nothing fires twice. A process that is already stopping (another stop or restart) is waited for, up to `stop_timeout` seconds; after that it raises `RuntimeError` and starts nothing. Context state, long-term memory and conversation history carry over. |
 | `await shutdown()` | `stop_all()`, then closes every process (memory, secrets, conversation), then stops the cluster node. The processes stay registered. |
 
@@ -35944,15 +36895,19 @@ Each method that takes a name raises `KeyError` for an unknown one.
 
 `run_forever()` is the entry point for a service. It starts every process, waits until shutdown is requested, then calls `shutdown()`, so every process gets its `process.stopped` event, a final journal checkpoint and its dead letters before the program exits.
 
+The shutdown is graceful: no new trigger event starts, and runs in flight get up to `drain_timeout` seconds to finish (default: each process's `ProcessConfig.drain_timeout`, 5 seconds) before they are cancelled. The processes drain at the same time. A run that is cancelled is journaled and comes back as a dead letter in the next process object (see [Graceful stop](processes.md#graceful-stop)). A second `SIGTERM` or Ctrl+C during the wait cancels the runs at once; a third one gets the default action. Keep the drain shorter than your platform's kill deadline: `docker stop` sends `SIGKILL` after 10 seconds unless you pass `--time`, Kubernetes after `terminationGracePeriodSeconds` (30 by default).
+
 ```python
 await runtime.run_forever()                               # handles SIGTERM and SIGINT
 await runtime.run_forever(install_signal_handlers=False)  # you handle signals
+await runtime.run_forever(drain_timeout=20)               # wait up to 20 s for runs in flight
+await runtime.run_forever(drain_timeout=0)                # cancel runs in flight at once
 ```
 
 It returns after:
 
-- `SIGTERM` (`docker stop`, Kubernetes, systemd) or `SIGINT` (Ctrl+C), when `install_signal_handlers=True` (the default). The handlers are installed on the running loop for the duration of the call and removed afterwards. Where the loop can't install them (Windows, or a thread other than the main one) they are skipped.
-- `runtime.request_shutdown()`, which is safe to call from your own signal handler or another task.
+- `SIGTERM` (`docker stop`, Kubernetes, systemd) or `SIGINT` (Ctrl+C), when `install_signal_handlers=True` (the default). The handlers are installed on the running loop for the duration of the call, including the shutdown, and removed afterwards. Where the loop can't install them (Windows, or a thread other than the main one) they are skipped.
+- `runtime.request_shutdown()`, which is safe to call from your own signal handler or another task. `request_shutdown(force=True)` also ends a graceful wait that is in progress, and `request_shutdown(drain_timeout=N)` replaces `run_forever()`'s `drain_timeout` for that shutdown.
 - Cancellation of the task running it.
 
 ```text
@@ -36028,11 +36983,11 @@ With `RuntimeConfig(distributed=DistributedConfig(enabled=True, ...))`, `start_a
 | `list_processes()` | `name`, `state`, `process_id` per process |
 | `await load_manifest(path, *, name_override=None)` | Register a process from a `.agent` file |
 | `await load_directory(path)` | Register every `*.agent` file in a directory |
-| `await start_all()` / `await stop_all()` | Start / stop every process |
-| `await start_process(name)` / `await stop_process(name)` / `await restart_process(name, *, stop_timeout=30.0)` | Control one process |
-| `await shutdown()` | Stop and close every process, stop the cluster node |
-| `await run_forever(*, install_signal_handlers=True)` | Start everything and run until a signal or `request_shutdown()` |
-| `request_shutdown()` | Make `run_forever()` return |
+| `await start_all()` / `await stop_all(*, drain_timeout=0.0)` | Start / stop every process (`drain_timeout`: let runs in flight finish first; `None` = each process's `drain_timeout`) |
+| `await start_process(name)` / `await stop_process(name, *, drain_timeout=0.0)` / `await restart_process(name, *, stop_timeout=30.0)` | Control one process |
+| `await shutdown(*, drain_timeout=0.0)` | Stop and close every process, stop the cluster node |
+| `await run_forever(*, install_signal_handlers=True, drain_timeout=None)` | Start everything and run until a signal or `request_shutdown()`, then stop gracefully |
+| `request_shutdown(*, force=False)` | Make `run_forever()` return (`force=True`: cancel runs still draining) |
 | `status()` / `process_status(name)` | Status dicts |
 | `cluster` | The running `ClusterNode`, or `None` |
 | `await start_distributed()` / `await stop_distributed()` | Start / stop the cluster node (`start_all()` and `shutdown()` call them) |
@@ -36888,7 +37843,7 @@ A command hook runs a program on the runtime's host. The [Orchestration API](api
 | `kind` | What refused it | Extra data |
 |---|---|---|
 | `"approval"` | The approval handler, a classifier rule, the gate, or a `permission_request` hook | `decided_by` as in the `ApprovalDecision` |
-| `"budget"` | A budget limit refused a tool call (`tool_name` set) or a run (`max_runs_per_day`; `tool_name` is `None`) | `decided_by="budget"`, `limit_name`, `limit_value`, `current_value`; `event_id` for a refused run |
+| `"budget"` | A budget limit refused a tool call (`tool_name` set) or a run (`max_runs_per_day`; `tool_name` is `None`) | `decided_by="budget"`, `limit_name`, `limit_value`, `current_value`; `arguments` (redacted) for a refused tool call, `event_id` for a refused run |
 | `"guardrail"` | The payload scan (`decided_by="payload_scan"`) or the guardrail scanner (`decided_by="guardrail"`) refused a trigger event's run | `tool_name` is `None`; `event_id`, `trigger_type` |
 
 `CONFIG_CHANGE` names the change in `change`: `"instructions"`, `"tool"`, `"mcp_server"`, `"trigger_added"`, `"trigger_removed"`, `"budget"`, `"health"`, `"mission"`, `"rollback"` or `"rewind"`.
@@ -37402,7 +38357,7 @@ Configuration for one agent process. Unknown keys are rejected.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `model` | `str` | `"openai:gpt-5-mini"` | LLM model ID |
+| `model` | `str` or a model | `"openai:gpt-5-mini"` | LLM model ID. In code also a model object as `build_agent(model=...)` takes it (a LangChain chat model, a `promptise.Model`, a `FallbackChain`); a model object is not serialised. See [The agent's model](processes.md#the-agents-model). |
 | `instructions` | `str \| None` | `None` | System prompt |
 | `execution_mode` | `ExecutionMode` | `ExecutionMode.STRICT` | `"strict"` or `"open"` (self-modifying, see [Meta-Tools](meta-tools.md)) |
 | `open_mode` | `OpenModeConfig` | `OpenModeConfig()` | Open-mode limits; ignored in strict mode |
@@ -37416,6 +38371,7 @@ Configuration for one agent process. Unknown keys are rejected.
 | `max_lifetime` | `float` | `0.0` | Seconds after start at which the process stops, or is recycled with `restart_policy="always"` (0 = unlimited) |
 | `max_consecutive_failures` | `int` | `3` | Failed events in a row before `FAILED` (> 0) |
 | `restart_policy` | `Literal["always", "on_failure", "never"]` | `"never"` | See [Restart policies](processes.md#restart-policies) |
+| `drain_timeout` | `float` | `5.0` | Seconds a graceful stop (`run_forever()` on `SIGTERM` / Ctrl+C, `stop(drain_timeout=None)`) lets runs in flight finish before cancelling them (0 to 3600) |
 | `max_restarts` | `int` | `3` | Automatic restart attempts in a row; the count resets after a successful run (>= 0) |
 | `restart_backoff` | `float` | `1.0` | Seconds before the first restart; doubles per attempt, capped at 60 s (>= 0) |
 | `secrets` | `SecretScopeConfig` | `SecretScopeConfig()` | Disabled |
@@ -37433,6 +38389,7 @@ Configuration for one agent process. Unknown keys are rejected.
 | `adaptive` | `Any \| None` | `None` | Passed to `build_agent()`: adaptive strategy |
 | `max_invocation_time` | `float` | `0` | Per-run timeout in seconds, passed to `build_agent()` (0 = none) |
 | `hooks` | `list[HookConfig]` | `[]` | [Lifecycle hooks](hooks.md), registered on `process.hooks` when the process is created |
+| `extra_tools` | `list` | `[]` | Local tools, as in `build_agent(extra_tools=...)`: [`@tool`](../core/tools.md) functions, plain functions and LangChain tools. Code only: not serialised, and a manifest can't set them. See [Local tools](processes.md#local-tools). |
 
 ---
 
@@ -37482,7 +38439,7 @@ One trigger. Each built-in `type` reads its own subset of fields; setting a fiel
 | `webhook_port` | `int` | `9090` | webhook | Listen port (1025-65535) |
 | `webhook_host` | `str` | `"127.0.0.1"` | webhook | Bind address (`"0.0.0.0"` = all interfaces) |
 | `hmac_secret` | `SecretStr \| None` | `None` | webhook | Signature secret; unsigned or badly signed requests get 401 |
-| `signature_scheme` | `Literal["generic", "github", "stripe"]` | `"generic"` | webhook | Signature format; a non-default value needs `hmac_secret` |
+| `signature_scheme` | `Literal["generic", "github", "stripe", "telegram"]` | `"generic"` | webhook | Signature format (`telegram`: the `X-Telegram-Bot-Api-Secret-Token` header must equal `hmac_secret`); a non-default value needs `hmac_secret` |
 | `signature_header` | `str \| None` | `None` | webhook | Header with the signature (default: the scheme's header); needs `hmac_secret` |
 | `signature_tolerance` | `int` | `300` | webhook | Max age in seconds of a `stripe` signature timestamp (> 0) |
 | `allowed_sources` | `list[str]` | `[]` | webhook | Client IPs / CIDR ranges allowed (empty = any); others get 403 |
@@ -37500,6 +38457,7 @@ One trigger. Each built-in `type` reads its own subset of fields; setting a fiel
 | `topic` | `str \| None` | `None` | message | Required for `message`: the broker topic (wildcards allowed) |
 | `custom_config` | `dict[str, Any]` | `{}` | all | Settings for custom trigger types |
 | `filter_expression` | `str \| Callable \| None` | `None` | all | Safe expression string or a callable taking the `TriggerEvent`; events that don't match skip the agent ([syntax](triggers/index.md#filtering-events-before-the-agent-runs)) |
+| `trusted` | `bool` | `False` | all | Deliver payloads as the user's request, without the untrusted-data framing; a `webhook` needs `hmac_secret` ([trade-off](triggers/index.md#trusted-triggers-the-payload-is-the-users-request)) |
 
 ---
 
@@ -39171,6 +40129,8 @@ Budget limit max_tool_calls_per_day reached (limit 5); tool call 'send' was not 
 
 LLM turns are counted but not blocked: the turn that exceeds `max_llm_turns_per_run` still runs, and every tool call after it is refused.
 
+A refused call never runs, so the [journal](../journal/index.md) has no `tool_call` entry for it. It gets a `tool_denied` entry instead (with the call's `args` at journal level `"full"`), and the `permission_denied` [hook](../hooks.md) fires with `kind="budget"` and the call's `arguments`. The violation the process acts on is journaled as `budget_violation`.
+
 After the invocation finishes, the first violation of the run triggers the action configured in `on_exceeded` (below). `max_runs_per_day` is checked when an invocation starts; a run over that limit does not start, and `on_exceeded` is applied at once. Its event goes to the [dead letters](../processes.md#dead-letters) with reason `"budget: max_runs_per_day"` (the `task_completed` hook reports outcome `"refused"`), so `redeliver_dead_letters()` can run it after the daily reset.
 
 !!! note "Changed in 1.3.0"
@@ -39364,6 +40324,7 @@ asyncio.run(main())
 | `current_value` | The counter value that exceeded it (for a refused call: the value the call would have produced) |
 | `tool_name` | The tool that triggered it, or `None` |
 | `blocked` | `True` when the tool call was refused before it ran |
+| `arguments` | The refused call's arguments (a refused call only), or `None` |
 
 `BudgetWarning` has `limit_name`, `limit_value`, `current_value` and `percentage` (0.0-1.0).
 
@@ -40427,7 +41388,7 @@ Delimiting lowers the risk, but it is **not a guarantee**: a model can still be 
     ```
 
 2. **Scan payloads for prompt injection** (next section) and dead-letter what the scanner flags.
-3. **Authenticate the sender:** set an `hmac_secret` on webhooks (see [Webhook Trigger](event-webhook.md#authentication-hmac-signatures)) and restrict `allowed_sources`.
+3. **Authenticate the sender:** set an `hmac_secret` on webhooks (see [Webhook Trigger](event-webhook.md#authentication-hmac-signatures)) and restrict `allowed_sources`. A trigger whose authenticated payload is the user's own request can be marked [trusted](#trusted-triggers-the-payload-is-the-users-request).
 4. **Say it in the instructions** too: tell the agent which actions it may take on its own and that payload text is never an instruction.
 5. **Give the process only the tools it needs.** A triage agent that can label issues doesn't need a close tool at all.
 
@@ -40445,6 +41406,37 @@ config = ProcessConfig(
 With `scan_payloads=True`, the payload is checked by a prompt-injection classifier before the agent runs. The scan reads exactly the payload text the prompt shows (the rendered JSON, keys included, cut at `max_payload_chars`), end to end, in 500-character windows that overlap by 50 characters, so nothing reaches the prompt unscanned. A flagged event is dead-lettered with reason `flagged by payload scan` and the agent never sees it. Flagged events don't count towards `max_consecutive_failures`.
 
 The scanner is `ProcessConfig.guardrails` when that is a `PromptiseSecurityScanner` (its full rule set then applies to payloads), otherwise an injection-only `PromptiseSecurityScanner(detectors=[InjectionDetector()])`. The model needs `transformers` and `torch` and loads when the process starts. If it can't load, `start()` fails instead of silently skipping the scan.
+
+### Trusted triggers: the payload is the user's request
+
+Some triggers carry the user's own requests: a chat webhook that only the user's app can call, signed with a secret. For those, the untrusted framing works against you, since the agent is told not to act on the very request it was sent. Mark such a trigger `trusted=True`:
+
+```python
+TriggerConfig(
+    type="webhook",
+    webhook_path="/chat",
+    hmac_secret=os.environ["CHAT_WEBHOOK_SECRET"],
+    trusted=True,
+)
+```
+
+The agent then gets the payload as a request from its user:
+
+```text
+[Trigger: webhook] trigger_id=webhook-9c41d2e0aa event_id=… at=2026-10-22T09:00:00+00:00
+This trigger is configured as trusted: its sender is authenticated, and the payload inside <trigger-payload-5b7e01c9d2a4> is a request from your user. Handle it as the user's request.
+<trigger-payload-5b7e01c9d2a4>
+{"text": "Remind me at 6 to call the dentist"}
+</trigger-payload-5b7e01c9d2a4>
+```
+
+The trade-off: whoever can send this trigger an event now directs the agent as its user does. A leaked secret hands over every tool the process has, and text the user forwards (an email, a web page pasted into the chat) is followed as their request too. So:
+
+- A `webhook` trigger can only be trusted with an `hmac_secret` (otherwise `TriggerConfig` raises `ValueError`). `cron` triggers can be trusted (their payload is made by the runtime). For `file_watch`, `event`, `message` and custom triggers the process can't verify the sender, so it logs a warning when it creates a trusted one.
+- Only your config can trust a trigger. Triggers the agent adds or gives to processes it spawns (open mode) are refused when they set `trusted`, and an agent-added trigger is never trusted even if its ID matches.
+- The other layers still apply: `scan_payloads`, guardrails, approval on side-effecting tools and a narrow tool set.
+
+`trusted` defaults to `False`, which keeps the framing above.
 
 ---
 
@@ -41172,7 +42164,7 @@ TriggerConfig(
     webhook_port=9090,
     webhook_host="127.0.0.1",          # default: loopback only
     hmac_secret=os.environ["GITHUB_WEBHOOK_SECRET"],
-    signature_scheme="github",         # generic | github | stripe
+    signature_scheme="github",         # generic | github | stripe | telegram
     allowed_sources=["203.0.113.0/24"],  # the sender's published IP ranges
     webhook_max_body_bytes=256 * 1024,   # default 1 MiB
     filter_expression="payload['action'] == 'opened'",
@@ -41191,6 +42183,7 @@ TriggerConfig(
 | `allowed_sources` | `[]` (any) | Client IPs or CIDR ranges allowed to call the webhook; others get `403` |
 | `webhook_max_body_bytes` | `1048576` (1 MiB) | Largest request body accepted, 1 byte to 1 GiB; larger bodies get `413` |
 | `filter_expression` | `None` | Skip events before the agent runs (see [Filtering](index.md#filtering-events-before-the-agent-runs)) |
+| `trusted` | `False` | Deliver the payload as the user's request instead of untrusted data; needs `hmac_secret` (see [Trusted triggers](index.md#trusted-triggers-the-payload-is-the-users-request)) |
 
 In a manifest, keep the secret out of the file with an environment reference: `hmac_secret: ${GITHUB_WEBHOOK_SECRET}`. The secret is a `SecretStr`: it is masked in `repr()`, in config dumps and in `GET /triggers`.
 
@@ -41203,6 +42196,7 @@ With `hmac_secret` set, every request must carry an HMAC-SHA256 signature of the
 | `generic` | `X-Webhook-Signature` | `sha256=<hex HMAC of body>` |
 | `github` | `X-Hub-Signature-256` | `sha256=<hex HMAC of body>`, as GitHub sends it |
 | `stripe` | `Stripe-Signature` | `t=<unix ts>,v1=<hex HMAC of "<ts>.<body>">`, as Stripe sends it; rejected when the timestamp is older than `signature_tolerance`, or when the same signed request was already accepted |
+| `telegram` | `X-Telegram-Bot-Api-Secret-Token` | The secret itself, as Telegram sends the `secret_token` given to `setWebhook`; not a signature of the body. The secret must be 1-256 characters of `A-Z`, `a-z`, `0-9`, `_` and `-` |
 
 `generic` and `github` signatures cover only the body, with no timestamp, so anyone who captures a signed request can send it again. Serve the webhook over TLS (a reverse proxy in front of it) so requests can't be captured, and make the agent's actions safe to repeat where you can.
 
@@ -41221,6 +42215,21 @@ urllib.request.urlopen(urllib.request.Request(
 ```
 
 For other providers that sign the body with HMAC-SHA256 and a `sha256=` prefix, keep `signature_scheme="generic"` and set `signature_header` to their header name.
+
+#### Telegram bots
+
+Telegram doesn't sign updates; it sends the `secret_token` you register with `setWebhook` in the `X-Telegram-Bot-Api-Secret-Token` header. `signature_scheme="telegram"` checks that header against `hmac_secret` (constant-time) and answers `401` otherwise:
+
+```yaml
+triggers:
+  - type: webhook
+    webhook_path: /telegram
+    hmac_secret: ${TELEGRAM_WEBHOOK_SECRET}
+    signature_scheme: telegram
+    trusted: true   # the message text is the user's request
+```
+
+Register the same value with Telegram: `https://api.telegram.org/bot<token>/setWebhook?url=https://<your host>/telegram&secret_token=<secret>`. Telegram calls only HTTPS URLs, so put a TLS reverse proxy in front of the webhook (it listens on loopback by default). As with `generic`, there is no timestamp: anyone who captures a request (and so the secret) can send more, which TLS prevents. The secret proves the request came through your bot's webhook, not who wrote the message; check `payload["message"]["from"]["id"]` in a `filter_expression` if only some users may talk to the agent.
 
 #### Stripe replay protection
 
@@ -41272,7 +42281,7 @@ await trigger.stop()
 1. A POST request arrives at the configured path.
 2. The client address is checked against `allowed_sources` → `403` if not allowed. Without `hmac_secret` on a loopback bind, a non-loopback `Host` header → `421` and a cross-site `Origin` → `403`.
 3. The body size is checked against `webhook_max_body_bytes` → `413` if larger. The `Content-Length` header is checked before the body is read; a chunked body without one is cut off at the limit while it is read.
-4. With `hmac_secret` set, the signature is verified → `401` if missing or wrong (or a `stripe` replay).
+4. With `hmac_secret` set, the signature (for `telegram`, the secret token) is verified → `401` if missing or wrong (or a `stripe` replay).
 5. If the owning process can't take the event (it is `FAILED`, stopping or stopped, or its queue is full) → `503` with `Retry-After: 30`.
 6. The body is parsed as JSON (falling back to plain text) and a `TriggerEvent` is created with the body as `payload` and request details in `metadata`.
 7. If a `filter_expression` is set and doesn't match → `200 {"status": "ignored", "event_id": ...}`; the agent doesn't run.
@@ -41320,7 +42329,7 @@ The `payload` field contains the raw POST body:
 - If the body is valid JSON, it is stored as parsed JSON (usually a dict).
 - Otherwise, it is stored as a string.
 
-The agent sees it inside a delimited untrusted-data block; see [Trigger payloads are untrusted input](index.md#trigger-payloads-are-untrusted-input).
+The agent sees it inside a delimited untrusted-data block; see [Trigger payloads are untrusted input](index.md#trigger-payloads-are-untrusted-input). A signed webhook with `trusted=True` delivers it as the user's request instead.
 
 ### Webhook metadata
 
@@ -41894,6 +42903,8 @@ What an `AgentProcess` writes:
 | `api_request` | checkpoint | A successful mutating request to the [Orchestration API](../api.md) | Method, route, path parameters, status and client address (never the body) |
 | `secret_access` | checkpoint | [Secret scoping](../governance/secrets.md) read, rotated, revoked or expired a secret | `action` (`"access"`, `"rotation"`, `"revoke_all"`, `"expired"`), `secret_name` (never the value) |
 | `mission_evaluation` | checkpoint | The [mission](../governance/mission.md) judge evaluated progress | `achieved`, `confidence`, `reasoning`, `progress_summary`, `mission_state`, `invocation_number`, `source` |
+| `tool_denied` | checkpoint | The [budget](../governance/budget.md) refused a tool call before it ran | `tool`, `kind` (`"budget"`), `reason`, `limit_name`, `limit_value`, `current_value`; at level `"full"` also `args` (redacted) |
+| `budget_violation` | checkpoint | The process acts on a budget violation (`on_exceeded`), also for a run refused by `max_runs_per_day` | `limit_name`, `limit_value`, `current_value`, `tool_name`, `blocked`, `action` |
 | `trigger_event` | full | A run starts for a trigger event | `trigger_id`, `trigger_type`, `event_id`, `payload` |
 | `invocation_start` | full | Before the model is called | `invocation`, `event_id` |
 | `tool_call` | full | The agent called a tool | `tool`, `args` (redacted) |
@@ -44021,6 +45032,8 @@ Stop a running runtime (every process, then the runtime exits), or one process.
 promptise runtime stop                      # the only running runtime
 promptise runtime stop prod
 promptise runtime stop prod --process data-watcher
+promptise runtime stop prod --process data-watcher --drain-timeout 0   # cancel its run now
+promptise runtime stop prod --drain-timeout 30                         # let runs finish for 30 s
 promptise runtime stop prod --timeout 60 --force
 ```
 
@@ -44029,12 +45042,15 @@ promptise runtime stop prod --timeout 60 --force
 | `NAME` | |: | Runtime to stop, or a process name in a running runtime; may be omitted when only one runtime runs |
 | `--process` | `-p` |: | Stop only this process (the runtime keeps running) |
 | `--force/--no-force` | | off | Kill the runtime if it hasn't stopped gracefully |
-| `--timeout` | | `30.0` | Seconds to wait for a graceful shutdown |
-| `--url`, `--token` | |: | Talk to an Orchestration API instead of a local runtime |
+| `--drain-timeout` | | each process's `drain_timeout` | Seconds runs in flight may take to finish before they are cancelled (0 to 3600; `0` cancels them at once) |
+| `--timeout` | | `30.0` | Seconds to wait for a graceful shutdown; with `--drain-timeout` at least the drain plus 10 |
+| `--url`, `--token` | | -- | Talk to an Orchestration API instead of a local runtime |
+
+The stop is graceful (see [Graceful stop](processes.md#graceful-stop)): no new trigger event starts, and runs in flight get up to `--drain-timeout` seconds to finish. Without the option each process waits up to its own `drain_timeout` (5 seconds unless its config sets it), as on SIGTERM. A run still going after that is cancelled, journaled as `run_interrupted` and kept in the dead letters; for one process, `stop` says how many runs it cancelled.
 
 How a runtime is stopped:
 
-1. `stop` asks it to shut down over its control API (`POST /api/v1/runtime/shutdown`) and waits up to `--timeout` seconds for it to exit.
+1. `stop` asks it to shut down over its control API (`POST /api/v1/runtime/shutdown`, with the `--drain-timeout` if given) and waits up to `--timeout` seconds for it to exit. Keep `--timeout` above the processes' `drain_timeout` when you don't pass `--drain-timeout`: a SIGTERM during the drain (step 2) is a second signal, and the runtime exits at once without a clean shutdown.
 2. When the API can't be reached or the runtime is still running, it sends SIGTERM and waits again (up to 10 more seconds after a successful request, `--timeout` otherwise). Windows has no catchable SIGTERM, so this step is skipped there.
 3. Still running: with `--force` the process is killed (SIGKILL) and its state file removed; without it, `stop` exits with 1 and suggests `--timeout` or `--force`.
 
@@ -46111,7 +47127,7 @@ print(summarize.return_type)  # <class 'str'>
 prompt(
     model: str = "openai:gpt-5-mini",
     *,
-    observe: bool = False,
+    observe: bool | ObservabilityCollector | PromptObserver = False,
     inspect: PromptInspector | None = None,
     description: str | None = None,
 ) -> Callable[[Callable], Prompt]
@@ -46120,7 +47136,7 @@ prompt(
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `model` | `"openai:gpt-5-mini"` | Model string passed to the chat model factory on each standalone call |
-| `observe` | `False` | Stored on the prompt; in 1.6.0 no events are emitted from it. Call a [`PromptObserver`](inspector.md#promptobserver) yourself for telemetry |
+| `observe` | `False` | Record every standalone call as timeline events with a [`PromptObserver`](inspector.md#promptobserver). `True` records to the prompt's own collector (`my_prompt.observer.collector`); a collector or observer records there |
 | `inspect` | `None` | A [`PromptInspector`](inspector.md) that records every call |
 | `description` | `None` | What the prompt is for; shown to MCP clients when the prompt is served with `MCPServer.include_prompts()` |
 
@@ -46873,7 +47889,7 @@ prompt = await flow.next_turn(
 prompt = await flow.transition("resolution")
 ```
 
-A transition to an unknown phase raises `ValueError`. If the handler run by `transition()` itself calls `ctx.transition()`, the flow enters that next phase but does not run its handler until the next turn (in `start()` and `next_turn()` the next handler runs in the same turn).
+A transition to an unknown phase raises `ValueError`. If the handler run by `transition()` itself calls `ctx.transition()`, the flow enters that next phase and runs its handler too, in the same call, as `start()` and `next_turn()` do. Transitions requested by those handlers are followed the same way. One call runs at most 5 phases: circular transitions (`a` → `b` → `a` ...) raise `RecursionError`.
 
 ### Reading the Current Prompt
 
@@ -47325,16 +48341,20 @@ result = await prompt(data="quarterly revenue figures...")
 
 ## Observability
 
-`.observe(enabled=True)` sets the prompt's `observe` flag. In 1.6.0 the flag is stored but no telemetry is emitted from it; attach a [`PromptInspector`](inspector.md) for traces:
+`.observe()` makes the built prompt record every call with a [`PromptObserver`](inspector.md#promptobserver): start, end, errors, guard blocks and context providers, as timeline events. `.observe(True)` records to the prompt's own collector; pass an `ObservabilityCollector` (or a `PromptObserver`) to record somewhere shared:
 
 ```python
+from promptise.observability import ObservabilityCollector
+
+collector = ObservabilityCollector()
 prompt = (
     PromptBuilder("tracked_prompt")
     .template("Process: {input}")
     .model("openai:gpt-5-mini")
-    .observe(True)
+    .observe(collector)
     .build()
 )
+# After a call: [e.event_type for e in collector.get_timeline()]
 ```
 
 ## API Summary
@@ -47345,7 +48365,7 @@ prompt = (
 | `.system(text)` | `self` | Set system/instruction text |
 | `.template(text)` | `self` | Set prompt template with `{variable}` placeholders |
 | `.model(name)` | `self` | Set the LLM model identifier |
-| `.observe(enabled=True)` | `self` | Set the stored `observe` flag |
+| `.observe(enabled=True)` | `self` | Record calls with a `PromptObserver` (`True`, a collector or an observer; `False` turns it off) |
 | `.output_type(t)` | `self` | Set output type for structured parsing |
 | `.user(user_ctx)` | `self` | Set `world["user"]` |
 | `.env(env_ctx)` | `self` | Set `world["environment"]` |
@@ -47364,7 +48384,7 @@ prompt = (
     Use `@prompt` for static, declarative prompt definitions. Use `PromptBuilder` when you need to construct prompts based on runtime conditions. Both produce `Prompt` objects with the same methods.
 
 !!! note "Blocks, inspector and description"
-    The builder has no methods for blocks, an inspector or a description. Add them to the built prompt: `builder.build().with_blocks(Identity("Analyst")).with_inspector(inspector)`. `.observe(True)` stores the flag on the prompt; in 1.6.0 no events are emitted from it (see [PromptObserver](inspector.md#promptobserver)).
+    The builder has no methods for blocks, an inspector or a description. Add them to the built prompt: `builder.build().with_blocks(Identity("Analyst")).with_inspector(inspector)`. `.observe()` is the builder's way to attach a [PromptObserver](inspector.md#promptobserver); `.with_observer(...)` works on the built prompt too.
 
 !!! warning "Template is required"
     If neither `.system()` nor `.template()` is called, the template is "Respond to the user's request." Always set an explicit template for production prompts.
@@ -47546,7 +48566,7 @@ guards:
   - type: "schema_strict"      # no options
 
 # --- Observability ---
-observe: false                 # stored on the prompt; no events emitted in 1.6.0
+observe: false                 # true: record calls with a PromptObserver (prompt.observer.collector)
 
 # --- World context ---
 world:
@@ -47701,7 +48721,7 @@ result = render_template(
 The engine processes templates in this order:
 
 1. `{% include "name" %}`: resolved from the includes registry (unknown name: `ValueError`)
-2. `` !`cmd` ``: shell interpolation, only when a `shell_executor` is set (see [Shell Context Injection](shell-interpolation.md))
+2. `` !`cmd` ``: shell interpolation, only when a `shell_executor` is set (see [Shell Context Injection](shell-interpolation.md)); the output is literal text, braces included
 3. `{% if %}...{% else %}...{% endif %}`: truthiness of the variable (missing counts as false)
 4. `{% for item in items %}...{% endfor %}`: iteration (missing collection: `KeyError`)
 5. `{{` / `}}`: literal brace escapes
@@ -47794,10 +48814,9 @@ from promptise.prompts import SubprocessShellExecutor
 
 executor = SubprocessShellExecutor(
     timeout=5.0,          # max seconds per command (default 5)
-    shell=True,           # run via /bin/sh -c (default True)
+    shell=True,           # run via /bin/sh -c (default True; ignored with an allowlist)
     cwd="/path/to/repo",  # working directory (default: inherited)
     env={"API_KEY": "x"}, # extra env vars (merged with os.environ)
-    allowlist={"echo", "date", "git"},  # restrict allowed commands
 )
 ```
 
@@ -47811,21 +48830,31 @@ command with an absolute path over changing directory.
 
 ### Allowlist
 
-When `allowlist` is set, only commands whose first token matches are permitted:
+When `allowlist` is set, a command runs only if its first word is one of the allowlisted executable names, and it never runs through a shell, whatever `shell` says. The command line is split into words like a shell would (`shlex.split`, so quotes work), and the program is started directly:
 
 ```python
 from promptise.prompts import ShellExecutionError, SubprocessShellExecutor, TemplateEngine
 
-executor = SubprocessShellExecutor(allowlist={"echo", "git"})
+executor = SubprocessShellExecutor(allowlist={"git", "date"})
 engine = TemplateEngine(shell_executor=executor)
 
-print(engine.render("!`echo hello`", {}))   # hello
+print(engine.render("Branch: !`git rev-parse --abbrev-ref HEAD`", {}))   # Branch: main
 
-try:
-    engine.render("!`rm -rf /tmp/x`", {})
-except ShellExecutionError as exc:
-    print(exc)                               # command 'rm' not in shell executor allowlist
+for command in ["rm -rf /tmp/x", "git status; rm -rf /tmp/x"]:
+    try:
+        engine.render(f"!`{command}`", {})
+    except ShellExecutionError as exc:
+        print(exc)
+# command 'rm' not in shell executor allowlist
+# shell operator ';' is not allowed with a shell executor allowlist (allowlisted commands run without a shell)
 ```
+
+What the allowlist enforces:
+
+- **Shell syntax is refused**, not passed on. An unquoted `;`, `|`, `&`, `&&`, `||`, `<`, `>`, `(` or `)` raises `ShellExecutionError`, so a second command can't be chained, piped or substituted (`$(...)`). Quoted, these characters are ordinary text in an argument (`git log --grep 'a;b'`). `$HOME` and globs such as `*` are not expanded.
+- **The first word must match exactly**: `{"git"}` allows `git ...` (found on `PATH`) but not `/usr/bin/git` or `./git`.
+- **Programs only**: shell builtins can't be allowlisted, since no shell runs them (`echo` works on Linux and macOS, where it is also a program, but not on Windows, where it is a `cmd.exe` builtin).
+- **Arguments are not checked.** Allowlist only programs that can't do harm whatever arguments they get: `git -c core.pager=...`, `find -exec` or an interpreter (`python -c`) run other code.
 
 ---
 
@@ -47861,15 +48890,11 @@ Shell interpolation runs **after** template includes and **before** conditionals
 
 - **Non-zero exit code** → raises `ShellExecutionError`
 - **Timeout** → raises `ShellExecutionError`
-- **Command not in allowlist** → raises `ShellExecutionError`
+- **Command not in allowlist, or shell syntax with an allowlist** → raises `ShellExecutionError`
 
 All errors propagate to the caller: there is no silent fallback. A command that can't start (unknown executable with `shell=False`, unbalanced quotes) also raises `ShellExecutionError`. Empty commands render as an empty string.
 
-!!! warning "Braces in command output"
-    Command output is inserted before variable interpolation, so `{` and `}` in the output are read as template syntax: output such as `{"ok": true}` raises `KeyError` or `ValueError`. Pass such output as a variable instead (run the command yourself and use `{status}`).
-
-!!! warning "The allowlist checks the first word only"
-    With `shell=True` (the default) the whole line goes to `/bin/sh`, so `echo hi; rm -rf /tmp/x` passes an allowlist containing `echo`. When templates are not fully trusted, use `shell=False` together with an allowlist: the command is split with `shlex` and run without a shell, so `;`, `|` and `&&` are plain arguments.
+Command output is literal text: braces in it are kept as they are and never read as `{variable}` or `{% if %}` syntax, so output such as `{"ok": true}` renders unchanged and can't pull a template variable into the prompt.
 
 ## Parameter reference
 
@@ -47878,10 +48903,10 @@ All errors propagate to the caller: there is no silent fallback. A command that 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `timeout` | `5.0` | Seconds before the command is killed (`ShellExecutionError`) |
-| `shell` | `True` | Run through `/bin/sh -c`; `False` splits with `shlex` and runs the executable directly |
+| `shell` | `True` | Run through `/bin/sh -c`; `False` splits with `shlex` and runs the executable directly. Ignored with an `allowlist` (never a shell) |
 | `cwd` | `None` | Working directory (inherits the caller's) |
 | `env` | `None` | Variables merged over `os.environ` |
-| `allowlist` | `None` | Set of allowed first words; any other command raises `ShellExecutionError` |
+| `allowlist` | `None` | Set of allowed executable names. The command runs without a shell; any other first word, or an unquoted shell operator, raises `ShellExecutionError` |
 
 The executor returns stdout with surrounding whitespace stripped. A non-zero exit raises `ShellExecutionError` with the exit code and up to 500 characters of stderr.
 
@@ -49220,11 +50245,11 @@ print(inspector.summary())
 | `total_tokens_estimated` | `int` | Estimated tokens of the assembled **blocks** (not the whole prompt) |
 | `blocks_included` | `list[str]` | Blocks included in assembly |
 | `blocks_excluded` | `list[str]` | Blocks not included |
-| `context_providers` | `list[ContextTrace]` | Per-provider details, filled only by your own `record_context()` calls; `@prompt` leaves it empty |
+| `context_providers` | `list[ContextTrace]` | One entry per context provider that ran: class name, characters it added, time it took |
 | `input_text` | `str` | Final text sent to the LLM (after input guards) |
 | `output_text` | `str` | Raw LLM response after the strategy's `parse()` (standalone calls only) |
 | `latency_ms` | `float` | Execution time in milliseconds (standalone calls only) |
-| `guards_passed` | `list[str]` | Output guards that passed (input guards are recorded only when they fail) |
+| `guards_passed` | `list[str]` | Guards that passed every check they ran, each listed once (a guard attached with `@guard` or `with_guards()` checks both the input and the output) |
 | `guards_failed` | `list[str]` | Guards that rejected the input or output |
 | `flow_phase` | `str` | Conversation flow phase (if used) |
 | `flow_turn` | `int` | Conversation flow turn number |
@@ -49284,38 +50309,33 @@ collector = ObservabilityCollector()
 observer = PromptObserver(collector)
 ```
 
-In 1.6.0, prompts don't call the observer for you: `@prompt` has no `observer` parameter, and `observe=True` only stores a flag. Call the observer from the prompt's lifecycle hooks:
+A prompt records its calls with an observer when you ask for it: `@prompt(observe=...)`, `PromptBuilder.observe(...)`, `observe: true` in a YAML prompt file, or `with_observer(...)` on any prompt:
 
 ```python
-import time
-from promptise.prompts import prompt
-from promptise.prompts.observe import PromptObserver
 from promptise.observability import ObservabilityCollector
+from promptise.prompts import prompt
 
 collector = ObservabilityCollector()
-observer = PromptObserver(collector)
 
-@prompt(model="openai:gpt-5-mini")
+@prompt(model="openai:gpt-5-mini", observe=collector)   # or observe=observer
 async def analyze(text: str) -> str:
     """Analyze: {text}"""
 
-started: dict[str, float] = {}
-
-def before(ctx):
-    started[ctx.prompt_name] = time.perf_counter()
-    observer.record_start(ctx.prompt_name, ctx.model, ctx.rendered_text)
-
-def after(ctx, result):
-    ms = (time.perf_counter() - started.pop(ctx.prompt_name, time.perf_counter())) * 1000
-    observer.record_end(ctx.prompt_name, ctx.model, ms, len(str(result)))
-
-def failed(ctx, exc):
-    observer.record_error(ctx.prompt_name, exc)
-
-observed = analyze.on_before(before).on_after(after).on_error(failed)
-result = await observed("Q3 revenue $3.2M")
+result = await analyze("Q3 revenue $3.2M")
 print([e.event_type for e in collector.get_timeline()])
+# [<TimelineEventType.PROMPT_START: 'prompt.start'>, <TimelineEventType.PROMPT_END: 'prompt.end'>]
 ```
+
+| `observe=` | Events go to |
+|------------|--------------|
+| `False` (default) | Nowhere; `prompt.observer` is `None` |
+| `True` | The prompt's own `ObservabilityCollector`: `analyze.observer.collector.get_timeline()` |
+| An `ObservabilityCollector` | That collector (share one between prompts, or with an agent's collector) |
+| A `PromptObserver` | That observer |
+
+Each standalone call (`await analyze(...)`) records `PROMPT_START` when it starts, `PROMPT_CONTEXT` for each context provider, `PROMPT_GUARD_BLOCK` when a guard rejects the input or output, then `PROMPT_END` on success or `PROMPT_ERROR` on failure. Copies made with `with_*()` record to the same observer. Rendering without an LLM call (`render_async()`, a prompt used as agent `instructions`) records nothing; the agent's own [observability](../core/observability.md) covers those runs. An observer that raises is logged at debug level and never fails the call.
+
+You can also call the observer yourself, for example from lifecycle hooks, with the methods below.
 
 ### Events Recorded
 
@@ -49523,7 +50543,7 @@ self.assert_latency(stats, max_ms=5000)
 | `prompt_name` | `str` | The prompt's name |
 | `model` | `str` | The model string |
 | `latency_ms` | `float` | Wall time of the call, including guards |
-| `input_tokens` / `output_tokens` | `int` | Always `0` in 1.6.0 (not measured) |
+| `input_tokens` / `output_tokens` | `int` | From the model's reply (LangChain `usage_metadata`); `0` when the provider reports no usage |
 | `context_providers_used` | `list[str] \| None` | Class names of the attached context providers |
 | `strategy` / `perspective` | `str` | `repr()` of the strategy and perspective, or `""` |
 

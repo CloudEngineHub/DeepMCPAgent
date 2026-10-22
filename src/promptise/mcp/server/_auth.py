@@ -836,7 +836,11 @@ class APIKeyAuth:
 
     Args:
         keys: Mapping of ``{api_key: client_id_or_config}``.
-        header: HTTP header name used to transmit the key.
+        header: HTTP header name used to transmit the key, matched
+            case-insensitively (HTTP header names are; ``"X-API-Key"``
+            and ``"x-api-key"`` are the same).  With
+            ``MCPServer(require_auth=True)`` the HTTP auth gate reads the
+            same header.
     """
 
     def __init__(
@@ -857,7 +861,14 @@ class APIKeyAuth:
                     "roles": list(v.get("roles", [])),
                     "tenant_id": tenant if isinstance(tenant, str) and tenant.strip() else None,
                 }
-        self._meta_key = header
+        if not header or not header.strip():
+            raise ValueError("APIKeyAuth header must be a non-empty header name")
+        self._meta_key = header.strip().lower()
+
+    @property
+    def header(self) -> str:
+        """The header the key is read from (lower-cased)."""
+        return self._meta_key
 
     async def authenticate(self, ctx: RequestContext) -> str:
         """Authenticate using an API key from request metadata.
@@ -872,6 +883,19 @@ class APIKeyAuth:
             AuthenticationError: If the key is missing or invalid.
         """
         key = ctx.meta.get(self._meta_key, "")
+        if not key:
+            # Headers from HTTP arrive lower-cased; meta set by hand (a
+            # TestClient, a custom transport) may use any case.
+            key = next(
+                (
+                    v
+                    for k, v in ctx.meta.items()
+                    if isinstance(k, str) and k.lower() == self._meta_key
+                ),
+                "",
+            )
+        if not isinstance(key, str):
+            key = ""
         if not key:
             raise AuthenticationError("Missing API key")
         # Timing-safe key comparison: iterate all registered keys

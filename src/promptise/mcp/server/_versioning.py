@@ -1,8 +1,11 @@
 """Tool versioning support for MCP servers.
 
-Allows multiple versions of the same tool to coexist.  By default the
-latest version is exposed to clients; callers can pin a version via a
-``version`` suffix in the tool name (e.g. ``search@2.0``).
+Allows multiple versions of the same tool to coexist.
+``@server.tool(version=...)`` registers each version under a pinned name,
+``<name>_v<version>`` with every run of characters other than letters and
+digits replaced by ``_`` (``search_v1_0``), and the bare name as an alias
+of the highest version.  Pinned names use only characters every LLM
+provider accepts in a function name, so agents can call them.
 
 Example::
 
@@ -18,12 +21,18 @@ Example::
     async def search(query: str, filters: dict | None = None) -> list[dict]:
         return await advanced_search(query, filters)
 
-    # Clients see ``search`` (latest) and ``search@1.0`` / ``search@2.0``
+    # Clients see ``search`` (2.0, the latest), ``search_v1_0`` and
+    # ``search_v2_0``
+
+``VersionedToolRegistry`` is the registry behind it; on its own it also
+resolves ``name@version``.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass, field, replace
+from typing import Any
 
 from ._types import ToolDef
 
@@ -107,9 +116,55 @@ class VersionedToolRegistry:
     def has(self, base_name: str) -> bool:
         return base_name in self._groups
 
+    def names(self) -> list[str]:
+        """The base names that have versions."""
+        return list(self._groups)
+
     def list_versions(self, base_name: str) -> list[str]:
         """List available versions for a tool."""
         group = self._groups.get(base_name)
         if group is None:
             return []
         return sorted(group.versions.keys(), key=_version_key)
+
+
+def versioned_tool_name(base_name: str, version: str) -> str:
+    """The pinned tool name for *version*: ``versioned_tool_name("search", "1.0")`` is ``"search_v1_0"``."""
+    suffix = re.sub(r"[^A-Za-z0-9]+", "_", version).strip("_")
+    if not suffix:
+        raise ValueError(f"Tool version {version!r} must contain a letter or digit")
+    return f"{base_name}_v{suffix}"
+
+
+def register_tool_version(
+    owner: Any, base_name: str, version: str, tool_def: ToolDef, input_model: Any
+) -> None:
+    """Register one version of a tool on a server or router.
+
+    *owner* has ``_tool_registry``, ``_input_models`` and ``_tool_versions``.
+    The version is registered under its pinned name, and the bare
+    *base_name* is (re)pointed at the highest version.
+    """
+    registry = owner._tool_registry
+    versions: VersionedToolRegistry = owner._tool_versions
+    if base_name in registry and not versions.has(base_name):
+        raise ValueError(
+            f"Tool '{base_name}' is already registered without a version; "
+            "give every registration of a versioned tool a version"
+        )
+    if version in versions.list_versions(base_name):
+        raise ValueError(f"Tool '{base_name}' version '{version}' is already registered")
+    pinned_name = versioned_tool_name(base_name, version)
+    pinned = replace(tool_def, name=pinned_name)
+    registry.register(pinned)
+    owner._input_models[pinned_name] = input_model
+    versions.register(base_name, version, pinned)
+
+    latest = versions.get(base_name)
+    assert latest is not None
+    alias = replace(latest, name=base_name)
+    if base_name in registry:
+        registry.replace(alias)
+    else:
+        registry.register(alias)
+    owner._input_models[base_name] = owner._input_models[latest.name]

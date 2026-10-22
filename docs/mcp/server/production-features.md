@@ -120,7 +120,7 @@ server.add_middleware(ConcurrencyLimiter(max_concurrent=50))
 
 ### [Advanced Patterns](advanced-patterns.md)
 
-Tool versioning, per-caller tool lists, `mount()`, `OpenAPIProvider` (see its 1.6.0 warning), `register_batch_tool()`, `StreamingResult`, `Elicitor`, `Sampler`, `register_manifest()`, `hot_reload()`, CLI serve.
+Tool versioning, per-caller tool lists, `mount()`, `OpenAPIProvider`, `register_batch_tool()`, `StreamingResult`, `Elicitor`, `Sampler`, `register_manifest()`, `hot_reload()`, CLI serve.
 
 ### [Deployment](deployment.md)
 

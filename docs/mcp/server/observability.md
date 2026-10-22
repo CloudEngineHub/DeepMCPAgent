@@ -249,7 +249,11 @@ On error, the end line has `"status": "error"` and `"error"` with the exception 
 {"event": "tool_call_end", "tool": "search_employees", "request_id": "b4c3d2e1f0a9", "duration_ms": 12.1, "status": "error", "error": "database unreachable"}
 ```
 
-`client_id` is present only for authenticated callers (put the middleware after `AuthMiddleware` to see it). The lines carry no timestamp of their own: configure your log handler's formatter to add one. The message is the JSON text, so emit it as-is (for example with `logging.Formatter("%(message)s")`) for a log aggregator. `include_args` is accepted, but in 1.6.0 arguments are not logged.
+`client_id` is present only for authenticated callers (put the middleware after `AuthMiddleware` to see it). The lines carry no timestamp of their own: configure your log handler's formatter to add one. The message is the JSON text, so emit it as-is (for example with `logging.Formatter("%(message)s")`) for a log aggregator. With `include_args=True` the start line also has `args`, the call's validated arguments after the framework's redaction (the same as the agent's trace redaction): the value of a credential key (`password`, `api_key`, `token`...) becomes `[REDACTED]`, and credentials and common PII in strings (API keys, JWTs, card numbers, email addresses) are replaced with placeholders. Pattern matching can't recognise every kind of personal data (names, addresses), so leave it off for tools that take such data.
+
+```json
+{"event": "tool_call_start", "tool": "sign_in", "request_id": "c1d2e3f4a5b6", "args": {"user": "ada", "password": "[REDACTED]"}}
+```
 
 ```python
 import logging
