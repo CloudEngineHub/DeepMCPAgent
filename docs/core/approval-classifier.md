@@ -128,6 +128,8 @@ Enabled by default. A tool is auto-approved as read-only when:
 
 `get_`, `list_`, `read_`, `search_`, `find_`, `fetch_`, `describe_`, `show_`, `view_`, `lookup_`, `query_`, `head_`, `stat_`, `exists_`, `count_`
 
+Both default lists are importable: `from promptise import DEFAULT_READ_ONLY_PREFIXES, DEFAULT_DESTRUCTIVE_VERBS`.
+
 Annotations come from the MCP server — `@server.tool(read_only_hint=True)` on a Promptise server, or any server that sets `ToolAnnotations` — and reach the classifier as `ApprovalRequest.tool_annotations`. Promptise's MCP client keeps them on each tool's `metadata` (as `langchain-mcp-adapters` does), and the gate copies them from there, so a LangChain tool you build yourself can declare `metadata={"readOnlyHint": True}`. Annotations are hints from the server, not guarantees, so a destructive verb in the name always wins over `readOnlyHint=True`.
 
 Words are split on `_`, `-` and camelCase and compared whole: `get_settings` is fine (`settings` is not `set`), `get_and_set_flag` is not.
@@ -234,6 +236,12 @@ print(classifier.stats.read_only_allows)   # 189
 print(classifier.stats.llm_allows)         # 7
 print(classifier.stats.fallback_denies)    # 1
 ```
+
+`classifier.stats` is a `ClassifierStats` dataclass (`from promptise import ClassifierStats`)
+with the counters `allow_rule_hits`, `deny_rule_hits`, `ask_rule_hits`,
+`read_only_allows`, `llm_allows`, `llm_denies`, `llm_escalations`, `fallback_allows`,
+`fallback_denies` and `errors`, plus `last_updated` (a Unix timestamp).
+`classifier.reset_stats()` starts the counts again.
 
 ### Classifier denials and the retry limit
 

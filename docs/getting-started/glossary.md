@@ -248,7 +248,7 @@ A callable function exposed to the LLM. In Promptise Foundry, tools come from MC
 
 ## Tool optimization
 
-Selecting the relevant subset of tools for a given query to reduce token usage. Promptise Foundry has four levels: `NONE`, `MINIMAL`, `STANDARD`, `SEMANTIC`. Semantic mode uses local embeddings — typically 40–70% fewer tokens.
+Selecting the relevant subset of tools for a given query to reduce token usage. Promptise Foundry has three levels, `MINIMAL`, `STANDARD` and `SEMANTIC`; it is off unless you set `optimize_tools`. Semantic mode uses local embeddings to pick the tools.
 
 ## Trigger
 

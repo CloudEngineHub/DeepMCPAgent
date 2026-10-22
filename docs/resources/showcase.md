@@ -119,7 +119,7 @@ response = await agent.chat(
 Your agent handles 10,000 queries per day across 40 MCP tools. At $3 per million tokens, the monthly bill is growing. You need to cut costs without degrading quality.
 
 **What the Agent module contributes**
-Semantic tool optimization sends only the 5-8 relevant tools per query instead of all 40 (40-70% token savings). Semantic caching serves identical or similar queries from cache (30-50% additional savings). Combined: up to 80% cost reduction.
+Semantic tool optimization sends only the relevant tools per query instead of all 40, and semantic caching serves identical or similar queries from the cache.
 
 ```python
 from promptise import build_agent, SemanticCache, CallerContext

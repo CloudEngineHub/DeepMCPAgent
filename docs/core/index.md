@@ -64,7 +64,7 @@ build_agent()
 │   sandbox ───────────── SandboxConfig (Docker isolation for code execution)
 │
 ├─ Performance ────────── How fast and cost-effective?
-│   tool_optimization ─── NONE, MINIMAL, STANDARD, SEMANTIC (40-70% fewer tokens)
+│   tool_optimization ─── MINIMAL, STANDARD, SEMANTIC
 │   fallback_models ───── List of fallback models if primary fails
 │   adaptive ──────────── AdaptiveConfig (learn from past interactions)
 │

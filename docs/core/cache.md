@@ -5,7 +5,7 @@ description: "Cache LLM responses by query similarity, with per-user isolation, 
 
 # Semantic Cache
 
-Cache LLM responses by query similarity. Save 30-50% on API costs by serving cached responses for semantically similar queries. All embedding runs locally by default.
+Cache LLM responses by query similarity: a question that means the same as an earlier one gets the stored answer without a model call. Embedding runs locally by default.
 
 ```python
 from promptise import build_agent, SemanticCache, CallerContext
@@ -244,6 +244,9 @@ cache = SemanticCache(embedding="BAAI/bge-small-en-v1.5")
 cache = SemanticCache(embedding="/models/local/custom")
 ```
 
+A model name or path is wrapped in `LocalEmbeddingProvider(model=...)` (default
+`"all-MiniLM-L6-v2"`), which you can also create yourself and share between caches.
+
 ### OpenAI / Azure OpenAI
 
 ```python
@@ -256,6 +259,14 @@ cache = SemanticCache(
     ),
 )
 ```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `model` | `"text-embedding-3-small"` | Embedding model, or the model name of an Azure deployment |
+| `api_key` | `None` | The key, or a `${VAR}` reference resolved on each call. Required: it is not read from `OPENAI_API_KEY` on its own |
+| `base_url` | `None` | An OpenAI-compatible server; `/v1/embeddings` is appended, so leave `/v1` off |
+| `azure_endpoint` | `None` | Azure OpenAI resource URL; the key is sent as the `api-key` header |
+| `azure_deployment` | `None` | Azure deployment name (default: `model`) |
 
 ### Custom provider
 

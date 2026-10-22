@@ -90,7 +90,21 @@ loaded = reg.load_directory("./.promptise/skills")
 print(f"Loaded {loaded} skills")
 ```
 
-The frontmatter parser is built-in — no YAML library required. It recognizes `name`, `description`, `paths` (as a list), and passes any extra keys through as `metadata`.
+The frontmatter parser is built in, so no YAML library is needed. It recognizes `name`, `description`, `paths` (as a list), and passes any extra keys through as `metadata`.
+
+The same parser is public as `parse_frontmatter(source)`. It reads the first
+triple-quoted docstring of a Python source string and returns its `key: value` lines
+(and `- item` lists under a key) as a dict, or `None` when there is no docstring or
+no recognizable key:
+
+```python
+from pathlib import Path
+from promptise.engine import parse_frontmatter
+
+meta = parse_frontmatter(Path("skills/ts_review.py").read_text())
+# {'name': 'ts-reviewer', 'description': 'Reviews TypeScript / React code.',
+#  'paths': ['src/**/*.tsx', 'src/**/*.ts']}
+```
 
 ---
 

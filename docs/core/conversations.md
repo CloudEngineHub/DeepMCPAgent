@@ -350,7 +350,7 @@ except RuntimeError:
 | Symbol | Description |
 |--------|-------------|
 | `ConversationStore` | Protocol — implement this for custom backends |
-| `Message` | A single conversation message (role, content, metadata, timestamp) |
+| `Message` | A single conversation message: `role` (`user`, `assistant`, `system` or `tool`), `content`, `metadata` and `created_at`. Also exported from the top level as `promptise.ConversationMessage` |
 | `SessionInfo` | Session metadata (id, user, title, counts, timestamps) |
 | `SessionAccessDenied` | Raised when a user accesses a session they don't own |
 | `generate_session_id()` | Create a cryptographically secure session ID |

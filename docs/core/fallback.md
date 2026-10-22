@@ -25,7 +25,7 @@ agent = await build_agent(
 
 ## Why
 
-Single-provider agents are a single point of failure. When OpenAI has an outage at 3am, your agent goes down with it. With a fallback chain, the next provider picks up seamlessly. With 3 providers at 99.9% uptime each, compound availability reaches 99.9999%.
+Single-provider agents are a single point of failure. When OpenAI has an outage at 3am, your agent goes down with it. With a fallback chain, the next provider answers instead.
 
 ---
 

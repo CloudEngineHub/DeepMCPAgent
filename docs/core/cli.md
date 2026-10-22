@@ -194,10 +194,11 @@ promptise validate my_agent.superagent --no-check-refs
 
 | Flag | Description |
 |---|---|
-| `--check-env/--no-check-env` | Check environment variable availability (default: `--check-env`) |
-| `--check-refs/--no-check-refs` | Validate cross-agent references (default: `--check-refs`) |
+| `--check-env/--no-check-env` | Check environment variable availability, for the file and every cross-agent file (default: `--check-env`) |
+| `--allow-missing-env` | Report a missing environment variable as a warning instead of failing |
+| `--check-refs/--no-check-refs` | Validate cross-agent references at every depth (default: `--check-refs`) |
 
-Performs YAML syntax checks, schema validation, environment variable availability checks, and cross-agent reference validation.
+Performs YAML syntax checks, schema validation, environment variable availability checks, and cross-agent reference validation. Exits with code 1 when anything fails, including a missing environment variable; in CI where the secrets are not set, pass `--allow-missing-env` (warn) or `--no-check-env` (skip).
 
 ---
 
