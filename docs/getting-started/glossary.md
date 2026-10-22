@@ -26,9 +26,9 @@ A single agent wrapped with lifecycle, triggers, journals, and governance. State
 
 The manager of multiple `AgentProcess` instances. Centralizes lifecycle control, exposes a shared `EventBus`, and routes inter-agent messages.
 
-## ask_peer
+## ask_agent_&lt;name&gt;
 
-Cross-agent delegation primitive. Sends a question to another agent over HTTP+JWT and awaits the answer. Pairs with `broadcast` for one-to-many.
+The tool an agent gets for each peer in `build_agent(cross_agents={...})`: it sends a question to that peer agent and returns its answer. `include_broadcast=True` adds `broadcast_to_agents` for one-to-many. See [Cross-Agent Delegation](../core/agents/cross-agent.md).
 
 ## Audit log
 
@@ -80,7 +80,7 @@ Trigger type that fires on a cron expression. One of five built-in trigger types
 
 ## Cross-agent delegation
 
-Pattern where one agent calls another agent (instead of calling a tool). Used to compose specialized agents into a system. Promptise Foundry ships `ask_peer` and `broadcast` primitives over HTTP+JWT.
+Pattern where one agent calls another agent (instead of calling a tool). Used to compose specialized agents into a system. In Promptise Foundry, peers passed as `cross_agents` become `ask_agent_<name>` tools (and, opt-in, `broadcast_to_agents`); delegation runs in-process.
 
 ## Discovery
 

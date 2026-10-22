@@ -29,7 +29,7 @@ One Python install (`pip install promptise`) gives you:
 | **MCP client** | Native, no third-party deps. Single, multi-server, and LangChain adapter variants. Three transports (stdio, HTTP, SSE) |
 | **Prompt engineering** | 8 prompt blocks, conversation flows, 5 strategies, 4 perspectives, 14 context providers, schema-strict guards, registry with versioning, inspector for debugging |
 | **Agent runtime** | Process lifecycle, journals, replay engine, 5 trigger types (cron, event, message, webhook, file watch), 4 governance subsystems (budget, health, mission, secrets), distributed coordinator, dashboard |
-| **Cross-agent** | `ask_peer` and `broadcast` over HTTP+JWT for multi-agent systems |
+| **Cross-agent** | Peer agents as `ask_agent_<name>` tools, plus an opt-in `broadcast_to_agents`, for multi-agent systems |
 | **Self-modifying** | Open Mode with 14 meta-tools and guardrails for agent-written code |
 | **Config** | `.superagent` and `.agent` YAML manifests with `${VAR}` resolution and cycle detection |
 | **CLI** | `agent`, `validate`, `list-tools`, `run`, `serve`, `mcpcast` |

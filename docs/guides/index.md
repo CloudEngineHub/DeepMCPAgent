@@ -115,7 +115,7 @@ from crashes, enforce governance, and scale across machines.
 ### [Multi-Agent Coordination](multi-agent-teams.md)
 Systems where agents collaborate: sharing tools, delegating, communicating
 through events, and coordinating through shared state.
-**You'll learn:** shared servers with per-agent roles, `ask_peer()`/`broadcast()`, EventBus, shared context, supervisor/pipeline patterns.
+**You'll learn:** a shared MCP server with per-agent roles, `CrossAgent` delegation, `InProcessEventBus` and event triggers, shared state, supervisor and pipeline patterns.
 
 ---
 

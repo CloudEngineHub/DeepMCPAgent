@@ -235,7 +235,7 @@ await agent.chat("What did I ask last time?",
 ### Continuity across cross-agent delegation
 
 The caller survives delegation hops. When an agent handling Alice's request
-delegates to a peer via `ask_peer` / `broadcast`, the peer's `ainvoke()`
+delegates to a peer through its `ask_agent_<name>` or `broadcast_to_agents` tool, the peer's `ainvoke()`
 **inherits the ambient `CallerContext`** (unless an explicit `caller=` is
 passed), so the peer's cache scoping, memory search, guardrail tagging, and
 conversation ownership all remain attributed to Alice: the original human
