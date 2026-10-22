@@ -20,11 +20,12 @@ from __future__ import annotations
 
 import asyncio
 import difflib
+import inspect
 import json
 import logging
 import time
 from collections.abc import AsyncIterator, Callable, Sequence
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 from uuid import uuid4
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -688,6 +689,120 @@ def _tool_summary(tools: list[Any], mode: str) -> str:
     return ""
 
 
+def resolve_node_model(model: Any) -> Any:
+    """A node's ``model_override`` as a chat model.
+
+    A string (``"openai:gpt-5-mini"``, ``"azure:chat-prod"``) or a
+    :class:`~promptise.models.Model` resolves like ``build_agent(model=...)``;
+    any other object (a chat model) is returned as is.
+    """
+    if isinstance(model, str) or type(model).__name__ == "Model":
+        from promptise.models import Model, resolve_model
+
+        return model.resolve() if isinstance(model, Model) else resolve_model(model)
+    return model
+
+
+def _model_label(model: Any) -> str:
+    """How an override is named in errors: by its spec, never by the object
+    (a ``Model`` carries credentials, and the text lands in logs, the graph
+    history and the ``on_node_error`` payload)."""
+    spec = getattr(model, "spec", None) if type(model).__name__ == "Model" else None
+    return str(spec) if spec is not None else repr(model)
+
+
+def _override_model(node: Any, result: NodeResult, config: dict[str, Any]) -> Any:
+    """The model *node* calls: its resolved ``model_override``, else the
+    engine's.  ``None`` (with the failure recorded on *result*) when the
+    override does not resolve or no model is available."""
+    override = getattr(node, "model_override", None)
+    if override is None:
+        model = config.get("_engine_model")
+        if model is None:
+            result.error = "No model available in config"
+        return model
+    try:
+        return resolve_node_model(override)
+    except Exception as exc:
+        record_failure(result, exc, f"Failed to initialize model {_model_label(override)}: {exc}")
+        return None
+
+
+#: Model fields that hold the response token limit, by provider
+#: (OpenAI / Anthropic, Google, OpenAI's newer name, Ollama).
+_MAX_TOKENS_FIELDS = ("max_tokens", "max_output_tokens", "max_completion_tokens", "num_predict")
+
+
+def _with_sampling(
+    model: Any, temperature: float | None, max_tokens: int | None, node_name: str
+) -> Any:
+    """*model* with a node's ``temperature`` / ``max_tokens`` applied.
+
+    A LangChain chat model is copied with the provider's own fields set, so
+    the provider sends them under its own parameter names; another runnable
+    gets them as call arguments (``bind``).  A setting the model has no
+    field for is skipped with a warning.  ``None`` keeps the model's own.
+    """
+    if temperature is None and max_tokens is None:
+        return model
+    fields = getattr(type(model), "model_fields", None)
+    if isinstance(model, BaseChatModel) and isinstance(fields, dict):
+        update: dict[str, Any] = {}
+        if temperature is not None:
+            if "temperature" in fields:
+                update["temperature"] = temperature
+            else:
+                logger.warning(
+                    "Node %r: %s has no temperature setting; temperature=%s not applied",
+                    node_name,
+                    type(model).__name__,
+                    temperature,
+                )
+        if max_tokens is not None:
+            field_name = next((f for f in _MAX_TOKENS_FIELDS if f in fields), None)
+            if field_name is not None:
+                update[field_name] = max_tokens
+            else:
+                logger.warning(
+                    "Node %r: %s has no token limit setting; max_tokens=%s not applied",
+                    node_name,
+                    type(model).__name__,
+                    max_tokens,
+                )
+        return model.model_copy(update=update) if update else model
+    if hasattr(model, "bind"):
+        kwargs: dict[str, Any] = {}
+        if temperature is not None:
+            kwargs["temperature"] = temperature
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+        return model.bind(**kwargs)
+    return model
+
+
+def _last_json_object(text: str) -> dict[str, Any] | None:
+    """The last JSON object in *text* (a reply that ends with one), or ``None``."""
+    found: dict[str, Any] | None = None
+    depth = 0
+    start: int | None = None
+    for index, char in enumerate(text):
+        if char == "{":
+            if depth == 0:
+                start = index
+            depth += 1
+        elif char == "}" and depth > 0:
+            depth -= 1
+            if depth == 0 and start is not None:
+                try:
+                    value = json.loads(text[start : index + 1])
+                except (json.JSONDecodeError, ValueError):
+                    value = None
+                if isinstance(value, dict):
+                    found = value
+                start = None
+    return found
+
+
 class PromptNode(BaseNode):
     """A complete reasoning unit in the graph.
 
@@ -719,8 +834,13 @@ class PromptNode(BaseNode):
         perspective: Cognitive perspective (Analyst, Critic, etc.).
 
         tools: Tools available at THIS node.  ``None`` disables tools.
-        tool_choice: ``"auto"`` (LLM decides), ``"required"`` (must call
-            a tool), or ``"none"`` (tools shown but not callable).
+        tool_choice: ``"auto"`` (the model decides, the default),
+            ``"required"`` (the model must call a tool), a tool's name (the
+            model must call that tool) or ``"none"`` (the model is called
+            without the tools, so it cannot call them).  ``"required"`` and
+            a tool name apply to the node's first model call; once tool
+            results come back the model decides, so it can answer instead
+            of calling tools until the node's ``max_iterations``.
         inject_tools: When ``True``, the engine auto-injects all
             discovered MCP tools into this node at runtime.  Use this
             when defining custom graphs where nodes should receive
@@ -740,24 +860,35 @@ class PromptNode(BaseNode):
 
         context_layers: Extra named context layers with priorities.
             Merged into the system prompt during assembly.
-        max_tokens: Max response tokens for this node.
-        temperature: LLM temperature for this node.
+        max_tokens: Max response tokens for this node's model calls.
+            ``None`` (default) keeps the model's own setting.
+        temperature: Sampling temperature for this node's model calls.
+            ``None`` (default) keeps the model's own setting.  Both are
+            set on a copy of the model, under the provider's own field
+            names (``max_output_tokens`` for Google, ``num_predict`` for
+            Ollama).
 
         input_keys: Keys to read from ``state.context`` and inject
             into the system prompt.  E.g. ``["search_results", "user_query"]``
             makes those values available in the prompt.
-        output_key: Key to write this node's output to in ``state.context``.
-            The next node can read it via ``input_keys``.
+        output_key: Key to write this node's output to in ``state.context``:
+            the parsed object with an ``output_schema``, else the reply
+            text.  The next node can read it via ``input_keys``.
         inherit_context_from: Name of a previous node whose output
             should be injected as context.  Reads from
             ``state.context["{node_name}_output"]``.
 
-        preprocessor: Async callable ``(state, config) → state`` that
+        preprocessor: Callable ``(state, config)`` (sync or async) that
             runs before the LLM call.  Use for data transformation,
-            enrichment, or filtering.
-        postprocessor: Async callable ``(output, state, config) → output``
-            that runs after the LLM call.  Use for output transformation,
-            validation, or enrichment.
+            enrichment, or validation: when it raises, the node fails
+            without calling the model (``NodeResult.error`` names the
+            exception), and the graph handles that like any node failure.
+        postprocessor: Callable ``(output, state, config) → output`` (sync
+            or async) that runs on the model's reply (not on a step that
+            only calls tools).  It receives the parsed object with an
+            ``output_schema``, else the reply text.  A value other than
+            ``None`` replaces the output; an exception is logged and the
+            output kept.
 
         include_observations: Auto-inject recent tool results from state.
         include_plan: Auto-inject current plan/subgoals from state.
@@ -796,8 +927,8 @@ class PromptNode(BaseNode):
         model_override: Any | None = None,
         # Context
         context_layers: dict[str, int] | None = None,
-        max_tokens: int = 4096,
-        temperature: float = 0.0,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
         # Data flow
         input_keys: list[str] | None = None,
         output_key: str | None = None,
@@ -870,6 +1001,32 @@ class PromptNode(BaseNode):
         self.include_plan = include_plan
         self.include_reflections = include_reflections
 
+    #: Fields a subclass reads from the model's reply, as ``(name,
+    #: description)`` pairs.  Without an ``output_schema`` the node asks for
+    #: them as a JSON object at the end of the reply and parses that object
+    #: into ``NodeResult.output`` (the reply text stays the message).  With an
+    #: ``output_schema`` the schema decides and nothing is added.
+    text_output_fields: ClassVar[tuple[tuple[str, str], ...]] = ()
+
+    def _text_output_hint(self) -> str:
+        """The instruction that asks for :attr:`text_output_fields` as JSON."""
+        lines = [f"- {name}: {description}" for name, description in self.text_output_fields]
+        return (
+            "End your reply with a JSON object that has these keys:\n"
+            + "\n".join(lines)
+            + "\nWrite the object last, as plain JSON (no code fence needed)."
+        )
+
+    def _text_output(self, text: str) -> Any:
+        """A plain-text reply as the node's output: the reply's JSON object
+        when the node reads :attr:`text_output_fields` and the reply ends
+        with one, else the text."""
+        if self.text_output_fields:
+            parsed = _last_json_object(text)
+            if parsed is not None:
+                return parsed
+        return text
+
     def _tool_summary_mode(self, config: dict[str, Any] | None) -> str:
         """The node's ``tool_summary``, else the engine's, else ``"off"``."""
         if self.tool_summary is not None:
@@ -883,18 +1040,45 @@ class PromptNode(BaseNode):
 
         return NodeFlag.INJECT_TOOLS in self.flags
 
+    def _tool_choice_for(self, state: GraphState) -> str | None:
+        """The ``tool_choice`` to bind for this model call (``None`` = the
+        provider's default, the model decides).
+
+        A forcing choice (``"required"``, a tool name) applies until tool
+        results come back: when the last message is a tool result the model
+        decides, so a forced node can still answer.
+        """
+        choice = self.tool_choice or "auto"
+        if choice == "auto":
+            return None
+        if choice == "none":
+            return "none"
+        if state.messages and isinstance(state.messages[-1], ToolMessage):
+            return None
+        # LangChain's portable name for "must call a tool" ("required" on OpenAI).
+        return "any" if choice == "required" else choice
+
     def _bind_model(
-        self, model: Any, active_tools: list[BaseTool], config: dict[str, Any]
+        self,
+        model: Any,
+        active_tools: list[BaseTool],
+        config: dict[str, Any],
+        tool_choice: str | None = None,
     ) -> tuple[Any, bool]:
-        """Bind tools and structured output to *model*, reusing the binding
-        from an earlier execution of this node in the same run while the
-        model and the tool set are unchanged.
+        """Bind sampling settings, tools and structured output to *model*,
+        reusing the binding from an earlier execution of this node in the
+        same run while the model, the tool set and the tool choice are
+        unchanged.
 
         Returns ``(model_to_use, structured_raw)`` —
         ``structured_raw`` is ``True`` when structured output was requested
         with ``include_raw=True`` (so token usage survives parsing).
         """
         cache_key = f"_node_cache_{self.name}"
+        if tool_choice == "none":
+            # The model is called without the tools: it cannot call them.
+            active_tools = []
+            tool_choice = None
         tool_names = tuple(t.name for t in active_tools)
         # A string/Model override resolves to a new object every execution;
         # key the binding on the override itself.
@@ -904,11 +1088,17 @@ class PromptNode(BaseNode):
             cached is not None
             and cached["source"] is source
             and cached["tool_names"] == tool_names
+            and cached["tool_choice"] == tool_choice
             and cached["output_schema"] is self.output_schema
         ):
             return cached["model"], cached["structured_raw"]
 
-        model_to_use = model.bind_tools(active_tools) if active_tools else model
+        model_to_use = _with_sampling(model, self.temperature, self.max_tokens, self.name)
+        if active_tools:
+            if tool_choice is not None:
+                model_to_use = model_to_use.bind_tools(active_tools, tool_choice=tool_choice)
+            else:
+                model_to_use = model_to_use.bind_tools(active_tools)
         structured_raw = False
         if self.output_schema and hasattr(model_to_use, "with_structured_output"):
             try:
@@ -930,6 +1120,7 @@ class PromptNode(BaseNode):
         config[cache_key] = {
             "source": source,
             "tool_names": tool_names,
+            "tool_choice": tool_choice,
             "output_schema": self.output_schema,
             "model": model_to_use,
             "structured_raw": structured_raw,
@@ -1094,36 +1285,29 @@ class PromptNode(BaseNode):
         """
         start = time.perf_counter()
 
-        # Resolve model — per-node override takes priority
-        if self.model_override is not None:
-            model = self.model_override
-            # A string ("azure:chat-prod") or a Model resolves like build_agent(model=...)
-            if isinstance(model, str) or type(model).__name__ == "Model":
-                try:
-                    from promptise.models import Model, resolve_model
-
-                    model = model.resolve() if isinstance(model, Model) else resolve_model(model)
-                except Exception as exc:
-                    # Name the model by its spec, never by the object: a Model
-                    # carries credentials and this string lands in logs, the
-                    # graph history and the on_node_error event payload.
-                    label = model.spec if isinstance(model, Model) else repr(model)
-                    record_failure(result, exc, f"Failed to initialize model {label}: {exc}")
-                    return
-        else:
-            model = config.get("_engine_model")
+        # Resolve model — per-node override takes priority.  A string
+        # ("azure:chat-prod") or a Model resolves like build_agent(model=...).
+        model = _override_model(self, result, config)
         if model is None:
-            result.error = "No model available in config"
             return
 
         # ── 0. Run preprocessor ──
+        # Fail closed: a preprocessor that raises (input_validator() on a
+        # missing key) stops the node before the model is called.
         if self.preprocessor:
             try:
                 preprocess_result = self.preprocessor(state, config)
-                if asyncio.iscoroutine(preprocess_result):
+                if inspect.isawaitable(preprocess_result):
                     await preprocess_result
             except Exception as exc:
                 logger.warning("Preprocessor failed in node %r: %s", self.name, exc)
+                record_failure(
+                    result,
+                    exc,
+                    f"Preprocessor failed in node {self.name!r}: {type(exc).__name__}: {exc}",
+                )
+                result.duration_ms = (time.perf_counter() - start) * 1000
+                return
 
         # ── 1. Assemble system prompt from blocks ──
         system_parts: list[str] = []
@@ -1204,6 +1388,11 @@ class PromptNode(BaseNode):
             ]
             system_parts.append("Past learnings:\n" + "\n".join(ref_lines))
 
+        # A node that reads fields from its reply (the reasoning nodes) asks
+        # for them as JSON when no output_schema gives it structured output.
+        if self.output_schema is None and self.text_output_fields:
+            system_parts.append(self._text_output_hint())
+
         # Tell the LLM which routes it can pick — only when there is a genuine
         # CHOICE (two or more transition keys). A node with a single linear
         # default_next has nothing to route, and "choose the next step" is
@@ -1275,7 +1464,9 @@ class PromptNode(BaseNode):
         # model and the offered tool set are unchanged (a LIGHTWEIGHT swap
         # changes the model; the tool selector can change the tools).
         active_tools = offered_tools
-        model_to_use, structured_raw = self._bind_model(model, active_tools, config)
+        model_to_use, structured_raw = self._bind_model(
+            model, active_tools, config, self._tool_choice_for(state) if active_tools else None
+        )
 
         # ── 2b. Context scoping ──
         # When the node is context-scoped, replace the full transcript with a
@@ -1499,6 +1690,10 @@ class PromptNode(BaseNode):
 
                 # Signal that tools were called — engine will re-enter this node
                 result.transition_reason = "tool_calls_present"
+            elif result.raw_output:
+                # A plain-text reply is the node's output: output_key, the
+                # postprocessor and edge conditions see it.
+                result.output = self._text_output(result.raw_output)
 
         elif isinstance(response, dict):
             # Structured output (from with_structured_output)
@@ -1552,10 +1747,12 @@ class PromptNode(BaseNode):
                 logger.debug("Node %s: strategy.parse failed", self.name, exc_info=True)
 
         # ── 8. Run postprocessor ──
-        if self.postprocessor:
+        # On the node's reply, not on a step that only asked for tools (the
+        # engine re-enters the node with their results).
+        if self.postprocessor and result.transition_reason != "tool_calls_present":
             try:
                 post_result = self.postprocessor(result.output, state, config)
-                if asyncio.iscoroutine(post_result):
+                if inspect.isawaitable(post_result):
                     post_result = await post_result
                 if post_result is not None:
                     result.output = post_result
@@ -1594,8 +1791,8 @@ class PromptNode(BaseNode):
             output_schema=config.get("output_schema"),
             guards=config.get("guards"),
             context_layers=config.get("context_layers"),
-            max_tokens=config.get("max_tokens", 4096),
-            temperature=config.get("temperature", 0.0),
+            max_tokens=config.get("max_tokens"),
+            temperature=config.get("temperature"),
             input_keys=config.get("input_keys"),
             output_key=config.get("output_key"),
             inherit_context_from=config.get("inherit_context_from"),
@@ -1863,7 +2060,9 @@ class RouterNode(BaseNode):
         routes: Mapping of route names to next-node names.
         context_blocks: Blocks to render for the LLM's context.
         model_override: Optional different model for routing (e.g.,
-            a smaller/faster model for routing decisions).
+            a smaller/faster model for routing decisions): a chat model,
+            a model string (``"openai:gpt-5-nano"``) or a
+            :class:`~promptise.models.Model`, as for ``PromptNode``.
     """
 
     def __init__(
@@ -1872,7 +2071,7 @@ class RouterNode(BaseNode):
         *,
         routes: dict[str, str] | None = None,
         context_blocks: list[Any] | None = None,
-        model_override: BaseChatModel | None = None,
+        model_override: Any | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(name, **kwargs)
@@ -1885,9 +2084,9 @@ class RouterNode(BaseNode):
         start = time.perf_counter()
         result = NodeResult(node_name=self.name, node_type="router", iteration=state.iteration)
 
-        model = self.model_override or config.get("_engine_model")
+        model = _override_model(self, result, config)
         if model is None:
-            result.error = "No model available"
+            result.duration_ms = (time.perf_counter() - start) * 1000
             return result
 
         # Build routing prompt

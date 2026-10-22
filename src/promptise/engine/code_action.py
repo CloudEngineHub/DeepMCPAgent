@@ -52,7 +52,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field
 
 from .base import BaseNode
-from .nodes import TOOL_SELECTOR_KEY, record_failure, token_usage
+from .nodes import TOOL_SELECTOR_KEY, _override_model, record_failure, token_usage
 from .state import GraphState, NodeResult
 
 logger = logging.getLogger("promptise.engine.code_action")
@@ -380,7 +380,8 @@ class CodeActionNode(BaseNode):
             the program prompt — ``system_prompt`` carries the instructions).
         sandbox_factory: ``async () -> SandboxSession``. Required at run time;
             the node creates one session per run and cleans it up.
-        model_override: Optional per-node model.
+        model_override: Optional per-node model: a chat model, a model string
+            (``"openai:gpt-5-mini"``) or a :class:`~promptise.models.Model`.
         max_repairs: How many times to feed a failed program (a crash, or a
             program that reached ``max_tool_calls``) back for a fix.
         result_marker: stdout prefix that marks the final answer line.
@@ -649,9 +650,8 @@ class CodeActionNode(BaseNode):
         start = time.perf_counter()
         result = NodeResult(node_name=self.name, node_type="CodeActionNode")
 
-        model = self.model_override or config.get("_engine_model")
+        model = _override_model(self, result, config)
         if model is None:
-            result.error = "No model available (_engine_model missing)"
             result.duration_ms = (time.perf_counter() - start) * 1000
             return result
         if self.sandbox_factory is None:
@@ -688,7 +688,8 @@ class CodeActionNode(BaseNode):
             try:
                 response = await model.ainvoke(messages, config=config)
             except Exception as exc:  # noqa: BLE001
-                result.error = f"LLM call failed: {type(exc).__name__}: {exc}"
+                # Keep the exception: GraphExecutionError chains to it.
+                record_failure(result, exc, f"LLM call failed: {type(exc).__name__}: {exc}")
                 result.duration_ms = (time.perf_counter() - start) * 1000
                 return result
             result.llm_duration_ms += (time.perf_counter() - llm_start) * 1000
