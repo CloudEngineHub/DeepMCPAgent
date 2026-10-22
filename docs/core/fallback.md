@@ -41,6 +41,27 @@ Single-provider agents are a single point of failure. When OpenAI has an outage 
 
 ---
 
+## Keys and Setup
+
+Only the primary model needs its key when the agent is built. A fallback given as a
+string (`"anthropic:claude-sonnet-4-5"`) or a `Model(...)` is set up the first time
+it is tried:
+
+- **Primary without its key**: `build_agent()` raises `ModelSetupError`, naming the
+  missing variable (`OPENAI_API_KEY is not set: ...`), as for a single model.
+- **Fallback without its key**: the chain builds and the primary serves every request.
+  When the primary fails and the chain reaches that fallback, its setup error is one
+  more failed attempt: the next model is tried, and if none can answer, the
+  `RuntimeError` lists it (`anthropic:claude-sonnet-4-5: ModelSetupError: ...
+  ANTHROPIC_API_KEY is not set`). It counts toward that model's circuit breaker.
+- **Model instances** (`ChatOpenAI(...)` and other `BaseChatModel`s) are used as
+  given.
+
+So a chain written for production runs locally with only the primary's key. Check a
+fallback before you rely on it: `promptise models check anthropic:claude-sonnet-4-5`.
+
+---
+
 ## Which Errors Fall Back
 
 Every exception from a model moves on to the next one: timeouts (`timeout_per_model`), connection errors, rate limits, server errors, authentication errors, and also requests the provider rejects. What differs is whether the failure counts toward the model's circuit breaker:
@@ -58,7 +79,7 @@ When every model fails, `FallbackChain` raises `RuntimeError` listing each model
 
 ## Tools
 
-`build_agent()` binds the agent's tools with `bind_tools()`, and `FallbackChain.bind_tools()` binds them to **every** model in the chain, so a fallback model can call tools too. Every model must support tool calling; one that doesn't is named in the `NotImplementedError`. The bound chain shares the original chain's circuit breakers, and `chain.model_name` / `chain.get_chain_status()` reflect the requests it served.
+`build_agent()` binds the agent's tools with `bind_tools()`, and `FallbackChain.bind_tools()` binds them to **every** model in the chain, so a fallback model can call tools too (a fallback that is not set up yet gets them when it is first tried). Every model must support tool calling; one that doesn't is named in the `NotImplementedError` (for a fallback set up later, that error is its failed attempt). The bound chain shares the original chain's circuit breakers, and `chain.model_name` / `chain.get_chain_status()` reflect the requests it served.
 
 Each answer records the model that wrote it in `AIMessage.response_metadata["fallback_model"]`.
 

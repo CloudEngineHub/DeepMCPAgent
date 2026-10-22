@@ -674,3 +674,95 @@ class TestStreaming:
         done = [e for e in events if isinstance(e, DoneEvent)]
         assert tokens == ["Hello", " from", " backup"]
         assert done and done[0].full_response == "Hello from backup"
+
+
+# ---------------------------------------------------------------------------
+# Fallbacks are resolved when they are first tried
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def no_anthropic_key(monkeypatch, tmp_path):
+    """No ANTHROPIC_API_KEY anywhere: not exported, no .env read."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PROMPTISE_NO_DOTENV", "1")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+
+class TestLazyFallbackResolution:
+    def test_fallback_without_a_key_does_not_break_the_chain(self, no_anthropic_key):
+        chain = FallbackChain([FakeModel("primary"), "anthropic:claude-sonnet-4-5"])
+
+        assert chain.model_name == "primary"
+        assert [s["model_id"] for s in chain.get_chain_status()] == [
+            "primary",
+            "anthropic:claude-sonnet-4-5",
+        ]
+        result = chain._generate([HumanMessage(content="hi")])
+        assert result.generations[0].message.content == "Response from primary"
+        assert chain._resolved[1] is None  # never needed, never resolved
+
+    @pytest.mark.asyncio
+    async def test_fallback_setup_error_is_reported_when_it_is_reached(self, no_anthropic_key):
+        chain = FallbackChain([FakeModel("primary", fail=True), "anthropic:claude-sonnet-4-5"])
+
+        with pytest.raises(RuntimeError, match="All 2 models") as info:
+            await chain._agenerate([HumanMessage(content="hi")])
+
+        message = str(info.value)
+        assert "primary is down" in message
+        assert "anthropic:claude-sonnet-4-5" in message and "ANTHROPIC_API_KEY" in message
+
+    def test_primary_without_a_key_fails_when_the_chain_is_set_up(self, no_anthropic_key):
+        from promptise.models import ModelSetupError
+
+        chain = FallbackChain(["anthropic:claude-sonnet-4-5", FakeModel("backup")])
+        with pytest.raises(ModelSetupError, match="ANTHROPIC_API_KEY"):
+            chain.model_name  # noqa: B018 (build_agent reads it)
+
+    @pytest.mark.asyncio
+    async def test_fallback_is_resolved_once_and_gets_the_bound_tools(self, monkeypatch):
+        import promptise.fallback as fallback_mod
+
+        seen: list = []
+        made: list = []
+
+        def fake_resolve(m):
+            made.append(m)
+            return ToolModel(model_name=str(m), seen=seen)
+
+        monkeypatch.setattr(fallback_mod, "_resolve_member", fake_resolve)
+        chain = FallbackChain([ToolModel(model_name="primary", fail=True, seen=seen), "x:backup"])
+        assert made == []  # instances are used as given; the fallback is not resolved yet
+
+        for _ in range(2):
+            bound = chain.bind_tools([lookup])  # the engine binds on every step
+            result = await bound.ainvoke([HumanMessage(content="Where is order 7?")])
+            assert result.content == "Response from x:backup"
+
+        assert made == ["x:backup"]
+        assert seen[-1] == ("x:backup", {"tools": ["lookup"]})
+        assert chain.model_name == "x:backup"
+
+    @pytest.mark.asyncio
+    async def test_streaming_reaches_a_lazily_resolved_fallback(self, monkeypatch):
+        import promptise.fallback as fallback_mod
+
+        monkeypatch.setattr(
+            fallback_mod, "_resolve_member", lambda m: StreamingModel(model_name=str(m))
+        )
+        chain = FallbackChain([StreamingModel(model_name="primary", fail_before=True), "x:backup"])
+        chunks = [c async for c in chain.astream([HumanMessage(content="Hi")])]
+        assert [c.content for c in chunks if c.content] == ["Hello", " from", " x:backup"]
+
+    @pytest.mark.asyncio
+    async def test_build_agent_needs_only_the_primary_key(self, no_anthropic_key, monkeypatch):
+        """The cookbook chain builds with only OPENAI_API_KEY set."""
+        from promptise import build_agent
+
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-used")
+        agent = await build_agent(
+            model=FallbackChain(["openai:gpt-5-mini", "anthropic:claude-sonnet-4-5"]),
+            servers={},
+        )
+        await agent.shutdown()

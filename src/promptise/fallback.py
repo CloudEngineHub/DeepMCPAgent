@@ -176,6 +176,8 @@ class FallbackChain(BaseChatModel):
     # Per model: extra call kwargs from bind_tools() (a dict), or a bound
     # Runnable when the model's binding is not a plain kwargs binding.
     _bindings: list[Any] = []
+    # The tools and kwargs of bind_tools(), for members bound on first use.
+    _tool_args: Any = None
     # The chain a bind_tools() copy came from; it reports the serving model.
     _root: Any = None
 
@@ -212,10 +214,19 @@ class FallbackChain(BaseChatModel):
         self._circuits = []
         self._initialized = False
         self._bindings = []
+        self._tool_args = None
         self._root = None
 
     def _ensure_resolved(self) -> None:
-        """Lazily resolve model strings to BaseChatModel instances.
+        """Set up the chain: model ids, circuit breakers and the primary model.
+
+        Only the primary model is resolved here, so a primary that cannot be
+        used (no API key, unknown provider) fails when the agent is built,
+        with the resolver's actionable error.  A fallback given as a string
+        or :class:`~promptise.Model` is resolved the first time it is tried:
+        a fallback whose key is not set does not stop the chain from being
+        built, and when it is reached its setup error is reported like any
+        other failed attempt.  Model instances are used as given.
 
         Builds into temporary lists and assigns atomically to prevent
         duplicate entries if resolution fails partway through.
@@ -223,21 +234,15 @@ class FallbackChain(BaseChatModel):
         if self._initialized:
             return
 
-        from .models import Model, resolve_model
-
-        # Build into temps — if any model fails to resolve, no partial state
         ids: list[str] = []
         resolved: list[Any] = []
         circuits: list[_CircuitState] = []
 
-        for m in self.models:
+        for index, m in enumerate(self.models):
             if isinstance(m, str):
-                # Same resolver as build_agent(): aliases, .env and actionable errors.
                 model_id = m
-                model_obj = resolve_model(m)
             elif isinstance(m, Model):
                 model_id = m.spec
-                model_obj = m.resolve()
             elif (
                 hasattr(m, "_generate") or hasattr(m, "_agenerate") or isinstance(m, BaseChatModel)
             ):
@@ -246,11 +251,16 @@ class FallbackChain(BaseChatModel):
                     or getattr(m, "model", None)
                     or str(type(m).__name__)
                 )
-                model_obj = m
             else:
                 raise TypeError(
                     f"Expected str or model with _generate/_agenerate, got {type(m).__name__}"
                 )
+
+            if isinstance(m, (str, Model)):
+                # The primary now; fallbacks when they are first tried.
+                model_obj = _resolve_member(m) if index == 0 else None
+            else:
+                model_obj = m
 
             ids.append(str(model_id))
             resolved.append(model_obj)
@@ -271,6 +281,21 @@ class FallbackChain(BaseChatModel):
             "FallbackChain initialized: %s",
             " → ".join(self._model_ids),
         )
+
+    def _member(self, index: int) -> BaseChatModel:
+        """The chat model at ``index``, resolving a fallback on first use.
+
+        Raises the resolver's error (for example
+        :class:`~promptise.models.ModelSetupError` when the provider's key is
+        not set); the caller treats it as a failed attempt.  The model is
+        stored in the list this chain shares with its :meth:`bind_tools`
+        copies, so it is resolved once.
+        """
+        model = self._resolved[index]
+        if model is None:
+            model = _resolve_member(self.models[index])
+            self._resolved[index] = model
+        return model  # type: ignore[no-any-return]
 
     @property
     def _llm_type(self) -> str:
@@ -320,22 +345,16 @@ class FallbackChain(BaseChatModel):
         self._ensure_resolved()
         if tool_choice is not None:
             kwargs["tool_choice"] = tool_choice
-        bindings: list[Any] = []
-        for model_id, model in zip(self._model_ids, self._resolved, strict=True):
-            try:
-                bound = model.bind_tools(tools, **kwargs)
-            except NotImplementedError as exc:
-                raise NotImplementedError(
-                    f"FallbackChain: model {model_id!r} does not support tool calling, "
-                    "so it cannot serve an agent with tools. Remove it from the chain "
-                    "or use a model that supports tools."
-                ) from exc
-            if isinstance(bound, RunnableBinding) and bound.bound is model:
-                bindings.append(dict(bound.kwargs))
-            else:
-                bindings.append(bound)
+        tool_args = (list(tools), dict(kwargs))
+        # Members not resolved yet (fallbacks never tried) are bound when
+        # they are first tried; see _binding().
+        bindings: list[Any] = [
+            None if model is None else _bind_member(model_id, model, tool_args)
+            for model_id, model in zip(self._model_ids, self._resolved, strict=True)
+        ]
         chain = self.model_copy()
         chain._bindings = bindings
+        chain._tool_args = tool_args
         chain._root = self._root or self
         return chain
 
@@ -356,7 +375,14 @@ class FallbackChain(BaseChatModel):
         return result
 
     def _binding(self, index: int) -> Any:
-        return self._bindings[index] if self._bindings else {}
+        """Extra call kwargs (or a bound Runnable) for member ``index``."""
+        if self._tool_args is None:
+            return {}
+        binding = self._bindings[index]
+        if binding is None:
+            binding = _bind_member(self._model_ids[index], self._member(index), self._tool_args)
+            self._bindings[index] = binding
+        return binding
 
     def _generate(
         self,
@@ -373,7 +399,7 @@ class FallbackChain(BaseChatModel):
         )
         errors: list[tuple[str, Exception]] = []
 
-        for i, (model, circuit) in enumerate(zip(self._resolved, self._circuits, strict=False)):
+        for i, circuit in enumerate(self._circuits):
             if circuit.should_skip():
                 continue
 
@@ -381,6 +407,7 @@ class FallbackChain(BaseChatModel):
                 break
 
             try:
+                model = self._member(i)
                 binding = self._binding(i)
                 if isinstance(binding, Runnable):
                     if stop is not None:
@@ -413,7 +440,7 @@ class FallbackChain(BaseChatModel):
         )
         errors: list[tuple[str, Exception]] = []
 
-        for i, (model, circuit) in enumerate(zip(self._resolved, self._circuits, strict=False)):
+        for i, circuit in enumerate(self._circuits):
             if circuit.should_skip():
                 continue
 
@@ -430,6 +457,7 @@ class FallbackChain(BaseChatModel):
                 timeout = None  # No timeout
 
             try:
+                model = self._member(i)
                 binding = self._binding(i)
                 if isinstance(binding, Runnable):
                     coro = _ainvoke_as_result(binding, messages, stop, kwargs)
@@ -472,7 +500,7 @@ class FallbackChain(BaseChatModel):
         )
         errors: list[tuple[str, Exception]] = []
 
-        for i, (model, circuit) in enumerate(zip(self._resolved, self._circuits, strict=False)):
+        for i, circuit in enumerate(self._circuits):
             if circuit.should_skip():
                 continue
 
@@ -486,7 +514,7 @@ class FallbackChain(BaseChatModel):
             else:
                 timeout = None
 
-            stream = self._member_astream(i, model, messages, stop, kwargs)
+            stream = self._member_astream(i, messages, stop, kwargs)
             try:
                 first = stream.__anext__()
                 chunk = await (asyncio.wait_for(first, timeout) if timeout else first)
@@ -518,12 +546,12 @@ class FallbackChain(BaseChatModel):
     async def _member_astream(
         self,
         index: int,
-        model: BaseChatModel,
         messages: list[BaseMessage],
         stop: list[str] | None,
         kwargs: dict[str, Any],
     ) -> AsyncIterator[ChatGenerationChunk]:
         """Stream one chain member's answer as generation chunks."""
+        model = self._member(index)
         binding = self._binding(index)
         if isinstance(binding, Runnable):
             call_kwargs = {**kwargs, "stop": stop} if stop is not None else kwargs
@@ -607,6 +635,36 @@ class FallbackChain(BaseChatModel):
             }
             for i, circuit in enumerate(self._circuits)
         ]
+
+
+def _resolve_member(m: str | Model) -> BaseChatModel:
+    """Resolve a model string or :class:`Model` like ``build_agent()`` does.
+
+    Same resolver as ``build_agent()``: aliases, ``.env`` and actionable errors.
+    """
+    if isinstance(m, Model):
+        return m.resolve()
+    from .models import resolve_model
+
+    return resolve_model(m)
+
+
+def _bind_member(
+    model_id: str, model: BaseChatModel, tool_args: tuple[list[Any], dict[str, Any]]
+) -> Any:
+    """Bind tools to one chain member: call kwargs, or a bound Runnable."""
+    tools, kwargs = tool_args
+    try:
+        bound = model.bind_tools(tools, **kwargs)
+    except NotImplementedError as exc:
+        raise NotImplementedError(
+            f"FallbackChain: model {model_id!r} does not support tool calling, "
+            "so it cannot serve an agent with tools. Remove it from the chain "
+            "or use a model that supports tools."
+        ) from exc
+    if isinstance(bound, RunnableBinding) and bound.bound is model:
+        return dict(bound.kwargs)
+    return bound
 
 
 # HTTP statuses with which a provider rejects the request itself (malformed,
