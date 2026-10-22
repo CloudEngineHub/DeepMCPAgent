@@ -218,7 +218,7 @@ print(summarize.return_type)  # <class 'str'>
 prompt(
     model: str = "openai:gpt-5-mini",
     *,
-    observe: bool = False,
+    observe: bool | ObservabilityCollector | PromptObserver = False,
     inspect: PromptInspector | None = None,
     description: str | None = None,
 ) -> Callable[[Callable], Prompt]
@@ -227,7 +227,7 @@ prompt(
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `model` | `"openai:gpt-5-mini"` | Model string passed to the chat model factory on each standalone call |
-| `observe` | `False` | Stored on the prompt; in 1.6.0 no events are emitted from it. Call a [`PromptObserver`](inspector.md#promptobserver) yourself for telemetry |
+| `observe` | `False` | Record every standalone call as timeline events with a [`PromptObserver`](inspector.md#promptobserver). `True` records to the prompt's own collector (`my_prompt.observer.collector`); a collector or observer records there |
 | `inspect` | `None` | A [`PromptInspector`](inspector.md) that records every call |
 | `description` | `None` | What the prompt is for; shown to MCP clients when the prompt is served with `MCPServer.include_prompts()` |
 

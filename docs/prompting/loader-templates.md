@@ -166,7 +166,7 @@ guards:
   - type: "schema_strict"      # no options
 
 # --- Observability ---
-observe: false                 # stored on the prompt; no events emitted in 1.6.0
+observe: false                 # true: record calls with a PromptObserver (prompt.observer.collector)
 
 # --- World context ---
 world:

@@ -12,7 +12,12 @@ Example::
     collector = ObservabilityCollector()
     observer = PromptObserver(collector)
 
-    # Observer is attached to prompts automatically when observe=True
+    @prompt(model="openai:gpt-5-mini", observe=collector)   # or observe=observer
+    async def summarize(text: str) -> str:
+        \"""Summarize: {text}\"""
+
+    # observe=True records to the prompt's own collector:
+    # summarize.observer.collector.get_timeline()
 """
 
 from __future__ import annotations
@@ -29,7 +34,10 @@ class PromptObserver:
     """Bridge between prompt execution and ObservabilityCollector.
 
     Records timeline events for prompt start, end, error, guard
-    blocks, and context provider execution.
+    blocks, and context provider execution.  A prompt created with
+    ``observe=`` (``@prompt``, ``PromptBuilder.observe()``, a YAML file's
+    ``observe: true``) or ``with_observer()`` calls it on every
+    standalone call.
 
     Args:
         collector: An :class:`ObservabilityCollector` instance.
@@ -37,6 +45,11 @@ class PromptObserver:
 
     def __init__(self, collector: Any) -> None:
         self._collector = collector
+
+    @property
+    def collector(self) -> Any:
+        """The :class:`~promptise.observability.ObservabilityCollector` events go to."""
+        return self._collector
 
     def record_start(
         self,

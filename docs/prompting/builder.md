@@ -217,16 +217,20 @@ result = await prompt(data="quarterly revenue figures...")
 
 ## Observability
 
-`.observe(enabled=True)` sets the prompt's `observe` flag. In 1.6.0 the flag is stored but no telemetry is emitted from it; attach a [`PromptInspector`](inspector.md) for traces:
+`.observe()` makes the built prompt record every call with a [`PromptObserver`](inspector.md#promptobserver): start, end, errors, guard blocks and context providers, as timeline events. `.observe(True)` records to the prompt's own collector; pass an `ObservabilityCollector` (or a `PromptObserver`) to record somewhere shared:
 
 ```python
+from promptise.observability import ObservabilityCollector
+
+collector = ObservabilityCollector()
 prompt = (
     PromptBuilder("tracked_prompt")
     .template("Process: {input}")
     .model("openai:gpt-5-mini")
-    .observe(True)
+    .observe(collector)
     .build()
 )
+# After a call: [e.event_type for e in collector.get_timeline()]
 ```
 
 ## API Summary
@@ -237,7 +241,7 @@ prompt = (
 | `.system(text)` | `self` | Set system/instruction text |
 | `.template(text)` | `self` | Set prompt template with `{variable}` placeholders |
 | `.model(name)` | `self` | Set the LLM model identifier |
-| `.observe(enabled=True)` | `self` | Set the stored `observe` flag |
+| `.observe(enabled=True)` | `self` | Record calls with a `PromptObserver` (`True`, a collector or an observer; `False` turns it off) |
 | `.output_type(t)` | `self` | Set output type for structured parsing |
 | `.user(user_ctx)` | `self` | Set `world["user"]` |
 | `.env(env_ctx)` | `self` | Set `world["environment"]` |
@@ -256,7 +260,7 @@ prompt = (
     Use `@prompt` for static, declarative prompt definitions. Use `PromptBuilder` when you need to construct prompts based on runtime conditions. Both produce `Prompt` objects with the same methods.
 
 !!! note "Blocks, inspector and description"
-    The builder has no methods for blocks, an inspector or a description. Add them to the built prompt: `builder.build().with_blocks(Identity("Analyst")).with_inspector(inspector)`. `.observe(True)` stores the flag on the prompt; in 1.6.0 no events are emitted from it (see [PromptObserver](inspector.md#promptobserver)).
+    The builder has no methods for blocks, an inspector or a description. Add them to the built prompt: `builder.build().with_blocks(Identity("Analyst")).with_inspector(inspector)`. `.observe()` is the builder's way to attach a [PromptObserver](inspector.md#promptobserver); `.with_observer(...)` works on the built prompt too.
 
 !!! warning "Template is required"
     If neither `.system()` nor `.template()` is called, the template is "Respond to the user's request." Always set an explicit template for production prompts.

@@ -171,7 +171,7 @@ self.assert_latency(stats, max_ms=5000)
 | `prompt_name` | `str` | The prompt's name |
 | `model` | `str` | The model string |
 | `latency_ms` | `float` | Wall time of the call, including guards |
-| `input_tokens` / `output_tokens` | `int` | Always `0` in 1.6.0 (not measured) |
+| `input_tokens` / `output_tokens` | `int` | From the model's reply (LangChain `usage_metadata`); `0` when the provider reports no usage |
 | `context_providers_used` | `list[str] \| None` | Class names of the attached context providers |
 | `strategy` / `perspective` | `str` | `repr()` of the strategy and perspective, or `""` |
 

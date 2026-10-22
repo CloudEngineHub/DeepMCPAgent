@@ -228,6 +228,9 @@ class ConversationFlow:
         # Slot fills carried across turns
         self._slot_fills: dict[str, str] = {}
 
+        # Phases run by the public call in progress (see _run_phase)
+        self._transition_depth = 0
+
         self._discover_phases()
 
     # -- Phase discovery ----------------------------------------------------
@@ -306,25 +309,13 @@ class ConversationFlow:
 
     # -- Phase transitions --------------------------------------------------
 
+    #: Phases one call of :meth:`start`, :meth:`next_turn` or
+    #: :meth:`transition` may run, following the transitions their handlers
+    #: request (``ctx.transition()``), before ``RecursionError``.
     _MAX_TRANSITION_DEPTH = 5
 
-    async def _enter_phase(
-        self,
-        phase_name: str,
-        *,
-        _depth: int = 0,
-    ) -> None:
-        """Enter a phase: run on_exit for old, on_enter for new, activate blocks.
-
-        Recursive transitions (when an on_enter hook triggers another
-        transition) are limited to ``_MAX_TRANSITION_DEPTH`` to prevent
-        infinite loops.
-        """
-        if _depth >= self._MAX_TRANSITION_DEPTH:
-            raise RecursionError(
-                f"Phase transition depth limit ({self._MAX_TRANSITION_DEPTH}) "
-                f"exceeded.  Check for circular transitions."
-            )
+    async def _enter_phase(self, phase_name: str) -> None:
+        """Enter a phase: run on_exit for old, on_enter for new, activate blocks."""
         if phase_name not in self._phases:
             raise ValueError(
                 f"Unknown phase {phase_name!r}. Available: {list(self._phases.keys())}"
@@ -357,6 +348,43 @@ class ConversationFlow:
             if hasattr(result, "__await__"):
                 await result
 
+    async def _run_phase(self, phase_name: str, *, enter: bool = True) -> None:
+        """Enter *phase_name* (unless *enter* is false) and run its handler.
+
+        A transition the handler requests with ``ctx.transition()`` is
+        followed the same way: that phase is entered and its handler runs.
+        The phases run per public call, nested calls included (a handler or
+        hook that awaits ``flow.transition()``), are limited to
+        ``_MAX_TRANSITION_DEPTH`` so circular transitions raise
+        ``RecursionError`` instead of looping.
+        """
+        if self._transition_depth >= self._MAX_TRANSITION_DEPTH:
+            raise RecursionError(
+                f"Phase transition depth limit ({self._MAX_TRANSITION_DEPTH}) "
+                f"exceeded at phase {phase_name!r}. Check for circular transitions."
+            )
+        self._transition_depth += 1
+        try:
+            if enter:
+                await self._enter_phase(phase_name)
+            spec = self._phases.get(phase_name)
+            if spec is None:
+                return
+            ctx = TurnContext(
+                flow=self,
+                turn=self._turn,
+                phase_name=phase_name,
+                state=self._state,
+                history=self._history,
+            )
+            result = spec.handler(ctx)
+            if hasattr(result, "__await__"):
+                await result
+            if ctx._pending_transition is not None:
+                await self._run_phase(ctx._pending_transition)
+        finally:
+            self._transition_depth -= 1
+
     # -- Public API ---------------------------------------------------------
 
     async def start(self, user_message: str | None = None) -> AssembledPrompt:
@@ -384,37 +412,9 @@ class ConversationFlow:
                 "on one of your phase handlers."
             )
 
-        await self._enter_phase(self._initial_phase)
-
-        # Run the initial phase handler
-        ctx = TurnContext(
-            flow=self,
-            turn=0,
-            phase_name=self._current_phase or "",
-            state=self._state,
-            history=self._history,
-        )
-        spec = self._phases[self._initial_phase]
-        result = spec.handler(ctx)
-        if hasattr(result, "__await__"):
-            await result
-
-        # Handle any transition requested by the handler
-        if ctx._pending_transition is not None:
-            await self._enter_phase(ctx._pending_transition)
-            # Run the new phase's handler
-            new_spec = self._phases.get(ctx._pending_transition)
-            if new_spec is not None:
-                new_ctx = TurnContext(
-                    flow=self,
-                    turn=0,
-                    phase_name=self._current_phase or "",
-                    state=self._state,
-                    history=self._history,
-                )
-                new_result = new_spec.handler(new_ctx)
-                if hasattr(new_result, "__await__"):
-                    await new_result
+        # Run the initial phase handler, and the handlers of the phases it
+        # transitions to
+        await self._run_phase(self._initial_phase)
 
         return self._emit()
 
@@ -445,67 +445,30 @@ class ConversationFlow:
         if assistant_message:
             self._history.append({"role": "assistant", "content": assistant_message})
 
-        # Handle explicit transition
+        # Run the current phase handler (after an explicit transition, the
+        # new phase's), and the handlers of the phases it transitions to
         if transition_to is not None:
-            await self._enter_phase(transition_to)
-
-        # Run current phase handler
-        if self._current_phase is not None:
-            spec = self._phases.get(self._current_phase)
-            if spec is not None:
-                ctx = TurnContext(
-                    flow=self,
-                    turn=self._turn,
-                    phase_name=self._current_phase,
-                    state=self._state,
-                    history=self._history,
-                )
-                result = spec.handler(ctx)
-                if hasattr(result, "__await__"):
-                    await result
-
-                # Handle transition requested by handler
-                if ctx._pending_transition is not None:
-                    await self._enter_phase(ctx._pending_transition)
-                    # Run the new phase's handler
-                    new_spec = self._phases.get(ctx._pending_transition)
-                    if new_spec is not None:
-                        new_ctx = TurnContext(
-                            flow=self,
-                            turn=self._turn,
-                            phase_name=self._current_phase or "",
-                            state=self._state,
-                            history=self._history,
-                        )
-                        new_result = new_spec.handler(new_ctx)
-                        if hasattr(new_result, "__await__"):
-                            await new_result
+            await self._run_phase(transition_to)
+        elif self._current_phase is not None:
+            await self._run_phase(self._current_phase, enter=False)
 
         return self._emit()
 
     async def transition(self, phase_name: str) -> AssembledPrompt:
         """Explicitly transition to a new phase.
 
+        Runs the phase's handler, and when that handler requests another
+        transition (``ctx.transition()``), enters that phase and runs its
+        handler too, as :meth:`start` and :meth:`next_turn` do.
+
         Returns the updated prompt after the transition.
+
+        Raises:
+            ValueError: *phase_name* is not a phase of this flow.
+            RecursionError: More than ``_MAX_TRANSITION_DEPTH`` phases ran
+                (circular transitions).
         """
-        await self._enter_phase(phase_name)
-
-        # Run the new phase handler
-        spec = self._phases.get(phase_name)
-        if spec is not None:
-            ctx = TurnContext(
-                flow=self,
-                turn=self._turn,
-                phase_name=phase_name,
-                state=self._state,
-                history=self._history,
-            )
-            result = spec.handler(ctx)
-            if hasattr(result, "__await__"):
-                await result
-
-            if ctx._pending_transition is not None:
-                await self._enter_phase(ctx._pending_transition)
+        await self._run_phase(phase_name)
 
         return self._emit()
 

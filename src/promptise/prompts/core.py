@@ -40,9 +40,10 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+import logging
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Any, cast, get_type_hints
 
@@ -55,6 +56,8 @@ from .strategies import Perspective, Strategy
 from .template import render_template
 
 __all__ = ["Prompt", "prompt", "constraint"]
+
+logger = logging.getLogger(__name__)
 
 # Type-only forward references for blocks/inspector (avoid circular imports)
 _Block = Any  # blocks.Block
@@ -69,6 +72,49 @@ _Inspector = Any  # inspector.PromptInspector
 def _guard_name(g: Any) -> str:
     """Name a guard for traces: its ``name`` attribute or class name."""
     return str(getattr(g, "name", None) or type(g).__name__)
+
+
+def _make_observer(observe: Any, prompt_name: str) -> Any | None:
+    """The ``PromptObserver`` for an ``observe=`` value (``None`` when off).
+
+    ``True`` gives the prompt its own ``ObservabilityCollector``; a
+    collector is wrapped; a ``PromptObserver`` (anything with
+    ``record_start``) is used as is.
+    """
+    if observe is None or observe is False:
+        return None
+    from .observe import PromptObserver
+
+    if observe is True:
+        from ..observability import ObservabilityCollector
+
+        return PromptObserver(ObservabilityCollector(session_name=f"prompt:{prompt_name}"))
+    if hasattr(observe, "record_start"):
+        return observe
+    if hasattr(observe, "record_event"):
+        return PromptObserver(observe)
+    raise TypeError(
+        "observe must be a bool, an ObservabilityCollector or a PromptObserver, "
+        f"not {type(observe).__name__}"
+    )
+
+
+def _notify(method: Callable[..., Any], *args: Any) -> None:
+    """Call an observer method; a failing observer never breaks the prompt."""
+    try:
+        method(*args)
+    except Exception:
+        logger.debug(
+            "Prompt observer %s failed", getattr(method, "__name__", method), exc_info=True
+        )
+
+
+def _usage_count(usage: Any, key: str) -> int:
+    """A token count from LangChain ``usage_metadata`` (``0`` when missing)."""
+    if not isinstance(usage, Mapping):
+        return 0
+    value = usage.get(key)
+    return value if isinstance(value, int) and not isinstance(value, bool) else 0
 
 
 def _strip_markdown_fences(text: str) -> str:
@@ -208,7 +254,12 @@ def _build_schema_instructions(return_type: type | None) -> str:
 
 @dataclass
 class PromptStats:
-    """Execution statistics for a single prompt call."""
+    """Execution statistics for a single prompt call.
+
+    ``input_tokens`` and ``output_tokens`` come from the model's reply
+    (LangChain ``usage_metadata``); they stay ``0`` when the provider
+    reports no usage.
+    """
 
     prompt_name: str = ""
     model: str = ""
@@ -251,12 +302,12 @@ class Prompt:
         fn: Callable[..., Any],
         *,
         model: str = "openai:gpt-5-mini",
-        observe: bool = False,
+        observe: Any = False,
         description: str | None = None,
     ) -> None:
         self._fn = fn
         self._model = model
-        self._observe = observe
+        self._observe = bool(observe)
         self._name = fn.__name__
         # A docstring is indented like the code around it: clean it the way
         # ``inspect.getdoc`` does, so a multi-line template does not send
@@ -299,8 +350,8 @@ class Prompt:
         self._on_after: Callable[..., Any] | None = None
         self._on_error: Callable[..., Any] | None = None
 
-        # Observer
-        self._observer: Any | None = None
+        # Observer (observe=True, an ObservabilityCollector or a PromptObserver)
+        self._observer: Any | None = _make_observer(observe, fn.__name__)
 
         # Stats from last call
         self.last_stats: PromptStats | None = None
@@ -350,6 +401,17 @@ class Prompt:
     def return_type(self) -> type | None:
         """Declared return type."""
         return self._return_type
+
+    @property
+    def observer(self) -> Any | None:
+        """The :class:`~promptise.prompts.observe.PromptObserver` recording
+        this prompt's calls, or ``None`` when it is not observed.
+
+        With ``observe=True`` it records to its own
+        :class:`~promptise.observability.ObservabilityCollector`, available
+        as ``prompt.observer.collector``.
+        """
+        return self._observer
 
     # ------------------------------------------------------------------
     # Immutable composition — with_*() methods return copies
@@ -427,6 +489,19 @@ class Prompt:
         """Return a copy with additional prompt blocks."""
         p = self._copy()
         p._blocks.extend(blocks)
+        return p
+
+    def with_observer(self, observer: Any) -> Prompt:
+        """Return a copy whose calls are recorded by *observer*.
+
+        Args:
+            observer: A :class:`~promptise.prompts.observe.PromptObserver`
+                or an :class:`~promptise.observability.ObservabilityCollector`
+                (wrapped in a ``PromptObserver``).
+        """
+        p = self._copy()
+        p._observer = _make_observer(observer, self._name)
+        p._observe = p._observer is not None
         return p
 
     def with_inspector(self, inspector: _Inspector) -> Prompt:
@@ -551,7 +626,8 @@ class Prompt:
                 text = f"{assembled.text}\n\n{text}"
 
         # Context providers
-        sections = await self._run_context_providers(ctx)
+        provider_runs: list[tuple[str, int, float]] = []
+        sections = await self._run_context_providers(ctx, provider_runs)
         if sections:
             text = f"{text}\n\n{sections}"
 
@@ -577,15 +653,18 @@ class Prompt:
                 assembled, prompt_name=self._name, model=self._model
             )
             trace.input_text = text
+            for provider_name, chars, ms in provider_runs:
+                self._inspector.record_context(trace, provider_name, chars, ms)
 
         return text
 
     async def to_messages(self, ctx: PromptContext | None = None, **kwargs: Any) -> list[Any]:
         """Produce LangChain message objects for agent integration.
 
-        Returns ``[SystemMessage(rendered_prompt), HumanMessage(input)]``
-        when kwargs are provided, or just ``[SystemMessage]`` for
-        system prompt use.
+        Returns ``[SystemMessage(rendered_prompt)]``, followed by
+        ``HumanMessage(ctx.rendered_text)`` when *ctx* is given and its
+        ``rendered_text`` is set.  The template variables in *kwargs* go
+        into the system message; they never add a ``HumanMessage``.
 
         Args:
             ctx: Optional :class:`PromptContext`.
@@ -642,6 +721,10 @@ class Prompt:
         ctx = self._build_context(variables)
         ctx.rendered_text = text
 
+        observer = self._observer
+        if observer is not None:
+            _notify(observer.record_start, self._name, self._model, text)
+
         try:
             # 4. on_before hook
             await self._run_hook(self._on_before, ctx)
@@ -672,9 +755,15 @@ class Prompt:
                 )
 
             # 5. Context providers
-            sections = await self._run_context_providers(ctx)
+            provider_runs: list[tuple[str, int, float]] = []
+            sections = await self._run_context_providers(ctx, provider_runs)
             if sections:
                 text = f"{text}\n\n{sections}"
+            for provider_name, chars, ms in provider_runs:
+                if trace is not None and self._inspector is not None:
+                    self._inspector.record_context(trace, provider_name, chars, ms)
+                if observer is not None:
+                    _notify(observer.record_context, self._name, provider_name, chars)
 
             # 6. Perspective
             if self._perspective is not None:
@@ -694,13 +783,16 @@ class Prompt:
             # 9. Input guards
             if trace is not None:
                 trace.input_text = text
+            # Guards that passed every check they ran (a guard is usually
+            # both an input and an output guard): each is listed once.
+            passed: list[Guard] = []
             for g in self._input_guards:
                 try:
                     text = await g.check_input(text)
-                except Exception:
-                    if trace is not None and self._inspector is not None:
-                        self._inspector.record_guard(trace, _guard_name(g), passed=False)
+                except Exception as guard_exc:
+                    self._guard_failed(trace, observer, g, guard_exc, passed)
                     raise
+                self._guard_passed(trace, g, passed)
             if trace is not None and self._inspector is not None:
                 trace.input_text = text
 
@@ -720,6 +812,7 @@ class Prompt:
             else:
                 raw_msg = await llm.ainvoke(messages)
 
+            usage = getattr(raw_msg, "usage_metadata", None) or {}
             _raw_content = raw_msg.content if hasattr(raw_msg, "content") else str(raw_msg)
             raw_output: str = (
                 _raw_content if isinstance(_raw_content, str) else str(_raw_content or "")
@@ -736,12 +829,10 @@ class Prompt:
             for g in self._output_guards:
                 try:
                     result = await g.check_output(result)
-                except Exception:
-                    if trace is not None and self._inspector is not None:
-                        self._inspector.record_guard(trace, _guard_name(g), passed=False)
+                except Exception as guard_exc:
+                    self._guard_failed(trace, observer, g, guard_exc, passed)
                     raise
-                if trace is not None and self._inspector is not None:
-                    self._inspector.record_guard(trace, _guard_name(g), passed=True)
+                self._guard_passed(trace, g, passed)
 
             # 14. Stats
             elapsed = (time.perf_counter() - start) * 1000
@@ -751,10 +842,15 @@ class Prompt:
                 prompt_name=self._name,
                 model=self._model,
                 latency_ms=elapsed,
+                input_tokens=_usage_count(usage, "input_tokens"),
+                output_tokens=_usage_count(usage, "output_tokens"),
                 context_providers_used=[type(p).__name__ for p in self._context_providers],
                 strategy=repr(self._strategy) if self._strategy else "",
                 perspective=repr(self._perspective) if self._perspective else "",
             )
+
+            if observer is not None:
+                _notify(observer.record_end, self._name, self._model, elapsed, len(raw_output))
 
             # 15. on_after hook
             await self._run_hook(self._on_after, ctx, result)
@@ -762,6 +858,8 @@ class Prompt:
             return result
 
         except Exception as exc:
+            if observer is not None:
+                _notify(observer.record_error, self._name, exc)
             await self._run_hook(self._on_error, ctx, exc)
             raise
 
@@ -779,14 +877,53 @@ class Prompt:
         )
         return ctx
 
-    async def _run_context_providers(self, ctx: PromptContext) -> str:
-        """Run all context providers and join their outputs."""
+    async def _run_context_providers(
+        self,
+        ctx: PromptContext,
+        runs: list[tuple[str, int, float]] | None = None,
+    ) -> str:
+        """Run all context providers and join their outputs.
+
+        When *runs* is given, ``(provider name, characters, milliseconds)``
+        is appended for each provider (for the inspector and observer).
+        """
         parts: list[str] = []
         for provider in self._context_providers:
+            started = time.perf_counter()
             section = await provider.provide(ctx)
+            if runs is not None:
+                runs.append(
+                    (
+                        type(provider).__name__,
+                        len(section or ""),
+                        (time.perf_counter() - started) * 1000,
+                    )
+                )
             if section:
                 parts.append(section)
         return "\n\n".join(parts)
+
+    def _guard_passed(self, trace: Any, guard: Guard, passed: list[Guard]) -> None:
+        """Record *guard* in the trace the first time it passes a check."""
+        if any(g is guard for g in passed):
+            return
+        passed.append(guard)
+        if trace is not None and self._inspector is not None:
+            self._inspector.record_guard(trace, _guard_name(guard), passed=True)
+
+    def _guard_failed(
+        self, trace: Any, observer: Any, guard: Guard, exc: Exception, passed: list[Guard]
+    ) -> None:
+        """Record a guard that rejected the input or output."""
+        name = _guard_name(guard)
+        if trace is not None and self._inspector is not None:
+            if any(g is guard for g in passed) and name in trace.guards_passed:
+                # It passed the input check and failed the output check
+                last = len(trace.guards_passed) - 1 - trace.guards_passed[::-1].index(name)
+                del trace.guards_passed[last]
+            self._inspector.record_guard(trace, name, passed=False)
+        if observer is not None:
+            _notify(observer.record_guard_block, self._name, name, str(exc))
 
     def _inject_constraints(self, text: str) -> str:
         """Append constraints as numbered requirements."""
@@ -832,7 +969,7 @@ class Prompt:
 def prompt(
     model: str = "openai:gpt-5-mini",
     *,
-    observe: bool = False,
+    observe: Any = False,
     inspect: _Inspector | None = None,
     description: str | None = None,
 ) -> Callable[[Callable[..., Any]], Prompt]:
@@ -853,7 +990,12 @@ def prompt(
     Args:
         model: LLM model identifier (e.g. ``"openai:gpt-4o"``,
             ``"anthropic:claude-sonnet-4-20250514"``).
-        observe: Enable observability recording.
+        observe: Record each call (start, end, error, guard blocks,
+            context providers) as timeline events with a
+            :class:`~promptise.prompts.observe.PromptObserver`.  ``True``
+            records to the prompt's own ``ObservabilityCollector``
+            (``my_prompt.observer.collector``); pass a collector or a
+            ``PromptObserver`` to record somewhere shared.
         inspect: Optional :class:`PromptInspector` for assembly tracing.
         description: What the prompt is for.  Shown to MCP clients when the
             prompt is served with ``MCPServer.include_prompts()``.

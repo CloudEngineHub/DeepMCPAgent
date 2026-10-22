@@ -62,7 +62,7 @@ class PromptBuilder:
         self._system_text: str = ""
         self._template_text: str = ""
         self._model_name: str = "openai:gpt-5-mini"
-        self._observe: bool = False
+        self._observe: Any = False
         self._output_type_cls: type | None = None
         self._context_providers: list[ContextProvider] = []
         self._strategy_obj: Strategy | None = None
@@ -94,8 +94,15 @@ class PromptBuilder:
         self._model_name = name
         return self
 
-    def observe(self, enabled: bool = True) -> PromptBuilder:
-        """Enable or disable observability recording."""
+    def observe(self, enabled: Any = True) -> PromptBuilder:
+        """Record each call with a :class:`~promptise.prompts.observe.PromptObserver`.
+
+        Args:
+            enabled: ``True`` records to the prompt's own
+                ``ObservabilityCollector`` (``prompt.observer.collector``);
+                an ``ObservabilityCollector`` or ``PromptObserver`` records
+                there; ``False`` turns recording off.
+        """
         self._observe = enabled
         return self
 
