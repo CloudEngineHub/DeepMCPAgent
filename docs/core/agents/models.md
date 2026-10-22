@@ -598,6 +598,27 @@ agent:
 `.agent` runtime manifests take the string form (`model: azure:chat-prod`)
 and read the environment.
 
+## Check and resolve a model in code
+
+`promptise models check` has a Python form, for start-up checks in your own program:
+
+```python
+from promptise import check_model, resolve_model
+
+check = check_model("openai:gpt-5-mini")
+if not check.ok:
+    print("missing:", [var.name for var in check.missing_env])   # e.g. ['OPENAI_API_KEY']
+    print(check.problems)
+
+llm = resolve_model("openai:gpt-5-mini", temperature=0)   # the chat model build_agent would use
+```
+
+| Name | What it does |
+|---|---|
+| `check_model(spec, provided=None, *, native=False)` | Returns a `ModelCheck` without calling the provider: `ok`, `spec`, `canonical` (the string after alias resolution), `provider` (the registry entry), `model`, `missing_env` (the variables still needed) and `problems`. `provided` names words you will pass in code (`{"api_key"}`), so their variables are not required. |
+| `resolve_model(spec, **words)` | Builds the chat model from a string and optional `Model` words; raises `ModelSetupError` naming each missing variable. |
+| `PROVIDERS` | The provider registry `promptise models list` prints. |
+
 ## Passing a model instance
 
 For anything the words above do not cover, build the LangChain chat model
