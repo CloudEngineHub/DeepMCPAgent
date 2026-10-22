@@ -1054,7 +1054,7 @@ class MCPClient:
             return await callback(context, params)
         except Exception as exc:
             logger.error(
-                "Elicitation callback for %s failed (%s: %s) — answered with an error",
+                "Elicitation callback for %s failed (%s: %s), answered with an error",
                 self._target,
                 type(exc).__name__,
                 exc,

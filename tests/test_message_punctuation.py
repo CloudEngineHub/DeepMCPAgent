@@ -62,7 +62,7 @@ def _em_dash_messages(path: Path) -> list[str]:
 
 
 @pytest.mark.parametrize(
-    "subpackage", ["", "runtime", "engine", "identity", "mcpcast", "prompts", "run"]
+    "subpackage", ["", "runtime", "engine", "identity", "mcpcast", "prompts", "run", "mcp"]
 )
 def test_no_em_dash_in_log_warning_or_exception_messages(subpackage: str) -> None:
     root = PACKAGE / subpackage

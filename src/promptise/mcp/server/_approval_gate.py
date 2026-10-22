@@ -214,7 +214,7 @@ class ApprovalGateMiddleware:
         except (asyncio.TimeoutError, TimeoutError):
             if self._on_timeout == "allow":
                 logger.warning(
-                    "Approval timed out after %.0fs for tool=%s — proceeding (on_timeout='allow')",
+                    "Approval timed out after %.0fs for tool=%s, proceeding (on_timeout='allow')",
                     self._timeout,
                     ctx.tool_name,
                 )
@@ -232,7 +232,7 @@ class ApprovalGateMiddleware:
             # something the reviewer did not approve. Fail closed.
             raise ApprovalDeniedError(
                 f"Approval for tool {ctx.tool_name!r} returned modified "
-                "arguments, which the server-side gate does not support — "
+                "arguments, which the server-side gate does not support: "
                 "denied (approve or deny only)",
                 request_id=request.request_id,
                 reviewer_id=decision.reviewer_id,
