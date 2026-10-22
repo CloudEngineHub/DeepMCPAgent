@@ -60,17 +60,26 @@ That's it. The same flow works whether the server is a 50-line Python script or 
 Promptise Foundry is built on MCP from day one. **Tools are discovered, not wired.**
 
 ```python
+import asyncio
+import sys
 from promptise import build_agent
+from promptise.config import HTTPServerSpec, StdioServerSpec
 
-agent = build_agent(
-    model="openai:gpt-5-mini",
-    servers=[
-        "https://your-mcp-server.example.com",
-        "stdio:./local-server.py",
-    ],
-)
+async def main():
+    agent = await build_agent(
+        model="openai:gpt-5-mini",
+        servers={
+            "crm": HTTPServerSpec(url="https://your-mcp-server.example.com/mcp"),
+            "local": StdioServerSpec(command=sys.executable, args=["local_server.py"]),
+        },
+    )
+    result = await agent.ainvoke(
+        {"messages": [{"role": "user", "content": "What's in the customer database?"}]}
+    )
+    print(result["messages"][-1].content)
+    await agent.shutdown()
 
-answer = await agent.run("What's in the customer database?")
+asyncio.run(main())
 ```
 
 !!! info "You need an API key first"

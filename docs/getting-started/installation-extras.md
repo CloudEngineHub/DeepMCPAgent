@@ -1,7 +1,7 @@
 ---
-title: Install Promptise Foundry — pip install with optional extras
+title: Install Promptise Foundry with pip and optional extras
 seo_title: "Install Promptise with pip: Optional Extras"
-description: "Install Promptise Foundry with pip: what the base install includes, what the all, sandbox and identity extras add, MCP SDK versions and air-gapped installs."
+description: "Install Promptise Foundry with pip: what the base install includes, what the all, sandbox, tool-optimization and identity extras add, MCP SDK versions, air-gapped installs."
 keywords: install promptise, pip install promptise, Promptise Foundry install, Python AI agent install
 ---
 
@@ -9,14 +9,26 @@ keywords: install promptise, pip install promptise, Promptise Foundry install, P
 
 Promptise ships a complete framework in the base install. You only need an extra when you want the full production stack.
 
-## Two choices
+## Which install do you need?
 
 ```bash
-pip install promptise              # core — start here
-pip install "promptise[all]"       # production-ready
+pip install promptise              # core: start here
+pip install "promptise[all]"       # every optional feature (production)
 ```
 
-That's it.
+Most projects need one of these two. The smaller extras below add a single feature
+without the rest of `[all]`:
+
+| Extra | Installs | Use it for |
+|---|---|---|
+| (none) | the core framework | agents, `@tool`, MCP server and client, runtime, prompts, CLI, every model provider |
+| `[all]` | everything below except the identity SDKs | production installs |
+| `[sandbox]` | `docker` | the code-execution sandbox |
+| `[tool-optimization]` | `sentence-transformers` | semantic tool selection (`optimize_tools="semantic"`) |
+| `[identity-aws]` | `boto3` | AWS STS federation for agent identity |
+| `[identity-spiffe]` | `spiffe` | the SPIFFE Workload API for agent identity |
+| `[identity-all]` | both identity SDKs | images that support every identity backend |
+| `[dev]` | `[all]`, `boto3`, test, lint and docs tools | contributing to Promptise |
 
 ## What you get
 
@@ -25,13 +37,13 @@ That's it.
 The base install. Everything you need to build, run, and deploy agents that call MCP tools.
 
 - Core agent factory (`build_agent()`)
-- Reasoning engine (graph + 20+ node types)
+- Reasoning engine (graph, prebuilt patterns and 20+ node types)
 - MCP server SDK + native MCP client
 - Agent runtime (triggers, journal, governance, hooks)
 - Prompt engineering (blocks, flows, strategies, guards, ContextEngine)
 - CLI (`promptise ...`)
 - Orchestration REST API
-- Every model provider: OpenAI, Azure OpenAI and Anthropic natively; Groq, Gemini, Vertex AI, Bedrock, Mistral, Ollama, the Azure AI Foundry catalog and more through their OpenAI-compatible endpoints — no per-provider packages (see [Model Setup](model-setup.md))
+- Every model provider: OpenAI, Azure OpenAI and Anthropic natively; Groq, Gemini, Vertex AI, Bedrock, Mistral, Ollama, the Azure AI Foundry catalog and more through their OpenAI-compatible endpoints, with no per-provider packages (see [Model Setup](model-setup.md))
 
 ### `pip install "promptise[all]"`
 
@@ -42,7 +54,7 @@ Adds the heavy dependencies that unlock everything optional. Recommended for pro
 | **Vector memory** | `chromadb`, `mem0ai` | `ChromaProvider`, `Mem0Provider` |
 | **Embeddings** | `sentence-transformers`, `numpy` | Semantic tool optimization, `SemanticCache` |
 | **ML guardrails** | `transformers` | DeBERTa prompt-injection detection (`InjectionDetector`, `guardrails=True`). GLiNER NER (`NERDetector`) needs `pip install gliner` on top |
-| **Infrastructure** | `redis`, `docker` | `RedisConversationStore`, `RedisCache`, Docker sandbox |
+| **Infrastructure** | `redis`, `docker` | `RedisConversationStore`, the `SemanticCache` Redis backend, `RedisCache` for MCP servers, Docker sandbox |
 | **Observability** | `opentelemetry-*`, `prometheus_client` | OTel tracing, Prometheus `/metrics` |
 
 ### `pip install "promptise[sandbox]"`
@@ -50,6 +62,13 @@ Adds the heavy dependencies that unlock everything optional. Recommended for pro
 Only the Docker client, for the code-execution sandbox (`build_agent(sandbox=...)`
 and `agent_pattern="code-action"`) without the rest of `[all]`. Docker itself must
 be installed and running. See [Sandbox](../core/sandbox.md).
+
+### `pip install "promptise[tool-optimization]"`
+
+Only `sentence-transformers`, for semantic tool selection
+(`build_agent(optimize_tools="semantic")`): a local embedding model offers each model
+call only the tools relevant to it. The static levels (`"minimal"`, `"standard"`)
+need nothing extra. See [Tool Optimization](../core/tool-optimization.md).
 
 ### `pip install "promptise[identity-aws]"`, `[identity-spiffe]`, `[identity-all]`
 

@@ -96,15 +96,23 @@ Pick Promptise Foundry when:
 ## A 30-second example
 
 ```python
+import asyncio
 from promptise import build_agent
+from promptise.config import HTTPServerSpec
 
-agent = build_agent(
-    model="openai:gpt-5-mini",
-    servers=["https://your-mcp-server.example.com"],
-    instructions="You are a careful research assistant.",
-)
+async def main():
+    agent = await build_agent(
+        model="openai:gpt-5-mini",
+        servers={"docs": HTTPServerSpec(url="https://your-mcp-server.example.com/mcp")},
+        instructions="You are a careful research assistant.",
+    )
+    result = await agent.ainvoke(
+        {"messages": [{"role": "user", "content": "What changed in the API last week?"}]}
+    )
+    print(result["messages"][-1].content)
+    await agent.shutdown()
 
-answer = await agent.run("What changed in the API last week?")
+asyncio.run(main())
 ```
 
 !!! info "You need an API key first"
@@ -115,7 +123,7 @@ That's the whole API for the simple case. From there:
 - Add `memory=ChromaProvider(...)` and the agent remembers across calls
 - Add `cache=SemanticCache(...)` and similar queries hit cache
 - Add `guardrails=PromptiseSecurityScanner(...)` and prompt injection is filtered
-- Add `sandbox=Sandbox(...)` and code execution is isolated
+- Add `sandbox=True` and agent-written code runs in a Docker sandbox
 - Wrap in an `AgentProcess` and the agent gets cron triggers, journals, and crash recovery
 
 ## Read more

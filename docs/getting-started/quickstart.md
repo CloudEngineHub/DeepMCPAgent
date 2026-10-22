@@ -116,7 +116,49 @@ That's it. `build_agent()` handles model initialization, message formatting, and
 
 ## Add Tools (2 minutes)
 
-Agents become useful when they can call tools. Create an MCP server in the same file:
+Agents become useful when they can call tools. The quickest way is a Python function
+with `@tool`:
+
+```python
+import asyncio
+from promptise import ToolError, build_agent, tool
+
+@tool
+def get_weather(city: str) -> str:
+    """Get the current weather for a city.
+
+    Args:
+        city: City name, for example "Berlin".
+    """
+    forecasts = {"berlin": "Sunny, 22°C", "zurich": "Rain, 14°C"}  # call a real API here
+    if city.lower() not in forecasts:
+        raise ToolError(f"No forecast for {city}.")
+    return forecasts[city.lower()]
+
+async def main():
+    agent = await build_agent(
+        model="openai:gpt-5-mini",
+        instructions="You are a helpful assistant with access to tools.",
+        extra_tools=[get_weather],
+    )
+    result = await agent.ainvoke({
+        "messages": [{"role": "user", "content": "What's the weather in Berlin?"}]
+    })
+    print(result["messages"][-1].content)
+    await agent.shutdown()
+
+asyncio.run(main())
+```
+
+The tool's name, description and parameters come from the function name, docstring
+and type hints. `ToolError` sends its message to the model instead of a stack trace.
+See [Tools (@tool)](../core/tools.md).
+
+### Connect an MCP server
+
+Tools that other agents and apps should share belong in an MCP server. This script is
+both: run it with `python tools.py`, and the agent starts the same file again with
+`--serve` as its tool server:
 
 ```python
 import asyncio
@@ -131,20 +173,16 @@ server = MCPServer("my-tools")
 @server.tool()
 async def get_weather(city: str) -> str:
     """Get the current weather for a city."""
-    # In production, call a real API
-    return f"Sunny, 22°C in {city}"
+    return f"Sunny, 22°C in {city}"  # call a real API here
 
 @server.tool()
-async def calculate(expression: str) -> str:
-    """Evaluate a math expression."""
-    return str(eval(expression))  # noqa: S307
-
-# Save this whole file as tools.py and run `python tools.py`: the agent
-# starts the same file again with --serve, which runs the tool server.
+async def convert_temperature(celsius: float) -> float:
+    """Convert a temperature from Celsius to Fahrenheit."""
+    return celsius * 9 / 5 + 32
 
 async def main():
     agent = await build_agent(
-        model="openai:gpt-4o-mini",
+        model="openai:gpt-5-mini",
         servers={
             "tools": StdioServerSpec(
                 command=sys.executable,
@@ -155,11 +193,9 @@ async def main():
     )
 
     result = await agent.ainvoke({
-        "messages": [{"role": "user", "content": "What's the weather in Berlin?"}]
+        "messages": [{"role": "user", "content": "What's the weather in Berlin, in Fahrenheit?"}]
     })
     print(result["messages"][-1].content)
-    # "It's sunny and 22°C in Berlin!"
-
     await agent.shutdown()
 
 if __name__ == "__main__":
@@ -171,7 +207,8 @@ if __name__ == "__main__":
         asyncio.run(main())
 ```
 
-The agent discovers `get_weather` and `calculate` automatically — no manual tool definitions.
+The agent discovers `get_weather` and `convert_temperature` when it starts: there are
+no tool definitions to write on the agent side.
 
 ### Already have an API?
 
@@ -192,7 +229,7 @@ from promptise.engine import PromptGraph, PromptNode, NodeFlag
 from promptise.engine.reasoning_nodes import ThinkNode, SynthesizeNode
 
 agent = await build_agent(
-    model="openai:gpt-4o-mini",
+    model="openai:gpt-5-mini",
     servers=my_servers,
     agent_pattern=PromptGraph("analyst", nodes=[
         ThinkNode("think", is_entry=True),          # Analyze the question
@@ -235,7 +272,7 @@ from promptise.cache import SemanticCache
 from promptise.conversations import SQLiteConversationStore
 
 agent = await build_agent(
-    model="openai:gpt-4o-mini",
+    model="openai:gpt-5-mini",
     servers=my_servers,
 
     # Security: block injection attacks, detect PII
@@ -244,7 +281,7 @@ agent = await build_agent(
     # Memory: remember context across conversations
     memory=ChromaProvider(persist_directory="./memory"),
 
-    # Cache: serve similar queries instantly (30-50% cost savings)
+    # Cache: answer repeated, similar questions without a model call
     cache=SemanticCache(),
 
     # Conversations: persist chat history
@@ -257,7 +294,7 @@ agent = await build_agent(
 # Use with per-user identity
 result = await agent.ainvoke(
     {"messages": [{"role": "user", "content": "Analyze last quarter's revenue"}]},
-    caller=CallerContext(user_id="analyst-42", roles=["analyst"]),
+    caller=CallerContext(user_id="analyst-42", roles={"analyst"}),
 )
 ```
 
