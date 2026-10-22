@@ -5,35 +5,44 @@ description: "Use the code-action pattern: the model writes one Python program o
 
 # Code-Action: one program beats a 20-call tool loop
 
-For tasks that **gather many facts and then compute** — sum a department's
-salaries, average a metric across a graph, join records across sources — a
+For tasks that **gather many facts and then compute** (sum a department's
+salaries, average a metric across a graph, join records across sources), a
 conversational tool loop is the wrong tool. The transcript grows on every call,
 the model loses the thread, re-queries the same facts, and aggregates them
 unreliably in its head. Costs climb, latency climbs, accuracy drops.
 
 `agent_pattern="code-action"` changes the **action space**: in a single LLM turn
 the model writes **one Python program** over your tools and runs it in a sandbox.
-Code computes exactly — loops, sums, filters, joins — so the answer is
+Code computes exactly (loops, sums, filters, joins), so the answer is
 deterministic, cheap, and fast.
 
 !!! info "Runnable example"
-    [`examples/reasoning/code_action_agent.py`](https://github.com/promptise-com/foundry/blob/main/examples/reasoning/code_action_agent.py)
-    — real LLM, real Docker. Set `OPENAI_API_KEY` and have Docker running.
+    [`examples/reasoning/code_action_agent.py`](https://github.com/promptise-com/foundry/blob/main/examples/reasoning/code_action_agent.py).
+    Real LLM, real Docker. Set `OPENAI_API_KEY` and have Docker running.
 
 ## Quick start
 
 ```python
 from promptise import build_agent, tool
 
+EMPLOYEES = {
+    "Ada": {"department": "Engineering", "salary": 210_000},
+    "Grace": {"department": "Engineering", "salary": 195_000},
+    "Linus": {"department": "Sales", "salary": 120_000},
+}
+
+
 @tool("list_employees")
 def list_employees() -> list:
     """Return a list of every employee name."""
-    return [...]
+    return list(EMPLOYEES)
+
 
 @tool("get_employee")
 def get_employee(name: str) -> dict:
     """Return {name, department, salary} for an employee."""
-    return {...}
+    return {"name": name, **EMPLOYEES[name]}
+
 
 agent = await build_agent(
     servers={},                          # or your MCP servers
@@ -44,7 +53,9 @@ agent = await build_agent(
 
 result = await agent.ainvoke({"messages": [{"role": "user", "content":
     "What is the combined salary of everyone in Engineering?"}]})
-# → the model writes ONE program: list → look up each → filter → sum → print.
+print(result["messages"][-1].content)    # 405000
+await agent.shutdown()
+# The model wrote ONE program: list → look up each → filter → sum → print.
 ```
 
 ## When to use it
@@ -61,8 +72,8 @@ conversational, a normal loop is better.
 
 ## Best practice: structured tools
 
-Code-action is at its best when your tools return **structured data** — lists,
-dicts, numbers — that the program can use directly:
+Code-action is at its best when your tools return **structured data** (lists,
+dicts, numbers) that the program can use directly:
 
 ```python
 @tool("get_employee")
@@ -76,7 +87,7 @@ def get_employee(name: str) -> str:           # ⚠️ program must parse prose
 
 The bridge preserves the return values, so a `@tool` that returns a `dict`
 arrives in the program as a `dict` (not a stringified blob), and a list as a
-list. Prose-string tools still work — the model is told to parse them — but
+list. Prose-string tools still work (the model is told to parse them), but
 structured returns are more reliable.
 
 **MCP tools** (`servers=...`) answer with the text of the server's result, and a
@@ -94,19 +105,19 @@ raised by a `@tool` raises in the program the same way
 
 The model writes code, so the code runs **contained**:
 
-- **Hardened sandbox** — the program executes in Promptise's Docker sandbox:
+- **Hardened sandbox**: the program executes in Promptise's Docker sandbox:
   read-only rootfs, dropped capabilities, Docker's default seccomp profile,
   CPU/memory/process limits, and **`network="none"`**. The network stays off
   even when you pass your own `sandbox={...}` without a `network` key. When
   `exec_timeout` expires the program's processes are killed.
-- **No direct host access** — the program's *only* reach to the outside world is
+- **No direct host access**: the program's *only* reach to the outside world is
   your tools, via the bridge. It can't touch the host filesystem or network.
-- **Tools keep their protections** — each bridged call invokes the real
+- **Tools keep their protections**: each bridged call invokes the real
   `BaseTool` on the host. If you wrapped tools with an **approval** gate
   (`build_agent(..., approval=...)`), bridged calls trigger it too. When you run
   the agent under the **Agent Runtime**, its governance hooks (budget / health /
   audit) apply to each bridged call. *Without* the runtime, a plain agent has no
-  budget hook attached — so code-action enforces its **own** hard, hook-independent
+  budget hook attached, so code-action enforces its **own** hard, hook-independent
   **`max_tool_calls`** cap on each program (default 50) so a generated program can
   never loop a tool unbounded (see [The tool-call budget](#the-tool-call-budget)).
 
@@ -119,7 +130,7 @@ The model writes code, so the code runs **contained**:
     conservatively, and prefer the **gVisor** backend
     (`sandbox={"backend": "gvisor", "network": "none"}`) for kernel-level
     isolation. There is no per-run *cost* budget unless you run under the Agent
-    Runtime — that, and a global concurrency limit on sandbox sessions, are the
+    Runtime. That, and a global concurrency limit on sandbox sessions, are the
     pieces to add before high-throughput untrusted production.
 
 ```mermaid
@@ -145,7 +156,7 @@ over the writable `/workspace` tmpfs:
    never race a partial write).
 3. The stub unblocks and returns the value to the program.
 
-No network is involved — the channel is the shared filesystem, which is why the
+No network is involved, the channel is the shared filesystem, which is why the
 sandbox can stay fully network-isolated.
 
 ## Repair on failure
@@ -210,9 +221,10 @@ except CodeActionBudgetError as exc:
     unlikely (it removes the number a model would fit to); set
     `max_tool_calls` well above the calls the job needs.
 
-`ExecutionReport.tool_calls` (`agent.last_report` / `engine.last_report`) counts
-the calls the programs made, failed ones included; refused calls never ran and
-are not counted.
+`ExecutionReport.tool_calls` (`engine.last_report` when you run the graph with
+`PromptGraphEngine`, `exc.report` on an engine exception) counts the calls the
+programs made, failed ones included; refused calls never ran and are not
+counted.
 
 ## Configuration
 
@@ -241,7 +253,7 @@ from promptise.engine import PromptGraph
 PromptGraph.code_action(
     tools=my_tools,
     system_prompt="",
-    sandbox_factory=...,   # injected by build_agent; supply your own for custom graphs
+    sandbox_factory=...,   # async () -> sandbox session; build_agent injects one, a custom graph supplies its own
     max_repairs=1,         # self-repair attempts after a failed program
     exec_timeout=120,      # seconds the program may run inside the sandbox
     max_tool_calls=50,     # hard cap on each program's bridged tool calls
@@ -251,7 +263,7 @@ PromptGraph.code_action(
 ## Honest limits
 
 - **Needs Docker.** `build_agent(agent_pattern="code-action")` raises a clear
-  error if a sandbox can't be initialized — there is no silent fallback, because
+  error if a sandbox can't be initialized, there is no silent fallback, because
   running model-written code outside a sandbox would be unsafe.
 - **Latency floor.** Each program runs in a fresh container: starting it,
   running the program and removing it takes about 1 s on a warm Docker host,
@@ -265,10 +277,10 @@ PromptGraph.code_action(
 
 ## See also
 
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — all 9 built-in patterns
-- [Prebuilt Patterns](../core/engine-prebuilts.md#code-action-one-sandboxed-program) — the factory
-- [Context Lifecycle Management](context-lifecycle.md) — the broader cost/rot story
-- [Sandbox](../core/sandbox.md) — the container security layers code-action runs on
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md): all 9 built-in patterns
+- [Prebuilt Patterns](../core/engine-prebuilts.md#code-action-one-sandboxed-program): the factory
+- [Context Lifecycle Management](context-lifecycle.md): the broader cost/rot story
+- [Sandbox](../core/sandbox.md): the container security layers code-action runs on
 
 !!! tip "Learn the concept"
 

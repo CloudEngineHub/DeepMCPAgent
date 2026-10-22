@@ -5,15 +5,15 @@ description: "Choose how an agent reasons: the default ReAct graph, verify, mana
 
 # Reasoning Patterns
 
-Every Promptise agent is powered by a Reasoning Graph. By default, `build_agent()` creates a ReAct graph (single node with tools) — and that default is **smart by default**: it manages context automatically (`context_scope="auto"`), so simple tasks are unchanged and deep tool loops stay token-efficient without you choosing anything.
+Every Promptise agent is powered by a Reasoning Graph. By default, `build_agent()` creates a ReAct graph (single node with tools), and that default is **smart by default**: it manages context automatically (`context_scope="auto"`), so simple tasks are unchanged and deep tool loops stay token-efficient without you choosing anything.
 
 !!! tip "Which one do I need? (most people: none)"
-    - **Just call `build_agent(model, servers)`** — the default handles context and tools well for the overwhelming majority of agents.
-    - **Computing over data** (sums, averages, multi-hop joins)? → [`code-action`](#code-action) — write one program instead of chaining tool calls.
+    - **Just call `build_agent(model, servers)`**: the default handles context and tools well for the overwhelming majority of agents.
+    - **Computing over data** (sums, averages, multi-hop joins)? → [`code-action`](#code-action), write one program instead of chaining tool calls.
     - **Want a cheap self-check** on a weak/cheap model? → [`verify`](#verify).
     - **Need a specific multi-stage shape** (debate, research pipeline, deep deliberation)? → the structured patterns below, or [build your own graph](#building-custom-graphs).
 
-    The rest are specialized. Don't reach for a multi-stage pattern expecting more accuracy — on capable models they mostly add latency and tokens; the default plus `code-action` is the efficient path.
+    The rest are specialized. Don't reach for a multi-stage pattern expecting more accuracy, on capable models they mostly add latency and tokens; the default plus `code-action` is the efficient path.
 
 You can replace the default with any of the 9 built-in pattern names, a prebuilt graph such as `PromptGraph.pipeline(...)`, or a graph of your own. An unknown pattern name raises `ValueError` listing the valid names.
 
@@ -63,7 +63,7 @@ The Reasoning Graph replaces only the inner loop. All other features (memory, gu
 ```python
 from promptise import build_agent
 
-# Default — single node with tools
+# Default: single node with tools
 agent = await build_agent(model="openai:gpt-5-mini", servers=my_servers)
 
 # Built-in patterns
@@ -103,7 +103,7 @@ reason ──→ (tool calls) ──→ reason ──→ ... ──→ final ans
 ### Verify
 
 A single PromptNode, but the model must **plan, solve, and check its own answer
-within one generation** — the benefit of an explicit verification step at
+within one generation**, the benefit of an explicit verification step at
 one-turn latency (no extra LLM calls). The node prompt forces a `PLAN → SOLVE →
 VERIFY → final answer` structure where the VERIFY step independently re-checks
 the answer a different way and fixes it if wrong.
@@ -113,7 +113,7 @@ reason (PLAN → SOLVE → VERIFY → answer)  [single turn]
 ```
 
 **Best for:** Arithmetic/logic-heavy questions, anything where a quick
-self-check catches careless errors — without paying for a multi-stage pipeline.
+self-check catches careless errors, without paying for a multi-stage pipeline.
 
 !!! note "Honest scope"
     On strong models that already reason internally, `verify` matches a direct
@@ -125,7 +125,7 @@ self-check catches careless errors — without paying for a multi-stage pipeline
 
 A single tool-using node run with `context_scope="ledger"` for **long tool
 chains**. Instead of feeding the model an ever-growing transcript of tool calls
-and results — where it loses track and re-queries the same facts repeatedly —
+and results (where it loses track and re-queries the same facts repeatedly),
 each turn it sees the task plus a compact, **deduplicated "facts gathered"
 ledger**. Context stays bounded, and the model consults the ledger instead of
 re-querying facts it has. A call it does repeat runs the tool again; to answer
@@ -137,7 +137,7 @@ repeated lookups from the earlier result, opt those tools in with
 reason ──→ (tool) ──→ reason + facts-ledger ──→ (tool) ──→ ... ──→ answer
 ```
 
-**Best for:** Deep multi-tool tasks — traversing a database/graph, gathering
+**Best for:** Deep multi-tool tasks, traversing a database/graph, gathering
 many facts then aggregating.
 
 !!! note "Honest scope"
@@ -149,12 +149,12 @@ many facts then aggregating.
 
 ### Code-Action
 
-For **aggregation / data-traversal tasks** — gather many facts, then compute —
+For **aggregation / data-traversal tasks** (gather many facts, then compute),
 the model writes **one Python program** over your tools in a single LLM turn,
 instead of chaining dozens of conversational tool calls. The program runs in
 Promptise's hardened Docker sandbox; its tool calls bridge back to the real host
 tools, so the model gets code's exactness (loops, sums, filters) while each tool
-keeps its protections — approval gates, plus budget/health/audit hooks when the
+keeps its protections, approval gates, plus budget/health/audit hooks when the
 Agent Runtime has attached them, and a hard `max_tool_calls` cap on each
 program (every call counts; a program that reaches it fails instead of
 answering, and a repaired program gets a fresh budget).
@@ -171,15 +171,15 @@ agent = await build_agent(
 )
 ```
 
-**Best for:** computing over a dataset/graph — sums, averages, multi-hop joins —
+**Best for:** computing over a dataset/graph (sums, averages, multi-hop joins),
 especially where a conversational loop would re-query facts and mis-aggregate.
 
 !!! warning "Requirements & scope"
     Requires **Docker** (the program runs in a sandbox; auto-enabled). It shines
     when your tools return **structured data** (lists/dicts/numbers) the program
-    can use directly. It is a *pattern, not a replacement* — ambiguous or
+    can use directly. It is a *pattern, not a replacement*, ambiguous or
     conversational tasks are better served by `react`/`managed`. The sandbox has
-    a read-only rootfs, dropped capabilities, and **no network** — the program
+    a read-only rootfs, dropped capabilities, and **no network**, the program
     reaches the outside world only through your bridged tools.
 
 ### PEOATR
@@ -208,9 +208,9 @@ search ──→ verify ──→ synthesize ──→ done
 
 ### Autonomous
 
-The agent receives a pool of reasoning nodes and dynamically decides which to execute at each step. No static edges — the LLM builds its own execution path. The default pool is `reason` (the agent's tools), `analyze` and `synthesize` (writes the answer and finishes).
+The agent receives a pool of reasoning nodes and dynamically decides which to execute at each step. No static edges, the LLM builds its own execution path. The default pool is `reason` (the agent's tools), `analyze` and `synthesize` (writes the answer and finishes).
 
-A chosen step runs its whole tool loop, so one `reason` step can make several tool calls and read their results before the agent picks again. The agent's step choice (the step menu and its JSON reply) never enters the conversation, a tool name given as the next step runs the step that has that tool, and when the agent finishes without running `synthesize`, it runs before the run ends — the reply is always a written answer.
+A chosen step runs its whole tool loop, so one `reason` step can make several tool calls and read their results before the agent picks again. The agent's step choice (the step menu and its JSON reply) never enters the conversation, a tool name given as the next step runs the step that has that tool, and when the agent finishes without running `synthesize`, it runs before the run ends, the reply is always a written answer.
 
 ```
 [reason, analyze, synthesize] → Agent chooses → Agent chooses → ... → synthesize
@@ -241,7 +241,7 @@ proposer ──→ critic ──→ (severity high) ──→ proposer
                                                   ──→ (pass) ──→ answer ──→ done
 ```
 
-**Best for:** Controversial topics, decision-making, generating robust arguments.
+**Best for:** Controversial topics, decision-making, generating well-tested arguments.
 
 ### Pipeline
 
@@ -265,7 +265,7 @@ step1 ──→ step2 ──→ step3 ──→ done
 
 ### With Reasoning Nodes
 
-Pre-built building bricks — fully configured with instructions, context management, and default flags:
+Pre-built building bricks, fully configured with instructions, context management, and default flags:
 
 ```python
 from promptise import build_agent
@@ -289,7 +289,15 @@ agent = await build_agent(
 )
 ```
 
-In autonomous mode (default), the agent decides which node to execute next. No edges needed.
+In autonomous mode (default), `build_agent` wraps two or more edgeless nodes in an [`AutonomousNode`](../engine-nodes.md#autonomousnode) and the agent decides which node to execute next. No edges needed.
+
+!!! note "Reasoning nodes route and update state from structured output"
+    `PlanNode`, `ReflectNode`, `CritiqueNode` and `ValidateNode` read their
+    fields (`subgoals`, `route`, `severity`, `passes`, ...) only from a
+    structured output. Give them an `output_schema` (the prebuilt patterns use
+    `PeoatrPlan`, `PeoatrReflection`, `DebateCritique`, `DebateVerdict` from
+    `promptise.engine.prebuilts`) when their routing matters; see
+    [Reasoning Nodes](../engine-nodes.md#reasoning-nodes-pre-built-building-bricks).
 
 ### With Static Edges
 
@@ -310,23 +318,28 @@ agent = await build_agent(..., agent_pattern=graph)
 
 ### Per-Node Model Override
 
-Use cheaper models for lightweight tasks, powerful models for complex reasoning:
+Use cheaper models for lightweight tasks, larger models for complex reasoning:
 
 ```python
-from promptise.engine import PromptNode, NodeFlag
-from promptise.engine.reasoning_nodes import ThinkNode
+from promptise.engine import PromptGraph, PromptNode
+from promptise.engine.reasoning_nodes import SynthesizeNode, ThinkNode
 
 graph = PromptGraph("cost-optimized", nodes=[
-    # Cheap model for routing and simple analysis
-    ThinkNode("think", model_override="openai:gpt-4o-mini"),
+    # Smaller model for simple analysis
+    ThinkNode("think", model_override="openai:gpt-5-nano"),
 
     # Main model for tool calling (uses build_agent's model)
     PromptNode("act", inject_tools=True),
 
-    # Powerful model for final synthesis
-    SynthesizeNode("answer", model_override="openai:gpt-4o", is_terminal=True),
+    # Larger model for final synthesis
+    SynthesizeNode("answer", model_override="openai:gpt-5", is_terminal=True),
 ])
 ```
+
+`model_override` takes a model id string, a `Model` or a chat model object.
+The `LIGHTWEIGHT` flag (set on `ThinkNode`) does not switch models in an agent:
+`build_agent` creates the engine without a `lightweight_model`, so use
+`model_override` for per-node models.
 
 ### Node Flags
 
@@ -344,13 +357,13 @@ PromptNode("flaky_api", flags={NodeFlag.RETRYABLE})
 # Skip this node if the previous one errored
 PromptNode("optional_enrichment", flags={NodeFlag.SKIP_ON_ERROR})
 
-# Cache results — same inputs return cached output
+# Cache results: same inputs return cached output
 PromptNode("expensive_analysis", flags={NodeFlag.CACHEABLE})
 
 # Don't pass conversation history to this node
 PromptNode("stateless_classifier", flags={NodeFlag.NO_HISTORY})
 
-# Isolate context — node only sees its input_keys
+# Isolate context: node only sees its input_keys
 PromptNode("isolated", flags={NodeFlag.ISOLATED_CONTEXT}, input_keys=["query"])
 ```
 
@@ -359,33 +372,58 @@ See [Node Flags](../engine-flags.md) for all 18 flags.
 ### Data Flow Between Nodes
 
 ```python
-# Node A writes output to state
-PromptNode("search", output_key="search_data", inject_tools=True)
+from pydantic import BaseModel
+
+from promptise.engine import PromptNode
+
+
+class Findings(BaseModel):
+    facts: list[str]
+
+
+# Node A writes its structured output to state.context["search_data"]
+PromptNode("extract", output_schema=Findings, output_key="search_data")
 
 # Node B reads specific keys from state
 PromptNode("analyze", input_keys=["search_data"])
 
-# Node B inherits the previous node's full output
-PromptNode("analyze", inherit_context_from="search")
+# Node C gets node "search"'s reply text (state.context["search_output"])
+PromptNode("report", inherit_context_from="search")
 ```
+
+`output_key` only receives a parsed output (an `output_schema` result, a
+strategy's extracted answer or a postprocessor's value); a plain-text reply
+leaves it unset. `inherit_context_from` works for any `PromptNode`, since each
+writes its reply to `state.context["{name}_output"]`.
 
 ### Processors
 
 Transform data before/after the LLM call:
 
 ```python
-from promptise.engine.processors import (
-    json_extractor, confidence_scorer,
-    chain_postprocessors,
-)
+from pydantic import BaseModel
+
+from promptise.engine import PromptNode
+from promptise.engine.processors import chain_postprocessors, json_extractor, state_writer
+
+
+class Answer(BaseModel):
+    answer: str
+    confidence: float
+    notes: str
+
 
 PromptNode("analyze",
+    output_schema=Answer,
     postprocessor=chain_postprocessors(
-        json_extractor(keys=["answer", "confidence"]),
-        confidence_scorer(),
+        json_extractor(keys=["answer", "confidence"]),   # keep two fields
+        state_writer(fields={"answer": "final_answer"}),  # copy one to state.context
     ),
 )
 ```
+
+A postprocessor receives the node's parsed output, which is `None` for a
+plain-text reply, so pair processors with an `output_schema` or a strategy.
 
 See [Processors](../engine-processors.md) for all built-in processors.
 
@@ -407,12 +445,12 @@ When you pass `agent_pattern=` to `build_agent()`:
 
 ## See Also
 
-- [Reasoning Graph Overview](../engine.md) — Architecture and engine details
-- [All 20 Node Types](../engine-nodes.md) — Full parameter reference
-- [Node Flags](../engine-flags.md) — 18 typed execution flags
-- [Prebuilt Patterns](../engine-prebuilts.md) — Pattern factory functions
-- [Skills Library](../engine-skills.md) — 15 pre-configured node factories
-- [Building Custom Reasoning Guide](../../guides/custom-reasoning.md) — Step-by-step examples
+- [Reasoning Graph Overview](../engine.md): Architecture and engine details
+- [All 21 Node Types](../engine-nodes.md): Full parameter reference
+- [Node Flags](../engine-flags.md): 18 typed execution flags
+- [Prebuilt Patterns](../engine-prebuilts.md): Pattern factory functions
+- [Skills Library](../engine-skills.md): 15 pre-configured node factories
+- [Building Custom Reasoning Guide](../../guides/custom-reasoning.md): Step-by-step examples
 
 !!! tip "Learn the concept"
 
