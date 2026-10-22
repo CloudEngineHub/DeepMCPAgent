@@ -24,7 +24,7 @@ A single agent wrapped with lifecycle, triggers, journals, and governance. State
 
 ## AgentRuntime
 
-The manager of multiple `AgentProcess` instances. Centralizes lifecycle control, exposes a shared `EventBus`, and routes inter-agent messages.
+The manager of multiple `AgentProcess` instances. Centralizes lifecycle control and passes the `event_bus` and `broker` you give it to every process, so event and message triggers reach each other.
 
 ## ask_agent_&lt;name&gt;
 
@@ -92,7 +92,7 @@ MCP primitive where the server requests structured input from the user mid-execu
 
 ## EventBus
 
-Shared pub/sub channel inside the Agent Runtime. Used by `EventTrigger` and by agents to emit/consume events.
+Shared pub/sub channel inside the Agent Runtime, such as `InProcessEventBus`. Event triggers subscribe to it; your code, hooks and `EventBusSink` emit to it.
 
 ## File watch trigger
 
