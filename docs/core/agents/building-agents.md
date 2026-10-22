@@ -32,15 +32,15 @@ asyncio.run(main())
 ```
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project — Promptise loads it automatically, in scripts and in the CLI — or pass it in code with `Model(...)` — explained in [**Models & Providers → In code: Model**](../../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 
 ## Concepts
 
 Promptise agents are built around three ideas:
 
-1. **MCP-first tool discovery** -- You point the agent at one or more MCP servers via the `servers` dict. On startup it connects to every server, lists all available tools, and converts them into LangChain-compatible tools automatically.
-2. **Opt-in capabilities** -- Observability, memory, sandbox execution, cross-agent delegation, and prompt flows are all disabled by default. Enable each one with a single parameter and the agent wires everything together.
-3. **Unified return type** -- `build_agent()` always returns a `PromptiseAgent`. It wraps the underlying LangGraph ReAct agent and exposes a consistent interface regardless of which capabilities are active.
+1. **MCP-first tool discovery**: You point the agent at one or more MCP servers via the `servers` dict. On startup it connects to every server, lists all available tools, and converts them into LangChain-compatible tools automatically.
+2. **Opt-in capabilities**: Observability, memory, sandbox execution, cross-agent delegation, and prompt flows are all disabled by default. Enable each one with a single parameter and the agent wires everything together.
+3. **Unified return type**: `build_agent()` always returns a `PromptiseAgent`. It wraps the reasoning graph engine (a ReAct tool loop unless you choose another `agent_pattern`) and exposes the same interface whichever capabilities are active.
 
 ## Walkthrough
 
@@ -159,7 +159,7 @@ validation, results, timeouts and testing.
 
 ### The `PromptiseAgent` Class
 
-`build_agent()` returns a `PromptiseAgent`. This is the unified agent object with opt-in capabilities -- disabled features no-op or return sensible defaults, so you never need to check what is active.
+`build_agent()` returns a `PromptiseAgent`. This is the unified agent object with opt-in capabilities: disabled features no-op or return sensible defaults, so you never need to check what is active.
 
 #### Members at a glance
 
@@ -206,8 +206,8 @@ result = agent.invoke({
 
 `astream()` yields `{"messages": [...]}` once per step (a model call and the
 tools it asked for), applying input and output guardrails, memory and
-observability as `ainvoke()` does. For token-by-token text and tool activity —
-what a chat UI needs — use [`astream_with_tools()`](../streaming.md).
+observability as `ainvoke()` does. For token-by-token text and tool activity,
+what a chat UI needs: use [`astream_with_tools()`](../streaming.md).
 
 !!! warning "Sync invocation and memory"
     `invoke()` delegates to `ainvoke()` internally when memory is enabled because memory search requires async I/O. If a running event loop is already active (e.g. inside Jupyter), memory injection is skipped for the sync path. Use `ainvoke()` in async contexts to ensure memory always works.
@@ -267,7 +267,7 @@ finally:
     await agent.shutdown()
 ```
 
-`shutdown()` is always safe to call -- it no-ops for features that are not enabled.
+`shutdown()` is always safe to call: it no-ops for features that are not enabled.
 
 ### Combining Capabilities
 
@@ -306,9 +306,9 @@ await researcher.shutdown()
 
 ### Security Guardrails
 
-Protect your agent from prompt injection attacks on input and PII/credential leakage on output. The `guardrails` parameter accepts a `PromptiseSecurityScanner` — a composable scanner built from detection heads.
+Protect your agent from prompt injection attacks on input and PII/credential leakage on output. The `guardrails` parameter accepts a `PromptiseSecurityScanner`: a composable scanner built from detection heads.
 
-#### Basic — block injections, redact PII and credentials
+#### Basic: block injections, redact PII and credentials
 
 ```python
 from promptise import build_agent, PromptiseSecurityScanner
@@ -326,7 +326,7 @@ With this configuration:
 - **Input**: Prompt injection attempts are blocked before reaching the LLM. `GuardrailViolation` is raised.
 - **Output**: Credit card numbers, SSNs, API keys, and other sensitive data are replaced with labels like `[CREDIT_CARD_VISA]`, `[AWS_ACCESS_KEY]`.
 
-#### Custom — pick specific detectors
+#### Custom: pick specific detectors
 
 ```python
 from promptise import (
@@ -362,11 +362,11 @@ except GuardrailViolation as v:
     print(f"Blocked: {v.report.blocked[0].description}")
 ```
 
-See [Guardrails](../guardrails.md) for the full reference — all 6 detector types, 165+ built-in patterns, model configuration, air-gapped deployments, and content safety classification.
+See [Guardrails](../guardrails.md) for the full reference: all 6 detector types, 165+ built-in patterns, model configuration, air-gapped deployments, and content safety classification.
 
 ---
 
-## CallerContext — Per-Request Identity
+## CallerContext: Per-Request Identity
 
 Every `ainvoke()` and `chat()` call can carry a `CallerContext` that identifies the user making the request. This is the foundation for multi-user systems.
 
@@ -391,8 +391,8 @@ result = await agent.ainvoke(input, caller=caller)
 |-------|-----------|-----------------|
 | `user_id` | Scopes memory search, conversation history, semantic cache to this user | Not sent (stays on agent) |
 | `bearer_token` | Sent as `Authorization: Bearer <token>` on this invocation's tool calls to every HTTP/SSE MCP server (unless its spec sets `forward_caller_token=False`, or has an API key and does not set `forward_caller_token=True`), over a session opened for this token | Validated by `AuthMiddleware`, extracted into `ClientContext` with roles/scopes/claims |
-| `roles` | Available for agent-side logic via `get_current_caller()` | Not sent — server extracts roles from the JWT |
-| `scopes` | Available for agent-side logic | Not sent — server extracts scopes from the JWT |
+| `roles` | Available for agent-side logic via `get_current_caller()` | Not sent: server extracts roles from the JWT |
+| `scopes` | Available for agent-side logic | Not sent: server extracts scopes from the JWT |
 | `metadata` | Custom data available to guardrails, hooks, events | Not sent |
 
 ### Identity Flow: Agent → MCP Server
@@ -451,23 +451,23 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
 
 ## From Agent to Production: Governance & Runtime
 
-`build_agent()` creates a request-response agent — you call it, it replies. That's perfect for chatbots and synchronous workflows. For **autonomous agents** that run continuously, respond to triggers, and need safety rails, you wrap the agent in an **AgentProcess** managed by the **AgentRuntime**.
+`build_agent()` creates a request-response agent: you call it, it replies. That's perfect for chatbots and synchronous workflows. For **autonomous agents** that run continuously, respond to triggers, and need safety rails, you wrap the agent in an **AgentProcess** managed by the **AgentRuntime**.
 
 The runtime adds three capability layers on top of any agent you build with `build_agent()`:
 
-### Triggers — how the agent wakes up
+### Triggers: how the agent wakes up
 
 Instead of calling `ainvoke()` manually, you configure triggers that fire automatically:
 
-- **Cron** — run on a schedule (every 5 minutes, hourly, daily at midnight)
-- **Webhook** — listen for HTTP POSTs from monitoring systems, CI/CD pipelines, or APIs
-- **File Watch** — react to filesystem changes
-- **Event** — subscribe to an in-process EventBus shared with other agents
-- **Message** — receive topic-based messages from a MessageBroker
+- **Cron**: run on a schedule (every 5 minutes, hourly, daily at midnight)
+- **Webhook**: listen for HTTP POSTs from monitoring systems, CI/CD pipelines, or APIs
+- **File Watch**: react to filesystem changes
+- **Event**: subscribe to an in-process EventBus shared with other agents
+- **Message**: receive topic-based messages from a MessageBroker
 
 Multiple triggers can fire on the same agent. See [Triggers](../../runtime/triggers/index.md).
 
-### Governance — guardrails against runaway behavior
+### Governance: guardrails against runaway behavior
 
 Four opt-in subsystems, each disabled by default with zero overhead:
 
@@ -492,7 +492,7 @@ config = ProcessConfig(
         TriggerConfig(type="webhook", webhook_path="/alerts", webhook_port=9090),
     ],
 
-    # Budget — prevent runaway tool calls
+    # Budget: prevent runaway tool calls
     budget=BudgetConfig(
         enabled=True,
         max_tool_calls_per_run=20,
@@ -500,14 +500,14 @@ config = ProcessConfig(
         on_exceeded="pause",
     ),
 
-    # Health — catch stuck agents
+    # Health: catch stuck agents
     health=HealthConfig(
         enabled=True,
         stuck_threshold=3,
         on_anomaly="escalate",
     ),
 
-    # Mission — evaluate progress every 10 invocations
+    # Mission: evaluate progress every 10 invocations
     mission=MissionConfig(
         enabled=True,
         objective="Keep all services above 99.9% uptime.",
@@ -522,7 +522,7 @@ async with AgentRuntime() as runtime:
     # Process runs autonomously until stopped.
 ```
 
-### Persistence — journal, crash recovery, audit trail
+### Persistence: journal, crash recovery, audit trail
 
 The **FileJournal** records every state transition, trigger event, invocation, and tool call to an append-only JSONL file on disk. On crash, the **ReplayEngine** reconstructs the last known state so the agent can pick up where it left off.
 
@@ -562,7 +562,7 @@ See the full [Agent Runtime](../../runtime/index.md) docs for architecture, stat
     Promptise uses LangChain's `init_chat_model()` under the hood, so any provider string it accepts works here: `"openai:gpt-5-mini"`, `"anthropic:claude-sonnet-4-20250514"`, `"ollama:llama3"`, etc.
 
 !!! tip "Empty server dict"
-    Passing an empty `servers={}` is valid. The agent runs without MCP tools -- useful when you only need `extra_tools` or `cross_agents`.
+    Passing an empty `servers={}` is valid. The agent runs without MCP tools: useful when you only need `extra_tools` or `cross_agents`.
 
 !!! warning "Always await shutdown"
     Forgetting `await agent.shutdown()` can leak open connections to MCP servers. Use a `try/finally` block or wrap the agent lifecycle in an async context manager pattern.
@@ -571,27 +571,27 @@ See the full [Agent Runtime](../../runtime/index.md) docs for architecture, stat
 
 **Core agent capabilities**
 
-- [Server Configuration](server-specs.md) -- `StdioServerSpec` and `HTTPServerSpec` in detail.
-- [SuperAgent Files](superagent-files.md) -- define agents declaratively in YAML.
-- [Cross-Agent Delegation](cross-agent.md) -- multi-agent collaboration.
-- [Guardrails](../guardrails.md) -- injection blocking, PII redaction, content safety, custom rules.
-- [Memory](../memory.md) -- persistent memory with vector search.
-- [Conversations](../conversations.md) -- multi-user session persistence.
-- [Tool Optimization](../tool-optimization.md) -- semantic tool selection for token savings.
-- [Observability](../observability.md) -- track token usage and agent behavior.
+- [Server Configuration](server-specs.md): `StdioServerSpec` and `HTTPServerSpec` in detail.
+- [SuperAgent Files](superagent-files.md): define agents declaratively in YAML.
+- [Cross-Agent Delegation](cross-agent.md): multi-agent collaboration.
+- [Guardrails](../guardrails.md): injection blocking, PII redaction, content safety, custom rules.
+- [Memory](../memory.md): persistent memory with vector search.
+- [Conversations](../conversations.md): multi-user session persistence.
+- [Tool Optimization](../tool-optimization.md): semantic tool selection for token savings.
+- [Observability](../observability.md): track token usage and agent behavior.
 
 **Autonomous agents (Runtime)**
 
-- [Agent Runtime](../../runtime/index.md) -- architecture and concepts.
-- [Agent Processes](../../runtime/processes.md) -- `ProcessConfig` reference, lifecycle methods.
-- [Triggers](../../runtime/triggers/index.md) -- cron, webhook, event, file watch, message.
-- [Autonomy Budget](../../runtime/governance/budget.md) -- limit tool calls, cost, irreversible actions.
-- [Behavioral Health](../../runtime/governance/health.md) -- detect stuck loops and anomalies.
-- [Mission Model](../../runtime/governance/mission.md) -- mission-oriented execution.
-- [Journal and Recovery](../../runtime/journal/index.md) -- crash recovery via replay.
+- [Agent Runtime](../../runtime/index.md): architecture and concepts.
+- [Agent Processes](../../runtime/processes.md): `ProcessConfig` reference, lifecycle methods.
+- [Triggers](../../runtime/triggers/index.md): cron, webhook, event, file watch, message.
+- [Autonomy Budget](../../runtime/governance/budget.md): limit tool calls, cost, irreversible actions.
+- [Behavioral Health](../../runtime/governance/health.md): detect stuck loops and anomalies.
+- [Mission Model](../../runtime/governance/mission.md): mission-oriented execution.
+- [Journal and Recovery](../../runtime/journal/index.md): crash recovery via replay.
 
 !!! tip "Learn the concept"
 
-    - [How to Build an AI Agent in Python (2026 Guide)](https://www.promptise.com/guides/view/how-to-build-ai-agent-python) -- How the agent loop, MCP tools and limits fit together.
-    - [What Is an Agent Harness? Parts and How to Build One](https://www.promptise.com/guides/view/agent-harness-python) -- The parts of an agent harness and why each exists.
-    - [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop) -- How agent loops get stuck and how to stop them.
+    - [How to Build an AI Agent in Python (2026 Guide)](https://www.promptise.com/guides/view/how-to-build-ai-agent-python): How the agent loop, MCP tools and limits fit together.
+    - [What Is an Agent Harness? Parts and How to Build One](https://www.promptise.com/guides/view/agent-harness-python): The parts of an agent harness and why each exists.
+    - [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop): How agent loops get stuck and how to stop them.
