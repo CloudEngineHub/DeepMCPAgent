@@ -290,3 +290,96 @@ class TestInputRoundsWithTheSdkClient:
         text = reply.text
         assert "Invalid or expired requestState" in text
         assert "placed" not in text
+
+
+# ---------------------------------------------------------------------------
+# MCPClient(protocol="auto")
+# ---------------------------------------------------------------------------
+
+
+class TestClientProtocolOption:
+    def test_rejects_unknown_values_and_sse(self):
+        from promptise.mcp.client import MCPClientError
+
+        with pytest.raises(MCPClientError, match="protocol must be one of"):
+            MCPClient(url="http://x/mcp", protocol="2026")
+        if MCP_V2:
+            with pytest.raises(MCPClientError, match="SSE"):
+                MCPClient(url="http://x/sse", transport="sse", protocol="auto")
+        else:
+            with pytest.raises(MCPClientError, match="mcp 2.x"):
+                MCPClient(url="http://x/mcp", protocol="auto")
+
+    def test_per_caller_copies_keep_it(self):
+        if not MCP_V2:
+            pytest.skip("protocol='auto' needs the mcp 2.x SDK")
+        client = MCPClient(url="http://x/mcp", protocol="auto")
+        assert client.with_bearer_token("t")._protocol == "auto"
+
+    @needs_v2
+    async def test_falls_back_to_the_handshake(self):
+        from promptise.mcp._compat import mcp_error
+
+        calls: list[str] = []
+
+        class Session:
+            async def discover(self):
+                calls.append("discover")
+                raise mcp_error(-32601, "Method not found")
+
+            async def initialize(self):
+                calls.append("initialize")
+
+        await MCPClient(url="http://x/mcp", protocol="auto")._agree_protocol(Session())
+        assert calls == ["discover", "initialize"]
+
+    async def test_handshake_is_the_default(self):
+        calls: list[str] = []
+
+        class Session:
+            async def discover(self):  # pragma: no cover - must not be called
+                calls.append("discover")
+
+            async def initialize(self):
+                calls.append("initialize")
+
+        await MCPClient(url="http://x/mcp")._agree_protocol(Session())
+        assert calls == ["initialize"]
+
+
+@needs_v2
+class TestMCPClientAt20260728:
+    async def test_input_rounds_are_answered_by_the_elicitation_callback(self):
+        from mcp.types import ElicitResult
+
+        runs: list[str] = []
+        asked: list[str] = []
+
+        async def answer(context: Any, params: Any) -> Any:
+            asked.append(params.message)
+            if params.message == "Gift wrap?":
+                return ElicitResult(action="accept", content={"wrap": False})
+            return ElicitResult(action="accept", content={"confirm": True})
+
+        async with serve_asgi(_shop(runs).asgi_app()) as port:
+            url = f"http://127.0.0.1:{port}/mcp"
+            async with MCPClient(url=url, protocol="auto", elicitation_callback=answer) as client:
+                assert client.protocol_version == "2026-07-28"
+                result = await asyncio.wait_for(
+                    client.call_tool("checkout", {"cart": "c9"}), TIMEOUT
+                )
+                state = await client.call_tool("add_item", {"sku": "mug"})
+            async with MCPClient(url=url) as legacy:
+                assert legacy.protocol_version == "2025-11-25"
+        assert _text(result) == "placed c9, wrap=False"
+        assert asked == ["Place the order for c9?", "Gift wrap?"]
+        assert runs == ["c9", "c9", "c9"]
+        assert json.loads(_text(state))["error"]["code"] == "SESSION_REQUIRED"
+
+    async def test_without_a_callback_the_server_is_told_so(self):
+        async with serve_asgi(_shop([]).asgi_app()) as port:
+            async with MCPClient(url=f"http://127.0.0.1:{port}/mcp", protocol="auto") as client:
+                result = await client.call_tool("checkout", {"cart": "c1"})
+        assert _text(result) == (
+            "not placed: the client did not declare the elicitation capability"
+        )

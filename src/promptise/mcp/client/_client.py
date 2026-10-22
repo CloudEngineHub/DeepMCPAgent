@@ -85,6 +85,10 @@ _SESSION_TERMINATED = "Session terminated"
 _NOT_FOUND = (-32601, "Not Found")
 
 _NETWORK_TRANSPORTS = ("http", "streamable-http", "sse")
+#: ``MCPClient(protocol=...)`` values.
+_PROTOCOLS = ("handshake", "auto")
+#: Cap on 2026-07-28 input rounds for one call (the MCP SDK's default).
+_MAX_INPUT_ROUNDS = 10
 
 
 class _ForgottenSessionDeleteFilter(logging.Filter):
@@ -681,6 +685,22 @@ class MCPClient:
             raises, the operation fails with :class:`MCPCredentialError` and
             nothing is sent.  Sync callables run in a worker thread.  HTTP
             and SSE only.
+        protocol: How to agree on the protocol version with the server.
+            ``"handshake"`` (default) always uses the ``initialize``
+            handshake, which every MCP server accepts and which gives the
+            connection a session (servers' per-session state, elicitation
+            sent as server-to-client requests).  ``"auto"`` (mcp 2.x SDK,
+            HTTP and stdio) asks the server with ``server/discover`` and
+            uses the 2026-07-28 revision when the server offers it, falling
+            back to the handshake otherwise.  At 2026-07-28 there is no
+            session: each request stands alone, so a server's per-session
+            state is unavailable, and a server that needs input (an
+            elicitation, an approval gate asking this client's human)
+            answers a tool call with an ``InputRequiredResult``.  The
+            client then runs ``elicitation_callback`` on each question and
+            sends the call again with the answers, up to 10 rounds, so
+            :meth:`call_tool` returns the final result either way.
+            :attr:`protocol_version` says which revision was agreed.
 
     Example — unauthenticated::
 
@@ -743,7 +763,21 @@ class MCPClient:
         elicitation_callback: ElicitationFnT | None = None,
         auto_reconnect: bool = True,
         bearer_token_provider: BearerTokenProvider | None = None,
+        protocol: str = "handshake",
     ) -> None:
+        if protocol not in _PROTOCOLS:
+            raise MCPClientError(f"protocol must be one of {_PROTOCOLS}, got {protocol!r}")
+        if protocol == "auto" and not MCP_V2:
+            raise MCPClientError(
+                "protocol='auto' needs the mcp 2.x SDK (the 2026-07-28 protocol); "
+                "mcp 1.x only speaks the initialize handshake"
+            )
+        if protocol == "auto" and transport == "sse":
+            raise MCPClientError(
+                "protocol='auto' needs the HTTP or stdio transport; the SSE transport "
+                "only speaks the initialize handshake"
+            )
+        self._protocol = protocol
         if bearer_token and bearer_token_provider is not None:
             raise MCPClientError("Pass either bearer_token or bearer_token_provider, not both")
         if bearer_token_provider is not None and transport not in _NETWORK_TRANSPORTS:
@@ -1013,7 +1047,7 @@ class MCPClient:
                 session = await stack.enter_async_context(
                     ClientSession(streams[0], streams[1], **session_kwargs)
                 )
-                await session.initialize()
+                await self._agree_protocol(session)
                 self._session = session
                 if not ready.done():
                     ready.set_result(None)
@@ -1037,6 +1071,79 @@ class MCPClient:
                 self._session = None
             if not ready.done():
                 ready.set_exception(MCPClientError(f"Connection to {self._target} closed"))
+
+    async def _agree_protocol(self, session: ClientSession) -> None:
+        """Open the connection: ``initialize``, or ``server/discover`` first (``protocol="auto"``)."""
+        if self._protocol == "auto":
+            try:
+                await session.discover()  # type: ignore[attr-defined]
+                return
+            except McpError as exc:
+                # A server that doesn't speak 2026-07-28 answers -32601 (or
+                # another JSON-RPC error): it gets the handshake instead.
+                logger.debug(
+                    "%s has no server/discover (%s); using the initialize handshake",
+                    self._target,
+                    mcp_error_message(exc),
+                )
+        await session.initialize()
+
+    @property
+    def protocol_version(self) -> str | None:
+        """The protocol revision agreed with the server (``None`` before connecting)."""
+        session = self._session
+        if session is None:
+            return None
+        version = getattr(session, "protocol_version", None)
+        if version is None:  # mcp 1.x: read the handshake's result
+            result = getattr(session, "_initialize_result", None) or getattr(
+                session, "initialize_result", None
+            )
+            version = getattr(result, "protocolVersion", None)
+        return version if isinstance(version, str) else None
+
+    def _is_modern(self, session: ClientSession) -> bool:
+        if not MCP_V2:
+            return False
+        from mcp_types.version import MODERN_PROTOCOL_VERSIONS
+
+        return getattr(session, "protocol_version", None) in MODERN_PROTOCOL_VERSIONS
+
+    async def _call_tool_in_rounds(
+        self, session: ClientSession, name: str, arguments: dict[str, Any] | None, **kwargs: Any
+    ) -> Any:
+        """``tools/call`` at 2026-07-28: answer the server's input requests and call again."""
+        from mcp import types
+        from mcp.client.context import ClientRequestContext
+
+        input_responses: dict[str, Any] | None = None
+        request_state: str | None = None
+        for _ in range(_MAX_INPUT_ROUNDS + 1):
+            result = await session.call_tool(  # type: ignore[call-arg]
+                name,
+                arguments,
+                input_responses=input_responses,
+                request_state=request_state,
+                allow_input_required=True,
+                **kwargs,
+            )
+            input_required: Any = getattr(types, "InputRequiredResult")  # noqa: B009 - 2.x only
+            if not isinstance(result, input_required):
+                return result
+            input_responses = {}
+            for key, request in (result.input_requests or {}).items():
+                meta = getattr(getattr(request, "params", None), "meta", None)
+                ctx = ClientRequestContext(session=session, request_id=key, meta=meta)
+                response = await session.dispatch_input_request(ctx, request)  # type: ignore[attr-defined]
+                if isinstance(response, types.ErrorData):
+                    raise MCPClientError(
+                        f"Tool '{name}' needs input this client did not give: {response.message}"
+                    )
+                input_responses[key] = response
+            request_state = result.request_state
+        raise MCPClientError(
+            f"Tool '{name}' still needed input after {_MAX_INPUT_ROUNDS} rounds; giving up"
+        )
 
     async def _answer_elicitation(self, context: Any, params: Any) -> Any:
         """Run the configured elicitation callback, failing closed on errors.
@@ -1442,12 +1549,17 @@ class MCPClient:
             arguments=dict(arguments or {}),
             context=contextvars.copy_context(),
         )
+        kwargs: dict[str, Any] = {}
+        if progress_callback is not None:
+            kwargs["progress_callback"] = progress_callback
+
+        def call(session: ClientSession) -> Awaitable[Any]:
+            if self._is_modern(session):
+                return self._call_tool_in_rounds(session, name, arguments, **kwargs)
+            return session.call_tool(name, arguments, **kwargs)
+
         try:
-            if progress_callback is not None:
-                return await self._with_session(
-                    lambda s: s.call_tool(name, arguments, progress_callback=progress_callback)
-                )
-            return await self._with_session(lambda s: s.call_tool(name, arguments))
+            return await self._with_session(call)
         except (TimeoutError, asyncio.TimeoutError) as exc:
             raise MCPClientError(f"Timeout calling tool '{name}': {exc}") from exc
         except ConnectionError as exc:
@@ -1497,7 +1609,7 @@ class MCPClient:
         """Return a new, unconnected client that authenticates as *bearer_token*.
 
         The copy keeps this client's URL, transport, timeout, headers
-        (including ``x-api-key``) and elicitation callback, and replaces any
+        (including ``x-api-key``), elicitation callback and ``protocol``, and replaces any
         ``Authorization`` header, whatever its casing, with
         ``Bearer <bearer_token>``.  Used to open a session per caller, so one
         caller's token is never sent on another caller's requests, while the
@@ -1522,6 +1634,7 @@ class MCPClient:
             timeout=self._timeout,
             elicitation_callback=self._elicitation_callback,
             auto_reconnect=self._auto_reconnect,
+            protocol=self._protocol,
         )
         clone._origin = self._origin or self
         return clone

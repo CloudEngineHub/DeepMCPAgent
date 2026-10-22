@@ -153,6 +153,7 @@ async with MCPClient(
 | `elicitation_callback` | SDK `ElicitationFnT \| None` | `None` | Answers the server's MCP elicitation requests; the elicitation capability is declared only when set. See [Answering elicitation](#answering-elicitation-server-side-approval-gates) |
 | `auto_reconnect` | `bool` | `True` | Open a new session and retry once when an HTTP/SSE server has lost the session — see [Reconnecting after a server restart](#reconnecting-after-a-server-restart). Ignored for stdio |
 | `bearer_token_provider` | `Callable[[bool], str \| None]` (or async) | `None` | Returns the current token on every request, instead of `bearer_token` — see [Short-lived tokens](#short-lived-tokens). HTTP/SSE only |
+| `protocol` | `str` | `"handshake"` | `"handshake"` always opens the connection with `initialize`. `"auto"` (mcp 2.x, HTTP and stdio) uses the 2026-07-28 protocol when the server offers it. See [Protocol versions](#protocol-versions) |
 
 ### Fetching tokens
 
@@ -282,6 +283,18 @@ What the client guarantees:
 on every client that has none of its own. The SDK callback does not say which
 server asked, so give each `MCPClient` its own callback when the handler needs
 the server name.
+
+### Protocol versions
+
+By default `MCPClient` opens every connection with the `initialize` handshake, which every MCP server accepts. The connection then has a session: the server can keep per-session state and send elicitation requests mid-call. With `protocol="auto"` (mcp 2.x SDK, HTTP or stdio) the client asks the server with `server/discover` first and uses the 2026-07-28 protocol revision when the server offers it, or falls back to the handshake:
+
+```python
+async with MCPClient(url=url, protocol="auto", elicitation_callback=answer) as client:
+    print(client.protocol_version)  # "2026-07-28" against a server that offers it
+    result = await client.call_tool("checkout", {"cart": "c1"})
+```
+
+At 2026-07-28 each request stands alone. A server that needs input answers a tool call with an `InputRequiredResult`; the client runs `elicitation_callback` on each question and sends the call again with the answers (up to 10 rounds), so `call_tool` returns the final result as before. Without a callback the server is told the client can't answer. There is no session, so a server tool that keeps per-session state answers with an error (a Promptise server's `SESSION_REQUIRED`): keep the handshake for such servers. `build_agent` and the Agent Runtime connect with the handshake.
 
 ## MCPMultiClient
 
