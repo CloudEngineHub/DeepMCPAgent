@@ -580,6 +580,19 @@ class PromptGraphEngine:
                     if stopping_hook is None and state.current_node == "__end__":
                         stopping_hook = hook
 
+            # A pre-node hook that ended the run (CycleDetectionHook) stops
+            # it before the node runs.
+            if state.current_node == "__end__":
+                state.visited.pop()
+                hook_name = type(stopping_hook).__name__ if stopping_hook else "a hook"
+                hook_stop = (
+                    node.name,
+                    hook_name,
+                    f"{hook_name} ended the run",
+                    isinstance(stopping_hook, BudgetHook),
+                )
+                break
+
             # ── Pre-execute flag processing ──
             node_start = time.perf_counter()
             skip_result = await self._pre_execute_flags(node, state, config)
@@ -613,6 +626,16 @@ class PromptGraphEngine:
             node_failed = bool(result.error) and not result.error_recovered
             critical = node.has_flag(NodeFlag.CRITICAL) and bool(result.error)
 
+            # ── on_error hooks: a failed node, before any routing ──
+            # A hook may return a node name (or "__end__") to route the run
+            # there; a CRITICAL node aborts the run whatever they return.
+            forced_next: str | None = None
+            if node_failed:
+                redirect = await self._on_error_hooks(node, result, state, live_graph)
+                if redirect is not None and not critical:
+                    forced_next = redirect
+                    result.transition_reason = f"on_error hook routed to {redirect!r}"
+
             if streaming and (node_failed or critical):
                 error_data: dict[str, Any] = {"error": result.error}
                 if critical:
@@ -638,11 +661,13 @@ class PromptGraphEngine:
                 break
 
             # ── Runtime graph mutations ──
+            # Each one is offered to the on_graph_mutation hooks first.
             if result.graph_mutations:
                 for mutation in result.graph_mutations:
                     if mutations_count < self.max_mutations_per_run:
-                        live_graph.apply_mutation(mutation)
-                        mutations_count += 1
+                        if await self._mutation_allowed(mutation, state):
+                            live_graph.apply_mutation(mutation)
+                            mutations_count += 1
                     else:
                         logger.warning(
                             "Mutation budget exhausted (%d/%d)",
@@ -657,8 +682,13 @@ class PromptGraphEngine:
                 and result.output.get("_graph_action")
                 and mutations_count < self.max_mutations_per_run
             ):
-                self._apply_llm_graph_action(live_graph, result.output, state)
-                mutations_count += 1
+                applied, action_next = await self._apply_llm_graph_action(
+                    live_graph, result.output, state, node
+                )
+                if applied:
+                    mutations_count += 1
+                if action_next is not None and forced_next is None:
+                    forced_next = action_next
 
             # ── Post-node hooks ──
             error_before_hooks = result.error
@@ -707,8 +737,16 @@ class PromptGraphEngine:
                     isinstance(stopping_hook, BudgetHook),
                 )
                 break
-            next_node = self._resolve_transition(node, result, state, live_graph)
+            if forced_next is not None:
+                next_node = forced_next
+            else:
+                next_node = self._resolve_transition(node, result, state, live_graph)
             state.current_node = next_node
+
+            # A structured-output node that ends the run leaves its output as
+            # the answer message (it added no AIMessage of its own).
+            if next_node == "__end__" and self._add_structured_answer(node, result, state):
+                yield None, state
 
             # ── Safety checks ──
             state.iteration += 1
@@ -949,13 +987,28 @@ class PromptGraphEngine:
     # LLM graph actions
     # ──────────────────────────────────────────────────────────────────
 
-    def _apply_llm_graph_action(
+    async def _apply_llm_graph_action(
         self,
         graph: PromptGraph,
         output: dict[str, Any],
         state: GraphState,
-    ) -> None:
-        """Apply a graph mutation requested by the LLM."""
+        node: BaseNode,
+    ) -> tuple[bool, str | None]:
+        """Apply a graph action the LLM asked for in its structured output.
+
+        Returns ``(counted, next_node)``: whether the action counts against
+        ``max_mutations_per_run``, and the node the run goes to next when
+        the action decides it (``skip_to``, ``retry_with``), else ``None``.
+
+        - ``add_node`` (``_node_config``) / ``add_edge`` (``_from``,
+          ``_to``) change the live graph, after the ``on_graph_mutation``
+          hooks allow it.
+        - ``skip_to`` (``_target``) makes the target node (or ``"__end__"``)
+          the next node, ahead of edges and transitions.
+        - ``retry_with`` (``_context_update``) merges the update into
+          ``state.context`` and runs the node again; each retry uses the
+          node's iteration budget.
+        """
         action = output.get("_graph_action", "")
 
         if action == "add_node" and output.get("_node_config"):
@@ -964,27 +1017,127 @@ class PromptGraphEngine:
                 node_config=output["_node_config"],
                 node_name=output["_node_config"].get("name", ""),
             )
+            if not await self._mutation_allowed(mutation, state):
+                return False, None
             graph.apply_mutation(mutation)
             logger.info("LLM added node %r to graph", mutation.node_name)
+            return True, None
 
-        elif action == "skip_to" and output.get("_target"):
+        if action == "skip_to" and output.get("_target"):
             target = output["_target"]
             if graph.has_node(target) or target == "__end__":
-                state.current_node = target
                 logger.info("LLM skipped to node %r", target)
-            else:
-                logger.warning("LLM tried to skip to unknown node %r", target)
+                return True, str(target)
+            logger.warning("LLM tried to skip to unknown node %r", target)
+            return False, None
 
-        elif action == "add_edge":
+        if action == "add_edge":
             from_n = output.get("_from", "")
             to_n = output.get("_to", "")
             if from_n and to_n:
+                mutation = GraphMutation(action="add_edge", from_node=from_n, to_node=to_n)
+                if not await self._mutation_allowed(mutation, state):
+                    return False, None
                 graph.add_edge(from_n, to_n)
                 logger.info("LLM added edge %s → %s", from_n, to_n)
+                return True, None
+            return False, None
 
-        elif action == "retry_with" and output.get("_context_update"):
+        if action == "retry_with" and isinstance(output.get("_context_update"), dict):
             state.context.update(output["_context_update"])
-            logger.info("LLM requested retry with updated context")
+            logger.info("LLM requested a retry of node %r with updated context", node.name)
+            return True, node.name
+
+        return False, None
+
+    # ──────────────────────────────────────────────────────────────────
+    # Hook points
+    # ──────────────────────────────────────────────────────────────────
+
+    async def _mutation_allowed(self, mutation: GraphMutation, state: GraphState) -> bool:
+        """Ask the ``on_graph_mutation`` hooks about *mutation*.
+
+        Any hook returning ``False`` blocks it.  A hook that raises blocks
+        it too (fail closed: the hook is a gate).
+        """
+        for hook in self.hooks:
+            if not hasattr(hook, "on_graph_mutation"):
+                continue
+            try:
+                allowed = await hook.on_graph_mutation(mutation, state)
+            except Exception as exc:
+                logger.warning(
+                    "on_graph_mutation hook %r failed, blocking the %s mutation: %s",
+                    type(hook).__name__,
+                    mutation.action,
+                    exc,
+                )
+                return False
+            if allowed is False:
+                logger.info(
+                    "on_graph_mutation hook %r blocked the %s mutation",
+                    type(hook).__name__,
+                    mutation.action,
+                )
+                return False
+        return True
+
+    async def _on_error_hooks(
+        self,
+        node: BaseNode,
+        result: NodeResult,
+        state: GraphState,
+        graph: PromptGraph,
+    ) -> str | None:
+        """Call the ``on_error`` hooks for a failed node.
+
+        Each hook gets the exception behind the failure (a ``RuntimeError``
+        carrying ``result.error`` when the node recorded none).  The first
+        hook that returns a node of the graph (or ``"__end__"``) decides
+        where the run goes next.  Exceptions in hooks are logged.
+        """
+        error = failure_cause(result)
+        if error is None or not isinstance(error, Exception):
+            error = RuntimeError(result.error or "unknown error")
+        redirect: str | None = None
+        for hook in self.hooks:
+            if not hasattr(hook, "on_error"):
+                continue
+            try:
+                target = await hook.on_error(node, error, state)
+            except Exception as exc:
+                logger.warning("on_error hook %r failed: %s", type(hook).__name__, exc)
+                continue
+            if redirect is not None or target is None:
+                continue
+            if isinstance(target, str) and (target == "__end__" or graph.has_node(target)):
+                redirect = target
+            else:
+                logger.warning(
+                    "on_error hook %r returned %r, which is not a node of graph %r; ignored",
+                    type(hook).__name__,
+                    target,
+                    graph.name,
+                )
+        return redirect
+
+    @staticmethod
+    def _add_structured_answer(node: BaseNode, result: NodeResult, state: GraphState) -> bool:
+        """Leave the output of a structured-output node that ends the run as
+        the answer: an ``AIMessage`` holding its JSON, when the node added
+        no ``AIMessage`` of its own.  Returns whether a message was added."""
+        if (
+            getattr(node, "output_schema", None) is None
+            or result.error
+            or result.output is None
+            or not result.raw_output
+            or any(isinstance(m, AIMessage) for m in result.messages_added)
+        ):
+            return False
+        message = AIMessage(content=result.raw_output)
+        state.messages.append(message)
+        result.messages_added.append(message)
+        return True
 
     # ──────────────────────────────────────────────────────────────────
     # Flag processing
@@ -1077,7 +1230,12 @@ class PromptGraphEngine:
             state.context["_awaiting_human"] = node.name
             for hook in self.hooks:
                 if hasattr(hook, "on_human_required"):
-                    await hook.on_human_required(node.name, state)
+                    try:
+                        await hook.on_human_required(node.name, state)
+                    except Exception as exc:
+                        logger.warning(
+                            "on_human_required hook %r failed: %s", type(hook).__name__, exc
+                        )
 
         return None
 
@@ -1144,14 +1302,19 @@ class PromptGraphEngine:
             }
             for hook in self.hooks:
                 if hasattr(hook, "on_observable_event"):
-                    await hook.on_observable_event(
-                        NodeEvent(
-                            event="on_node_metrics",
-                            node_name=node.name,
-                            data=metrics_data,
-                        ),
-                        state,
-                    )
+                    try:
+                        await hook.on_observable_event(
+                            NodeEvent(
+                                event="on_node_metrics",
+                                node_name=node.name,
+                                data=metrics_data,
+                            ),
+                            state,
+                        )
+                    except Exception as exc:
+                        logger.warning(
+                            "on_observable_event hook %r failed: %s", type(hook).__name__, exc
+                        )
 
         # SUMMARIZE_OUTPUT — use LLM to actually summarize long outputs
         if node.has_flag(NodeFlag.SUMMARIZE_OUTPUT):
