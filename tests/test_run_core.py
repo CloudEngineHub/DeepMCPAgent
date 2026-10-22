@@ -595,3 +595,34 @@ def test_a_root_owned_manifest_is_trusted(tmp_path: Path, monkeypatch: pytest.Mo
     monkeypatch.setattr(m.Path, "stat", lambda self, **kw: Other())
     with pytest.raises(m.ManifestError, match="not by you"):
         m._check_owner(path)
+
+
+# ---------------------------------------------------------------------------
+# Messages that name a promptise.toml table keep its brackets
+
+
+def test_summary_names_the_pricing_table_literally() -> None:
+    import io
+
+    from rich.console import Console
+
+    from promptise.run.devtools import print_summary
+
+    out = io.StringIO()
+    stats = {"totals": {"llm_calls": 1, "unpriced_models": ["acme-1"]}}
+    print_summary(stats, duration_s=1.0, console=Console(file=out, width=200))
+    assert "no price for acme-1: add it to [pricing] in promptise.toml" in out.getvalue()
+
+
+def test_list_scripts_names_the_scripts_table_literally(monkeypatch, tmp_path: Path) -> None:
+    import io
+
+    from rich.console import Console
+
+    from promptise.run import cli as run_cli
+    from promptise.run.manifest import default_manifest
+
+    out = io.StringIO()
+    monkeypatch.setattr(run_cli, "err", Console(file=out, width=200))
+    assert run_cli._list_scripts(default_manifest(tmp_path)) == 0
+    assert "no [scripts] in this project" in out.getvalue()

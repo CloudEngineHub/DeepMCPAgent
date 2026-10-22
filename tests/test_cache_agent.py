@@ -504,3 +504,127 @@ class TestCustomCache:
         finally:
             await agent.shutdown()
         assert cache.stored == ["What are your opening hours?"]
+
+
+# ---------------------------------------------------------------------------
+# Single-user terminal runs: promptise agent / promptise run chat
+# ---------------------------------------------------------------------------
+
+
+class TestTerminalRunsCache:
+    """The terminal has one user, so a per_user cache must cache there too."""
+
+    @pytest.mark.asyncio
+    async def test_run_chat_turns_use_the_local_caller(self):
+        """promptise run (chat, -i, TUI) turns run as the one local user."""
+        from promptise.run.chat import LOCAL_USER_ID, Conversation
+
+        agent = await _agent(SemanticCache(embedding=ExactEmbeddings()))
+        seen: list[Any] = []
+        stream = agent.astream_with_tools
+
+        async def recording(input: Any, **kwargs: Any):
+            seen.append(kwargs.get("caller"))
+            async for event in stream(input, **kwargs):
+                yield event
+
+        agent.astream_with_tools = recording  # type: ignore[method-assign]
+        try:
+            answer, error = await Conversation(agent, None).turn("What are your hours?")
+        finally:
+            await agent.shutdown()
+        assert error is None and answer == "[support-model] What are your hours?"
+        assert [c.user_id for c in seen] == [LOCAL_USER_ID]
+
+    @pytest.mark.asyncio
+    async def test_run_chat_passes_no_caller_to_other_agents(self):
+        from promptise.run.chat import Conversation
+
+        seen: list[dict[str, Any]] = []
+
+        class OtherAgent:
+            async def astream_with_tools(self, input: Any, **kwargs: Any):
+                seen.append(kwargs)
+                yield {"type": "done", "full_response": "ok"}
+
+        answer, error = await Conversation(OtherAgent(), None).turn("hi")
+        assert (answer, error, seen) == ("ok", None, [{}])
+
+    def test_promptise_run_model_id_chat_caches(self, monkeypatch):
+        from unittest.mock import AsyncMock
+
+        from typer.testing import CliRunner
+
+        from promptise import cli
+
+        cache = SemanticCache(embedding=ExactEmbeddings())
+        calls: list[str] = []
+        agents: list[Any] = []
+
+        async def make(**kwargs: Any) -> Any:
+            agent = await _agent(cache, model=SupportModel(calls=calls))
+            agents.append(agent)
+            return agent
+
+        monkeypatch.setattr(cli, "build_agent", AsyncMock(side_effect=make))
+        result = CliRunner().invoke(
+            cli.app,
+            ["run", "--model-id", "openai:gpt-5-mini"],
+            input="What are your hours?\nWhat are your hours?\nexit\n",
+        )
+        assert result.exit_code == 0, result.output
+        assert result.output.count("[support-model] What are your hours?") == 2
+        assert calls == ["support-model"]
+
+    def test_promptise_agent_superagent_chat_caches(self, monkeypatch, tmp_path):
+        """`promptise agent file.superagent` with `cache: true` caches repeated questions."""
+        from typer.testing import CliRunner
+
+        import promptise.superagent as superagent_mod
+        from promptise import cli
+
+        cache = SemanticCache(embedding=ExactEmbeddings())
+        calls: list[str] = []
+
+        async def build(loader: Any, **kwargs: Any) -> Any:
+            return await _agent(cache, model=SupportModel(calls=calls))
+
+        monkeypatch.setattr(superagent_mod, "build_superagent", build)
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("PROMPTISE_NO_DOTENV", "1")
+        (tmp_path / "support.superagent").write_text(
+            "version: '1.0'\n"
+            "agent:\n  model: openai:gpt-5-mini\n"
+            "servers:\n  tools:\n    type: stdio\n    command: python\n    args: [server.py]\n"
+            "cache: true\n"
+        )
+        result = CliRunner().invoke(
+            cli.app,
+            ["agent", "support.superagent"],
+            input="What are your hours?\nWhat are your hours?\nexit\n",
+        )
+        assert result.exit_code == 0, result.output
+        assert result.output.count("[support-model] What are your hours?") == 2
+        assert calls == ["support-model"]
+
+    def test_serve_warns_when_the_cache_cannot_cache(self, caplog):
+        import asyncio
+
+        from promptise.run.serve import _warn_unused_cache
+
+        async def check(cache: SemanticCache) -> list[str]:
+            agent = await _agent(cache)
+            try:
+                caplog.clear()
+                with caplog.at_level(logging.WARNING, logger="promptise.run.serve"):
+                    _warn_unused_cache(agent)
+                return [r.getMessage() for r in caplog.records]
+            finally:
+                await agent.shutdown()
+
+        per_user = asyncio.run(check(SemanticCache(embedding=ExactEmbeddings())))
+        assert len(per_user) == 1 and "nothing will be cached" in per_user[0]
+        shared = SemanticCache(
+            embedding=ExactEmbeddings(), scope="shared", shared_data_acknowledged=True
+        )
+        assert asyncio.run(check(shared)) == []

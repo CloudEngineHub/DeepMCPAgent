@@ -40,6 +40,16 @@ result = await agent.ainvoke(input, caller=CallerContext(user_id="user-42"))
 
 Cache check runs **after** input guardrails and memory search (so the cache key reflects current memory state) but **before** tool selection and LLM call. Cached responses are stored **after** output guardrails, only safe, redacted content is ever persisted in the cache.
 
+**Which calls use it.** `ainvoke()` and `chat()` check and fill the cache. Streamed runs (`astream()`, `astream_with_tools()`) do not: they always call the model, and only [write invalidation](#write-invalidation) applies to them.
+
+**From the CLI.** With `cache:` in a [`.superagent` file](agents/superagent-files.md#cache):
+
+| Command | Cached with the default `per_user` scope? |
+|---|---|
+| `promptise agent file.superagent` | Yes: the terminal has one user, so each turn runs as `CallerContext(user_id="local")` |
+| `promptise run --serve`, non-streamed requests | No: the server cannot tell HTTP clients apart, so requests carry no `user_id`. Only `scope: shared` (with `shared_data_acknowledged: true`) caches; the server warns at start otherwise |
+| `promptise run` chat, `-i` and TUI, and streamed `--serve` requests | No: these stream |
+
 ---
 
 ## What Gets Cached

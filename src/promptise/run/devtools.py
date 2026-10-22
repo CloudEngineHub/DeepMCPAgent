@@ -249,8 +249,8 @@ def print_summary(
     unpriced = totals.get("unpriced_models") or []
     if unpriced:
         console.print(
-            f"[dim]no price for {escape(', '.join(unpriced))}: add it to [pricing] in "
-            "promptise.toml for a cost estimate[/dim]"
+            f"[dim]no price for {escape(', '.join(unpriced))}: add it to "
+            f"{escape('[pricing]')} in promptise.toml for a cost estimate[/dim]"
         )
 
 

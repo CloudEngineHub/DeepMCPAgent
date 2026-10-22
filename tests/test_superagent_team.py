@@ -696,9 +696,56 @@ def test_http_auth_option_is_rejected() -> None:
     assert spec.api_key.get_secret_value() == "secret"
 
 
-@pytest.mark.parametrize("template", ["basic", "http", "stdio", "advanced"])
+INIT_TEMPLATES = ["basic", "http", "stdio", "cross-agent", "advanced"]
+
+
+@pytest.mark.parametrize("template", INIT_TEMPLATES)
 def test_init_templates_pass_the_schema(tmp_path: Path, template: str) -> None:
     out = tmp_path / f"{template}.superagent"
     result = _cli(["init", "--output", str(out), "--template", template])
     assert result.exit_code == 0, result.output
     SuperAgentLoader.from_file(out)  # no validation error
+
+
+@pytest.mark.parametrize("template", INIT_TEMPLATES)
+def test_init_then_validate_passes_for_every_template(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, template: str
+) -> None:
+    """`promptise init -t T && promptise validate --allow-missing-env` as the docs say."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("PROMPTISE_NO_DOTENV", "1")
+    out = f"{template}.superagent"
+    result = _cli(["init", "-o", out, "-t", template])
+    assert result.exit_code == 0, result.output
+    result = _cli(["validate", out, "--allow-missing-env"])
+    assert result.exit_code == 0, result.output
+    assert "Validation complete" in result.output
+    # Every file of the team uses the docs' default model
+    for path in tmp_path.rglob("*.superagent"):
+        assert "gpt-5-mini" in path.read_text(), path
+        assert "gpt-4" not in path.read_text(), path
+
+
+def test_init_cross_agent_template_writes_its_team(tmp_path: Path) -> None:
+    out = tmp_path / "team.superagent"
+    result = _cli(["init", "-o", str(out), "-t", "cross-agent"])
+    assert result.exit_code == 0, result.output
+    loader = SuperAgentLoader.from_file(out)
+    loader.resolve_cross_agents(recursive=True)  # no missing file
+    assert sorted(p.name for p in (tmp_path / "agents").iterdir()) == [
+        "math_agent.superagent",
+        "research_agent.superagent",
+    ]
+
+
+def test_init_does_not_overwrite_a_cross_agent_file_without_force(tmp_path: Path) -> None:
+    (tmp_path / "agents").mkdir()
+    mine = tmp_path / "agents" / "specialist_a.superagent"
+    mine.write_text("mine")
+    out = tmp_path / "advanced.superagent"
+    result = _cli(["init", "-o", str(out), "-t", "advanced"])
+    assert result.exit_code == 1 and "already exists" in result.output
+    assert mine.read_text() == "mine" and not out.exists()
+    result = _cli(["init", "-o", str(out), "-t", "advanced", "--force"])
+    assert result.exit_code == 0, result.output
+    assert mine.read_text() != "mine"

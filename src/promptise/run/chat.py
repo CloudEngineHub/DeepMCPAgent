@@ -24,7 +24,28 @@ from .devtools import print_summary
 from .events import EventBus, strip_controls
 from .harness import RunHarness
 
-__all__ = ["Conversation", "ask_once", "repl"]
+__all__ = ["LOCAL_USER_ID", "Conversation", "ask_once", "local_caller", "repl"]
+
+#: The ``user_id`` of the single person at the terminal in ``promptise agent``
+#: and the ``promptise run`` chat, once and TUI modes.
+LOCAL_USER_ID = "local"
+
+
+def local_caller() -> Any:
+    """The :class:`~promptise.agent.CallerContext` of a single-user terminal run.
+
+    ``promptise agent`` and ``promptise run`` (chat, ``-i``, TUI) have one
+    user, the person at the terminal, so their turns run as
+    ``CallerContext(user_id="local")``.  Features scoped per user then work
+    as they do in code with a caller: ``per_user`` memory has an owner, and
+    in ``promptise agent`` (which calls ``ainvoke()``) a ``cache`` with the
+    default ``per_user`` scope caches.  ``promptise run --serve`` does not
+    use it: HTTP clients are not one user.
+    """
+    from ..agent import CallerContext
+
+    return CallerContext(user_id=LOCAL_USER_ID, metadata={"transport": "cli"})
+
 
 _HELP = """[bold]Commands[/bold]
   /help    this help
@@ -50,6 +71,12 @@ class Conversation:
         self.messages = []
         return self.id
 
+    def _caller_kwargs(self) -> dict[str, Any]:
+        """``caller=local_caller()`` for a Promptise agent; nothing for other agents."""
+        from ..agent import PromptiseAgent
+
+        return {"caller": local_caller()} if isinstance(self.agent, PromptiseAgent) else {}
+
     def _publish(self, kind: str, **payload: Any) -> None:
         if self.bus is not None:
             self.bus.publish(kind, **payload)
@@ -68,7 +95,9 @@ class Conversation:
         output, error = "", None
         messages = [*self.messages, {"role": "user", "content": text}]
         try:
-            async for event in self.agent.astream_with_tools({"messages": messages}):
+            async for event in self.agent.astream_with_tools(
+                {"messages": messages}, **self._caller_kwargs()
+            ):
                 data = event.to_dict() if hasattr(event, "to_dict") else dict(event)
                 self._publish("stream", turn_id=turn_id, event=data)
                 if on_event is not None:

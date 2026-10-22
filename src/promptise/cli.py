@@ -2,7 +2,7 @@
 CLI for promptise: list tools and run an interactive agent session.
 
 Notes:
-    - The CLI path uses provider id strings for models (e.g., "openai:gpt-4.1"),
+    - The CLI path uses provider id strings for models (e.g., "openai:gpt-5-mini"),
       which `init_chat_model` handles. In code, you can pass a model instance.
     - Model is REQUIRED (no fallback).
     - Usage for repeated server specs:
@@ -181,7 +181,7 @@ def _extract_final_answer(result: Any) -> str:
 def list_tools(
     model_id: Annotated[
         str,
-        typer.Option("--model-id", help="REQUIRED model provider id (e.g., 'openai:gpt-4.1')."),
+        typer.Option("--model-id", help="REQUIRED model provider id (e.g., 'openai:gpt-5-mini')."),
     ],
     stdio: Annotated[
         list[str] | None,
@@ -346,7 +346,7 @@ def run(
         str | None,
         typer.Option(
             "--model-id",
-            help="Start the inline MCP chat with this model (e.g. 'openai:gpt-4.1').",
+            help="Start the inline MCP chat with this model (e.g. 'openai:gpt-5-mini').",
         ),
     ] = None,
     stdio: Annotated[
@@ -430,6 +430,13 @@ def run(
     )
 
 
+def _local_caller() -> Any:
+    """The caller of a terminal chat turn: the one local user (see run.chat.local_caller)."""
+    from .run.chat import local_caller
+
+    return local_caller()
+
+
 def _inline_chat(
     *,
     model_id: str,
@@ -462,7 +469,10 @@ def _inline_chat(
                 if not user:
                     continue
                 try:
-                    result = await graph.ainvoke({"messages": [{"role": "user", "content": user}]})
+                    result = await graph.ainvoke(
+                        {"messages": [{"role": "user", "content": user}]},
+                        caller=_local_caller(),
+                    )
                 except Exception as exc:
                     console.print(f"[red]Error during run:[/red] {exc}")
                     continue
@@ -470,7 +480,9 @@ def _inline_chat(
                 final_text = _extract_final_answer(result)
                 console.print(
                     Panel(
-                        final_text or "(no content)", title="Final LLM Answer", style="bold green"
+                        escape(final_text or "(no content)"),
+                        title="Final LLM Answer",
+                        style="bold green",
                     )
                 )
                 if raw:
@@ -539,7 +551,7 @@ def agent(
 
     Examples:
         promptise agent my_agent.superagent
-        promptise agent my_agent.superagent --model-id "openai:gpt-4o"
+        promptise agent my_agent.superagent --model-id "openai:gpt-5-mini"
         promptise agent my_agent.superagent --no-trace
     """
     from .superagent import SuperAgentLoader, build_superagent
@@ -612,7 +624,10 @@ def agent(
                 if not user:
                     continue
                 try:
-                    result = await graph.ainvoke({"messages": [{"role": "user", "content": user}]})
+                    result = await graph.ainvoke(
+                        {"messages": [{"role": "user", "content": user}]},
+                        caller=_local_caller(),
+                    )
                 except Exception as exc:
                     console.print(f"[red]Error during run:[/red] {escape(str(exc))}")
                     continue
@@ -620,7 +635,9 @@ def agent(
                 final_text = _extract_final_answer(result)
                 console.print(
                     Panel(
-                        final_text or "(no content)", title="Final LLM Answer", style="bold green"
+                        escape(final_text or "(no content)"),
+                        title="Final LLM Answer",
+                        style="bold green",
                     )
                 )
                 if raw:
@@ -957,18 +974,12 @@ def init(
 
     output_path = Path(output)
 
-    # Check if file exists
-    if output_path.exists() and not force:
-        console.print(f"[yellow]File already exists: {output}[/yellow]")
-        console.print("Use --force to overwrite")
-        raise typer.Exit(1)
-
     # Template content
     templates = {
         "basic": """version: "1.0"
 
 agent:
-  model: "openai:gpt-4.1"
+  model: "openai:gpt-5-mini"
   instructions: "You are a helpful assistant."
   trace: true
 
@@ -981,7 +992,7 @@ servers:
         "http": """version: "1.0"
 
 agent:
-  model: "openai:gpt-4.1"
+  model: "openai:gpt-5-mini"
   instructions: "You are a helpful assistant with access to external tools."
   trace: true
 
@@ -999,7 +1010,7 @@ servers:
         "stdio": """version: "1.0"
 
 agent:
-  model: "openai:gpt-4.1"
+  model: "openai:gpt-5-mini"
   instructions: "You are a helpful assistant with local tools."
   trace: true
 
@@ -1019,7 +1030,7 @@ servers:
         "cross-agent": """version: "1.0"
 
 agent:
-  model: "openai:gpt-4.1"
+  model: "openai:gpt-5-mini"
   instructions: "You are a coordinator agent that can delegate to specialists."
   trace: true
 
@@ -1044,9 +1055,8 @@ agent:
   # Detailed model configuration
   model:
     provider: openai
-    name: gpt-4.1
+    name: gpt-5-mini
     api_key: ${OPENAI_API_KEY}
-    temperature: 0.7
     max_tokens: 4096
     timeout: 60
 
@@ -1094,18 +1104,79 @@ cross_agents:
         console.print(f"Available: {', '.join(templates.keys())}")
         raise typer.Exit(1)
 
+    # The files the template's cross_agents reference, next to it, so the
+    # team validates and loads as generated.
+    companions = {
+        output_path.parent / rel: content
+        for rel, content in _INIT_CROSS_AGENT_FILES.get(template, {}).items()
+    }
+    existing = [path for path in [output_path, *companions] if path.exists()]
+    if existing and not force:
+        for path in existing:
+            console.print(f"[yellow]File already exists: {escape(str(path))}[/yellow]")
+        console.print("Use --force to overwrite")
+        raise typer.Exit(1)
+
     # Write template
     try:
         output_path.write_text(templates[template], encoding="utf-8")
-        console.print(f"[green]✓ Created {output}[/green]")
+        console.print(f"[green]✓ Created {escape(output)}[/green]")
+        for path, content in companions.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+            console.print(f"[green]✓ Created {escape(str(path))}[/green] (cross-agent)")
         console.print(f"[dim]Template: {template}[/dim]")
         console.print("\n[bold]Next steps:[/bold]")
-        console.print(f"  1. Edit {output} to customize configuration")
+        console.print(f"  1. Edit {escape(output)} to customize configuration")
         console.print("  2. Set required environment variables")
-        console.print(f"  3. Run: promptise agent {output}")
+        console.print(f"  3. Check it: promptise validate {escape(output)}")
+        console.print(f"  4. Run: promptise agent {escape(output)}")
     except Exception as exc:
-        console.print(f"[red]Failed to write file:[/red] {exc}")
+        console.print(f"[red]Failed to write file:[/red] {escape(str(exc))}")
         raise typer.Exit(1)
+
+
+def _specialist_template(instructions: str, server: str, port: int) -> str:
+    """A cross-agent file for the ``cross-agent`` and ``advanced`` init templates."""
+    return f"""version: "1.0"
+
+# A specialist the coordinator delegates to (see its cross_agents section).
+agent:
+  model: "openai:gpt-5-mini"
+  instructions: "{instructions}"
+
+servers:
+  {server}:
+    type: http
+    url: "http://127.0.0.1:{port}/mcp"
+    transport: http
+"""
+
+
+#: Files ``promptise init`` writes next to a template, keyed by template and
+#: the path its ``cross_agents`` section names (relative to the template).
+_INIT_CROSS_AGENT_FILES: dict[str, dict[str, str]] = {
+    "cross-agent": {
+        "agents/math_agent.superagent": _specialist_template(
+            "You are a math specialist. Work through calculations step by step.",
+            "math_tools",
+            8001,
+        ),
+        "agents/research_agent.superagent": _specialist_template(
+            "You are a research specialist. Find facts and say where they come from.",
+            "research_tools",
+            8002,
+        ),
+    },
+    "advanced": {
+        "agents/specialist_a.superagent": _specialist_template(
+            "You are the domain expert for task A.", "task_a_tools", 8001
+        ),
+        "agents/specialist_b.superagent": _specialist_template(
+            "You are the domain expert for task B.", "task_b_tools", 8002
+        ),
+    },
+}
 
 
 _PROFILES = ("read-only", "standard", "full")

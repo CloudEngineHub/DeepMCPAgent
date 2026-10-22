@@ -245,6 +245,25 @@ def _agent_input(input: TurnInput) -> dict[str, Any]:
     return {"messages": [dict(m) for m in input]}
 
 
+def _warn_unused_cache(agent: PromptiseAgent) -> None:
+    """Warn when the agent's cache cannot cache anything over HTTP.
+
+    HTTP requests run with a caller that has no ``user_id`` (the server
+    cannot tell its clients apart), and a ``per_user`` or ``per_session``
+    cache does not cache a request without one.  Only ``scope="shared"``
+    caches here.
+    """
+    cache = getattr(agent, "_cache", None)
+    scope = getattr(cache, "_scope", None)
+    if cache is not None and scope != "shared":
+        logger.warning(
+            "The agent's cache is scoped %s, but HTTP requests carry no user id, so "
+            "nothing will be cached. Use scope 'shared' (with shared_data_acknowledged) "
+            "if every client may see the same answers.",
+            scope,
+        )
+
+
 class PromptiseAgentHost:
     """Serves a :class:`~promptise.agent.PromptiseAgent` through :func:`create_app`.
 
@@ -1059,6 +1078,8 @@ async def run_serve(
     agent_host: AgentHost = (
         PromptiseAgentHost(agent) if isinstance(agent, PromptiseAgent) else agent
     )
+    if isinstance(agent, PromptiseAgent):
+        _warn_unused_cache(agent)
     draining = threading.Event()
     app = create_app(
         agent_host,

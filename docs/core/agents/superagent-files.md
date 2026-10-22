@@ -478,6 +478,12 @@ cache:
 | `cache_multi_turn` | `bool` | `false` | Also cache answers in conversations with history. |
 | `cache_tool_turns` | `bool` | `false` | Also cache answers that called tools. |
 
+With the default `per_user` scope a request needs a caller with a `user_id`.
+`promptise agent` runs every turn as `CallerContext(user_id="local")`, so `cache: true`
+caches there. `promptise run --serve` requests carry no `user_id` (use `scope: shared`
+when every client may see the same answers), and streamed runs, such as the
+`promptise run` chat, never use the cache. See [Semantic Cache](../cache.md#how-it-works).
+
 #### `events`
 
 Optional. Sends [event notifications](../events.md) to webhook or log sinks.

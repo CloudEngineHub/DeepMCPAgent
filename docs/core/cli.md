@@ -254,7 +254,14 @@ promptise init -o advanced.superagent -t advanced --force
 |---|---|
 | `--output`, `-o` | Output file path (default: `agent.superagent`) |
 | `--template`, `-t` | Template type: `basic`, `http`, `stdio`, `cross-agent`, `advanced` |
-| `--force/--no-force` | Overwrite existing file |
+| `--force/--no-force` | Overwrite existing files |
+
+Every template uses `openai:gpt-5-mini` and passes `promptise validate <file> --allow-missing-env`
+as generated (without the flag, `validate` lists the `${VAR}`s you still have to set).
+`cross-agent` and `advanced` also write the specialist files their `cross_agents` section names,
+in `agents/` next to the output file: `math_agent.superagent` and `research_agent.superagent`,
+or `specialist_a.superagent` and `specialist_b.superagent`. An existing file is never
+overwritten without `--force`.
 
 ---
 

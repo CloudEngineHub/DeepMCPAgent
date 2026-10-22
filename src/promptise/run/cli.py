@@ -143,7 +143,7 @@ def _load_project(opts: RunOptions) -> ProjectManifest:
 def _list_scripts(manifest: ProjectManifest) -> int:
     if not manifest.scripts:
         where = manifest.path or "this project"
-        err.print(f"[dim]no [scripts] in {escape(str(where))}[/dim]")
+        err.print(f"[dim]no {escape('[scripts]')} in {escape(str(where))}[/dim]")
         return 0
     table = Table(show_edge=False, box=None, header_style="bold", pad_edge=False)
     table.add_column("script", style="cyan")
