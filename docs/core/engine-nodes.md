@@ -421,6 +421,20 @@ call goes through the same steps and is reported the same way:
   ([Streaming](streaming.md#what-a-streamed-run-does)). A `ToolNode` runs one
   turn's calls one after another, in order, so each call's `tool_end` comes
   before the next call's `tool_start`.
+- A call whose arguments are not valid JSON (LangChain keeps it in the
+  assistant message's `invalid_tool_calls`) does not run, and neither do the
+  `pre_tool` / `post_tool` hooks. Its `ToolMessage` (`status="error"`, the
+  call's own `tool_call_id`) says what is wrong and names the tool's
+  parameters (`Error: The arguments for 'get_order' were not valid JSON (...).
+  Call the tool again with a JSON object that matches its parameters: order_id
+  (required).`), or is the unknown-tool error when the name is not one of the
+  node's tools. The call counts as failed (`tool_calls_failed`; in
+  `NodeResult.tool_calls` with `success: False`, `invalid: True`, `args: {}` and
+  the text the model sent as `raw_args`), callbacks get its start and an
+  `on_tool_error` with a `ToolArgumentError`, and the stream shows it with
+  `status: "error"`. The model's next turn can call again; iteration limits
+  apply as for any tool call. A call without an id gets one, on the assistant
+  message as well, so every call has exactly one result.
 
 **What `validate_inputs=True` checks.** After the `pre_tool` hooks, the
 arguments are validated against the schema the model is offered for the tool

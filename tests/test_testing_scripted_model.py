@@ -310,6 +310,51 @@ class TestAgentRuns:
         assert second == json.dumps(ORDERS["A-1001"])
         assert result["messages"][-1].content == "Order A-1001 has shipped."
 
+    async def test_unparseable_arguments_then_the_model_corrects_itself(self) -> None:
+        model = ScriptedModel(
+            [
+                Malformed.unparseable_arguments("get_order", "{'order_id': 'A-1001'}"),
+                ToolCall("get_order", {"order_id": "A-1001"}),
+                "Order A-1001 has shipped.",
+            ]
+        )
+        agent = await build_agent(model=model, extra_tools=[get_order])
+        try:
+            result = await agent.ainvoke(_ask("Where is A-1001?"))
+        finally:
+            await agent.shutdown()
+
+        # The call that can't be read doesn't run: the model gets an error
+        # for it (answering its call id) and calls the tool again.
+        error = model.calls[1].messages[-1]
+        assert isinstance(error, ToolMessage)
+        assert error.status == "error"
+        assert error.tool_call_id == "call_1"
+        assert error.content == (
+            "Error: The arguments for 'get_order' were not valid JSON (Expecting property "
+            "name enclosed in double quotes at line 1 column 2). Call the tool again with "
+            "a JSON object that matches its parameters: order_id (required)."
+        )
+        assert _tool_results(result["messages"])[1] == json.dumps(ORDERS["A-1001"])
+        assert result["messages"][-1].content == "Order A-1001 has shipped."
+
+    async def test_streamed_unparseable_arguments_then_the_model_corrects_itself(self) -> None:
+        model = ScriptedModel(
+            [
+                Malformed.unparseable_arguments("get_order"),
+                ToolCall("get_order", {"order_id": "A-1001"}),
+                "Order A-1001 has shipped.",
+            ]
+        )
+        agent = await build_agent(model=model, extra_tools=[get_order])
+        try:
+            events = [e async for e in agent.astream_with_tools(_ask("Where is A-1001?"))]
+        finally:
+            await agent.shutdown()
+        ends = [e for e in events if e.type == "tool_end"]
+        assert [e.success for e in ends] == [False, True]  # type: ignore[attr-defined]
+        assert events[-1].full_response == "Order A-1001 has shipped."  # type: ignore[attr-defined]
+
     async def test_tool_call_as_text_ends_the_run_as_the_answer(self) -> None:
         reply = Malformed.tool_call_as_text("get_order", {"order_id": "A-1001"})
         model = ScriptedModel([reply])

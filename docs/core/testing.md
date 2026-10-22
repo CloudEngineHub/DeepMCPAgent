@@ -159,8 +159,8 @@ The messages are LangChain message objects: `.type` is `"system"`, `"human"`,
 ## Test failure handling
 
 Small and local models get tool calling wrong more often than large hosted
-ones: they invent tool names, send arguments that don't match the schema, or
-write the tool call into their text.  Scripting these replies tests what your
+ones: they invent tool names, send arguments that don't match the schema or
+aren't JSON, or write the tool call into their text.  Scripting these replies tests what your
 agent does when it happens, without waiting for a model to make the mistake.
 
 ### A tool name the agent doesn't have
@@ -326,13 +326,16 @@ fenced True
 argument text can't be parsed, such as a Python-style dict with single
 quotes (the default).  LangChain keeps such a call in the message's
 `invalid_tool_calls`, not its `tool_calls`, as it does for a provider's reply.
-The agent doesn't run a call it can't read: the run ends with that message.
+The agent doesn't run a call it can't read.  It answers the call with a tool
+error (`status="error"`, the call's own `tool_call_id`) that says what is
+wrong and names the tool's parameters, and the loop goes on, so the model can
+call the tool again:
 
 ```python
 import asyncio
 
 from promptise import build_agent, tool
-from promptise.testing import Malformed, ScriptedModel
+from promptise.testing import Malformed, ScriptedModel, ToolCall
 
 
 @tool
@@ -342,14 +345,19 @@ def get_order(order_id: str) -> dict:
 
 
 async def main():
-    model = ScriptedModel([Malformed.unparseable_arguments("get_order", "{'order_id': 'A-1001'}")])
+    model = ScriptedModel([
+        Malformed.unparseable_arguments("get_order", "{'order_id': 'A-1001'}"),
+        ToolCall("get_order", {"order_id": "A-1001"}),  # the model calls again
+        "Order A-1001 has shipped.",
+    ])
     agent = await build_agent(model=model, extra_tools=[get_order])
     result = await agent.ainvoke({"messages": [{"role": "user", "content": "Where is A-1001?"}]})
     await agent.shutdown()
 
-    last = result["messages"][-1]
-    print(repr(last.content), last.tool_calls)
-    print(last.invalid_tool_calls[0]["name"], last.invalid_tool_calls[0]["args"])
+    error = model.calls[1].messages[-1]
+    print(error.status, error.tool_call_id)
+    print(error.content)
+    print(result["messages"][-1].content)
 
 
 asyncio.run(main())
@@ -358,14 +366,25 @@ asyncio.run(main())
 Output:
 
 ```
-'' []
-get_order {'order_id': 'A-1001'}
+error call_1
+Error: The arguments for 'get_order' were not valid JSON (Expecting property name enclosed in double quotes at line 1 column 2). Call the tool again with a JSON object that matches its parameters: order_id (required).
+Order A-1001 has shipped.
 ```
+
+Such a call counts as a failed tool call: `NodeResult.tool_calls` records it
+with `success: False`, `invalid: True` and the text the model sent under
+`raw_args`, callbacks get its start and an `on_tool_error`
+(`ToolArgumentError`), and `astream_with_tools()` yields a `ToolEndEvent`
+with `success=False`.  Each retry is a model call, so `max_agent_iterations`
+still ends a model that never sends valid arguments.  A call that names a tool
+the agent doesn't have gets the
+[unknown-tool error](#a-tool-name-the-agent-doesnt-have) instead.
 
 When this reply is streamed, LangChain reads the arguments as a partial JSON
 object, as it does for a provider's stream: a cut-off object such as
 `'{"order_id"'` becomes a tool call with the arguments read so far (`{}`),
-while text that can't start a JSON object stays an invalid call.
+while text that can't start a JSON object stays an invalid call and gets the
+same error.  A streamed run (`astream_with_tools()`) recovers the same way.
 
 ## When the replies run out
 

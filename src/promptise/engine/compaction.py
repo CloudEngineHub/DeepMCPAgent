@@ -250,6 +250,13 @@ def _run_messages(messages: Sequence[Any], question: Any | None, head: Sequence[
     return [m for m in messages if id(m) not in head_ids and not isinstance(m, SystemMessage)]
 
 
+def _asks_for_tools(m: Any) -> bool:
+    """Whether *m* is an assistant turn with tool calls, counting calls whose
+    arguments could not be parsed (``invalid_tool_calls``): they get a tool
+    result too."""
+    return isinstance(m, AIMessage) and bool(m.tool_calls or m.invalid_tool_calls)
+
+
 def _last_exchange(run: Sequence[Any]) -> list[Any]:
     """The trailing tool exchange (assistant tool call + its results), verbatim.
 
@@ -258,14 +265,14 @@ def _last_exchange(run: Sequence[Any]) -> list[Any]:
     """
     if not run:
         return []
-    if isinstance(run[-1], AIMessage) and not run[-1].tool_calls:
+    if isinstance(run[-1], AIMessage) and not _asks_for_tools(run[-1]):
         return [run[-1]]
     tail: list[Any] = []
     for m in reversed(run):
         if isinstance(m, ToolMessage):
             tail.append(m)
             continue
-        if isinstance(m, AIMessage) and m.tool_calls:
+        if _asks_for_tools(m):
             tail.append(m)
         break
     tail.reverse()
@@ -325,6 +332,9 @@ def _ledger_entries(
         if isinstance(m, AIMessage):
             for tc in m.tool_calls:
                 calls[str(tc.get("id"))] = (str(tc.get("name", "?")), _call_key(tc))
+            for itc in m.invalid_tool_calls:
+                name = str(itc.get("name") or "?")
+                calls[str(itc.get("id"))] = (name, f"{name}({itc.get('args') or ''})")
     seen = Counter(latest_calls)
     entries: dict[str, _Entry] = {}
     for m in older:
@@ -411,7 +421,7 @@ def build_compacted_view(
     if scoped:
         loop: list[Any] = []
         for m in reversed(run):
-            if isinstance(m, ToolMessage) or (isinstance(m, AIMessage) and m.tool_calls):
+            if isinstance(m, ToolMessage) or _asks_for_tools(m):
                 loop.append(m)
             else:
                 break

@@ -142,6 +142,15 @@ Invalid arguments for tool 'refund_order':
 Correct the arguments and call the tool again.
 ```
 
+Arguments that are not JSON at all (a Python-style dict with single quotes, a
+cut-off object) never reach the function.  The agent answers the call with an
+error that says what is wrong and names the tool's parameters, and the model
+can call again:
+
+```text
+Error: The arguments for 'refund_order' were not valid JSON (Expecting property name enclosed in double quotes at line 1 column 2). Call the tool again with a JSON object that matches its parameters: order_id (required), amount (required).
+```
+
 ### The caller
 
 A parameter annotated `CallerContext` receives the caller of the current

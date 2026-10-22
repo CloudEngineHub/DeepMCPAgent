@@ -223,16 +223,17 @@ def _pending_tools(messages: list[Any]) -> list[str] | None:
         return None
     last = messages[-1]
     if isinstance(last, AIMessage):
-        if not last.tool_calls:
+        calls = [*last.tool_calls, *last.invalid_tool_calls]
+        if not calls:
             return None
-        return list(dict.fromkeys(str(tc.get("name") or "?") for tc in last.tool_calls))
+        return list(dict.fromkeys(str(tc.get("name") or "?") for tc in calls))
     if not isinstance(last, ToolMessage):
         return None
     asked = {
         tc.get("id"): str(tc.get("name") or "?")
         for message in messages
         if isinstance(message, AIMessage)
-        for tc in message.tool_calls
+        for tc in [*message.tool_calls, *message.invalid_tool_calls]
     }
     names: list[str] = []
     for message in reversed(messages):

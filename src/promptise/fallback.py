@@ -652,6 +652,17 @@ def _as_chunk(message: Any) -> BaseMessageChunk:
         )
         for n, call in enumerate(getattr(message, "tool_calls", None) or [])
     ]
+    # A call whose arguments could not be parsed keeps the text the model
+    # sent, so the aggregated message has it as an invalid call again.
+    tool_call_chunks += [
+        tool_call_chunk(
+            name=call.get("name"),
+            args=call.get("args") if isinstance(call.get("args"), str) else "",
+            id=call.get("id"),
+            index=len(tool_call_chunks) + n,
+        )
+        for n, call in enumerate(getattr(message, "invalid_tool_calls", None) or [])
+    ]
     return AIMessageChunk(
         content=message.content,
         additional_kwargs=dict(message.additional_kwargs),

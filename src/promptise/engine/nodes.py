@@ -306,6 +306,130 @@ def _unknown_tool_message(tool_name: str, available: Sequence[str]) -> str:
     return f"Error: Unknown tool '{tool_name}'.{hint} Call one of the available tools: {listed}."
 
 
+#: How many of a tool's parameter names an invalid-arguments error lists.
+_INVALID_ARGS_PARAMS_SHOWN = 12
+
+
+def _parameter_names(tool: BaseTool) -> str:
+    """``"order_id (required), limit"`` for *tool*'s parameters, or ``""``.
+
+    Read from the schema the model is offered (``tool_call_schema``, a
+    pydantic model or a JSON-schema dict).  Never raises.
+    """
+    try:
+        offered: Any = tool.tool_call_schema
+        schema: Any = offered
+        if isinstance(offered, type) and issubclass(offered, PydanticBaseModel):
+            schema = cast(Any, offered).model_json_schema()
+        if not isinstance(schema, dict):
+            return ""
+        props = schema.get("properties") or {}
+        required = set(schema.get("required") or [])
+    except Exception:
+        return ""
+    names = [f"{n} (required)" if n in required else str(n) for n in props]
+    shown = names[:_INVALID_ARGS_PARAMS_SHOWN]
+    listed = ", ".join(shown)
+    if len(names) > len(shown):
+        listed += f" (and {len(names) - len(shown)} more)"
+    return listed
+
+
+def _argument_problem(raw_args: Any) -> str:
+    """Why *raw_args* (a tool call's argument text) is not a JSON object."""
+    if not isinstance(raw_args, str) or not raw_args.strip():
+        return "no arguments were sent"
+    try:
+        value = json.loads(raw_args)
+    except json.JSONDecodeError as exc:
+        return f"{exc.msg} at line {exc.lineno} column {exc.colno}"
+    except Exception:
+        return "they could not be read"
+    if not isinstance(value, dict):
+        kind = {list: "an array", str: "a string", bool: "a boolean"}.get(type(value), "a value")
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            kind = "a number"
+        elif value is None:
+            kind = "null"
+        return f"they are {kind}, not an object"
+    return "they could not be read"
+
+
+def _invalid_call_message(tool_name: str, raw_args: Any, tool: BaseTool | None) -> str:
+    """The error a model gets for a tool call LangChain could not parse
+    (an ``AIMessage.invalid_tool_calls`` entry).
+
+    For a tool the agent has, it says what is wrong with the arguments and
+    names the tool's parameters.  The arguments are not echoed back (they
+    can be long, and the model has them).
+    """
+    params = _parameter_names(tool) if tool is not None else ""
+    message = (
+        f"Error: The arguments for '{tool_name}' were not valid JSON "
+        f"({_argument_problem(raw_args)}). Call the tool again with a JSON object "
+        "that matches its parameters"
+    )
+    return message + (f": {params}." if params else ".")
+
+
+async def _answer_invalid_call(
+    call: Any,
+    tool_call_id: str,
+    tools: dict[str, BaseTool],
+    config: dict[str, Any],
+) -> tuple[dict[str, Any], str, float]:
+    """Answer one invalid tool call (arguments LangChain could not parse).
+
+    Nothing runs: neither the tool nor the engine hooks' ``pre_tool`` /
+    ``post_tool`` (there are no arguments to give them).  The call's result
+    is an error the model can act on: :func:`_invalid_call_message`, or
+    :func:`_unknown_tool_message` when the name is not one of *tools*.  The
+    run's callbacks get the call's start and error
+    (``ToolArgumentError``), as for arguments that fail the schema.
+
+    Returns ``(record, content, duration_ms)`` like :func:`_run_tool_call`.
+    The record's ``args`` is ``{}``; ``raw_args`` holds the text the model
+    sent and ``invalid`` is ``True``.
+    """
+    from promptise.tools import ToolArgumentError
+
+    started = time.perf_counter()
+    tool_name = str(call.get("name") or "")
+    raw_args = call.get("args")
+    tool = tools.get(tool_name)
+    if tool is None:
+        content = _unknown_tool_message(tool_name, list(tools))
+    else:
+        content = _invalid_call_message(tool_name, raw_args, tool)
+    await _report_to_callbacks(
+        tool,
+        tool_name,
+        raw_args if isinstance(raw_args, str) else "",
+        tool_call_id,
+        config,
+        error=ToolArgumentError(tool_name, content),
+    )
+    record: dict[str, Any] = {
+        "name": tool_name,
+        "args": {},
+        "raw_args": raw_args,
+        "result": content,
+        "success": False,
+        "invalid": True,
+    }
+    return record, content, (time.perf_counter() - started) * 1000
+
+
+def _call_id(call: Any) -> str:
+    """*call*'s id; a call without one gets a new id, written back to the call
+    so the assistant message and its tool result carry the same id."""
+    call_id = call.get("id")
+    if not call_id:
+        call_id = str(uuid4())
+        call["id"] = call_id
+    return str(call_id)
+
+
 async def _call_tool(
     tool: BaseTool | None,
     tool_name: str,
@@ -580,6 +704,12 @@ class PromptNode(BaseNode):
     - How data flows out (output_key writes to state.context)
     - Pre/post processing (preprocessor, postprocessor callables)
     - Context from previous node (inherit_context_from)
+
+    A tool call whose arguments are not valid JSON (LangChain keeps it in
+    ``AIMessage.invalid_tool_calls``) does not run: its ``ToolMessage`` is
+    an error that names the tool's parameters, it counts as a failed call
+    (``NodeResult.tool_calls``, with ``invalid`` and ``raw_args``), and the
+    tool loop goes on so the model can call again.
 
     Args:
         name: Unique node identifier.
@@ -1243,9 +1373,14 @@ class PromptNode(BaseNode):
             result.prompt_tokens, result.completion_tokens = token_usage(response)
             result.total_tokens = result.prompt_tokens + result.completion_tokens
 
-            # Handle tool calls
-            tool_calls = getattr(response, "tool_calls", None) or []
-            if tool_calls:
+            # Handle tool calls.  A call whose arguments LangChain could not
+            # parse (invalid_tool_calls) is answered with an error the model
+            # can act on, after the valid ones: every call id of the message
+            # gets exactly one ToolMessage, and the loop goes on.
+            tool_calls = list(getattr(response, "tool_calls", None) or [])
+            invalid_calls = list(getattr(response, "invalid_tool_calls", None) or [])
+            all_calls = tool_calls + invalid_calls
+            if all_calls:
                 # Execute against every candidate, not just the offered ones:
                 # a tool the selector left out this step is still callable.
                 tool_map = {t.name: t for t in (candidate_tools or active_tools)}
@@ -1254,8 +1389,10 @@ class PromptNode(BaseNode):
                 # changed (a job's status, a health check).  Only tools opted
                 # in with ContextCompaction(reuse_results=...) are answered
                 # from an earlier result, and that is reported, never silent.
-                earlier = self._earlier_results(tool_calls, state, config)
-                call_ids = [tc.get("id") or str(uuid4()) for tc in tool_calls]
+                earlier = self._earlier_results(tool_calls, state, config) + [None] * len(
+                    invalid_calls
+                )
+                call_ids = [_call_id(tc) for tc in all_calls]
 
                 async def _timed_tool(index: int) -> tuple[dict[str, Any], str, float]:
                     """Run one tool call; never raises. Returns (record, content, ms).
@@ -1263,6 +1400,10 @@ class PromptNode(BaseNode):
                     ``earlier[index]`` is the earlier result that answers the
                     call instead of the tool, or ``None`` to run the tool.
                     """
+                    if index >= len(tool_calls):
+                        return await _answer_invalid_call(
+                            all_calls[index], call_ids[index], tool_map, config
+                        )
                     tc = tool_calls[index]
                     tool_name = tc.get("name", "")
                     tool_args = tc.get("args", {})
@@ -1296,26 +1437,26 @@ class PromptNode(BaseNode):
                     }
                     return tc_record, reuse, (time.perf_counter() - started) * 1000
 
-                tool_run_ids = [str(uuid4()) for _ in tool_calls]
-                for index, tc in enumerate(tool_calls):
+                tool_run_ids = [str(uuid4()) for _ in all_calls]
+                for index, tc in enumerate(all_calls):
                     yield _tool_start_event(
-                        tc.get("name", ""),
-                        tc.get("args", {}),
+                        tc.get("name") or "",
+                        tc.get("args", {}) if index < len(tool_calls) else tc.get("args") or "",
                         tool_run_ids[index],
                         reused=earlier[index] is not None,
                     )
 
                 # Execute tools — parallel if 2+ calls (each end event is
                 # yielded as soon as that tool finishes), direct if only 1.
-                outcomes: list[tuple[dict[str, Any], str, float] | None] = [None] * len(tool_calls)
-                if len(tool_calls) == 1:
+                outcomes: list[tuple[dict[str, Any], str, float] | None] = [None] * len(all_calls)
+                if len(all_calls) == 1:
                     outcome = await _timed_tool(0)
                     outcomes[0] = outcome
                     yield _tool_end_event(*outcome, tool_run_ids[0])
                 else:
                     tasks = {
                         asyncio.ensure_future(_timed_tool(index)): index
-                        for index in range(len(tool_calls))
+                        for index in range(len(all_calls))
                     }
                     try:
                         pending = set(tasks)
@@ -1495,7 +1636,9 @@ class ToolNode(BaseNode):
     :meth:`stream` yields ``on_tool_start`` / ``on_tool_end`` (or
     ``on_tool_error``) for each call, so ``astream_events()`` and
     ``astream_with_tools()`` show it.  The node runs one turn's calls one
-    after another, in order.
+    after another, in order.  A call whose arguments are not valid JSON
+    (``AIMessage.invalid_tool_calls``) is answered with an error the model
+    can act on, after the turn's other calls; it does not run.
 
     Args:
         tools: Available tools for this node.
@@ -1577,18 +1720,26 @@ class ToolNode(BaseNode):
             yield event
         yield NodeEvent(event="on_node_end", node_name=self.name, data={"result": result})
 
-    def _calls(self, state: GraphState) -> list[tuple[str, dict[str, Any], str]]:
-        """``(tool_name, args, tool_call_id)`` of each call to run."""
+    def _calls(self, state: GraphState) -> list[tuple[str, dict[str, Any], str, Any]]:
+        """``(tool_name, args, tool_call_id, invalid_call)`` of each call to run.
+
+        ``invalid_call`` is the ``invalid_tool_calls`` entry of a call whose
+        arguments could not be parsed (answered with an error, not run),
+        else ``None``.
+        """
         if self.tool_selector:
             tool_name, tool_args = self.tool_selector(state)
-            return [(tool_name, tool_args, str(uuid4()))]
+            return [(tool_name, tool_args, str(uuid4()), None)]
         # The tool calls of the last AI message that has some
         for msg in reversed(state.messages):
-            if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
+            if not isinstance(msg, AIMessage):
+                continue
+            valid = list(getattr(msg, "tool_calls", None) or [])
+            invalid = list(getattr(msg, "invalid_tool_calls", None) or [])
+            if valid or invalid:
                 return [
-                    (tc["name"], tc.get("args", {}) or {}, tc.get("id") or str(uuid4()))
-                    for tc in msg.tool_calls
-                ]
+                    (tc["name"], tc.get("args", {}) or {}, _call_id(tc), None) for tc in valid
+                ] + [(str(itc.get("name") or ""), {}, _call_id(itc), itc) for itc in invalid]
         return []
 
     async def _pipeline(
@@ -1614,7 +1765,7 @@ class ToolNode(BaseNode):
         turn_results: dict[str, str] = {}  # (tool, args) -> first successful result
 
         tool_start = time.perf_counter()
-        for tool_name, tool_args, tool_id in calls:
+        for tool_name, tool_args, tool_id, invalid_call in calls:
             if tool_id in answered:
                 # The graph reached this node again before the model's next
                 # turn: the call already ran in this run and has its result.
@@ -1629,13 +1780,19 @@ class ToolNode(BaseNode):
                 result.tool_calls_deduplicated += 1
                 continue
 
-            fingerprint = _call_fingerprint(tool_name, tool_args) if self.deduplicate else ""
-            earlier = turn_results.get(fingerprint) if self.deduplicate else None
+            dedupe = self.deduplicate and invalid_call is None
+            fingerprint = _call_fingerprint(tool_name, tool_args) if dedupe else ""
+            earlier = turn_results.get(fingerprint) if dedupe else None
             run_id = str(uuid4())
-            yield _tool_start_event(tool_name, tool_args, run_id, reused=earlier is not None)
+            shown_args: Any = tool_args if invalid_call is None else invalid_call.get("args") or ""
+            yield _tool_start_event(tool_name, shown_args, run_id, reused=earlier is not None)
 
             tc_record: dict[str, Any]
-            if earlier is not None:
+            if invalid_call is not None:
+                tc_record, content, ms = await _answer_invalid_call(
+                    invalid_call, tool_id, tool_map, config
+                )
+            elif earlier is not None:
                 # The same call earlier in this turn: answer it with that
                 # result, so its tool_call_id has one, and report it as reused
                 # (on_tool_reused instead of pre_tool / post_tool).
@@ -1665,7 +1822,7 @@ class ToolNode(BaseNode):
                     max_result_chars=self.max_result_chars,
                     available=list(tool_map),
                 )
-                if self.deduplicate and tc_record["success"]:
+                if dedupe and tc_record["success"]:
                     turn_results.setdefault(fingerprint, content)
 
             end_event = _tool_end_event(tc_record, content, ms, run_id)
