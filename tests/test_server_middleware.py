@@ -176,7 +176,7 @@ class TestTimeoutMiddleware:
 
         from promptise.mcp.server._errors import ToolError
 
-        with pytest.raises(ToolError, match="timed out"):
+        with pytest.raises(ToolError, match="outcome is unknown"):
             await chain.run(ctx, handler, {"x": 1})
 
     async def test_timeout_uses_tool_def_timeout(self):
@@ -199,5 +199,5 @@ class TestTimeoutMiddleware:
 
         from promptise.mcp.server._errors import ToolError
 
-        with pytest.raises(ToolError, match="timed out"):
+        with pytest.raises(ToolError, match="outcome is unknown"):
             await chain.run(ctx, handler, {"x": 1})

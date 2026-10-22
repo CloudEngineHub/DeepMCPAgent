@@ -290,7 +290,7 @@ async def test_multi_user_customer_ops_server_example(secrets_env):
     ("page", "heading"),
     [
         ("guides/multi-user-systems.md", "Step 4: Enable Tamper-Evident Audit Logging"),
-        ("guides/secure-multi-tenant-platform.md", "Step 4 — Tamper-evident audit, tenant-stamped"),
+        ("guides/secure-multi-tenant-platform.md", "Step 4: Tamper-evident audit, tenant-stamped"),
     ],
 )
 async def test_guide_audit_examples_sign_with_the_environment_key(secrets_env, page, heading):

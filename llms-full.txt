@@ -2066,15 +2066,15 @@ agent = await build_agent(
 | `conversation_store` | `ConversationStore \| None` | `None` | Persistent conversation history. See [Conversations](../conversations.md). |
 | `conversation_max_messages` | `int` | `0` | Max messages to retain per session (0 = unlimited). |
 | `cache` | `SemanticCache \| None` | `None` | Semantic response cache. Serves similar queries from the cache instead of the model. See [Cache](../cache.md). |
-| `approval` | `ApprovalPolicy \| ApprovalHandler \| Callable \| None` | `None` | Human-in-the-loop approval. An `ApprovalPolicy` gates the agent's own matching tool calls; any of the three also answers server-side approval gates that ask the client through MCP elicitation. See [Approval](../approval.md). |
+| `approval` | `ApprovalPolicy \| ApprovalHandler \| Callable \| None` | `None` | Human-in-the-loop approval. An `ApprovalPolicy` gates the agent's own matching tool calls; any of the three also answers server-side approval gates that ask the client through MCP elicitation. See [Approval](../approval.md). It also answers the `HumanNode` steps of the agent's graph; without it a `HumanNode` fails the run. |
 | `events` | `EventNotifier \| None` | `None` | Webhook/event notifications. Emits structured events on invocation, tool, guardrail, budget, and process events. See [Events](../events.md). |
 | `on_tool_progress` | `Callable \| None` | `None` | Called as `(tool_name, progress, total, message)` for each progress notification an MCP tool sends during a call; sync or async. Progress is also emitted as `tool.progress` events when `events` is set. See [Progress Reporting](../../mcp/server/resilience-patterns.md#receiving-progress-in-a-promptise-client-or-agent). |
 | `max_invocation_time` | `float` | `0` | Maximum seconds per invocation. Raises `TimeoutError` and emits `invocation.timeout` event when exceeded. `0` = unlimited. |
 | `agent_pattern` | `str \| PromptGraph \| None` | `None` (`"react"`) | The reasoning graph: `"react"`, `"verify"`, `"managed"`, `"code-action"`, `"peoatr"`, `"research"`, `"autonomous"`, `"deliberate"`, `"debate"`, or your own `PromptGraph`. An unknown name raises `ValueError`. See [Reasoning Patterns](reasoning-patterns.md). |
 | `pattern` | `str \| PromptGraph \| None` | `None` | Deprecated alias of `agent_pattern`. |
 | `node_pool` | `list[BaseNode] \| None` | `None` | Build an autonomous graph from these nodes (the agent picks the next node each step). Takes precedence over `agent_pattern`. |
-| `graph_blocks` | `list \| None` | `None` | Prompt blocks added to the nodes of a built-in pattern when `agent_pattern` is given as a name. In 1.6.0 they are not applied when `agent_pattern` is left out or with `node_pool`. |
-| `max_agent_iterations` | `int` | `25` | Most node executions per run. With the default ReAct graph, `N` allows at most `N` model calls. A run that stops after the model asked for tools raises `GraphIterationLimitError`. |
+| `graph_blocks` | `list \| None` | `None` | Prompt blocks added ahead of each prompt node's own blocks: in a built-in pattern given by name, in the default ReAct graph (no `agent_pattern`) and in the `node_pool` nodes (copied, not changed). A `PromptGraph` passed as `agent_pattern` keeps its nodes as they are. Before 1.7.0 the default graph and `node_pool` did not get them. |
+| `max_agent_iterations` | `int` | `25` | Most node executions per run. With the default ReAct graph (and `"react"` / `"managed"`), `N` allows at most `N` model calls. A run that stops after the model asked for tools raises `GraphIterationLimitError`. |
 | `tool_summary` | `str` | `"off"` | Also list the tools in the system prompt: `"off"`, `"names"` or `"full"` (parameters and the start of each description). |
 | `context_engine` | `ContextEngine \| None` | `None` | Token-budgeted assembly of the system prompt layers. See [Context Engine](../context-engine.md). |
 | `context_compaction` | `bool \| int \| ContextCompaction \| None` | `None` | How long tool loops are compacted: `None`/`True` compact after 6 tool results, an `int` after that many, `False` never. See [Context Lifecycle](../../guides/context-lifecycle.md). |
@@ -5676,12 +5676,15 @@ agent = await build_agent(
 
 In autonomous mode (default), `build_agent` wraps two or more edgeless nodes in an [`AutonomousNode`](../engine-nodes.md#autonomousnode) and the agent decides which node to execute next. No edges needed.
 
-!!! note "Reasoning nodes route and update state from structured output"
-    `PlanNode`, `ReflectNode`, `CritiqueNode` and `ValidateNode` read their
-    fields (`subgoals`, `route`, `severity`, `passes`, ...) only from a
-    structured output. Give them an `output_schema` (the prebuilt patterns use
-    `PeoatrPlan`, `PeoatrReflection`, `DebateCritique`, `DebateVerdict` from
-    `promptise.engine.prebuilts`) when their routing matters; see
+!!! note "How reasoning nodes read their fields"
+    `PlanNode`, `ReflectNode`, `CritiqueNode`, `ValidateNode`, `ObserveNode`
+    and `JustifyNode` read their fields (`subgoals`, `route`, `severity`,
+    `passes`, ...) from a structured output when they have an
+    `output_schema`, else from a JSON object they ask the model to end its
+    reply with. A schema is the more reliable of the two with a model that
+    supports structured output (the prebuilt patterns use `PeoatrPlan`,
+    `PeoatrReflection`, `DebateCritique`, `DebateVerdict` from
+    `promptise.engine.prebuilts`); see
     [Reasoning Nodes](../engine-nodes.md#reasoning-nodes-pre-built-building-bricks).
 
 ### With Static Edges
@@ -5776,10 +5779,10 @@ PromptNode("analyze", input_keys=["search_data"])
 PromptNode("report", inherit_context_from="search")
 ```
 
-`output_key` only receives a parsed output (an `output_schema` result, a
-strategy's extracted answer or a postprocessor's value); a plain-text reply
-leaves it unset. `inherit_context_from` works for any `PromptNode`, since each
-writes its reply to `state.context["{name}_output"]`.
+`output_key` receives the node's output: the parsed object with an
+`output_schema`, else the reply text (or a strategy's extracted answer, or a
+postprocessor's value). `inherit_context_from` works for any `PromptNode`,
+since each writes its reply to `state.context["{name}_output"]`.
 
 ### Processors
 
@@ -5807,8 +5810,9 @@ PromptNode("analyze",
 )
 ```
 
-A postprocessor receives the node's parsed output, which is `None` for a
-plain-text reply, so pair processors with an `output_schema` or a strategy.
+A postprocessor receives the node's output: the parsed object with an
+`output_schema`, else the reply text (so `json_extractor()` can parse JSON out
+of a plain reply).
 
 See [Processors](../engine-processors.md) for all built-in processors.
 
@@ -9442,6 +9446,17 @@ the server has already denied the call.
 To use this without `build_agent()`, see
 [Answering elicitation](../mcp/client/index.md#answering-elicitation-server-side-approval-gates)
 (`approval_elicitation_callback`).
+
+## HumanNode steps in a reasoning graph
+
+The same `approval=` handler answers the [`HumanNode`](engine-nodes.md#humannode)
+steps of the agent's graph. The handler gets an `ApprovalRequest` with the
+node's prompt in `context_summary`, the node name in `tool_name`, no
+`arguments` and `metadata={"source": "human_node", "node": ...}`; an approved
+decision follows the node's `on_approve`, a denial its `on_deny`. An
+`AutoApprovalClassifier` hands these requests to its human `fallback`, and a
+handler error counts as a denial. Without `approval=`, a `HumanNode` fails the
+run instead of approving.
 
 ---
 
@@ -15511,7 +15526,9 @@ raises `GraphIterationLimitError`, a `GraphExecutionError` with `limit` and
 `pending_tools` (the tools whose results the model never saw, including calls
 a `ToolNode(tool_selector=...)` made without a model turn). The limit is
 the node's budget (`PromptNode(max_iterations=...)`, capped by the engine's
-`max_node_iterations`; 15 on the ReAct agent's `reason` node) or the engine's
+`max_node_iterations` when one is set; `max_agent_iterations` on the `reason`
+node of `build_agent`'s ReAct and `managed` graphs, 15 for `PromptGraph.react()`
+on its own) or the engine's
 `max_iterations` for the whole run (`build_agent(max_agent_iterations=...)`).
 The last message of such a run is a tool result, not an answer, so it is never
 returned as one. A limit reached after the model answered, or one that routes
@@ -15576,7 +15593,7 @@ starts. The result's messages are LangChain message objects.
 | `graph` | `PromptGraph` | *required* | The graph to run. Every run works on `graph.copy()`, so runtime mutations never change it and concurrent runs do not interfere |
 | `model` | chat model | *required* | The model nodes call when they set no `model_override`. `build_agent` passes the model it resolved; standalone, use `resolve_model("openai:gpt-5-mini")` |
 | `max_iterations` | `int` | `50` | Node executions per run; `N` allows exactly `N`. `build_agent` sets it from `max_agent_iterations` (default 25) |
-| `max_node_iterations` | `int` | `25` | Ceiling on how often one node runs in a run (each tool-loop round counts). A node's own `max_iterations` applies when it is lower. `build_agent` leaves it at 25, so a node budget above 25 (such as `PromptGraph.managed()`'s 30) is capped at 25 |
+| `max_node_iterations` | `int \| None` | `None` | Optional ceiling on how often one node runs in a run (each tool-loop round counts). `None` leaves each node's own `max_iterations` in charge; with a value the lower of the two applies. `build_agent` sets none. Before 1.7.0 the default was 25, which capped `PromptGraph.managed()`'s 30 |
 | `hooks` | `list` | `None` | [Hooks](engine-hooks.md), called in list order |
 | `allow_self_modification` | `bool` | `True` | Follow `_graph_action` fields in a node's structured output (see [Runtime graph mutation](engine-edges.md#runtime-graph-mutation)). `False` ignores them; `GraphMutation`s a node returns in `NodeResult.graph_mutations` are applied either way |
 | `max_mutations_per_run` | `int` | `10` | Cap on mutations per run (both kinds); later ones are dropped with a warning |
@@ -15584,6 +15601,7 @@ starts. The result's messages are LangChain message objects.
 | `tools` | `list` | `None` | Tools for nodes with `inject_tools=True`; tools declared on the graph's nodes are added to them |
 | `compaction` | `ContextCompaction` | `None` | [Compaction settings](../guides/context-lifecycle.md#tune-it-or-turn-it-off) for compacting nodes that set none of their own |
 | `tool_summary` | `str \| None` | `None` | `"off"`, `"names"` or `"full"`: the "Available tools" block of `PromptNode`s that set no `tool_summary`. `None` means `"off"`; any other value raises `ValueError` |
+| `human_handler` | `async (prompt, state) -> bool` | `None` | The handler [`HumanNode`](engine-nodes.md#humannode) steps ask, unless the run's config has a `_human_handler`. Without one a `HumanNode` fails. `build_agent(approval=...)` sets it |
 
 | Member | Description |
 |--------|-------------|
@@ -15594,7 +15612,8 @@ starts. The result's messages are LangChain message objects.
 
 `config` is the LangChain run config (callbacks, tags, metadata). Keys starting
 with `_` are the engine's own: `_human_handler` sets the [`HumanNode`](engine-nodes.md#humannode)
-handler, the others are set by the engine and by `build_agent`.
+handler for one run (it wins over `human_handler=`), the others are set by the
+engine and by `build_agent`.
 
 ### PromptGraph
 
@@ -15658,7 +15677,7 @@ messages and passed to hooks.
 | `node_iterations` | `dict[str, int]` | `{}` | Executions per node, checked against the node budget |
 | `max_messages` | `int` | `200` | After each node, `messages` is trimmed to this many: system messages and the current question are kept, then the most recent messages (`0` disables trimming) |
 | `graph` | `PromptGraph` | `None` | The run's live copy of the graph |
-| `plan` | `list[str]` | `[]` | Subgoals (set by a `PlanNode` with a structured output) |
+| `plan` | `list[str]` | `[]` | Subgoals (set by a `PlanNode` from its `subgoals` field) |
 | `completed` | `list[str]` | `[]` | Completed subgoals (`complete_subgoal()`) |
 | `observations` | `list[dict]` | `[]` | One `{tool, result, args, success, duration_ms}` per tool call; the last 50 are kept |
 | `reflections` | `list[dict]` | `[]` | `{iteration, mistake, correction, confidence, stage}`; the last 5 are kept |
@@ -15749,9 +15768,10 @@ ThinkNode("think")                        # No tools (pre-configured)
 
 ## Dynamic LLM Routing
 
-A node routes dynamically when its structured output has a `route`, `_next`,
+A node routes dynamically when its output is a dict with a `route`, `_next`,
 `next_step` or `goto` field naming one of its transition keys or a node. Give
-the node an `output_schema` with that field; see
+the node an `output_schema` with that field (a `ReflectNode` also reads `route`
+from the JSON object at the end of a text reply); see
 [Dynamic LLM Routing](engine-edges.md#dynamic-llm-routing).
 
 ## Runtime Graph Mutation
@@ -15793,17 +15813,20 @@ Every node in a Reasoning Graph is a complete processing pipeline. Promptise shi
 
 These come configured with instructions, context injection settings and default flags. All reasoning nodes inherit from `PromptNode` (except RetryNode and FanOutNode which inherit from `BaseNode`), so every [`PromptNode` parameter](#promptnode) works on them and overrides the preset (the presets are defaults, set with `setdefault`).
 
-!!! warning "Give a reasoning node an `output_schema` when it should route or update state"
-    A reasoning node's instructions ask the model for fields such as `route`,
-    `mistake`, `subgoals`, `severity` or `passes`, but the node only reads
-    them from a **structured** output. Without an `output_schema` the model
-    answers in plain text, `NodeResult.output` stays `None`, and the extra
-    behaviour listed for each node below (storing reflections, updating
-    `state.plan`, severity or pass/fail routing, writing `output_key`) does
-    not happen. The text still lands in `state.context["{name}_output"]` and
-    `NodeResult.raw_output`. The prebuilt patterns pass schemas such as
-    `PeoatrPlan` and `PeoatrReflection` (in `promptise.engine.prebuilts`) for
-    this reason:
+!!! info "How a reasoning node reads its fields"
+    `ReflectNode`, `ObserveNode`, `PlanNode`, `CritiqueNode`, `JustifyNode`
+    and `ValidateNode` act on named fields of the reply (`route`, `mistake`,
+    `subgoals`, `severity`, `passes`...). Without an `output_schema` the node
+    adds an instruction to end the reply with a JSON object holding those
+    fields, and parses the last JSON object of the reply into
+    `NodeResult.output` (and `output_key`); the reply text stays in the
+    conversation. A reply without a JSON object stays text, and the node then
+    stores and routes nothing. With an `output_schema` the schema decides
+    and no instruction is added: use one with a model that supports
+    structured output, as the prebuilt patterns do with `PeoatrPlan` and
+    `PeoatrReflection` (in `promptise.engine.prebuilts`). `ThinkNode` and
+    `SynthesizeNode` work on plain text. Before 1.7.0 the fields were read
+    from a structured output only.
 
     ```python
     from promptise.engine import ReflectNode
@@ -15850,13 +15873,13 @@ ReflectNode("reflect", review_depth=5)
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `name` | `str` | `"reflect"` | Node identifier |
-| `review_depth` | `int` | `3` | Stored (and saved by `save_graph`); 1.6.0 does not use it in the prompt |
+| `review_depth` | `int` | `3` | Stored (and saved by `save_graph`); not used in the prompt |
 | `**kwargs` | | | All PromptNode parameters |
 
 **Pre-configured behavior:**
 
 - Instructions: assess progress, name mistakes and corrections, rate confidence, pick a route: `continue`, `replan` or `answer` (the route is followed through the node's `transitions`)
-- With a structured output that has a non-empty `mistake`, stores `{iteration, mistake, correction, confidence, stage: "reflect"}` in `state.reflections` (the last 5 are kept)
+- Fields read: `progress`, `mistake`, `correction`, `confidence`, `route`. With a non-empty `mistake`, stores `{iteration, mistake, correction, confidence, stage: "reflect"}` in `state.reflections` (the last 5 are kept)
 - Injects observations, plan and past reflections
 - Output key: `reflection`
 - Default flags: `STATEFUL`, `OBSERVABLE`
@@ -15877,7 +15900,7 @@ ObserveNode("observe")
 **Pre-configured behavior:**
 
 - Instructions: summarize the tool results, extract entities, factual claims and key findings
-- With a structured output, appends its `entities` list to `state.context["extracted_entities"]` and its `facts` list to `state.context["extracted_facts"]` (values that are not lists are ignored)
+- Fields read: `summary`, `entities`, `facts`, `key_findings`. Appends the `entities` list to `state.context["extracted_entities"]` and its `facts` list to `state.context["extracted_facts"]` (values that are not lists are ignored)
 - Injects observations only
 - Output key: `observation`
 - Default flags: `STATEFUL`
@@ -15900,7 +15923,7 @@ PlanNode("plan", max_subgoals=4, quality_threshold=3)
 **Pre-configured behavior:**
 
 - Instructions: break the task into at most `max_subgoals` subgoals, pick the first, rate the plan 1-5
-- With a structured output, sets `state.plan` to its `subgoals` list (cut to `max_subgoals`). `state.completed` is not touched; mark progress with `state.complete_subgoal()` in your own node
+- Fields read: `subgoals`, `active_subgoal`, `quality_score`. Sets `state.plan` to the `subgoals` list (cut to `max_subgoals`). `state.completed` is not touched; mark progress with `state.complete_subgoal()` in your own node
 - Reads `quality_score` (or `quality`, default 3): below `quality_threshold` it follows a `replan` transition, else runs itself again. Give the node a small `max_iterations` and an `"error"` transition so weak plans cannot loop (the PEOATR pattern uses `max_iterations=3`, `transitions={"error": "act"}`)
 - Injects past reflections only
 - Output key: `plan_output`
@@ -15944,7 +15967,7 @@ CritiqueNode("critique", severity_threshold=0.5)
 **Pre-configured behavior:**
 
 - Instructions: name weaknesses, counter-arguments and improvements, rate severity from 0.0 to 1.0
-- With a structured output whose `severity` is above `severity_threshold`, routes to the first of these transitions the node has: `revise`, `improve`, `retry`, `replan`. Otherwise the normal [transition resolution](engine-edges.md#transition-resolution) applies
+- Fields read: `weaknesses`, `counter_arguments`, `improvements`, `severity`. A `severity` above `severity_threshold` routes to the first of these transitions the node has: `revise`, `improve`, `retry`, `replan`. Otherwise the normal [transition resolution](engine-edges.md#transition-resolution) applies
 - Output key: `critique`
 - Default flags: `READONLY`, `OBSERVABLE`
 
@@ -15964,7 +15987,7 @@ JustifyNode("justify")
 **Pre-configured behavior:**
 
 - Instructions: explain why the last action was taken, step by step, with evidence, a conclusion and a confidence
-- With a structured output, appends `{iteration, reasoning, conclusion, confidence}` (from `reasoning_chain`, `conclusion`, `confidence`) to `state.context["justifications"]` (the last 5 are kept)
+- Fields read: `reasoning_chain`, `evidence`, `conclusion`, `confidence`. Appends `{iteration, reasoning, conclusion, confidence}` (from `reasoning_chain`, `conclusion`, `confidence`) to `state.context["justifications"]` (the last 5 are kept)
 - Output key: `justification`
 - Default flags: `READONLY`, `OBSERVABLE`, `VERBOSE`
 
@@ -15991,7 +16014,7 @@ ValidateNode("validate",
 **Pre-configured behavior:**
 
 - Instructions: check the current output against the criteria, list issues and suggestions
-- With a structured output, reads `passes` (or `pass`): true routes to `on_pass`; false routes to `on_fail` when set, else the normal transition resolution applies
+- Fields read: `passes` (or `pass`), `issues`, `suggestions`, `confidence`. A true `passes` routes to `on_pass`; false routes to `on_fail` when set, else the normal transition resolution applies
 - Output key: `validation`
 - Default flags: `READONLY`, `VALIDATE_OUTPUT` (the flag checks the output against `output_schema`, so it does nothing without one)
 
@@ -16030,17 +16053,8 @@ RetryNode("safe_search", wrapped_node=search_node, max_retries=3, backoff_factor
 
 - Runs `wrapped_node.execute()`; a result with an `error` or a raised exception counts as a failure
 - Between retries, sets `state.context["_retry_attempt"]`, `["_retry_error"]` and `["_retry_node"]` so the wrapped node can adapt
-- A success comes back under the `RetryNode`'s name; after the last failure the result's `error` is `"All N attempts failed. Last error: ..."`
-- Default flags: `RETRYABLE`
-
-!!! warning "The engine retries a `RetryNode` again"
-    In 1.6.0 the `RETRYABLE` flag that `RetryNode` adds makes the engine
-    [retry the node itself](engine-flags.md#execution-control), up to its
-    `max_iterations` (default 10) attempts. The attempts multiply: with the
-    defaults a failing wrapped node runs up to 40 times. Pass a small
-    `max_iterations` (for example `RetryNode(..., max_iterations=1)`), or
-    remove the flag (`retry_node.flags.discard(NodeFlag.RETRYABLE)`) when
-    the `RetryNode`'s own retries are enough.
+- A success comes back under the `RetryNode`'s name; after the last failure the result's `error` is `"All N attempts failed. Last error: ..."`, with the last exception as the cause of the run's `GraphExecutionError`
+- No default flags. The engine does not retry a `RetryNode` again, even when it carries `RETRYABLE` (before 1.7.0 the node was `RETRYABLE`, so the engine's retries multiplied its own: up to 40 attempts with the defaults)
 
 ### FanOutNode
 
@@ -16057,14 +16071,15 @@ FanOutNode("gather", branches=[
 |-----------|------|---------|-------------|
 | `name` | `str` | *required* | Node identifier |
 | `branches` | `list[tuple[BaseNode, dict]]` | `None` | List of (node, state_overrides) tuples |
-| `merge_strategy` | `str` | `"dict"` | Stored and saved; 1.6.0 always merges into a dict |
+| `merge_strategy` | `str` | `"dict"` | `"dict"`, `"concatenate"` or `"custom"`, as for [`ParallelNode`](#parallelnode); another value raises `ValueError` |
+| `merge_fn` | `Callable \| None` | `None` | `merge_fn({branch_name: output})` for `"custom"` (required for it) |
 | `**kwargs` | | | All BaseNode parameters (`description` is set for you) |
 
 **Behavior:**
 
 - Each branch gets its own `GraphState` with a copy of the messages and observations and `{**state.context, **overrides}` as context; changes a branch makes to its state are not copied back
 - All branches run concurrently via `asyncio.gather`; each runs `execute()` once, so a branch that calls tools runs them once and does not see their results (there is no tool loop inside a fan-out)
-- `output` is `{branch_name: branch_output}`; a branch that raised gets `{"error": "..."}` there instead, and the node itself does not fail
+- `output` is merged by `merge_strategy` from `{branch_name: branch_output}`; a branch that raised gets `{"error": "..."}` there instead, and the node itself does not fail
 - Tool calls and tokens of the branches are added to the node's result
 - Default flags: `PARALLEL_SAFE`
 
@@ -16137,9 +16152,11 @@ engine = PromptGraphEngine(graph, resolve_model("openai:gpt-5-mini"), hooks=[Pri
 await engine.ainvoke({"messages": [{"role": "user", "content": "I love this library!"}]})
 ```
 
-A node with an `output_schema` adds no message to the conversation (the model's
-reply is a parsed object, not an `AIMessage`). End a graph that an agent runs on
-a node that writes text, so the reply is an answer.
+A node with an `output_schema` adds no message to the conversation while the
+graph goes on (the model's reply is a parsed object, not an `AIMessage`). When
+such a node ends the run, the engine appends its output as JSON in a final
+`AIMessage`, so `ainvoke()` returns an answer; end a graph on a node that writes
+text when the answer should be prose.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -16149,29 +16166,29 @@ a node that writes text, so the reply is an answer.
 | `strategy` | `Any` | `None` | A strategy such as `chain_of_thought` or `self_critique` (`promptise.prompts`): its `wrap()` rewrites the system prompt, its `parse()` extracts the answer from the reply (when the text changes, `NodeResult.output` is the extracted answer) |
 | `perspective` | `Any` | `None` | A perspective such as `analyst` or `critic` (`promptise.prompts`): its `apply()` reframes the system prompt; an object with a `framing` string is put first instead |
 | `tools` | `list[BaseTool]` | `None` | Tools bound to the model for this node (`@tool` functions, MCP tools) |
-| `tool_choice` | `str` | `"auto"` | Stored and saved; 1.6.0 binds tools without a `tool_choice`, so the provider default (`"auto"`) applies |
+| `tool_choice` | `str` | `"auto"` | `"auto"`: the model decides. `"required"`: the model must call a tool (sent as LangChain's `"any"`, which providers map to their own value). A tool's name: the model must call that tool. `"none"`: the model is called without the tools. `"required"` and a tool name apply until tool results come back (the node's first call); then the model decides, so it can answer instead of calling tools until `max_iterations` |
 | `inject_tools` | `bool` | `False` | If True, receives the tools `build_agent()` discovered (or `PromptGraphEngine(tools=...)`) at runtime, merged with `tools` |
 | `tool_summary` | `str` | `None` | An "Available tools" block in the system prompt, on top of the tool definitions the model receives anyway: `"off"`, `"names"` (one line of names) or `"full"` (parameters and the first 120 characters of each description). `None` uses the engine's setting (`PromptGraphEngine(tool_summary=...)` / `build_agent(tool_summary=...)`), which is `"off"`, see [The tool summary](tool-optimization.md#the-tool-summary-in-the-system-prompt) |
 | `output_schema` | `type` | `None` | Pydantic model or `TypedDict` for structured output via `with_structured_output()`. The output is stored as a plain dict (a Pydantic model is dumped), so transitions, edge conditions, `route` and `output_key` read it the same way |
 | `guards` | `list[Any]` | `None` | Guards with a `check_output(text)` method (`ContentFilterGuard`, `LengthGuard`, ... in `promptise.prompts.guards`), run on the reply text. A guard that raises is recorded in `NodeResult.guards_failed` (an [`on_guard_fail`](engine-edges.md#on_guard_fail-guard-failure-routing) edge can route on it); the node does not retry |
 | `model_override` | `Any` | `None` | Per-node model: a chat model, a `Model`, or a model id string such as `"openai:gpt-5-mini"` (resolved like `build_agent(model=...)`) |
-| `context_layers` | `dict[str, int]` | `None` | Names of `state.context` keys to add to the system prompt as `name:\nvalue` blocks; the priority values are not used in 1.6.0 |
-| `max_tokens` | `int` | `4096` | Stored and saved; 1.6.0 does not pass it to the model. Set limits on the model (`Model(...)` or the chat model) instead |
-| `temperature` | `float` | `0.0` | Stored and saved; 1.6.0 does not pass it to the model. Set it on the model instead |
+| `context_layers` | `dict[str, int]` | `None` | Names of `state.context` keys to add to the system prompt as `name:\nvalue` blocks; the priority values are not used |
+| `max_tokens` | `int \| None` | `None` | Response token limit for this node's model calls. `None` keeps the model's own setting. Set on a copy of the model under the provider's field name (`max_tokens`, `max_output_tokens` for Google, `num_predict` for Ollama); a model without such a field logs a warning |
+| `temperature` | `float \| None` | `None` | Sampling temperature for this node's model calls. `None` keeps the model's own setting. Some reasoning models accept only their default temperature |
 | `input_keys` | `list[str]` | `None` | Keys from `state.context` added to the system prompt as "Input data" (`key: value`; missing keys are skipped) |
-| `output_key` | `str` | `None` | Write `NodeResult.output` to `state.context[output_key]`. Only a parsed output is written (an `output_schema` result, a strategy's extracted answer, or a postprocessor's return value); a plain-text reply leaves `output` as `None`, so use `state.context["{name}_output"]` or `inherit_context_from` for text |
+| `output_key` | `str` | `None` | Write `NodeResult.output` to `state.context[output_key]`: the parsed object with an `output_schema`, else the reply text (a strategy's extracted answer or a postprocessor's return value when they change it). A step that only calls tools writes nothing |
 | `inherit_context_from` | `str` | `None` | Inject another node's output into the prompt: reads `state.context["{name}_output"]`, which every `PromptNode` writes (its reply text; for an `output_schema` node, the output as JSON text) |
 | `context_scope` | `str` | `"full"` | Context lifecycle mode: `"auto"` (full→ledger automatically; the ReAct default), `"full"` (whole transcript), `"scoped"` (bounded working set), or `"ledger"` (deduplicated facts ledger), see [Context scope](#context-scope) |
 | `auto_ledger_after` | `int` | `None` | For `context_scope="auto"`: number of accumulated tool results after which the node switches from the full transcript to the compacted view (default 6, or the agent's `context_compaction` setting) |
 | `compaction` | `ContextCompaction \| bool \| int` | `None` | This node's [compaction settings](../guides/context-lifecycle.md#tune-it-or-turn-it-off); wins over `build_agent(context_compaction=...)`. `False` keeps an `"auto"` node on the full transcript |
-| `preprocessor` | `Callable` | `None` | Runs before the LLM call: `fn(state, config) -> None`, sync or async. An exception is logged as a warning and the node goes on |
-| `postprocessor` | `Callable` | `None` | Runs after: `fn(output, state, config) -> Any`, sync or async. It receives `NodeResult.output` (`None` for a plain-text reply); a non-`None` return value replaces the output. An exception is logged and ignored |
+| `preprocessor` | `Callable` | `None` | Runs before the LLM call: `fn(state, config) -> None`, sync or async. An exception **fails the node** before the model is called: `NodeResult.error` is `"Preprocessor failed in node 'x': ..."`, an `on_error` edge can route it, and otherwise the run raises `GraphExecutionError` (so `input_validator()` stops the node). Before 1.7.0 the exception was logged and the node went on |
+| `postprocessor` | `Callable` | `None` | Runs on the model's reply (not on a step that only calls tools): `fn(output, state, config) -> Any`, sync or async. It receives `NodeResult.output` (the reply text, or the parsed object with an `output_schema`); a non-`None` return value replaces the output. An exception is logged and the output kept |
 | `include_observations` | `bool` | `True` | Auto-inject recent tool results from `state.observations` |
 | `include_plan` | `bool` | `True` | Auto-inject current plan/subgoals from `state.plan` |
 | `include_reflections` | `bool` | `True` | Auto-inject past learnings from `state.reflections` |
 | `transitions` | `dict[str, str]` | `None` | Map output keys to next-node names (e.g. `{"proceed": "act"}`). With two or more keys (other than `"error"`) on a node without tools, the prompt lists them and asks for a `route` field; see [Dynamic LLM routing](engine-edges.md#dynamic-llm-routing) |
 | `default_next` | `str` | `None` | Fallback node if no transition matches |
-| `max_iterations` | `int` | `10` | Max times this node can execute in one graph run; each tool-loop round counts. The engine's `max_node_iterations` (25) caps it. Once used up, the node is not run again: the engine follows its `"error"` transition, else an `__error__` node, else ends the run. A run ended this way in the middle of a tool loop (the model never saw its last tool results) raises `GraphIterationLimitError` |
+| `max_iterations` | `int` | `10` | Max times this node can execute in one graph run; each tool-loop round counts. An engine `max_node_iterations`, when set, caps it. Once used up, the node is not run again: the engine follows its `"error"` transition, else an `__error__` node, else ends the run. A run ended this way in the middle of a tool loop (the model never saw its last tool results) raises `GraphIterationLimitError` |
 | `flags` | `set[NodeFlag]` | `None` | Typed flags controlling engine behavior |
 | `is_entry` | `bool` | `False` | Shorthand for adding `NodeFlag.ENTRY` |
 | `is_terminal` | `bool` | `False` | Shorthand for adding `NodeFlag.TERMINAL` |
@@ -16179,16 +16196,17 @@ a node that writes text, so the reply is an answer.
 **Execution pipeline.** One execution of a `PromptNode` is one model call:
 
 1. Model: `model_override` if set, else the engine's model (the `lightweight_model` for a `LIGHTWEIGHT` node, when the engine has one)
-2. Preprocessor
-3. System prompt assembly, in this order: `instructions`, the optional tool summary, `input_keys` ("Input data"), `inherit_context_from`, `context_layers`, `blocks`, recent observations (skipped on a node with tools: the results are already in the conversation), plan, past reflections, and the list of route choices
+2. Preprocessor (an exception fails the node here)
+3. System prompt assembly, in this order: `instructions`, the optional tool summary, `input_keys` ("Input data"), `inherit_context_from`, `context_layers`, `blocks`, recent observations (skipped on a node with tools: the results are already in the conversation), plan, past reflections, the JSON fields a reasoning node reads (without an `output_schema`), and the list of route choices
 4. Strategy `wrap()`, then perspective
 5. Messages: the conversation with the node's system prompt. When the conversation starts with the agent's prompt, the two are merged into one system message; otherwise the node's prompt is inserted after the first system message (or first)
-6. Tool binding (`bind_tools()`) and structured output (`with_structured_output()`); the binding is reused on the next execution of the node in the same run while the model, tool set and schema are unchanged
+6. `temperature` / `max_tokens` (on a copy of the model), tool binding (`bind_tools()` with the `tool_choice`) and structured output (`with_structured_output()`); the binding is reused on the next execution of the node in the same run while the model, tool set, tool choice and schema are unchanged
 7. Context scope: `"scoped"` / `"ledger"` (and `"auto"` past its threshold) replace the transcript with the compacted view
 8. The model call (`astream()` when the run is streamed and the node has no `output_schema`, else `ainvoke()`)
 9. Tool calls: all calls of the reply run (in parallel when there are two or more), their `ToolMessage`s are appended, and the engine runs the node again so the model sees the results
-10. Transitions read from a structured output, then guards, strategy `parse()`, postprocessor
-11. `state.context[output_key]` (parsed output only) and `state.context["{name}_output"]`
+10. The output: the parsed object, or the reply text (a reasoning node's JSON object when the reply ends with one)
+11. Transitions read from a dict output, then guards, strategy `parse()`, postprocessor
+12. `state.context[output_key]` and `state.context["{name}_output"]`
 
 The system prompt is rebuilt on every execution, because `input_keys`, the
 plan, reflections, observations and the offered tools can change between
@@ -16378,13 +16396,12 @@ that already have a result are not run again.
 LLM decides which path to take from a set of named routes.
 
 ```python
-from promptise import resolve_model
 from promptise.engine import RouterNode
 from promptise.prompts.blocks import Rules
 
 RouterNode("route",
     routes={"search": "search_node", "answer": "synthesize", "clarify": "ask_user"},
-    model_override=resolve_model("openai:gpt-5-mini"),
+    model_override="openai:gpt-5-mini",
     context_blocks=[Rules(["Choose the most relevant path"])],
     default_next="synthesize",
 )
@@ -16395,7 +16412,7 @@ RouterNode("route",
 | `name` | `str` | *required* | Node identifier |
 | `routes` | `dict[str, str]` | `None` | Map of route labels to target node names |
 | `context_blocks` | `list[Any]` | `None` | Blocks rendered into the routing prompt (after `instructions`) |
-| `model_override` | `BaseChatModel` | `None` | A chat model object for routing. Unlike `PromptNode`, a model id string is not resolved here (the call fails); pass `resolve_model("...")` |
+| `model_override` | `Any` | `None` | Model for routing: a chat model, a `Model`, or a model id string such as `"openai:gpt-5-mini"` (resolved like `PromptNode`'s; before 1.7.0 a string made the call fail) |
 | `**kwargs` | | | All BaseNode parameters |
 
 **How it routes.** The node sends the conversation plus one system message
@@ -16450,8 +16467,8 @@ ParallelNode("parallel_search",
 |-----------|------|---------|-------------|
 | `name` | `str` | *required* | Node identifier |
 | `nodes` | `list[BaseNode]` | `None` | Child nodes to run concurrently |
-| `merge_strategy` | `str` | `"concatenate"` | `"custom"` passes the outputs to `merge_fn`; any other value (`"concatenate"`, `"dict"`) gives `{child_name: child_output}` |
-| `merge_fn` | `Callable` | `None` | `fn(outputs: dict) -> Any`, used only with `merge_strategy="custom"` |
+| `merge_strategy` | `str` | `"dict"` | `"dict"`: `output` is `{child_name: child_output}`. `"concatenate"`: one text with a `[child_name]` section per child that produced output, in child order (dict outputs as JSON). `"custom"`: `merge_fn({child_name: child_output})`. Another value raises `ValueError` |
+| `merge_fn` | `Callable` | `None` | `fn(outputs: dict) -> Any`, required for `merge_strategy="custom"` |
 | `**kwargs` | | | All BaseNode parameters |
 
 **What the children get.** Each child runs `execute()` once on its own
@@ -16460,7 +16477,8 @@ ParallelNode("parallel_search",
 (no tool loop inside a `ParallelNode`): the successful calls are added to the
 parent's `state.observations`, so a following node without tools sees them in
 its prompt. Context a child writes is not copied back; read the merged
-`output` instead. A child that raises adds `"name: error"` to the node's
+`output` (also in `NodeResult.raw_output` as text) instead. Before 1.7.0 the
+default was `"concatenate"` and it gave the same dict as `"dict"`. A child that raises adds `"name: error"` to the node's
 `error`, which fails the node unless an edge or hook handles it.
 
 ### LoopNode
@@ -16513,16 +16531,29 @@ HumanNode("approve",
 | `on_timeout` | `str` | `"__end__"` | Next node when the handler does not answer in time |
 | `**kwargs` | | | All BaseNode parameters |
 
-The decision comes from a handler in the run's config:
-`async handler(prompt: str, state: GraphState) -> bool`, passed as
-`config={"_human_handler": handler}` to `PromptGraphEngine.ainvoke()`. A truthy
-return approves.
+The decision comes from the run's human handler:
+`async handler(prompt: str, state: GraphState) -> bool`. A truthy return
+approves; an object with an `approved` attribute (an `ApprovalDecision`)
+counts by that attribute. Give it one of three ways:
 
-!!! warning "No handler means approved"
-    Without a `_human_handler` in the config, `HumanNode` approves at once
-    (`transition_reason` is `"No human handler configured, auto-approved"`).
-    `build_agent` does not set one. For tool approval in an agent, use
-    [`build_agent(approval=...)`](approval.md) instead.
+- `build_agent(approval=...)`: the agent's [approval handler](approval.md)
+  answers `HumanNode` steps too. It gets an `ApprovalRequest` whose
+  `context_summary` is the node's prompt, `tool_name` the node name and
+  `metadata["source"]` `"human_node"`; a handler error is a denial.
+- `PromptGraphEngine(graph, model, human_handler=handler)`.
+- `config={"_human_handler": handler}` in `PromptGraphEngine.ainvoke()`
+  (wins over the engine's).
+
+A handler that raises fails the node.
+
+!!! warning "Changed in 1.7.0: no handler fails the node"
+    Without a handler, `HumanNode` fails with `"HumanNode 'approve' has no
+    human handler ..."`: the run raises `GraphExecutionError` unless an
+    `on_error` edge routes the failure. It never approves on its own. Before
+    1.7.0 it approved at once (`"No human handler configured,
+    auto-approved"`), and `build_agent` set no handler, so an approval step
+    in an agent's graph was skipped. Pass `approval=` to `build_agent`, or a
+    handler to the engine, for every graph with a `HumanNode`.
 
 ```python
 from promptise.engine import GraphState, HumanNode, PromptGraph, PromptGraphEngine, TransformNode
@@ -16580,7 +16611,7 @@ SubgraphNode("research_pipeline",
 |-----------|------|---------|-------------|
 | `name` | `str` | *required* | Node identifier |
 | `subgraph` | `PromptGraph` | `None` | The sub-graph to execute |
-| `inherit_state` | `bool` | `True` | `True`: the sub-graph starts from a copy of the parent's messages. `False`: it starts from no messages, and its final messages are appended to the parent's |
+| `inherit_state` | `bool` | `True` | `True`: the sub-graph starts from a copy of the parent's messages, and the messages it adds (its answer included) are appended to the parent's. `False`: it starts from no messages, and all its messages are appended to the parent's |
 | `**kwargs` | | | All BaseNode parameters |
 
 The node runs the sub-graph with a new `PromptGraphEngine` on the parent's
@@ -16588,14 +16619,9 @@ model and `max_iterations`, and the same run config (tools, compaction); the
 parent's hooks, `max_node_iterations` and `lightweight_model` are not passed on.
 The sub-graph gets its own `GraphState`: it does not see or change the parent's
 `context`, plan or observations. Its result is `NodeResult.output`
-(`{"messages": [...]}`), and its tokens count toward the parent's.
-
-!!! warning "With `inherit_state=True`, the sub-graph's reply is not added to the conversation"
-    In 1.6.0 the default `inherit_state=True` copies the parent's messages in
-    but does not copy the sub-graph's new messages back, so a graph that ends
-    on a `SubgraphNode` returns the conversation without the sub-graph's
-    answer. Use `inherit_state=False` when the sub-graph writes the reply, or
-    read `NodeResult.output["messages"]` in a following node or hook.
+(`{"messages": [...]}`), and its tokens count toward the parent's. Before
+1.7.0, `inherit_state=True` did not copy the sub-graph's new messages back, so
+a graph that ended on a `SubgraphNode` returned no answer.
 
 ### AutonomousNode
 
@@ -16659,7 +16685,7 @@ graph = PromptGraph("coder", nodes=[
 | `system_prompt` | `str` | `""` | Instructions put before the code-writing prompt |
 | `blocks` | `list` | `None` | Accepted for parity with other nodes; not used in the program prompt |
 | `sandbox_factory` | `async () -> SandboxSession` | `None` | Called once per program (the first and each repair), so every program runs in a fresh session, cleaned up afterwards. `build_agent(agent_pattern="code-action")` sets it from `sandbox=`. Without one the node fails with "code-action requires a sandbox" |
-| `model_override` | chat model | `None` | A chat model object for this node (not resolved from a string) |
+| `model_override` | `Any` | `None` | Model for this node: a chat model, a `Model`, or a model id string such as `"openai:gpt-5-mini"` (resolved like `PromptNode`'s; before 1.7.0 a string made the call fail) |
 | `max_repairs` | `int` | `1` | How often a failed program (a crash, or one that hit `max_tool_calls`) is sent back for a fix |
 | `result_marker` | `str` | `"RESULT:"` | Prefix of the stdout line that holds the answer (the last such line wins; without one, the last non-empty stdout line is the answer) |
 | `exec_timeout` | `int` | `120` | Seconds the program may run in the sandbox |
@@ -16847,7 +16873,7 @@ graph.always("plan", "execute")   # plan always goes to execute
 
 ```python
 graph.when("review", "fix",
-    condition=lambda result: (result.output or {}).get("quality", 0) < 3,
+    condition=lambda result: (result.output if isinstance(result.output, dict) else {}).get("quality", 0) < 3,
     label="low_quality",
 )
 ```
@@ -16903,7 +16929,7 @@ graph.sequential("step1", "step2", "step3", "step4")
 
 ```python
 graph.loop_until("refine", "deliver",
-    condition=lambda result: (result.output or {}).get("quality", 0) >= 4,
+    condition=lambda result: (result.output if isinstance(result.output, dict) else {}).get("quality", 0) >= 4,
     max_iterations=5,
 )
 # Loops "refine" until quality >= 4, then exits to "deliver"
@@ -16941,15 +16967,16 @@ min_confidence=0.0)` with `kind` one of `tool_called`, `no_tool_call`,
 
 `result.error` includes notes hooks write on a successful node (a
 `TimingHook` budget overrun, a `BudgetHook` stop), so `on_error` fires on
-those too. `result.output` is `None` for a plain-text reply, so `on_output`
-and `on_confidence` need a node with an `output_schema` (or a postprocessor
-that returns a dict).
+those too. `result.output` is the reply text for a plain-text reply (`None`
+on a step that only called tools), so `on_output` and `on_confidence` need a
+dict: a node with an `output_schema`, a reasoning node's JSON fields, or a
+postprocessor that returns a dict.
 
 A condition that raises is treated as not matching (logged at DEBUG), so
-`lambda r: r.output.get("quality") >= 4` silently never fires on a `None`
-output. Write `(r.output or {}).get(...)`. Adding a second conditional edge
-with the same source, target and priority logs a warning, since the first one
-that matches wins.
+`lambda r: r.output.get("quality") >= 4` silently never fires on a text or
+`None` output. Write `(r.output if isinstance(r.output, dict) else {}).get(...)`.
+Adding a second conditional edge with the same source, target and priority
+logs a warning, since the first one that matches wins.
 
 !!! note "Performance"
     The engine maintains a precomputed adjacency index for **O(1) edge lookup** per transition (instead of scanning all edges). The index is rebuilt lazily when edges are added or removed.
@@ -16994,7 +17021,7 @@ When multiple conditional edges exist from the same node, they are checked in **
 ```python
 # Exit condition checked first (priority 10)
 graph.add_edge("refine", "deliver",
-    condition=lambda r: (r.output or {}).get("done"),
+    condition=lambda r: (r.output if isinstance(r.output, dict) else {}).get("done"),
     label="done", priority=10)
 
 # Loop condition checked second (priority 0)
@@ -17037,15 +17064,21 @@ that changes the run's copy of the graph. The original graph is never
 modified, and the engine applies at most `max_mutations_per_run` (default 10)
 mutations per run, counting these and the `GraphMutation`s nodes return.
 
-| Action | Output fields | What 1.6.0 does |
-|--------|---------------|-----------------|
+| Action | Output fields | What it does |
+|--------|---------------|--------------|
 | `add_node` | `_graph_action: "add_node"`, `_node_config: {...}` | Adds a `PromptNode` built with `PromptNode.from_config(_node_config)`. Nothing routes to it unless an edge, transition or route names it |
 | `add_edge` | `_graph_action: "add_edge"`, `_from: "a"`, `_to: "b"` | Adds an unconditional edge |
-| `skip_to` | `_graph_action: "skip_to"`, `_target: "node_name"` | Only `_target: "__end__"` takes effect (it ends the run). For another node, the engine's transition resolution runs afterwards and overrides the target; route with a `route` field instead |
-| `retry_with` | `_graph_action: "retry_with"`, `_context_update: {...}` | Merges `_context_update` into `state.context`. The node is not re-run by this; the next node is resolved as usual |
+| `skip_to` | `_graph_action: "skip_to"`, `_target: "node_name"` | The target node (or `"__end__"`, a normal finish) runs next, ahead of edges and transitions. An unknown target is logged and ignored |
+| `retry_with` | `_graph_action: "retry_with"`, `_context_update: {...}` | Merges `_context_update` into `state.context` and runs the node again; each retry uses the node's `max_iterations` budget |
 
-The model only produces these fields when its `output_schema` has them, so a
-graph whose schemas don't declare `_graph_action` is not affected. To rule it
+`add_node` and `add_edge`, like a node's `GraphMutation`s, are offered to the
+[`on_graph_mutation` hooks](engine-hooks.md#hook-protocol) first; a blocked
+one does not count. Before 1.7.0, `skip_to` to a node was overridden by the
+normal transition and `retry_with` did not run the node again.
+
+The model only produces these fields when its `output_schema` has them (or a
+reasoning node's JSON reply carries them), so a graph whose schemas don't
+declare `_graph_action` is not affected. To rule it
 out, create the engine with `allow_self_modification=False`; `build_agent` has
 no switch for it.
 
@@ -17093,8 +17126,8 @@ if validate.has_flag(NodeFlag.RETRYABLE):
 | `TERMINAL` | Set via `is_terminal=True`. Only an `AutonomousNode` pool reads it: a terminal step that succeeds ends the autonomous loop and writes the answer. In a static graph it does nothing; end a path with `default_next="__end__"` or an edge to `"__end__"`. |
 | `CRITICAL` | If this node errors, the engine **aborts the run** right away: post-node hooks, mutations and transitions are skipped, the stream gets `on_node_error` with `critical: True`, `ExecutionReport.error` is set, and `ainvoke()` raises `GraphExecutionError` (the node's exception is its `__cause__`). |
 | `SKIP_ON_ERROR` | If the **previous** node's result has an `error` (including a note a hook wrote, such as a `TimingHook` overrun), this node does not run: its result is empty with `transition_reason="skipped_on_error"`, and the transitions are resolved from that. Useful for optional enrichment steps. |
-| `RETRYABLE` | On failure (a result with an `error`, or an exception), the engine runs the node again, up to `max_iterations` attempts in total (default 10), waiting `min(0.5 * 2**n, 8)` seconds between attempts (0.5s, 1s, 2s, 4s, 8s, 8s...). Before each retry `state.context["_retry_attempt"]` and `["_retry_error"]` are set, so the node can adapt; both are removed afterwards. The attempts run through `execute()`, so a streamed run gets no token chunks from a `RETRYABLE` node. |
-| `REQUIRES_HUMAN` | Sets `state.context["_awaiting_human"]` to the node name and awaits `on_human_required(node_name, state)` on every hook that has it, before the node runs. The node still executes; the flag does not pause anything by itself. An exception in `on_human_required` is not caught and ends the run. For a real approval step, use [`HumanNode`](engine-nodes.md#humannode). |
+| `RETRYABLE` | On failure (a result with an `error`, or an exception), the engine runs the node again, up to `max_iterations` attempts in total (default 10), waiting `min(0.5 * 2**n, 8)` seconds between attempts (0.5s, 1s, 2s, 4s, 8s, 8s...). Before each retry `state.context["_retry_attempt"]` and `["_retry_error"]` are set, so the node can adapt; both are removed afterwards. The attempts run through `execute()`, so a streamed run gets no token chunks from a `RETRYABLE` node. A [`RetryNode`](engine-nodes.md#retrynode) is never retried this way (it retries itself). |
+| `REQUIRES_HUMAN` | Sets `state.context["_awaiting_human"]` to the node name and awaits `on_human_required(node_name, state)` on every hook that has it, before the node runs. The node still executes; the flag does not pause anything by itself. An exception in `on_human_required` is logged and the run goes on (before 1.7.0 it ended the run). For a real approval step, use [`HumanNode`](engine-nodes.md#humannode). |
 
 ### Context & Memory
 
@@ -17115,7 +17148,7 @@ if validate.has_flag(NodeFlag.RETRYABLE):
 
 | Flag | Engine Behavior |
 |------|----------------|
-| `OBSERVABLE` | After the node runs, awaits `on_observable_event(event, state)` on every hook that has it, with a `NodeEvent(event="on_node_metrics", data={node_name, duration_ms, total_tokens, tool_calls, error})`. `duration_ms` is the node's own measurement (the engine's timing is set afterwards), and an exception in the hook is not caught. |
+| `OBSERVABLE` | After the node runs, awaits `on_observable_event(event, state)` on every hook that has it, with a `NodeEvent(event="on_node_metrics", data={node_name, duration_ms, total_tokens, tool_calls, error})`. `duration_ms` is the node's own measurement (the engine's timing is set afterwards). An exception in the hook is logged and the run goes on (before 1.7.0 it ended the run). |
 | `VERBOSE` | Logs the first 2,000 characters of the raw output at DEBUG level on the `promptise.engine` logger. |
 
 ### Output Processing
@@ -17147,7 +17180,7 @@ Each reasoning node ships with sensible default flags:
 | PlanNode | `STATEFUL`, `OBSERVABLE` | Writes to state.plan |
 | SynthesizeNode | `OBSERVABLE` | Final output, important to capture |
 | ValidateNode | `READONLY`, `VALIDATE_OUTPUT` | Quality gate, validates own output |
-| RetryNode | `RETRYABLE` | Built for retry behavior |
+| RetryNode | none | Retries itself; the engine does not retry it again |
 | FanOutNode | `PARALLEL_SAFE` | Designed for concurrent execution |
 
 ## Custom Flags
@@ -17198,15 +17231,17 @@ URL: https://docs.promptise.com/core/engine-prebuilts/
 
 Ten ready-to-use reasoning patterns: nine you can name with `build_agent(agent_pattern="...")` and `PromptGraph.pipeline(...)`, which takes your nodes. Each factory is a static method on `PromptGraph` that returns a configured graph; pass it as `agent_pattern` to `build_agent()` or run it with `PromptGraphEngine`.
 
-With a pattern name, `build_agent` passes its tools, its system prompt (`instructions`) and `graph_blocks` to the factory (for `research`, the tools become `search_tools`; for `code-action`, the `code_action=` settings and a sandbox factory are added). With no `agent_pattern` at all, the default ReAct graph gets the tools and system prompt but not `graph_blocks`; pass `agent_pattern="react"` to apply them. An unknown name raises `ValueError`.
+With a pattern name, `build_agent` passes its tools, its system prompt (`instructions`) and `graph_blocks` to the factory (for `research`, the tools become `search_tools`; for `code-action`, the `code_action=` settings and a sandbox factory are added). With no `agent_pattern` at all, the default ReAct graph gets the tools, the system prompt and `graph_blocks` too (before 1.7.0 it did not get `graph_blocks`). An unknown name raises `ValueError`.
 
-!!! note "Node budgets above 25"
-    The engine caps every node at `max_node_iterations` (25), and `build_agent`
-    does not change that cap. A budget a factory sets above it (such as
-    `managed`'s `max_node_iterations=30`) runs as 25 under `build_agent`; run the
-    graph with `PromptGraphEngine(..., max_node_iterations=30)` to use it all.
-    The whole run is also capped by `build_agent(max_agent_iterations=...)`
-    (default 25 node executions).
+!!! note "Node budgets"
+    Each node runs at most its own `max_iterations` times per run. Under
+    `build_agent`, the `reason` node of `react` (and of the default graph) and
+    of `managed` gets `max_agent_iterations` (default 25) as its budget, so `N`
+    allows `N` model calls; the other patterns keep the budgets their factories
+    set, within the run's cap of `max_agent_iterations` node executions.
+    `PromptGraphEngine` applies no engine-wide per-node ceiling unless you pass
+    `max_node_iterations=` (before 1.7.0 it capped every node at 25, so
+    `managed`'s 30 ran as 25).
 
 ## ReAct (Default)
 
@@ -17307,7 +17342,7 @@ PromptGraph.managed(
     tools=my_tools,
     system_prompt="",
     blocks=None,
-    max_node_iterations=30,   # deep tasks make many calls (25 under build_agent, see above)
+    max_node_iterations=30,   # deep tasks make many calls (max_agent_iterations under build_agent)
 )
 ```
 
@@ -17701,8 +17736,8 @@ graph.add_node(GuardNode("review", guards=[LengthGuard(max_length=2000)],
 
 graph.always("plan", "search")
 graph.always("search", "analyze")
-graph.when("analyze", "write", lambda r: (r.output or {}).get("quality", 0) >= 4)
-graph.when("analyze", "search", lambda r: (r.output or {}).get("quality", 0) < 4)
+graph.when("analyze", "write", lambda r: (r.output if isinstance(r.output, dict) else {}).get("quality", 0) >= 4)
+graph.when("analyze", "search", lambda r: (r.output if isinstance(r.output, dict) else {}).get("quality", 0) < 4)
 graph.always("write", "review")
 
 graph.set_entry("plan")
@@ -17731,24 +17766,11 @@ nodes = [planner("plan", is_entry=True), web_researcher("search", tools=[]), cri
 print([type(n).__name__ for n in nodes])   # ['PromptNode', 'PromptNode', 'CritiqueNode']
 ```
 
-!!! warning "Settings a standard skill fixes"
-    The standard skills pass some settings themselves, so passing the same
-    keyword again raises `TypeError: got multiple values for keyword argument`:
-
-    | Skill | Fixed settings (can't be passed) |
-    |-------|----------------------------------|
-    | `web_researcher` | `instructions`, `tool_choice` |
-    | `code_reviewer`, `data_analyst` | `instructions` |
-    | `fact_checker` | `instructions` |
-    | `summarizer` | `instructions`, `tools`, `default_next` (`"__end__"`) |
-    | `planner` | `instructions`, `tools` |
-    | `decision_router` | `instructions` |
-    | `formatter` | `instructions`, `default_next` (`"__end__"`) |
-
-    For different instructions, build the node directly (`PromptNode(name,
-    instructions=...)`, `GuardNode`, ...). The reasoning skills
-    (`thinker`, `reflector`, ...) only set defaults, so every parameter of
-    their node class can be overridden.
+Every setting a skill picks (`instructions`, `tool_choice`, `tools`,
+`default_next`, ...) is a default: pass the same keyword to override it, as
+for any parameter of the node class. Before 1.7.0 the standard skills fixed
+some of them, and passing one again raised `TypeError: got multiple values
+for keyword argument`.
 
 ## Standard Skills
 
@@ -17968,20 +17990,19 @@ graph.add_node(synthesizer("conclude", is_terminal=True))
 
 ## Customization
 
-Skills are functions that return nodes. Pass any parameter the skill does not fix (see the table above):
+Skills are functions that return nodes. Pass any parameter of the node class, including the ones the skill sets:
 
 ```python
-from promptise.engine import NodeFlag, PromptGraph, PromptNode
-from promptise.engine.skills import thinker, web_researcher
+from promptise.engine import NodeFlag, PromptGraph
+from promptise.engine.skills import summarizer, thinker, web_researcher
 
 graph = PromptGraph("custom")
 
 # Custom max iterations
 graph.add_node(web_researcher("search", tools=my_tools, max_iterations=10))
 
-# Custom instructions: build the node directly (summarizer fixes its instructions)
-graph.add_node(PromptNode("conclude", instructions="Summarize in bullet points only.",
-                          default_next="__end__"))
+# Custom instructions
+graph.add_node(summarizer("conclude", instructions="Summarize in bullet points only."))
 
 # Reasoning skills take any parameter, including their instructions
 graph.add_node(thinker("think", instructions="List what is still unknown."))
@@ -18043,7 +18064,7 @@ class Skill:
     metadata: dict[str, Any] = {}     # extra frontmatter fields
 ```
 
-`matches_cwd(cwd)` returns `True` if any file under `cwd` matches any of the globs (`Path(cwd).glob(pattern)`, so `**/*.ts` searches subdirectories and `*.ts` only the top level). Empty `paths` = always active (global skill). A `cwd` that is not a directory matches nothing.
+`matches_cwd(cwd)` returns `True` if any file under `cwd` matches any of the globs: first `Path(cwd).glob(pattern)` (so `**/*.ts` searches subdirectories), then `fnmatch` on every path relative to `cwd`, where `*` also matches `/`, so `*.ts` finds `src/app.ts` too. The walk stops at the first match, but a tree with no match is walked in full. Before 1.7.0 the `fnmatch` pass stopped after the first entry, so `*.ts` in practice matched the top level only. Empty `paths` = always active (global skill). A `cwd` that is not a directory matches nothing.
 
 `create(**kwargs)` calls `factory(**kwargs)` and returns what it returns; a skill without a factory raises `ValueError`.
 
@@ -18278,7 +18299,7 @@ graph.add_node(PromptNode(
     instructions="Analyze the search results. Identify key findings.",
     inherit_context_from="search",    # Reads state.context["search_output"]
     output_schema=Analysis,
-    output_key="analysis",            # A parsed output, so it is written
+    output_key="analysis",            # The parsed Analysis dict
     default_next="write",
 ))
 
@@ -18294,9 +18315,10 @@ graph.add_node(PromptNode(
 graph.set_entry("search")
 ```
 
-`output_key` is written only for a parsed output (here the `Analysis` dict).
-A plain-text node like `search` is read with `inherit_context_from` instead,
-since every `PromptNode` writes its reply to `state.context["{name}_output"]`.
+`output_key` holds the node's output: the parsed `Analysis` dict here, the
+reply text for a plain-text node. `inherit_context_from` reads the other
+side, `state.context["{name}_output"]`, which every `PromptNode` writes (its
+reply text, or its structured output as JSON).
 
 ## Example 3: Quality-Controlled Output
 
@@ -18480,8 +18502,8 @@ async def format_ticket(output, state, config):
     return {
         "ticket_id": generate_id(),
         "customer": state.context.get("customer_name"),
-        # output is None for a plain-text reply; the text is in {name}_output
-        "resolution": state.context.get("support_output"),
+        # output is the reply text (also in state.context["support_output"])
+        "resolution": output,
         "created_at": datetime.now().isoformat(),
     }
 
@@ -18685,8 +18707,9 @@ PromptNode("analyze",
 )
 ```
 
-Processor exceptions are logged and ignored, so a processor cannot stop a
-node; see [Processors](../core/engine-processors.md).
+A preprocessor that raises fails the node before the model is called, so a
+validator such as `input_validator()` stops it; a postprocessor's exception is
+logged and the output kept. See [Processors](../core/engine-processors.md).
 
 ### Budget and Metrics Hooks
 
@@ -18889,23 +18912,26 @@ node = PromptNode("analyze",
 )
 ```
 
-!!! warning "What a postprocessor receives"
-    A postprocessor gets `NodeResult.output`, not the reply text. `output` is
-    a dict for a node with an `output_schema`, the extracted answer (a `str`)
+!!! info "What a postprocessor receives"
+    A postprocessor gets `NodeResult.output`: a dict for a node with an
+    `output_schema`, the reply text for a plain-text reply (a reasoning
+    node's JSON fields when its reply ends with them), or the extracted answer
     for a node whose `strategy` parsed one (for example `chain_of_thought`
-    when the reply has its answer marker), and `None` for a plain-text reply.
-    So `json_extractor()` and `confidence_scorer()` see `None` on a plain
-    `PromptNode` (`confidence_scorer` then returns `{"text": "None", ...}`).
-    The reply text is in `state.context["{node_name}_output"]` if a
-    postprocessor needs it. A postprocessor's non-`None` return value becomes
-    the node's `output` (and is written to `output_key`).
+    when the reply has its answer marker). It runs on the model's reply only,
+    not on a step that only calls tools. So `json_extractor()` parses the JSON
+    out of a plain `PromptNode`'s reply. A postprocessor's non-`None` return
+    value becomes the node's `output` (and is written to `output_key`). Before
+    1.7.0 a plain-text reply reached the postprocessor as `None`.
 
-!!! warning "Exceptions are logged, not raised"
-    The node catches an exception from its preprocessor or postprocessor, logs
-    a warning on `promptise.engine` and carries on. `input_validator()`
-    therefore does not stop the model call when a key is missing; it only logs
-    it. To stop a run on missing input, check in a `pre_node`
-    [hook](engine-hooks.md) or a node that sets an `error`.
+!!! warning "A preprocessor that raises stops the node"
+    An exception from a preprocessor fails the node before the model is
+    called (fail closed): `NodeResult.error` is `"Preprocessor failed in node
+    'x': ValueError: ..."`, an [`on_error` edge](engine-edges.md#on_error-error-routing)
+    or hook can route it, and otherwise the run raises `GraphExecutionError`
+    with the exception as its cause. So `input_validator()` is a gate. An
+    exception from a postprocessor is logged on `promptise.engine` and the
+    output kept. Before 1.7.0 preprocessor exceptions were logged and the
+    node called the model anyway.
 
 ## Preprocessors
 
@@ -18944,7 +18970,7 @@ It changes the shared `state.context` for every later node, not only this one's 
 
 ### input_validator
 
-Checks that required keys exist in `state.context` and raises `ValueError` naming the missing ones. Inside a node the exception is logged and the node goes on (see the warning above), so use it for logging or in your own code, not as a gate.
+Checks that required keys exist in `state.context` and raises `ValueError` naming the missing ones. Inside a node that fails the node before the model is called (see the warning above).
 
 ```python
 input_validator(required_keys=["query", "data_source"])
@@ -19023,7 +19049,7 @@ output_truncator(max_chars=4000)
 
 ### chain_preprocessors
 
-Combines multiple preprocessors into one. Runs them in order. The combined function is synchronous: it does not await an `async` preprocessor (its coroutine is never run), so chain only sync preprocessors, or write your own async wrapper.
+Combines multiple preprocessors into one. Runs them in order; sync and `async` preprocessors mix. The chain stays synchronous until one returns an awaitable, then it returns a coroutine that awaits it and runs the rest (the node awaits it). An exception stops the chain and fails the node. Before 1.7.0 an `async` preprocessor in a chain never ran.
 
 ```python
 preprocessor = chain_preprocessors(
@@ -19035,7 +19061,7 @@ preprocessor = chain_preprocessors(
 
 ### chain_postprocessors
 
-Combines multiple postprocessors into one. Pipes the output through each function in order (each gets the previous one's return value, `None` included). Synchronous like `chain_preprocessors`: chain only sync postprocessors.
+Combines multiple postprocessors into one. Pipes the output through each function in order (each gets the previous one's return value, `None` included). Sync and `async` postprocessors mix, as in `chain_preprocessors`: each step's awaitable is awaited before the next step gets its value.
 
 ```python
 postprocessor = chain_postprocessors(
@@ -19123,17 +19149,29 @@ class MyHook:
     async def on_human_required(self, node_name: str, state: GraphState) -> None:
         """Called for nodes with the REQUIRES_HUMAN flag."""
         pass
+
+    async def on_error(self, node: BaseNode, error: Exception, state: GraphState) -> str | None:
+        """Called when a node fails. Return a node name (or "__end__") to go
+        there next, or None for the usual handling."""
+        return None
+
+    async def on_graph_mutation(self, mutation: GraphMutation, state: GraphState) -> bool:
+        """Called before a graph mutation is applied. Return False to block it."""
+        return True
 ```
 
 Only implement the methods you need, the engine checks `hasattr()` before calling. The `Hook` protocol (`from promptise.engine import Hook`) describes them for type checking.
 
-!!! note "`on_error` and `on_graph_mutation` are not called in 1.6.0"
-    The `Hook` protocol also declares `on_error(node, error, state)` and
-    `on_graph_mutation(mutation, state)`, but the 1.6.0 engine never calls
-    them. To react to a failed node, check `result.error` in `post_node`
-    (or route with an [`on_error` edge](engine-edges.md#on_error-error-routing));
-    mutations show up in `NodeResult.graph_mutations` and
-    `ExecutionReport.graph_mutations`.
+`on_error` gets the exception behind the failure (a `RuntimeError` with the
+error text when the node recorded none, for example a `RouterNode` with no
+matching route). The first hook that returns the name of a node in the graph,
+or `"__end__"`, decides where the run goes next, ahead of edges and
+transitions; returning `None` leaves the usual handling ([`on_error`
+edges](engine-edges.md#on_error-error-routing), then the run raises
+`GraphExecutionError` if it ends on the failure). Routing to `"__end__"` ends
+the run on the failure, so it still raises. A `CRITICAL` node aborts the run
+whatever the hooks return. Before 1.7.0 the engine never called `on_error` or
+`on_graph_mutation`.
 
 When each method runs:
 
@@ -19144,8 +19182,10 @@ When each method runs:
 | `pre_tool` | Before each tool call of a `PromptNode`, `ToolNode` or `CodeActionNode` program | The args to use | The call fails (see below) |
 | `post_tool` | After each tool call | The result text to use | The call fails |
 | `on_tool_reused` | Instead of the two above, for a reused result | ignored | Logged |
-| `on_observable_event` | After an `OBSERVABLE` node runs | ignored | **Not caught**: the run raises |
-| `on_human_required` | Before a `REQUIRES_HUMAN` node runs | ignored | **Not caught**: the run raises |
+| `on_observable_event` | After an `OBSERVABLE` node runs | ignored | Logged, the run goes on |
+| `on_human_required` | Before a `REQUIRES_HUMAN` node runs | ignored | Logged, the run goes on |
+| `on_error` | After a node fails (it raised or its result has an `error`), before `post_node` and routing | A node name or `"__end__"` to route there; `None` for the usual handling | Logged, the next hook is asked |
+| `on_graph_mutation` | Before each mutation: a node's `graph_mutations` and the LLM's `add_node` / `add_edge` actions | `False` blocks the mutation (it does not count against `max_mutations_per_run`) | The mutation is blocked (fail closed) |
 
 A hook can end a run by setting `state.current_node = "__end__"` in `pre_node`
 or `post_node`. The node being processed still finishes (from `pre_node`, it
@@ -19265,16 +19305,9 @@ CycleDetectionHook(sequence_length=3, max_repeats=3)
 | `sequence_length` | `int` | `3` | Length of node sequence to check for repetition |
 | `max_repeats` | `int` | `3` | Max times a sequence can repeat before forcing end |
 
-Example: If visited nodes are `[A, B, C, A, B, C, A, B, C]`, the pattern `[A, B, C]` has repeated 3 times, the hook sets `state.current_node = "__end__"`. It checks in `pre_node`, where `visited` already includes the node about to run, so that node runs once more before the run ends.
+Example: If visited nodes are `[A, B, C, A, B, C, A, B, C]`, the pattern `[A, B, C]` has repeated 3 times, the hook sets `state.current_node = "__end__"`. It checks in `pre_node`, where `visited` already includes the node about to run; the engine respects a `pre_node` stop, so that node does not run (it is not in `ExecutionReport.nodes_visited`).
 
-!!! warning "It also ends a long single-node tool loop"
-    A tool loop re-runs the same node, so `visited` becomes
-    `[reason, reason, reason, ...]`, which is a repeating pattern of any
-    length. With the defaults, the ReAct graph's `reason` node is stopped
-    after 9 model calls, and since the model was still calling tools the run
-    raises `GraphStoppedError`. Raise `max_repeats` (and `sequence_length`)
-    above the tool loop length you expect, or rely on node budgets
-    (`max_iterations`) for single-node loops.
+A node that the engine re-enters for its own tool loop (it called tools and runs again with their results) counts as one step, so a ReAct `reason` node making many tool calls is not a cycle; bound those with `max_iterations` / `max_agent_iterations`. A node that routes back to itself without calling tools still counts every visit. Before 1.7.0 the stopped node ran once more, and a single-node tool loop was ended after 9 model calls with `GraphStoppedError`.
 
 ### MetricsHook
 
@@ -19435,7 +19468,7 @@ Every node execution produces a `NodeResult` (27 fields, all with defaults) for 
 | **Timing** | `duration_ms`, `llm_duration_ms`, `tool_duration_ms` |
 | **Tokens** | `prompt_tokens`, `completion_tokens`, `total_tokens` |
 | **Tool Activity** | `tool_calls` (list of dicts), `tool_calls_deduplicated`, `tool_calls_failed` |
-| **LLM Output** | `output` (parsed), `raw_output` (string), `next_node`, `transition_reason` |
+| **LLM Output** | `output` (the parsed object, or the reply text), `raw_output` (string), `next_node`, `transition_reason` |
 | **Messages** | `messages_added` (messages appended to state) |
 | **Prompt Trace** | `blocks_used`, `blocks_dropped`, `strategy_applied`, `perspective_applied` |
 | **Guards** | `guards_passed`, `guards_failed`, `guard_retries` (not set by the built-in nodes; stays 0) |
@@ -19743,6 +19776,7 @@ graph TD
     BUDGET --> |"no: loop exit, error transition, __error__ node, or end"| LOOP
     BUDGET --> |yes| PRE_HOOK[Run pre_node hooks]
 
+    PRE_HOOK --> |hook sets __end__| END
     PRE_HOOK --> PRE_FLAG[Pre-execute flags]
     PRE_FLAG --> |SKIP_ON_ERROR + prev errored| SKIP[Return skip result]
     PRE_FLAG --> |CACHEABLE + cache hit| CACHE_HIT[Return cached result]
@@ -19758,17 +19792,19 @@ graph TD
     RETRY --> POST_FLAG
     NORMAL --> POST_FLAG
 
-    POST_FLAG[Post-execute flags] --> |CRITICAL + error| ABORT[Abort graph]
+    POST_FLAG[Post-execute flags] --> |error| ON_ERR[on_error hooks: may pick the next node]
+    ON_ERR --> |CRITICAL| ABORT[Abort graph]
+    ON_ERR --> MUT
     POST_FLAG --> |NO_HISTORY| RESTORE_MSG[Restore messages]
     POST_FLAG --> |ISOLATED_CONTEXT| RESTORE_CTX[Restore context, merge output_key]
     POST_FLAG --> |CACHEABLE| CACHE_STORE[Store in cache]
     POST_FLAG --> |SUMMARIZE_OUTPUT| SUMMARIZE[LLM summarize if > 1000 chars]
     POST_FLAG --> |VALIDATE_OUTPUT| VALIDATE[Validate against schema]
-    POST_FLAG --> MUT[Apply graph mutations]
+    POST_FLAG --> MUT[Apply graph mutations the on_graph_mutation hooks allow; skip_to / retry_with pick the next node]
     MUT --> POST_HOOK
 
     POST_HOOK[Run post_node hooks] --> |hook sets __end__| END
-    POST_HOOK --> TRANSITION[Resolve transition]
+    POST_HOOK --> TRANSITION[Resolve transition, unless a hook or graph action picked the next node]
     TRANSITION --> ITER{iteration >= max_iterations?}
     ITER --> |yes| END
     ITER --> |no| LOOP
@@ -19821,7 +19857,7 @@ graph TD
     style TARGET3 fill:#2d1b4e,stroke:#c084fc,color:#fff
 ```
 
-**Key insight:** Tool-calling nodes re-enter themselves automatically. The LLM calls tools → the node adds ToolMessages to the conversation → the engine re-enters the node → the LLM sees the results → calls more tools or produces a final answer. This loop continues until the LLM stops calling tools or the node's budget (`min(max_iterations, max_node_iterations)`) is used up.
+**Key insight:** Tool-calling nodes re-enter themselves automatically. The LLM calls tools → the node adds ToolMessages to the conversation → the engine re-enters the node → the LLM sees the results → calls more tools or produces a final answer. This loop continues until the LLM stops calling tools or the node's budget (its `max_iterations`, capped by the engine's `max_node_iterations` when one is set) is used up.
 
 Before a node runs, the engine checks its budget. A node that has used it is
 not run again: the engine goes to its `loop_until` exit, else its `"error"`
@@ -19879,19 +19915,20 @@ Every execution of a PromptNode is one model call:
 graph TD
     START[PromptNode.execute] --> MODEL[1. Resolve model: override or engine model]
     MODEL --> PRE[2. Preprocessor]
+    PRE --> |raises| FAIL[Node fails, no model call]
     PRE --> CTX[3. System prompt assembly]
-    CTX --> |"instructions + tool summary (off by default) + input_keys + inherited output + context_layers + blocks"| CTX2["+ observations (nodes without tools) + plan + reflections + route choices"]
+    CTX --> |"instructions + tool summary (off by default) + input_keys + inherited output + context_layers + blocks"| CTX2["+ observations (nodes without tools) + plan + reflections + reasoning-node JSON fields + route choices"]
     CTX2 --> STRAT[4. Strategy wrap + perspective]
-    STRAT --> BIND{5. Binding cached for this model, tools, schema?}
+    STRAT --> BIND{5. Binding cached for this model, tools, tool choice, schema?}
     BIND --> |yes| REUSE[Reuse bound model]
-    BIND --> |no| BUILD[bind_tools + with_structured_output, cache in config]
+    BIND --> |no| BUILD[temperature / max_tokens + bind_tools with tool_choice + with_structured_output, cache in config]
     REUSE --> SCOPE[6. Context scope: full, or compacted view]
     BUILD --> SCOPE
     SCOPE --> LLM[7. LLM call]
 
     LLM --> RESP{8. Response type?}
     RESP --> |AIMessage with tool_calls| TOOL_EXEC[Execute tools]
-    RESP --> |AIMessage text only| PARSE[raw_output = text]
+    RESP --> |AIMessage text only| PARSE["output = text (a reasoning node's JSON object when present)"]
     RESP --> |Structured output| STRUCT[output = dict]
 
     TOOL_EXEC --> |"2+ calls"| PARALLEL[Run concurrently]
@@ -19903,8 +19940,8 @@ graph TD
     PARSE --> GUARD[9. Transitions from output, guards]
     STRUCT --> GUARD
     GUARD --> STRAT_PARSE[10. Strategy parse]
-    STRAT_PARSE --> POST[11. Postprocessor]
-    POST --> WRITE["12. output_key (parsed output) + {name}_output"]
+    STRAT_PARSE --> POST[11. Postprocessor, on the reply only]
+    POST --> WRITE["12. output_key (output) + {name}_output"]
     WRITE --> DONE[Return NodeResult → engine re-enters on tool calls]
 
     style START fill:#1e3a5f,stroke:#60a5fa,color:#fff
@@ -19917,7 +19954,7 @@ graph TD
 
 | Item | Where | Reused while |
 |------|-------|--------------|
-| Bound model (tools + structured output) | `config["_node_cache_{name}"]` | Same run, same model object (or same `model_override`), same tool names, same `output_schema` |
+| Bound model (sampling settings, tools, structured output) | `config["_node_cache_{name}"]` | Same run, same model object (or same `model_override`), same tool names and tool choice, same `output_schema` |
 | Edge adjacency index | `graph._edge_index` | Until an edge is added or removed (lazy dirty flag) |
 | Node result (`CACHEABLE` flag) | `state.context["_node_cache"]` | Same run, same `input_keys` values; up to 128 entries |
 
@@ -19943,7 +19980,7 @@ graph TD
 
     subgraph "Node executes"
         EXEC["node.execute(state, config)"]
-        RETRY["If RETRYABLE: retry with exp backoff, max 8s cap"]
+        RETRY["If RETRYABLE (not a RetryNode): retry with exp backoff, max 8s cap"]
     end
 
     subgraph "Post-execute (after node runs)"
@@ -19993,7 +20030,7 @@ Three ways nodes pass data:
 
 | Method | How it works | Use when |
 |--------|-------------|----------|
-| `output_key` → `input_keys` | Node A writes its parsed output to `state.context[output_key]` (an `output_schema` dict, a strategy's extracted answer, or a postprocessor's value; nothing for a plain-text reply). Node B gets `state.context[input_keys[i]]` in its prompt. | Structured data with named fields |
+| `output_key` → `input_keys` | Node A writes its output to `state.context[output_key]` (an `output_schema` dict, its reply text, a strategy's extracted answer, or a postprocessor's value). Node B gets `state.context[input_keys[i]]` in its prompt. | Named data, structured or text |
 | `inherit_context_from` | Node B gets `state.context["{A_name}_output"]` (A's reply text, or its structured output as JSON) in its prompt. Every `PromptNode` writes this key. | One node directly continues another's work, including plain-text replies |
 | `state.context` direct | Node's execute() reads/writes `state.context` directly. | Custom state management in BaseNode subclasses |
 
@@ -20048,6 +20085,8 @@ graph TD
     end
 
     subgraph "Special hooks"
+        H8["on_error (failed nodes)"]
+        H9["on_graph_mutation (before each mutation)"]
         H5["on_observable_event (OBSERVABLE nodes)"]
         H6["on_human_required (REQUIRES_HUMAN nodes)"]
         H7["on_tool_reused (reused results)"]
@@ -20059,7 +20098,7 @@ graph TD
     style TOOL fill:#2d1b4e,stroke:#c084fc,color:#fff
 ```
 
-Hooks run in registration order. A failing `pre_node` or `post_node` hook is logged and skipped. A `pre_tool` or `post_tool` hook that raises fails that tool call (the model gets the error). `on_observable_event` and `on_human_required` are not wrapped: an exception there ends the run. The `Hook` protocol's `on_error` and `on_graph_mutation` are not called in 1.6.0.
+Hooks run in registration order. A failing `pre_node`, `post_node`, `on_error`, `on_observable_event` or `on_human_required` hook is logged and skipped. A `pre_tool` or `post_tool` hook that raises fails that tool call (the model gets the error). An `on_graph_mutation` hook that raises blocks the mutation. A `pre_node` hook that sets `state.current_node = "__end__"` ends the run before the node runs. `on_error` runs for a failed node before `post_node`; `on_graph_mutation` before each mutation.
 
 ## Safety Mechanisms
 
@@ -20067,7 +20106,7 @@ Hooks run in registration order. A failing `pre_node` or `post_node` hook is log
 graph TD
     subgraph "Iteration Guards"
         S1["max_iterations (default 50)"] --> |"reached: that many node executions"| S1R["Force graph end"]
-        S2["node budget: min(node.max_iterations, max_node_iterations)"] --> |"used up, node not run again"| S2R["_handle_stuck_node()"]
+        S2["node budget: node.max_iterations (and max_node_iterations when set)"] --> |"used up, node not run again"| S2R["_handle_stuck_node()"]
         S2R --> |"error transition exists"| S2A["Follow error edge"]
         S2R --> |"__error__ node exists"| S2B["Go to error handler"]
         S2R --> |"nothing"| S2C["Force __end__"]
@@ -20075,7 +20114,7 @@ graph TD
 
     subgraph "Budget & Health"
         S3["BudgetHook.max_tokens"] --> |exceeded| S3R["Set current_node = __end__; GraphBudgetExceededError if no answer"]
-        S4["CycleDetectionHook"] --> |"pattern repeats N times"| S4R["Force __end__"]
+        S4["CycleDetectionHook"] --> |"pattern repeats N times (tool-loop re-entries count once)"| S4R["End before the next node runs"]
         S5["TimingHook"] --> |"node exceeds budget"| S5R["Set error on result"]
     end
 

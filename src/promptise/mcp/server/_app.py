@@ -1715,10 +1715,13 @@ class MCPServer:
                             connection = _sdk.connection_of(mcp_ctx.session)
                         except Exception:
                             logger.debug("No MCP session for session state", exc_info=True)
+                        # Without a connection (a handler called directly)
+                        # the state lasts for this call only; keying it by
+                        # request id would keep it forever.
                         managed = (
                             session_manager.for_connection(connection)
                             if connection is not None
-                            else session_manager.get_or_create(ctx.request_id)
+                            else SessionState()
                         )
                         _val._data = managed._data
                         ctx.state["_session_state"] = _val
