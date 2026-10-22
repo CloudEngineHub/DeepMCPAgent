@@ -1,5 +1,5 @@
 ---
-title: MCPcast — turn your existing API into a real MCP server, end to end
+title: "MCPcast: turn your existing API into a real MCP server, end to end"
 seo_title: "MCPcast: Turn Your API into an MCP Server"
 description: "The complete MCPcast walkthrough: how an MCP server works, what MCPcast generates, a real run from a Python API to an agent, the approval gate and the review."
 keywords: MCPcast, OpenAPI to MCP server, turn API into MCP, MCP server generator Python, how MCP works, MCP tools list call, FastAPI MCP, review generated MCP server
@@ -7,7 +7,7 @@ keywords: MCPcast, OpenAPI to MCP server, turn API into MCP, MCP server generato
 
 # MCPcast, end to end
 
-You have an API. Your customers have AI assistants — Claude Desktop, Claude
+You have an API. Your customers have AI assistants: Claude Desktop, Claude
 Code, Cursor, agents of their own. MCPcast makes the first usable by the
 second: it reads the API's OpenAPI document, designs a *small* set of tools
 an AI can use correctly, and writes an MCP server you can read, edit and
@@ -16,13 +16,13 @@ you opt in, and then demands human approval enforced by the server.
 
 This page is the whole story on one page: how MCP works, what MCPcast
 generates, a real run from a running Python API to an agent driving it, and
-— the part that matters most — **how to review what the model did**, because
+(the part that matters most) **how to review what the model did**, because
 it designs the tool surface and it *will* misread something.
 
 !!! danger "Never trust it blindly"
     Curation is done by a language model. In the run below it wrote two tool
-    descriptions that tell the agent to use `delete_book` — a tool it had
-    itself excluded from the plan — and hid a parameter your users need.
+    descriptions that tell the agent to use `delete_book` (a tool it had
+    itself excluded from the plan) and hid a parameter your users need.
     Both were one-line fixes in the plan file, *after a human read it*. The
     plan is the artifact you own; the server is generated from it. Review
     the plan, fix it, regenerate, measure. Every time.
@@ -32,12 +32,12 @@ it designs the tool surface and it *will* misread something.
     a full-screen terminal wizard that asks the seven questions below, explains
     each one, detects an API running on your machine, shows the tool counts each
     safety profile would produce from your spec, and ends with the exact command
-    it ran. Everything on this page applies to it — including the review.
+    it ran. Everything on this page applies to it, including the review.
 
 ## The picture
 
 Two protocols, one generated server in the middle. The assistant speaks MCP
-to the server; the server speaks your API's own HTTP to the upstream — with
+to the server; the server speaks your API's own HTTP to the upstream: with
 the credential, the approval gate and the routing living in code you can read.
 
 ```mermaid
@@ -68,14 +68,14 @@ which is which:
 
 | Step | Needs | Where it goes |
 |---|---|---|
-| **Generating** the server — `promptise mcpcast openapi.json` | A key for the **curation model**, the LLM that designs the tool surface. The default is `openai:gpt-5-mini`, so `OPENAI_API_KEY`; `--model <provider>:<model>` switches to anything in the [provider table](../getting-started/configuration.md#every-providers-variables). **With `--no-curate` no key is needed at all** — the plan is derived deterministically from the spec, fully offline. | `.env` in the directory you run from, or the environment — [Configuration & Secrets](../getting-started/configuration.md) explains both. `promptise models check openai:gpt-5-mini` tells you whether it is picked up. |
-| `--eval` (Agent Readiness) | The same model key — it runs a real agent over the server. If your API needs auth, also `MCPCAST_EVAL_AUTHORIZATION='Bearer <token>'` so the live reads reach it. `--review` needs nothing extra. | Same. |
-| The **generated server** calling **your API** | Your API's own credential — nothing to do with any LLM. `--auth` decides how it arrives: `passthrough` forwards each caller's `Authorization` header (HTTP transport only); `env-token` reads one `MCPCAST_UPSTREAM_TOKEN='Bearer …'` from the server's environment (the mode for stdio/desktop clients; binds loopback only unless `--public`); `api-key` authenticates MCP clients with `MCPCAST_CLIENT_KEYS` and maps each tenant to an upstream token in `MCPCAST_UPSTREAM_TOKENS`; `none` sends nothing and refuses to bind to anything but loopback. | The client's `env` block (Claude Desktop / Claude Code / Cursor) or the server's environment (HTTP). Never in `mcpcast.plan.yaml` or `server.py` — the generated code only *reads* it. |
+| **Generating** the server: `promptise mcpcast openapi.json` | A key for the **curation model**, the LLM that designs the tool surface. The default is `openai:gpt-5-mini`, so `OPENAI_API_KEY`; `--model <provider>:<model>` switches to anything in the [provider table](../getting-started/configuration.md#every-providers-variables). **With `--no-curate` no key is needed at all**: the plan is derived deterministically from the spec, fully offline. | `.env` in the directory you run from, or the environment: [Configuration & Secrets](../getting-started/configuration.md) explains both. `promptise models check openai:gpt-5-mini` tells you whether it is picked up. |
+| `--eval` (Agent Readiness) | The same model key: it runs a real agent over the server. If your API needs auth, also `MCPCAST_EVAL_AUTHORIZATION='Bearer <token>'` so the live reads reach it. `--review` needs nothing extra. | Same. |
+| The **generated server** calling **your API** | Your API's own credential: nothing to do with any LLM. `--auth` decides how it arrives: `passthrough` forwards each caller's `Authorization` header (HTTP transport only); `env-token` reads one `MCPCAST_UPSTREAM_TOKEN='Bearer …'` from the server's environment (the mode for stdio/desktop clients; binds loopback only unless `--public`); `api-key` authenticates MCP clients with `MCPCAST_CLIENT_KEYS` and maps each tenant to an upstream token in `MCPCAST_UPSTREAM_TOKENS`; `none` sends nothing and refuses to bind to anything but loopback. | The client's `env` block (Claude Desktop / Claude Code / Cursor) or the server's environment (HTTP). Never in `mcpcast.plan.yaml` or `server.py`: the generated code only *reads* it. |
 
 The generated server itself **never calls a model**. It is plain code:
 validate the arguments, call your API over HTTP, return the result. The AI is
-on the other side of the MCP connection — Claude Desktop, Cursor, or an agent
-you build with `build_agent()` — and brings its own model key.
+on the other side of the MCP connection (Claude Desktop, Cursor, or an agent
+you build with `build_agent()`) and brings its own model key.
 
 ---
 
@@ -114,17 +114,17 @@ That is the entire contract an AI assistant relies on. When you add a server
 to Claude Desktop, Claude Desktop launches it, calls `initialize` and
 `tools/list`, and shows the model the tool names, descriptions and schemas.
 **The description is the only thing the model reads to decide when to call a
-tool and how** — which is why MCPcast rewrites descriptions for a model
+tool and how**, which is why MCPcast rewrites descriptions for a model
 rather than copying the API's developer docs, and why you will review them.
 
 Two transports matter:
 
-- **stdio** — the client starts the server as a subprocess and talks over
+- **stdio**: the client starts the server as a subprocess and talks over
   stdin/stdout. This is how desktop clients work. Nothing else may be written
-  to stdout, and the subprocess cannot receive HTTP headers — which is why a
+  to stdout, and the subprocess cannot receive HTTP headers, which is why a
   personal stdio server carries its upstream credential in its own
   environment (`--auth env-token`).
-- **HTTP / SSE** — the server listens on a port; clients connect with
+- **HTTP / SSE**: the server listens on a port; clients connect with
   headers. This is how a shared deployment works, and where per-user tokens
   (`--auth passthrough`) or per-tenant keys (`--auth api-key`) live.
 
@@ -160,21 +160,21 @@ the plan (orange outline): everything downstream is regenerated from it.
 | Stage | What happens | Who decides |
 |---|---|---|
 | **parse** | Every operation with its method, path, parameters (and where each travels: path, query, body), schemas, scopes, `deprecated` | code |
-| **classify** | Each operation gets a risk class from fixed rules: `read`, `write`, `destructive`, `financial` — with escalation for admin scopes, admin/internal paths, deprecated, and reads that name a destructive verb | code |
-| **curate** | A model designs the surface: budget, drop what an agent has no business calling, collapse redundant routes into one intent tool, rename in domain language, rewrite descriptions for a model, hide rarely needed parameters behind defaults, write one example per tool | **model** — checked by code: no unknown operations, nothing both kept and dropped, valid names, and **risk may be raised but never lowered** |
+| **classify** | Each operation gets a risk class from fixed rules: `read`, `write`, `destructive`, `financial`: with escalation for admin scopes, admin/internal paths, deprecated, and reads that name a destructive verb | code |
+| **curate** | A model designs the surface: budget, drop what an agent has no business calling, collapse redundant routes into one intent tool, rename in domain language, rewrite descriptions for a model, hide rarely needed parameters behind defaults, write one example per tool | **model**: checked by code: no unknown operations, nothing both kept and dropped, valid names, and **risk may be raised but never lowered** |
 | **review** | `--review` prints the kept and not-exposed tables and waits for a yes | **you** |
 | **emit** | a real project: `mcpcast.plan.yaml` (the source of truth), a `<name>_mcp/` package, `server.py` (launcher), `tests/`, `pyproject.toml`, `Dockerfile`, `README.md` | code |
 | **eval** | A real agent drives the server on generated tasks; Agent Readiness Score A–F with specific fixes | code + model |
 
 The **safety profile** is applied *after* curation and enforced by the plan
 schema itself: `read-only` (default) generates reads only; `standard` adds
-writes; `full` adds destructive and financial operations — and every non-read
+writes; `full` adds destructive and financial operations, and every non-read
 tool is `requires_approval=True`, gated server-side for any client.
 
 ### Anatomy of the generated project
 
-It is a package you could have written by hand — installable, testable,
-deployable — and it depends only on `promptise` and `httpx`. From the run
+It is a package you could have written by hand (installable, testable,
+deployable) and it depends only on `promptise` and `httpx`. From the run
 below:
 
 ```text
@@ -200,14 +200,14 @@ bookshelf-mcp/
 ```
 
 Everything under `bookshelf_mcp/`, `server.py`, `tests/` and `README.md` is
-*derived* — rewritten from the plan on every regeneration. Under `tools/`
+*derived* (rewritten from the plan on every regeneration. Under `tools/`
 the generated header decides ownership: a generated module the plan no
-longer has is removed; a file without the header — hand-written, or a copy
-of a generated module you renamed and kept — is yours and stays, and if the
+longer has is removed; a file without the header) hand-written, or a copy
+of a generated module you renamed and kept (is yours and stays, and if the
 plan would now write a module at its path, regeneration refuses (nothing is
 written) until you rename it or pass `--force`. `pyproject.toml`,
 `Dockerfile`, `.env.example` and `.gitignore` are scaffold: written once,
-then yours — which is why `api.name` is fixed after the first write: it
+then yours) which is why `api.name` is fixed after the first write: it
 names the package (`bookshelf_mcp/`) and the `bookshelf-mcp` command those
 files package and ship, so a renamed plan is refused until the old package,
 `pyproject.toml` and `Dockerfile` are removed (or it goes to a new `--out`).
@@ -225,11 +225,11 @@ ROUTES: dict[str, tuple[Route, ...]] = {
         ),
         Route("GET", "/books", query_params=("author", "limit")),
     ),
-    ...
+    # ... one entry per tool in this module
 }
 ```
 
-- **`tools/<resource>.py`** — one module per resource (from the tool's tag,
+- **`tools/<resource>.py`**: one module per resource (from the tool's tag,
   else the first path segment). `ROUTES` holds each tool's upstream operations;
   a tool with several routes dispatches to the *first* route whose required
   arguments were supplied: `find_books(book_id=3)` → `GET /books/3`;
@@ -246,7 +246,7 @@ ROUTES: dict[str, tuple[Route, ...]] = {
   timestamp) are not inputs and are left out. The handler's annotation keeps
   the base type the server validates (`str`, `int`, `dict[str, Any]`); the API
   stays the authority on the rest and rejects what breaks it.
-- **`upstream.py`** — `Upstream.call` builds the HTTP request: path values
+- **`upstream.py`**: `Upstream.call` builds the HTTP request: path values
   must be a single real segment (an empty value or `..` is rejected rather
   than reaching a neighbouring endpoint), `None` optionals are omitted (a
   required body property the spec marks nullable is the exception: its
@@ -255,31 +255,31 @@ ROUTES: dict[str, tuple[Route, ...]] = {
   comes back as a structured error the agent can act on
   (`UPSTREAM_AUTH_MISSING`, `UPSTREAM_TIMEOUT`, `UPSTREAM_UNREACHABLE`, `UPSTREAM_ERROR` with the
   status). The credential for the auth mode is added here.
-- **`approval.py`** — installs `ApprovalGateMiddleware` when any tool is
+- **`approval.py`**: installs `ApprovalGateMiddleware` when any tool is
   gated, with the plan's approver (elicitation, or the tenant-scoped pending
   store under `api-key`). Nothing is installed for a read-only plan.
-- **`server.py`** (in the package) — `build_server()` assembles it: the
+- **`server.py`** (in the package): `build_server()` assembles it: the
   `MCPServer`, `AuthMiddleware` under `api-key`, the gate, every tools module.
   It takes `approval_handler=` and `http_client=` so the generated tests and
   the evaluation can inject an approver and a fake upstream.
-- **`__main__.py`** — `--transport stdio|http|sse`, `--host`, `--port`; an
+- **`__main__.py`**: `--transport stdio|http|sse`, `--host`, `--port`; an
   `--auth none` or `--auth env-token` server refuses to bind to a non-loopback
   address unless `--public` (or `MCPCAST_PUBLIC=1`). The root `server.py` runs
   the same thing without installing the package.
-- **`tests/`** — a pytest suite through the full server pipeline: every tool
+- **`tests/`**: a pytest suite through the full server pipeline: every tool
   is listed, every tool reaches the right method and path on a fake upstream,
-  and every gated tool is denied when the human says no — with nothing
+  and every gated tool is denied when the human says no: with nothing
   reaching the API. `cd bookshelf-mcp && pytest`.
 
 The **approval gate** is a middleware in the server's request pipeline, so it
 applies to every MCP client, not only Promptise agents. Under stdio the
 default approver asks the human behind the client through MCP *elicitation*;
-a client that cannot elicit gets `APPROVAL_DENIED` — fail-closed, never
+a client that cannot elicit gets `APPROVAL_DENIED`: fail-closed, never
 silently allowed. You will see exactly that below.
 
 ### The life of one call
 
-What happens between `tools/call` arriving and your API answering — here for
+What happens between `tools/call` arriving and your API answering: here for
 a gated write, which is the interesting case:
 
 ```mermaid
@@ -326,14 +326,14 @@ flowchart LR
 ```
 
 Every generated project passes `ruff`, `ruff format --check`, `mypy` and its
-own tests — for hostile specs too — and the plan is the only file you edit.
+own tests (for hostile specs too) and the plan is the only file you edit.
 
 ---
 
 ## 3. The real run: a Python API becomes an MCP server
 
 Everything in this section was run, and the output is pasted verbatim. The
-API is `examples/mcp/mcpcast_fastapi_app/app.py` — an ordinary FastAPI
+API is `examples/mcp/mcpcast_fastapi_app/app.py`: an ordinary FastAPI
 "bookshelf" with a bearer token, nine endpoints and an admin corner. Nothing
 in it knows about MCP.
 
@@ -360,7 +360,7 @@ Bookshelf API | servers: None | operations: ['create_book', 'delete_book', 'find
 'get_book', 'health_check', 'list_books', 'reset_catalogue', 'search_books', 'update_book']
 ```
 
-No `servers` block — FastAPI omits it — so MCPcast will use the spec URL's
+No `servers` block (FastAPI omits it) so MCPcast will use the spec URL's
 origin as the API base URL.
 
 ### 3.2 Generate the MCP server
@@ -413,7 +413,7 @@ enforced what the model may not decide: `delete_book` stays out under
 
 ### 3.3 Prove it is a real MCP server
 
-Speak MCP to it over stdio — `initialize`, `tools/list` — exactly as a desktop
+Speak MCP to it over stdio (`initialize`, `tools/list`) exactly as a desktop
 client would. The upstream token travels in the server's environment:
 
 ```bash
@@ -438,8 +438,8 @@ promptise list-tools --model-id openai:gpt-5-mini \
 │ update_book │ Modify one or more fields on an existing book. ...                   │ required: book_id
 ```
 
-That table *is* what the model will see: the description block — prose,
-parameter notes, dispatch rule, example — and the JSON Schema.
+That table *is* what the model will see: the description block (prose,
+parameter notes, dispatch rule, example) and the JSON Schema.
 
 ### 3.4 An agent uses your API
 
@@ -466,7 +466,7 @@ A read, end to end:
 ╰───────────────────────────────────────────────────╯
 ```
 
-The API's own log shows the request the agent caused — `POST /books/search`,
+The API's own log shows the request the agent caused: `POST /books/search`,
 the route `find_books` dispatched to because `query` was supplied:
 
 ```text
@@ -490,7 +490,7 @@ INFO:     127.0.0.1:55098 - "POST /books/search HTTP/1.1" 200 OK
 
 The agent chose the right tool with the right arguments, the server's
 approval gate held the call, no human could be asked over this stdio client,
-and the call was **denied** — no `POST /books` appears in the API log. That
+and the call was **denied**: no `POST /books` appears in the API log. That
 is the safety profile working as designed. With a client that supports MCP
 elicitation the human would have been asked; with `--auth api-key` a second
 person holding the `approver` role would decide through the four-eyes tools.
@@ -517,18 +517,18 @@ claude mcp add bookshelf -e MCPCAST_UPSTREAM_TOKEN="Bearer demo-token" -- python
 
 ---
 
-## 4. Never trust it blindly — the review
+## 4. Never trust it blindly: the review
 
 The model designs the tool surface. It reads your summaries and descriptions,
 guesses intent from names, and decides what to merge, hide and drop. It is
 good at this, and it is wrong often enough that shipping the plan unread is
 negligent. Here is what it got wrong in the run above, found by reading the
-plan and the `list-tools` output — and this was a nine-endpoint API.
+plan and the `list-tools` output, and this was a nine-endpoint API.
 
 ### What it got wrong this time
 
 **It told the agent to use a tool that does not exist.** Two descriptions
-ended with *"…or to remove them (use delete_book)"* — but the model had
+ended with *"…or to remove them (use delete_book)"*, but the model had
 itself dropped `delete_book` (correctly: the profile excludes it). An agent
 reading that will look for `delete_book`, not find it, and either apologise
 or, worse, try `update_book` creatively. Fix, in the plan:
@@ -541,12 +541,12 @@ or, worse, try `update_book` creatively. Fix, in the plan:
 ```
 
 **It hid a parameter your users need.** `add_book` came out with `tags`
-hidden and `Always sends: tags=[]` — a "param diet" decision that is right
+hidden and `Always sends: tags=[]`: a "param diet" decision that is right
 for a rarely used flag and wrong for a field people fill in on every create.
 Fix: delete `hidden: true` (and the default) under that parameter in the
 plan.
 
-Then regenerate — the plan is untouched; the package, `server.py`, `tests/`
+Then regenerate: the plan is untouched; the package, `server.py`, `tests/`
 and `README.md` are rewritten:
 
 ```bash
@@ -565,16 +565,16 @@ actually see), and ask:
 | Look at | The question | Typical misread |
 |---|---|---|
 | **`dropped`** | Is anything here that an end user's agent genuinely needs? | The model drops "internal-looking" names that are the product's main feature; a deprecated-but-only endpoint |
-| **Risk class** | Does every `write` really only write? Is every `read` free of side effects? | A `POST /reports/generate` that also emails; a `GET /export` that bills; classification comes from names, so a misleading summary misleads it — you may raise a class in the plan, never lower it |
+| **Risk class** | Does every `write` really only write? Is every `read` free of side effects? | A `POST /reports/generate` that also emails; a `GET /export` that bills; classification comes from names, so a misleading summary misleads it: you may raise a class in the plan, never lower it |
 | **Collapsed tools** | Do the merged routes really serve one intent, and does the dispatch (first route whose required parameters were supplied) pick the route a user would expect? | Merging "get by id" with "delete by id" is refused by the code; merging search with list is usually right; merging two writes with different side effects is usually wrong |
-| **Descriptions** | Do they say *when* to use the tool, *when not*, and *what comes back* — in the product's words? Do they reference only tools that exist? | Pointing at excluded tools (above); jargon copied from the spec; "returns a list" for something paginated |
-| **Hidden parameters** | Is every hidden default something the agent should never change? | Hiding `tags`, `currency`, `notify`, `dry_run=false` — anything with business meaning |
-| **Examples** | Do the example values exist in your data? | Invented ids (`ORD-1007`, `CUST-42`) teach both the task writer and the agent to call the API with identifiers it does not recognise — the readiness eval reports these |
+| **Descriptions** | Do they say *when* to use the tool, *when not*, and *what comes back*: in the product's words? Do they reference only tools that exist? | Pointing at excluded tools (above); jargon copied from the spec; "returns a list" for something paginated |
+| **Hidden parameters** | Is every hidden default something the agent should never change? | Hiding `tags`, `currency`, `notify`, `dry_run=false`: anything with business meaning |
+| **Examples** | Do the example values exist in your data? | Invented ids (`ORD-1007`, `CUST-42`) teach both the task writer and the agent to call the API with identifiers it does not recognise: the readiness eval reports these |
 | **Names** | Would a user say this? | `post_books_search` vs `find_books`; a rename that collides with a competitor's meaning |
-| **Required vs optional** | On a collapsed tool, is anything required that only one route needs? | A parameter left required would make the other routes unreachable — the code refuses unreachable orders, but it cannot know which optional you *meant* |
+| **Required vs optional** | On a collapsed tool, is anything required that only one route needs? | A parameter left required would make the other routes unreachable: the code refuses unreachable orders, but it cannot know which optional you *meant* |
 
 Everything on the list is a plain edit in `mcpcast.plan.yaml`. Nothing
-requires touching the generated package; you never should — it is regenerated.
+requires touching the generated package; you never should: it is regenerated.
 
 ### Measure instead of guessing
 
@@ -605,7 +605,7 @@ There is no book 42. The model's own example for `update_book` says
 `{"book_id": 42, ...}`; the task writer learned "42" from it, the agent
 called `GET /books/42`, the API said 404. An invented identifier in an
 example is exactly the kind of thing that reads fine and fails in
-production — and it took the evaluation ten seconds to find. The fix is the
+production, and it took the evaluation ten seconds to find. The fix is the
 example in the plan; then regenerate and re-score.
 
 A "not found" is only blamed on the plan when the identifier came from one of
@@ -615,14 +615,14 @@ nowhere), the report says so with a `•` note and nothing to change; when it
 came from nowhere at all, the agent guessed it, and the fix is a description
 that says where such identifiers come from.
 
-A tool whose parameter schemas are too large to list in full — a page-long
-body schema, an enum of thousands of entries — advertises a trimmed schema
+A tool whose parameter schemas are too large to list in full (a page-long
+body schema, an enum of thousands of entries) advertises a trimmed schema
 (nested descriptions first, then nested structure, then the enum go) and is
 named both in the review and in the report (*"• `lookup_code` advertises a
-trimmed input schema — …"*). Hide or split parameters, or shorten the schema
+trimmed input schema: …"*). Hide or split parameters, or shorten the schema
 in the plan.
 
-The score varies between runs — treat it as a floor to assert in CI, not a
+The score varies between runs: treat it as a floor to assert in CI, not a
 number to chase:
 
 ```python
@@ -644,20 +644,20 @@ def test_plan_is_what_we_shipped():
 - **Give the model better input.** `summary=`, `operation_id=` and
   `Field(description=...)` in your own code become the tool description, the
   tool name and the parameter notes. Ten minutes on those pays back in every
-  agent conversation — see [Make Your Python API MCP-Ready](../guides/mcpcast-python-app.md).
+  agent conversation: see [Make Your Python API MCP-Ready](../guides/mcpcast-python-app.md).
 - **Tune the budget.** `--max-tools` is the strongest lever: 25 by default,
   smaller for a focused product, larger for a platform. `--no-curate` gives
   the deterministic one-tool-per-operation plan when you would rather merge
   by hand.
 - **Rewrite descriptions like prompts.** What it does, when to use it, when
   not, what comes back, and which tool to use instead. Mention related tools
-  by name — real ones.
+  by name: real ones.
 - **Put real identifiers in examples.** The example is a teaching sample for
   the agent; make it a call that works against your data.
 - **Prefer intent tools over routes.** If two routes always serve the same
   user goal, collapse them; if one route serves two goals, split it into two
   tools with different descriptions (the same operation may only appear once,
-  so the second tool needs its own operation — or a clearer description).
+  so the second tool needs its own operation, or a clearer description).
 - **Re-run `--eval` after every change** and keep the report in the repo next
   to the plan.
 
@@ -665,9 +665,9 @@ def test_plan_is_what_we_shipped():
 
 | Deployment | Auth | Approval | Run |
 |---|---|---|---|
-| Personal, desktop client | `--auth env-token` (`MCPCAST_UPSTREAM_TOKEN` in the client's env block) | elicitation (the client asks its user) | `python server.py` — loopback only: with one shared credential and no caller authentication it refuses a public bind unless you pass `--public` behind an authenticating gateway |
-| Shared, each user acts as themselves | `--auth passthrough` (the caller's `Authorization: Bearer …` header is forwarded) | elicitation | `python server.py --transport http` **behind your gateway** — the server is a relay for whatever header reaches it |
-| Multi-tenant product | `--auth api-key` (`MCPCAST_CLIENT_KEYS`, per-tenant `MCPCAST_UPSTREAM_TOKENS`) | `pending` — four-eyes review by a second person of the same tenant | `promptise serve server:server -t http --port 8080` (or `docker build .`); the server authenticates its callers itself |
+| Personal, desktop client | `--auth env-token` (`MCPCAST_UPSTREAM_TOKEN` in the client's env block) | elicitation (the client asks its user) | `python server.py`: loopback only: with one shared credential and no caller authentication it refuses a public bind unless you pass `--public` behind an authenticating gateway |
+| Shared, each user acts as themselves | `--auth passthrough` (the caller's `Authorization: Bearer …` header is forwarded) | elicitation | `python server.py --transport http` **behind your gateway**: the server is a relay for whatever header reaches it |
+| Multi-tenant product | `--auth api-key` (`MCPCAST_CLIENT_KEYS`, per-tenant `MCPCAST_UPSTREAM_TOKENS`) | `pending`: four-eyes review by a second person of the same tenant | `promptise serve server:server -t http --port 8080` (or `docker build .`); the server authenticates its callers itself |
 
 Keep `bookshelf-mcp/` in your repository next to the API, regenerate from
 the plan in CI when the spec changes, and let the readiness score be the
@@ -679,14 +679,14 @@ the auth-mode ones).
 
 ## Where to go next
 
-- [MCPcast reference](../mcp/server/mcpcast.md) — every flag, profile, auth and approval mode, the readiness score in detail
-- [Step-by-step guide](../guides/mcpcast-existing-api.md) — twelve steps from a spec file to a shipped server, with real output at each
-- [Make Your Python API MCP-Ready](../guides/mcpcast-python-app.md) — FastAPI, Django, Flask: get the spec, improve it, run this exact lab yourself (`examples/mcp/mcpcast_fastapi_app/run.py`)
-- [Recipes: Stripe, GitHub, Swagger 2, your app](../mcp/server/mcpcast-recipes.md) — what a 1,200-endpoint API looks like on the other side
-- [Lab: MCPcast Your SaaS API](../guides/lab-mcpcast-storefront.md) — multi-tenant, four-eyes approval, before/after readiness score
-- [API reference](../api/mcpcast.md) — `mcpcast()`, `curate()`, `MCPcastPlan`, `evaluate()`
+- [MCPcast reference](../mcp/server/mcpcast.md): every flag, profile, auth and approval mode, the readiness score in detail
+- [Step-by-step guide](../guides/mcpcast-existing-api.md): twelve steps from a spec file to a shipped server, with real output at each
+- [Make Your Python API MCP-Ready](../guides/mcpcast-python-app.md): FastAPI, Django, Flask: get the spec, improve it, run this exact lab yourself (`examples/mcp/mcpcast_fastapi_app/run.py`)
+- [Recipes: Stripe, GitHub, Swagger 2, your app](../mcp/server/mcpcast-recipes.md): what a 1,200-endpoint API looks like on the other side
+- [Lab: MCPcast Your SaaS API](../guides/lab-mcpcast-storefront.md): multi-tenant, four-eyes approval, before/after readiness score
+- [API reference](../api/mcpcast.md): `mcpcast()`, `curate()`, `MCPcastPlan`, `evaluate()`
 
 !!! tip "Learn the concept"
 
-    - [OpenAPI to MCP: Turn Any REST API into an MCP Server](https://www.promptise.com/guides/view/openapi-to-mcp-server-rest-api) -- The ideas behind turning a REST API into a safe MCP server.
-    - [Too Many MCP Tools? LLM Tool Selection, Measured](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection) -- Why fewer, better tools beat one tool per endpoint.
+    - [OpenAPI to MCP: Turn Any REST API into an MCP Server](https://www.promptise.com/guides/view/openapi-to-mcp-server-rest-api): The ideas behind turning a REST API into a safe MCP server.
+    - [Too Many MCP Tools? LLM Tool Selection, Measured](https://www.promptise.com/guides/view/too-many-mcp-tools-llm-tool-selection): Why fewer, better tools beat one tool per endpoint.

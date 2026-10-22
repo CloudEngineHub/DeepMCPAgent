@@ -418,7 +418,7 @@ The `--no-curate` path: one tool per operation, filtered by the safety profile, 
 
 ## Curation
 
-The model proposes a budgeted, collapsed, renamed, LLM-described tool surface; `check_postconditions()` rejects any proposal that exceeds the budget, references unknown operations, downgrades risk, hides a required parameter without a default, or keeps a deprecated operation. Violations are fed back to the model up to `max_attempts` times, then `curate()` raises `MCPcastError` — there is no silent fallback.
+The model proposes a budgeted, collapsed, renamed, LLM-described tool surface; `check_postconditions()` rejects any proposal that exceeds the budget, references unknown operations, downgrades risk, hides a required parameter without a default, or keeps a deprecated operation. Violations are fed back to the model up to `max_attempts` times, then `curate()` raises `MCPcastError`: there is no silent fallback.
 
 ### CurationResult
 
@@ -477,7 +477,7 @@ The model proposes a budgeted, collapsed, renamed, LLM-described tool surface; `
 
 ## Code generation
 
-`write_project()` emits a real project: the `<name>_mcp/` package (config, HTTP client, approval gate, `build_server()`, one tools module per resource), the `server.py` launcher (exposes `build_server`, a module-level `server` and `main(argv)`; runs without installing), `tests/` (a pytest suite through the full pipeline), `README.md`, and — written once — `pyproject.toml`, `Dockerfile`, `.env.example` and `.gitignore` (`SCAFFOLD_ONCE`). The package depends only on `promptise` and `httpx`. `render_project()` returns every file as `{path: text}`; `load_generated_server()` imports a written project through its launcher, dropping any previously imported copy of the package first.
+`write_project()` emits a real project: the `<name>_mcp/` package (config, HTTP client, approval gate, `build_server()`, one tools module per resource), the `server.py` launcher (exposes `build_server`, a module-level `server` and `main(argv)`; runs without installing), `tests/` (a pytest suite through the full pipeline), `README.md`, and (written once) `pyproject.toml`, `Dockerfile`, `.env.example` and `.gitignore` (`SCAFFOLD_ONCE`). The package depends only on `promptise` and `httpx`. `render_project()` returns every file as `{path: text}`; `load_generated_server()` imports a written project through its launcher, dropping any previously imported copy of the package first.
 
 ### render_project
 
@@ -510,6 +510,13 @@ The model proposes a budgeted, collapsed, renamed, LLM-described tool surface; `
 ### tool_group
 
 ::: promptise.mcpcast.tool_group
+    options:
+      show_source: false
+      heading_level: 4
+
+### plain_http_hosts
+
+::: promptise.mcpcast.plain_http_hosts
     options:
       show_source: false
       heading_level: 4
