@@ -2654,6 +2654,14 @@ class AgentProcess:
             self._trigger_filters[trigger.trigger_id] = compile_filter(
                 trigger_config.filter_expression
             )
+        if trigger_config.trusted and trigger_config.type not in ("webhook", "cron"):
+            logger.warning(
+                "AgentProcess %s: %s trigger %s is trusted, but the process can't verify "
+                "who sends its events; its payloads reach the agent as the user's request",
+                self.name,
+                trigger_config.type,
+                trigger.trigger_id,
+            )
         return trigger
 
     def _set_overflow_handler(self, trigger: BaseTrigger) -> None:
@@ -2849,10 +2857,16 @@ class AgentProcess:
         loopback only, unless
         ``open_mode.allow_public_webhooks`` is on, and then only with an
         ``hmac_secret``: otherwise anyone who can reach the port could
-        feed the agent.  ``None`` when the trigger is fine.
+        feed the agent.  No agent-added trigger may be ``trusted``.
+        ``None`` when the trigger is fine.
         """
         from ._http_guard import is_loopback
 
+        if config.trusted:
+            return (
+                "only the operator can mark a trigger as trusted; agent-added "
+                "triggers deliver their payloads as untrusted data"
+            )
         if config.type == "file_watch" and config.watch_path:
             problem = self._deploy_policy.path_problem(config.watch_path)
             if problem is not None:
@@ -3288,6 +3302,24 @@ class AgentProcess:
                 return detail
         return None
 
+    def _trigger_is_trusted(self, event: TriggerEvent) -> bool:
+        """Whether *event* comes from a config trigger marked ``trusted``.
+
+        Only the operator's triggers (``config.triggers``, also those added
+        with :meth:`add_trigger`) can be trusted; an agent-added trigger
+        never is, even if its ID matched.
+        """
+        trusted = {
+            trigger_id
+            for trigger_id, trigger_config in zip(
+                config_trigger_ids(self.config.triggers), self.config.triggers, strict=True
+            )
+            if trigger_config.trusted
+        }
+        if event.trigger_id not in trusted:
+            return False
+        return not any(t.trigger_id == event.trigger_id for t in self._dynamic_triggers)
+
     def _format_trigger_message(self, event: TriggerEvent) -> str:
         """Render a trigger event as the user message for the agent.
 
@@ -3296,10 +3328,24 @@ class AgentProcess:
         delimited by a random per-event tag and announced as untrusted
         data.  A payload can't close the block early because it can't
         know the tag.
+
+        A trigger configured with ``trusted=True`` (an authenticated
+        sender, such as a signed chat webhook) has its payload announced
+        as the user's request instead.
         """
         text, cut = _render_payload(event.payload, self.config.trigger_delivery.max_payload_chars)
         if cut:
             text = f"{text}\n[... truncated {cut} characters ...]"
+        if self._trigger_is_trusted(event):
+            tag = f"trigger-payload-{secrets.token_hex(6)}"
+            return (
+                f"[Trigger: {event.trigger_type}] trigger_id={event.trigger_id} "
+                f"event_id={event.event_id} at={event.timestamp.isoformat()}\n"
+                f"This trigger is configured as trusted: its sender is authenticated, and "
+                f"the payload inside <{tag}> is a request from your user. Handle it as "
+                "the user's request.\n"
+                f"<{tag}>\n{text}\n</{tag}>"
+            )
         tag = f"untrusted-trigger-payload-{secrets.token_hex(6)}"
         return (
             f"[Trigger: {event.trigger_type}] trigger_id={event.trigger_id} "

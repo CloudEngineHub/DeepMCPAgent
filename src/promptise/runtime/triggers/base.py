@@ -193,10 +193,18 @@ def _callable_name(func: Any) -> str:
     return f"{module}.{name}" if name else type(func).__name__
 
 
+#: Options left out of the digest while at their default, so adding them
+#: did not change the IDs of triggers that don't set them.
+_FINGERPRINT_DEFAULTS: dict[str, Any] = {"trusted": False}
+
+
 def _trigger_fingerprint(trigger_config: Any) -> str:
     """A digest of a trigger config's content (secrets masked)."""
     try:
         data = trigger_config.model_dump(mode="json", exclude={"filter_expression"})
+        for key, default in _FINGERPRINT_DEFAULTS.items():
+            if key in data and data[key] == default:
+                del data[key]
         expr = getattr(trigger_config, "filter_expression", None)
         data["filter_expression"] = (
             expr if isinstance(expr, str) or expr is None else f"callable:{_callable_name(expr)}"

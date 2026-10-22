@@ -16,12 +16,17 @@ Requests pass these checks in order:
    ``413`` (checked against ``Content-Length`` before the body is read,
    and while reading it).
 3. Signature — when ``hmac_secret`` is set, the request must carry a valid
-   HMAC-SHA256 signature in the scheme's header (401 otherwise):
+   HMAC-SHA256 signature (or, for ``telegram``, the secret) in the scheme's
+   header (401 otherwise):
 
    * ``generic``: ``X-Webhook-Signature: sha256=<hex of HMAC(body)>``
    * ``github``:  ``X-Hub-Signature-256: sha256=<hex of HMAC(body)>``
    * ``stripe``:  ``Stripe-Signature: t=<unix ts>,v1=<hex of HMAC("<ts>.<body>")>``,
      with the timestamp no older than ``signature_tolerance`` seconds.
+   * ``telegram``: ``X-Telegram-Bot-Api-Secret-Token: <secret>``, the
+     ``secret_token`` given to Telegram's ``setWebhook``, compared in
+     constant time.  Telegram sends the secret itself, not a signature of
+     the body.
 
 4. Availability — when the owning process can't run events (failed,
    stopping) or its queue is full, the webhook answers 503 with a
@@ -109,8 +114,8 @@ class WebhookTrigger:
             loopback webhook refuses browser-style cross-site requests
             (``421`` for a non-loopback ``Host``, ``403`` for a cross-site
             ``Origin``).
-        signature_scheme: ``"generic"``, ``"github"`` or ``"stripe"`` (see
-            the module docs).
+        signature_scheme: ``"generic"``, ``"github"``, ``"stripe"`` or
+            ``"telegram"`` (see the module docs).
         signature_header: Header carrying the signature (defaults to the
             scheme's standard header).
         signature_tolerance: Max age in seconds of a ``stripe`` timestamp.
@@ -133,7 +138,7 @@ class WebhookTrigger:
         host: str = "127.0.0.1",
         hmac_secret: str | None = None,
         *,
-        signature_scheme: Literal["generic", "github", "stripe"] = "generic",
+        signature_scheme: Literal["generic", "github", "stripe", "telegram"] = "generic",
         signature_header: str | None = None,
         signature_tolerance: int = 300,
         allowed_sources: list[str] | None = None,
@@ -289,6 +294,15 @@ class WebhookTrigger:
         header = headers.get(self._signature_header, "")
         if not header:
             return f"missing {self._signature_header} header", None
+
+        if self._signature_scheme == "telegram":
+            # Telegram sends the configured secret_token as it is.  Hashing
+            # both sides first keeps the comparison independent of length.
+            received = hashlib.sha256(header.encode("utf-8", "surrogateescape")).digest()
+            expected_token = hashlib.sha256(self._hmac_secret).digest()
+            if hmac_mod.compare_digest(received, expected_token):
+                return None, None
+            return "secret token mismatch", None
 
         if self._signature_scheme == "stripe":
             parts: dict[str, list[str]] = {}

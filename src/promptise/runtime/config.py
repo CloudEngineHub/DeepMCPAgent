@@ -210,7 +210,11 @@ SIGNATURE_HEADERS = {
     "generic": "X-Webhook-Signature",
     "github": "X-Hub-Signature-256",
     "stripe": "Stripe-Signature",
+    "telegram": "X-Telegram-Bot-Api-Secret-Token",
 }
+
+#: Characters Telegram allows in a webhook ``secret_token`` (1-256 of them).
+_TELEGRAM_SECRET_TOKEN = re.compile(r"[A-Za-z0-9_-]{1,256}")
 
 
 class TriggerConfig(BaseModel):
@@ -239,10 +243,15 @@ class TriggerConfig(BaseModel):
             from other machines.
         hmac_secret: Shared secret for request signatures (``webhook``
             only).  When set, unsigned or wrongly signed requests get 401.
+            With ``signature_scheme="telegram"`` it is the ``secret_token``
+            given to Telegram's ``setWebhook`` (1-256 characters:
+            letters, digits, ``_`` and ``-``).
         signature_scheme: How the signature is computed and sent:
             ``generic`` (``X-Webhook-Signature: sha256=<hex>``), ``github``
-            (``X-Hub-Signature-256: sha256=<hex>``) or ``stripe``
-            (``Stripe-Signature: t=<ts>,v1=<hex>`` over ``"<ts>.<body>"``).
+            (``X-Hub-Signature-256: sha256=<hex>``), ``stripe``
+            (``Stripe-Signature: t=<ts>,v1=<hex>`` over ``"<ts>.<body>"``)
+            or ``telegram`` (``X-Telegram-Bot-Api-Secret-Token: <secret>``,
+            the secret itself, compared in constant time).
         signature_header: Header carrying the signature.  Defaults to the
             scheme's standard header.
         signature_tolerance: Max age in seconds of a timestamped
@@ -287,6 +296,19 @@ class TriggerConfig(BaseModel):
             :mod:`promptise.runtime.triggers.filters`) or a callable that
             takes the :class:`~promptise.runtime.triggers.base.TriggerEvent`
             and returns a bool.  Events that don't match are skipped.
+        trusted: Deliver this trigger's payloads to the agent as the
+            user's request instead of as untrusted data (all types,
+            default ``False``).  By default a payload is wrapped in a
+            block the agent is told not to take instructions from; with
+            ``trusted=True`` it is not, so whoever can send this trigger
+            an event directs the agent as its user does.  Use it only for
+            a trigger whose sender is authenticated, such as a chat
+            webhook with ``hmac_secret``: a ``webhook`` trigger without
+            ``hmac_secret`` can't be trusted (``ValueError``), and the
+            process logs a warning for a trusted ``file_watch``,
+            ``event``, ``message`` or custom trigger, whose senders it
+            can't verify.  The payload scan (``scan_payloads``) and
+            guardrails still apply.
 
     Setting an option that belongs to another built-in trigger type (for
     example ``watch_path`` on a ``cron`` trigger) is an error, since the
@@ -312,7 +334,7 @@ class TriggerConfig(BaseModel):
     hmac_secret: SecretStr | None = Field(
         None, description="Shared secret for webhook request signatures"
     )
-    signature_scheme: Literal["generic", "github", "stripe"] = Field(
+    signature_scheme: Literal["generic", "github", "stripe", "telegram"] = Field(
         "generic", description="Webhook signature format"
     )
     signature_header: str | None = Field(
@@ -380,6 +402,13 @@ class TriggerConfig(BaseModel):
             "or a callable taking the TriggerEvent"
         ),
     )
+    trusted: bool = Field(
+        False,
+        description=(
+            "Deliver payloads as the user's request, without the untrusted-data "
+            "framing (needs an authenticated sender, e.g. a webhook with hmac_secret)"
+        ),
+    )
 
     @model_validator(mode="after")
     def _validate_trigger_fields(self) -> TriggerConfig:
@@ -434,6 +463,16 @@ class TriggerConfig(BaseModel):
                     "'hmac_secret' is the masked placeholder from a serialised config; "
                     "pass the real secret (for example via ${ENV_VAR} in a manifest)"
                 )
+            if self.signature_scheme == "telegram" and not _TELEGRAM_SECRET_TOKEN.fullmatch(secret):
+                raise ValueError(
+                    "'hmac_secret' for signature_scheme='telegram' is the secret_token of "
+                    "setWebhook: 1-256 characters, only A-Z, a-z, 0-9, '_' and '-'"
+                )
+        if self.trusted and self.type == "webhook" and self.hmac_secret is None:
+            raise ValueError(
+                "A trusted webhook trigger needs 'hmac_secret': without it anyone who can "
+                "reach the port could send the agent requests it would follow"
+            )
         for source in self.allowed_sources:
             try:
                 ipaddress.ip_network(source, strict=False)
@@ -513,7 +552,7 @@ _TRIGGER_TYPE_FIELDS: dict[str, frozenset[str]] = {
 }
 
 #: TriggerConfig fields that apply to every trigger type.
-_COMMON_TRIGGER_FIELDS = frozenset({"type", "filter_expression", "custom_config"})
+_COMMON_TRIGGER_FIELDS = frozenset({"type", "filter_expression", "custom_config", "trusted"})
 
 
 class TriggerDeliveryConfig(BaseModel):

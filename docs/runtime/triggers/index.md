@@ -450,7 +450,7 @@ Delimiting lowers the risk, but it is **not a guarantee**: a model can still be 
     ```
 
 2. **Scan payloads for prompt injection** (next section) and dead-letter what the scanner flags.
-3. **Authenticate the sender:** set an `hmac_secret` on webhooks (see [Webhook Trigger](event-webhook.md#authentication-hmac-signatures)) and restrict `allowed_sources`.
+3. **Authenticate the sender:** set an `hmac_secret` on webhooks (see [Webhook Trigger](event-webhook.md#authentication-hmac-signatures)) and restrict `allowed_sources`. A trigger whose authenticated payload is the user's own request can be marked [trusted](#trusted-triggers-the-payload-is-the-users-request).
 4. **Say it in the instructions** too: tell the agent which actions it may take on its own and that payload text is never an instruction.
 5. **Give the process only the tools it needs.** A triage agent that can label issues doesn't need a close tool at all.
 
@@ -468,6 +468,37 @@ config = ProcessConfig(
 With `scan_payloads=True`, the payload is checked by a prompt-injection classifier before the agent runs. The scan reads exactly the payload text the prompt shows (the rendered JSON, keys included, cut at `max_payload_chars`), end to end, in 500-character windows that overlap by 50 characters, so nothing reaches the prompt unscanned. A flagged event is dead-lettered with reason `flagged by payload scan` and the agent never sees it. Flagged events don't count towards `max_consecutive_failures`.
 
 The scanner is `ProcessConfig.guardrails` when that is a `PromptiseSecurityScanner` (its full rule set then applies to payloads), otherwise an injection-only `PromptiseSecurityScanner(detectors=[InjectionDetector()])`. The model needs `transformers` and `torch` and loads when the process starts. If it can't load, `start()` fails instead of silently skipping the scan.
+
+### Trusted triggers: the payload is the user's request
+
+Some triggers carry the user's own requests: a chat webhook that only the user's app can call, signed with a secret. For those, the untrusted framing works against you, since the agent is told not to act on the very request it was sent. Mark such a trigger `trusted=True`:
+
+```python
+TriggerConfig(
+    type="webhook",
+    webhook_path="/chat",
+    hmac_secret=os.environ["CHAT_WEBHOOK_SECRET"],
+    trusted=True,
+)
+```
+
+The agent then gets the payload as a request from its user:
+
+```text
+[Trigger: webhook] trigger_id=webhook-9c41d2e0aa event_id=… at=2026-10-22T09:00:00+00:00
+This trigger is configured as trusted: its sender is authenticated, and the payload inside <trigger-payload-5b7e01c9d2a4> is a request from your user. Handle it as the user's request.
+<trigger-payload-5b7e01c9d2a4>
+{"text": "Remind me at 6 to call the dentist"}
+</trigger-payload-5b7e01c9d2a4>
+```
+
+The trade-off: whoever can send this trigger an event now directs the agent as its user does. A leaked secret hands over every tool the process has, and text the user forwards (an email, a web page pasted into the chat) is followed as their request too. So:
+
+- A `webhook` trigger can only be trusted with an `hmac_secret` (otherwise `TriggerConfig` raises `ValueError`). `cron` triggers can be trusted (their payload is made by the runtime). For `file_watch`, `event`, `message` and custom triggers the process can't verify the sender, so it logs a warning when it creates a trusted one.
+- Only your config can trust a trigger. Triggers the agent adds or gives to processes it spawns (open mode) are refused when they set `trusted`, and an agent-added trigger is never trusted even if its ID matches.
+- The other layers still apply: `scan_payloads`, guardrails, approval on side-effecting tools and a narrow tool set.
+
+`trusted` defaults to `False`, which keeps the framing above.
 
 ---
 

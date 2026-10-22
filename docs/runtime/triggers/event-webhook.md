@@ -236,7 +236,7 @@ TriggerConfig(
     webhook_port=9090,
     webhook_host="127.0.0.1",          # default: loopback only
     hmac_secret=os.environ["GITHUB_WEBHOOK_SECRET"],
-    signature_scheme="github",         # generic | github | stripe
+    signature_scheme="github",         # generic | github | stripe | telegram
     allowed_sources=["203.0.113.0/24"],  # the sender's published IP ranges
     webhook_max_body_bytes=256 * 1024,   # default 1 MiB
     filter_expression="payload['action'] == 'opened'",
@@ -255,6 +255,7 @@ TriggerConfig(
 | `allowed_sources` | `[]` (any) | Client IPs or CIDR ranges allowed to call the webhook; others get `403` |
 | `webhook_max_body_bytes` | `1048576` (1 MiB) | Largest request body accepted, 1 byte to 1 GiB; larger bodies get `413` |
 | `filter_expression` | `None` | Skip events before the agent runs (see [Filtering](index.md#filtering-events-before-the-agent-runs)) |
+| `trusted` | `False` | Deliver the payload as the user's request instead of untrusted data; needs `hmac_secret` (see [Trusted triggers](index.md#trusted-triggers-the-payload-is-the-users-request)) |
 
 In a manifest, keep the secret out of the file with an environment reference: `hmac_secret: ${GITHUB_WEBHOOK_SECRET}`. The secret is a `SecretStr`: it is masked in `repr()`, in config dumps and in `GET /triggers`.
 
@@ -267,6 +268,7 @@ With `hmac_secret` set, every request must carry an HMAC-SHA256 signature of the
 | `generic` | `X-Webhook-Signature` | `sha256=<hex HMAC of body>` |
 | `github` | `X-Hub-Signature-256` | `sha256=<hex HMAC of body>`, as GitHub sends it |
 | `stripe` | `Stripe-Signature` | `t=<unix ts>,v1=<hex HMAC of "<ts>.<body>">`, as Stripe sends it; rejected when the timestamp is older than `signature_tolerance`, or when the same signed request was already accepted |
+| `telegram` | `X-Telegram-Bot-Api-Secret-Token` | The secret itself, as Telegram sends the `secret_token` given to `setWebhook`; not a signature of the body. The secret must be 1-256 characters of `A-Z`, `a-z`, `0-9`, `_` and `-` |
 
 `generic` and `github` signatures cover only the body, with no timestamp, so anyone who captures a signed request can send it again. Serve the webhook over TLS (a reverse proxy in front of it) so requests can't be captured, and make the agent's actions safe to repeat where you can.
 
@@ -285,6 +287,21 @@ urllib.request.urlopen(urllib.request.Request(
 ```
 
 For other providers that sign the body with HMAC-SHA256 and a `sha256=` prefix, keep `signature_scheme="generic"` and set `signature_header` to their header name.
+
+#### Telegram bots
+
+Telegram doesn't sign updates; it sends the `secret_token` you register with `setWebhook` in the `X-Telegram-Bot-Api-Secret-Token` header. `signature_scheme="telegram"` checks that header against `hmac_secret` (constant-time) and answers `401` otherwise:
+
+```yaml
+triggers:
+  - type: webhook
+    webhook_path: /telegram
+    hmac_secret: ${TELEGRAM_WEBHOOK_SECRET}
+    signature_scheme: telegram
+    trusted: true   # the message text is the user's request
+```
+
+Register the same value with Telegram: `https://api.telegram.org/bot<token>/setWebhook?url=https://<your host>/telegram&secret_token=<secret>`. Telegram calls only HTTPS URLs, so put a TLS reverse proxy in front of the webhook (it listens on loopback by default). As with `generic`, there is no timestamp: anyone who captures a request (and so the secret) can send more, which TLS prevents. The secret proves the request came through your bot's webhook, not who wrote the message; check `payload["message"]["from"]["id"]` in a `filter_expression` if only some users may talk to the agent.
 
 #### Stripe replay protection
 
@@ -336,7 +353,7 @@ await trigger.stop()
 1. A POST request arrives at the configured path.
 2. The client address is checked against `allowed_sources` → `403` if not allowed. Without `hmac_secret` on a loopback bind, a non-loopback `Host` header → `421` and a cross-site `Origin` → `403`.
 3. The body size is checked against `webhook_max_body_bytes` → `413` if larger. The `Content-Length` header is checked before the body is read; a chunked body without one is cut off at the limit while it is read.
-4. With `hmac_secret` set, the signature is verified → `401` if missing or wrong (or a `stripe` replay).
+4. With `hmac_secret` set, the signature (for `telegram`, the secret token) is verified → `401` if missing or wrong (or a `stripe` replay).
 5. If the owning process can't take the event (it is `FAILED`, stopping or stopped, or its queue is full) → `503` with `Retry-After: 30`.
 6. The body is parsed as JSON (falling back to plain text) and a `TriggerEvent` is created with the body as `payload` and request details in `metadata`.
 7. If a `filter_expression` is set and doesn't match → `200 {"status": "ignored", "event_id": ...}`; the agent doesn't run.
@@ -384,7 +401,7 @@ The `payload` field contains the raw POST body:
 - If the body is valid JSON, it is stored as parsed JSON (usually a dict).
 - Otherwise, it is stored as a string.
 
-The agent sees it inside a delimited untrusted-data block; see [Trigger payloads are untrusted input](index.md#trigger-payloads-are-untrusted-input).
+The agent sees it inside a delimited untrusted-data block; see [Trigger payloads are untrusted input](index.md#trigger-payloads-are-untrusted-input). A signed webhook with `trusted=True` delivers it as the user's request instead.
 
 ### Webhook metadata
 

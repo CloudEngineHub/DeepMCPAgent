@@ -191,7 +191,7 @@ One trigger. Each built-in `type` reads its own subset of fields; setting a fiel
 | `webhook_port` | `int` | `9090` | webhook | Listen port (1025-65535) |
 | `webhook_host` | `str` | `"127.0.0.1"` | webhook | Bind address (`"0.0.0.0"` = all interfaces) |
 | `hmac_secret` | `SecretStr \| None` | `None` | webhook | Signature secret; unsigned or badly signed requests get 401 |
-| `signature_scheme` | `Literal["generic", "github", "stripe"]` | `"generic"` | webhook | Signature format; a non-default value needs `hmac_secret` |
+| `signature_scheme` | `Literal["generic", "github", "stripe", "telegram"]` | `"generic"` | webhook | Signature format (`telegram`: the `X-Telegram-Bot-Api-Secret-Token` header must equal `hmac_secret`); a non-default value needs `hmac_secret` |
 | `signature_header` | `str \| None` | `None` | webhook | Header with the signature (default: the scheme's header); needs `hmac_secret` |
 | `signature_tolerance` | `int` | `300` | webhook | Max age in seconds of a `stripe` signature timestamp (> 0) |
 | `allowed_sources` | `list[str]` | `[]` | webhook | Client IPs / CIDR ranges allowed (empty = any); others get 403 |
@@ -209,6 +209,7 @@ One trigger. Each built-in `type` reads its own subset of fields; setting a fiel
 | `topic` | `str \| None` | `None` | message | Required for `message`: the broker topic (wildcards allowed) |
 | `custom_config` | `dict[str, Any]` | `{}` | all | Settings for custom trigger types |
 | `filter_expression` | `str \| Callable \| None` | `None` | all | Safe expression string or a callable taking the `TriggerEvent`; events that don't match skip the agent ([syntax](triggers/index.md#filtering-events-before-the-agent-runs)) |
+| `trusted` | `bool` | `False` | all | Deliver payloads as the user's request, without the untrusted-data framing; a `webhook` needs `hmac_secret` ([trade-off](triggers/index.md#trusted-triggers-the-payload-is-the-users-request)) |
 
 ---
 
