@@ -164,7 +164,9 @@ Keep the secret out of the file with a `${VAR}` reference; the variable is
 resolved from the environment (and therefore from `.env`) when the file is
 loaded:
 
-```yaml
+```yaml title="agent.superagent"
+version: "1.0"
+
 agent:
   model:
     provider: azure
@@ -173,11 +175,24 @@ agent:
     endpoint: https://my-resource.openai.azure.com/
     api_key: ${AZURE_OPENAI_API_KEY}
     api_version: "2024-10-21"
+
+servers:            # a .superagent file names at least one server, cross-agent or sandbox
+  tools:
+    type: stdio
+    command: python
+    args: ["tools.py"]
 ```
 
 `${VAR:-default}` supplies a fallback. `promptise validate agent.superagent
---check-env` reports any reference that is not set. See
-[SuperAgent Files](../core/agents/superagent-files.md).
+--check-env` reports any reference that is not set, and exits with 1 until it is:
+
+```text
+✓ File format and schema valid
+✗ Missing environment variables:
+  - AZURE_OPENAI_API_KEY
+```
+
+See [SuperAgent Files](../core/agents/superagent-files.md).
 
 ## Precedence
 

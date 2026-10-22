@@ -6,8 +6,8 @@ API key).  Only the model (plus Docker for ``code-action`` and the guardrail
 classifier download) is swapped: ``build_agent`` itself is the real one,
 so a missing or renamed argument fails here exactly as it would for a reader.
 
-The "Add Tools" block is saved as ``tools.py`` and run as ``__main__``, so the
-agent really launches the stdio server the way the page says.  The child
+Every block is saved as ``tools.py`` and run as ``__main__``, so the "Connect an
+MCP server" block's agent really launches the stdio server the way the page says.  The child
 process imports a ``sitecustomize`` that makes ``build_agent`` raise: if the
 example spawned its own agent again instead of the server, the connection
 fails fast here instead of recursing.
@@ -108,6 +108,9 @@ def fake_model(monkeypatch, tmp_path):
                 for name, spec in servers.items()
             }
             kwargs["model"] = Scripted(mode="tool:get_weather", args={"city": "Berlin"})
+        elif any(getattr(t, "name", "") == "get_weather" for t in kwargs.get("extra_tools") or []):
+            # The @tool block: the model calls the local tool.
+            kwargs["model"] = Scripted(mode="tool:get_weather", args={"city": "Berlin"})
         else:
             kwargs["model"] = Scripted()
         return await real(*args, **kwargs)
@@ -127,6 +130,7 @@ def test_the_page_has_the_blocks_this_test_expects():
     headings = [h for h, _ in BLOCKS]
     assert headings.count("Your First Agent (30 seconds)") == 3
     assert "Add Tools (2 minutes)" in headings
+    assert "Connect an MCP server" in headings
     assert len(BLOCKS) >= 7
 
 
@@ -142,7 +146,7 @@ def test_quickstart_block_runs(index, fake_model, tmp_path, capsys):
         "__name__": "__main__",
         "__file__": str(tmp_path / "tools.py"),
         "build_agent": promptise.build_agent,
-        "_args": {"model": "openai:gpt-4o-mini"},
+        "_args": {"model": "openai:gpt-5-mini"},
         **PLACEHOLDERS,
     }
     compiled = compile(
@@ -161,6 +165,6 @@ def test_quickstart_block_runs(index, fake_model, tmp_path, capsys):
         asyncio.run(run_and_close())
 
     assert fake_model, f"block under {heading!r} never built an agent"
-    if heading == "Add Tools (2 minutes)":
-        # The agent reached the server and called its tool.
-        assert "ANSWER: Sunny, 22°C in Berlin" in capsys.readouterr().out
+    if heading in ("Add Tools (2 minutes)", "Connect an MCP server"):
+        # The agent called the tool (the @tool function, or the server's).
+        assert "ANSWER: Sunny, 22°C" in capsys.readouterr().out

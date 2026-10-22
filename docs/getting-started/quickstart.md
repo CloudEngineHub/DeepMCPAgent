@@ -52,7 +52,7 @@ The simplest possible agent, just an LLM with instructions:
 
     async def main():
         agent = await build_agent(
-            model="openai:gpt-4o-mini",
+            model="openai:gpt-5-mini",
             instructions="You are a helpful assistant. Be concise.",
         )
 
@@ -75,7 +75,7 @@ The simplest possible agent, just an LLM with instructions:
 
     async def main():
         agent = await build_agent(
-            model=Model("gpt-4o-mini", provider="openai", api_key="sk-...", temperature=0),
+            model=Model("gpt-5-mini", provider="openai", api_key="sk-...", timeout=60),
             instructions="You are a helpful assistant. Be concise.",
         )
 
@@ -247,7 +247,7 @@ The agent now thinks before acting and synthesizes a structured answer, instead 
 agent = await build_agent(..., agent_pattern="react")       # Default tool loop
 agent = await build_agent(..., agent_pattern="verify")      # Plan → Solve → Self-check (1 turn)
 agent = await build_agent(..., agent_pattern="managed")     # Tool loop with facts-ledger context
-agent = await build_agent(..., agent_pattern="code-action") # Writes ONE sandboxed program (1 turn)
+agent = await build_agent(..., agent_pattern="code-action") # Writes ONE sandboxed program (1 turn), needs Docker
 agent = await build_agent(..., agent_pattern="peoatr")      # Plan → Act → Think → Reflect → Answer
 agent = await build_agent(..., agent_pattern="research")    # Search → Verify → Synthesize
 agent = await build_agent(..., agent_pattern="autonomous")  # Agent picks from node pool
@@ -261,9 +261,20 @@ steps = PromptGraph.pipeline(PromptNode("extract"), PromptNode("analyze"))
 agent = await build_agent(..., agent_pattern=steps)
 ```
 
+`code-action` runs the program it writes in the Docker sandbox, so it needs the
+Docker client and a running Docker: `pip install "promptise[sandbox]"`, then start
+Docker. Without them, `build_agent()` stops with an error that says so. Every other
+pattern works on the base install. See [Code-Action](../guides/code-action.md).
+
 ## Add Production Features (4 minutes)
 
-Each capability is one parameter:
+Each capability is one parameter. Persistent memory (`ChromaProvider`), the local
+embeddings `SemanticCache` uses and the guardrail models are optional extras, all in
+`promptise[all]`:
+
+```bash
+pip install "promptise[all]"
+```
 
 ```python
 from promptise import build_agent, CallerContext

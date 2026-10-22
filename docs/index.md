@@ -21,7 +21,7 @@ from promptise import build_agent
 
 async def main():
     agent = await build_agent(
-        model="openai:gpt-4o-mini",
+        model="openai:gpt-5-mini",
         instructions="You are a helpful assistant.",
     )
     result = await agent.ainvoke(
@@ -34,7 +34,7 @@ asyncio.run(main())
 ```
 
 !!! info "You need an API key first"
-    Put it in a `.env` file in your project (`OPENAI_API_KEY=sk-...`) (Promptise loads it automatically) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider**: Azure AI Foundry, Bedrock, Gemini, Ollama, …, is in [**Configuration & Secrets → Every provider's variables**](getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs.
+    Put it in a `.env` file in your project (`OPENAI_API_KEY=sk-...`) (Promptise loads it automatically) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](core/agents/models.md#in-code-model): `Model("gpt-5-mini", provider="openai", api_key="...")`. The **exact variable name for every provider**: Azure AI Foundry, Bedrock, Gemini, Ollama, …, is in [**Configuration & Secrets → Every provider's variables**](getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs.
 
 See the full [Quick Start](getting-started/quickstart.md) for tools, reasoning patterns, and production features.
 

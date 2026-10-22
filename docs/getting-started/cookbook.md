@@ -55,6 +55,7 @@ async for event in agent.astream_with_tools({"messages": [{"role": "user", "cont
 → [Streaming](../core/streaming.md)
 
 ### Fall back to another model when one fails
+Needs only the primary's key (`OPENAI_API_KEY` here): a fallback is set up the first time it is tried, so one without its key (`ANTHROPIC_API_KEY`) is skipped with its setup error, and the chain still builds and answers.
 ```python
 from promptise import FallbackChain
 agent = await build_agent(model=FallbackChain(["openai:gpt-5-mini", "anthropic:claude-sonnet-4-5"]), servers=srv)
@@ -82,24 +83,30 @@ agent = await build_agent(model="openai:gpt-5-mini", servers=srv,
 ```
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-5-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 → [Memory](../core/memory.md)
 
 ### Persist conversations (with ownership)
 `chat()` loads history, invokes, and saves, and enforces session ownership.
 ```python
+from promptise import CallerContext
 from promptise.conversations import SQLiteConversationStore
 agent = await build_agent(model="openai:gpt-5-mini", servers=srv,
     conversation_store=SQLiteConversationStore("chat.db"))
+caller = CallerContext(user_id="alice")  # the session belongs to alice
 reply = await agent.chat("hi", session_id="s1", caller=caller)
 ```
 → [Conversations](../core/conversations.md)
 
 ### Cache similar queries
-Answer repeated, semantically similar questions from the cache instead of the model.
+Answer repeated, semantically similar questions from the cache instead of the model. The cache is per user by default, so pass a `CallerContext` with a `user_id`: without one nothing is cached. Answers that called a tool are not cached unless you set `cache_tool_turns=True` (and never after a write tool). Needs `promptise[all]` (local embeddings).
 ```python
+from promptise import CallerContext
 from promptise.cache import SemanticCache
 agent = await build_agent(model="openai:gpt-5-mini", servers=srv, cache=SemanticCache())
+question = {"messages": [{"role": "user", "content": "What are your opening hours?"}]}
+await agent.ainvoke(question, caller=CallerContext(user_id="alice"))  # model call, stored
+await agent.ainvoke(question, caller=CallerContext(user_id="alice"))  # cache hit
 ```
 → [Semantic Cache](../core/cache.md)
 
@@ -114,19 +121,21 @@ agent = await build_agent(model="openai:gpt-5-mini", servers=srv, guardrails=Tru
 Carry the user through the whole invocation (cache/memory/conversation scope, audit).
 ```python
 from promptise import CallerContext
-await agent.ainvoke(input, caller=CallerContext(user_id="alice", roles={"analyst"}))
+request = {"messages": [{"role": "user", "content": "Status of order A-1001?"}]}
+await agent.ainvoke(request, caller=CallerContext(user_id="alice", roles={"analyst"}))
 ```
 → [Multi-User Systems](../guides/multi-user-systems.md)
 
 ### Isolate by tenant (multi-tenant SaaS)
 Add `tenant_id`: every isolation surface (cache, memory, conversations) scopes to it.
 ```python
+from promptise import CallerContext
 caller = CallerContext(user_id="alice", tenant_id="acme")  # disjoint from any other tenant
 ```
 → [Secure Multi-Tenant Platform](../guides/secure-multi-tenant-platform.md)
 
 ### Compute over data with one program
-For sums/joins/multi-hop aggregation, the model writes one sandboxed Python program.
+For sums/joins/multi-hop aggregation, the model writes one sandboxed Python program. Needs `pip install "promptise[sandbox]"` and Docker running.
 ```python
 agent = await build_agent(model="openai:gpt-5-mini", servers=srv, agent_pattern="code-action")
 ```
