@@ -2,7 +2,7 @@
 
 Each node comes fully configured with its own instructions, context
 management, and state updates.  Developers just pick which nodes to
-include — the node handles everything else internally.
+include; the node handles everything else internally.
 
 The nodes that act on their reply (``ReflectNode``, ``ObserveNode``,
 ``JustifyNode``, ``CritiqueNode``, ``PlanNode``, ``ValidateNode``) read named

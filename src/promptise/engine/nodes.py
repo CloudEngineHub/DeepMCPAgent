@@ -1285,7 +1285,7 @@ class PromptNode(BaseNode):
         """
         start = time.perf_counter()
 
-        # Resolve model — per-node override takes priority.  A string
+        # Resolve model: the per-node override takes priority.  A string
         # ("azure:chat-prod") or a Model resolves like build_agent(model=...).
         model = _override_model(self, result, config)
         if model is None:
@@ -2287,10 +2287,10 @@ class ParallelNode(BaseNode):
     Args:
         nodes: Child nodes to execute in parallel.
         merge_strategy: How the children's outputs become this node's output.
-            ``"dict"`` (default) — ``{node_name: output}``.
-            ``"concatenate"`` — one text with a ``[node_name]`` section for
+            ``"dict"`` (default): ``{node_name: output}``.
+            ``"concatenate"``: one text with a ``[node_name]`` section for
             each child's output (dict outputs as JSON), in child order.
-            ``"custom"`` — ``merge_fn({node_name: output})``.
+            ``"custom"``: ``merge_fn({node_name: output})``.
         merge_fn: Custom merge function (required for ``"custom"``).
     """
 
