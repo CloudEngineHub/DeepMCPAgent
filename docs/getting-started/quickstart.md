@@ -1,5 +1,5 @@
 ---
-title: Quick Start: Build your first AI agent with Promptise Foundry in 5 minutes
+title: "Quick Start: Build your first AI agent with Promptise Foundry in 5 minutes"
 seo_title: "Quick Start: Build Your First AI Agent"
 description: "Build your first Python AI agent in five minutes: install Promptise, add an API key, then add MCP tools, a custom reasoning pattern and production features."
 keywords: AI agent tutorial, Python agent quickstart, build AI agent, Promptise Foundry tutorial, getting started, MCP agent example

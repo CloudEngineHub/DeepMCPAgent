@@ -1,5 +1,5 @@
 ---
-title: Model Setup: use any LLM with Promptise Foundry in two minutes (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama)
+title: "Model Setup: use any LLM with Promptise Foundry in two minutes (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama)"
 seo_title: "Set Up Any LLM Provider in Two Minutes"
 description: "Get a model working: put the key in .env or pass it with Model(...), check what is missing with promptise models check, and see each provider's variables."
 keywords: Promptise model setup, Azure AI Foundry Python, Azure OpenAI deployment, use any LLM, model agnostic AI agent, promptise models check

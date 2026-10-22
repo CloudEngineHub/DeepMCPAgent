@@ -1,5 +1,5 @@
 ---
-title: Promptise Agent: Production AI agents in Python with build_agent()
+title: "Promptise Agent: Production AI agents in Python with build_agent()"
 seo_title: "Agent Overview: Capabilities of build_agent"
 description: "Overview of the Promptise agent: what build_agent() returns, opt-in capabilities such as memory, guardrails, cache and approval, and which feature you need."
 keywords: Python AI agent, build_agent, production agent, MCP agent, agentic AI Python, Promptise agent

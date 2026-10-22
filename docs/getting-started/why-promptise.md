@@ -1,5 +1,5 @@
 ---
-title: Why Promptise Foundry: Production agent framework for Python
+title: "Why Promptise Foundry: Production agent framework for Python"
 seo_title: "Why Promptise Foundry: Design Choices"
 description: "What ships in Promptise Foundry, design choices such as MCP-first and no silent fallbacks, and when another Python agent framework is a better fit."
 keywords: Promptise Foundry vs LangChain, LangGraph alternative, CrewAI alternative, Python agent framework comparison, production agent framework, MCP framework, agentic AI framework

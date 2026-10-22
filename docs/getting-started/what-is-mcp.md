@@ -1,5 +1,5 @@
 ---
-title: What is MCP?: Model Context Protocol explained for Python developers
+title: "What is MCP?: Model Context Protocol explained for Python developers"
 seo_title: "What Is MCP? Model Context Protocol Explained"
 description: "What the Model Context Protocol is, its tool, resource, prompt and sampling primitives, how it works, and how Promptise implements an MCP client and server."
 keywords: Model Context Protocol, MCP, MCP server, MCP client, MCP Python, what is MCP, MCP tutorial, MCP framework, agentic AI tools

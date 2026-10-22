@@ -1,5 +1,5 @@
 ---
-title: Key Concepts: How Promptise Foundry works
+title: "Key Concepts: How Promptise Foundry works"
 seo_title: "Key Concepts: How Promptise Foundry Works"
 description: "The core concepts of Promptise Foundry: agents, MCP servers, prompt and context engineering, the agent runtime, design principles and core abstractions."
 keywords: Promptise concepts, agentic AI architecture, MCP architecture, AI agent design, agent runtime, prompt engineering concepts
