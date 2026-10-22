@@ -40,7 +40,7 @@ graph.always("plan", "execute")   # plan always goes to execute
 
 ```python
 graph.when("review", "fix",
-    condition=lambda result: (result.output or {}).get("quality", 0) < 3,
+    condition=lambda result: (result.output if isinstance(result.output, dict) else {}).get("quality", 0) < 3,
     label="low_quality",
 )
 ```
@@ -96,7 +96,7 @@ graph.sequential("step1", "step2", "step3", "step4")
 
 ```python
 graph.loop_until("refine", "deliver",
-    condition=lambda result: (result.output or {}).get("quality", 0) >= 4,
+    condition=lambda result: (result.output if isinstance(result.output, dict) else {}).get("quality", 0) >= 4,
     max_iterations=5,
 )
 # Loops "refine" until quality >= 4, then exits to "deliver"
@@ -134,15 +134,16 @@ min_confidence=0.0)` with `kind` one of `tool_called`, `no_tool_call`,
 
 `result.error` includes notes hooks write on a successful node (a
 `TimingHook` budget overrun, a `BudgetHook` stop), so `on_error` fires on
-those too. `result.output` is `None` for a plain-text reply, so `on_output`
-and `on_confidence` need a node with an `output_schema` (or a postprocessor
-that returns a dict).
+those too. `result.output` is the reply text for a plain-text reply (`None`
+on a step that only called tools), so `on_output` and `on_confidence` need a
+dict: a node with an `output_schema`, a reasoning node's JSON fields, or a
+postprocessor that returns a dict.
 
 A condition that raises is treated as not matching (logged at DEBUG), so
-`lambda r: r.output.get("quality") >= 4` silently never fires on a `None`
-output. Write `(r.output or {}).get(...)`. Adding a second conditional edge
-with the same source, target and priority logs a warning, since the first one
-that matches wins.
+`lambda r: r.output.get("quality") >= 4` silently never fires on a text or
+`None` output. Write `(r.output if isinstance(r.output, dict) else {}).get(...)`.
+Adding a second conditional edge with the same source, target and priority
+logs a warning, since the first one that matches wins.
 
 !!! note "Performance"
     The engine maintains a precomputed adjacency index for **O(1) edge lookup** per transition (instead of scanning all edges). The index is rebuilt lazily when edges are added or removed.
@@ -187,7 +188,7 @@ When multiple conditional edges exist from the same node, they are checked in **
 ```python
 # Exit condition checked first (priority 10)
 graph.add_edge("refine", "deliver",
-    condition=lambda r: (r.output or {}).get("done"),
+    condition=lambda r: (r.output if isinstance(r.output, dict) else {}).get("done"),
     label="done", priority=10)
 
 # Loop condition checked second (priority 0)
@@ -230,15 +231,21 @@ that changes the run's copy of the graph. The original graph is never
 modified, and the engine applies at most `max_mutations_per_run` (default 10)
 mutations per run, counting these and the `GraphMutation`s nodes return.
 
-| Action | Output fields | What 1.6.0 does |
-|--------|---------------|-----------------|
+| Action | Output fields | What it does |
+|--------|---------------|--------------|
 | `add_node` | `_graph_action: "add_node"`, `_node_config: {...}` | Adds a `PromptNode` built with `PromptNode.from_config(_node_config)`. Nothing routes to it unless an edge, transition or route names it |
 | `add_edge` | `_graph_action: "add_edge"`, `_from: "a"`, `_to: "b"` | Adds an unconditional edge |
-| `skip_to` | `_graph_action: "skip_to"`, `_target: "node_name"` | Only `_target: "__end__"` takes effect (it ends the run). For another node, the engine's transition resolution runs afterwards and overrides the target; route with a `route` field instead |
-| `retry_with` | `_graph_action: "retry_with"`, `_context_update: {...}` | Merges `_context_update` into `state.context`. The node is not re-run by this; the next node is resolved as usual |
+| `skip_to` | `_graph_action: "skip_to"`, `_target: "node_name"` | The target node (or `"__end__"`, a normal finish) runs next, ahead of edges and transitions. An unknown target is logged and ignored |
+| `retry_with` | `_graph_action: "retry_with"`, `_context_update: {...}` | Merges `_context_update` into `state.context` and runs the node again; each retry uses the node's `max_iterations` budget |
 
-The model only produces these fields when its `output_schema` has them, so a
-graph whose schemas don't declare `_graph_action` is not affected. To rule it
+`add_node` and `add_edge`, like a node's `GraphMutation`s, are offered to the
+[`on_graph_mutation` hooks](engine-hooks.md#hook-protocol) first; a blocked
+one does not count. Before 1.7.0, `skip_to` to a node was overridden by the
+normal transition and `retry_with` did not run the node again.
+
+The model only produces these fields when its `output_schema` has them (or a
+reasoning node's JSON reply carries them), so a graph whose schemas don't
+declare `_graph_action` is not affected. To rule it
 out, create the engine with `allow_self_modification=False`; `build_agent` has
 no switch for it.
 

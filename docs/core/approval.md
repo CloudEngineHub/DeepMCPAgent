@@ -628,6 +628,17 @@ To use this without `build_agent()`, see
 [Answering elicitation](../mcp/client/index.md#answering-elicitation-server-side-approval-gates)
 (`approval_elicitation_callback`).
 
+## HumanNode steps in a reasoning graph
+
+The same `approval=` handler answers the [`HumanNode`](engine-nodes.md#humannode)
+steps of the agent's graph. The handler gets an `ApprovalRequest` with the
+node's prompt in `context_summary`, the node name in `tool_name`, no
+`arguments` and `metadata={"source": "human_node", "node": ...}`; an approved
+decision follows the node's `on_approve`, a denial its `on_deny`. An
+`AutoApprovalClassifier` hands these requests to its human `fallback`, and a
+handler error counts as a denial. Without `approval=`, a `HumanNode` fails the
+run instead of approving.
+
 ---
 
 ## Security

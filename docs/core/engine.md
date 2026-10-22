@@ -345,7 +345,9 @@ raises `GraphIterationLimitError`, a `GraphExecutionError` with `limit` and
 `pending_tools` (the tools whose results the model never saw, including calls
 a `ToolNode(tool_selector=...)` made without a model turn). The limit is
 the node's budget (`PromptNode(max_iterations=...)`, capped by the engine's
-`max_node_iterations`; 15 on the ReAct agent's `reason` node) or the engine's
+`max_node_iterations` when one is set; `max_agent_iterations` on the `reason`
+node of `build_agent`'s ReAct and `managed` graphs, 15 for `PromptGraph.react()`
+on its own) or the engine's
 `max_iterations` for the whole run (`build_agent(max_agent_iterations=...)`).
 The last message of such a run is a tool result, not an answer, so it is never
 returned as one. A limit reached after the model answered, or one that routes
@@ -410,7 +412,7 @@ starts. The result's messages are LangChain message objects.
 | `graph` | `PromptGraph` | *required* | The graph to run. Every run works on `graph.copy()`, so runtime mutations never change it and concurrent runs do not interfere |
 | `model` | chat model | *required* | The model nodes call when they set no `model_override`. `build_agent` passes the model it resolved; standalone, use `resolve_model("openai:gpt-5-mini")` |
 | `max_iterations` | `int` | `50` | Node executions per run; `N` allows exactly `N`. `build_agent` sets it from `max_agent_iterations` (default 25) |
-| `max_node_iterations` | `int` | `25` | Ceiling on how often one node runs in a run (each tool-loop round counts). A node's own `max_iterations` applies when it is lower. `build_agent` leaves it at 25, so a node budget above 25 (such as `PromptGraph.managed()`'s 30) is capped at 25 |
+| `max_node_iterations` | `int \| None` | `None` | Optional ceiling on how often one node runs in a run (each tool-loop round counts). `None` leaves each node's own `max_iterations` in charge; with a value the lower of the two applies. `build_agent` sets none. Before 1.7.0 the default was 25, which capped `PromptGraph.managed()`'s 30 |
 | `hooks` | `list` | `None` | [Hooks](engine-hooks.md), called in list order |
 | `allow_self_modification` | `bool` | `True` | Follow `_graph_action` fields in a node's structured output (see [Runtime graph mutation](engine-edges.md#runtime-graph-mutation)). `False` ignores them; `GraphMutation`s a node returns in `NodeResult.graph_mutations` are applied either way |
 | `max_mutations_per_run` | `int` | `10` | Cap on mutations per run (both kinds); later ones are dropped with a warning |
@@ -418,6 +420,7 @@ starts. The result's messages are LangChain message objects.
 | `tools` | `list` | `None` | Tools for nodes with `inject_tools=True`; tools declared on the graph's nodes are added to them |
 | `compaction` | `ContextCompaction` | `None` | [Compaction settings](../guides/context-lifecycle.md#tune-it-or-turn-it-off) for compacting nodes that set none of their own |
 | `tool_summary` | `str \| None` | `None` | `"off"`, `"names"` or `"full"`: the "Available tools" block of `PromptNode`s that set no `tool_summary`. `None` means `"off"`; any other value raises `ValueError` |
+| `human_handler` | `async (prompt, state) -> bool` | `None` | The handler [`HumanNode`](engine-nodes.md#humannode) steps ask, unless the run's config has a `_human_handler`. Without one a `HumanNode` fails. `build_agent(approval=...)` sets it |
 
 | Member | Description |
 |--------|-------------|
@@ -428,7 +431,8 @@ starts. The result's messages are LangChain message objects.
 
 `config` is the LangChain run config (callbacks, tags, metadata). Keys starting
 with `_` are the engine's own: `_human_handler` sets the [`HumanNode`](engine-nodes.md#humannode)
-handler, the others are set by the engine and by `build_agent`.
+handler for one run (it wins over `human_handler=`), the others are set by the
+engine and by `build_agent`.
 
 ### PromptGraph
 
@@ -492,7 +496,7 @@ messages and passed to hooks.
 | `node_iterations` | `dict[str, int]` | `{}` | Executions per node, checked against the node budget |
 | `max_messages` | `int` | `200` | After each node, `messages` is trimmed to this many: system messages and the current question are kept, then the most recent messages (`0` disables trimming) |
 | `graph` | `PromptGraph` | `None` | The run's live copy of the graph |
-| `plan` | `list[str]` | `[]` | Subgoals (set by a `PlanNode` with a structured output) |
+| `plan` | `list[str]` | `[]` | Subgoals (set by a `PlanNode` from its `subgoals` field) |
 | `completed` | `list[str]` | `[]` | Completed subgoals (`complete_subgoal()`) |
 | `observations` | `list[dict]` | `[]` | One `{tool, result, args, success, duration_ms}` per tool call; the last 50 are kept |
 | `reflections` | `list[dict]` | `[]` | `{iteration, mistake, correction, confidence, stage}`; the last 5 are kept |
@@ -583,9 +587,10 @@ ThinkNode("think")                        # No tools (pre-configured)
 
 ## Dynamic LLM Routing
 
-A node routes dynamically when its structured output has a `route`, `_next`,
+A node routes dynamically when its output is a dict with a `route`, `_next`,
 `next_step` or `goto` field naming one of its transition keys or a node. Give
-the node an `output_schema` with that field; see
+the node an `output_schema` with that field (a `ReflectNode` also reads `route`
+from the JSON object at the end of a text reply); see
 [Dynamic LLM Routing](engine-edges.md#dynamic-llm-routing).
 
 ## Runtime Graph Mutation

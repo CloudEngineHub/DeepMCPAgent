@@ -271,7 +271,11 @@ def _ensure_registry() -> None:
                 skip_base=frozenset({"description"}),
             ),
             FanOutNode: _Spec(
-                (_Field("branches", _BRANCHES), _Field("merge_strategy", _DATA)),
+                (
+                    _Field("branches", _BRANCHES),
+                    _Field("merge_strategy", _DATA),
+                    _Field("merge_fn", _REF),
+                ),
                 skip_base=frozenset({"description"}),
             ),
             CodeActionNode: _Spec(

@@ -38,8 +38,8 @@ if validate.has_flag(NodeFlag.RETRYABLE):
 | `TERMINAL` | Set via `is_terminal=True`. Only an `AutonomousNode` pool reads it: a terminal step that succeeds ends the autonomous loop and writes the answer. In a static graph it does nothing; end a path with `default_next="__end__"` or an edge to `"__end__"`. |
 | `CRITICAL` | If this node errors, the engine **aborts the run** right away: post-node hooks, mutations and transitions are skipped, the stream gets `on_node_error` with `critical: True`, `ExecutionReport.error` is set, and `ainvoke()` raises `GraphExecutionError` (the node's exception is its `__cause__`). |
 | `SKIP_ON_ERROR` | If the **previous** node's result has an `error` (including a note a hook wrote, such as a `TimingHook` overrun), this node does not run: its result is empty with `transition_reason="skipped_on_error"`, and the transitions are resolved from that. Useful for optional enrichment steps. |
-| `RETRYABLE` | On failure (a result with an `error`, or an exception), the engine runs the node again, up to `max_iterations` attempts in total (default 10), waiting `min(0.5 * 2**n, 8)` seconds between attempts (0.5s, 1s, 2s, 4s, 8s, 8s...). Before each retry `state.context["_retry_attempt"]` and `["_retry_error"]` are set, so the node can adapt; both are removed afterwards. The attempts run through `execute()`, so a streamed run gets no token chunks from a `RETRYABLE` node. |
-| `REQUIRES_HUMAN` | Sets `state.context["_awaiting_human"]` to the node name and awaits `on_human_required(node_name, state)` on every hook that has it, before the node runs. The node still executes; the flag does not pause anything by itself. An exception in `on_human_required` is not caught and ends the run. For a real approval step, use [`HumanNode`](engine-nodes.md#humannode). |
+| `RETRYABLE` | On failure (a result with an `error`, or an exception), the engine runs the node again, up to `max_iterations` attempts in total (default 10), waiting `min(0.5 * 2**n, 8)` seconds between attempts (0.5s, 1s, 2s, 4s, 8s, 8s...). Before each retry `state.context["_retry_attempt"]` and `["_retry_error"]` are set, so the node can adapt; both are removed afterwards. The attempts run through `execute()`, so a streamed run gets no token chunks from a `RETRYABLE` node. A [`RetryNode`](engine-nodes.md#retrynode) is never retried this way (it retries itself). |
+| `REQUIRES_HUMAN` | Sets `state.context["_awaiting_human"]` to the node name and awaits `on_human_required(node_name, state)` on every hook that has it, before the node runs. The node still executes; the flag does not pause anything by itself. An exception in `on_human_required` is logged and the run goes on (before 1.7.0 it ended the run). For a real approval step, use [`HumanNode`](engine-nodes.md#humannode). |
 
 ### Context & Memory
 
@@ -60,7 +60,7 @@ if validate.has_flag(NodeFlag.RETRYABLE):
 
 | Flag | Engine Behavior |
 |------|----------------|
-| `OBSERVABLE` | After the node runs, awaits `on_observable_event(event, state)` on every hook that has it, with a `NodeEvent(event="on_node_metrics", data={node_name, duration_ms, total_tokens, tool_calls, error})`. `duration_ms` is the node's own measurement (the engine's timing is set afterwards), and an exception in the hook is not caught. |
+| `OBSERVABLE` | After the node runs, awaits `on_observable_event(event, state)` on every hook that has it, with a `NodeEvent(event="on_node_metrics", data={node_name, duration_ms, total_tokens, tool_calls, error})`. `duration_ms` is the node's own measurement (the engine's timing is set afterwards). An exception in the hook is logged and the run goes on (before 1.7.0 it ended the run). |
 | `VERBOSE` | Logs the first 2,000 characters of the raw output at DEBUG level on the `promptise.engine` logger. |
 
 ### Output Processing
@@ -92,7 +92,7 @@ Each reasoning node ships with sensible default flags:
 | PlanNode | `STATEFUL`, `OBSERVABLE` | Writes to state.plan |
 | SynthesizeNode | `OBSERVABLE` | Final output, important to capture |
 | ValidateNode | `READONLY`, `VALIDATE_OUTPUT` | Quality gate, validates own output |
-| RetryNode | `RETRYABLE` | Built for retry behavior |
+| RetryNode | none | Retries itself; the engine does not retry it again |
 | FanOutNode | `PARALLEL_SAFE` | Designed for concurrent execution |
 
 ## Custom Flags

@@ -109,21 +109,21 @@ class Skill:
             return False
 
         for pattern in self.paths:
-            # ``Path.glob`` understands ``**``; for simple file names we
-            # also try fnmatch on relative paths to be permissive.
+            # ``Path.glob`` understands ``**``.
             try:
                 hit = next(root.glob(pattern), None)
             except (NotImplementedError, ValueError):
                 hit = None
             if hit is not None:
                 return True
-            # Fallback: walk + fnmatch (slower, but copes with patterns
-            # that Path.glob doesn't accept like leading "**/").
-            for p in root.rglob("*"):
-                rel = p.relative_to(root).as_posix()
-                if fnmatch(rel, pattern):
-                    return True
-                break  # don't iterate the entire tree, only confirm
+        # Fallback: fnmatch every relative path under ``cwd`` (slower, but
+        # copes with patterns Path.glob reads differently: fnmatch's ``*``
+        # also matches ``/``, so ``*.py`` finds ``src/app.py``).  One walk
+        # for all patterns; it stops at the first match.
+        for p in root.rglob("*"):
+            rel = p.relative_to(root).as_posix()
+            if any(fnmatch(rel, pattern) for pattern in self.paths):
+                return True
         return False
 
     def create(self, **kwargs: Any) -> Any:

@@ -992,7 +992,8 @@ class TestReasoningNodeDefaultFlags:
     def test_retry_node_flags(self):
         inner = TransformNode("inner", transform=lambda s, _: NodeResult(node_name="inner"))
         n = RetryNode("r", wrapped_node=inner)
-        assert NodeFlag.RETRYABLE in n.flags
+        # RetryNode retries itself; the engine must not retry it again.
+        assert NodeFlag.RETRYABLE not in n.flags
 
     def test_fan_out_node_flags(self):
         n = FanOutNode("f")

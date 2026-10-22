@@ -45,7 +45,7 @@ class Skill:
     metadata: dict[str, Any] = {}     # extra frontmatter fields
 ```
 
-`matches_cwd(cwd)` returns `True` if any file under `cwd` matches any of the globs (`Path(cwd).glob(pattern)`, so `**/*.ts` searches subdirectories and `*.ts` only the top level). Empty `paths` = always active (global skill). A `cwd` that is not a directory matches nothing.
+`matches_cwd(cwd)` returns `True` if any file under `cwd` matches any of the globs: first `Path(cwd).glob(pattern)` (so `**/*.ts` searches subdirectories), then `fnmatch` on every path relative to `cwd`, where `*` also matches `/`, so `*.ts` finds `src/app.ts` too. The walk stops at the first match, but a tree with no match is walked in full. Before 1.7.0 the `fnmatch` pass stopped after the first entry, so `*.ts` in practice matched the top level only. Empty `paths` = always active (global skill). A `cwd` that is not a directory matches nothing.
 
 `create(**kwargs)` calls `factory(**kwargs)` and returns what it returns; a skill without a factory raises `ValueError`.
 

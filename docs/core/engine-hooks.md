@@ -44,17 +44,29 @@ class MyHook:
     async def on_human_required(self, node_name: str, state: GraphState) -> None:
         """Called for nodes with the REQUIRES_HUMAN flag."""
         pass
+
+    async def on_error(self, node: BaseNode, error: Exception, state: GraphState) -> str | None:
+        """Called when a node fails. Return a node name (or "__end__") to go
+        there next, or None for the usual handling."""
+        return None
+
+    async def on_graph_mutation(self, mutation: GraphMutation, state: GraphState) -> bool:
+        """Called before a graph mutation is applied. Return False to block it."""
+        return True
 ```
 
 Only implement the methods you need, the engine checks `hasattr()` before calling. The `Hook` protocol (`from promptise.engine import Hook`) describes them for type checking.
 
-!!! note "`on_error` and `on_graph_mutation` are not called in 1.6.0"
-    The `Hook` protocol also declares `on_error(node, error, state)` and
-    `on_graph_mutation(mutation, state)`, but the 1.6.0 engine never calls
-    them. To react to a failed node, check `result.error` in `post_node`
-    (or route with an [`on_error` edge](engine-edges.md#on_error-error-routing));
-    mutations show up in `NodeResult.graph_mutations` and
-    `ExecutionReport.graph_mutations`.
+`on_error` gets the exception behind the failure (a `RuntimeError` with the
+error text when the node recorded none, for example a `RouterNode` with no
+matching route). The first hook that returns the name of a node in the graph,
+or `"__end__"`, decides where the run goes next, ahead of edges and
+transitions; returning `None` leaves the usual handling ([`on_error`
+edges](engine-edges.md#on_error-error-routing), then the run raises
+`GraphExecutionError` if it ends on the failure). Routing to `"__end__"` ends
+the run on the failure, so it still raises. A `CRITICAL` node aborts the run
+whatever the hooks return. Before 1.7.0 the engine never called `on_error` or
+`on_graph_mutation`.
 
 When each method runs:
 
@@ -65,8 +77,10 @@ When each method runs:
 | `pre_tool` | Before each tool call of a `PromptNode`, `ToolNode` or `CodeActionNode` program | The args to use | The call fails (see below) |
 | `post_tool` | After each tool call | The result text to use | The call fails |
 | `on_tool_reused` | Instead of the two above, for a reused result | ignored | Logged |
-| `on_observable_event` | After an `OBSERVABLE` node runs | ignored | **Not caught**: the run raises |
-| `on_human_required` | Before a `REQUIRES_HUMAN` node runs | ignored | **Not caught**: the run raises |
+| `on_observable_event` | After an `OBSERVABLE` node runs | ignored | Logged, the run goes on |
+| `on_human_required` | Before a `REQUIRES_HUMAN` node runs | ignored | Logged, the run goes on |
+| `on_error` | After a node fails (it raised or its result has an `error`), before `post_node` and routing | A node name or `"__end__"` to route there; `None` for the usual handling | Logged, the next hook is asked |
+| `on_graph_mutation` | Before each mutation: a node's `graph_mutations` and the LLM's `add_node` / `add_edge` actions | `False` blocks the mutation (it does not count against `max_mutations_per_run`) | The mutation is blocked (fail closed) |
 
 A hook can end a run by setting `state.current_node = "__end__"` in `pre_node`
 or `post_node`. The node being processed still finishes (from `pre_node`, it
@@ -186,16 +200,9 @@ CycleDetectionHook(sequence_length=3, max_repeats=3)
 | `sequence_length` | `int` | `3` | Length of node sequence to check for repetition |
 | `max_repeats` | `int` | `3` | Max times a sequence can repeat before forcing end |
 
-Example: If visited nodes are `[A, B, C, A, B, C, A, B, C]`, the pattern `[A, B, C]` has repeated 3 times, the hook sets `state.current_node = "__end__"`. It checks in `pre_node`, where `visited` already includes the node about to run, so that node runs once more before the run ends.
+Example: If visited nodes are `[A, B, C, A, B, C, A, B, C]`, the pattern `[A, B, C]` has repeated 3 times, the hook sets `state.current_node = "__end__"`. It checks in `pre_node`, where `visited` already includes the node about to run; the engine respects a `pre_node` stop, so that node does not run (it is not in `ExecutionReport.nodes_visited`).
 
-!!! warning "It also ends a long single-node tool loop"
-    A tool loop re-runs the same node, so `visited` becomes
-    `[reason, reason, reason, ...]`, which is a repeating pattern of any
-    length. With the defaults, the ReAct graph's `reason` node is stopped
-    after 9 model calls, and since the model was still calling tools the run
-    raises `GraphStoppedError`. Raise `max_repeats` (and `sequence_length`)
-    above the tool loop length you expect, or rely on node budgets
-    (`max_iterations`) for single-node loops.
+A node that the engine re-enters for its own tool loop (it called tools and runs again with their results) counts as one step, so a ReAct `reason` node making many tool calls is not a cycle; bound those with `max_iterations` / `max_agent_iterations`. A node that routes back to itself without calling tools still counts every visit. Before 1.7.0 the stopped node ran once more, and a single-node tool loop was ended after 9 model calls with `GraphStoppedError`.
 
 ### MetricsHook
 
@@ -356,7 +363,7 @@ Every node execution produces a `NodeResult` (27 fields, all with defaults) for 
 | **Timing** | `duration_ms`, `llm_duration_ms`, `tool_duration_ms` |
 | **Tokens** | `prompt_tokens`, `completion_tokens`, `total_tokens` |
 | **Tool Activity** | `tool_calls` (list of dicts), `tool_calls_deduplicated`, `tool_calls_failed` |
-| **LLM Output** | `output` (parsed), `raw_output` (string), `next_node`, `transition_reason` |
+| **LLM Output** | `output` (the parsed object, or the reply text), `raw_output` (string), `next_node`, `transition_reason` |
 | **Messages** | `messages_added` (messages appended to state) |
 | **Prompt Trace** | `blocks_used`, `blocks_dropped`, `strategy_applied`, `perspective_applied` |
 | **Guards** | `guards_passed`, `guards_failed`, `guard_retries` (not set by the built-in nodes; stays 0) |

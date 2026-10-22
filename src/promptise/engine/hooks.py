@@ -55,11 +55,21 @@ class Hook(Protocol):
         ...
 
     async def on_error(self, node: BaseNode, error: Exception, state: GraphState) -> str | None:
-        """Called when a node raises.  Return a next-node name to redirect, or None to re-raise."""
+        """Called when a node fails (it raised, or its result has an
+        ``error``), before ``post_node`` and before the engine routes the
+        run.  *error* is the exception behind the failure (a
+        ``RuntimeError`` carrying the error text when the node recorded
+        none).  Return a node name (or ``"__end__"``) to go there next, or
+        ``None`` for the usual handling (``on_error`` edges, transitions;
+        a run that ends on the failure raises ``GraphExecutionError``).
+        A ``CRITICAL`` node aborts the run whatever the hook returns."""
         ...
 
     async def on_graph_mutation(self, mutation: GraphMutation, state: GraphState) -> bool:
-        """Called before a graph mutation is applied.  Return False to block it."""
+        """Called before a graph mutation is applied (a node's
+        ``graph_mutations`` and the LLM's ``add_node`` / ``add_edge``
+        actions).  Return ``False`` to block it; a hook that raises blocks
+        it too."""
         ...
 
 
@@ -149,7 +159,13 @@ class CycleDetectionHook:
     """Detect infinite loops by tracking visit patterns.
 
     If the same sequence of N nodes repeats ``max_repeats`` times,
-    the hook forces the graph to end.
+    the hook ends the run before the next node executes (the engine
+    respects a ``pre_node`` stop: the node does not run).
+
+    A node re-entered for its own tool loop (it called tools and the
+    engine runs it again with their results) is one step, not a repeat:
+    a single ReAct node making many tool calls is not a cycle.  Use
+    ``max_agent_iterations`` / ``max_iterations`` to bound those.
 
     Args:
         sequence_length: Length of the pattern to detect.
@@ -161,9 +177,32 @@ class CycleDetectionHook:
         self._seq_len = sequence_length
         self._max_repeats = max_repeats
 
+    @staticmethod
+    def _steps(state: GraphState) -> list[str]:
+        """``state.visited`` with tool-loop re-entries folded into one step.
+
+        ``visited[i]`` was executed as ``node_history[i]`` (the last entry,
+        the node about to run, has no result yet).  A visit is a re-entry
+        when the previous visit was the same node and ended with tool calls.
+        """
+        visited = state.visited
+        history = state.node_history
+        if len(history) != len(visited) - 1:
+            return list(visited)
+        steps: list[str] = []
+        for index, name in enumerate(visited):
+            if (
+                index > 0
+                and visited[index - 1] == name
+                and history[index - 1].transition_reason == "tool_calls_present"
+            ):
+                continue
+            steps.append(name)
+        return steps
+
     async def pre_node(self, node: BaseNode, state: GraphState) -> GraphState:
         """Check for repeating patterns in visited nodes."""
-        visited = state.visited
+        visited = self._steps(state)
         if len(visited) < self._seq_len * self._max_repeats:
             return state
 

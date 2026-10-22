@@ -14,24 +14,11 @@ nodes = [planner("plan", is_entry=True), web_researcher("search", tools=[]), cri
 print([type(n).__name__ for n in nodes])   # ['PromptNode', 'PromptNode', 'CritiqueNode']
 ```
 
-!!! warning "Settings a standard skill fixes"
-    The standard skills pass some settings themselves, so passing the same
-    keyword again raises `TypeError: got multiple values for keyword argument`:
-
-    | Skill | Fixed settings (can't be passed) |
-    |-------|----------------------------------|
-    | `web_researcher` | `instructions`, `tool_choice` |
-    | `code_reviewer`, `data_analyst` | `instructions` |
-    | `fact_checker` | `instructions` |
-    | `summarizer` | `instructions`, `tools`, `default_next` (`"__end__"`) |
-    | `planner` | `instructions`, `tools` |
-    | `decision_router` | `instructions` |
-    | `formatter` | `instructions`, `default_next` (`"__end__"`) |
-
-    For different instructions, build the node directly (`PromptNode(name,
-    instructions=...)`, `GuardNode`, ...). The reasoning skills
-    (`thinker`, `reflector`, ...) only set defaults, so every parameter of
-    their node class can be overridden.
+Every setting a skill picks (`instructions`, `tool_choice`, `tools`,
+`default_next`, ...) is a default: pass the same keyword to override it, as
+for any parameter of the node class. Before 1.7.0 the standard skills fixed
+some of them, and passing one again raised `TypeError: got multiple values
+for keyword argument`.
 
 ## Standard Skills
 
@@ -251,20 +238,19 @@ graph.add_node(synthesizer("conclude", is_terminal=True))
 
 ## Customization
 
-Skills are functions that return nodes. Pass any parameter the skill does not fix (see the table above):
+Skills are functions that return nodes. Pass any parameter of the node class, including the ones the skill sets:
 
 ```python
-from promptise.engine import NodeFlag, PromptGraph, PromptNode
-from promptise.engine.skills import thinker, web_researcher
+from promptise.engine import NodeFlag, PromptGraph
+from promptise.engine.skills import summarizer, thinker, web_researcher
 
 graph = PromptGraph("custom")
 
 # Custom max iterations
 graph.add_node(web_researcher("search", tools=my_tools, max_iterations=10))
 
-# Custom instructions: build the node directly (summarizer fixes its instructions)
-graph.add_node(PromptNode("conclude", instructions="Summarize in bullet points only.",
-                          default_next="__end__"))
+# Custom instructions
+graph.add_node(summarizer("conclude", instructions="Summarize in bullet points only."))
 
 # Reasoning skills take any parameter, including their instructions
 graph.add_node(thinker("think", instructions="List what is still unknown."))

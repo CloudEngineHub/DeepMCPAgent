@@ -243,12 +243,10 @@ agent = await build_agent(
 )
 ```
 
-The `managed` node's own budget is 30 model calls, but the engine caps every
-node at 25 (`max_node_iterations`, which `build_agent` does not change), so
-under `build_agent` the tool loop stops after 25 model calls whatever
-`max_agent_iterations` says. To allow more, run
-`PromptGraph.managed(...)` with
-`PromptGraphEngine(..., max_node_iterations=40, max_iterations=40)`.
+Under `build_agent`, `max_agent_iterations` is the `managed` node's budget
+and the run's: `max_agent_iterations=30` allows 30 model calls (the default is
+25). `PromptGraph.managed(...)` run with `PromptGraphEngine` uses its own
+budget of 30 model calls (`max_node_iterations=` on the factory changes it).
 
 !!! note "Honest scope"
     `managed` is an **efficiency primitive**. On long chains it bounds token

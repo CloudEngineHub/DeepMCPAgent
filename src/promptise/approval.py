@@ -1642,3 +1642,67 @@ def approval_elicitation_callback(
         )
 
     return _callback
+
+
+def _human_node_handler(
+    approval: ApprovalPolicy | ApprovalHandler | Callable[..., Any],
+) -> Callable[[str, Any], Awaitable[bool]]:
+    """A Reasoning Graph ``HumanNode`` handler that asks an approval handler.
+
+    ``build_agent(approval=...)`` passes it to the engine, so a ``HumanNode``
+    in the agent's graph asks the same reviewer as the agent's tool gate.
+    The request carries the node's prompt as ``context_summary``, the node
+    name as ``tool_name`` and ``metadata["source"] = "human_node"``.  An
+    :class:`~promptise.approval_classifier.AutoApprovalClassifier` is
+    bypassed in favour of its human ``fallback`` (its rules are written for
+    tool calls).  A handler error is a denial.
+
+    Args:
+        approval: An :class:`ApprovalPolicy` (its handler and ``timeout``
+            apply), an :class:`ApprovalHandler`, or a callable accepted by
+            :class:`CallbackApprovalHandler`.
+
+    Returns:
+        An async ``(prompt, state) -> bool``.
+    """
+    policy = approval if isinstance(approval, ApprovalPolicy) else None
+    target: ApprovalHandler
+    if policy is not None:
+        target = policy.handler
+    elif isinstance(approval, ApprovalHandler):
+        target = approval
+    elif callable(approval):
+        target = CallbackApprovalHandler(approval)
+    else:
+        raise TypeError(
+            "approval must be an ApprovalPolicy, an ApprovalHandler or a callable, "
+            f"got {type(approval).__name__}"
+        )
+
+    from .approval_classifier import AutoApprovalClassifier
+
+    if isinstance(target, AutoApprovalClassifier):
+        target = target.fallback
+    timeout = policy.timeout if policy is not None else 300.0
+
+    async def _ask(prompt: str, state: Any) -> bool:
+        node_name = str(getattr(state, "current_node", "") or "")
+        request = ApprovalRequest(
+            request_id=secrets.token_hex(16),
+            tool_name=node_name,
+            arguments={},
+            caller_user_id=_caller_user_id(),
+            context_summary=prompt,
+            timeout=timeout,
+            metadata={"source": "human_node", "node": node_name},
+        )
+        try:
+            decision = await target.request_approval(request)
+        except Exception as exc:
+            logger.warning(
+                "Approval: the handler failed for HumanNode %r, denied: %s", node_name, exc
+            )
+            return False
+        return bool(getattr(decision, "approved", False))
+
+    return _ask

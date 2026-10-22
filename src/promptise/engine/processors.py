@@ -18,6 +18,7 @@ Usage::
 
 from __future__ import annotations
 
+import inspect
 import json
 from datetime import datetime, timezone
 from typing import Any
@@ -178,21 +179,52 @@ def output_truncator(*, max_chars: int = 4000):
 
 
 def chain_preprocessors(*fns):
-    """Combine multiple preprocessors into one. Runs in order."""
+    """Combine multiple preprocessors into one. Runs in order.
 
-    def _chained(state: GraphState, config: dict) -> None:
-        for fn in fns:
-            fn(state, config)
+    Sync and async preprocessors mix: the chain stays synchronous until a
+    preprocessor returns an awaitable, then returns a coroutine that awaits
+    it and runs the rest (``PromptNode`` awaits it).  An exception stops the
+    chain and propagates, so a validator in it still stops the node.
+    """
+
+    async def _finish(pending: Any, rest: tuple, state: GraphState, config: dict) -> None:
+        await pending
+        for fn in rest:
+            value = fn(state, config)
+            if inspect.isawaitable(value):
+                await value
+
+    def _chained(state: GraphState, config: dict) -> Any:
+        for index, fn in enumerate(fns):
+            value = fn(state, config)
+            if inspect.isawaitable(value):
+                return _finish(value, fns[index + 1 :], state, config)
+        return None
 
     return _chained
 
 
 def chain_postprocessors(*fns):
-    """Combine multiple postprocessors into one. Pipes output through each."""
+    """Combine multiple postprocessors into one. Pipes output through each.
+
+    Sync and async postprocessors mix, as in :func:`chain_preprocessors`:
+    once one returns an awaitable, the chain returns a coroutine that
+    awaits each step's output before passing it on.
+    """
+
+    async def _finish(pending: Any, rest: tuple, state: GraphState, config: dict) -> Any:
+        output = await pending
+        for fn in rest:
+            output = fn(output, state, config)
+            if inspect.isawaitable(output):
+                output = await output
+        return output
 
     def _chained(output: Any, state: GraphState, config: dict) -> Any:
-        for fn in fns:
+        for index, fn in enumerate(fns):
             output = fn(output, state, config)
+            if inspect.isawaitable(output):
+                return _finish(output, fns[index + 1 :], state, config)
         return output
 
     return _chained

@@ -291,12 +291,15 @@ agent = await build_agent(
 
 In autonomous mode (default), `build_agent` wraps two or more edgeless nodes in an [`AutonomousNode`](../engine-nodes.md#autonomousnode) and the agent decides which node to execute next. No edges needed.
 
-!!! note "Reasoning nodes route and update state from structured output"
-    `PlanNode`, `ReflectNode`, `CritiqueNode` and `ValidateNode` read their
-    fields (`subgoals`, `route`, `severity`, `passes`, ...) only from a
-    structured output. Give them an `output_schema` (the prebuilt patterns use
-    `PeoatrPlan`, `PeoatrReflection`, `DebateCritique`, `DebateVerdict` from
-    `promptise.engine.prebuilts`) when their routing matters; see
+!!! note "How reasoning nodes read their fields"
+    `PlanNode`, `ReflectNode`, `CritiqueNode`, `ValidateNode`, `ObserveNode`
+    and `JustifyNode` read their fields (`subgoals`, `route`, `severity`,
+    `passes`, ...) from a structured output when they have an
+    `output_schema`, else from a JSON object they ask the model to end its
+    reply with. A schema is the more reliable of the two with a model that
+    supports structured output (the prebuilt patterns use `PeoatrPlan`,
+    `PeoatrReflection`, `DebateCritique`, `DebateVerdict` from
+    `promptise.engine.prebuilts`); see
     [Reasoning Nodes](../engine-nodes.md#reasoning-nodes-pre-built-building-bricks).
 
 ### With Static Edges
@@ -391,10 +394,10 @@ PromptNode("analyze", input_keys=["search_data"])
 PromptNode("report", inherit_context_from="search")
 ```
 
-`output_key` only receives a parsed output (an `output_schema` result, a
-strategy's extracted answer or a postprocessor's value); a plain-text reply
-leaves it unset. `inherit_context_from` works for any `PromptNode`, since each
-writes its reply to `state.context["{name}_output"]`.
+`output_key` receives the node's output: the parsed object with an
+`output_schema`, else the reply text (or a strategy's extracted answer, or a
+postprocessor's value). `inherit_context_from` works for any `PromptNode`,
+since each writes its reply to `state.context["{name}_output"]`.
 
 ### Processors
 
@@ -422,8 +425,9 @@ PromptNode("analyze",
 )
 ```
 
-A postprocessor receives the node's parsed output, which is `None` for a
-plain-text reply, so pair processors with an `output_schema` or a strategy.
+A postprocessor receives the node's output: the parsed object with an
+`output_schema`, else the reply text (so `json_extractor()` can parse JSON out
+of a plain reply).
 
 See [Processors](../engine-processors.md) for all built-in processors.
 

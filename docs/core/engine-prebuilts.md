@@ -7,15 +7,17 @@ description: "Ten ready-made reasoning graphs: ReAct, verify, managed, code-acti
 
 Ten ready-to-use reasoning patterns: nine you can name with `build_agent(agent_pattern="...")` and `PromptGraph.pipeline(...)`, which takes your nodes. Each factory is a static method on `PromptGraph` that returns a configured graph; pass it as `agent_pattern` to `build_agent()` or run it with `PromptGraphEngine`.
 
-With a pattern name, `build_agent` passes its tools, its system prompt (`instructions`) and `graph_blocks` to the factory (for `research`, the tools become `search_tools`; for `code-action`, the `code_action=` settings and a sandbox factory are added). With no `agent_pattern` at all, the default ReAct graph gets the tools and system prompt but not `graph_blocks`; pass `agent_pattern="react"` to apply them. An unknown name raises `ValueError`.
+With a pattern name, `build_agent` passes its tools, its system prompt (`instructions`) and `graph_blocks` to the factory (for `research`, the tools become `search_tools`; for `code-action`, the `code_action=` settings and a sandbox factory are added). With no `agent_pattern` at all, the default ReAct graph gets the tools, the system prompt and `graph_blocks` too (before 1.7.0 it did not get `graph_blocks`). An unknown name raises `ValueError`.
 
-!!! note "Node budgets above 25"
-    The engine caps every node at `max_node_iterations` (25), and `build_agent`
-    does not change that cap. A budget a factory sets above it (such as
-    `managed`'s `max_node_iterations=30`) runs as 25 under `build_agent`; run the
-    graph with `PromptGraphEngine(..., max_node_iterations=30)` to use it all.
-    The whole run is also capped by `build_agent(max_agent_iterations=...)`
-    (default 25 node executions).
+!!! note "Node budgets"
+    Each node runs at most its own `max_iterations` times per run. Under
+    `build_agent`, the `reason` node of `react` (and of the default graph) and
+    of `managed` gets `max_agent_iterations` (default 25) as its budget, so `N`
+    allows `N` model calls; the other patterns keep the budgets their factories
+    set, within the run's cap of `max_agent_iterations` node executions.
+    `PromptGraphEngine` applies no engine-wide per-node ceiling unless you pass
+    `max_node_iterations=` (before 1.7.0 it capped every node at 25, so
+    `managed`'s 30 ran as 25).
 
 ## ReAct (Default)
 
@@ -116,7 +118,7 @@ PromptGraph.managed(
     tools=my_tools,
     system_prompt="",
     blocks=None,
-    max_node_iterations=30,   # deep tasks make many calls (25 under build_agent, see above)
+    max_node_iterations=30,   # deep tasks make many calls (max_agent_iterations under build_agent)
 )
 ```
 
@@ -510,8 +512,8 @@ graph.add_node(GuardNode("review", guards=[LengthGuard(max_length=2000)],
 
 graph.always("plan", "search")
 graph.always("search", "analyze")
-graph.when("analyze", "write", lambda r: (r.output or {}).get("quality", 0) >= 4)
-graph.when("analyze", "search", lambda r: (r.output or {}).get("quality", 0) < 4)
+graph.when("analyze", "write", lambda r: (r.output if isinstance(r.output, dict) else {}).get("quality", 0) >= 4)
+graph.when("analyze", "search", lambda r: (r.output if isinstance(r.output, dict) else {}).get("quality", 0) < 4)
 graph.always("write", "review")
 
 graph.set_entry("plan")
