@@ -5,30 +5,32 @@ description: "Build testable, versioned system prompts in 9 steps: typed blocks,
 
 # Prompt Engineering
 
-Build reliable, testable, versioned system prompts in 9 incremental steps. Each step adds one concept -- from simple typed blocks to composable reasoning strategies, runtime guards, and prompt pipelines.
+Build testable, versioned system prompts in 9 incremental steps. Each step adds one concept, from typed blocks to reasoning strategies, runtime guards, conversation flows and prompt pipelines.
 
 !!! tip "This is the recommended starting point for prompt engineering"
-    This guide walks you through the complete prompt system step by step. For deep reference on individual features, see the [PromptBlocks](../prompting/blocks.md), [ConversationFlow](../prompting/flows.md), [Strategies](../prompting/strategies.md), [Guards](../prompting/guards.md), and [Context](../prompting/context.md) pages.
+    This guide walks you through the prompt system step by step. For the full reference on each feature, see the [PromptBlocks](../prompting/blocks.md), [ConversationFlow](../prompting/flows.md), [Strategies](../prompting/strategies.md), [Guards](../prompting/guards.md) and [Context](../prompting/context.md) pages.
 
 ## What You'll Build
 
-A prompt system for a data analyst agent with typed blocks, priority-based token budgeting, composable reasoning strategies, runtime guards, dynamic context injection, conversation flows that evolve across turns, version control, and automated testing. The same patterns used in production agent systems where prompt quality determines agent quality.
+A prompt system for a data analyst agent: typed blocks, a priority-based token budget, composable reasoning strategies, runtime guards, context injection, a conversation flow that changes the system prompt across turns, versioning and tests that run without an API key.
 
 ## Concepts
 
-Most frameworks treat prompts as strings. Promptise treats them as **software components** -- composable, versioned, testable, debuggable. Prompts have types, priorities, lifecycle hooks, and debugging tools. They compose from independent parts. They adapt at runtime based on context. They drop gracefully when the context window gets tight.
+Promptise treats a prompt as a component you compose, version, test and inspect, not as a single string. A prompt is an async function whose docstring is the template; decorators and `with_*()` methods attach the rest:
 
-The prompt system has three layers:
+1. **PromptBlocks**: typed parts of the system prompt (identity, rules, output format, examples, context slots), each with a priority that decides what is dropped first under a token budget.
+2. **Strategies and perspectives**: how the model reasons (chain of thought, self-critique, decompose) and from which angle (analyst, critic, advisor).
+3. **Guards**: checks before the LLM call (input guards) and after it (output guards): blocked words, length bounds, JSON validity, or your own function.
+4. **Context providers**: functions that add text to the prompt on every call (user profile, environment, errors, your own data).
 
-1. **PromptBlocks** -- typed building blocks (identity, rules, format, examples, context) with priorities that determine what survives when the context window is tight
-2. **Strategies and perspectives** -- control how the agent reasons (chain-of-thought, self-critique, decompose) and from what angle (analyst, critic, advisor)
-3. **Guards** -- enforce policy before and after generation (content filtering, length limits, schema validation with retry)
+!!! info "You need an API key for the LLM calls"
+    The examples that `await` a prompt call the model. Put `OPENAI_API_KEY` in a `.env` file (Promptise loads it automatically). Steps 2 and 9 run without a key.
 
 ---
 
 ## Step 1: Typed Blocks
 
-Start with the `@prompt` decorator and typed blocks instead of raw strings:
+Start with the `@prompt` decorator and typed blocks instead of one long string:
 
 ```python
 from promptise.prompts import prompt
@@ -42,466 +44,526 @@ from promptise.prompts.blocks import blocks, Identity, Rules, OutputFormat
 )
 async def analyze(dataset: str, question: str) -> str:
     """Given this dataset:
-{dataset}
+    {dataset}
 
-Answer this question: {question}"""
+    Answer this question: {question}"""
 
 result = await analyze(
     dataset="Monthly users: Jan=10k, Feb=12k, Mar=15k",
     question="What is the growth trajectory?",
 )
+print(result)
 ```
 
-Eight block types, each with a specific role:
+The function parameters become the template variables (`{dataset}`, `{question}`). The blocks are rendered in the order you list them and placed before the template text.
 
 | Block | Priority | Purpose |
 |-------|----------|---------|
-| `Identity` | 10 (highest) | Who the agent is -- always included |
-| `Rules` | 9 | Hard constraints the agent must follow |
-| `OutputFormat` | 8 | How to structure the response |
-| `ContextSlot` | Configurable | Dynamic runtime content (user info, memory, tool results) |
-| `Section` | Configurable | Custom content blocks |
-| `Examples` | 4 | Few-shot examples |
-| `Conditional` | Varies | Blocks that appear/disappear based on predicates |
-| `Composite` | Varies | Groups of blocks with shared config |
+| `Identity(description, *, name="identity", traits=None)` | 10 | Who the agent is ("You are ...") |
+| `Rules(rules, *, name="rules")` | 9 | Numbered rules the agent must follow |
+| `OutputFormat(*, format="text", schema=None, instructions="", name="output_format")` | 8 | How to structure the response |
+| `ContextSlot(name, *, priority=6, default="")` | configurable | A slot you fill at runtime |
+| `Section(name, content, *, priority=5)` | configurable | Any custom text, static or a callable |
+| `Examples(examples, *, name="examples", max_count=None)` | 4 | Few-shot input/output pairs |
+| `Conditional(name, block, *, condition)` | inner block's | Renders only when `condition(ctx)` is true |
+| `Composite(name, blocks, *, separator="\n\n")` | highest inner | Groups blocks as one unit |
+
+For one-off custom text you can also use `SimpleBlock(name, content, priority=5)` or the `@block(name, priority=5)` decorator. See [PromptBlocks](../prompting/blocks.md).
 
 ---
 
 ## Step 2: Priority-Based Token Budgeting
 
-When the total prompt exceeds your token budget, the `PromptAssembler` drops blocks starting from the lowest priority. This is deterministic -- given the same blocks and budget, you get the same result every time.
+Priority never reorders the prompt. It only matters when you set a token budget: the `PromptAssembler` then drops blocks starting from the lowest priority (among equal priorities, the one listed last) until the rest fit. The result is deterministic.
 
 ```python
-from promptise.prompts.blocks import blocks, Identity, Rules, Examples, Section, ContextSlot
+from promptise.prompts.blocks import (
+    PromptAssembler, Identity, Rules, ContextSlot, Section, Examples,
+)
 
-@prompt(model="openai:gpt-5-mini", max_tokens=4000)
-@blocks(
-    Identity("Senior data analyst"),                          # Priority 10 -- last to drop
-    Rules(["Cite sources", "Use provided data only"]),        # Priority 9
-    ContextSlot("user_data", priority=7),                     # Priority 7
-    Section("methodology", "Use regression analysis...", priority=5),  # Priority 5
-    Examples([                                                 # Priority 4 -- first to drop
+assembler = PromptAssembler(
+    Identity("Senior data analyst"),                                    # priority 10
+    Rules(["Cite sources", "Use provided data only"]),                  # priority 9
+    ContextSlot("user_data", priority=7),                               # priority 7
+    Section("methodology", "Use regression analysis. " * 20, priority=5),
+    Examples([                                                          # priority 4
         {"input": "Revenue: $10M", "output": "Growth: stable"},
         {"input": "Revenue: $15M", "output": "Growth: 50% increase"},
     ]),
 )
-async def analyze(dataset: str) -> str:
-    """Analyze: {dataset}"""
+assembler.fill_slot("user_data", "Region: EMEA, plan: enterprise")
+
+full = assembler.assemble()
+tight = assembler.assemble(token_budget=40)
+
+print(full.estimated_tokens, full.included)
+print(tight.estimated_tokens, tight.excluded)   # ['examples', 'methodology']
 ```
 
-Drop order when budget is tight:
+Drop order when the budget is tight:
 
-1. Examples go first (priority 4) -- the agent can often function without them
-2. Custom sections go next (priority 5)
-3. Context slots go based on their configured priority
-4. Output format instructions survive longer (priority 8)
-5. Rules survive almost everything (priority 9)
-6. Identity is the last thing standing (priority 10)
+1. `Examples` (priority 4)
+2. `Section` blocks at their configured priority (default 5)
+3. `ContextSlot` blocks at their configured priority (default 6)
+4. `OutputFormat` (priority 8)
+5. `Rules` (priority 9)
+6. `Identity` (priority 10), dropped only if nothing else is left to drop
+
+Token counts are estimates (about 1.3 tokens per word), not a tokenizer count. A budget applies where blocks are assembled with one: `PromptAssembler(token_budget=...)`, `assemble(token_budget=...)` and `ConversationFlow(token_budget=...)`. The `@prompt` decorator itself has no budget parameter; blocks attached with `@blocks` are always assembled in full.
 
 ---
 
 ## Step 3: Reasoning Strategies
 
-Control how the agent thinks with composable strategies:
+A strategy adds reasoning instructions to the prompt before the call (`wrap()`) and strips the reasoning from the reply after it (`parse()`), so your code gets only the final answer:
 
 ```python
+from promptise.prompts import prompt
 from promptise.prompts.strategies import (
     chain_of_thought, self_critique, structured_reasoning,
     plan_and_execute, decompose,
 )
 
-# Chain of thought -- think step by step
 @prompt(model="openai:gpt-5-mini")
 async def analyze(text: str) -> str:
     """Analyze: {text}"""
 
-result = await analyze.with_strategy(chain_of_thought)("Revenue data...")
-
-# Self-critique -- generate, critique, improve
-result = await analyze.with_strategy(self_critique)("Revenue data...")
+# Chain of thought: think step by step, answer after ---ANSWER---
+result = await analyze.with_strategy(chain_of_thought)("Revenue: Q1 $2.1M, Q2 $2.8M")
 
 # Compose strategies with +
-result = await analyze.with_strategy(chain_of_thought + self_critique)("Revenue data...")
-# Agent thinks step-by-step, then critiques its own reasoning
-
-# Plan and execute -- create a plan, then follow it
-result = await analyze.with_strategy(plan_and_execute)("Complex multi-step task...")
-
-# Decompose -- break into sub-questions, answer each, synthesize
-result = await analyze.with_strategy(decompose)("Multi-domain question...")
+result = await analyze.with_strategy(chain_of_thought + self_critique)("Revenue: Q1 $2.1M, Q2 $2.8M")
+print(result)
 ```
-
-Five strategies compose freely:
 
 | Strategy | How it reasons |
 |----------|---------------|
-| `chain_of_thought` | Step-by-step reasoning, then final answer |
-| `structured_reasoning` | Formal premises, analysis, and conclusions |
-| `self_critique` | Generate, critique, improve |
-| `plan_and_execute` | Create plan, execute steps in order |
-| `decompose` | Break into sub-questions, synthesize answers |
+| `chain_of_thought` | Break down, analyze, conclude, then the final answer |
+| `structured_reasoning` | Named phases, by default Understand, Analyze, Evaluate, Conclude (`StructuredReasoningStrategy(steps=[...])` for your own) |
+| `self_critique` | Initial answer, critique, improved answer (`SelfCritiqueStrategy(rounds=1)`) |
+| `plan_and_execute` | Numbered plan, execute each step, synthesize |
+| `decompose` | Independent subproblems, solve each, combine |
+
+Every built-in strategy asks the model to write `---ANSWER---` before the final answer and returns only the text after it. If the model leaves the marker out, the whole reply is returned.
 
 ---
 
 ## Step 4: Perspectives
 
-Perspectives frame *how* the agent thinks, orthogonal to what reasoning process it uses:
+A perspective prepends a framing sentence ("Approach this as an analyst...") to the prompt. It is independent of the strategy, so any pair works:
 
 ```python
-from promptise.prompts.strategies import analyst, critic, advisor, creative, CustomPerspective
-
-# Built-in perspectives
-result = await analyze.with_perspective(analyst)("Revenue data...")
-result = await analyze.with_perspective(critic)("Proposed strategy...")
-result = await analyze.with_perspective(advisor)("Business decision...")
-result = await analyze.with_perspective(creative)("Marketing campaign...")
-
-# Custom perspective
-security_reviewer = CustomPerspective(
-    "You are a senior security engineer reviewing this system for vulnerabilities."
+from promptise.prompts.strategies import (
+    analyst, critic, advisor, creative, perspective, chain_of_thought, self_critique,
 )
-result = await analyze.with_perspective(security_reviewer)("Architecture doc...")
 
-# Combine strategy + perspective
+# Built-in perspectives: analyst, critic, advisor, creative
+result = await analyze.with_perspective(critic)("Plan: double the sales team next quarter")
+
+# Custom perspective: a role plus optional instructions
+security_reviewer = perspective(
+    "senior security engineer",
+    "Look for missing authentication, injection points and unsafe defaults.",
+)
+result = await analyze.with_perspective(security_reviewer)("Architecture: public S3 bucket, no auth")
+
+# Strategy and perspective together
 configured = (
     analyze
     .with_strategy(chain_of_thought + self_critique)
     .with_perspective(analyst)
 )
-result = await configured("Complex financial data...")
+result = await configured("Revenue: Q1 $2.1M, Q2 $2.8M, Q3 $3.2M")
+print(result)
 ```
 
-An analyst perspective with chain-of-thought produces different output than a creative perspective with the same strategy.
+`perspective(role, instructions="")` returns a `CustomPerspective`; you can also construct `CustomPerspective(role=..., instructions=...)` directly. Every `with_*()` method returns a new `Prompt`, so `analyze` itself is unchanged.
 
 ---
 
 ## Step 5: Guards
 
-Guards enforce policy before the LLM call (input guards) and after the response (output guards):
+Guards run before the LLM call (`check_input`) and after it (`check_output`). Each guard is attached to both sides and decides what to check:
 
 ```python
 from promptise.prompts import prompt
 from promptise.prompts.guards import guard, content_filter, length, schema_strict
 
-# Content filtering -- block/require specific words
+# Blocked words: rejected in the outgoing prompt and in the reply
 @prompt(model="openai:gpt-5-mini")
-@guard(content_filter(blocked=["password", "secret", "ssn"]))
+@guard(content_filter(blocked=["password", "ssn"]))
 async def process(data: str) -> str:
     """Process: {data}"""
 
-# Length enforcement -- min and max
+# Length bounds on the reply (characters)
 @prompt(model="openai:gpt-5-mini")
-@guard(length(min_length=100, max_length=2000))
+@guard(length(min_length=50, max_length=2000))
 async def summarize(text: str) -> str:
-    """Summarize: {text}"""
+    """Summarize in two sentences: {text}"""
 
-# JSON schema validation with automatic retry
-expected_schema = {
-    "type": "object",
-    "required": ["findings", "confidence"],
-    "properties": {
-        "findings": {"type": "array", "items": {"type": "string"}},
-        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-    },
-}
-
+# The reply must be valid JSON
 @prompt(model="openai:gpt-5-mini")
-@guard(schema_strict(expected_schema, max_retries=3))
+@guard(schema_strict())
 async def analyze_structured(data: str) -> str:
-    """Analyze and return JSON: {data}"""
+    """Analyze the data and reply with a JSON object with keys
+    "findings" (list of strings) and "confidence" (0 to 1). No prose: {data}"""
 
-# If the output doesn't match the schema, the guard rejects it and retries
-# with the validation error as feedback to the LLM
+print(await analyze_structured("Revenue: $10M, $12M, $15M"))
 ```
 
-**Custom guards** -- any callable:
+A rejected input or output raises `GuardError` (with `guard_name` and `reason`). Guards don't retry: `schema_strict()` takes no arguments and only checks that a string reply parses as JSON. To get a typed, validated result, annotate the return type with a Pydantic model instead (see the complete example below); to try again on a rejection, wrap the prompt in [`retry()`](#prompt-chaining).
+
+!!! warning "Input guards see the whole rendered prompt"
+    In a standalone call, `check_input` receives the full text sent to the model: blocks, template, context, strategy and constraints. A `content_filter(blocked=["password"])` therefore also rejects a prompt whose own `Rules` mention "password". When the prompt is an agent's `instructions`, input guards check each user message instead.
+
+**Custom guards**: wrap any function. An input validator gets the text and returns it (possibly changed); an output validator gets the parsed result and returns it. Raise to reject:
 
 ```python
-from promptise.prompts.guards import input_validator, output_validator
+from promptise.prompts import prompt
+from promptise.prompts.guards import guard, input_validator, output_validator, GuardError
+import re
 
-def check_pii(text: str) -> bool:
-    """Return False to reject."""
-    return "SSN" not in text.upper()
+SSN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
+
+def redact_ssn(text: str) -> str:
+    return SSN.sub("[REDACTED]", text)
+
+def no_ssn_in_reply(output):
+    if isinstance(output, str) and SSN.search(output):
+        raise GuardError("Output contains an SSN", guard_name="no_ssn")
+    return output
 
 @prompt(model="openai:gpt-5-mini")
-@guard(
-    input_validator(check_pii, error_message="Input contains PII"),
-    output_validator(check_pii, error_message="Output contains PII"),
-)
+@guard(input_validator(redact_ssn), output_validator(no_ssn_in_reply))
 async def process(data: str) -> str:
-    """Process: {data}"""
+    """Summarize this customer note in one sentence: {data}"""
+
+print(await process("Customer 123-45-6789 asked for a refund on order A-1001."))
 ```
 
 ---
 
 ## Step 6: Context Providers
 
-11 built-in context providers inject information into the prompt automatically before every LLM call:
+A context provider is an object with `async def provide(ctx) -> str`. Before every call, each provider's text is appended to the prompt; an empty string adds nothing. Attach them with `@context(...)` or `with_context(...)`:
 
 ```python
+from promptise.prompts import prompt
 from promptise.prompts.context import (
-    ToolContextProvider,
-    MemoryContextProvider,
-    UserContextProvider,
-    EnvironmentContextProvider,
-    ConversationContextProvider,
-    ErrorContextProvider,
-    StaticContextProvider,
-    CallableContextProvider,
-    ConditionalContextProvider,
+    context, static_context, callable_context, conditional_context,
+    user_context, UserContext,
 )
 
-# Static context -- always included
-static = StaticContextProvider(
-    "Company policy: all data analysis must include confidence intervals."
+# Fixed text on every call
+policy = static_context(
+    "All analysis must include confidence intervals.",
+    header="## Policy",
 )
 
-# Dynamic context from a function
-async def get_user_prefs(ctx):
-    return f"User timezone: {ctx.user.timezone}, language: {ctx.user.language}"
+# Text computed per call: sync or async, receives the PromptContext
+async def user_prefs(ctx):
+    if ctx.user is None:
+        return ""
+    return f"Language: {ctx.user.language}, expertise: {ctx.user.expertise_level}"
 
-dynamic = CallableContextProvider(get_user_prefs, priority=6)
+prefs = callable_context(user_prefs, header="## Preferences")
 
-# Conditional context -- only when predicate is true
-premium_ctx = ConditionalContextProvider(
-    content="You have access to premium data sources.",
-    predicate=lambda ctx: ctx.user.plan == "premium",
-    priority=5,
+# Run an inner provider only when a condition holds
+premium = conditional_context(
+    condition=lambda ctx: ctx.user is not None and ctx.user.get("plan") == "premium",
+    provider=static_context("You may use the premium data sources."),
 )
+
+@prompt(model="openai:gpt-5-mini")
+@context(policy, user_context(), prefs, premium)
+async def analyze(data: str) -> str:
+    """Analyze: {data}"""
+
+# World contexts are the data the providers read
+personalized = analyze.with_world(user=UserContext(name="Dana", expertise_level="expert", plan="premium"))
+print(await personalized.render_async(data="Q3 revenue $3.2M"))   # see the prompt, no LLM call
 ```
 
-| Provider | What it injects |
-|----------|----------------|
-| `ToolContextProvider` | Descriptions of available tools |
-| `MemoryContextProvider` | Relevant memories from vector search |
-| `TaskContextProvider` | Current task description and status |
-| `UserContextProvider` | User identity, preferences, permissions |
-| `EnvironmentContextProvider` | Environment variables and system info |
-| `ConversationContextProvider` | Recent conversation history |
-| `TeamContextProvider` | Peer agents and their capabilities |
-| `ErrorContextProvider` | Recent errors for self-correction |
-| `OutputContextProvider` | Expected output format and constraints |
-| `StaticContextProvider` | Fixed content, always included |
-| `CallableContextProvider` | Custom async function returning context |
-| `ConditionalContextProvider` | Content included only when a predicate is true |
+| Provider | Factory | What it injects |
+|----------|---------|----------------|
+| `UserContextProvider` | `user_context()` | Name, expertise, language, preferences and custom fields of `world["user"]` |
+| `EnvironmentContextProvider` | `env_context()` | Platform, timezone, APIs and custom fields of `world["environment"]` |
+| `ConversationContextProvider` | `conversation_context(last_n=10)` | Summary and last messages of `world["conversation"]` |
+| `TeamContextProvider` | `team_context()` | Team members and the last 5 completed tasks of `world["team"]` |
+| `ErrorContextProvider` | `error_context()` | Retry count, last error and the last 3 errors of `world["errors"]` |
+| `OutputContextProvider` | `output_context()` | Format, schema, examples and constraints of `world["output"]` |
+| `WorldContextProvider` | `world_context(key, header=None)` | Every field of any custom `world[key]` |
+| `StaticContextProvider` | `static_context(text, header=None)` | Fixed text |
+| `CallableContextProvider` | `callable_context(fn, header=None)` | The string your function returns |
+| `ConditionalContextProvider` | `conditional_context(condition, provider)` | The inner provider's text when `condition(ctx)` is true |
+| `MemoryContextProvider` | `memory_context(limit=5, min_score=0.3)` | Memories from the agent's memory provider (agent `instructions` only) |
+| `TaskContextProvider` | `task_context()` | Goal, description and expected output of `ctx.task` (when set) |
+| `BlackboardContextProvider` | `blackboard_context(prefix="result.")` | Prior results from `ctx.blackboard` (when set) |
+| `ToolContextProvider` | `tool_context(include_schemas=False)` | Nothing: a placeholder, tools reach the model as tool definitions |
 
 ---
 
 ## Step 7: ConversationFlow
 
-Static prompts work for simple agents. Complex conversational agents need prompts that change as the conversation progresses:
+A conversational agent often needs a different system prompt at each stage. A `ConversationFlow` subclass defines phases with the `@phase` decorator; each phase handler activates or removes blocks, and the prompt is reassembled every turn:
 
 ```python
-from promptise.prompts import ConversationFlow, Phase
+from promptise.prompts.flows import ConversationFlow, TurnContext, phase
+from promptise.prompts.blocks import Identity, Rules, Section, OutputFormat
 
-flow = ConversationFlow(
-    phases={
-        "greeting": Phase(
-            blocks=["identity", "greeting_instructions", "capability_summary"],
-            transitions={
-                "investigation": lambda ctx: ctx.turn > 1,
-            },
-            on_enter=lambda ctx: print("Entering greeting phase"),
-        ),
-        "investigation": Phase(
-            blocks=["identity", "investigation_rules", "tool_context", "memory_context"],
-            transitions={
-                "resolution": lambda ctx: ctx.state.get("has_enough_info"),
-            },
-        ),
-        "resolution": Phase(
-            blocks=["identity", "resolution_rules", "output_format", "examples"],
-        ),
-        "handoff": Phase(
-            blocks=["identity", "handoff_instructions", "summary_format"],
-        ),
-    },
-    initial_phase="greeting",
-)
+class AnalystFlow(ConversationFlow):
+    base_blocks = [
+        Identity("Senior data analyst"),
+        Rules(["Use only data the user provides"]),
+    ]
+
+    @phase("greeting", initial=True)
+    async def greet(self, ctx: TurnContext) -> None:
+        ctx.activate(Section("greeting", "Ask which dataset the user wants analyzed."))
+        if ctx.turn >= 1:
+            ctx.transition("investigation")
+
+    @phase("investigation")
+    async def investigate(self, ctx: TurnContext) -> None:
+        ctx.deactivate("greeting")
+        ctx.activate(Section("investigation", "Ask clarifying questions about the data."))
+        if "that's all" in ctx.history[-1]["content"].lower():
+            ctx.state["has_enough_info"] = True
+            ctx.transition("resolution")
+
+    @phase("resolution", blocks=[OutputFormat(format="markdown")])
+    async def resolve(self, ctx: TurnContext) -> None:
+        ctx.deactivate("investigation")
+        ctx.activate(Section("resolution", "Give findings with confidence levels."))
+
+flow = AnalystFlow()
+p = await flow.start("Hi")
+print(flow.current_phase, p.included)    # greeting ['identity', 'rules', 'greeting']
+p = await flow.next_turn("Monthly users: Jan=10k, Feb=12k")
+print(flow.current_phase, p.included)    # investigation
+p = await flow.next_turn("That's all the data")
+print(flow.current_phase, p.included)    # resolution, with output_format
 ```
 
-The system prompt on turn 1 uses greeting blocks. After the user responds, it transitions to investigation with different active blocks. Once the agent has enough information, the resolution phase activates with output format and examples. Each phase has `on_enter` and `on_exit` hooks for custom logic.
+`ctx.transition()` inside a handler moves to the next phase after the handler returns, and the new phase's handler runs in the same turn. Blocks given in `@phase(blocks=[...])` are activated on entry and removed on exit; blocks added with `ctx.activate()` stay until you remove them. Pass the flow to `build_agent(flow=AnalystFlow())` and the agent keeps one copy per conversation (see [ConversationFlow](../prompting/flows.md#integration-with-build_agent)).
 
 ---
 
-## Step 8: PromptBuilder and Registry
+## Step 8: PromptBuilder, Versions and Suites
 
-**Fluent runtime construction** when decorators aren't convenient:
+**Runtime construction** when decorators aren't convenient, for example when the template comes from a database:
 
 ```python
+from pydantic import BaseModel
 from promptise.prompts import PromptBuilder
-from promptise.prompts.strategies import chain_of_thought, self_critique, analyst
-from promptise.prompts.guards import schema_strict
-
-prompt = (
-    PromptBuilder("Analyze the following data: {data}")
-    .identity("senior data analyst")
-    .rules(["cite all sources", "use only provided data"])
-    .strategy(chain_of_thought + self_critique)
-    .perspective(analyst)
-    .output_format("JSON with 'findings' and 'confidence' keys")
-    .guard(schema_strict(schema))
-    .build()
-)
-
-result = await prompt(data="Revenue: $10M, $12M, $15M")
-```
-
-**Version control** for prompts:
-
-```python
-from promptise.prompts import prompt, version
-
-@prompt(model="openai:gpt-5-mini")
-@version("1.0.0")
-async def analyze(data: str) -> str:
-    """Analyze the provided data and return findings."""
-    ...
-
-@prompt(model="openai:gpt-5-mini")
-@version("2.0.0")
-async def analyze(data: str) -> str:
-    """Analyze the provided data with improved methodology."""
-    ...
-
-# Both versions coexist -- route to latest by default, or pin to specific version
-# A/B test: deploy v2 to 10% of traffic, compare results, promote or roll back
-```
-
-**Shared defaults** with `PromptSuite`:
-
-```python
-from promptise.prompts import PromptSuite
 from promptise.prompts.strategies import chain_of_thought, analyst
 from promptise.prompts.guards import length
 
-suite = PromptSuite(
-    strategy=chain_of_thought,
-    perspective=analyst,
-    guards=[length(min_length=100)],
-    constraints=["cite sources"],
+class Findings(BaseModel):
+    findings: list[str]
+    confidence: float
+
+analyze_data = (
+    PromptBuilder("analyze_data")
+    .system("You are a senior data analyst. Cite all sources and use only the data provided.")
+    .template("Analyze the following data: {data}")
+    .strategy(chain_of_thought)
+    .perspective(analyst)
+    .constraint("Keep each finding under 20 words")
+    .guard(length(max_length=5000))
+    .output_type(Findings)
+    .build()
 )
 
-@suite.prompt
-async def analyze(data: str) -> str:
-    """Analyze: {data}"""
+result = await analyze_data(data="Revenue: $10M, $12M, $15M")
+print(result.findings, result.confidence)
+```
 
-@suite.prompt
+With a Pydantic `output_type` (or return annotation) the prompt adds the JSON schema to the request and parses the reply into the model.
+
+**Versions**: `@version()` registers a prompt in the global `registry`. Put it above `@prompt`:
+
+```python
+from promptise.prompts import prompt, version, registry
+
+@version("1.0.0")
+@prompt(model="openai:gpt-5-mini")
 async def summarize(data: str) -> str:
     """Summarize: {data}"""
 
-# Both prompts inherit strategy, perspective, guards, and constraints
+@version("2.0.0")
+@prompt(model="openai:gpt-5-mini")
+async def summarize(data: str) -> str:
+    """Summarize in three bullet points with one number each: {data}"""
+
+print(registry.list())                       # {'summarize': ['1.0.0', '2.0.0']}
+latest = registry.get("summarize")           # the most recently registered version
+pinned = registry.get("summarize", "1.0.0")
+registry.rollback("summarize")               # drops 2.0.0, 1.0.0 is latest again
+```
+
+**Shared defaults** with a `PromptSuite` subclass: every `@prompt` method inherits the class attributes, and its own settings win:
+
+```python
+from promptise.prompts import prompt, PromptSuite
+from promptise.prompts.strategies import chain_of_thought, analyst
+from promptise.prompts.guards import length
+
+class AnalysisSuite(PromptSuite):
+    default_strategy = chain_of_thought
+    default_perspective = analyst
+    default_guards = [length(max_length=3000)]
+    default_constraints = ["Cite the numbers you use"]
+
+    @prompt(model="openai:gpt-5-mini")
+    async def analyze(self, data: str) -> str:
+        """Analyze: {data}"""
+
+    @prompt(model="openai:gpt-5-mini")
+    async def summarize(self, data: str) -> str:
+        """Summarize: {data}"""
+
+suite = AnalysisSuite()
+print(list(suite.prompts))                   # ['analyze', 'summarize']
+print(await suite.summarize(data="Q1 $2.1M, Q2 $2.8M"))
 ```
 
 ---
 
 ## Step 9: Testing and Debugging
 
-**Unit test** your prompts with pytest:
+**Unit tests without an API key**: `PromptTestCase.mock_llm()` replaces the model with a fixed reply. Run with `pytest` and `pytest-asyncio` (`asyncio_mode = "auto"`):
 
 ```python
-from promptise.prompts.testing import mock_llm, mock_context, assert_schema
+import pytest
+from promptise.prompts import prompt, PromptTestCase, PromptInspector
+from promptise.prompts.guards import guard, content_filter, GuardError
+from promptise.prompts.context import context, user_context, UserContext
 
-async def test_analysis_prompt():
-    with mock_llm(response='{"findings": ["growth stable"], "confidence": 0.85}'):
-        result = await analyze(data="Revenue: $10M, $12M, $15M")
+inspector = PromptInspector()
 
-    assert_schema(result, expected_schema)
-    assert "findings" in result
+@prompt(model="openai:gpt-5-mini", inspect=inspector)
+@context(user_context())
+@guard(content_filter(blocked=["ssn"]))
+async def analyze(data: str) -> str:
+    """Analyze: {data}"""
 
-async def test_guard_blocks_pii():
-    with pytest.raises(GuardError):
-        await process(data="SSN: 123-45-6789")
+class TestAnalyze(PromptTestCase):
+    prompt = analyze
 
-async def test_context_injection():
-    with mock_context(user={"plan": "premium", "timezone": "UTC"}):
-        # Verify premium context is included
-        result = await analyze(data="test")
-        assert "premium data sources" in result.prompt_trace
+    async def test_reply_is_returned(self):
+        with self.mock_llm("Growth is stable at 20% per month."):
+            result, stats = await self.run_with_stats("Revenue: $10M, $12M")
+        self.assert_contains(result, "stable")
+        self.assert_latency(stats, max_ms=1000)
+
+    async def test_guard_blocks_ssn(self):
+        with self.mock_llm("never reached"):
+            with pytest.raises(GuardError):
+                await self.run_prompt("SSN 123-45-6789")
+
+    async def test_user_context_reaches_prompt(self):
+        with self.mock_context(user=UserContext(name="Dana", expertise_level="expert")):
+            with self.mock_llm("ok"):
+                await self.run_prompt("Q3 data")
+        assert "**Expertise:** expert" in inspector.last().input_text
 ```
 
-**Debug** with `PromptInspector`:
+**Debugging** with `PromptInspector`: attach it with `@prompt(inspect=...)` or `with_inspector()`, then read the trace of each call:
 
 ```python
-from promptise.prompts import PromptInspector
-
-inspector = PromptInspector(analyze)
-trace = await inspector.trace(data="Revenue: $10M, $12M, $15M")
-
-print(f"Blocks included: {trace.included_blocks}")
-print(f"Blocks dropped: {trace.dropped_blocks}")
-print(f"Total tokens: {trace.total_tokens}")
-print(f"Guard results: {trace.guard_results}")
-print(f"Render time: {trace.render_time_ms}ms")
+trace = inspector.last()
+print(trace.prompt_name, trace.model)
+print("Blocks included:", trace.blocks_included)
+print("Blocks dropped:", trace.blocks_excluded)
+print("Estimated block tokens:", trace.total_tokens_estimated)
+print("Guards passed:", trace.guards_passed, "failed:", trace.guards_failed)
+print("Prompt sent:", trace.input_text)
+print("Latency:", trace.latency_ms, "ms")
+print(inspector.summary())
 ```
 
-When your agent produces unexpected output, the inspector shows exactly what prompt it received, what context was injected, what blocks were dropped, and what guards ran.
+When your agent produces unexpected output, the trace shows the exact text the model received, which blocks were included or dropped, and which output guards passed.
 
 ---
 
 ## Prompt Chaining
 
-Compose prompts into multi-step pipelines:
+Compose prompts into multi-step pipelines with the operators in `promptise.prompts.chain`:
 
 ```python
-from promptise.prompts.chaining import chain, parallel, branch, retry, fallback
+from promptise.prompts import prompt
+from promptise.prompts.chain import chain, parallel, branch, retry, fallback
 
-# Sequential -- output of A feeds into B
-pipeline = chain(research_prompt, analysis_prompt, formatting_prompt)
-result = await pipeline("Raw data...")
+@prompt(model="openai:gpt-5-mini")
+async def extract(text: str) -> str:
+    """List the numeric facts in: {text}"""
 
-# Parallel -- run simultaneously, collect all results
-results = await parallel(analyst_prompt, critic_prompt, advisor_prompt)("Business plan")
+@prompt(model="openai:gpt-5-mini")
+async def interpret(text: str) -> str:
+    """Interpret these facts in two sentences: {text}"""
 
-# Conditional routing
+@prompt(model="openai:gpt-5-mini")
+async def risks(text: str) -> str:
+    """Name the two biggest risks in: {text}"""
+
+@prompt(model="openai:gpt-5-mini")
+async def summary(text: str) -> str:
+    """One-sentence summary of: {text}"""
+
+report = "Q3 revenue $3.2M (+14%), churn 6%, cash runway 9 months."
+
+# Sequential: each output feeds the next prompt
+pipeline = chain(extract, interpret)
+print(await pipeline(report))
+
+# Parallel: same input, results by name
+results = await parallel(risks=risks, summary=summary)(report)
+print(results["risks"], results["summary"])
+
+# Conditional routing: the condition returns a route key
 router = branch(
-    (lambda x: "financial" in x, financial_prompt),
-    (lambda x: "technical" in x, technical_prompt),
-    default=general_prompt,
+    condition=lambda text: "risk" if "churn" in text else "summary",
+    routes={"risk": risks, "summary": summary},
+    default=summary,
 )
-result = await router("Financial report on Q3...")
+print(await router(report))
 
-# Retry with backoff on guard rejection or LLM error
-resilient = retry(strict_prompt, max_retries=3, backoff=2.0)
-result = await resilient("Input data...")
+# Retry with exponential backoff (1s, 2s, 4s) on any exception, including GuardError
+resilient = retry(interpret, max_retries=3, backoff=1.0)
 
-# Fallback -- try alternatives on failure
-safe = fallback(detailed_prompt, simple_prompt, minimal_prompt)
-result = await safe("Input data...")
+# Fallback: try alternatives in order, the last one's error propagates
+safe = fallback(interpret, summary)
+print(await safe(report))
 ```
 
 ---
 
-## YAML Templates
+## YAML Prompt Files
 
-Define prompts as portable files:
+Define a prompt as a portable `.prompt` file (YAML). The model is a runtime choice; blocks are not part of the file format, so put that text in the template:
 
 ```yaml
 # customer_analysis.prompt
 name: customer_analysis
 version: "1.0.0"
-template: "Analyze this customer's behavior: {customer_data}"
+description: Retention risk for one customer
+template: |
+  You are a senior customer analytics specialist.
+  Base all conclusions on the provided data only and flag data quality issues.
 
-blocks:
-  - type: identity
-    content: "You are a senior customer analytics specialist."
-  - type: rules
-    content:
-      - "Base all conclusions on provided data only"
-      - "Flag any data quality issues"
-  - type: examples
-    content: |
-      Input: { "purchases": 12, "returns": 3 }
-      Output: { "retention_risk": "medium", "reason": "25% return rate" }
-
-strategy: chain_of_thought + self_critique
+  Analyze this customer's behavior: {customer_data}
+  Reply as JSON with keys "retention_risk" and "reason".
+arguments:
+  customer_data:
+    description: Customer purchase history as JSON
+    required: true
+strategy: [chain_of_thought, self_critique]
 perspective: analyst
-
 guards:
-  - type: schema
-    schema:
-      type: object
-      required: ["retention_risk", "reason"]
+  - type: schema_strict
+  - type: length
+    max_length: 2000
 ```
 
 Load from a file, URL, or directory:
@@ -509,12 +571,14 @@ Load from a file, URL, or directory:
 ```python
 from promptise.prompts.loader import load_prompt, load_directory
 
-prompt = load_prompt("customer_analysis.prompt")
-result = await prompt(customer_data='{"purchases": 5, "returns": 0}')
+customer_analysis = load_prompt("customer_analysis.prompt")
+result = await customer_analysis(customer_data='{"purchases": 5, "returns": 0}')
 
-# Load all .prompt files from a directory
+# Every .prompt file in a directory, in a PromptRegistry
 prompts = load_directory("prompts/")
 ```
+
+See [Loader & Templates](../prompting/loader-templates.md) for every field, the template syntax and `${ENV_VAR}` resolution.
 
 ---
 
@@ -522,60 +586,56 @@ prompts = load_directory("prompts/")
 
 ```python
 import asyncio
-from promptise.prompts import prompt, PromptSuite, ConversationFlow, Phase
+from pydantic import BaseModel
+from promptise.prompts import prompt, PromptSuite
 from promptise.prompts.blocks import blocks, Identity, Rules, OutputFormat, Examples
-from promptise.prompts.strategies import chain_of_thought, self_critique, analyst
-from promptise.prompts.guards import guard, content_filter, schema_strict
+from promptise.prompts.strategies import chain_of_thought, analyst
+from promptise.prompts.guards import guard, content_filter
+from promptise.prompts.chain import retry
 
-# Schema for structured output
-analysis_schema = {
-    "type": "object",
-    "required": ["findings", "confidence", "recommendations"],
-    "properties": {
-        "findings": {"type": "array", "items": {"type": "string"}},
-        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-        "recommendations": {"type": "array", "items": {"type": "string"}},
-    },
-}
+class Analysis(BaseModel):
+    findings: list[str]
+    confidence: float
+    recommendations: list[str]
 
-# Create a suite with shared defaults
-suite = PromptSuite(
-    strategy=chain_of_thought + self_critique,
-    perspective=analyst,
-    constraints=["cite data sources", "include confidence intervals"],
-)
+class DataTeam(PromptSuite):
+    default_strategy = chain_of_thought
+    default_perspective = analyst
+    default_constraints = ["Cite data sources", "Include a confidence between 0 and 1"]
+    default_guards = [content_filter(blocked=["password", "ssn"])]
 
-@suite.prompt
-@prompt(model="openai:gpt-5-mini")
-@blocks(
-    Identity("Senior data analyst", traits=["statistical rigor", "clear communication"]),
-    Rules(["Use only provided data", "Never fabricate numbers", "Flag data quality issues"]),
-    OutputFormat(format="json", instructions="Return valid JSON matching the schema"),
-    Examples([
-        {"input": "Revenue: $10M, $12M, $15M", "output": '{"findings": ["50% growth over 3 months"], "confidence": 0.9, "recommendations": ["Continue current strategy"]}'},
-    ]),
-)
-@guard(
-    content_filter(blocked=["password", "ssn"]),
-    schema_strict(analysis_schema, max_retries=2),
-)
-async def analyze_data(dataset: str, question: str) -> str:
-    """Dataset:
-{dataset}
+    @prompt(model="openai:gpt-5-mini")
+    @blocks(
+        Identity("Senior data analyst", traits=["statistical rigor", "clear communication"]),
+        Rules(["Use only provided data", "Never fabricate numbers", "Flag data quality issues"]),
+        OutputFormat(format="json"),
+        Examples([
+            {
+                "input": "Revenue: $10M, $12M, $15M",
+                "output": '{"findings": ["50% growth over 3 months"], "confidence": 0.9, "recommendations": ["Continue current strategy"]}',
+            },
+        ]),
+    )
+    async def analyze_data(self, dataset: str, question: str) -> Analysis:
+        """Dataset:
+        {dataset}
 
-Question: {question}
-
-Respond with valid JSON."""
+        Question: {question}"""
 
 async def main():
-    result = await analyze_data(
+    team = DataTeam()
+    analyze = retry(team.analyze_data, max_retries=2, backoff=0.5)
+    result = await analyze(
         dataset="Q1: $2.1M, Q2: $2.8M, Q3: $3.2M, Q4: $3.9M",
-        question="What is the annual growth trend and what should we expect for next year?",
+        question="What is the annual growth trend and what should we expect next year?",
     )
-    print(result)
+    print(result.findings)
+    print(result.confidence, result.recommendations)
 
 asyncio.run(main())
 ```
+
+The return annotation `-> Analysis` makes the prompt send the JSON schema and parse the reply into an `Analysis`; a reply that does not validate raises, and `retry()` tries again.
 
 ---
 
@@ -599,11 +659,11 @@ asyncio.run(main())
 
 **Other guides:**
 
-- [Building AI Agents](building-agents.md) -- The agents that use your prompts
-- [Building Production MCP Servers](production-mcp-servers.md) -- The tools your agents call
-- [Building Agentic Runtime Systems](agentic-runtime.md) -- Autonomous agents with governance
+- [Building AI Agents](building-agents.md): the agents that use your prompts
+- [Building Production MCP Servers](production-mcp-servers.md): the tools your agents call
+- [Building Agentic Runtime Systems](agentic-runtime.md): autonomous agents with governance
 
 !!! tip "Learn the concept"
 
-    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- Build system prompts from reusable blocks and test them like code.
-    - [How to Test LLM Prompts and AI Agents in Python](https://www.promptise.com/guides/view/test-llm-prompts-ai-agents-python) -- Catch prompt regressions with pytest and an LLM judge.
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices): build system prompts from reusable blocks and test them like code.
+    - [How to Test LLM Prompts and AI Agents in Python](https://www.promptise.com/guides/view/test-llm-prompts-ai-agents-python): catch prompt regressions with pytest and an LLM judge.

@@ -5,29 +5,36 @@ description: "Give prompts awareness of their world: BaseContext and predefined 
 
 # Prompt Context System
 
-The context system gives your prompts dynamic awareness of their world -- who the user is, what tools are available, what errors occurred previously, and any custom data you need. Context providers fire on every invocation and inject relevant text into the prompt automatically.
+The context system gives your prompts dynamic awareness of their world: who the user is, what tools are available, what errors occurred previously, and any custom data you need. Context providers fire on every invocation and inject relevant text into the prompt automatically.
 
 ## Quick Example
 
 ```python
 from promptise.prompts import prompt
-from promptise.prompts.context import context, tool_context, memory_context, user_context
+from promptise.prompts.context import context, user_context, env_context, UserContext, EnvironmentContext
 
 @prompt(model="openai:gpt-5-mini")
-@context(tool_context(), memory_context(), user_context())
+@context(user_context(), env_context())
 async def analyze(text: str) -> str:
     """Based on available context, analyze: {text}"""
 
-result = await analyze("quarterly revenue figures")
+personalized = analyze.with_world(
+    user=UserContext(name="Alice", expertise_level="expert"),
+    environment=EnvironmentContext(timezone="Europe/Zurich"),
+)
+print(await personalized.render_async(text="quarterly revenue figures"))   # no LLM call
+result = await personalized("quarterly revenue figures")
 ```
+
+The providers read the **world** (`with_world()`, `PromptBuilder.world()`, a suite's `default_world`, or a YAML file's `world:`) and append a Markdown section such as `## User Context` to the prompt. World data with no provider that reads it is not added to the prompt.
 
 ## Concepts
 
 The context system has three layers:
 
-1. **`BaseContext`** -- an extensible key-value container. Predefined subclasses (`UserContext`, `EnvironmentContext`, etc.) add typed fields but never restrict what you can store.
-2. **`PromptContext`** -- the complete world available during prompt execution. It carries the world dict (containing `BaseContext` instances), input args, agent references, and extensible state.
-3. **`ContextProvider`** -- a pluggable protocol that generates context text at runtime. Providers receive the `PromptContext` and return a markdown string to inject into the prompt.
+1. **`BaseContext`**: an extensible key-value container. Predefined subclasses (`UserContext`, `EnvironmentContext`, etc.) add typed fields but never restrict what you can store.
+2. **`PromptContext`**: the complete world available during prompt execution. It carries the world dict (containing `BaseContext` instances), input args, agent references, and extensible state.
+3. **`ContextProvider`**: a pluggable protocol that generates context text at runtime. Providers receive the `PromptContext` and return a markdown string to inject into the prompt.
 
 ## BaseContext
 
@@ -96,6 +103,8 @@ keys = project.keys()      # dict_keys(["sprint", "budget"])
 | `to_dict()` | `dict` | Shallow copy of stored data |
 | `merge(other)` | `BaseContext` | New context with merged data (other overrides self) |
 | `keys()` | `KeysView` | All context keys |
+
+`ctx.missing` returns `None` for an unknown key, while `ctx["missing"]` raises `KeyError`; `"key" in ctx` tests membership, and an empty context is falsy. Field names starting with `_` can't be read or set as attributes. `merge()` keeps the class of the left-hand context.
 
 ## Predefined Context Classes
 
@@ -254,9 +263,13 @@ ctx.output        # OutputContext if "output" key exists
 | `model` | `str` | LLM model identifier |
 | `input_args` | `dict` | Arguments passed to the prompt |
 | `rendered_text` | `str` | Rendered prompt text |
-| `agent` | `Any` | Agent instance (populated when running inside an `AgentProcess`) |
+| `agent` | `Any` | The agent, set when the prompt is an agent's `instructions`; `None` in a standalone call |
+| `task` | `Any` | A task object for `task_context()`; `None` unless you build the context yourself |
+| `blackboard` | `Any` | A blackboard with `get_section(prefix)` for `blackboard_context()`; `None` unless you build the context yourself |
 | `world` | `dict[str, BaseContext]` | Named context instances |
-| `state` | `dict` | Extensible state for chain steps, hooks, etc. |
+| `state` | `dict` | Free-form state for your providers and hooks (a new, empty dict on every call) |
+
+All fields have defaults (`prompt_version="0.0.0"`, everything else empty or `None`). A standalone call builds a new `PromptContext` from the arguments and the prompt's world on every call, so nothing in it carries over to the next call.
 
 ## Context Providers
 
@@ -279,17 +292,22 @@ class WeatherContextProvider:
 
 | Provider | Factory | Injects |
 |----------|---------|---------|
-| `ToolContextProvider` | `tool_context(include_schemas=False)` | Available tool descriptions from the agent |
-| `MemoryContextProvider` | `memory_context(limit=5, min_score=0.3)` | Relevant memories via similarity search |
-| `UserContextProvider` | `user_context()` | User identity and preferences |
-| `EnvironmentContextProvider` | `env_context()` | Runtime environment information |
-| `ConversationContextProvider` | `conversation_context(last_n=10)` | Recent conversation messages |
-| `ErrorContextProvider` | `error_context()` | Previous errors for retry awareness |
-| `OutputContextProvider` | `output_context()` | Expected output format and constraints |
+| `UserContextProvider` | `user_context()` | `## User Context`: name, expertise, language (when not English), preferences and custom fields of `world["user"]` (a `UserContext`) |
+| `EnvironmentContextProvider` | `env_context()` | `## Environment`: platform, timezone, available APIs and custom fields of `world["environment"]` (an `EnvironmentContext`) |
+| `ConversationContextProvider` | `conversation_context(last_n=10)` | `## Conversation History`: summary and the last `last_n` messages of `world["conversation"]` |
+| `TeamContextProvider` | `team_context()` | `## Team Context`: members and the last 5 completed tasks of `world["team"]` |
+| `ErrorContextProvider` | `error_context()` | `## Previous Errors`: retry count, last error and the last 3 errors of `world["errors"]` |
+| `OutputContextProvider` | `output_context()` | `## Expected Output`: format, schema, first 3 examples and constraints of `world["output"]` |
+| `WorldContextProvider` | `world_context(key, header=None)` | Every non-empty field of `world[key]`, under `header` (default `## <Key>`) |
 | `StaticContextProvider` | `static_context(text, header=None)` | Fixed text block |
-| `CallableContextProvider` | `callable_context(fn, header=None)` | Any async callable |
-| `ConditionalContextProvider` | `conditional_context(condition, provider)` | Run provider only if condition is true |
-| `WorldContextProvider` | `world_context(key, header=None)` | Read any custom BaseContext from the world dict |
+| `CallableContextProvider` | `callable_context(fn, header=None)` | The string your sync or async `fn(ctx)` returns (nothing when it returns an empty value) |
+| `ConditionalContextProvider` | `conditional_context(condition, provider)` | The inner provider's text when `condition(ctx)` is true |
+| `MemoryContextProvider` | `memory_context(limit=5, min_score=0.3)` | `## Relevant Context`: memories from `ctx.agent.provider` scoring at least `min_score`; only when the prompt is an agent's `instructions` and the agent has a memory provider |
+| `TaskContextProvider` | `task_context()` | `## Task Context`: `goal` (or `name`), `description`, `expected_output`, `priority` of `ctx.task` |
+| `BlackboardContextProvider` | `blackboard_context(prefix="result.")` | `## Prior Results`: entries of `ctx.blackboard.get_section(prefix)` |
+| `ToolContextProvider` | `tool_context(include_schemas=False)` | Nothing. A placeholder kept for compatibility: tools reach the model as tool definitions. `include_schemas` is ignored |
+
+The typed providers check the class: `user_context()` reads `world["user"]` only when it is a `UserContext` (likewise `EnvironmentContext`, `ConversationContext`, `TeamContext`, `ErrorContext`, `OutputContext`). For a plain `BaseContext`, use `world_context(key)`.
 
 ### Using the `@context` Decorator
 
@@ -349,7 +367,7 @@ Only run the inner provider when a condition is met:
 ```python
 from promptise.prompts.context import conditional_context, memory_context
 
-# Only inject memories when an agent is available
+# Only search memories when the prompt runs inside an agent
 smart_memory = conditional_context(
     condition=lambda ctx: ctx.agent is not None,
     provider=memory_context(limit=10),
@@ -387,11 +405,14 @@ This reads `ctx.world["project"]` and formats all its fields into a markdown sec
 
 | Factory | Description |
 |---------|-------------|
-| `tool_context(include_schemas=False)` | Agent tool descriptions |
-| `memory_context(limit=5, min_score=0.3)` | Relevant memories |
+| `tool_context(include_schemas=False)` | No-op placeholder |
+| `memory_context(limit=5, min_score=0.3)` | Relevant memories (agent instructions only) |
+| `task_context()` | Current task metadata |
+| `blackboard_context(prefix="result.")` | Prior results from a blackboard |
 | `user_context()` | User identity |
 | `env_context()` | Environment information |
 | `conversation_context(last_n=10)` | Conversation messages |
+| `team_context()` | Team members and completed tasks |
 | `error_context()` | Previous errors |
 | `output_context()` | Output format |
 | `static_context(text, header=None)` | Fixed text |
@@ -403,7 +424,9 @@ This reads `ctx.world["project"]` and formats all its fields into a markdown sec
 
 | Decorator | Description |
 |-----------|-------------|
-| `@context(*providers)` | Attach context providers to a prompt |
+| `@context(*providers)` | Attach context providers to a prompt (below or above `@prompt`; both add) |
+
+`Prompt.with_context(*providers)` and `PromptBuilder.context(*providers)` add providers without the decorator.
 
 !!! tip "Empty string skips injection"
     If a context provider returns an empty string, nothing is injected. This lets providers gracefully handle missing data without cluttering the prompt.
@@ -412,10 +435,13 @@ This reads `ctx.world["project"]` and formats all its fields into a markdown sec
     You never need to subclass `BaseContext`. Just pass extra keyword arguments: `UserContext(user_id="123", department="eng", clearance="high")`. All fields are accessible via attribute access, dict-style access, and `get()`.
 
 !!! warning "Provider ordering"
-    Providers execute in the order they are passed to `@context()`. Suite-level providers run before prompt-level providers. Plan the order so that foundational context (user, environment) comes before specialized context (tools, memories).
+    Providers execute in the order they are passed to `@context()`, and their sections appear in that order after the template text. In a [`PromptSuite`](suite-registry.md), suite-level providers run first; a suite provider is skipped when the prompt already has a provider of the same class.
+
+!!! warning "Providers that need an agent"
+    `memory_context()` returns nothing in a standalone call because `ctx.agent` is `None`. It works when the prompt is passed as `build_agent(instructions=...)` and the agent has a memory provider. `task_context()` and `blackboard_context()` need `ctx.task` / `ctx.blackboard`, which only a `PromptContext` you build yourself and pass to `render_async(ctx)` sets.
 
 ## What's Next
 
-- [PromptBuilder](builder.md) -- Fluent API for runtime prompt construction
-- [Guards](guards.md) -- Input/output validation
-- [Prompt Chaining](chaining.md) -- Compose prompts into pipelines
+- [PromptBuilder](builder.md): Fluent API for runtime prompt construction
+- [Guards](guards.md): Input/output validation
+- [Prompt Chaining](chaining.md): Compose prompts into pipelines

@@ -5,27 +5,27 @@ description: "Construct prompts at runtime with the fluent PromptBuilder API: te
 
 # PromptBuilder
 
-Fluent API for constructing prompts programmatically at runtime. Use `PromptBuilder` when prompt configuration depends on runtime conditions -- user input, feature flags, A/B tests, or dynamic model selection.
+Fluent API for constructing prompts programmatically at runtime. Use `PromptBuilder` when prompt configuration depends on runtime conditions: user input, feature flags, A/B tests, or dynamic model selection.
 
 ## Quick Example
 
 ```python
 from promptise.prompts.builder import PromptBuilder
-from promptise.prompts.context import UserContext, BaseContext, tool_context
+from promptise.prompts.context import UserContext, BaseContext, user_context, world_context
 from promptise.prompts.strategies import chain_of_thought, analyst
 from promptise.prompts.guards import content_filter, length
 
 prompt = (
     PromptBuilder("analyze")
-    .system("Expert data analyst")
+    .system("You are an expert data analyst.")
     .user(UserContext(expertise_level="expert"))
     .world(project=BaseContext(name="Alpha", deadline="March 2026"))
-    .context(tool_context())
+    .context(user_context(), world_context("project"))
     .strategy(chain_of_thought)
     .perspective(analyst)
     .constraint("Must include confidence scores")
     .guard(content_filter(blocked=["secret"]), length(max_length=5000))
-    .template("Analyze: {data}")
+    .template("Analyze in under 150 words: {data}")
     .model("openai:gpt-5-mini")
     .build()
 )
@@ -39,11 +39,13 @@ The `PromptBuilder` provides a fluent (chainable) API where every method returns
 
 Key differences from the `@prompt` decorator:
 
-- **Runtime configuration** -- you can build prompts based on runtime conditions instead of static decoration.
-- **Dynamic templates** -- set templates from variables, databases, or user input.
-- **Programmatic composition** -- loop through configurations, conditionally add guards, etc.
+- **Runtime configuration**: you can build prompts based on runtime conditions instead of static decoration.
+- **Dynamic templates**: set templates from variables, databases, or user input.
+- **Programmatic composition**: loop through configurations, conditionally add guards, etc.
 
-The builder extracts `{variable}` names from the template text and creates a synthetic async function with matching parameters. The resulting `Prompt` behaves identically to one created with `@prompt`.
+The builder extracts `{variable}` names from the system text and template, in order of first appearance, and creates a synthetic async function with one parameter per name. Every parameter is a `str` that defaults to `""`, so the prompt can be called positionally or with keywords, and a missing argument renders as an empty string. With no variables, the function accepts any keyword arguments and ignores them. The resulting `Prompt` behaves like one created with `@prompt`.
+
+`build()` raises `ValueError` when the builder name or a variable name is not a valid Python identifier (for example `PromptBuilder("my-prompt")`).
 
 ## Detailed Walkthrough
 
@@ -64,7 +66,7 @@ builder.system("You are a senior financial analyst.")
 builder.template("Analyze the following report:\n{report}\nFocus: {focus}")
 ```
 
-The system text is prepended to the template. Both support `{variable}` placeholders.
+The system text and the template are joined with a blank line into one template; the result is sent as a single system message. Both support `{variable}` placeholders and the [template syntax](loader-templates.md#template-engine). Calling `.system()` or `.template()` again replaces the earlier text.
 
 ### Step 3: Configure the Model
 
@@ -90,10 +92,12 @@ builder.world(
 ### Step 5: Add Context Providers
 
 ```python
-from promptise.prompts.context import tool_context, memory_context
+from promptise.prompts.context import user_context, world_context
 
-builder.context(tool_context(), memory_context(limit=10))
+builder.context(user_context(), world_context("project", header="## Project"))
 ```
+
+World contexts are only the data. A provider such as `user_context()` or `world_context(key)` turns them into prompt text (see [Context](context.md)).
 
 ### Step 6: Set Strategy and Perspective
 
@@ -155,6 +159,10 @@ result = await prompt(report="Revenue grew 15%...", focus="trends")
 Since all builder methods return `self`, you can chain the entire configuration:
 
 ```python
+from promptise.prompts.builder import PromptBuilder
+from promptise.prompts.strategies import chain_of_thought
+from promptise.prompts.guards import length
+
 prompt = (
     PromptBuilder("quick_summary")
     .system("Expert summarizer")
@@ -209,7 +217,7 @@ result = await prompt(data="quarterly revenue figures...")
 
 ## Observability
 
-Enable observability recording on the built prompt:
+`.observe(enabled=True)` sets the prompt's `observe` flag. In 1.6.0 the flag is stored but no telemetry is emitted from it; attach a [`PromptInspector`](inspector.md) for traces:
 
 ```python
 prompt = (
@@ -225,14 +233,14 @@ prompt = (
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `PromptBuilder(name)` | `PromptBuilder` | Create a new builder |
+| `PromptBuilder(name="builder_prompt")` | `PromptBuilder` | Create a new builder; `name` becomes the prompt's `name` |
 | `.system(text)` | `self` | Set system/instruction text |
 | `.template(text)` | `self` | Set prompt template with `{variable}` placeholders |
 | `.model(name)` | `self` | Set the LLM model identifier |
-| `.observe(enabled)` | `self` | Enable/disable observability recording |
+| `.observe(enabled=True)` | `self` | Set the stored `observe` flag |
 | `.output_type(t)` | `self` | Set output type for structured parsing |
-| `.user(user_ctx)` | `self` | Set user context |
-| `.env(env_ctx)` | `self` | Set environment context |
+| `.user(user_ctx)` | `self` | Set `world["user"]` |
+| `.env(env_ctx)` | `self` | Set `world["environment"]` |
 | `.world(**contexts)` | `self` | Add named world contexts |
 | `.context(*providers)` | `self` | Add context providers |
 | `.strategy(s)` | `self` | Set reasoning strategy |
@@ -245,16 +253,19 @@ prompt = (
 | `.build()` | `Prompt` | Construct the final `Prompt` instance |
 
 !!! tip "Builder vs. decorator"
-    Use `@prompt` for static, declarative prompt definitions. Use `PromptBuilder` when you need to construct prompts based on runtime conditions. Both produce identical `Prompt` objects.
+    Use `@prompt` for static, declarative prompt definitions. Use `PromptBuilder` when you need to construct prompts based on runtime conditions. Both produce `Prompt` objects with the same methods.
+
+!!! note "Blocks, inspector and description"
+    The builder has no methods for blocks, an inspector or a description. Add them to the built prompt: `builder.build().with_blocks(Identity("Analyst")).with_inspector(inspector)`. `.observe(True)` stores the flag on the prompt; in 1.6.0 no events are emitted from it (see [PromptObserver](inspector.md#promptobserver)).
 
 !!! warning "Template is required"
-    If neither `.system()` nor `.template()` is called, the builder uses a default placeholder text. Always set an explicit template for production prompts.
+    If neither `.system()` nor `.template()` is called, the template is "Respond to the user's request." Always set an explicit template for production prompts.
 
 !!! tip "Default model"
     If `.model()` is not called, the builder defaults to `openai:gpt-5-mini`. This keeps quick prototyping fast without specifying a model every time.
 
 ## What's Next
 
-- [Context System](context.md) -- Dynamic context injection
-- [Guards](guards.md) -- Input/output validation
-- [Strategies](strategies.md) -- Reasoning strategies and perspectives
+- [Context System](context.md): Dynamic context injection
+- [Guards](guards.md): Input/output validation
+- [Strategies](strategies.md): Reasoning strategies and perspectives

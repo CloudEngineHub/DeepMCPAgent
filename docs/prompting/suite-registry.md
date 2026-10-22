@@ -38,15 +38,17 @@ A `PromptSuite` bundles related prompts that share a common configuration. When 
 
 1. Set **class attributes** for shared defaults (strategy, perspective, constraints, guards, context providers, world contexts).
 2. Decorate methods with `@prompt(...)` to define individual prompts.
-3. Suite defaults merge with per-prompt configuration -- per-prompt settings override suite defaults.
+3. Suite defaults merge with per-prompt configuration: per-prompt settings override suite defaults.
 
 The merge rules are:
 
-- **Context providers**: suite providers come first, then prompt-level providers.
+- **Context providers**: suite providers come first, then prompt-level providers. A suite provider is skipped when the prompt already has a provider of the same class.
 - **Strategy / Perspective**: prompt-level wins if set; otherwise suite default applies.
 - **Constraints**: suite constraints are prepended to prompt-level constraints.
 - **Guards**: suite guards are prepended to prompt-level guards.
 - **World contexts**: suite world is the base; prompt-level world entries override matching keys.
+
+Defaults are applied once, when the subclass is created, by changing the `Prompt` objects defined on the class. Methods take `self` for readability, but `self` is removed from the prompt's signature: call them as `suite.summarize(data=...)` or `DataAnalysisSuite.summarize(data=...)`; every instance shares the same prompts.
 
 ### Suite Class Attributes
 
@@ -100,8 +102,8 @@ suite = DataAnalysisSuite()
 
 for name, p in suite.prompts.items():
     print(f"{name}: {p}")
-# summarize: <Prompt summarize>
-# forecast: <Prompt forecast>
+# forecast: <Prompt name='forecast', model='openai:gpt-5-mini', ...>
+# summarize: <Prompt name='summarize', model='openai:gpt-5-mini', ...>
 ```
 
 ### Rendering the Suite
@@ -117,6 +119,8 @@ from promptise.prompts.context import PromptContext
 rendered = await suite.render_async(PromptContext())
 ```
 
+Both join each prompt's rendered text under a `## <prompt name>` heading. Templates are rendered without variables, so `{data}` placeholders stay as they are. A suite can be an agent's instructions: `build_agent(instructions=DataAnalysisSuite())` injects `render_async()` on each turn and runs the guards of all its prompts.
+
 ### Suite Methods
 
 | Method | Returns | Description |
@@ -129,14 +133,14 @@ rendered = await suite.render_async(PromptContext())
 
 ## PromptRegistry Concepts
 
-The `PromptRegistry` stores versioned prompts keyed by `(name, version)`. It supports:
+The `PromptRegistry` stores versioned prompts keyed by `(name, version)`. "Latest" is the version registered **last**, not the highest version number, and version strings are not parsed. It supports:
 
 - **Registration** of prompts at specific semantic versions.
 - **Retrieval** by name (latest) or by name + version.
 - **Rollback** to remove the latest version and revert to the previous one.
 - **Listing** all registered prompts and their versions.
 
-A module-level singleton `registry` is available for convenience. The `@version()` decorator auto-registers prompts into this singleton.
+A module-level singleton `registry` is available for convenience. The `@version()` decorator auto-registers prompts into this singleton; it works above or below `@prompt`. `load_prompt(path, register=True)` registers into it too. The registry is process-local and in memory.
 
 ### Versioning Prompts
 
@@ -222,9 +226,9 @@ latest = team_registry.get("analyze")
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `register(name, ver, prompt)` | `None` | Register a prompt at a version |
-| `get(name, ver=None)` | `Prompt` | Retrieve by name; `ver=None` returns latest |
+| `get(name, ver=None)` | `Prompt` | Retrieve by name; `ver=None` returns latest; unknown name or version: `KeyError` |
 | `latest_version(name)` | `str` | Get the latest version string |
-| `rollback(name)` | `Prompt` | Remove latest version, return new latest |
+| `rollback(name)` | `Prompt` | Remove latest version, return new latest; `KeyError` with fewer than two versions |
 | `list()` | `dict[str, list[str]]` | List all prompts and their versions |
 | `clear()` | `None` | Remove all registered prompts |
 
@@ -242,6 +246,6 @@ latest = team_registry.get("analyze")
 
 ## What's Next
 
-- [Loader & Templates](loader-templates.md) -- Load prompts from YAML files
-- [Guards](guards.md) -- Input/output validation
-- [Context System](context.md) -- Dynamic context injection
+- [Loader & Templates](loader-templates.md): Load prompts from YAML files
+- [Guards](guards.md): Input/output validation
+- [Context System](context.md): Dynamic context injection
