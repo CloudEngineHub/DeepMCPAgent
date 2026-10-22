@@ -31,10 +31,15 @@ straight to the guide for the problem you're solving.
 ## 1 · Foundations — build and shape an agent
 
 ### [Building AI Agents](building-agents.md)
-Build a production-ready agent from scratch with MCP tool discovery, persistent
-memory, observability, sandboxed code execution, and cross-agent delegation.
+Build a production agent in twelve runnable steps: Python tools, an MCP server,
+conversations, memory, guardrails, human approval, observability, a code sandbox,
+delegation to other agents, a reasoning pattern and a `.superagent` file.
 One function call creates it; every capability is opt-in.
-**You'll learn:** `build_agent()`, model independence, MCP auto-discovery, memory, observability, sandbox, cross-agent delegation, SuperAgent files.
+**You'll learn:** `build_agent()`, `@tool`, MCP servers, `chat()` and conversation stores, memory, guardrails, `ApprovalPolicy`, observability, sandbox, `CrossAgent`, `agent_pattern`, SuperAgent files.
+
+### [Cookbook](../getting-started/cookbook.md)
+Short, copy-paste recipes for the tasks you reach for most, each with a link to the
+full reference.
 
 ### [Prompt Engineering](prompt-engineering.md)
 Build reliable, testable system prompts with typed blocks, token budgeting,

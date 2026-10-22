@@ -304,6 +304,27 @@ Each layer is optional. Use Layer 1 alone for simple chatbots, add Layer 2 for a
 
 ---
 
+## Runtime errors
+
+Every runtime exception derives from `RuntimeBaseError` (itself a `RuntimeError`), so
+`except RuntimeBaseError` catches all of them. Import them from `promptise.runtime`:
+
+| Exception | Raised when |
+|---|---|
+| `ProcessStateError` | A lifecycle transition is not allowed, for example `resume()` on a process that is not suspended |
+| `ManifestError` | An `.agent` manifest cannot be read or parsed |
+| `ManifestValidationError` | A manifest does not match the schema (a `ManifestError`) |
+| `ManifestEnvVarError` | A `${VAR}` in a manifest names an unset variable (a `ManifestError`) |
+| `JournalError` | A journal read, write or replay fails |
+| `TriggerError` | A trigger fails to start, stop or produce events |
+| `BudgetExceededError` | A tool call would exceed an autonomy budget limit |
+
+`OrchestrationAPIError` is separate: it is an `httpx.HTTPStatusError` that
+`OrchestrationClient` raises for an error response, with `status_code`, `code`,
+`error_message` and `error_id` (see [Orchestration API](api.md)).
+
+---
+
 ## What's next
 
 **Learn the concepts in depth:**

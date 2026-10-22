@@ -229,15 +229,15 @@ agent = await build_agent(
 
 # Use chat() for persistent sessions
 response = await agent.chat(
+    "Hi, I'm customer C-1001. My order ORD-5001 is late.",
     session_id="session-alice-001",
-    user_message="Hi, I'm customer C-1001. My order ORD-5001 is late.",
     caller=CallerContext(user_id="C-1001"),
 )
 
 # Second message — agent remembers the first
 response = await agent.chat(
+    "Can you check the tracking number?",
     session_id="session-alice-001",
-    user_message="Can you check the tracking number?",
     caller=CallerContext(user_id="C-1001"),
 )
 ```
@@ -277,10 +277,13 @@ agent = await build_agent(
 
 The guardrails will:
 
-- Block prompt injection attempts in customer messages
-- Detect and redact PII in agent responses (credit card numbers, SSNs)
-- Flag credential patterns
-- Run content safety checks
+- Block prompt injection attempts in customer messages (a local classifier model)
+- Detect and redact PII in agent responses (credit card numbers, SSNs, emails)
+- Detect and redact credentials (API keys, tokens)
+
+Toxicity and NER detection are not in the default set; add `ContentSafetyDetector`
+or `NERDetector` to a `PromptiseSecurityScanner(detectors=[...])` for them. See
+[Guardrails](../core/guardrails.md).
 
 ## What You've Built
 

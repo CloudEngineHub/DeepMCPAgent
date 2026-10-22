@@ -317,6 +317,30 @@ An unknown key is an error, so a typo does not go unnoticed. The message names t
 
 In `pyproject.toml`, the paths start with `tool.promptise.`. `promptise run` exits with code 2 on a manifest error.
 
+### Read a manifest from Python
+
+The loader `promptise run` uses is public in `promptise.run`, for tools and tests
+that need the project's settings:
+
+```python
+from pathlib import Path
+from promptise.run import ManifestError, find_manifest, load_manifest
+
+path = find_manifest(Path.cwd())   # nearest promptise.toml or [tool.promptise], or None
+if path is not None:
+    try:
+        manifest = load_manifest(path)
+        print(manifest.name, manifest.main, sorted(manifest.scripts))
+    except ManifestError as exc:
+        print("\n".join(exc.problems))
+```
+
+| Name | What it does |
+|---|---|
+| `find_manifest(start=None)` | The nearest manifest from `start` (default: the working directory) upwards, or `None`. In each directory `promptise.toml` wins over a `pyproject.toml` with `[tool.promptise]`. The search stops at the first directory holding `.git`. |
+| `load_manifest(path)` | Read and validate the file and return a `ProjectManifest` (`name`, `version`, `description`, `main`, `agent`, `python_path`, `scripts`, `env`, `dev`, `prod`, `serve`, `pricing`, `path`, `root`). |
+| `ManifestError` | Raised when the file cannot be read, parsed or validated; `problems` lists one line per problem. |
+
 ---
 
 ## `main` and the agent factory

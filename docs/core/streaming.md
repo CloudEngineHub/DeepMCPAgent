@@ -48,6 +48,8 @@ Expected delivery: March 25.
 
 `done` and `error` are always the last event of a run.
 
+Every class derives from `StreamEvent` (`from promptise import StreamEvent`), which carries `type` and `timestamp`; `event.to_dict()` gives a JSON-ready dict, for example to send over Server-Sent Events.
+
 ---
 
 ## What a Streamed Run Does
