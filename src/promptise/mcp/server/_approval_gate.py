@@ -274,7 +274,13 @@ class ElicitationApprover:
 
     Fail-closed: if the transport has no live MCP session (``TestClient``,
     stdio clients without elicitation support), the request is **denied**
-    with a clear reason — never silently allowed.
+    with a clear reason, never silently allowed.
+
+    On a 2026-07-28 connection (no server-to-client requests) the question
+    goes to the client in an ``InputRequiredResult``: the client asks its
+    user and calls the tool again with the answer, and the gate approves or
+    denies that call.  The gate's ``timeout`` does not apply there; the
+    client answers when its user does.
     """
 
     def __init__(self, *, message_template: str | None = None) -> None:
@@ -323,10 +329,11 @@ class ElicitationApprover:
             },
         )
         if not isinstance(answer, dict) or not isinstance(answer.get("approve"), bool):
+            why = elicitor.last_failure or "the client returned an invalid elicitation response"
             return ApprovalDecision(
                 approved=False,
                 reviewer_id="elicitation",
-                reason="client declined or returned an invalid elicitation response",
+                reason=f"no approval from the client: {why}",
             )
         return ApprovalDecision(
             approved=answer["approve"],

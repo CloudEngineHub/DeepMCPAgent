@@ -238,6 +238,16 @@ class MCPServer:
             takes a ``CancellationToken``, the token is set and the handler
             gets this many seconds to stop on its own before its task is
             cancelled.  The client is answered immediately either way.
+        request_state_security: How the ``request_state`` of 2026-07-28
+            input rounds is sealed (mcp 2.x only): an
+            ``mcp.server.request_state.RequestStateSecurity``.  The state
+            carries a tool's earlier elicitation answers back to the server
+            and is encrypted and bound to the tool, its arguments and this
+            server's name.  ``None`` (default) seals it with a key made at
+            startup and held by this process, so a round answered by
+            another worker or after a restart is refused; with several
+            workers or replicas pass ``RequestStateSecurity(keys=[...])``
+            with a shared secret of at least 32 bytes.
     """
 
     def __init__(
@@ -252,7 +262,16 @@ class MCPServer:
         require_tenant: bool = False,
         hide_unauthorized_tools: bool = False,
         cancel_grace_period: float = 5.0,
+        request_state_security: Any = None,
     ) -> None:
+        from .._compat import MCP_V2
+
+        if request_state_security is not None and not MCP_V2:
+            raise ValueError(
+                "request_state_security needs the mcp 2.x SDK (the 2026-07-28 protocol); "
+                "mcp 1.x has no input rounds"
+            )
+        self._request_state_security = request_state_security
         self.name = name
         self.version = version
         self.instructions = instructions
@@ -1047,7 +1066,9 @@ class MCPServer:
                 session, so any worker or replica can answer it.  Stateless
                 servers cannot send requests back to the client: MCP
                 elicitation and sampling (including elicitation approval
-                gates) and per-session state are unavailable.
+                gates) are unavailable to handshake clients, and a tool
+                that takes a ``SessionState`` answers with a
+                ``SESSION_REQUIRED`` error.
 
         Raises:
             ValueError: An unknown or stdio *transport*, ``stateless`` with
@@ -1076,6 +1097,8 @@ class MCPServer:
             "health": self._health_check,
         }
         if transport_type == TransportType.HTTP:
+            # Read by call_tool: per-session state has no session to live in.
+            cast(Any, ll_server).stateless = stateless
             return build_http_app(ll_server, self._lifecycle, stateless=stateless, **common)
         return build_sse_app(
             ll_server, ll_server.create_initialization_options(), self._lifecycle, **common
@@ -1142,10 +1165,32 @@ class MCPServer:
             self._background_drain_registered = True
 
         ll = _LowLevelServer(self.name, version=self.version, instructions=self.instructions)
+        self._install_request_state_boundary(ll)
         self._register_tool_handlers(ll)
         self._register_resource_handlers(ll)
         self._register_prompt_handlers(ll)
         return ll
+
+    def _install_request_state_boundary(self, ll: Any) -> None:
+        """Seal and verify the ``request_state`` of 2026-07-28 input rounds (mcp 2.x).
+
+        The SDK's ``RequestStateBoundary`` encrypts the state an
+        ``InputRequiredResult`` carries and checks it when the client sends
+        it back (expiry, tool, arguments, audience), so a client can only
+        return state this server minted for that very call.
+        """
+        from .._compat import MCP_V2
+
+        if not MCP_V2:
+            return
+        from mcp.server.request_state import RequestStateBoundary, RequestStateSecurity
+
+        if self._request_state_security is None:
+            # One key per server object, so rebuilding the app keeps it.
+            self._request_state_security = RequestStateSecurity.ephemeral()
+        ll.middleware.append(
+            RequestStateBoundary(self._request_state_security, default_audience=self.name)
+        )
 
     def _print_banner(self, *, transport: str, host: str, port: int) -> None:
         """Print the startup banner to stdout."""
@@ -1418,7 +1463,7 @@ class MCPServer:
             return tools
 
         @_sdk.handler(ll, "call_tool", **_sdk.CALL_TOOL_OPTIONS)
-        async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[Any]:
+        async def call_tool(name: str, arguments: dict[str, Any] | None) -> Any:
             note_session(ll)
             tdef = tool_reg.get(name)
             if tdef is None:
@@ -1470,6 +1515,18 @@ class MCPServer:
                 ctx.state["_mcp_session"] = None
             set_context(ctx)
 
+            # 2026-07-28: no session and no server-to-client requests.  An
+            # Elicitor's question ends the call with an InputRequiredResult
+            # and the client calls again with the answer (see _elicitation).
+            from ._elicitation import InputRequired, InputRound, current_round
+
+            modern = _sdk.modern_call(ll)
+            round_token = current_round.set(
+                InputRound(modern.input_responses, modern.request_state, modern.client_capabilities)
+                if modern is not None
+                else None
+            )
+
             di_resolver = DependencyResolver()
             try:
                 # Validate input. A rejected call is not answered here: it
@@ -1504,6 +1561,7 @@ class MCPServer:
                 arguments = inject_context(handler, arguments, ctx)
 
                 # Detect injectable types in resolved args and bind them
+                session_refusal: Exception | None = None
                 from ._background import BackgroundTasks as _BG
                 from ._cancellation import CancellationToken
                 from ._elicitation import Elicitor
@@ -1554,19 +1612,45 @@ class MCPServer:
                             )
                         _val._bind(_mcp_session, _mcp_request_id)
                     elif isinstance(_val, SessionState):
-                        # Populate from SessionManager using MCP session ID
-                        _session_id = ctx.request_id  # fallback
+                        # State lives as long as the client's connection.
+                        # Requests without one (2026-07-28, a stateless
+                        # server) would get a fresh state on every call and
+                        # silently lose what the tool stored: refuse them.
+                        from ._session_state import session_unavailable_error
+
+                        if modern is not None or getattr(ll, "stateless", False):
+                            session_refusal = session_unavailable_error(
+                                name,
+                                modern.protocol_version if modern is not None else None,
+                            )
+                            continue
+                        connection = None
                         try:
                             mcp_ctx = _sdk.request_context(ll)
-                            if hasattr(mcp_ctx, "session"):
-                                _session_id = str(id(_sdk.connection_of(mcp_ctx.session)))
+                            connection = _sdk.connection_of(mcp_ctx.session)
                         except Exception:
-                            logger.debug(
-                                "Error extracting MCP session ID for session state", exc_info=True
-                            )
-                        managed = session_manager.get_or_create(_session_id)
+                            logger.debug("No MCP session for session state", exc_info=True)
+                        managed = (
+                            session_manager.for_connection(connection)
+                            if connection is not None
+                            else session_manager.get_or_create(ctx.request_id)
+                        )
                         _val._data = managed._data
                         ctx.state["_session_state"] = _val
+
+                if session_refusal is not None:
+                    # Answered through the whole middleware chain (auth,
+                    # rate limits, audit) like a rejected input, and an
+                    # approval gate does not ask anyone about it.
+                    from ._validation import PENDING_VALIDATION_ERROR
+
+                    ctx.state[PENDING_VALIDATION_ERROR] = session_refusal
+                    refusal = session_refusal
+
+                    async def _refuse_without_session(**_: Any) -> Any:
+                        raise refusal
+
+                    handler = _refuse_without_session
 
                 # Wrap handler with guard checks (guards run after
                 # middleware so auth middleware can populate roles first)
@@ -1614,6 +1698,9 @@ class MCPServer:
 
                 return serialised
 
+            except InputRequired as question:
+                logger.info("Tool '%s' asked the client for input (2026-07-28 input round)", name)
+                return question.to_result()
             except MCPError as exc:
                 # A handler registered for this MCPError subclass may reshape it
                 mapped = await exception_handlers.handle(ctx, exc)
@@ -1639,6 +1726,7 @@ class MCPServer:
                 )
                 raise _ToolErrorResult(err_text) from None
             finally:
+                current_round.reset(round_token)
                 await di_resolver.cleanup()
                 clear_context()
 

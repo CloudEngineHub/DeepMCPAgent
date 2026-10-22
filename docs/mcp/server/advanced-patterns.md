@@ -556,11 +556,50 @@ if answer is None:
     return {"error": "This action requires confirmation. Please confirm and retry."}
 ```
 
+`elicit.last_failure` says why the last `ask()` returned `None` (for example `"the client did not declare the elicitation capability"` or `"the client answered 'decline'"`), so a tool can tell the user.
+
 ### Configuration
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `timeout` | `60.0` | Seconds to wait for user response |
+| `timeout` | `60.0` | Seconds to wait for user response (handshake connections only) |
+
+### Elicitation on the 2026-07-28 protocol
+
+How `ask()` reaches the client depends on the protocol version the client connected with (on the mcp 2.x SDK; with the 1.x SDK every client uses the handshake):
+
+| Connection | What `ask()` does | Per-session state (`SessionState`) |
+|---|---|---|
+| `initialize` handshake (1.x clients, Promptise's `MCPClient`, 2.x clients with `mode="legacy"`) | Sends `elicitation/create` and waits up to `timeout` for the answer | Kept for the connection |
+| 2026-07-28 (2.x clients by default) | Ends the call with an `InputRequiredResult` holding the question; the client asks its user and calls the tool again with the answer, and the tool runs again from the start, where `ask()` now returns the answer | None: the tool answers `SESSION_REQUIRED` |
+| A stateless server (`asgi_app(stateless=True)`) with a handshake client | No elicitation (no way back to the client): `ask()` returns `None` | None: the tool answers `SESSION_REQUIRED` |
+
+On 2026-07-28, **the tool runs once per question**, so code before `ask()` runs again on every round. Put side effects after the answer:
+
+```python
+@server.tool()
+async def delete_project(project_id: str, elicit: Elicitor = Depends(Elicitor)) -> str:
+    """Delete a project after the user confirms."""
+    project = await load_project(project_id)          # read-only: fine to repeat
+    answer = await elicit.ask(f"Delete {project.name}?", schema=CONFIRM)
+    if not answer or not answer.get("confirm"):
+        return f"Not deleted: {elicit.last_failure or 'not confirmed'}"
+    await really_delete(project_id)                   # runs once, after the answer
+    return "Deleted"
+```
+
+A tool that asks several questions takes one round per question. The answers to earlier questions travel in the result's `request_state`, which the server encrypts and binds to the tool, its arguments and the server's name (the SDK's `RequestStateBoundary`), so a client can only send back state this server minted for that call. By default the key is made at startup and held by the process: a round answered by another worker, or after a restart, is refused with `Invalid or expired requestState`. With several workers or replicas, share a key:
+
+```python
+from mcp.server.request_state import RequestStateSecurity
+
+server = MCPServer(
+    name="deploy-api",
+    request_state_security=RequestStateSecurity(keys=[os.environ["MCP_STATE_KEY"]]),  # 32+ bytes
+)
+```
+
+A client that did not declare the elicitation capability gets no question: `ask()` returns `None` and `last_failure` says why. The [approval gate](../../core/approval.md)'s `ElicitationApprover` works the same way: the client approves in an input round, and a client that can't answer is denied with that reason. `Sampler` is not available on 2026-07-28 (the spec deprecates sampling) and returns `None` with a warning.
 
 ---
 

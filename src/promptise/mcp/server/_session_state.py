@@ -25,12 +25,43 @@ Example::
         session: SessionState = Depends(SessionState),
     ) -> list[str]:
         return session.get("items", [])
+
+State needs a session.  The 2026-07-28 protocol revision has none (every
+request stands alone), and neither has a server served with
+``asgi_app(stateless=True)``: a tool that takes a ``SessionState`` answers
+those requests with a ``SESSION_REQUIRED`` error instead of starting from
+empty state on every call.  Keep the state in your own store, keyed by an
+id the tool returns to the client (``create_cart`` returns a ``cart_id``
+that ``add_item`` takes), to serve such clients.
 """
 
 from __future__ import annotations
 
 import threading
+import weakref
 from typing import Any
+
+from ._errors import ToolError
+
+
+def session_unavailable_error(tool_name: str, protocol_version: str | None) -> ToolError:
+    """The error a ``SessionState`` tool answers with when there is no session."""
+    if protocol_version is not None:
+        why = (
+            f"this request uses MCP protocol {protocol_version}, which has no sessions "
+            "(each request stands alone)"
+        )
+        fix = (
+            "Connect with the initialize handshake (mode='legacy' in the MCP Python SDK) to use it"
+        )
+    else:
+        why = "this server is stateless (asgi_app(stateless=True)), so no request has a session"
+        fix = "Serve it with sessions to use it"
+    return ToolError(
+        f"Tool {tool_name!r} keeps per-session state, but {why}. {fix}.",
+        code="SESSION_REQUIRED",
+        details={"tool": tool_name, "protocol_version": protocol_version},
+    )
 
 
 class SessionState:
@@ -92,6 +123,9 @@ class SessionManager:
 
     def __init__(self) -> None:
         self._sessions: dict[str, SessionState] = {}
+        self._by_connection: weakref.WeakKeyDictionary[Any, SessionState] = (
+            weakref.WeakKeyDictionary()
+        )
         self._lock = threading.Lock()
 
     def get_or_create(self, session_id: str) -> SessionState:
@@ -101,6 +135,18 @@ class SessionManager:
                 self._sessions[session_id] = SessionState()
             return self._sessions[session_id]
 
+    def for_connection(self, connection: Any) -> SessionState:
+        """Get or create the state of one client connection.
+
+        Held as long as the connection object lives, and dropped with it,
+        so a later connection never receives an earlier one's state.
+        """
+        with self._lock:
+            state = self._by_connection.get(connection)
+            if state is None:
+                state = self._by_connection[connection] = SessionState()
+            return state
+
     def remove(self, session_id: str) -> None:
         """Remove a session's state (called on disconnect)."""
         with self._lock:
@@ -109,4 +155,4 @@ class SessionManager:
     @property
     def active_sessions(self) -> int:
         """Number of active sessions."""
-        return len(self._sessions)
+        return len(self._sessions) + len(self._by_connection)

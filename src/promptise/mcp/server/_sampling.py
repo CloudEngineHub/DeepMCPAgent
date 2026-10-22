@@ -33,8 +33,9 @@ class Sampler:
     """Request LLM completions from the client.
 
     Bound to the MCP session by the framework's DI wiring.
-    If the client does not support sampling, methods return
-    ``None`` silently.
+    If the client does not support sampling, methods return ``None``
+    (and log a warning).  On a 2026-07-28 connection, which has no
+    server-to-client requests, they always return ``None``.
     """
 
     def __init__(self) -> None:
@@ -70,6 +71,16 @@ class Sampler:
             Generated text, or ``None`` if unavailable.
         """
         if self._session is None:
+            return None
+        from ._elicitation import current_round
+
+        if current_round.get() is not None:
+            # 2026-07-28 has no server-to-client requests, and Promptise does
+            # not send sampling as an input round (the spec deprecates it).
+            logger.warning(
+                "Sampling is not available on a 2026-07-28 connection (no server-to-client "
+                "requests); returning None"
+            )
             return None
 
         try:

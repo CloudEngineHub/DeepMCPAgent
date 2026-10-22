@@ -27,8 +27,10 @@ from .._compat import MCP_V2
 
 __all__ = [
     "CALL_TOOL_OPTIONS",
+    "ModernCall",
     "connection_of",
     "handler",
+    "modern_call",
     "progress_token",
     "request_context",
 ]
@@ -37,6 +39,69 @@ _F = TypeVar("_F", bound=Callable[..., Awaitable[Any]])
 
 # The 2.x request context of the request being handled (1.x keeps its own).
 _request_ctx: contextvars.ContextVar[Any] = contextvars.ContextVar("promptise_mcp_request_ctx")
+# The 2.x ``tools/call`` params being handled (for the multi round-trip fields).
+_call_params: contextvars.ContextVar[Any] = contextvars.ContextVar("promptise_mcp_call_params")
+
+
+class ModernCall:
+    """A ``tools/call`` on a 2026-07-28 (or later) connection.
+
+    That protocol revision has no session and no server-to-client
+    requests: a server that needs input from the client (elicitation)
+    answers with an ``InputRequiredResult``, and the client sends the same
+    call again with the answers (``input_responses``) and the server's
+    ``request_state``.
+
+    Attributes:
+        protocol_version: The negotiated protocol version.
+        input_responses: The client's answers to the previous round's
+            input requests, keyed as the server asked (``{}`` on the first
+            round).
+        request_state: The ``request_state`` of the previous round, as the
+            server minted it (``None`` on the first round).
+        client_capabilities: The capabilities the request declared.
+    """
+
+    __slots__ = ("client_capabilities", "input_responses", "protocol_version", "request_state")
+
+    def __init__(
+        self,
+        protocol_version: str,
+        input_responses: dict[str, Any],
+        request_state: str | None,
+        client_capabilities: Any,
+    ) -> None:
+        self.protocol_version = protocol_version
+        self.input_responses = input_responses
+        self.request_state = request_state
+        self.client_capabilities = client_capabilities
+
+
+def modern_call(ll: Any) -> ModernCall | None:
+    """The :class:`ModernCall` being handled, or ``None`` on a handshake connection.
+
+    Always ``None`` with the 1.x SDK, which speaks only the handshake
+    protocol revisions.
+    """
+    if not MCP_V2:
+        return None
+    try:
+        ctx = _request_ctx.get()
+    except LookupError:
+        return None
+    session = getattr(ctx, "session", None)
+    version = getattr(session, "protocol_version", None)
+    from mcp_types.version import MODERN_PROTOCOL_VERSIONS
+
+    if version not in MODERN_PROTOCOL_VERSIONS:
+        return None
+    params = _call_params.get(None)
+    return ModernCall(
+        version,
+        dict(getattr(params, "input_responses", None) or {}),
+        getattr(params, "request_state", None),
+        getattr(session, "client_capabilities", None),
+    )
 
 
 def _call_tool_options() -> dict[str, Any]:
@@ -150,6 +215,7 @@ def _call_tool_adapter(ll: Any, func: Callable[..., Awaitable[Any]]) -> None:
     from mcp import types
 
     async def handle(ctx: Any, params: Any) -> Any:
+        token = _call_params.set(params)
         try:
             result = await _in_context(ctx, func(params.name, params.arguments or {}))
         except Exception as exc:
@@ -158,7 +224,9 @@ def _call_tool_adapter(ll: Any, func: Callable[..., Awaitable[Any]]) -> None:
             return types.CallToolResult.model_validate(
                 {"content": [types.TextContent(type="text", text=str(exc))], "isError": True}
             )
-        if isinstance(result, types.CallToolResult):
+        finally:
+            _call_params.reset(token)
+        if isinstance(result, (types.CallToolResult, types.InputRequiredResult)):  # type: ignore[attr-defined,unused-ignore]
             return result
         return types.CallToolResult.model_validate({"content": list(result), "isError": False})
 

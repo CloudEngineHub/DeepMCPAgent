@@ -716,8 +716,8 @@ class TestMcp2Client:
 
     @pytest.mark.parametrize("mode", ["auto", "legacy"])
     async def test_elicitation_approval_with_a_modern_client(self, mode):
-        """At 2026-07-28 the server can't ask the client, so a gated call is
-        denied (fail closed); with the handshake the client approves it."""
+        """With the handshake the server asks the client mid-call; at
+        2026-07-28 it asks in an input round. Either way the client approves."""
         from mcp.client import Client
         from mcp.types import ElicitResult
 
@@ -742,11 +742,8 @@ class TestMcp2Client:
                 result = await asyncio.wait_for(
                     client.call_tool("refund", {"order_id": "o1"}), TIMEOUT
                 )
-        if mode == "legacy":
-            assert _text(result) == "refunded o1"
-        else:
-            assert version == "2026-07-28"
-            assert result.is_error is True and "refunded" not in _text(result)
+        assert version == ("2025-11-25" if mode == "legacy" else "2026-07-28")
+        assert _text(result) == "refunded o1"
 
     async def test_legacy_mode_still_uses_the_handshake(self):
         from mcp.client import Client
