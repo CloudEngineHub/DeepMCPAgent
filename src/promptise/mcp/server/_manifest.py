@@ -149,13 +149,17 @@ def register_manifest(server: Any) -> None:
     from ._decorators import build_resource_def
 
     async def manifest_handler() -> str:
-        if not getattr(server, "_hide_unauthorized_tools", False):
+        hide = getattr(server, "_hide_unauthorized_tools", False)
+        if not hide and not getattr(server, "_transforms", None):
             return json.dumps(build_manifest(server), indent=2, default=str)
         # Same per-caller view as tools/list, resources/list and prompts/list.
         from ._context import get_context
         from ._visibility import visible_tools
 
         ctx = get_context()
+        if not hide:
+            manifest = build_manifest(server, await server._listed_tools(ctx.meta))
+            return json.dumps(manifest, indent=2, default=str)
 
         async def visible(definitions: list[Any], kind: str) -> list[Any]:
             return await visible_tools(
@@ -169,7 +173,7 @@ def register_manifest(server: Any) -> None:
         registry = server._resource_registry
         manifest = build_manifest(
             server,
-            await visible(server._tool_registry.list_all(), "tool"),
+            await server._listed_tools(ctx.meta),
             resources=await visible(registry.list_all(), "resource"),
             resource_templates=await visible(registry.list_templates(), "resource"),
             prompts=await visible(server._prompt_registry.list_all(), "prompt"),

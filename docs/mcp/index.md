@@ -91,7 +91,7 @@ graph LR
 | 5a | [Caching & Performance](server/caching-performance.md) | `@cached`, `InMemoryCache`, `RedisCache`, rate limiting, concurrency, timeouts |
 | 5b | [Observability & Monitoring](server/observability.md) | Metrics, OTel, Prometheus, structured logging, audit trails, dashboard |
 | 5c | [Resilience Patterns](server/resilience-patterns.md) | Circuit breaker, health checks, webhooks, background tasks, cancellation |
-| 5d | [Advanced Patterns](server/advanced-patterns.md) | Versioning, per-caller tool lists, composition, batch, streaming, elicitation, sampling |
+| 5d | [Advanced Patterns](server/advanced-patterns.md) | Versioning, transforms, per-caller tool lists, composition, batch, streaming, elicitation, sampling |
 | 6 | [Deployment](server/deployment.md) | HTTP transport, CORS, reverse proxy, Docker, CLI serve, hot reload |
 | 7 | [Testing](server/testing.md) | Test servers in-process with `TestClient`: no transport needed |
 
@@ -182,6 +182,8 @@ Build MCP servers with the patterns you know from web frameworks:
 | **Redis cache** | `RedisCache` distributed cache backend for multi-instance deployments |
 | **OpenAPI** | `promptise mcpcast` generates a curated server from an OpenAPI/Swagger spec ([MCPcast](server/mcpcast.md)); `OpenAPIProvider` registers one tool per operation at startup ([OpenAPI bridge](server/advanced-patterns.md#openapi-bridge)) |
 | **Server composition** | `mount()` composes child servers into a gateway with prefixed tools |
+| **Tool versioning** | `@server.tool(version="2.0")` serves each version under a pinned name (`search_v2_0`) and the bare name as the latest |
+| **Tool transforms** | `server.add_transform(...)` prefixes, filters or rewrites the tool list per caller (`NamespaceTransform`, `TagFilterTransform`, `VisibilityTransform`) |
 | **Hot reload** | `hot_reload()` watches files and restarts the server during development |
 | **CLI serve** | `promptise serve module:server` runs servers from the command line |
 | **Asymmetric JWT** | `AsymmetricJWTAuth` for RS256/ES256 JWT verification |
@@ -235,7 +237,7 @@ Connect to one or many MCP servers with authentication and LangChain integration
 | Rate limit agents | `RateLimitMiddleware` + `TokenBucketLimiter` ([Caching & Performance](server/caching-performance.md)) |
 | Add metrics, tracing, audit logs | `MetricsMiddleware`, `OTelMiddleware`, `AuditMiddleware` ([Observability](server/observability.md)) |
 | Protect against downstream failures | `CircuitBreakerMiddleware` + `HealthCheck` ([Resilience](server/resilience-patterns.md)) |
-| Version tools or compose servers | New tool names, `mount()` ([Advanced Patterns](server/advanced-patterns.md)) |
+| Version tools or compose servers | `@server.tool(version=...)`, `server.add_transform(...)`, `mount()` ([Advanced Patterns](server/advanced-patterns.md)) |
 | Generate a safe, curated server from an OpenAPI spec | `promptise mcpcast` ([MCPcast](server/mcpcast.md), [step-by-step guide](../guides/mcpcast-existing-api.md), [recipes](server/mcpcast-recipes.md)) |
 | Deploy with HTTP, CORS, Docker | Transport config + `CORSConfig` ([Deployment](server/deployment.md)) |
 | Test my server without HTTP | `TestClient` ([Testing](server/testing.md)) |

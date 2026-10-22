@@ -13,9 +13,9 @@ Patterns for evolving, composing, and extending MCP servers: tool versioning for
 
 You ship `search` to production and agents depend on its arguments. Now you want to add a `filters` parameter without breaking the agents that use the old shape.
 
-### What works in 1.6.0
+### `@server.tool(version=...)`
 
-`MCPServer` serves one tool per name: `@server.tool()` has no `version` parameter. Ship a new version under its own name and keep the old one until its callers move:
+Register each version of the tool with `version=`. Every version is served under a pinned name, `search_v1_0` and `search_v2_0`, and the bare name `search` runs the highest version:
 
 ```python
 from promptise.mcp.server import MCPServer
@@ -24,20 +24,32 @@ server = MCPServer(name="search-api")
 
 DOCS = [{"id": 1, "title": "Refund policy", "score": 0.9}, {"id": 2, "title": "Shipping", "score": 0.4}]
 
-@server.tool(name="search_v1", description="Full-text search (v1, kept for older agents).")
-async def search_v1(query: str) -> list[dict]:
+@server.tool(version="1.0")
+async def search(query: str) -> list[dict]:
+    """Full-text search."""
     return [d for d in DOCS if query.lower() in d["title"].lower()]
 
-@server.tool(description="Full-text search with an optional minimum score.")
+@server.tool(version="2.0")
 async def search(query: str, min_score: float = 0.0) -> list[dict]:
+    """Full-text search with an optional minimum score."""
     return [d for d in DOCS if query.lower() in d["title"].lower() and d["score"] >= min_score]
+
+# tools/list: search (runs 2.0), search_v1_0, search_v2_0
 ```
 
-New optional parameters with defaults (like `min_score` above) are backwards compatible on their own: an agent that doesn't send them gets the old behaviour.
+An agent that binds to `search_v1_0` keeps the old contract when you ship `3.0`; agents that use `search` move to each new version. How it behaves:
+
+- **Pinned names** are `<name>_v<version>`, with every run of characters other than letters and digits replaced by `_` (`"2.1-beta"` gives `search_v2_1_beta`). They use only characters LLM providers accept in function names, so agents can call them. MCP has no per-tool version field, so the version lives in the name.
+- **The bare name** is a copy of the highest version: same description, schema, guards and settings. Versions are compared numerically per dot-separated part: `"2.0"` > `"1.0"`, `"1.10"` > `"1.9"` (a non-numeric part counts as 0), not by registration order.
+- **Each version is its own tool**: its own input schema and validation, `auth`, `roles`, `rate_limit` and other options, as given on its decorator.
+- **Every registration of a versioned name needs `version=`.** Registering the same version twice, a version next to an unversioned tool of the same name (in either order), or a version with no letter or digit raises `ValueError`.
+- **Routers**: `@router.tool(version=...)` works the same; the router's prefix applies to all names (`billing_charge`, `billing_charge_v1_0`).
+
+New optional parameters with defaults (like `min_score` above) are backwards compatible on their own: an agent that doesn't send them gets the old behaviour, so a version is only needed for a breaking change (a renamed or removed parameter, a different result shape).
 
 ### `VersionedToolRegistry`
 
-`VersionedToolRegistry` is a standalone helper for code that keeps several `ToolDef` versions under one base name, for example a gateway that builds its own tool list. The server does not consult it: registering a `ToolDef` here does not serve it.
+`VersionedToolRegistry` is the registry behind `version=` (`server._tool_versions`). It also works on its own for code that keeps several `ToolDef` versions under one base name, for example a gateway that builds its own tool list, and resolves `name@version` there:
 
 ```python
 from promptise.mcp.server import VersionedToolRegistry, ToolDef
@@ -45,8 +57,8 @@ from promptise.mcp.server import VersionedToolRegistry, ToolDef
 async def handler(query: str) -> list:
     return []
 
-v1 = ToolDef(name="search@1.0", description="v1", handler=handler, input_schema={"type": "object"})
-v2 = ToolDef(name="search@2.0", description="v2", handler=handler, input_schema={"type": "object"})
+v1 = ToolDef(name="search_v1_0", description="v1", handler=handler, input_schema={"type": "object"})
+v2 = ToolDef(name="search_v2_0", description="v2", handler=handler, input_schema={"type": "object"})
 
 vr = VersionedToolRegistry()
 vr.register("search", "1.0", v1)
@@ -59,7 +71,7 @@ print(vr.has("search"))                  # True
 print(len(vr.list_all()))                # 2: every registered version
 ```
 
-Versions are compared numerically per dot-separated part: `"2.0"` > `"1.0"`, `"1.10"` > `"1.9"` (a non-numeric part counts as 0). Registering the same version twice raises `ValueError`; `get()` returns `None` for an unknown name or version.
+Registering the same version twice raises `ValueError`; `get()` returns `None` for an unknown name or version. Registering a `ToolDef` in a registry you created yourself does not serve it; use `@server.tool(version=...)` for that.
 
 ---
 
@@ -67,63 +79,69 @@ Versions are compared numerically per dot-separated part: `"2.0"` > `"1.0"`, `"1
 
 ### When you need it
 
-You want different agents to discover different tools: prefixed names, hidden admin tools, only public tools.
+You want different agents to discover different tools: prefixed names, hidden admin tools, only public tools, descriptions rewritten for one audience.
 
-### What works in 1.6.0
+### `server.add_transform()`
 
-`MCPServer` has no transform hook (there is no `server.add_transform()`). Use these server features instead:
-
-| Goal | Use |
-|------|-----|
-| Prefix tool names | `MCPRouter(prefix="analytics")` or `mount(gateway, child, prefix="analytics")` |
-| Hide tools a caller can't use | Guards or `roles=` on the tools, plus `MCPServer(hide_unauthorized_tools=True)`: `tools/list` is filtered per caller and the guards still block calls |
-| Expose only a subset to one audience | A separate `MCPServer` (or gateway) that mounts or includes only those routers |
+A transform changes the tool list clients discover. `server.add_transform(transform)` adds one; transforms run in the order they were added, on every `tools/list` and on the `docs://manifest` resource, each on the output of the previous one (after `hide_unauthorized_tools` filtering).
 
 ```python
-from promptise.mcp.server import MCPServer, MCPRouter, AuthMiddleware, APIKeyAuth
+from promptise.mcp.server import MCPServer, NamespaceTransform, TagFilterTransform
 
-server = MCPServer(name="admin-api", hide_unauthorized_tools=True)
-server.add_middleware(AuthMiddleware(APIKeyAuth({
-    "sk-admin": {"client_id": "ops", "roles": ["admin"]},
-    "sk-view": {"client_id": "viewer", "roles": ["viewer"]},
-})))
+server = MCPServer(name="analytics")
 
-users = MCPRouter(prefix="users")
+@server.tool(tags=["public"])
+async def query(sql: str) -> list[dict]:
+    """Run a read-only query."""
+    return []
 
-@users.tool(auth=True)
-async def list_all() -> list[str]:
-    """List all users."""
-    return ["alice", "bob"]
+@server.tool(tags=["admin"], roles=["admin"])
+async def reset() -> str:
+    """Reset the warehouse."""
+    return "reset"
 
-@users.tool(roles=["admin"], destructive_hint=True)
-async def delete(user_id: str) -> dict:
-    """Delete a user permanently."""
-    return {"deleted": user_id}
-
-server.include_router(users)
-# The viewer key lists users_list_all only; the admin key also sees users_delete.
+server.add_transform(TagFilterTransform(required_tags={"public"}))
+server.add_transform(NamespaceTransform(prefix="analytics"))
+# tools/list: analytics_query
 ```
 
-### Transform classes
+| Transform | What it does |
+|-----------|--------------|
+| `NamespaceTransform(prefix)` | Lists every tool as `<prefix>_<name>`. A call by the prefixed name runs the tool; the registered name keeps working too. |
+| `TagFilterTransform(required_tags)` | Lists only tools with at least one of the tags. |
+| `VisibilityTransform(hidden={name: predicate})` | Leaves out a tool when `predicate(ctx)` returns true. A predicate that raises hides its tool. |
 
-`NamespaceTransform(prefix)`, `VisibilityTransform(hidden=None)` and `TagFilterTransform(required_tags)` implement the `ToolTransform` protocol, `apply(tools: list[ToolDef], ctx: RequestContext | None = None) -> list[ToolDef]`. They are standalone helpers for code that works with `ToolDef` lists (a custom gateway, a manifest, tests); the server does not apply them.
+Each transform receives the listing request's context. When the server has an `AuthMiddleware`, the context is authenticated from the request's headers first, so `ctx.client_id`, `ctx.client` and `ctx.state["roles"]` describe the caller (they are empty for a caller whose credentials don't verify):
 
 ```python
-from promptise.mcp.server import ToolDef, NamespaceTransform, VisibilityTransform, TagFilterTransform
+from promptise.mcp.server import APIKeyAuth, AuthMiddleware, VisibilityTransform
 
-async def noop() -> str:
-    return "ok"
-
-tools = [
-    ToolDef(name="query", description="Run a query", handler=noop, input_schema={}, tags=["public"]),
-    ToolDef(name="reset", description="Reset data", handler=noop, input_schema={}, tags=["admin"]),
-]
-
-public = TagFilterTransform(required_tags={"public"}).apply(tools)          # tools with any of the tags
-visible = VisibilityTransform(hidden={"reset": lambda ctx: True}).apply(tools)  # drop when predicate is true
-named = NamespaceTransform(prefix="analytics").apply(public)                 # "analytics_query"
-print([t.name for t in named], [t.name for t in visible])
+server.add_middleware(AuthMiddleware(APIKeyAuth({"sk-ops": "ops", "sk-bi": "bi-team"})))
+server.add_transform(VisibilityTransform(hidden={"analytics_reset": lambda ctx: ctx.client_id != "ops"}))
 ```
+
+!!! warning "Transforms change discovery, not access"
+    A tool a transform leaves out can still be called by its name: a client with an old tool list, or one that guesses the name, reaches it. Put access decisions in guards (`roles=`, `guards=`), as `reset` above does with `roles=["admin"]`, and use transforms to keep each caller's list short and relevant. `MCPServer(hide_unauthorized_tools=True)` lists only the tools a caller's guards allow, without a transform.
+
+### Writing a transform
+
+A transform is any object with `apply(tools: list[ToolDef], ctx: RequestContext | None = None) -> list[ToolDef]` (the `ToolTransform` protocol); `apply` may be `async`. Return copies made with `dataclasses.replace`, never change the definitions you receive. A transform that renames tools also defines `resolve_name(name) -> str | None`, which returns the registered name for a listed one (or `None` when the name is not one of its renamings), so that calls by the listed name reach the tool:
+
+```python
+from dataclasses import replace
+
+from promptise.mcp.server import RequestContext, ToolDef
+
+class AudienceNote:
+    """Add a note for one audience to every description."""
+
+    def apply(self, tools: list[ToolDef], ctx: RequestContext | None = None) -> list[ToolDef]:
+        return [replace(t, description=f"{t.description} Results are in EUR.") for t in tools]
+
+server.add_transform(AudienceNote())
+```
+
+The transform classes also work on their own, on any `ToolDef` list (a custom gateway, tests): `TagFilterTransform(required_tags={"public"}).apply(tools)`.
 
 ---
 
@@ -800,8 +818,10 @@ The current directory is put on `sys.path`, so `promptise serve server:server` f
 
 | Symbol | Type | Description |
 |--------|------|-------------|
-| `VersionedToolRegistry` | Class | Standalone helper: several `ToolDef` versions per name (not used by the server) |
-| `ToolTransform` | Protocol | `apply(tools, ctx=None) -> list[ToolDef]` (not applied by the server) |
+| `@server.tool(version=...)` | Decorator option | Several versions of a tool: pinned names `<name>_v<version>`, the bare name runs the latest |
+| `server.add_transform(transform)` | Method | Apply a transform to `tools/list` and the manifest |
+| `VersionedToolRegistry` | Class | Versions of tools under one base name (`get("name@version")`) |
+| `ToolTransform` | Protocol | `apply(tools, ctx=None) -> list[ToolDef]`, optional `resolve_name(name)` |
 | `NamespaceTransform(prefix)` | Class | Prefix tool names in a `ToolDef` list |
 | `VisibilityTransform(hidden)` | Class | Drop tools whose predicate returns true |
 | `TagFilterTransform(required_tags)` | Class | Keep tools with at least one of the tags |

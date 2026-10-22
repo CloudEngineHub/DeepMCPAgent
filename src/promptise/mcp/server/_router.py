@@ -75,6 +75,9 @@ class MCPRouter:
         self._resource_registry = ResourceRegistry()
         self._prompt_registry = PromptRegistry()
         self._input_models: dict[str, type] = {}
+        from ._versioning import VersionedToolRegistry
+
+        self._tool_versions = VersionedToolRegistry()
         self._sub_routers: list[tuple[MCPRouter, RouterConfig]] = []
 
     def tool(
@@ -100,8 +103,15 @@ class MCPRouter:
         requires_approval: bool = False,
         # Opt out of CacheMiddleware
         cache: bool = True,
+        # Several versions under one name
+        version: str | None = None,
     ) -> Callable[..., Any]:
-        """Register a tool (same signature as ``MCPServer.tool()``)."""
+        """Register a tool (same signature as ``MCPServer.tool()``).
+
+        With ``version=``, the pinned and bare names get the router's
+        prefix when it is included: ``billing_charge_v1_0`` and
+        ``billing_charge``.
+        """
         all_guards = list(guards or [])
         if roles:
             from ._guards import HasRole
@@ -147,9 +157,14 @@ class MCPRouter:
                 requires_approval=requires_approval,
                 cache=cache,
             )
-            self._tool_registry.register(tool_def)
             excluded = _excluded_params(func)
             model, _ = build_input_model(func, exclude=excluded)
+            if version is not None:
+                from ._versioning import register_tool_version
+
+                register_tool_version(self, tool_def.name, version, tool_def, model)
+                return func
+            self._tool_registry.register(tool_def)
             self._input_models[tool_def.name] = model
             return func
 
@@ -365,6 +380,22 @@ def _merge_router(
         # Copy input model under new name
         if tdef.name in router._input_models:
             server._input_models[prefixed_name] = router._input_models[tdef.name]
+
+    # Versioned tools keep their versions under the prefixed base name, so
+    # the server can tell a versioned name from a plain one.
+    server_versions = getattr(server, "_tool_versions", None)
+    if server_versions is not None:
+        for base_name in router._tool_versions.names():
+            prefixed_base = f"{resolved_prefix}_{base_name}" if resolved_prefix else base_name
+            for version in router._tool_versions.list_versions(base_name):
+                pinned = router._tool_versions.get(f"{base_name}@{version}")
+                assert pinned is not None
+                prefixed_pinned = (
+                    f"{resolved_prefix}_{pinned.name}" if resolved_prefix else pinned.name
+                )
+                merged = server._tool_registry.get(prefixed_pinned)
+                if merged is not None:
+                    server_versions.register(prefixed_base, version, merged)
 
     # Resources and prompts get the router's auth, guards, middleware and
     # tags exactly like tools.  URIs and prompt names are not prefixed.

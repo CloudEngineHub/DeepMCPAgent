@@ -319,6 +319,13 @@ class MCPServer:
         # Pydantic models for input validation, keyed by tool name
         self._input_models: dict[str, type] = {}
 
+        # Versions of @server.tool(version=...) tools, and the transforms
+        # applied to tools/list (add_transform)
+        from ._versioning import VersionedToolRegistry
+
+        self._tool_versions = VersionedToolRegistry()
+        self._transforms: list[Any] = []
+
         # Auto-register manifest resource
         self._auto_manifest = auto_manifest
 
@@ -361,6 +368,8 @@ class MCPServer:
         requires_approval: bool = False,
         # Opt out of CacheMiddleware
         cache: bool = True,
+        # Several versions under one name
+        version: str | None = None,
     ) -> Callable[..., Any]:
         """Register a function as an MCP tool.
 
@@ -398,6 +407,14 @@ class MCPServer:
                 caching this tool's results (use it for tools that change
                 data or must always be fresh).  Tools annotated
                 ``destructive_hint=True`` are never cached either.
+            version: Register this function as one version of the tool
+                (``"1.0"``, ``"2.1"``).  Each version is served under a
+                pinned name, ``search_v1_0`` (characters other than
+                letters and digits become ``_``), and the bare name runs
+                the highest version (compared numerically per
+                dot-separated part).  Every registration of a versioned
+                name needs a version; registering a version twice raises
+                ``ValueError``.
 
         Example::
 
@@ -456,13 +473,18 @@ class MCPServer:
                 requires_approval=requires_approval,
                 cache=cache,
             )
-            self._tool_registry.register(tool_def)
-
             # Pre-build the Pydantic model for validation
             excluded = _excluded_params_for(func)
             model, _ = build_input_model(func, exclude=excluded)
-            self._input_models[tool_def.name] = model
 
+            if version is not None:
+                from ._versioning import register_tool_version
+
+                register_tool_version(self, tool_def.name, version, tool_def, model)
+                return func
+
+            self._tool_registry.register(tool_def)
+            self._input_models[tool_def.name] = model
             return func
 
         return decorator
@@ -625,6 +647,63 @@ class MCPServer:
             return func
 
         return decorator
+
+    # ------------------------------------------------------------------
+    # Tool transforms
+    # ------------------------------------------------------------------
+
+    def add_transform(self, transform: Any) -> None:
+        """Add a transform to the tool list clients discover.
+
+        Transforms (``NamespaceTransform``, ``VisibilityTransform``,
+        ``TagFilterTransform`` or your own ``ToolTransform``) run in the
+        order they were added on every ``tools/list`` and on the
+        ``docs://manifest`` resource, after ``hide_unauthorized_tools``
+        filtering.  Each receives the listing request's context,
+        authenticated with the server's ``AuthMiddleware`` when there is
+        one.
+
+        They change discovery only: a hidden tool can still be called by
+        its name (use guards to refuse calls), and a renamed tool is called
+        by its listed name through the transform's ``resolve_name()``.
+        """
+        if not callable(getattr(transform, "apply", None)):
+            raise TypeError(
+                f"{type(transform).__name__} is not a tool transform: it has no apply() method"
+            )
+        self._transforms.append(transform)
+        self._on_registry_change("tools")
+
+    async def _listed_tools(self, meta: dict[str, Any]) -> list[Any]:
+        """The tool definitions ``tools/list`` shows the caller with headers *meta*."""
+        tdefs = self._tool_registry.list_all()
+        if self._hide_unauthorized_tools:
+            from ._visibility import visible_tools
+
+            tdefs = await visible_tools(tdefs, self._middlewares, server_name=self.name, meta=meta)
+        if self._transforms:
+            from ._transforms import apply_transforms
+
+            tdefs = await apply_transforms(
+                self._transforms,
+                tdefs,
+                server_name=self.name,
+                middlewares=self._middlewares,
+                meta=meta,
+            )
+        return tdefs
+
+    def _resolve_tool(self, name: str) -> Any:
+        """The registered ``ToolDef`` a call to *name* runs (a listed name of a renamed tool too)."""
+        if self._transforms:
+            from ._transforms import resolve_transformed_name
+
+            resolved = resolve_transformed_name(self._transforms, name)
+            if resolved != name:
+                tdef = self._tool_registry.get(resolved)
+                if tdef is not None:
+                    return tdef
+        return self._tool_registry.get(name)
 
     # ------------------------------------------------------------------
     # Middleware
@@ -1429,18 +1508,13 @@ class MCPServer:
         _default_chain = compile_middleware_chain(list(middlewares))
 
         note_session = self._note_session
-        hide_unauthorized = self._hide_unauthorized_tools
+        listed_tools = self._listed_tools
+        resolve_tool = self._resolve_tool
 
         @_sdk.handler(ll, "list_tools")
         async def list_tools() -> list[Tool]:
             note_session(ll)
-            tdefs = tool_reg.list_all()
-            if hide_unauthorized:
-                from ._visibility import visible_tools
-
-                tdefs = await visible_tools(
-                    tdefs, middlewares, server_name=server_name, meta=_request_headers(ll)
-                )
+            tdefs = await listed_tools(_request_headers(ll))
             tools: list[Tool] = []
             for tdef in tdefs:
                 # Build MCP ToolAnnotations from our ToolAnnotations
@@ -1466,7 +1540,7 @@ class MCPServer:
         @_sdk.handler(ll, "call_tool", **_sdk.CALL_TOOL_OPTIONS)
         async def call_tool(name: str, arguments: dict[str, Any] | None) -> Any:
             note_session(ll)
-            tdef = tool_reg.get(name)
+            tdef = resolve_tool(name)
             if tdef is None:
                 raise _ToolErrorResult(
                     json.dumps(
@@ -1478,6 +1552,9 @@ class MCPServer:
                         }
                     )
                 )
+            # A listed name of a tool renamed by a transform runs as the
+            # registered tool: its validation model, chain and audit name.
+            name = tdef.name
 
             arguments = arguments or {}
 
