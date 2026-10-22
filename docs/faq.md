@@ -1,5 +1,5 @@
 ---
-title: Promptise Foundry FAQ — Production Python framework for AI agents and MCP
+title: "Promptise Foundry FAQ: Python framework for AI agents and MCP"
 seo_title: "Promptise Foundry FAQ: Agents and MCP"
 description: "Answers about Promptise Foundry: what it is, how it compares to LangChain, LangGraph and CrewAI, models, MCP, the agent runtime, security and operations."
 keywords: Promptise Foundry FAQ, Python AI agent framework, MCP server framework, LangChain alternative, LangGraph alternative, CrewAI alternative, agentic AI, autonomous agents, Model Context Protocol

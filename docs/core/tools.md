@@ -1,6 +1,6 @@
 ---
 seo_title: "Tools: @tool Functions, MCP Tool Discovery and Schemas"
-description: "Give a Promptise agent a Python function as a tool with @tool: schema from type hints and docstrings, validation, CallerContext, ToolError and timeouts. Plus how MCP tools are discovered and converted."
+description: "Give a Promptise agent Python functions as tools with @tool: schemas from type hints and docstrings, validation, CallerContext, ToolError, MCP tool discovery."
 ---
 
 # Tools

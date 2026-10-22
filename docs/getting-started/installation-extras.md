@@ -1,7 +1,7 @@
 ---
 title: Install Promptise Foundry with pip and optional extras
 seo_title: "Install Promptise with pip: Optional Extras"
-description: "Install Promptise Foundry with pip: what the base install includes, what the all, sandbox, tool-optimization and identity extras add, MCP SDK versions, air-gapped installs."
+description: "Install Promptise Foundry with pip: the base install, the all, sandbox, tool-optimization and identity extras, MCP SDK versions and air-gapped installs."
 keywords: install promptise, pip install promptise, Promptise Foundry install, Python AI agent install
 ---
 

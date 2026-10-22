@@ -1,5 +1,5 @@
 ---
-title: Models & Providers — configure any LLM for a Promptise agent (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, self-hosted)
+title: "Models & Providers: configure any LLM for a Promptise agent (Azure AI Foundry, OpenAI, Bedrock, Gemini, Ollama, self-hosted)"
 seo_title: "LLM Providers: OpenAI, Azure, Bedrock, Ollama"
 description: "Configure the LLM an agent runs on: model strings, the Model object, Azure AI Foundry, each provider's env variables, self-hosted endpoints and failover."
 keywords: build_agent model, Azure AI Foundry agent Python, Azure OpenAI deployment LangChain, Bedrock agent, Gemini agent, Ollama agent, vLLM agent, model agnostic agent framework, FallbackChain

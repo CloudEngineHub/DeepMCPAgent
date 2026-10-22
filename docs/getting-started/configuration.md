@@ -1,5 +1,5 @@
 ---
-title: Configuration & Secrets — where API keys live in Promptise Foundry
+title: "Configuration & Secrets: where API keys live in Promptise Foundry"
 seo_title: "Where to Put LLM API Keys: .env and Secrets"
 description: "Where to keep LLM API keys: a .env file loaded automatically, environment variables, Model(...) in code or a .superagent file, and which one wins."
 keywords: Promptise API key, where to put OpenAI API key Python, .env file AI agent, Azure OpenAI key configuration, secrets management AI agent, environment variables LLM
