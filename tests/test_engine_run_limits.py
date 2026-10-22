@@ -104,6 +104,26 @@ async def test_max_agent_iterations_allows_exactly_n_model_calls(n: int) -> None
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("n", [16, 30, 40])
+async def test_max_agent_iterations_above_the_old_node_limits(n: int) -> None:
+    """The default ReAct node (15) and the engine's per-node ceiling (25)
+    stopped a run before ``max_agent_iterations`` calls."""
+    next_page, calls = _pager_tool()
+    model = Pager(turns=[])
+    agent = await build_agent(
+        servers={}, model=model, extra_tools=[next_page], max_agent_iterations=n
+    )
+    try:
+        with pytest.raises(GraphIterationLimitError) as info:
+            await agent.ainvoke(_question())
+    finally:
+        await agent.shutdown()
+    assert len(model.turns) == n
+    assert len(calls) == n
+    assert info.value.limit == n
+
+
+@pytest.mark.asyncio
 async def test_max_agent_iterations_answer_on_the_last_allowed_call() -> None:
     next_page, calls = _pager_tool()
     model = Pager(turns=[], answer_after=2)

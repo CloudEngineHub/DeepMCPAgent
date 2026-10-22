@@ -99,9 +99,10 @@ class GraphIterationLimitError(GraphExecutionError):
     answer.  A subclass of :class:`GraphExecutionError`.
 
     Which limit: the node's own budget (``PromptNode(max_iterations=...)``,
-    capped by the engine's ``max_node_iterations``; the ReAct agent's
-    ``reason`` node has 15) or the engine's ``max_iterations`` for the whole
-    run (``build_agent(max_agent_iterations=...)``).
+    capped by the engine's ``max_node_iterations``; the ``reason`` node of
+    ``build_agent``'s default ReAct graph gets ``max_agent_iterations``) or
+    the engine's ``max_iterations`` for the whole run
+    (``build_agent(max_agent_iterations=...)``).
 
     Attributes:
         limit: The limit that was reached.

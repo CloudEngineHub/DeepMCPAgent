@@ -3220,8 +3220,8 @@ async def build_agent(
             (the engine's ``max_iterations``).  With the default ReAct
             graph each execution of the ``reason`` node is one model call
             plus the tool calls it asks for, so ``N`` allows at most ``N``
-            model calls; the ``reason`` node's own limit of 15 applies when
-            ``N`` is higher.  Other patterns count each node execution
+            model calls (the ``reason`` node's limit is ``N`` too).  Other
+            patterns count each node execution
             (planner, tools, reflection...).  A run that reaches the limit
             after the model asked for tools, before it saw their results,
             raises :class:`~promptise.engine.GraphIterationLimitError`.
@@ -3868,9 +3868,15 @@ async def build_agent(
         # Priority 4: Duck-type PromptGraph-like object
         elif _pattern is not None and hasattr(_pattern, "_nodes"):
             graph = _pattern
-        # Default: ReAct
+        # Default: ReAct.  Its one node runs once per model call, so the
+        # run's limit is the node's limit too (the node's own default of 15
+        # would otherwise stop a run below max_agent_iterations).
         else:
-            graph = PromptGraph.react(tools=graph_tools, system_prompt=sys_prompt)
+            graph = PromptGraph.react(
+                tools=graph_tools,
+                system_prompt=sys_prompt,
+                max_node_iterations=max_agent_iterations,
+            )
 
         from langchain_core.language_models import BaseChatModel
 
@@ -3880,6 +3886,9 @@ async def build_agent(
                 graph=graph,
                 model=cast(BaseChatModel, chat),
                 max_iterations=max_agent_iterations,
+                # The engine-wide per-node ceiling (25 by default) must not
+                # cap the run below max_agent_iterations either.
+                max_node_iterations=max(25, max_agent_iterations),
                 tool_summary=tool_summary,
                 # inject_tools nodes in a custom graph get these tools
                 tools=graph_tools,
