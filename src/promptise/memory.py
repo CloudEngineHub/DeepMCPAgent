@@ -156,7 +156,12 @@ class MemoryScope(str, Enum):
     Values:
         SHARED: All callers see the same memory pool.  This is the
             default and matches the pre-1.0 behavior.  Use when a single
-            organization or agent owns the memory store.
+            organization or agent owns the memory store.  Entries stored
+            for one caller (``memory_auto_store=True`` stores every
+            exchange) are returned to every other caller, so an agent that
+            serves several users needs ``PER_USER``.  An agent logs a
+            warning when a provider left at the default ``SHARED`` scope
+            serves a second caller identity.
         PER_USER: Memories are scoped to the ``user_id`` of the caller.
             ``search()`` and ``delete()`` only return / operate on
             entries added by the same ``user_id``.  ``add()`` requires
@@ -176,6 +181,70 @@ class MemoryIsolationError(RuntimeError):
     silently falling back to a shared read to avoid accidental
     cross-tenant data exposure.
     """
+
+
+def owner_key(user_id: str, tenant_id: str | None = None) -> str:
+    """The key a ``PER_USER`` provider stores *user_id*'s entries under.
+
+    The agent scopes memory by :attr:`CallerContext.isolation_key
+    <promptise.agent.CallerContext.isolation_key>`: ``"{tenant_id}::{user_id}"``
+    when the caller has a tenant, else the plain ``user_id``.  Pass the same
+    ``user_id`` and ``tenant_id`` the caller had.
+
+    Raises:
+        ValueError: The ids are not a valid caller identity (see
+            :class:`~promptise.agent.CallerContext`).
+    """
+    from .agent import CallerContext
+
+    key = CallerContext(user_id=user_id, tenant_id=tenant_id).isolation_key
+    assert key is not None  # user_id is set
+    return key
+
+
+class _SharedScopeMonitor:
+    """Warns once when a default-``SHARED`` provider serves two caller identities.
+
+    A provider left at the default scope pools every caller's entries, so
+    memory stored for one user (auto-store writes every exchange) reaches
+    every other user.  Nothing tells the developer: this logs it the first
+    time a second identity uses the provider.  A provider created with an
+    explicit ``scope=MemoryScope.SHARED`` is a deliberate choice and is
+    not reported.
+    """
+
+    def __init__(self) -> None:
+        self._first: str | None = None
+        self._warned = False
+
+    def note(self, provider: Any, user_id: str | None, *, auto_store: bool) -> None:
+        if self._warned or user_id is None:
+            return
+        if getattr(provider, "scope", None) != MemoryScope.SHARED:
+            return
+        if getattr(provider, "_scope_explicit", False):
+            return
+        if self._first is None:
+            self._first = user_id
+            return
+        if user_id == self._first:
+            return
+        self._warned = True
+        stored = (
+            " memory_auto_store=True stores every conversation in that pool, so one "
+            "user's messages can be recalled for another."
+            if auto_store
+            else ""
+        )
+        logger.warning(
+            "Memory provider %s uses the default scope=SHARED, and this agent now serves "
+            "more than one caller: every caller's memory search returns entries stored "
+            "for other callers.%s Pass scope=MemoryScope.PER_USER to keep each caller's "
+            "memories separate, or scope=MemoryScope.SHARED to share them on purpose "
+            "(which also silences this warning).",
+            type(provider).__name__,
+            stored,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -281,12 +350,16 @@ class MemoryProvider(Protocol):
         """
         ...
 
-    async def purge_user(self, user_id: str) -> int:
+    async def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int:
         """Delete every entry owned by ``user_id``.
 
-        Use it to delete one user's data on request.
-        For ``SHARED`` scope providers this is a no-op that returns ``0``
-        — there is no per-user ownership to honor.
+        Use it to delete one user's data on request.  Pass the
+        ``user_id`` and ``tenant_id`` of the :class:`CallerContext` the
+        entries were stored under: the agent stores them under
+        ``"{tenant_id}::{user_id}"`` when the caller had a tenant (see
+        :func:`owner_key`), and passing that key as ``user_id`` with no
+        ``tenant_id`` works too.  For ``SHARED`` scope providers this is a
+        no-op that returns ``0`` — there is no per-user ownership to honor.
 
         Returns:
             The number of entries removed.
@@ -325,14 +398,15 @@ class InMemoryProvider:
         self,
         *,
         max_entries: int = 10_000,
-        scope: MemoryScope = MemoryScope.SHARED,
+        scope: MemoryScope | None = None,
     ) -> None:
         if max_entries < 1:
             raise ValueError("max_entries must be >= 1")
         # Each entry: (content, metadata, timestamp, owner_user_id | None)
         self._store: dict[str, tuple[str, dict[str, Any], float, str | None]] = {}
         self._max_entries = max_entries
-        self.scope = scope
+        self.scope = MemoryScope.SHARED if scope is None else MemoryScope(scope)
+        self._scope_explicit = scope is not None
 
     def _require_user(self, user_id: str | None, action: str) -> str | None:
         """Resolve ``user_id`` against the provider scope.
@@ -436,11 +510,13 @@ class InMemoryProvider:
         del self._store[memory_id]
         return True
 
-    async def purge_user(self, user_id: str) -> int:
+    async def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int:
+        """Delete every entry owned by the user (see :meth:`MemoryProvider.purge_user`)."""
         if self.scope != MemoryScope.PER_USER:
             return 0
         if not user_id:
             return 0
+        user_id = owner_key(user_id, tenant_id) if tenant_id else user_id
         victims = [mid for mid, row in self._store.items() if row[3] == user_id]
         for mid in victims:
             del self._store[mid]
@@ -531,7 +607,7 @@ class Mem0Provider:
         user_id: str = "default",
         agent_id: str | None = None,
         config: dict[str, Any] | None = None,
-        scope: MemoryScope = MemoryScope.SHARED,
+        scope: MemoryScope | None = None,
     ) -> None:
         try:
             import mem0  # noqa: F401
@@ -546,7 +622,8 @@ class Mem0Provider:
         self._user_id = user_id
         self._agent_id = agent_id
         self._closed = False
-        self.scope = scope
+        self.scope = MemoryScope.SHARED if scope is None else MemoryScope(scope)
+        self._scope_explicit = scope is not None
 
         if config:
             self._client: Any = Memory.from_config(config)
@@ -738,8 +815,8 @@ class Mem0Provider:
                 break
         return out
 
-    async def purge_user(self, user_id: str) -> int:
-        """Delete every Mem0 entry owned by ``user_id``.
+    async def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int:
+        """Delete every Mem0 entry owned by ``user_id`` (of ``tenant_id``).
 
         Counts the user's entries with ``get_all`` and removes them with
         Mem0's ``delete_all(user_id=...)``; when ``delete_all`` is missing
@@ -751,6 +828,7 @@ class Mem0Provider:
             return 0
         if not user_id:
             return 0
+        user_id = owner_key(user_id, tenant_id) if tenant_id else user_id
 
         loop = asyncio.get_running_loop()
 
@@ -913,7 +991,7 @@ class ChromaProvider:
         collection_name: str = "agent_memory",
         persist_directory: str | None = None,
         embedding_function: Any = None,
-        scope: MemoryScope = MemoryScope.SHARED,
+        scope: MemoryScope | None = None,
     ) -> None:
         try:
             import chromadb  # noqa: F401
@@ -954,7 +1032,8 @@ class ChromaProvider:
                 collection_name,
             )
         self._closed = False
-        self.scope = scope
+        self.scope = MemoryScope.SHARED if scope is None else MemoryScope(scope)
+        self._scope_explicit = scope is not None
 
     def _check_closed(self) -> None:
         if self._closed:
@@ -1121,8 +1200,8 @@ class ChromaProvider:
             for i, mid in enumerate(ids)
         ]
 
-    async def purge_user(self, user_id: str) -> int:
-        """Delete every Chroma entry owned by ``user_id``.
+    async def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int:
+        """Delete every Chroma entry owned by ``user_id`` (of ``tenant_id``).
 
         Uses ChromaDB's ``delete(where=...)`` filter to drop all rows in
         a single round-trip.  Returns ``0`` for SHARED-scope providers.
@@ -1132,6 +1211,7 @@ class ChromaProvider:
             return 0
         if not user_id:
             return 0
+        user_id = owner_key(user_id, tenant_id) if tenant_id else user_id
         loop = asyncio.get_running_loop()
 
         def _count_and_delete() -> int:
@@ -1418,6 +1498,7 @@ class MemoryAgent:
         self._timeout = timeout
         self._auto_store = auto_store
         self._pending_stores: set[asyncio.Task[Any]] = set()
+        self._shared_scope = _SharedScopeMonitor()
 
     def _caller_user_id(self) -> str | None:
         """Best-effort lookup of the current caller's isolation key.
@@ -1442,6 +1523,7 @@ class MemoryAgent:
         if not query.strip():
             return []
         user_id = self._caller_user_id()
+        self._shared_scope.note(self.provider, user_id, auto_store=self._auto_store)
         try:
             results = await asyncio.wait_for(
                 self.provider.search(query, limit=self._max_memories, user_id=user_id),
@@ -1546,6 +1628,7 @@ __all__ = [
     # Scope / isolation
     "MemoryScope",
     "MemoryIsolationError",
+    "owner_key",
     # Providers
     "InMemoryProvider",
     "Mem0Provider",

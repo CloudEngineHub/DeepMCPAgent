@@ -304,6 +304,14 @@ class TestMem0Flow:
         assert [e["user_id"] for e in memory._client.store.entries.values()] == ["bob"]
 
     @pytest.mark.asyncio
+    async def test_purge_user_with_tenant(self, fake_mem0: type) -> None:
+        memory = Mem0Provider(scope=MemoryScope.PER_USER)
+        await memory.add("one", user_id="acme::mara")
+        await memory.add("two", user_id="globex::mara")
+        assert await memory.purge_user("mara", tenant_id="acme") == 1
+        assert [e["user_id"] for e in memory._client.store.entries.values()] == ["globex::mara"]
+
+    @pytest.mark.asyncio
     async def test_list_entries_uses_the_api_of_the_installed_generation(
         self, fake_mem0: type
     ) -> None:

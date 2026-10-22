@@ -53,7 +53,7 @@ class MemoryProvider(Protocol):
         self, content: str, *, metadata: dict | None = None, user_id: str | None = None
     ) -> str: ...
     async def delete(self, memory_id: str, *, user_id: str | None = None) -> bool: ...
-    async def purge_user(self, user_id: str) -> int: ...
+    async def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int: ...
     async def close(self) -> None: ...
 ```
 
@@ -62,7 +62,7 @@ class MemoryProvider(Protocol):
 | `search(query, limit=5, user_id=None)` | `list[MemoryResult]` | Search for memories relevant to the query. In `PER_USER` scope, results are filtered to that user. |
 | `add(content, metadata=None, user_id=None)` | `str` | Store a new memory, returns its ID. In `PER_USER` scope, stamps ownership. |
 | `delete(memory_id, user_id=None)` | `bool` | Delete a memory by ID. In `PER_USER` scope, only the owner can delete. |
-| `purge_user(user_id)` | `int` | Delete every entry owned by `user_id`. Returns the count removed. Use it to delete one user's data on request. |
+| `purge_user(user_id, tenant_id=None)` | `int` | Delete every entry owned by that user (of that tenant). Returns the count removed. Use it to delete one user's data on request. See [Deleting one user's data](#deleting-one-users-data). |
 | `close()` | `None` | Release resources (connections, file handles) |
 
 The built-in providers also implement an optional method that is not part of the protocol:
@@ -83,6 +83,20 @@ Every built-in provider supports two isolation modes controlled by the `scope` p
 |---|---|---|
 | `MemoryScope.SHARED` (default) | Legacy global pool. `user_id` is ignored. All callers read/write the same entries. | Knowledge-base bots, shared org memory, public FAQ agents |
 | `MemoryScope.PER_USER` | Every operation is scoped to a `user_id`. Users cannot read or delete each other's entries. | Personal assistants, multi-tenant SaaS, workloads that hold sensitive personal data |
+
+!!! danger "The default shares every caller's memories"
+    A provider created without `scope=` is `SHARED`: whatever is stored for one caller
+    is found by every other caller's memory search. With `memory_auto_store=True` the
+    agent stores every exchange, so a note one user gives the agent ("Priya's new
+    salary is 145,000") is recalled in another user's conversation. An agent that
+    serves more than one user needs `scope=MemoryScope.PER_USER`.
+
+    When a provider left at the default scope is used by a second caller identity
+    (a different `CallerContext.isolation_key`), the agent logs a warning once:
+    `Memory provider InMemoryProvider uses the default scope=SHARED, and this agent
+    now serves more than one caller...`. Create the provider with
+    `scope=MemoryScope.SHARED` to say the pool is shared on purpose; that also
+    silences the warning.
 
 ```python
 from promptise.memory import InMemoryProvider, MemoryScope, MemoryIsolationError
@@ -121,8 +135,15 @@ If no caller is set (e.g., background tasks), a `PER_USER` provider raises `Memo
 ### Deleting one user's data
 
 ```python
-removed = await provider.purge_user("alice")   # → int count of deleted entries
+removed = await provider.purge_user("alice")                     # → int count of deleted entries
+removed = await provider.purge_user("alice", tenant_id="acme")   # a caller with a tenant
 ```
+
+Pass the `user_id` and `tenant_id` the caller had. The agent stores a caller's
+entries under its isolation key, `"acme::alice"` for
+`CallerContext(user_id="alice", tenant_id="acme")`, so `purge_user("alice")`
+alone finds nothing for that caller. `purge_user("acme::alice")` (the key) works
+too, and `promptise.memory.owner_key("alice", "acme")` returns it.
 
 Works on every provider. `InMemoryProvider` drops in-process entries. `ChromaProvider` deletes every entry whose metadata contains `_promptise_user_id: alice`. `Mem0Provider` counts the user's entries with `get_all` and removes them with Mem0's `delete_all(user_id=…)`.
 

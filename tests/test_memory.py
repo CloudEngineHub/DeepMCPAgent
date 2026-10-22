@@ -779,6 +779,15 @@ class TestChromaProviderMocked:
         assert call_kwargs["documents"] == ["test content"]
 
     @pytest.mark.asyncio
+    async def test_purge_user_with_tenant_deletes_the_isolation_key(self, chroma_provider) -> None:
+        chroma_provider.scope = MemoryScope.PER_USER
+        chroma_provider._collection.get.return_value = {"ids": ["a", "b"]}
+        assert await chroma_provider.purge_user("mara", tenant_id="acme") == 2
+        where = {"_promptise_user_id": "acme::mara"}
+        chroma_provider._collection.get.assert_called_once_with(where=where)
+        chroma_provider._collection.delete.assert_called_once_with(where=where)
+
+    @pytest.mark.asyncio
     async def test_delete_logs_on_error(self, chroma_provider, caplog) -> None:
         chroma_provider._collection.delete.side_effect = RuntimeError("fail")
         result = await chroma_provider.delete("bad-id")

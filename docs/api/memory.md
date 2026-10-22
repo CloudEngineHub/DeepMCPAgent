@@ -1,6 +1,6 @@
 ---
 seo_title: "Agent Memory API Reference: Chroma, Mem0"
-description: "API reference for MemoryProvider, InMemoryProvider, ChromaProvider, Mem0Provider, MemoryAgent and sanitize_memory_content, the agent memory layer."
+description: "API reference for MemoryProvider, InMemoryProvider, ChromaProvider, Mem0Provider, MemoryAgent, sanitize_memory_content and owner_key, the agent memory layer."
 ---
 
 # Memory API Reference
@@ -56,3 +56,10 @@ Agent memory integration layer with auto-injection. Provides a `MemoryProvider` 
       show_source: false
       heading_level: 3
 
+
+## owner_key
+
+::: promptise.memory.owner_key
+    options:
+      show_source: false
+      heading_level: 3

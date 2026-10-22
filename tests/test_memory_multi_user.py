@@ -166,6 +166,30 @@ class TestInMemoryProviderPerUserScope:
         assert alice_hits == []
 
     @pytest.mark.asyncio
+    async def test_purge_user_takes_the_callers_tenant(self) -> None:
+        """Entries stored for a tenant's caller are purged by user id plus tenant."""
+        p = InMemoryProvider(scope=MemoryScope.PER_USER)
+        dana = CallerContext(user_id="dana", tenant_id="acme").isolation_key
+        other = CallerContext(user_id="dana", tenant_id="globex").isolation_key
+        await p.add("acme dana note", user_id=dana)
+        await p.add("globex dana note", user_id=other)
+
+        assert await p.purge_user("dana") == 0  # no untenanted "dana" entries
+        assert await p.purge_user("dana", tenant_id="acme") == 1
+        assert await p.search("note", user_id=dana) == []
+        assert len(await p.search("note", user_id=other)) == 1
+        # The isolation key itself still works.
+        assert await p.purge_user(other) == 1
+
+    def test_owner_key_is_the_isolation_key(self) -> None:
+        from promptise.memory import owner_key
+
+        assert owner_key("dana") == "dana"
+        assert owner_key("dana", "acme") == "acme::dana"
+        with pytest.raises(ValueError):
+            owner_key("dana", "ac:me")
+
+    @pytest.mark.asyncio
     async def test_purge_empty_user_id_is_noop(self) -> None:
         p = InMemoryProvider(scope=MemoryScope.PER_USER)
         await p.add("n", user_id="alice")

@@ -294,6 +294,9 @@ class PromptiseAgent:
         self._memory_auto_store = memory_auto_store
         # Auto-store writes that outlived memory_timeout and are still running.
         self._pending_memory_writes: set[asyncio.Task[Any]] = set()
+        from .memory import _SharedScopeMonitor
+
+        self._shared_memory_scope = _SharedScopeMonitor()
 
         # MCP lifecycle
         self._mcp_multi = mcp_multi
@@ -1969,6 +1972,7 @@ class PromptiseAgent:
         # Memory scoping keys on the isolation key (tenant::user) so tenants
         # with identical user ids never share memories.
         user_id = caller.isolation_key if caller is not None else None
+        self._shared_memory_scope.note(self.provider, user_id, auto_store=self._memory_auto_store)
         from .memory import is_adaptive_entry
 
         # Adaptive strategy keeps failure logs and lessons in the same

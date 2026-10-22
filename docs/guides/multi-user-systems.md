@@ -691,7 +691,7 @@ agent = await build_agent(..., memory=memory, memory_auto_store=True)
 
 The agent automatically reads `caller.user_id` from `CallerContext` and scopes every `search`/`add`/`delete` to that tenant. Users cannot read or delete each other's entries. If a per-user operation runs without a `user_id`, it raises `MemoryIsolationError`; the `MemoryAgent` wrapper catches this during auto-search so background tasks degrade gracefully (skip memory injection) rather than crash.
 
-To delete one user's data on request, `await memory.purge_user("user-42")` removes every entry owned by that user. It works on all three providers.
+To delete one user's data on request, `await memory.purge_user("user-42")` removes every entry owned by that user; for a caller with a tenant pass it too, `await memory.purge_user("user-42", tenant_id="acme")`, because the agent stores that caller's entries under `acme::user-42`. It works on all three providers.
 
 ---
 

@@ -399,3 +399,75 @@ class TestChatStoreFailures:
         assert await agent.chat("hi", session_id="s1", user_id="mara") == "answer"
         assert "Failed to load conversation history" in caplog.text
         assert "Failed to save conversation history" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# A default-SHARED provider serving several callers is reported
+# ---------------------------------------------------------------------------
+
+
+class TestSharedScopeWarning:
+    async def _ask(self, agent: PromptiseAgent, user_id: str | None, tenant: str | None = None):
+        caller = CallerContext(user_id=user_id, tenant_id=tenant) if user_id else None
+        await agent.ainvoke({"messages": [{"role": "user", "content": "salary"}]}, caller=caller)
+
+    @staticmethod
+    def _warnings(caplog) -> list[str]:
+        return [r.getMessage() for r in caplog.records if "scope=SHARED" in r.getMessage()]
+
+    @pytest.mark.asyncio
+    async def test_second_caller_on_a_default_shared_provider_is_reported_once(
+        self, caplog
+    ) -> None:
+        memory = InMemoryProvider()
+        await memory.add("Priya Shah salary 145,000", user_id="dana")
+        agent = PromptiseAgent(
+            inner=_RecordingInner(), memory_provider=memory, memory_auto_store=True
+        )
+        with caplog.at_level(logging.WARNING, logger="promptise.memory"):
+            await self._ask(agent, "dana")
+            await self._ask(agent, "dana")
+            await self._ask(agent, None)
+            assert self._warnings(caplog) == []
+            await self._ask(agent, "sam")
+            await self._ask(agent, "lee")
+        (message,) = self._warnings(caplog)
+        assert "InMemoryProvider uses the default scope=SHARED" in message
+        assert "memory_auto_store=True" in message
+        assert "MemoryScope.PER_USER" in message
+        assert "dana" not in message and "sam" not in message
+
+    @pytest.mark.asyncio
+    async def test_the_same_user_of_another_tenant_is_another_caller(self, caplog) -> None:
+        agent = PromptiseAgent(inner=_RecordingInner(), memory_provider=InMemoryProvider())
+        with caplog.at_level(logging.WARNING, logger="promptise.memory"):
+            await self._ask(agent, "dana", "acme")
+            await self._ask(agent, "dana", "globex")
+        assert len(self._warnings(caplog)) == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("scope", [MemoryScope.SHARED, MemoryScope.PER_USER, "shared"])
+    async def test_an_explicit_scope_is_not_reported(self, caplog, scope) -> None:
+        agent = PromptiseAgent(
+            inner=_RecordingInner(), memory_provider=InMemoryProvider(scope=scope)
+        )
+        with caplog.at_level(logging.WARNING, logger="promptise.memory"):
+            await self._ask(agent, "dana")
+            await self._ask(agent, "sam")
+        assert self._warnings(caplog) == []
+        assert agent.provider.scope in (MemoryScope.SHARED, MemoryScope.PER_USER)
+
+    @pytest.mark.asyncio
+    async def test_memory_agent_reports_it_too(self, caplog) -> None:
+        from promptise.agent import _caller_ctx_var
+        from promptise.memory import MemoryAgent
+
+        agent = MemoryAgent(_RecordingInner(), InMemoryProvider())
+        with caplog.at_level(logging.WARNING, logger="promptise.memory"):
+            for user in ("dana", "sam"):
+                token = _caller_ctx_var.set(CallerContext(user_id=user))
+                try:
+                    await agent.ainvoke({"messages": [{"role": "user", "content": "salary"}]})
+                finally:
+                    _caller_ctx_var.reset(token)
+        assert len(self._warnings(caplog)) == 1
