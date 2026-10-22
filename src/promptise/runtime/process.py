@@ -61,7 +61,13 @@ from uuid import uuid4
 
 from .._logsafe import log_safe
 from ._deploy_policy import DeployPolicy
-from .config import ExecutionMode, ProcessConfig, TriggerConfig
+from .config import (
+    ExecutionMode,
+    ProcessConfig,
+    TriggerConfig,
+    check_process_model,
+    model_label,
+)
 from .context import CONTEXT_UPDATE_ENTRY_TYPE, AgentContext, StateEntry
 from .conversation import ConversationBuffer
 from .hooks import BLOCKABLE_EVENTS, DispatchResult, HookBlocked, HookEvent, HookManager
@@ -443,6 +449,13 @@ class AgentProcess:
             journal checks as MCP tools and are kept on every rebuild of
             the agent.  Anything that is not a tool raises ``TypeError``
             here.
+        model: The agent's model, used instead of ``config.model``: a
+            model id, or a model object as
+            :func:`~promptise.agent.build_agent` takes it (a LangChain chat
+            model such as ``promptise.testing.ScriptedModel``, a
+            :class:`promptise.Model`, a :class:`~promptise.FallbackChain`).
+            Every agent the process builds uses it, and so does the mission
+            evaluator.  Anything else raises ``ValueError`` here.
 
     Lifecycle hooks: the process dispatches every
     :class:`~promptise.runtime.hooks.HookEvent` to :attr:`hooks` (see the
@@ -451,7 +464,7 @@ class AgentProcess:
 
     Raises:
         ValueError: An entry of ``config.servers`` is not a server spec
-            (see :func:`_resolve_server_specs`).
+            (see :func:`_resolve_server_specs`), or ``model`` is not a model.
         TypeError: An entry of ``extra_tools`` is not a tool or function.
     """
 
@@ -468,6 +481,7 @@ class AgentProcess:
         hooks: HookManager | None = None,
         deploy_policy: DeployPolicy | None = None,
         extra_tools: Sequence[Any] | None = None,
+        model: Any | None = None,
     ) -> None:
         from promptise.function_tools import as_tools
 
@@ -483,6 +497,10 @@ class AgentProcess:
         # Local tools given by the operator (config first), in every agent
         # this process builds.  Fails here for anything that is not a tool.
         self._extra_tools: list[Any] = [*config.extra_tools, *as_tools(extra_tools)]
+        # A model given to the constructor wins over config.model.
+        self._model_override: Any | None = (
+            None if model is None else check_process_model(model, argument="model")
+        )
         self._event_notifier = event_notifier
         # A notifier shared through an AgentRuntime is stopped by the
         # runtime (in stop_all()); otherwise this process stops it.
@@ -1982,11 +2000,16 @@ class AgentProcess:
                 await task
         logger.info("AgentProcess %s stopped", self.name)
 
+    @property
+    def model(self) -> Any:
+        """The model the process's agent runs on: the ``model`` given to the
+        constructor, else ``config.model`` (an id or a model object)."""
+        return self._model_override if self._model_override is not None else self.config.model
+
     def _event_metadata(self) -> dict[str, Any]:
         """Context attached to every event this process emits."""
         meta: dict[str, Any] = {"process_name": self.name, "process_id": self.process_id}
-        if isinstance(self.config.model, str):
-            meta["model"] = self.config.model
+        meta["model"] = model_label(self.model)
         return meta
 
     def _emit(self, event_type: str, severity: str, data: dict[str, Any] | None = None) -> None:
@@ -2503,7 +2526,7 @@ class AgentProcess:
         # Build kwargs — add optional capabilities from config
         build_kwargs: dict[str, Any] = {
             "servers": None,  # Tools already added via extra_tools
-            "model": self.config.model,
+            "model": self.model,
             "instructions": instructions,
             "memory": self._long_term_memory,
             "memory_auto_store": self.config.context.memory_auto_store,
@@ -3815,7 +3838,7 @@ class AgentProcess:
             )
             evaluation = await self._mission.evaluate(
                 evidence,
-                self.config.model,
+                self.model,
             )
             # Emit mission events (none for a skipped evaluation: another
             # run is evaluating, nothing was judged)
@@ -4422,7 +4445,7 @@ class AgentProcess:
         parent = self.config
         open_mode = parent.open_mode.model_copy(update={"allow_process_spawn": False})
         return ProcessConfig(
-            model=model or parent.model,
+            model=model or self.model,
             instructions=instructions,
             execution_mode=execution_mode,
             open_mode=open_mode,

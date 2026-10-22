@@ -50,6 +50,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from .config import model_label
+
 if TYPE_CHECKING:
     from .runtime import AgentRuntime
 
@@ -477,7 +479,7 @@ class RuntimeDataCollector:
                 name=name,
                 process_id=status.get("process_id", ""),
                 state=status.get("state", "unknown"),
-                model=config.model,
+                model=model_label(process.model),
                 invocation_count=status.get("invocation_count", 0),
                 consecutive_failures=status.get("consecutive_failures", 0),
                 trigger_count=status.get("trigger_count", 0),

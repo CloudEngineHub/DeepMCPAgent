@@ -109,7 +109,7 @@ Configuration for one agent process. Unknown keys are rejected.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `model` | `str` | `"openai:gpt-5-mini"` | LLM model ID |
+| `model` | `str` or a model | `"openai:gpt-5-mini"` | LLM model ID. In code also a model object as `build_agent(model=...)` takes it (a LangChain chat model, a `promptise.Model`, a `FallbackChain`); a model object is not serialised. See [The agent's model](processes.md#the-agents-model). |
 | `instructions` | `str \| None` | `None` | System prompt |
 | `execution_mode` | `ExecutionMode` | `ExecutionMode.STRICT` | `"strict"` or `"open"` (self-modifying, see [Meta-Tools](meta-tools.md)) |
 | `open_mode` | `OpenModeConfig` | `OpenModeConfig()` | Open-mode limits; ignored in strict mode |

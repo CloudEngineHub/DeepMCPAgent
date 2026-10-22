@@ -27,12 +27,54 @@ from pydantic import (
     ConfigDict,
     Field,
     SecretStr,
+    SerializerFunctionWrapHandler,
     field_serializer,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
 _ENV_REFERENCE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::-[^}]*)?\}")
+
+
+def check_process_model(value: Any, *, argument: str = "ProcessConfig.model") -> Any:
+    """*value* if it can be a process's model, else ``ValueError``.
+
+    A model id string (``"openai:gpt-5-mini"``), a :class:`promptise.Model`,
+    or a model object as :func:`~promptise.agent.build_agent` takes it: a
+    LangChain chat model (``promptise.testing.ScriptedModel`` among them),
+    a :class:`~promptise.FallbackChain` or another ``Runnable``.
+    """
+    if isinstance(value, str):
+        return value
+    from langchain_core.runnables import Runnable
+
+    from promptise.models import Model
+
+    if isinstance(value, (Model, Runnable)):
+        return value
+    raise ValueError(
+        f"{argument} takes a model id such as 'openai:gpt-5-mini', a chat model or a "
+        f"promptise.Model, not {type(value).__name__}"
+    )
+
+
+def model_label(model: Any) -> str:
+    """A short, secret-free name for a process's model, for status and logs.
+
+    A model id is returned as it is; a :class:`promptise.Model` as its
+    ``str()`` (which never shows the key); a model object as its class and
+    model name (``"ChatOpenAI(gpt-5-mini)"``, ``"ScriptedModel(scripted)"``).
+    """
+    if isinstance(model, str):
+        return model
+    from promptise.models import Model
+
+    if isinstance(model, Model):
+        return str(model)
+    name = getattr(model, "model_name", None) or getattr(model, "model", None)
+    kind = type(model).__name__
+    return f"{kind}({name})" if isinstance(name, str) and name else kind
 
 
 def is_env_reference(value: str) -> bool:
@@ -1128,7 +1170,14 @@ class ProcessConfig(BaseModel):
     Composes all atomic configs and adds process-level settings.
 
     Attributes:
-        model: LLM model identifier (e.g. ``openai:gpt-5-mini``).
+        model: The agent's model: a model id (e.g. ``openai:gpt-5-mini``),
+            or in code a model object as :func:`~promptise.agent.build_agent`
+            takes it (a LangChain chat model such as
+            ``promptise.testing.ScriptedModel``, a :class:`promptise.Model`,
+            a :class:`~promptise.FallbackChain`).  A model object is code
+            only, like ``extra_tools``: ``model_dump()`` and ``to_dict()``
+            leave ``model`` out, so a config read back from them has the
+            default model id.  Anything else raises a ``ValidationError``.
         instructions: System prompt for the agent.
         servers: MCP server specifications (same format as ``.superagent``).
         triggers: Trigger configurations.
@@ -1183,7 +1232,10 @@ class ProcessConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    model: str = Field("openai:gpt-5-mini", description="LLM model ID")
+    model: Any = Field(
+        "openai:gpt-5-mini",
+        description="LLM model ID (or, in code, a chat model / promptise.Model; not serialised)",
+    )
     instructions: str | None = Field(None, description="System prompt")
     execution_mode: ExecutionMode = Field(
         ExecutionMode.STRICT,
@@ -1316,6 +1368,23 @@ class ProcessConfig(BaseModel):
         from promptise.function_tools import as_tools
 
         return list(as_tools(v, argument="extra_tools"))
+
+    @field_validator("model", mode="before")
+    @classmethod
+    def _check_model(cls, v: Any) -> Any:
+        return check_process_model(v)
+
+    @field_serializer("model")
+    def _serialize_model(self, v: Any) -> str | None:
+        # A model object is never serialised (see the wrap serializer).
+        return v if isinstance(v, str) else None
+
+    @model_serializer(mode="wrap")
+    def _leave_out_code_only_model(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict) and not isinstance(self.model, str):
+            data.pop("model", None)
+        return data
 
 
 class DistributedConfig(_WarnOnUnknownKeys):

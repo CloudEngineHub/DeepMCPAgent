@@ -308,6 +308,7 @@ class TestRuntimeDataCollector:
         process = MagicMock()
         process.name = "test-proc"
         process.config = config
+        process.model = config.model
         process.status.return_value = {
             "name": "test-proc",
             "process_id": "abc-123",

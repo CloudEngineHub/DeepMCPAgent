@@ -54,6 +54,7 @@ AgentProcess(
     event_notifier=None,   # EventNotifier for process.* and agent events
     hooks=None,            # shared HookManager, dispatched after the process's own hooks
     extra_tools=None,      # local tools, added after config.extra_tools
+    model=None,            # the agent's model, instead of config.model
 )
 ```
 
@@ -85,6 +86,53 @@ process = AgentProcess(
 They sit next to the MCP servers' tools, and budget, approval, health and the journal treat them the same way. Every agent the process builds has them: after a restart, a hot reload or new instructions. Anything that is not a tool raises `TypeError` when the config or process is created.
 
 They are code only, like a hook's `callback`: `model_dump()` and `RuntimeConfig.to_dict()` leave them out, and a manifest or YAML config can't name them (serve such tools from an MCP server instead). Processes spawned in open mode don't get them, and the agent can't create a tool with the name of one.
+
+### The agent's model
+
+`ProcessConfig.model` is usually a model id such as `"openai:gpt-5-mini"`. In code it can also be a model object, as `build_agent(model=...)` takes it: a LangChain chat model you configured yourself, a [`promptise.Model`](../core/agents/models.md) with its provider settings, a [`FallbackChain`](../core/fallback.md), or a [`ScriptedModel`](../core/testing.md) in a test. `AgentProcess(..., model=...)` does the same for one process and wins over `config.model`. Every agent the process builds uses it (after a restart, a hot reload or new instructions), and so does the mission evaluator.
+
+```python
+import asyncio
+
+from promptise import tool
+from promptise.runtime import AgentProcess, ProcessConfig, TriggerEvent
+from promptise.testing import ScriptedModel, ToolCall
+
+
+@tool
+def lookup_order(order_id: str) -> str:
+    """Look up an order's status."""
+    return f"{order_id}: shipped"
+
+
+async def main():
+    model = ScriptedModel([
+        ToolCall("lookup_order", {"order_id": "A-1001"}),
+        "Order A-1001 has shipped.",
+    ])
+    process = AgentProcess(
+        "orders",
+        ProcessConfig(model=model, instructions="Answer questions about orders.", extra_tools=[lookup_order]),
+    )
+    await process.start()
+    await process.inject(TriggerEvent(trigger_id="manual", trigger_type="manual", payload={"order": "A-1001"}))
+    while process.status()["invocation_count"] < 1:
+        await asyncio.sleep(0.05)
+    await process.stop()
+
+    print(len(model.calls), model.calls[1].messages[-1].content)
+
+
+asyncio.run(main())
+```
+
+Output:
+
+```
+2 A-1001: shipped
+```
+
+A model object is code only, like `extra_tools`: `model_dump()` and `RuntimeConfig.to_dict()` leave `model` out, so a config read back from them has the default model id, and a manifest or YAML config names a model by its id. Events, the dashboard and the open-mode `list_capabilities` tool show a model object by its class and model name, such as `ChatOpenAI(gpt-5-mini)`; a `promptise.Model` is shown without its key. Processes spawned in open mode run on the parent's model unless the agent names another one. Anything that isn't a model id or a model object raises a `ValidationError` (`ValueError` from the `AgentProcess` constructor).
 
 ---
 

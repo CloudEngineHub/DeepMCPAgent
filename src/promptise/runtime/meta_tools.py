@@ -638,7 +638,9 @@ async def _list_capabilities(process: Any) -> str:
     """Implementation for list_capabilities tool."""
     lines = [f"Process: {process.name}"]
     lines.append(f"Mode: {process.config.execution_mode.value}")
-    lines.append(f"Model: {process.config.model}")
+    from .config import model_label
+
+    lines.append(f"Model: {model_label(process.model)}")
 
     # Instructions
     instr = process._dynamic_instructions or process.config.instructions

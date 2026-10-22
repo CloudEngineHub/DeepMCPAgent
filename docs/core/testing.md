@@ -517,10 +517,11 @@ Things to know:
   `AIMessage` you build in the test, or subclass the model.
 - **There is no token usage.**  Replies carry no usage data, so budgets and
   cost reports see zero tokens.
-- **`AgentProcess` takes a model id.**  `ProcessConfig.model` is a string
-  such as `"openai:gpt-5-mini"`, so a process can't run on a
-  `ScriptedModel`.  Test the agent a process runs with `build_agent()` and
-  the same tools and instructions.
+- **An `AgentProcess` runs on it too.**  Pass it as the process's model,
+  `ProcessConfig(model=ScriptedModel([...]))` or
+  `AgentProcess(name, config, model=...)`, and inject a `TriggerEvent`: the
+  process runs the agent on the script without a provider
+  ([The agent's model](../runtime/processes.md#the-agents-model)).
 - **Concurrent runs share the script.**  Each call takes the next reply
   whichever run makes it, so give each concurrent run its own model.
 
