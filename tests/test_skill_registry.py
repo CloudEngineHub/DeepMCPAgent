@@ -37,6 +37,24 @@ class TestSkill:
         skill = Skill(name="ts", paths=["**/*.tsx"])
         assert skill.matches_cwd(tmp_path) is True
 
+    def test_fnmatch_fallback_looks_past_the_first_entry(self, tmp_path):
+        # Path.glob("*.py") only looks at the top level; the fallback's
+        # fnmatch "*" crosses "/", so a nested file matches.  The walk
+        # used to stop after its first entry (the "pkg" directory).
+        nested = tmp_path / "pkg" / "sub"
+        nested.mkdir(parents=True)
+        (nested / "app.py").write_text("# code")
+        skill = Skill(name="py", paths=["*.py"])
+        assert skill.matches_cwd(tmp_path) is True
+
+    def test_fnmatch_fallback_checks_every_pattern(self, tmp_path):
+        (tmp_path / "a").mkdir()
+        (tmp_path / "a" / "b.txt").write_text("x")
+        (tmp_path / "web").mkdir()
+        (tmp_path / "web" / "page.tsx").write_text("x")
+        skill = Skill(name="ts", paths=["*.go", "*.tsx"])
+        assert skill.matches_cwd(tmp_path) is True
+
     def test_factory_returns_value(self):
         skill = Skill(
             name="counter",

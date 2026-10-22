@@ -2,7 +2,9 @@
 
 Skills are functions that return configured nodes.  They encode
 best-practice prompt engineering for specific tasks so developers
-don't have to start from scratch.
+don't have to start from scratch.  Every setting a skill picks
+(``instructions``, ``tool_choice``, ``default_next``, ...) is a default:
+pass the same keyword to override it.
 
 Usage::
 
@@ -20,6 +22,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from .nodes import GuardNode, PromptNode, RouterNode, TransformNode
+
+
+def _settings(defaults: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+    """The skill's *defaults* with the caller's keyword arguments on top."""
+    return {**defaults, **overrides}
+
 
 if TYPE_CHECKING:
     from .reasoning_nodes import (
@@ -47,16 +55,20 @@ def web_researcher(
     """
     return PromptNode(
         name,
-        instructions=(
-            "You are a thorough web researcher. Search for information "
-            "from multiple sources. Always cite your sources. "
-            "Verify claims by cross-referencing at least 2 sources. "
-            "If search results are insufficient, try different queries."
+        **_settings(
+            {
+                "instructions": (
+                    "You are a thorough web researcher. Search for information "
+                    "from multiple sources. Always cite your sources. "
+                    "Verify claims by cross-referencing at least 2 sources. "
+                    "If search results are insufficient, try different queries."
+                ),
+                "tools": tools,
+                "tool_choice": "auto",
+                "max_iterations": max_iterations,
+            },
+            kwargs,
         ),
-        tools=tools,
-        tool_choice="auto",
-        max_iterations=max_iterations,
-        **kwargs,
     )
 
 
@@ -73,16 +85,20 @@ def code_reviewer(
     """
     return PromptNode(
         name,
-        instructions=(
-            "You are an expert code reviewer. Analyze code for: "
-            "1) Security vulnerabilities (injection, auth bypass, data leaks) "
-            "2) Performance issues (N+1 queries, memory leaks, blocking I/O) "
-            "3) Best practice violations (naming, error handling, testing) "
-            "4) Logic errors and edge cases. "
-            "Be specific — cite exact lines and suggest concrete fixes."
+        **_settings(
+            {
+                "instructions": (
+                    "You are an expert code reviewer. Analyze code for: "
+                    "1) Security vulnerabilities (injection, auth bypass, data leaks) "
+                    "2) Performance issues (N+1 queries, memory leaks, blocking I/O) "
+                    "3) Best practice violations (naming, error handling, testing) "
+                    "4) Logic errors and edge cases. "
+                    "Be specific — cite exact lines and suggest concrete fixes."
+                ),
+                "tools": tools,
+            },
+            kwargs,
         ),
-        tools=tools,
-        **kwargs,
     )
 
 
@@ -98,17 +114,21 @@ def data_analyst(
     """
     return PromptNode(
         name,
-        instructions=(
-            "You are a data analyst. Approach every question with evidence: "
-            "1) Identify the data sources available "
-            "2) Query for specific metrics and patterns "
-            "3) Compare and correlate across sources "
-            "4) Quantify every claim with numbers "
-            "5) Flag uncertainty with confidence levels "
-            "Never speculate without data."
+        **_settings(
+            {
+                "instructions": (
+                    "You are a data analyst. Approach every question with evidence: "
+                    "1) Identify the data sources available "
+                    "2) Query for specific metrics and patterns "
+                    "3) Compare and correlate across sources "
+                    "4) Quantify every claim with numbers "
+                    "5) Flag uncertainty with confidence levels "
+                    "Never speculate without data."
+                ),
+                "tools": tools,
+            },
+            kwargs,
         ),
-        tools=tools,
-        **kwargs,
     )
 
 
@@ -126,11 +146,15 @@ def fact_checker(
     """
     return GuardNode(
         name,
-        instructions="Verify all claims are factual and well-sourced.",
-        guards=guards or [],
-        on_pass=on_pass,
-        on_fail=on_fail,
-        **kwargs,
+        **_settings(
+            {
+                "instructions": "Verify all claims are factual and well-sourced.",
+                "guards": guards or [],
+                "on_pass": on_pass,
+                "on_fail": on_fail,
+            },
+            kwargs,
+        ),
     )
 
 
@@ -146,17 +170,21 @@ def summarizer(
     """
     return PromptNode(
         name,
-        instructions=(
-            f"Summarize all gathered information into a clear, concise response. "
-            f"Maximum {max_length} characters. Structure: "
-            "1) Key finding (1-2 sentences) "
-            "2) Supporting details (bullet points) "
-            "3) Sources and confidence level. "
-            "Be direct — no filler."
+        **_settings(
+            {
+                "instructions": (
+                    f"Summarize all gathered information into a clear, concise response. "
+                    f"Maximum {max_length} characters. Structure: "
+                    "1) Key finding (1-2 sentences) "
+                    "2) Supporting details (bullet points) "
+                    "3) Sources and confidence level. "
+                    "Be direct — no filler."
+                ),
+                "tools": None,
+                "default_next": "__end__",
+            },
+            kwargs,
         ),
-        tools=None,
-        default_next="__end__",
-        **kwargs,
     )
 
 
@@ -172,14 +200,18 @@ def planner(
     """
     return PromptNode(
         name,
-        instructions=(
-            f"Create a step-by-step plan with {max_subgoals} or fewer subgoals. "
-            "Each subgoal should be: specific, measurable, achievable. "
-            "Order by priority — most impactful first. "
-            "Self-evaluate: rate plan quality 1-5. If below 3, revise."
+        **_settings(
+            {
+                "instructions": (
+                    f"Create a step-by-step plan with {max_subgoals} or fewer subgoals. "
+                    "Each subgoal should be: specific, measurable, achievable. "
+                    "Order by priority — most impactful first. "
+                    "Self-evaluate: rate plan quality 1-5. If below 3, revise."
+                ),
+                "tools": None,
+            },
+            kwargs,
         ),
-        tools=None,
-        **kwargs,
     )
 
 
@@ -195,16 +227,20 @@ def decision_router(
     """
     return RouterNode(
         name,
-        instructions=(
-            "Based on the current progress and available information, "
-            "decide which path to take next. Consider: "
-            "1) Do you have enough data? "
-            "2) Are there unresolved questions? "
-            "3) Is the quality sufficient? "
-            "Choose the most productive next step."
+        **_settings(
+            {
+                "instructions": (
+                    "Based on the current progress and available information, "
+                    "decide which path to take next. Consider: "
+                    "1) Do you have enough data? "
+                    "2) Are there unresolved questions? "
+                    "3) Is the quality sufficient? "
+                    "Choose the most productive next step."
+                ),
+                "routes": routes,
+            },
+            kwargs,
         ),
-        routes=routes,
-        **kwargs,
     )
 
 
@@ -221,11 +257,15 @@ def formatter(
     """
     return TransformNode(
         name,
-        instructions="Format the results for final output.",
-        transform=transform,
-        output_key=output_key,
-        default_next="__end__",
-        **kwargs,
+        **_settings(
+            {
+                "instructions": "Format the results for final output.",
+                "transform": transform,
+                "output_key": output_key,
+                "default_next": "__end__",
+            },
+            kwargs,
+        ),
     )
 
 
