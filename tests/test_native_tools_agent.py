@@ -343,6 +343,16 @@ class TestErrorsReachTheModel:
         assert error["retryable"] is False
         assert "outcome is unknown" in error["message"]
 
+    async def test_an_unknown_tool_name_lists_the_real_ones(self):
+        model = _Model(_turn("refund_ordr", {"order_id": "A-1"}))
+        agent = await build_agent(model=model, extra_tools=[refund, explode])
+        await _run(agent)
+        [msg] = model.tool_results()
+        assert msg.content == (
+            "Error: Unknown tool 'refund_ordr'. Did you mean 'refund_order'? "
+            "Available tools: explode, refund_order. Call one of them by its exact name."
+        )
+
     async def test_model_corrects_the_call(self):
         model = _Model(
             _turn("refund_order", {"order_id": "A-1", "amount": 0}),

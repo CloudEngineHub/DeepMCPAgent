@@ -22,7 +22,7 @@ import asyncio
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Iterable
 from typing import Any, cast
 from uuid import uuid4
 
@@ -262,6 +262,31 @@ async def _invoke_tool(
     return content, not failed, False
 
 
+#: At most this many tool names are listed in an unknown-tool error.
+_MAX_LISTED_TOOLS = 40
+
+
+def unknown_tool_message(tool_name: str, available: Iterable[str] | None) -> str:
+    """The error a model gets for calling a tool that doesn't exist.
+
+    Names the closest available tool and lists the available ones (at most
+    ``_MAX_LISTED_TOOLS``), so a model that guessed a name can retry with a
+    real one.
+    """
+    message = f"Error: Unknown tool '{tool_name}'."
+    names = sorted(set(available or ()))
+    if not names:
+        return message + " No tools are available here: answer without calling a tool."
+    import difflib
+
+    close = difflib.get_close_matches(tool_name, names, n=1, cutoff=0.6)
+    if close:
+        message += f" Did you mean '{close[0]}'?"
+    listed = ", ".join(names[:_MAX_LISTED_TOOLS])
+    more = f" and {len(names) - _MAX_LISTED_TOOLS} more" if len(names) > _MAX_LISTED_TOOLS else ""
+    return message + f" Available tools: {listed}{more}. Call one of them by its exact name."
+
+
 async def _call_tool(
     tool: BaseTool | None,
     tool_name: str,
@@ -272,6 +297,7 @@ async def _call_tool(
     *,
     validate: bool = False,
     max_result_chars: int | None = None,
+    available: Iterable[str] | None = None,
 ) -> tuple[dict[str, Any], str]:
     """Run one tool call the way every built-in node runs one.
 
@@ -289,6 +315,10 @@ async def _call_tool(
     4. The engine hooks' ``post_tool(tool_name, result, args, state)``, in
        order: each returns the result to use.
 
+    A call to a tool the node doesn't have is answered with an error that
+    names the closest tool and lists the *available* ones, so the model can
+    correct the name.
+
     Returns ``(record, content)``: the ``NodeResult.tool_calls`` record
     (``name``, ``args``, ``result``, ``success``, and ``raised`` when the tool
     raised) and the content of the call's ``ToolMessage``.
@@ -300,7 +330,7 @@ async def _call_tool(
 
     record: dict[str, Any] = {"name": tool_name, "args": tool_args}
     if tool is None:
-        content = f"Error: Unknown tool '{tool_name}'"
+        content = unknown_tool_message(tool_name, available)
         record.update(result=content, success=False)
     else:
         from promptise.tools import ToolArgumentError
@@ -344,6 +374,7 @@ async def _run_tool_call(
     *,
     validate: bool = False,
     max_result_chars: int | None = None,
+    available: Iterable[str] | None = None,
 ) -> tuple[dict[str, Any], str, float]:
     """:func:`_call_tool`, timed; never raises.
 
@@ -363,6 +394,7 @@ async def _run_tool_call(
             config,
             validate=validate,
             max_result_chars=max_result_chars,
+            available=available,
         )
     except Exception as exc:  # a hook raised
         content = f"Error: {exc}"
@@ -1225,6 +1257,7 @@ class PromptNode(BaseNode):
                             call_ids[index],
                             state,
                             config,
+                            available=tool_map,
                         )
                     started = time.perf_counter()
                     await _report_reused_call(
@@ -1612,6 +1645,7 @@ class ToolNode(BaseNode):
                     config,
                     validate=self.validate_inputs,
                     max_result_chars=self.max_result_chars,
+                    available=tool_map,
                 )
                 if self.deduplicate and tc_record["success"]:
                     turn_results.setdefault(fingerprint, content)
