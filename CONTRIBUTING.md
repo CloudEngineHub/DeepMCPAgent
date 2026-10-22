@@ -123,6 +123,12 @@ mkdocs serve
 mkdocs build --strict
 ```
 
+After changing pages or the nav, regenerate `llms.txt` and `llms-full.txt`:
+
+```bash
+python scripts/build_llms_txt.py
+```
+
 Visit http://127.0.0.1:8000 to view the documentation.
 
 ### Documentation structure
