@@ -269,6 +269,7 @@ nav:
       - Setup:
           - Building Agents: core/agents/building-agents.md
           - "Tools (@tool)": core/tools.md
+          - Testing Agents: core/testing.md
           - Models & Providers: core/agents/models.md
           - Server Configuration: core/agents/server-specs.md
           - Network Server: core/agents/network-server.md

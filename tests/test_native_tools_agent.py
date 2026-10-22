@@ -350,7 +350,7 @@ class TestErrorsReachTheModel:
         [msg] = model.tool_results()
         assert msg.content == (
             "Error: Unknown tool 'refund_ordr'. Did you mean 'refund_order'? "
-            "Available tools: explode, refund_order. Call one of them by its exact name."
+            "Call one of the available tools: refund_order, explode."
         )
 
     async def test_model_corrects_the_call(self):

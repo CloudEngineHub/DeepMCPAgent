@@ -19,10 +19,11 @@ Node types:
 from __future__ import annotations
 
 import asyncio
+import difflib
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Callable, Iterable
+from collections.abc import AsyncIterator, Callable, Sequence
 from typing import Any, cast
 from uuid import uuid4
 
@@ -262,29 +263,47 @@ async def _invoke_tool(
     return content, not failed, False
 
 
-#: At most this many tool names are listed in an unknown-tool error.
-_MAX_LISTED_TOOLS = 40
+#: How many tool names an unknown-tool error lists (the rest are counted).
+_UNKNOWN_TOOL_NAMES_SHOWN = 20
+#: How alike (``difflib`` ratio, ignoring case) a tool name must be to the
+#: one called to be listed first, and to be suggested ("Did you mean ...?").
+#: Suggesting needs a misspelling, not a shared word: ``cancel_order`` is
+#: close to ``get_order`` but must not be pointed at it.
+_UNKNOWN_TOOL_CLOSE = 0.6
+_UNKNOWN_TOOL_SUGGEST = 0.85
 
 
-def unknown_tool_message(tool_name: str, available: Iterable[str] | None) -> str:
-    """The error a model gets for calling a tool that doesn't exist.
+def _unknown_tool_message(tool_name: str, available: Sequence[str]) -> str:
+    """The error a model gets for a call to a tool the agent doesn't have.
 
-    Names the closest available tool and lists the available ones (at most
-    ``_MAX_LISTED_TOOLS``), so a model that guessed a name can retry with a
-    real one.
+    It names the tools the agent does have, so a model that invented a name
+    (or misspelled one) can call the right tool.  The closest names come
+    first; at most :data:`_UNKNOWN_TOOL_NAMES_SHOWN` are listed, and the rest
+    are counted.  A name that looks like a misspelling of the one called is
+    also suggested.
+
+    Args:
+        tool_name: The name the model called.
+        available: The names of the tools the agent can call.
+
+    Returns:
+        ``"Error: Unknown tool 'x'. ..."``
     """
-    message = f"Error: Unknown tool '{tool_name}'."
-    names = sorted(set(available or ()))
+    names = list(dict.fromkeys(available))
     if not names:
-        return message + " No tools are available here: answer without calling a tool."
-    import difflib
-
-    close = difflib.get_close_matches(tool_name, names, n=1, cutoff=0.6)
-    if close:
-        message += f" Did you mean '{close[0]}'?"
-    listed = ", ".join(names[:_MAX_LISTED_TOOLS])
-    more = f" and {len(names) - _MAX_LISTED_TOOLS} more" if len(names) > _MAX_LISTED_TOOLS else ""
-    return message + f" Available tools: {listed}{more}. Call one of them by its exact name."
+        return f"Error: Unknown tool '{tool_name}'. No tools are available; answer without one."
+    called = tool_name.lower()
+    score = {n: difflib.SequenceMatcher(None, called, n.lower()).ratio() for n in names}
+    close = sorted((n for n in names if score[n] >= _UNKNOWN_TOOL_CLOSE), key=lambda n: -score[n])
+    close = close[:3]
+    ordered = close + [n for n in names if n not in close]
+    shown = ordered[:_UNKNOWN_TOOL_NAMES_SHOWN]
+    listed = ", ".join(shown)
+    if len(ordered) > len(shown):
+        listed += f" (and {len(ordered) - len(shown)} more)"
+    suggest = close[0] if close and score[close[0]] >= _UNKNOWN_TOOL_SUGGEST else None
+    hint = f" Did you mean '{suggest}'?" if suggest else ""
+    return f"Error: Unknown tool '{tool_name}'.{hint} Call one of the available tools: {listed}."
 
 
 async def _call_tool(
@@ -297,7 +316,7 @@ async def _call_tool(
     *,
     validate: bool = False,
     max_result_chars: int | None = None,
-    available: Iterable[str] | None = None,
+    available: Sequence[str] = (),
 ) -> tuple[dict[str, Any], str]:
     """Run one tool call the way every built-in node runs one.
 
@@ -315,9 +334,8 @@ async def _call_tool(
     4. The engine hooks' ``post_tool(tool_name, result, args, state)``, in
        order: each returns the result to use.
 
-    A call to a tool the node doesn't have is answered with an error that
-    names the closest tool and lists the *available* ones, so the model can
-    correct the name.
+    A call to a tool the agent doesn't have (*tool* is ``None``) fails with
+    :func:`_unknown_tool_message`, which lists the *available* tool names.
 
     Returns ``(record, content)``: the ``NodeResult.tool_calls`` record
     (``name``, ``args``, ``result``, ``success``, and ``raised`` when the tool
@@ -330,7 +348,7 @@ async def _call_tool(
 
     record: dict[str, Any] = {"name": tool_name, "args": tool_args}
     if tool is None:
-        content = unknown_tool_message(tool_name, available)
+        content = _unknown_tool_message(tool_name, available)
         record.update(result=content, success=False)
     else:
         from promptise.tools import ToolArgumentError
@@ -374,7 +392,7 @@ async def _run_tool_call(
     *,
     validate: bool = False,
     max_result_chars: int | None = None,
-    available: Iterable[str] | None = None,
+    available: Sequence[str] = (),
 ) -> tuple[dict[str, Any], str, float]:
     """:func:`_call_tool`, timed; never raises.
 
@@ -1257,7 +1275,7 @@ class PromptNode(BaseNode):
                             call_ids[index],
                             state,
                             config,
-                            available=tool_map,
+                            available=list(tool_map),
                         )
                     started = time.perf_counter()
                     await _report_reused_call(
@@ -1645,7 +1663,7 @@ class ToolNode(BaseNode):
                     config,
                     validate=self.validate_inputs,
                     max_result_chars=self.max_result_chars,
-                    available=tool_map,
+                    available=list(tool_map),
                 )
                 if self.deduplicate and tc_record["success"]:
                     turn_results.setdefault(fingerprint, content)

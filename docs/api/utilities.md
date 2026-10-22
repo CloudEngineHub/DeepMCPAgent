@@ -5,7 +5,7 @@ description: "API reference for approval, semantic cache, events, model fallback
 
 # Utilities API Reference
 
-Root-level modules: approval, cache, events, fallback, guardrails, streaming, tool optimization, adaptive strategy, context engine, env resolution, types, and exceptions.
+Root-level modules: approval, cache, events, fallback, testing, guardrails, streaming, tool optimization, adaptive strategy, context engine, env resolution, types, and exceptions.
 
 ## Environment Variables
 
@@ -245,6 +245,47 @@ Automatic provider failover. Uses a circuit breaker to route around unhealthy pr
 ### FallbackChain
 
 ::: promptise.fallback.FallbackChain
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Testing
+
+Run agents on scripted model replies, with no model provider. See [Testing Agents](../core/testing.md).
+
+### ScriptedModel
+
+::: promptise.testing.ScriptedModel
+    options:
+      show_source: false
+      heading_level: 4
+
+### ToolCall
+
+::: promptise.testing.ToolCall
+    options:
+      show_source: false
+      heading_level: 4
+
+### Malformed
+
+::: promptise.testing.Malformed
+    options:
+      show_source: false
+      heading_level: 4
+
+### ModelCall
+
+::: promptise.testing.ModelCall
+    options:
+      show_source: false
+      heading_level: 4
+
+### ScriptExhaustedError
+
+::: promptise.testing.ScriptExhaustedError
     options:
       show_source: false
       heading_level: 4

@@ -224,6 +224,9 @@ assert refund("A-1001", 20.0, CallerContext(user_id="alice")).startswith("Refund
 does (validated, with the caller injected) and returns the text the model
 reads.
 
+To test the agent that calls your tools without a model provider, script the
+model's tool calls with `ScriptedModel` (see [Testing Agents](testing.md)).
+
 ### Approval, guardrails and tracing
 
 A `@tool` is a LangChain `BaseTool`, so everything that applies to tools
@@ -495,6 +498,7 @@ adapter = MCPToolAdapter(
 
 ## What's next
 
+- [Testing Agents](testing.md) -- run an agent and its tools on scripted model replies
 - [Approval (HITL)](approval.md) -- gate tool calls behind a human decision
 - [Guardrails](guardrails.md) -- scan tool results before the model reads them
 - [CallerContext: Agent to MCP Identity](../guides/multi-user-identity.md) -- per-request identity end to end
