@@ -20,6 +20,12 @@ from promptise.runtime.shell_hook import ShellHook, ShellHookResult
 # ---------------------------------------------------------------------------
 
 
+# Generous timeout for shell hooks in tests that are not about timeouts: on a
+# loaded CI runner even a two-line script can take seconds to start, and the
+# 5 s default once made such a test fail.
+SHELL_TIMEOUT = 30.0
+
+
 class TestHookManager:
     @pytest.mark.asyncio
     async def test_register_and_dispatch(self):
@@ -196,7 +202,7 @@ class TestShellHook:
         script.write_text("#!/usr/bin/env bash\nexit 0\n")
         script.chmod(0o755)
 
-        hook = ShellHook(command=str(script))
+        hook = ShellHook(command=str(script), timeout=SHELL_TIMEOUT)
         ctx = HookContext(event=HookEvent.SESSION_START, data={"foo": "bar"})
         result = await hook.run(ctx)
         assert isinstance(result, ShellHookResult)
@@ -211,7 +217,7 @@ class TestShellHook:
         )
         script.chmod(0o755)
 
-        hook = ShellHook(command=str(script))
+        hook = ShellHook(command=str(script), timeout=SHELL_TIMEOUT)
         ctx = HookContext(event=HookEvent.USER_PROMPT_SUBMIT)
         result = await hook.run(ctx)
         assert result.data == {"injected": True}
@@ -223,7 +229,7 @@ class TestShellHook:
         script.write_text('#!/usr/bin/env bash\necho \'{"data": {"prompt": "REWRITTEN"}}\'\n')
         script.chmod(0o755)
 
-        hook = ShellHook(command=str(script))
+        hook = ShellHook(command=str(script), timeout=SHELL_TIMEOUT)
         ctx = HookContext(event=HookEvent.USER_PROMPT_SUBMIT, data={"prompt": "original"})
         await hook.callback(ctx)
         assert ctx.data == {"prompt": "REWRITTEN"}
@@ -234,7 +240,7 @@ class TestShellHook:
         script.write_text('#!/usr/bin/env bash\necho \'{"block": true, "reason": "bad prompt"}\'\n')
         script.chmod(0o755)
 
-        hook = ShellHook(command=str(script))
+        hook = ShellHook(command=str(script), timeout=SHELL_TIMEOUT)
         ctx = HookContext(event=HookEvent.USER_PROMPT_SUBMIT)
         with pytest.raises(HookBlocked, match="bad prompt"):
             await hook.callback(ctx)
@@ -256,7 +262,7 @@ class TestShellHook:
         script.write_text("#!/usr/bin/env bash\necho 'oops' >&2\nexit 1\n")
         script.chmod(0o755)
 
-        hook = ShellHook(command=str(script))
+        hook = ShellHook(command=str(script), timeout=SHELL_TIMEOUT)
         ctx = HookContext(event=HookEvent.SESSION_START)
         with pytest.raises(RuntimeError, match="exited 1"):
             await hook.run(ctx)
@@ -271,7 +277,7 @@ class TestShellHook:
         script.chmod(0o755)
 
         hooks = HookManager()
-        hook = ShellHook(command=str(script))
+        hook = ShellHook(command=str(script), timeout=SHELL_TIMEOUT)
         hooks.register(HookEvent.USER_PROMPT_SUBMIT, hook.callback)
 
         result = await hooks.dispatch(

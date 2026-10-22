@@ -107,6 +107,12 @@ def _patch_build(agent: Any) -> Any:
     return patch(BUILD_TARGET, new_callable=lambda: AsyncMock(return_value=agent))
 
 
+# Generous timeout for shell hooks in tests that are not about timeouts: on a
+# loaded CI runner even a two-line script can take seconds to start, and the
+# 5 s default once made such a test fail.
+SHELL_TIMEOUT = 30.0
+
+
 def _script(tmp_path: Path, name: str, body: str) -> str:
     path = tmp_path / name
     path.write_text("#!/usr/bin/env bash\n" + body)
@@ -230,7 +236,7 @@ class TestShellHookSafety:
             '"proc": "%s", "path": "%s"}}\' "${OPENAI_API_KEY:-}" "${WIRING_PASS:-}" '
             '"$PROMPTISE_HOOK_EVENT" "$PROMPTISE_PROCESS" "${PATH:+set}"\n',
         )
-        hook = ShellHook(command=cmd, env_passthrough=["WIRING_PASS"])
+        hook = ShellHook(command=cmd, env_passthrough=["WIRING_PASS"], timeout=SHELL_TIMEOUT)
         result = await hook.run(HookContext(event=HookEvent.SESSION_START, process_id="p1"))
         assert result.data == {
             "key": "",
@@ -247,7 +253,7 @@ class TestShellHookSafety:
             "env.sh",
             'cat >/dev/null\nprintf \'{"data": {"v": "%s"}}\' "$WIRING_SECRET"\n',
         )
-        result = await ShellHook(command=cmd, inherit_env=True).run(
+        result = await ShellHook(command=cmd, inherit_env=True, timeout=SHELL_TIMEOUT).run(
             HookContext(event=HookEvent.SESSION_START)
         )
         assert result.data == {"v": "x1"}
@@ -256,7 +262,7 @@ class TestShellHookSafety:
         cmd = _script(
             tmp_path, "env.sh", 'cat >/dev/null\nprintf \'{"data": {"v": "%s"}}\' "$HOOK_TOKEN"\n'
         )
-        hook = ShellHook(command=cmd, env={"HOOK_TOKEN": "${WIRING_REF}"})
+        hook = ShellHook(command=cmd, env={"HOOK_TOKEN": "${WIRING_REF}"}, timeout=SHELL_TIMEOUT)
         monkeypatch.setenv("WIRING_REF", "resolved")
         result = await hook.run(HookContext(event=HookEvent.SESSION_START))
         assert result.data == {"v": "resolved"}
@@ -264,7 +270,7 @@ class TestShellHookSafety:
     async def test_payload_is_never_interpolated(self, tmp_path) -> None:
         marker = tmp_path / "pwned"
         cmd = _script(tmp_path, "read.sh", 'payload=$(cat)\necho "{}"\n')
-        hook = ShellHook(command=[cmd])
+        hook = ShellHook(command=[cmd], timeout=SHELL_TIMEOUT)
         ctx = HookContext(
             event=HookEvent.USER_PROMPT_SUBMIT,
             data={"prompt": f"$(touch {marker}); `touch {marker}`"},
@@ -275,20 +281,22 @@ class TestShellHookSafety:
     async def test_output_is_limited(self, tmp_path) -> None:
         cmd = _script(tmp_path, "big.sh", "cat >/dev/null\nhead -c 200000 /dev/zero | tr '\\0' a\n")
         with pytest.raises(ValueError, match="more than 1000 bytes"):
-            await ShellHook(command=cmd, max_output_bytes=1000).run(
+            await ShellHook(command=cmd, max_output_bytes=1000, timeout=SHELL_TIMEOUT).run(
                 HookContext(event=HookEvent.SESSION_START)
             )
 
     async def test_script_that_ignores_stdin_and_large_payload(self, tmp_path) -> None:
         cmd = _script(tmp_path, "quiet.sh", "echo '{}'\n")
         ctx = HookContext(event=HookEvent.USER_PROMPT_SUBMIT, data={"prompt": "x" * 500_000})
-        result = await ShellHook(command=cmd).run(ctx)
+        result = await ShellHook(command=cmd, timeout=SHELL_TIMEOUT).run(ctx)
         assert result.block is False
 
     async def test_data_must_be_an_object(self, tmp_path) -> None:
         cmd = _script(tmp_path, "bad.sh", "cat >/dev/null\necho '{\"data\": [1]}'\n")
         with pytest.raises(ValueError, match="'data' must be a JSON object"):
-            await ShellHook(command=cmd).run(HookContext(event=HookEvent.SESSION_START))
+            await ShellHook(command=cmd, timeout=SHELL_TIMEOUT).run(
+                HookContext(event=HookEvent.SESSION_START)
+            )
 
     def test_invalid_construction(self) -> None:
         with pytest.raises(ValueError, match="empty"):
@@ -505,7 +513,10 @@ class TestProcessHooks:
         out = tmp_path / "events.log"
         cmd = _script(tmp_path, "log.sh", f'cat >> "{out}"\necho >> "{out}"\necho "{{}}"\n')
         process = AgentProcess(
-            "p", ProcessConfig(hooks=[HookConfig(event="session_start", command=[cmd])])
+            "p",
+            ProcessConfig(
+                hooks=[HookConfig(event="session_start", command=[cmd], timeout=SHELL_TIMEOUT)]
+            ),
         )
         with _patch_build(_agent()):
             await process.start()
