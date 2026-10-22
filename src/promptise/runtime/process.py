@@ -785,15 +785,39 @@ class AgentProcess:
         }
 
     def _on_budget_denied(self, violation: Any) -> None:
-        """The budget guard refused a tool call: fire ``PERMISSION_DENIED``.
+        """The budget guard refused a tool call: journal it, fire ``PERMISSION_DENIED``.
 
         Called by :class:`~promptise.runtime.callbacks.BudgetGuard`, on
-        the loop or on a worker thread (synchronous tools); the hooks run
-        in the background on the process's loop.
+        the loop or on a worker thread (synchronous tools).  The journal
+        gets a ``tool_denied`` entry (the call's ``args`` only at level
+        ``"full"``, as for ``tool_call`` entries); the hooks get the
+        denial data plus ``arguments``.  Both run in the background on
+        the process's loop.
         """
-        if not self._has_hooks(HookEvent.PERMISSION_DENIED):
+        has_hooks = self._has_hooks(HookEvent.PERMISSION_DENIED)
+        if self._journal is None and not has_hooks:
             return
         data = self._budget_denial_data(violation)
+        arguments = getattr(violation, "arguments", None)
+        if arguments is None:
+            arguments = {}
+        entry = {
+            "tool": violation.tool_name,
+            "kind": "budget",
+            "reason": data["reason"],
+            "limit_name": violation.limit_name,
+            "limit_value": violation.limit_value,
+            "current_value": violation.current_value,
+        }
+        if self._journal_full:
+            entry["args"] = arguments
+
+        def dispatch() -> None:
+            if self._journal is not None:
+                self._spawn_background(self._journal_record("tool_denied", entry))
+            if has_hooks:
+                self._notify_hook(HookEvent.PERMISSION_DENIED, {**data, "arguments": arguments})
+
         try:
             asyncio.get_running_loop()
         except RuntimeError:
@@ -801,9 +825,9 @@ class AgentProcess:
             if loop is None or loop.is_closed():
                 return
             with contextlib.suppress(RuntimeError):  # loop closed meanwhile
-                loop.call_soon_threadsafe(self._notify_hook, HookEvent.PERMISSION_DENIED, data)
+                loop.call_soon_threadsafe(dispatch)
             return
-        self._notify_hook(HookEvent.PERMISSION_DENIED, data)
+        dispatch()
 
     def apply_governance_config(self, section: str) -> None:
         """Apply ``config.<section>`` to the running process now.
@@ -3703,7 +3727,8 @@ class AgentProcess:
             await self._inbox.remove_consumed(delivered)
 
     async def _handle_budget_violation(self, violation: Any) -> None:
-        """Emit ``budget.exceeded`` and apply ``budget.on_exceeded``.
+        """Journal a ``budget_violation`` entry, emit ``budget.exceeded`` and
+        apply ``budget.on_exceeded``.
 
         For every violation the process acts on: a run refused by
         ``max_runs_per_day`` as well as a limit reached during a run.  A
@@ -3711,6 +3736,17 @@ class AgentProcess:
         """
         if self._budget_enforcer is None:
             return
+        await self._journal_record(
+            "budget_violation",
+            {
+                "limit_name": violation.limit_name,
+                "limit_value": violation.limit_value,
+                "current_value": violation.current_value,
+                "tool_name": violation.tool_name,
+                "blocked": violation.blocked,
+                "action": self.config.budget.on_exceeded,
+            },
+        )
         if self._event_notifier is not None:
             from promptise.events import emit_event
 

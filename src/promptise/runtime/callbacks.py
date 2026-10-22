@@ -77,6 +77,18 @@ def _tool_name(serialized: Any) -> str:
     return ""
 
 
+def _tool_args(input_str: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+    """A tool call's arguments from LangChain's ``on_tool_start`` arguments.
+
+    LangChain passes the parsed input as ``inputs``; ``input_str`` is
+    only a string rendering of it (not always JSON).
+    """
+    inputs = kwargs.get("inputs")
+    if isinstance(inputs, dict):
+        return dict(inputs)
+    return RuntimeCallbackHandler._parse_tool_args(input_str)
+
+
 class BudgetGuard(BaseCallbackHandler):
     """Refuses tool calls that would exceed an autonomy budget limit.
 
@@ -92,9 +104,10 @@ class BudgetGuard(BaseCallbackHandler):
         budget: The process's budget state.
         violations: List that collects violations (shared with
             :class:`RuntimeCallbackHandler`).
-        on_denied: Called with the violation of every refused call,
-            before the error is raised (the process dispatches the
-            ``permission_denied`` hook from it).  It may be called from a
+        on_denied: Called with the violation of every refused call
+            (its ``arguments`` set to the call's arguments), before the
+            error is raised (the process journals a ``tool_denied`` entry
+            and dispatches the ``permission_denied`` hook from it).  It may be called from a
             worker thread (synchronous tools); it must not block, and an
             error it raises is logged and ignored.
     """
@@ -127,6 +140,7 @@ class BudgetGuard(BaseCallbackHandler):
         if violation.blocked:
             if violation.tool_name is None:
                 violation.tool_name = tool_name or None
+            violation.arguments = _tool_args(input_str, kwargs)
             if self._on_denied is not None:
                 try:
                     self._on_denied(violation)
@@ -222,10 +236,7 @@ class RuntimeCallbackHandler(AsyncCallbackHandler):
             if len(self._tool_runs) >= 1000:
                 self._tool_runs.clear()
             self._tool_runs[run_id] = tool_name
-        # LangChain passes the parsed input as ``inputs``; ``input_str`` is
-        # only a string rendering of it (not always JSON).
-        inputs = kwargs.get("inputs")
-        args = dict(inputs) if isinstance(inputs, dict) else self._parse_tool_args(input_str)
+        args = _tool_args(input_str, kwargs)
 
         if self._journal is not None:
             try:

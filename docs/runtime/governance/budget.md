@@ -268,6 +268,8 @@ Budget limit max_tool_calls_per_day reached (limit 5); tool call 'send' was not 
 
 LLM turns are counted but not blocked: the turn that exceeds `max_llm_turns_per_run` still runs, and every tool call after it is refused.
 
+A refused call never runs, so the [journal](../journal/index.md) has no `tool_call` entry for it. It gets a `tool_denied` entry instead (with the call's `args` at journal level `"full"`), and the `permission_denied` [hook](../hooks.md) fires with `kind="budget"` and the call's `arguments`. The violation the process acts on is journaled as `budget_violation`.
+
 After the invocation finishes, the first violation of the run triggers the action configured in `on_exceeded` (below). `max_runs_per_day` is checked when an invocation starts; a run over that limit does not start, and `on_exceeded` is applied at once. Its event goes to the [dead letters](../processes.md#dead-letters) with reason `"budget: max_runs_per_day"` (the `task_completed` hook reports outcome `"refused"`), so `redeliver_dead_letters()` can run it after the daily reset.
 
 !!! note "Changed in 1.3.0"
@@ -436,6 +438,7 @@ A call an [approval gate](../../core/approval.md) denies did nothing irreversibl
 | `current_value` | The counter value that exceeded it (for a refused call: the value the call would have produced) |
 | `tool_name` | The tool that triggered it, or `None` |
 | `blocked` | `True` when the tool call was refused before it ran |
+| `arguments` | The refused call's arguments (a refused call only), or `None` |
 
 `BudgetWarning` has `limit_name`, `limit_value`, `current_value` and `percentage` (0.0-1.0).
 

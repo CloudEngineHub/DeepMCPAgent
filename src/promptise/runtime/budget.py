@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any
 
@@ -62,6 +62,8 @@ class BudgetViolation:
         tool_name: Tool that triggered the violation (if applicable).
         blocked: ``True`` when the tool call was refused before it ran
             (per-call enforcement) rather than detected after the fact.
+        arguments: The refused tool call's arguments (set for a blocked
+            call; ``None`` otherwise).
     """
 
     limit_name: str
@@ -69,6 +71,7 @@ class BudgetViolation:
     current_value: float
     tool_name: str | None = None
     blocked: bool = False
+    arguments: dict[str, Any] | None = field(default=None, repr=False)
 
 
 class BudgetState:

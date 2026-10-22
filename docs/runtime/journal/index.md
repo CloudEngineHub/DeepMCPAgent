@@ -99,6 +99,8 @@ What an `AgentProcess` writes:
 | `api_request` | checkpoint | A successful mutating request to the [Orchestration API](../api.md) | Method, route, path parameters, status and client address (never the body) |
 | `secret_access` | checkpoint | [Secret scoping](../governance/secrets.md) read, rotated, revoked or expired a secret | `action` (`"access"`, `"rotation"`, `"revoke_all"`, `"expired"`), `secret_name` (never the value) |
 | `mission_evaluation` | checkpoint | The [mission](../governance/mission.md) judge evaluated progress | `achieved`, `confidence`, `reasoning`, `progress_summary`, `mission_state`, `invocation_number`, `source` |
+| `tool_denied` | checkpoint | The [budget](../governance/budget.md) refused a tool call before it ran | `tool`, `kind` (`"budget"`), `reason`, `limit_name`, `limit_value`, `current_value`; at level `"full"` also `args` (redacted) |
+| `budget_violation` | checkpoint | The process acts on a budget violation (`on_exceeded`), also for a run refused by `max_runs_per_day` | `limit_name`, `limit_value`, `current_value`, `tool_name`, `blocked`, `action` |
 | `trigger_event` | full | A run starts for a trigger event | `trigger_id`, `trigger_type`, `event_id`, `payload` |
 | `invocation_start` | full | Before the model is called | `invocation`, `event_id` |
 | `tool_call` | full | The agent called a tool | `tool`, `args` (redacted) |

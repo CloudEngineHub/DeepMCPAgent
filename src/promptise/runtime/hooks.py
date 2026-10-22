@@ -119,7 +119,8 @@ class HookEvent(str, Enum):
     #: * ``"budget"``: a budget limit refused a tool call (``tool_name``
     #:   set) or a run (``max_runs_per_day``; ``tool_name`` ``None``, plus
     #:   ``event_id``).  ``decided_by`` ``"budget"``, plus ``limit_name``,
-    #:   ``limit_value`` and ``current_value``.
+    #:   ``limit_value``, ``current_value`` and, for a tool call,
+    #:   ``arguments``.  The refusal is journaled as ``tool_denied``.
     #: * ``"guardrail"``: a trigger event's run was refused by the payload
     #:   scan (``decided_by`` ``"payload_scan"``) or the guardrail scanner
     #:   (``"guardrail"``); ``tool_name`` ``None``, plus ``event_id`` and

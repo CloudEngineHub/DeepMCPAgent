@@ -136,7 +136,7 @@ A command hook runs a program on the runtime's host. The [Orchestration API](api
 | `kind` | What refused it | Extra data |
 |---|---|---|
 | `"approval"` | The approval handler, a classifier rule, the gate, or a `permission_request` hook | `decided_by` as in the `ApprovalDecision` |
-| `"budget"` | A budget limit refused a tool call (`tool_name` set) or a run (`max_runs_per_day`; `tool_name` is `None`) | `decided_by="budget"`, `limit_name`, `limit_value`, `current_value`; `event_id` for a refused run |
+| `"budget"` | A budget limit refused a tool call (`tool_name` set) or a run (`max_runs_per_day`; `tool_name` is `None`) | `decided_by="budget"`, `limit_name`, `limit_value`, `current_value`; `arguments` (redacted) for a refused tool call, `event_id` for a refused run |
 | `"guardrail"` | The payload scan (`decided_by="payload_scan"`) or the guardrail scanner (`decided_by="guardrail"`) refused a trigger event's run | `tool_name` is `None`; `event_id`, `trigger_type` |
 
 `CONFIG_CHANGE` names the change in `change`: `"instructions"`, `"tool"`, `"mcp_server"`, `"trigger_added"`, `"trigger_removed"`, `"budget"`, `"health"`, `"mission"`, `"rollback"` or `"rewind"`.
