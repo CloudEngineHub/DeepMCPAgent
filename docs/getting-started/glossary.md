@@ -236,7 +236,7 @@ Per-client key-value storage that persists across multiple tool calls in a sessi
 
 ## Strategy
 
-Reasoning pattern wrapper. Five built-in: `ChainOfThought`, `StructuredReasoning`, `SelfCritique`, `PlanAndExecute`, `Decompose`. Composable with `+` (e.g., `chain_of_thought + self_critique`).
+Reasoning pattern wrapper. Five built-in: `chain_of_thought`, `structured_reasoning`, `self_critique`, `plan_and_execute` and `decompose` (instances of `ChainOfThoughtStrategy`, `StructuredReasoningStrategy`, ...). Composable with `+` (e.g., `chain_of_thought + self_critique`).
 
 ## SuperAgent
 

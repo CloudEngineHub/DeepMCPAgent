@@ -62,7 +62,7 @@ Audit logs, rate limits, circuit breakers, health probes, sandboxing, observabil
 
 ### 6. No cost / pricing tracking
 
-LLM provider prices change weekly. We don't shadow-track them. The Budget governance subsystem counts tool calls, LLM turns, and abstract cost units that you map to your own pricing model. `ToolCostAnnotations` let you weight individual tools.
+LLM provider prices change weekly. We don't shadow-track them. The Budget governance subsystem counts tool calls, LLM turns, and abstract cost units that you map to your own pricing model. `BudgetConfig(tool_costs={...})` with a `ToolCostAnnotation` per tool lets you weight individual tools.
 
 ### 7. Local-first when possible
 
