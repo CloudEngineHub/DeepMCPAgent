@@ -60,41 +60,47 @@ Subscribes to one event type on an event bus and turns matching events into `Tri
 
 The handler is an async callable that receives the event object. The trigger reads its `event_id`, `source` and `data` attributes (missing ones become `""` / `{}`).
 
-A minimal in-memory bus (`InProcessEventBus` is this, plus error handling):
+#### InProcessEventBus
+
+`InProcessEventBus()` (from `promptise.runtime`) is the bus to use when every producer and every process lives in one Python process. It takes no arguments.
+
+| Method | Description |
+|---|---|
+| `await subscribe(event_type, handler)` | Calls `handler(event)` for every event of that type (an enum member's `.value` works too) |
+| `await unsubscribe(event_type, handler)` | Stops calling it; no error when it was not subscribed |
+| `subscriber_count(event_type)` | How many handlers are subscribed |
+| `await emit(event_type, data, source="")` | Delivers a `BusEvent` to every subscriber in turn and returns how many received it. A handler that raises is logged and doesn't stop the others |
+
+Handlers receive a `BusEvent` dataclass: `event_type`, `data` (a copy of the dict you emitted), `source` (default `""`) and `event_id` (a generated UUID). Nothing leaves the Python process; to reach other hosts, pass your own bus.
 
 ```python
-from dataclasses import dataclass, field
-from uuid import uuid4
+import asyncio
+
+from promptise.runtime import InProcessEventBus
+from promptise.runtime.triggers.event import EventTrigger
 
 
-@dataclass
-class BusEvent:
-    data: dict
-    source: str = ""
-    event_id: str = field(default_factory=lambda: uuid4().hex)
+async def main():
+    bus = InProcessEventBus()
+    trigger = EventTrigger(bus, "pipeline.error", source_filter="data-pipeline")
+    await trigger.start()
+    print(bus.subscriber_count("pipeline.error"))  # 1
+
+    delivered = await bus.emit("pipeline.error", {"job": "nightly-load"}, source="data-pipeline")
+    event = await trigger.wait_for_next()
+    print(delivered, event.payload["data"])  # 1 {'job': 'nightly-load'}
+    await trigger.stop()
 
 
-class InMemoryBus:
-    def __init__(self) -> None:
-        self._handlers: dict[str, list] = {}
-
-    async def subscribe(self, event_type, handler):
-        self._handlers.setdefault(event_type, []).append(handler)
-
-    async def unsubscribe(self, event_type, handler):
-        self._handlers.get(event_type, []).remove(handler)
-
-    async def emit(self, event_type, data, source=""):
-        for handler in list(self._handlers.get(event_type, [])):
-            await handler(BusEvent(data=data, source=source))
+asyncio.run(main())
 ```
 
 Pass the same instance to the runtime and to whatever produces the events:
 
 ```python
-from promptise.runtime import AgentRuntime, ProcessConfig, TriggerConfig
+from promptise.runtime import AgentRuntime, InProcessEventBus, ProcessConfig, TriggerConfig
 
-bus = InMemoryBus()
+bus = InProcessEventBus()
 runtime = AgentRuntime(event_bus=bus)
 await runtime.add_process(
     "pipeline-doctor",
@@ -107,6 +113,31 @@ await runtime.add_process(
 await runtime.start_all()
 
 await bus.emit("pipeline.error", {"job": "nightly-load"}, source="data-pipeline")
+```
+
+#### Your own bus
+
+For Redis Pub/Sub, Kafka or another transport, write a class with the same three methods. A minimal sketch, where `BusEvent` is any object with `data`, `source` and `event_id`:
+
+```python
+from promptise.runtime import BusEvent
+
+
+class MyBus:
+    def __init__(self) -> None:
+        self._handlers: dict[str, list] = {}
+
+    async def subscribe(self, event_type, handler):
+        self._handlers.setdefault(event_type, []).append(handler)
+
+    async def unsubscribe(self, event_type, handler):
+        if handler in self._handlers.get(event_type, []):
+            self._handlers[event_type].remove(handler)
+
+    async def emit(self, event_type, data, source=""):
+        # Publish to your transport here; this sketch delivers locally.
+        for handler in list(self._handlers.get(event_type, [])):
+            await handler(BusEvent(event_type=event_type, data=data, source=source))
 ```
 
 ### Configuration
@@ -454,13 +485,13 @@ All implement the `BaseTrigger` protocol: `start()`, `stop()`, `wait_for_next()`
 
 ## What's Next
 
-- [Triggers Overview](index.md) -- stable trigger IDs, live trigger changes and the event queue
-- [Cron Trigger](cron.md) -- time-based scheduling
-- [File Watch Trigger](file-watch.md) -- file-system monitoring
-- [Runtime Manager](../runtime-manager.md) -- sharing an event bus and broker between processes
-- [Configuration](../configuration.md) -- full `TriggerConfig` reference
+- [Triggers Overview](index.md): stable trigger IDs, live trigger changes and the event queue
+- [Cron Trigger](cron.md): time-based scheduling
+- [File Watch Trigger](file-watch.md): file-system monitoring
+- [Runtime Manager](../runtime-manager.md): sharing an event bus and broker between processes
+- [Configuration](../configuration.md): full `TriggerConfig` reference
 
 !!! tip "Learn the concept"
 
-    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- Signed webhooks and prompt-injection tests for event-driven agents.
-    - [AI Agent Webhook Trigger: Run an Agent on HTTP Events](https://www.promptise.com/guides/view/ai-agent-webhook-trigger) -- HMAC signatures for GitHub and Stripe, replay protection and response codes.
+    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers): Signed webhooks and prompt-injection tests for event-driven agents.
+    - [AI Agent Webhook Trigger: Run an Agent on HTTP Events](https://www.promptise.com/guides/view/ai-agent-webhook-trigger): HMAC signatures for GitHub and Stripe, replay protection and response codes.

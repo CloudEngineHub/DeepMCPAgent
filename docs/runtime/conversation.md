@@ -195,12 +195,12 @@ restored = ConversationBuffer.from_dict(data)
 
 ## What's next
 
-- [Agent Context](context.md) -- state and long-term memory around the conversation
-- [Runtime Hooks](hooks.md) -- `pre_compact` / `post_compact`
-- [Journal](journal/index.md) and [Rewind Engine](journal/rewind.md) -- checkpointing, recovery and rolling back the conversation
-- [Secret Scoping](governance/secrets.md) -- the values that are redacted
+- [Agent Context](context.md): state and long-term memory around the conversation
+- [Runtime Hooks](hooks.md): `pre_compact` / `post_compact`
+- [Journal](journal/index.md) and [Rewind Engine](journal/rewind.md): checkpointing, recovery and rolling back the conversation
+- [Secret Scoping](governance/secrets.md): the values that are redacted
 
 !!! tip "Learn the concept"
 
-    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs) -- How state, conversation and memory differ, and what survives a restart.
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Checkpoints that bring the conversation back after a crash.
+    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs): How state, conversation and memory differ, and what survives a restart.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Checkpoints that bring the conversation back after a crash.

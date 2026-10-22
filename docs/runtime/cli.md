@@ -74,6 +74,7 @@ promptise runtime start agents/ --dashboard                  # live terminal das
 | `--allow-command-deploys` | | off | Let the control API deploy processes with stdio MCP servers, command hooks or open-mode tool creation |
 | `--allow-env-references` | | off | Let control-API deploys use `${VAR}` references to any environment variable of this machine |
 | `--allow-env-var NAME` | | -- | Let control-API deploys reference this one variable as `${NAME}`; repeatable |
+| `--import MODULE` | `-i` | -- | Import this Python module before loading the manifests, for example one that registers custom trigger types with `register_trigger_type()`; repeatable. The current directory is importable |
 
 In the foreground, `start` loads the manifests, starts the control API, writes the state file, starts every process and prints a status table:
 
@@ -111,6 +112,13 @@ Started runtime notes in the background
 When the background runtime exits during startup, `start` prints the last 20 lines of its log and exits with 1. When it isn't ready after 60 seconds, `start` says so and exits with 0 (the runtime keeps starting; check `status` and the log). `--detach` can't be combined with `--dashboard`.
 
 **`--allow-command-deploys`.** By default the control API refuses `POST /api/v1/processes` for a config with a stdio MCP server, a command [hook](hooks.md) or open mode with `allow_tool_creation` (`403 COMMANDS_NOT_ALLOWED`): anyone with the token could otherwise run any command on the machine. The flag lifts that; use it only when every token holder may run commands there. The manifests you start are never affected.
+
+**`--import MODULE`.** A manifest trigger with a custom `type` needs the module that calls [`register_trigger_type()`](triggers/index.md#custom-trigger-types) to be imported first, or `start` and `validate` report `unknown trigger type`. `--import` imports it (the current directory is on the import path, as with `python -m`); a module that fails to import ends the command with exit code 1. A `--detach` runtime gets the same `--import` options.
+
+```bash
+promptise runtime validate agents/ --import my_triggers
+promptise runtime start agents/ --import my_triggers --detach
+```
 
 **`--allow-env-references` and `--allow-env-var NAME`.** By default the control API refuses a deploy (or a trigger or `PATCH` body) with a `${VAR}` reference (`403 ENV_REFERENCES_NOT_ALLOWED`), because the deployed agent could read the value back through a secret. `--allow-env-var SEARCH_API_KEY` (repeatable) allows those variables only; `--allow-env-references` allows any. Both are passed on to a `--detach` runtime. Paths in deployed configs (journal, memory, watch paths) must lie in `./.promptise` under the directory you start the runtime in (`403 PATH_NOT_ALLOWED`). See [Securing the control API](api.md#securing-the-control-api).
 
@@ -259,9 +267,10 @@ promptise runtime validate agents/watcher.agent
 promptise runtime validate agents/
 ```
 
-| Argument | Description |
-|---|---|
-| `PATH` | A `.agent` manifest file, or a directory of them |
+| Argument / option | Short | Description |
+|---|---|---|
+| `PATH` | | A `.agent` manifest file, or a directory of them |
+| `--import MODULE` | `-i` | Import this Python module first (repeatable), so custom trigger types it registers are known |
 
 Each file is checked against the manifest schema (field types, trigger settings, hooks, unknown keys) and warnings are printed for likely mistakes. A valid file gets a summary table: name, model, version, the start of the instructions, server count and trigger count. For a directory, a final line says how many manifests failed.
 
@@ -338,14 +347,14 @@ promptise runtime stop
 
 ## What's Next
 
-- [Agent Manifests](manifests.md) -- the `.agent` file format
-- [Orchestration API](api.md) -- the control API the commands talk to
-- [Journal](journal/index.md) and [Rewind](journal/rewind.md) -- what `logs` and `rewind` work on
-- [Dashboard](dashboard.md) -- the live terminal UI
-- [Runtime Manager](runtime-manager.md) -- the Python API behind the CLI
+- [Agent Manifests](manifests.md): the `.agent` file format
+- [Orchestration API](api.md): the control API the commands talk to
+- [Journal](journal/index.md) and [Rewind](journal/rewind.md): what `logs` and `rewind` work on
+- [Dashboard](dashboard.md): the live terminal UI
+- [Runtime Manager](runtime-manager.md): the Python API behind the CLI
 
 !!! tip "Learn the concept"
 
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- Run several agents from manifests and control them from the terminal.
-    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api) -- The API every runtime command talks to.
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Journals, recovery and rewind behind `logs` and `rewind`.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): Run several agents from manifests and control them from the terminal.
+    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api): The API every runtime command talks to.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Journals, recovery and rewind behind `logs` and `rewind`.

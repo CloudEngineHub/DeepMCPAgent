@@ -216,13 +216,13 @@ Unknown keys are ignored with a `FutureWarning`.
 
 ## What's next
 
-- [Orchestration API](../api.md) -- rotate and revoke over HTTP
-- [Agent Context](../context.md) -- why secrets don't belong in the state
-- [Conversation](../conversation.md) -- the redacted history
-- [Journal](../journal/index.md) -- where the access log goes
-- [Meta-Tools](../meta-tools.md) -- `get_secret` and the other open-mode tools
+- [Orchestration API](../api.md): rotate and revoke over HTTP
+- [Agent Context](../context.md): why secrets don't belong in the state
+- [Conversation](../conversation.md): the redacted history
+- [Journal](../journal/index.md): where the access log goes
+- [Meta-Tools](../meta-tools.md): `get_secret` and the other open-mode tools
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Secrets Management: Scoped, Expiring Credentials](https://www.promptise.com/guides/view/ai-agent-secrets-management) -- Scope, expire, rotate and audit an agent's credentials.
-    - [Secrets in Prompts: System Prompt Leakage and Safe Patterns](https://www.promptise.com/guides/view/secrets-in-prompts-the-silent-killer) -- Why secrets in prompts leak and safer patterns.
+    - [AI Agent Secrets Management: Scoped, Expiring Credentials](https://www.promptise.com/guides/view/ai-agent-secrets-management): Scope, expire, rotate and audit an agent's credentials.
+    - [Secrets in Prompts: System Prompt Leakage and Safe Patterns](https://www.promptise.com/guides/view/secrets-in-prompts-the-silent-killer): Why secrets in prompts leak and safer patterns.

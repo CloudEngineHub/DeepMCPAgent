@@ -292,6 +292,10 @@ Transitions are serialized with an `asyncio.Lock`. That makes `ProcessLifecycle`
 Serialized does not mean "only one wins". Concurrent transitions run one after another, and each is checked against the state the previous one left:
 
 ```python
+import asyncio
+
+from promptise.runtime import ProcessLifecycle, ProcessState
+
 lc = ProcessLifecycle(initial=ProcessState.RUNNING)
 await asyncio.gather(
     lc.transition(ProcessState.SUSPENDED),  # RUNNING -> SUSPENDED
@@ -317,13 +321,13 @@ A transition that is no longer valid when its turn comes raises `StateError`.
 
 ## What's next
 
-- [Agent Processes](processes.md) -- `start()`, `stop()`, `suspend()`, `resume()`, restart policies and dead letters
-- [Runtime Manager](runtime-manager.md) -- how `AgentRuntime` starts, restarts and stops many processes
-- [Runtime Hooks](hooks.md) -- run code on `session_start`, `session_end` and other lifecycle points
-- [Journal](journal/index.md) -- durable record of every transition, and recovery on start
+- [Agent Processes](processes.md): `start()`, `stop()`, `suspend()`, `resume()`, restart policies and dead letters
+- [Runtime Manager](runtime-manager.md): how `AgentRuntime` starts, restarts and stops many processes
+- [Runtime Hooks](hooks.md): run code on `session_start`, `session_end` and other lifecycle points
+- [Journal](journal/index.md): durable record of every transition, and recovery on start
 
 !!! tip "Learn the concept"
 
-    - [Pause and Resume an AI Agent: Lifecycle States Explained](https://www.promptise.com/guides/view/ai-agent-pause-resume) -- The lifecycle states, suspend and resume, and what happens to queued work.
-    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart) -- Restart policies, backoff, restart limits and an alert when the runtime gives up.
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Journal a process and continue where it stopped after a crash.
+    - [Pause and Resume an AI Agent: Lifecycle States Explained](https://www.promptise.com/guides/view/ai-agent-pause-resume): The lifecycle states, suspend and resume, and what happens to queued work.
+    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart): Restart policies, backoff, restart limits and an alert when the runtime gives up.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Journal a process and continue where it stopped after a crash.

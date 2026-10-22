@@ -35,10 +35,10 @@ async with RuntimeCoordinator(
 
 In a distributed deployment, agent processes run across multiple machines (nodes). Each node runs an `AgentRuntime` with a `RuntimeTransport` HTTP server. The coordinator sits at the center, providing:
 
-- **Node registry** -- track which nodes exist and their URLs.
-- **Health monitoring** -- periodic HTTP health checks to detect node failures.
-- **Cluster status** -- aggregate process counts and health across all nodes.
-- **Remote operations** -- start/stop processes and inject events on remote nodes.
+- **Node registry**: track which nodes exist and their URLs.
+- **Health monitoring**: periodic HTTP health checks to detect node failures.
+- **Cluster status**: aggregate process counts and health across all nodes.
+- **Remote operations**: start/stop processes and inject events on remote nodes.
 
 ```
          ┌──────────────┐
@@ -124,14 +124,16 @@ healthy = coordinator.healthy_nodes  # list[NodeInfo]
 
 Information about a runtime node in the cluster:
 
-| Field | Type | Description |
-|---|---|---|
-| `node_id` | `str` | Unique node identifier |
-| `url` | `str` | Base URL for the node's transport API |
-| `last_heartbeat` | `float` | Timestamp of last successful health check |
-| `status` | `str` | `"healthy"`, `"unhealthy"`, or `"unknown"` |
-| `process_count` | `int` | Number of processes on this node |
-| `metadata` | `dict[str, Any]` | Additional node metadata |
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `node_id` | `str` | required | Unique node identifier |
+| `url` | `str` | required | Base URL for the node's transport API |
+| `last_heartbeat` | `float` | now (`time.monotonic()`) | Monotonic time of the last successful health check |
+| `status` | `str` | `"unknown"` | `"healthy"`, `"unhealthy"`, or `"unknown"` |
+| `process_count` | `int` | `0` | Number of processes on this node |
+| `metadata` | `dict[str, Any]` | `{}` | Additional node metadata |
+
+`is_healthy` is `status == "healthy"`, and `to_dict()` gives the JSON form (never the node's token). `NodeUnreachableError(message, *, node_id)` carries the node in `.node_id`.
 
 ```python
 from promptise.runtime.distributed.coordinator import NodeInfo
@@ -272,8 +274,8 @@ result = await coordinator.inject_event_on_node(
 
 | Method / Property | Description |
 |---|---|
-| `RuntimeCoordinator(health_check_interval, node_timeout, auth_token)` | Create a coordinator |
-| `register_node(node_id, url, metadata, *, auth_token)` | Register a runtime node |
+| `RuntimeCoordinator(*, health_check_interval=15.0, node_timeout=45.0, auth_token=None)` | Create a coordinator (all keyword-only) |
+| `register_node(node_id, url, metadata=None, *, auth_token=None)` | Register (or replace) a runtime node; returns its `NodeInfo` |
 | `unregister_node(node_id)` | Remove a node |
 | `get_node(node_id)` | Get `NodeInfo` for a node |
 | `nodes` | Read-only dict of all nodes |
@@ -285,7 +287,7 @@ result = await coordinator.inject_event_on_node(
 | `await get_node_status(node_id)` | Detailed status from a remote node |
 | `await start_process_on_node(node_id, name)` | Start a remote process |
 | `await stop_process_on_node(node_id, name)` | Stop a remote process |
-| `await inject_event_on_node(node_id, name, payload)` | Inject event into remote process |
+| `await inject_event_on_node(node_id, name, payload, trigger_type="remote")` | Inject event into remote process |
 
 ---
 
@@ -310,12 +312,12 @@ result = await coordinator.inject_event_on_node(
 
 ## What's Next
 
-- [Distributed Mode](index.md) -- `DistributedConfig`, `ClusterNode` and a two-node setup
-- [Discovery and Transport](discovery-transport.md) -- service discovery and HTTP transport API
-- [Configuration](../configuration.md) -- `DistributedConfig` reference
-- [Runtime Manager](../runtime-manager.md) -- the `AgentRuntime` that runs on each node
+- [Distributed Mode](index.md): `DistributedConfig`, `ClusterNode` and a two-node setup
+- [Discovery and Transport](discovery-transport.md): service discovery and HTTP transport API
+- [Configuration](../configuration.md): `DistributedConfig` reference
+- [Runtime Manager](../runtime-manager.md): the `AgentRuntime` that runs on each node
 
 !!! tip "Learn the concept"
 
-    - [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production) -- Operating long-running agents in production.
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- When one runtime is enough and when to spread processes across nodes.
+    - [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production): Operating long-running agents in production.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): When one runtime is enough and when to spread processes across nodes.

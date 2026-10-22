@@ -93,7 +93,10 @@ ctx = AgentContext(
 )
 
 ctx.put("status", "error")    # works
-ctx.put("owner", "me")        # raises KeyError: Key 'owner' is not writable. Allowed: ['status']
+try:
+    ctx.put("owner", "me")
+except KeyError as exc:
+    print(exc)                # "Key 'owner' is not writable. Allowed: ['status']"
 ctx.can_write("owner")        # False
 ctx.denied_keys(["status", "owner"])  # ["owner"]
 ```
@@ -335,14 +338,14 @@ The dict holds the state, the full history, the writable keys, the environment p
 
 ## What's next
 
-- [Conversation](conversation.md) -- short-term conversation memory
-- [Orchestration API](api.md) -- `GET` / `PATCH /context` and the other routes
-- [Journal](journal/index.md) and [Rewind Engine](journal/rewind.md) -- persistence, recovery and going back
-- [Secret Scoping](governance/secrets.md) -- keeping secret values out of journals and prompts
-- [Configuration](configuration.md) -- every `ProcessConfig` section
-- [Meta-Tools](meta-tools.md) -- the tools an open-mode agent gets
+- [Conversation](conversation.md): short-term conversation memory
+- [Orchestration API](api.md): `GET` / `PATCH /context` and the other routes
+- [Journal](journal/index.md) and [Rewind Engine](journal/rewind.md): persistence, recovery and going back
+- [Secret Scoping](governance/secrets.md): keeping secret values out of journals and prompts
+- [Configuration](configuration.md): every `ProcessConfig` section
+- [Meta-Tools](meta-tools.md): the tools an open-mode agent gets
 
 !!! tip "Learn the concept"
 
-    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs) -- Keep state between runs, restrict who writes it, and recover it.
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- How journals and checkpoints bring state back after a crash.
+    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs): Keep state between runs, restrict who writes it, and recover it.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): How journals and checkpoints bring state back after a crash.

@@ -204,12 +204,12 @@ The coordinator calls every registered node URL with the cluster token, so a tok
 
 ## What's Next
 
-- [Coordinator](coordinator.md) -- health monitoring, cluster status and remote operations
-- [Discovery and Transport](discovery-transport.md) -- the HTTP routes of every node and the discovery classes
-- [Runtime Manager](../runtime-manager.md) -- `AgentRuntime`, `start_all()`, `run_forever()` and `shutdown()`
-- [Configuration](../configuration.md) -- `RuntimeConfig` and the other options
+- [Coordinator](coordinator.md): health monitoring, cluster status and remote operations
+- [Discovery and Transport](discovery-transport.md): the HTTP routes of every node and the discovery classes
+- [Runtime Manager](../runtime-manager.md): `AgentRuntime`, `start_all()`, `run_forever()` and `shutdown()`
+- [Configuration](../configuration.md): `RuntimeConfig` and the other options
 
 !!! tip "Learn the concept"
 
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- When one runtime with many processes is enough, and when to spread out.
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- How a runtime supervises long-running agents.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): When one runtime with many processes is enough, and when to spread out.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): How a runtime supervises long-running agents.

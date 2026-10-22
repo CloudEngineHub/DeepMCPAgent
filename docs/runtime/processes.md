@@ -42,19 +42,24 @@ asyncio.run(main())
 
 ## Creating a process
 
-```python
-AgentProcess(
-    name,                  # unique process name; the journal files entries under it
-    config,                # ProcessConfig
-    *,
-    process_id=None,       # auto-generated UUID if omitted
-    event_bus=None,        # shared bus for "event" triggers
-    broker=None,           # shared broker for "message" triggers
-    runtime=None,          # parent AgentRuntime (open mode's spawn_process needs it)
-    event_notifier=None,   # EventNotifier for process.* and agent events
-    hooks=None,            # shared HookManager, dispatched after the process's own hooks
-)
+```python title="Signature"
+class AgentProcess:
+    def __init__(
+        self,
+        name: str,                    # unique process name; the journal files entries under it
+        config: ProcessConfig,        # every setting of the process
+        *,
+        process_id: str | None = None,  # auto-generated UUID if omitted
+        event_bus=None,               # shared bus for "event" triggers
+        broker=None,                  # shared broker for "message" triggers
+        runtime=None,                 # parent AgentRuntime (open mode's spawn_process needs it)
+        event_notifier=None,          # EventNotifier for process.* and agent events
+        hooks=None,                   # shared HookManager, dispatched after the process's own hooks
+        deploy_policy=None,           # set by the Orchestration API for configs it deploys
+    ) -> None: ...
 ```
+
+`deploy_policy` is internal: the [Orchestration API](api.md) passes it for configs deployed over HTTP, so that `${VAR}` references, `open_mode.allowed_mcp_urls` and file paths are limited to what the operator allowed. Leave it at `None` in your own code.
 
 The constructor checks each entry of `config.servers` and raises `ValueError` for one it can't use. Every setting lives in `ProcessConfig`; see [Configuration](configuration.md#processconfig) for all fields and defaults. Inside an `AgentRuntime`, use `runtime.add_process(name, config)` instead: it passes the runtime's bus, broker, notifier and hooks.
 
@@ -287,6 +292,20 @@ async def announce(ctx):
     print(ctx.process_id, "started; restart:", ctx.data["restart"])
 ```
 
+### Other methods
+
+| Method | What it does |
+|---|---|
+| `apply_governance_config(section)` | Applies a changed `config.budget`, `config.health` or `config.mission` to the running process (`section` is `"budget"`, `"health"` or `"mission"`; anything else raises `ValueError`). Enabling builds the subsystem, disabling drops it, and an enabled one keeps its counters, history or progress. The API's `PATCH` routes call it |
+| `await record_operator_action(action, data)` | Writes a journal entry of type `action` (for example `"api_request"`) with secret values redacted. Does nothing without a journal; a journal error is logged, never raised |
+| `fail_mission(reason)` | Fails the mission as an operator decision and emits `mission.failed`. Raises `RuntimeError` without a mission and `ValueError` when the mission is already completed or failed. See [Mission Model](governance/mission.md) |
+| `await add_dynamic_trigger(config)` | Adds a trigger on the agent's behalf (open mode). It is not added to `config.triggers` and lives until `stop()`, `rollback()` or `remove_trigger()` |
+| `await set_dynamic_instructions(text)` | Replaces the instructions on the agent's behalf (open mode; what `modify_instructions` calls). Returns `"Rebuild successful"` or an `"Error: ..."` message |
+| `await spawn_process(name, *, instructions, model=None, triggers=None, execution_mode="strict", runtime=None)` | Starts a child process in the parent runtime (open mode; what the `spawn_process` meta-tool calls). The child inherits the parent's limits, hooks and deploy policy |
+| `await rollback()` | Undoes the agent's self-modifications (instructions, tools, servers, dynamic triggers) and rebuilds from the original config. Raises `RuntimeError` in strict mode. It does not touch context state or conversation; use `rewind()` for those |
+
+The open-mode methods are covered on [Meta-Tools](meta-tools.md).
+
 ---
 
 ## Rewind
@@ -372,18 +391,18 @@ config = ProcessConfig(
 
 ## What's next
 
-- [Process Lifecycle](lifecycle.md) -- states, transitions, `StateError` and `process.*` events
-- [Runtime Manager](runtime-manager.md) -- run many processes with `AgentRuntime`
-- [Configuration](configuration.md) -- every `ProcessConfig` field
-- [Agent Manifests](manifests.md) -- declare a process in a `.agent` YAML file
-- [Triggers](triggers/index.md) -- cron, webhook, file watch, event and message triggers
-- [Runtime Hooks](hooks.md) -- run code at lifecycle points
-- [Journal](journal/index.md) -- recovery and rewind
+- [Process Lifecycle](lifecycle.md): states, transitions, `StateError` and `process.*` events
+- [Runtime Manager](runtime-manager.md): run many processes with `AgentRuntime`
+- [Configuration](configuration.md): every `ProcessConfig` field
+- [Agent Manifests](manifests.md): declare a process in a `.agent` YAML file
+- [Triggers](triggers/index.md): cron, webhook, file watch, event and message triggers
+- [Runtime Hooks](hooks.md): run code at lifecycle points
+- [Journal](journal/index.md): recovery and rewind
 
 !!! tip "Learn the concept"
 
-    - [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production) -- Run an agent as a long-lived process with state between runs.
-    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart) -- Restart policies, backoff, restart limits, run timeouts and lifetime recycling.
-    - [Pause and Resume an AI Agent: Lifecycle States Explained](https://www.promptise.com/guides/view/ai-agent-pause-resume) -- Suspend and resume a running agent and what happens to queued work.
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Continue from the last checkpoint after a crash or redeploy.
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- What a runtime adds around an agent: budgets, restarts and recovery.
+    - [Deploy AI Agents in Production: Long-Running Python Agents](https://www.promptise.com/guides/view/deploy-ai-agents-in-production): Run an agent as a long-lived process with state between runs.
+    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart): Restart policies, backoff, restart limits, run timeouts and lifetime recycling.
+    - [Pause and Resume an AI Agent: Lifecycle States Explained](https://www.promptise.com/guides/view/ai-agent-pause-resume): Suspend and resume a running agent and what happens to queued work.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Continue from the last checkpoint after a crash or redeploy.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): What a runtime adds around an agent: budgets, restarts and recovery.

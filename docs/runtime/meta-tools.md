@@ -402,13 +402,13 @@ print(await tools["add_trigger"].ainvoke({"trigger_type": "cron", "cron_expressi
 
 ## What's next
 
-- [Configuration](configuration.md#openmodeconfig) -- every `OpenModeConfig` field
-- [Runtime Hooks](hooks.md) -- refuse an agent's change with a `config_change` or `subagent_start` hook
-- [Runtime Manager](runtime-manager.md) -- the runtime spawned processes join
-- [Triggers Overview](triggers/index.md) -- the trigger types `add_trigger` can create
-- [Context](context.md) -- the state and memory the memory tools use
+- [Configuration](configuration.md#openmodeconfig): every `OpenModeConfig` field
+- [Runtime Hooks](hooks.md): refuse an agent's change with a `config_change` or `subagent_start` hook
+- [Runtime Manager](runtime-manager.md): the runtime spawned processes join
+- [Triggers Overview](triggers/index.md): the trigger types `add_trigger` can create
+- [Context](context.md): the state and memory the memory tools use
 
 !!! tip "Learn the concept"
 
-    - [Self-Modifying AI Agent in Python: Open Mode & Limits](https://www.promptise.com/guides/view/self-modifying-ai-agent-open-mode) -- Meta-tools, hot reload and the limits that keep open mode bounded.
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- The budgets and controls around an agent that changes itself.
+    - [Self-Modifying AI Agent in Python: Open Mode & Limits](https://www.promptise.com/guides/view/self-modifying-ai-agent-open-mode): Meta-tools, hot reload and the limits that keep open mode bounded.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): The budgets and controls around an agent that changes itself.

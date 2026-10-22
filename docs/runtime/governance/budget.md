@@ -108,7 +108,7 @@ If the restored counters are from before the most recent reset hour, the next ru
 ## Understanding cost_weight
 
 !!! danger "Critical: cost_weight is NOT real money"
-    Budget cost is measured in **abstract weight units that you define**, not dollars. A `cost_weight=5.0` means "5 budget units" — it does NOT mean $5. The framework does not connect to any LLM provider's pricing API, does not know your token rates, and does not track actual monetary spend.
+    Budget cost is measured in **abstract weight units that you define**, not dollars. A `cost_weight=5.0` means "5 budget units", not $5. The framework does not connect to any LLM provider's pricing API, does not know your token rates, and does not track actual monetary spend.
 
     **You** are responsible for defining what the numbers mean and keeping them aligned with reality.
 
@@ -121,7 +121,7 @@ If the restored counters are from before the most recent reset hour, the next ru
 | Irreversible actions (counted) | Infrastructure costs (compute, network, storage) |
 | Abstract cost units (sum of `cost_weight` values) | Real-time exchange rates or dynamic pricing |
 
-**This means:** An agent with `max_cost_per_day=100.0` and zero tool cost annotations can make unlimited LLM API calls consuming thousands of dollars in tokens — the budget system will not stop it, because LLM turns have no cost weight.
+**This means:** An agent with `max_cost_per_day=100.0` and zero tool cost annotations can make unlimited LLM API calls, whatever they cost in tokens: the budget system will not stop it, because LLM turns have no cost weight. Use `max_llm_turns_per_run` to cap them by count.
 
 The budget system controls **what the agent does** (which tools it calls, how many times), not **how much it costs the provider**.
 
@@ -147,19 +147,19 @@ tool_costs={"health_check": ToolCostAnnotation(cost_weight=0.01)}
 
 ### Approach 1: Relative risk weighting (recommended)
 
-Assign weights based on how expensive or risky the tool is **relative to a baseline read operation** (weight 1.0). This is the simplest and most robust approach — you don't need to know actual dollar costs.
+Assign weights based on how expensive or risky the tool is **relative to a baseline read operation** (weight 1.0). This is the simplest approach, and it holds up when prices change: you don't need to know actual dollar costs.
 
 ```python
 tool_costs={
-    # Baseline: internal reads — cheap, low risk
+    # Baseline: internal reads, cheap and low risk
     "search_docs": ToolCostAnnotation(cost_weight=0.5),
     "get_user": ToolCostAnnotation(cost_weight=1.0),       # 1.0 = baseline
 
-    # Write operations — moderate risk
+    # Write operations, moderate risk
     "update_record": ToolCostAnnotation(cost_weight=2.0),
     "send_email": ToolCostAnnotation(cost_weight=3.0, irreversible=True),
 
-    # External API calls — expensive, high risk
+    # External API calls, expensive and high risk
     "stripe_charge": ToolCostAnnotation(cost_weight=10.0, irreversible=True),
     "deploy_production": ToolCostAnnotation(cost_weight=20.0, irreversible=True),
 }
@@ -198,7 +198,7 @@ tool_costs={
 !!! warning "Dollar-based weights require manual maintenance"
     The framework does NOT validate these weights against real pricing. If Stripe raises their fee to $3.00, you must manually update `cost_weight=3.00`. If your email provider changes pricing tiers, the weights become inaccurate silently.
 
-    **Dollar-based weights also do NOT include LLM API costs.** An agent making 100 GPT-5 calls at $0.015/1K tokens could spend $15 in LLM costs alone — none of this is tracked by the budget.
+    **Dollar-based weights also do NOT include LLM API costs.** Whatever the model calls cost in tokens is not tracked by the budget.
 
 ### Approach 3: Combined with external cost tracking
 
@@ -232,7 +232,7 @@ For actual dollar-level cost control, track LLM spending through:
 
 - **Your LLM provider's dashboard** (OpenAI usage page, Anthropic console, etc.)
 - **OpenAI/Anthropic API usage headers** (`x-ratelimit-remaining-tokens`, usage metadata)
-- **Promptise observability** — token counts are tracked per invocation via `get_stats()` and can be exported to Prometheus/Grafana for alerting on real spend
+- **Promptise observability**: token counts are tracked per invocation via `get_stats()` and can be exported to Prometheus/Grafana for alerting on real spend
 
 The budget system handles **behavioral limits** (what the agent is allowed to do). External systems handle **monetary limits** (how much the infrastructure costs).
 
@@ -248,7 +248,7 @@ When `inject_remaining=True`, the agent sees remaining budget in a system messag
 
 The values are what is left of each limit (`BudgetState.remaining()`); the run that is starting already counts toward `runs_day`. The same dict is `process.status()["budget"]`.
 
-This lets the agent prioritize — if it's running low on budget, it can choose cheaper tools or skip non-essential operations. In open mode, the agent can also call `check_budget` to inspect remaining limits.
+This lets the agent prioritize: if it's running low on budget, it can choose cheaper tools or skip non-essential operations. In open mode, the agent can also call `check_budget` to inspect remaining limits.
 
 ---
 
@@ -426,6 +426,31 @@ A call an [approval gate](../../core/approval.md) denies did nothing irreversibl
 | `.snapshot()` | The counters as a JSON-safe dict (what checkpoints store). |
 | `.restore(data)` | Load a snapshot: the daily counters and `last_daily_reset`; per-run counters start at zero. Raises `ValueError` for a malformed snapshot, changing nothing. |
 | `.pending_warnings` | `BudgetWarning`s for limits at `warning_threshold` or more after the latest check. |
+| `.refund_irreversible(tool_name)` | Give back the irreversible action of a call that did not run (what the runtime does when an approval gate denies it); tool-call and cost counters keep the attempt. |
+| `.budget_context()` | The limits that are set, as one line (`[Budget] Tool Calls Run: 5 \| Cost Day: 40.0`), or `""` when none is set. |
+| `.to_dict()` / `BudgetState.from_dict(data, config)` | Same as `snapshot()`, and rebuild a state from it. |
+
+```python
+import asyncio
+
+from promptise.runtime import BudgetConfig, BudgetState, ToolCostAnnotation
+
+
+async def main():
+    state = BudgetState(BudgetConfig(
+        enabled=True,
+        max_tool_calls_per_run=2,
+        tool_costs={"send_email": ToolCostAnnotation(cost_weight=2.0, irreversible=True)},
+    ))
+    await state.record_tool_call("search", enforce=True)
+    await state.record_tool_call("send_email", enforce=True)
+    violation = await state.record_tool_call("search", enforce=True)  # a third call
+    print(violation.limit_name, violation.blocked)  # max_tool_calls_per_run True
+    print(state.remaining()["tool_calls_run"])       # 0
+
+
+asyncio.run(main())
+```
 
 ### `BudgetViolation`
 
@@ -447,13 +472,13 @@ A call an [approval gate](../../core/approval.md) denies did nothing irreversibl
 
 ## See also
 
-- [Behavioral Health](health.md) -- detect stuck, looping or failing agents
-- [Mission](mission.md) -- invocation and time limits for goal-driven processes
-- [Journal](../journal/index.md) -- the checkpoints that carry budget counters across restarts
-- [Orchestration API](../api.md) -- patch budgets and resume processes over HTTP
-- [Events & Notifications](../../core/events.md) -- deliver `budget.*` events
+- [Behavioral Health](health.md): detect stuck, looping or failing agents
+- [Mission](mission.md): invocation and time limits for goal-driven processes
+- [Journal](../journal/index.md): the checkpoints that carry budget counters across restarts
+- [Orchestration API](../api.md): patch budgets and resume processes over HTTP
+- [Events & Notifications](../../core/events.md): deliver `budget.*` events
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Cost Control: Budgets That Stop Runaway Spend](https://www.promptise.com/guides/view/ai-agent-cost-control-budget) -- Budgets that refuse tool calls before runaway spend.
-    - [Topic hub: Cost control and rate limits](https://www.promptise.com/guides/topics/cost-control) -- Every guide on cost control and rate limits.
+    - [AI Agent Cost Control: Budgets That Stop Runaway Spend](https://www.promptise.com/guides/view/ai-agent-cost-control-budget): Budgets that refuse tool calls before runaway spend.
+    - [Topic hub: Cost control and rate limits](https://www.promptise.com/guides/topics/cost-control): Every guide on cost control and rate limits.

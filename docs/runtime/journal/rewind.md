@@ -5,35 +5,44 @@ description: "Roll a live agent process back to before a journal entry: its cont
 
 # Agent Process Rewind
 
-Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off track -- a bad tool result written into its state, a conversation that drifted -- and you want it to continue from an earlier point instead of starting over. It is non-destructive: the journal is only appended to, so a rewind can itself be rewound.
+Rewind rolls a live process back to how it was just before a journal entry: its context state, its conversation history, or both. Use it when an agent went off track (a bad tool result written into its state, a conversation that drifted) and you want it to continue from an earlier point instead of starting over. It is non-destructive: the journal is only appended to, so a rewind can itself be rewound.
 
 ```python
+import asyncio
+
 from promptise.runtime import AgentProcess, JournalConfig, ProcessConfig
 from promptise.runtime.journal import FileJournal
 
-process = AgentProcess("notes", ProcessConfig(
-    model="openai:gpt-5-mini",
-    instructions="You write release notes.",
-    journal=JournalConfig(level="checkpoint"),     # rewind needs a journal
-))
-await process.start()
-process.context.put("stage", "draft")
-# ... a run ...
-process.context.put("stage", "published")         # this turns out to be wrong
-# ... another run ...
 
-# Find the entry to go back to (or: GET /journal, `promptise runtime logs notes`)
-entries = await FileJournal(".promptise/journal").read("notes")
-target = next(e for e in entries
-              if e.entry_type == "context_update" and e.data["value"] == "published")
+async def main():
+    process = AgentProcess("notes", ProcessConfig(
+        model="openai:gpt-5-mini",
+        instructions="You write release notes.",
+        journal=JournalConfig(level="checkpoint"),     # rewind needs a journal
+    ))
+    await process.start()
+    process.context.put("stage", "draft")
+    process.context.put("stage", "published")          # this turns out to be wrong
+    await process.context.flush_update_hooks()         # wait until both writes are journaled
 
-plan = await process.rewind_plan(target.entry_id, "both")  # preview, changes nothing
-print(plan.summary)    # rewind (both): 3 entries affected (1 conversation, 1 code/state).
+    # Find the entry to go back to (or: GET /journal, `promptise runtime logs notes`)
+    entries = await FileJournal(".promptise/journal").read("notes")
+    target = next(e for e in entries
+                  if e.entry_type == "context_update" and e.data["value"] == "published")
 
-result = await process.rewind(target.entry_id, "both", actor="alice")
-print(process.context.get("stage"))   # 'draft'
-print(result.rewind_entry_id)         # rewind-8e4617a...
+    plan = await process.rewind_plan(target.entry_id, "both")  # preview, changes nothing
+    print(plan.summary)    # rewind (both): 1 entry affected (0 conversation, 1 code/state).
+
+    result = await process.rewind(target.entry_id, "both", actor="alice")
+    print(process.context.get("stage"))   # draft
+    print(result.rewind_entry_id)         # rewind-226f9226...
+    await process.stop()
+
+
+asyncio.run(main())
 ```
+
+Context writes are journaled by a background task. Between runs that is long done; when you read the journal right after a `put()`, as here, `await process.context.flush_update_hooks()` first.
 
 From the terminal, against a runtime started with `promptise runtime start`:
 
@@ -83,15 +92,20 @@ For the plan's counts, entries are grouped as **conversation** (`user_prompt`, `
 
 ## AgentProcess.rewind() and rewind_plan()
 
-```python
-async def rewind_plan(target_entry_id: str, mode: str | RewindMode = "both") -> RewindPlan
-async def rewind(
-    target_entry_id: str,
-    mode: str | RewindMode = "both",
-    *,
-    actor: str = "operator",
-    wait_timeout: float = 60.0,
-) -> RewindResult
+```python title="Signature"
+class AgentProcess:
+    async def rewind_plan(
+        self, target_entry_id: str, mode: str | RewindMode = "both"
+    ) -> RewindPlan: ...
+
+    async def rewind(
+        self,
+        target_entry_id: str,
+        mode: str | RewindMode = "both",
+        *,
+        actor: str = "operator",
+        wait_timeout: float = 60.0,
+    ) -> RewindResult: ...
 ```
 
 What `rewind()` does:
@@ -269,13 +283,13 @@ print(result.context_state, len(result.conversation))
 
 ## Related
 
-- [Journal Overview](index.md) -- entry types, checkpoints and recovery on start
-- [Replay Engine](replay.md) -- forward recovery from the last checkpoint
-- [Orchestration API](../api.md) -- the journal and rewind routes
-- [CLI Commands](../cli.md) -- `promptise runtime logs` and `promptise runtime rewind`
-- [Agent Processes](../processes.md) -- suspend, resume and the process state
+- [Journal Overview](index.md): entry types, checkpoints and recovery on start
+- [Replay Engine](replay.md): forward recovery from the last checkpoint
+- [Orchestration API](../api.md): the journal and rewind routes
+- [CLI Commands](../cli.md): `promptise runtime logs` and `promptise runtime rewind`
+- [Agent Processes](../processes.md): suspend, resume and the process state
 
 !!! tip "Learn the concept"
 
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Journals, checkpoints and resuming safely after something went wrong.
-    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api) -- Drive a running process, including its journal, over HTTP.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Journals, checkpoints and resuming safely after something went wrong.
+    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api): Drive a running process, including its journal, over HTTP.

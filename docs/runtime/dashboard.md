@@ -31,9 +31,9 @@ collector.stop()
 
 The dashboard has three parts:
 
-1. **`RuntimeDashboardState`** -- the data the dashboard shows: process, trigger and context snapshots, plus ring buffers for invocations, events, commands and journal entries.
-2. **`RuntimeDataCollector`** -- a background thread that reads the `AgentRuntime` every `interval` seconds and refreshes the process, trigger and context snapshots in the state. It also registers `task_created` / `task_completed` [hooks](hooks.md) on every process (for the event and run panels and the trigger fire counts) and reads each process's journal for the Logs tab.
-3. **`RuntimeDashboard`** -- the renderer. It draws the state with `rich.Live` in the terminal's alternate screen, reads keys in a background thread, and captures Python log output for the Logs tab.
+1. **`RuntimeDashboardState`**: the data the dashboard shows: process, trigger and context snapshots, plus ring buffers for invocations, events, commands and journal entries.
+2. **`RuntimeDataCollector`**: a background thread that reads the `AgentRuntime` every `interval` seconds and refreshes the process, trigger and context snapshots in the state. It also registers `task_created` / `task_completed` [hooks](hooks.md) on every process (for the event and run panels and the trigger fire counts) and reads each process's journal for the Logs tab.
+3. **`RuntimeDashboard`**: the renderer. It draws the state with `rich.Live` in the terminal's alternate screen, reads keys in a background thread, and captures Python log output for the Logs tab.
 
 The collector fills every panel. Trigger events and finished runs arrive through the hooks it registers (removed again by `collector.stop()`); journal entries are read from each process's journal every fourth snapshot, on the runtime's event loop. Context values are shown with secret values `[REDACTED]`, as in the journal. Create the collector on the runtime's loop (or pass `loop=`): without a loop the journal panel stays empty. `state.record_invocation()`, `state.record_event()` and `state.record_journal()` remain available to add records of your own.
 
@@ -250,12 +250,12 @@ Every `interval` seconds (default `0.5`) it calls `status()` on each process of 
 
 ## What's next
 
-- [CLI Commands](cli.md) -- `promptise runtime start --dashboard` and the other commands
-- [Runtime Manager](runtime-manager.md) -- the `AgentRuntime` the dashboard watches
-- [Orchestration API](api.md) -- control the runtime while you watch it
-- [Agent Context](context.md) -- what the Context tab shows
+- [CLI Commands](cli.md): `promptise runtime start --dashboard` and the other commands
+- [Runtime Manager](runtime-manager.md): the `AgentRuntime` the dashboard watches
+- [Orchestration API](api.md): control the runtime while you watch it
+- [Agent Context](context.md): what the Context tab shows
 
 !!! tip "Learn the concept"
 
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- Run and watch several agent processes in one runtime.
-    - [AI Agent Health Monitoring: Catch Silent Failures](https://www.promptise.com/guides/view/ai-agent-health-monitoring) -- What to watch in a running agent besides its state.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): Run and watch several agent processes in one runtime.
+    - [AI Agent Health Monitoring: Catch Silent Failures](https://www.promptise.com/guides/view/ai-agent-health-monitoring): What to watch in a running agent besides its state.

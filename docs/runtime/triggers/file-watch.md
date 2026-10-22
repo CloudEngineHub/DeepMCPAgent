@@ -26,17 +26,28 @@ config = ProcessConfig(
 On its own, outside a process:
 
 ```python
+import asyncio
+import tempfile
+from pathlib import Path
+
 from promptise.runtime.triggers.file_watch import FileWatchTrigger
 
-trigger = FileWatchTrigger(watch_path="/data/inbox", patterns=["*.csv", "*.json"])
-await trigger.start()
 
-event = await trigger.wait_for_next()
-print(event.payload)
-# {"path": "/data/inbox/new_data.csv", "filename": "new_data.csv",
-#  "event_type": "created", "event_types": ["created", "modified"]}
+async def main():
+    inbox = Path(tempfile.mkdtemp())
+    trigger = FileWatchTrigger(watch_path=str(inbox), patterns=["*.csv", "*.json"])
+    await trigger.start()
 
-await trigger.stop()
+    (inbox / "new_data.csv").write_text("id,value\n1,42\n")
+    event = await asyncio.wait_for(trigger.wait_for_next(), timeout=10)
+    print(event.payload["filename"], event.payload["event_type"])  # new_data.csv created
+    # payload: {"path": ".../new_data.csv", "filename": "new_data.csv",
+    #           "event_type": "created", "event_types": ["created", "modified"]}
+
+    await trigger.stop()
+
+
+asyncio.run(main())
 ```
 
 ---
@@ -47,8 +58,8 @@ When files appear in or change within a watched directory, the trigger produces 
 
 Two backends detect changes:
 
-- **watchdog** -- native OS notifications (inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows), near-instant. `watchdog` ships with `pip install promptise`.
-- **polling** -- scans the directory every `watch_poll_interval` seconds and compares each file's modification time and size. Works everywhere, including network shares and container bind mounts where OS notifications are unreliable, at the cost of latency and CPU.
+- **watchdog**: native OS notifications (inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows), near-instant. `watchdog` ships with `pip install promptise`.
+- **polling**: scans the directory every `watch_poll_interval` seconds and compares each file's modification time and size. Works everywhere, including network shares and container bind mounts where OS notifications are unreliable, at the cost of latency and CPU.
 
 ---
 
@@ -249,7 +260,7 @@ The counters are on the trigger and in the process status:
 
 ```python
 process.status()["triggers"]
-# [{'id': 'file_watch-06bfa13759', 'type': 'FileWatchTrigger', 'source': 'config',
+# [{'id': 'file_watch-06bfa13759', 'type': 'file_watch', 'source': 'config',
 #   'dropped_events': 0, 'pending_events': 12}]
 ```
 
@@ -360,12 +371,12 @@ In a process, add or remove a file watch while it runs with [`process.add_trigge
 
 ## What's Next
 
-- [Triggers Overview](index.md) -- stable trigger IDs, live trigger changes and the event queue
-- [Cron Trigger](cron.md) -- time-based scheduling
-- [Event and Webhook Triggers](event-webhook.md) -- event-driven activation
-- [Hooks](../hooks.md) -- the `FILE_CHANGED` hook
+- [Triggers Overview](index.md): stable trigger IDs, live trigger changes and the event queue
+- [Cron Trigger](cron.md): time-based scheduling
+- [Event and Webhook Triggers](event-webhook.md): event-driven activation
+- [Hooks](../hooks.md): the `FILE_CHANGED` hook
 
 !!! tip "Learn the concept"
 
-    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- File-triggered agents alongside webhook and cron triggers.
-    - [AI Agent File Watcher: Process New Files Automatically](https://www.promptise.com/guides/view/ai-agent-file-watcher) -- Debouncing, half-written files, archiving processed files and avoiding loops.
+    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers): File-triggered agents alongside webhook and cron triggers.
+    - [AI Agent File Watcher: Process New Files Automatically](https://www.promptise.com/guides/view/ai-agent-file-watcher): Debouncing, half-written files, archiving processed files and avoiding loops.
