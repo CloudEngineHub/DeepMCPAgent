@@ -39,6 +39,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import math
 import signal
 from pathlib import Path
 from typing import Any
@@ -113,6 +114,8 @@ class AgentRuntime:
         self._lock = asyncio.Lock()
         # Set by request_shutdown() (and the signal handlers of run_forever()).
         self._shutdown_event: asyncio.Event | None = None
+        # request_shutdown(drain_timeout=...): replaces run_forever's value.
+        self._shutdown_drain_timeout: float | None = None
 
         for name, process_config in self._config.processes.items():
             self._register(name, process_config)
@@ -303,17 +306,21 @@ class AgentRuntime:
         process = self.get_process(name)
         await process.start()
 
-    async def stop_process(self, name: str) -> None:
+    async def stop_process(self, name: str, *, drain_timeout: float | None = 0.0) -> None:
         """Stop a single process.
 
         Args:
             name: Process name.
+            drain_timeout: Passed to :meth:`AgentProcess.stop`: ``0``
+                (default) cancels a run in flight at once, a positive value
+                lets it finish for up to that many seconds, ``None`` uses
+                the process's ``config.drain_timeout``.
 
         Raises:
             KeyError: If the process does not exist.
         """
         process = self.get_process(name)
-        await process.stop()
+        await process.stop(drain_timeout=drain_timeout)
 
     async def restart_process(self, name: str, *, stop_timeout: float = 30.0) -> None:
         """Restart a single process (stop then start).
@@ -541,14 +548,27 @@ class AgentRuntime:
             except Exception as exc:
                 logger.error("AgentRuntime: failed to stop the cluster node: %s", exc)
 
-    def request_shutdown(self, *, force: bool = False) -> None:
+    def request_shutdown(self, *, force: bool = False, drain_timeout: float | None = None) -> None:
         """Ask :meth:`run_forever` to stop (safe from a signal handler).
 
         Args:
             force: Also end the graceful wait of a shutdown already in
                 progress: runs still in flight are cancelled now (see
                 :meth:`AgentProcess.abort_drain`).
+            drain_timeout: Seconds runs in flight may take to finish in
+                this shutdown, instead of the ``drain_timeout`` given to
+                :meth:`run_forever`.  ``None`` (default) keeps that one.
+                Ignored once the shutdown has begun.
+
+        Raises:
+            ValueError: *drain_timeout* is negative or not finite.
         """
+        if drain_timeout is not None:
+            if not math.isfinite(drain_timeout) or drain_timeout < 0:
+                raise ValueError(
+                    f"drain_timeout must be a non-negative number, got {drain_timeout!r}"
+                )
+            self._shutdown_drain_timeout = float(drain_timeout)
         if self._shutdown_event is None:
             self._shutdown_event = asyncio.Event()
         self._shutdown_event.set()
@@ -587,7 +607,8 @@ class AgentRuntime:
             drain_timeout: Seconds runs in flight may take to finish at
                 shutdown.  ``None`` (default) uses each process's
                 ``config.drain_timeout`` (5 seconds unless set); ``0``
-                cancels them at once.
+                cancels them at once.  ``request_shutdown(drain_timeout=...)``
+                replaces it for that shutdown.
         """
         if self._shutdown_event is None:
             self._shutdown_event = asyncio.Event()
@@ -610,7 +631,8 @@ class AgentRuntime:
                 # The handlers stay during the shutdown: a second signal
                 # cancels the runs still in flight instead of killing the
                 # program before they are journaled.
-                await self.shutdown(drain_timeout=drain_timeout)
+                requested, self._shutdown_drain_timeout = self._shutdown_drain_timeout, None
+                await self.shutdown(drain_timeout=drain_timeout if requested is None else requested)
             finally:
                 for sig in installed:
                     with contextlib.suppress(Exception):

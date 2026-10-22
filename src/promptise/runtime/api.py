@@ -210,6 +210,10 @@ _PRIORITIES = ("low", "normal", "high", "critical")
 #: Longest ``/ask`` long-poll, in seconds.
 _MAX_ASK_TIMEOUT = 3600.0
 
+#: Longest ``drain_timeout`` a stop request may ask for, in seconds (the
+#: bound of ``ProcessConfig.drain_timeout``).
+_MAX_DRAIN_TIMEOUT = 3600.0
+
 #: Process attribute holding each governance subsystem (``None`` when the
 #: process was built without it).
 _SUBSYSTEMS = {"budget": "_budget", "health": "_health", "mission": "_mission"}
@@ -368,6 +372,48 @@ async def _maybe_await(value: Any) -> Any:
     return await value if inspect.isawaitable(value) else value
 
 
+def _drain_timeout_arg(body: Mapping[str, Any]) -> tuple[float | None, web.Response | None]:
+    """The optional ``drain_timeout`` of a stop request's body.
+
+    Returns ``(None, None)`` when it is absent or ``null`` (the process's
+    ``config.drain_timeout`` applies), ``(seconds, None)`` for a number
+    from 0 to :data:`_MAX_DRAIN_TIMEOUT`, else ``(None, 422 INVALID_FIELD)``.
+    """
+    value = body.get("drain_timeout")
+    if value is None:
+        return None, None
+    if not _is_number(value) or not 0 <= value <= _MAX_DRAIN_TIMEOUT:
+        return None, _error_response(
+            "INVALID_FIELD",
+            f"'drain_timeout' must be a number of seconds from 0 to {_MAX_DRAIN_TIMEOUT:g} "
+            "(or null for the process's configured drain_timeout)",
+            422,
+        )
+    return float(value), None
+
+
+def _accepts_keyword(func: Callable[..., Any], name: str) -> bool:
+    """Whether *func* can be called with the keyword argument *name*."""
+    try:
+        parameters = inspect.signature(func).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    for param in parameters:
+        if param.kind is inspect.Parameter.VAR_KEYWORD:
+            return True
+        if param.name == name and param.kind in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+        ):
+            return True
+    return False
+
+
+def _interrupted_ids(process: Any) -> set[str]:
+    """IDs of the events whose runs a stop of *process* cancelled so far."""
+    return set(getattr(process, "_interrupted_ids", ()) or ())
+
+
 async def _inbox_add(inbox: Any, message: Any) -> tuple[str, web.Response | None]:
     """Add *message* to *inbox*; map the inbox's refusals to API errors.
 
@@ -522,10 +568,13 @@ class OrchestrationAPI:
         on_shutdown: Enables ``POST /api/v1/runtime/shutdown``
             (authenticated like every route): the request is answered
             ``202 {"status": "shutting_down"}`` and *on_shutdown* (a sync
-            or async callable without arguments) is called right after,
-            e.g. ``runtime.request_shutdown``.  Without it the route
-            doesn't exist (``404``).  ``promptise runtime start`` uses it
-            for ``promptise runtime stop``.
+            or async callable) is called right after, e.g.
+            ``runtime.request_shutdown``.  It is called without arguments,
+            or with ``drain_timeout=<seconds>`` when the request body has
+            one; a callable that takes no ``drain_timeout`` makes such a
+            request ``422 INVALID_FIELD``.  Without it the route doesn't
+            exist (``404``).  ``promptise runtime start`` uses it for
+            ``promptise runtime stop``.
         allow_command_deploys: Let ``POST /api/v1/processes`` deploy
             processes that run programs on this host: stdio MCP servers
             (``command``) and command hooks.  Off by default, because
@@ -598,6 +647,9 @@ class OrchestrationAPI:
         self._port = port
         self._auth_token = auth_token
         self._on_shutdown = on_shutdown
+        self._shutdown_takes_drain = on_shutdown is not None and _accepts_keyword(
+            on_shutdown, "drain_timeout"
+        )
         self._allow_command_deploys = bool(allow_command_deploys)
         if isinstance(allowed_env_vars, str):
             raise TypeError("allowed_env_vars must be a collection of names, not a string")
@@ -610,6 +662,8 @@ class OrchestrationAPI:
             data_dir=self._data_dir,
         )
         self._shutdown_tasks: set[asyncio.Future[Any]] = set()
+        # Stops started by requests: they finish even if the client goes away.
+        self._stop_tasks: set[asyncio.Future[Any]] = set()
 
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
@@ -897,16 +951,32 @@ class OrchestrationAPI:
         return _json_response({"status": "started"})
 
     async def _handle_shutdown(self, request: web.Request) -> web.Response:
-        """``202``, then the ``on_shutdown`` callback (after the answer is sent)."""
+        """``202``, then the ``on_shutdown`` callback (after the answer is sent).
+
+        Body (optional): ``drain_timeout``, seconds runs in flight may take
+        to finish (0 to 3600), passed to the callback as
+        ``drain_timeout=``.  Without it the callback decides (``promptise
+        runtime start``: each process's ``config.drain_timeout``).
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
         callback = self._on_shutdown
         assert callback is not None  # the route exists only with a callback
+        drain, err = _drain_timeout_arg(await self._json_body(request))
+        if err is not None:
+            return err
+        if drain is not None and not self._shutdown_takes_drain:
+            return _error_response(
+                "INVALID_FIELD",
+                "'drain_timeout' is not supported by this server's shutdown (its on_shutdown "
+                "callback takes no drain_timeout argument)",
+                422,
+            )
 
         def fire() -> None:
             try:
-                result = callback()
+                result = callback() if drain is None else callback(drain_timeout=drain)
             except Exception:
                 logger.exception("OrchestrationAPI: on_shutdown raised")
                 return
@@ -916,14 +986,36 @@ class OrchestrationAPI:
                 task.add_done_callback(self._shutdown_tasks.discard)
 
         asyncio.get_running_loop().call_soon(fire)
-        return _json_response({"status": "shutting_down"}, status=202)
+        data: dict[str, Any] = {"status": "shutting_down"}
+        if drain is not None:
+            data["drain_timeout"] = drain
+        return _json_response(data, status=202)
+
+    async def _finish_stop(self, stop: Awaitable[Any]) -> Any:
+        """Await *stop* so that a client that disconnects doesn't cut it short."""
+        task = asyncio.ensure_future(stop)
+        self._stop_tasks.add(task)
+        task.add_done_callback(self._stop_tasks.discard)
+        return await asyncio.shield(task)
 
     async def _handle_stop_all(self, request: web.Request) -> web.Response:
+        """Stop every process; answered once they are all stopped.
+
+        Body (optional): ``drain_timeout`` as for ``POST
+        .../{name}/stop``; without it each process waits up to its own
+        ``config.drain_timeout``.  The processes drain concurrently.
+        """
         auth_err = self._require_auth(request)
         if auth_err:
             return auth_err
-        await self._runtime.stop_all()
-        return _json_response({"status": "stopped"})
+        drain, err = _drain_timeout_arg(await self._json_body(request))
+        if err is not None:
+            return err
+        processes = list(self._runtime.processes.values())
+        before = {id(p): _interrupted_ids(p) for p in processes}
+        await self._finish_stop(self._runtime.stop_all(drain_timeout=drain))
+        interrupted = sum(len(_interrupted_ids(p) - before[id(p)]) for p in processes)
+        return _json_response({"status": "stopped", "interrupted_runs": interrupted})
 
     # ------------------------------------------------------------------
     # Process lifecycle
@@ -1174,7 +1266,44 @@ class OrchestrationAPI:
         return await self._lifecycle_action(request, "start", "START_FAILED")
 
     async def _handle_stop(self, request: web.Request) -> web.Response:
-        return await self._lifecycle_action(request, "stop", "STOP_FAILED")
+        """Stop a process; answered once it is stopped.
+
+        Body (optional): ``drain_timeout``, seconds a run in flight may
+        take to finish before it is cancelled (0 to 3600; ``0`` cancels
+        at once).  Absent or ``null``: the process's
+        ``config.drain_timeout`` (5 seconds unless set), as on
+        ``SIGTERM``.  No new event starts while it drains.  The answer
+        has the ``drain_timeout`` used and ``interrupted_runs``, the runs
+        the stop cancelled (each journaled as ``run_interrupted`` and
+        kept in the dead letters).
+        """
+        auth_err = self._require_auth(request)
+        if auth_err:
+            return auth_err
+        name = request.match_info["name"]
+        try:
+            process = self._get_process(name)
+        except KeyError:
+            return _not_found(name)
+        drain, err = _drain_timeout_arg(await self._json_body(request))
+        if err is not None:
+            return err
+        config = getattr(process, "config", None)
+        used = drain if drain is not None else getattr(config, "drain_timeout", 0.0)
+        before = _interrupted_ids(process)
+        try:
+            await self._finish_stop(self._runtime.stop_process(name, drain_timeout=drain))
+        except Exception as exc:
+            reason = "; a secret could not be resolved" if _secret_unresolved(exc) else ""
+            return _failure_response("STOP_FAILED", f"Process '{name}' failed to stop{reason}", exc)
+        return _json_response(
+            {
+                "name": name,
+                "state": _state_value(process),
+                "drain_timeout": used,
+                "interrupted_runs": len(_interrupted_ids(process) - before),
+            }
+        )
 
     async def _handle_restart(self, request: web.Request) -> web.Response:
         return await self._lifecycle_action(request, "restart", "RESTART_FAILED")

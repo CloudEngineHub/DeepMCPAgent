@@ -39,6 +39,9 @@ import httpx
 
 __all__ = ["OrchestrationAPIError", "OrchestrationClient"]
 
+#: Longest ``drain_timeout`` the server accepts on a stop, in seconds.
+_MAX_DRAIN_TIMEOUT = 3600.0
+
 
 class OrchestrationAPIError(httpx.HTTPStatusError):
     """An error answer from the Orchestration API.
@@ -169,8 +172,12 @@ class OrchestrationClient:
         body: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
         timeout: float | None = None,
+        read_timeout: float | None = None,
     ) -> dict[str, Any]:
         """Send a request; return the JSON body (``{}`` for ``204 No Content``).
+
+        *timeout* replaces every timeout of this request; *read_timeout*
+        only the wait for the answer (connecting keeps the default).
 
         Raises:
             OrchestrationAPIError: The server answered ``4xx``/``5xx``.
@@ -182,6 +189,8 @@ class OrchestrationClient:
             kwargs["params"] = params
         if timeout is not None:
             kwargs["timeout"] = httpx.Timeout(timeout)
+        elif read_timeout is not None:
+            kwargs["timeout"] = httpx.Timeout(self._timeout, read=read_timeout)
         resp = await self._http().request(method, path, **kwargs)
         if resp.is_error:
             raise OrchestrationAPIError(resp)
@@ -201,6 +210,14 @@ class OrchestrationClient:
 
     async def _delete(self, path: str) -> dict[str, Any]:
         return await self._request("DELETE", path)
+
+    async def _stop(self, path: str, drain_timeout: float | None) -> dict[str, Any]:
+        """POST a stop; wait for the answer as long as the drain may take."""
+        body: dict[str, Any] = {}
+        if drain_timeout is not None:
+            body["drain_timeout"] = drain_timeout
+        drain = _MAX_DRAIN_TIMEOUT if drain_timeout is None else max(0.0, drain_timeout)
+        return await self._request("POST", path, body=body, read_timeout=self._timeout + drain)
 
     @staticmethod
     def _proc(name: str, *rest: str) -> str:
@@ -223,19 +240,36 @@ class OrchestrationClient:
         """Start all processes."""
         return await self._post("/api/v1/runtime/start-all")
 
-    async def stop_all(self) -> dict[str, Any]:
-        """Stop all processes."""
-        return await self._post("/api/v1/runtime/stop-all")
+    async def stop_all(self, *, drain_timeout: float | None = None) -> dict[str, Any]:
+        """Stop all processes; returns once they are stopped.
 
-    async def shutdown(self) -> dict[str, Any]:
+        Args:
+            drain_timeout: Seconds runs in flight may take to finish (0 to
+                3600; ``0`` cancels them at once).  ``None`` (default):
+                each process's ``config.drain_timeout``.
+
+        Returns:
+            ``{"status": "stopped", "interrupted_runs": <runs cancelled>}``.
+        """
+        return await self._stop("/api/v1/runtime/stop-all", drain_timeout)
+
+    async def shutdown(self, *, drain_timeout: float | None = None) -> dict[str, Any]:
         """Ask the server to shut its runtime down (``POST /api/v1/runtime/shutdown``).
 
-        Answered ``202 {"status": "shutting_down"}`` when the API was
-        created with ``on_shutdown`` (as ``promptise runtime start`` does);
-        otherwise the route doesn't exist and this raises
-        :class:`OrchestrationAPIError` with status 404.
+        Answered ``202 {"status": "shutting_down"}`` at once when the API
+        was created with ``on_shutdown`` (as ``promptise runtime start``
+        does); the shutdown runs after that.  Otherwise the route doesn't
+        exist and this raises :class:`OrchestrationAPIError` with status
+        404.
+
+        Args:
+            drain_timeout: Seconds runs in flight may take to finish
+                during the shutdown (0 to 3600).  ``None`` (default): the
+                server decides (``promptise runtime start``: each
+                process's ``config.drain_timeout``).
         """
-        return await self._post("/api/v1/runtime/shutdown")
+        body = {"drain_timeout": drain_timeout} if drain_timeout is not None else None
+        return await self._post("/api/v1/runtime/shutdown", body)
 
     # ------------------------------------------------------------------
     # Process lifecycle
@@ -285,9 +319,24 @@ class OrchestrationClient:
         """Start a process."""
         return await self._post(self._proc(name, "start"))
 
-    async def stop_process(self, name: str) -> dict[str, Any]:
-        """Stop a process."""
-        return await self._post(self._proc(name, "stop"))
+    async def stop_process(
+        self, name: str, *, drain_timeout: float | None = None
+    ) -> dict[str, Any]:
+        """Stop a process; returns once it is stopped.
+
+        Args:
+            name: Process name.
+            drain_timeout: Seconds a run in flight may take to finish
+                before it is cancelled (0 to 3600; ``0`` cancels it at
+                once).  ``None`` (default): the process's
+                ``config.drain_timeout``.  The request waits that long for
+                the answer, on top of the client's timeout.
+
+        Returns:
+            ``name``, ``state``, the ``drain_timeout`` used and
+            ``interrupted_runs`` (runs the stop cancelled).
+        """
+        return await self._stop(self._proc(name, "stop"), drain_timeout)
 
     async def restart_process(self, name: str) -> dict[str, Any]:
         """Restart a process (stop then start)."""

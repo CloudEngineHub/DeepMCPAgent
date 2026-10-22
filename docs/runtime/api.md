@@ -69,7 +69,7 @@ OrchestrationAPI(
 | `host` | `"127.0.0.1"` | Bind address |
 | `port` | `9100` | Port. `0` lets the OS pick a free port; read it from `api.port` after `start()` |
 | `auth_token` | `None` | Bearer token required on every route except `GET /api/v1/health`. Required when `host` is not a loopback address. `"${VAR}"` reads it from the environment |
-| `on_shutdown` | `None` | Sync or async callable without arguments. When set, `POST /api/v1/runtime/shutdown` exists: it answers `202` and then calls the callable (for example `runtime.request_shutdown`). Without it the route answers `404` |
+| `on_shutdown` | `None` | Sync or async callable. When set, `POST /api/v1/runtime/shutdown` exists: it answers `202` and then calls the callable (for example `runtime.request_shutdown`), without arguments or, when the request body has a `drain_timeout`, with `drain_timeout=<seconds>`. A callable without a `drain_timeout` parameter makes such a request `422 INVALID_FIELD`. Without it the route answers `404` |
 | `allow_command_deploys` | `False` | Let `POST /api/v1/processes` deploy configs that run programs or code on the host (stdio MCP servers, command hooks, open mode with `allow_tool_creation`). See [Deploys that run programs](#deploys-that-run-programs) |
 | `allow_env_references` | `False` | Let deployed configs use `${VAR}` references to any environment variable of the host. See [Environment references](#environment-references) |
 | `allowed_env_vars` | `None` | Names of the variables deployed configs may reference when `allow_env_references` is off, e.g. `{"SEARCH_API_KEY"}` |
@@ -188,8 +188,8 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `GET` | `/health` | Load-balancer probe, no auth: `{"status": "healthy", "process_count"}` | `200` |
 | `GET` | `/runtime/status` | `{"process_count", "processes": {name: status}}` (plus `cluster` in distributed mode) | `200` |
 | `POST` | `/runtime/start-all` | Start every process: `{"status": "started"}` | `200` |
-| `POST` | `/runtime/stop-all` | Stop every process: `{"status": "stopped"}` | `200` |
-| `POST` | `/runtime/shutdown` | Only with `on_shutdown`: answers `{"status": "shutting_down"}`, then calls `on_shutdown` | `202` |
+| `POST` | `/runtime/stop-all` | Stop every process, optional body `{"drain_timeout"}` (see [Stopping with a drain](#stopping-with-a-drain)): `{"status": "stopped", "interrupted_runs"}` | `200` |
+| `POST` | `/runtime/shutdown` | Only with `on_shutdown`: optional body `{"drain_timeout"}`; answers `{"status": "shutting_down"}` (plus the `drain_timeout`), then calls `on_shutdown` | `202` |
 
 ### Processes
 
@@ -200,7 +200,7 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `GET` | `/processes/{name}` | Process status: state, counters, triggers, budget, health, mission state, active secret count | `200` |
 | `DELETE` | `/processes/{name}` | Stop and close the process, then remove it (memory closed, secrets revoked, conversation cleared) | `204` |
 | `POST` | `/processes/{name}/start` | Start: `{"name", "state"}` | `200` |
-| `POST` | `/processes/{name}/stop` | Stop: `{"name", "state"}` | `200` |
+| `POST` | `/processes/{name}/stop` | Stop, optional body `{"drain_timeout"}` (see [Stopping with a drain](#stopping-with-a-drain)): `{"name", "state", "drain_timeout", "interrupted_runs"}` | `200` |
 | `POST` | `/processes/{name}/restart` | Stop (if running), then start: `{"name", "state"}` | `200` |
 | `POST` | `/processes/{name}/suspend` | Pause trigger processing: `{"name", "suspended": true, "state"}` | `200` |
 | `POST` | `/processes/{name}/resume` | Resume a suspended process: `{"name", "resumed": true, "state"}` | `200` |
@@ -298,6 +298,30 @@ The `config` object follows `ProcessConfig`:
     }
 }
 ```
+
+---
+
+## Stopping with a drain
+
+`POST /processes/{name}/stop` and `POST /runtime/stop-all` stop gracefully, like `SIGTERM` (see [Graceful stop](processes.md#graceful-stop)): no new event starts, the runs in flight get up to `drain_timeout` seconds to finish, and only the ones still running then are cancelled. Each cancelled run is journaled as `run_interrupted` and kept in the dead letters for `redeliver_dead_letters()`.
+
+| Body | Effect |
+|---|---|
+| none, `{}` or `{"drain_timeout": null}` | Wait up to the process's `ProcessConfig.drain_timeout` (5 seconds unless set) |
+| `{"drain_timeout": 30}` | Wait up to 30 seconds |
+| `{"drain_timeout": 0}` | Cancel runs in flight at once |
+
+`drain_timeout` is a number from 0 to 3600; anything else (a negative number, a string, `true`) is `422 INVALID_FIELD` and nothing is stopped. The default is the configured value rather than `0` so that a stop from a dashboard or a script treats a run the same way `docker stop` does; pass `0` when you want it gone now.
+
+The request is answered once the process has stopped, so it takes at most the drain plus the teardown. The stop finishes even if the client disconnects. The answer says what happened:
+
+```json
+{"name": "data-watcher", "state": "stopped", "drain_timeout": 5.0, "interrupted_runs": 0}
+```
+
+`interrupted_runs` counts the runs this stop cancelled (`stop-all` answers the total over its processes, which drain at the same time). `OrchestrationClient.stop_process(name, drain_timeout=...)` and `stop_all(drain_timeout=...)` wait for the answer as long as the drain may take, on top of the client's `timeout`.
+
+`POST /runtime/shutdown` answers `202` at once and shuts down afterwards; a `drain_timeout` in its body is passed to `on_shutdown` (`runtime.request_shutdown` accepts it). `promptise runtime stop --drain-timeout` sends it.
 
 ---
 
@@ -537,14 +561,14 @@ Use it with `async with`, or call `await client.aclose()` when done.
 | `GET /health` | `health()` | `dict` |
 | `GET /runtime/status` | `runtime_status()` | `dict` |
 | `POST /runtime/start-all` | `start_all()` | `dict` |
-| `POST /runtime/stop-all` | `stop_all()` | `dict` |
-| `POST /runtime/shutdown` | `shutdown()` | `{"status": "shutting_down"}`; `404` error without `on_shutdown` |
+| `POST /runtime/stop-all` | `stop_all(*, drain_timeout=None)` | `dict` |
+| `POST /runtime/shutdown` | `shutdown(*, drain_timeout=None)` | `{"status": "shutting_down"}`; `404` error without `on_shutdown` |
 | `GET /processes` | `list_processes()` | `list[dict]` |
 | `POST /processes` | `deploy(name, config, *, start=False)` | `dict` |
 | `GET /processes/{name}` | `get_process(name)` | `dict` |
 | `DELETE /processes/{name}` | `remove_process(name)` | `{}` |
 | `POST .../start` | `start_process(name)` | `dict` |
-| `POST .../stop` | `stop_process(name)` | `dict` |
+| `POST .../stop` | `stop_process(name, *, drain_timeout=None)` | `dict` |
 | `POST .../restart` | `restart_process(name)` | `dict` |
 | `POST .../suspend` | `suspend_process(name)` | `dict` |
 | `POST .../resume` | `resume_process(name)` | `dict` |

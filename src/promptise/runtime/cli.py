@@ -114,6 +114,12 @@ _ENV_VAR_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 #: Seconds ``stop`` waits after SIGTERM (the fallback) before giving up.
 _SIGTERM_GRACE = 10.0
 
+#: Seconds ``stop --drain-timeout`` waits beyond the drain for the teardown.
+_DRAIN_MARGIN = 10.0
+
+#: Longest ``--drain-timeout`` (the bound of ``ProcessConfig.drain_timeout``).
+_MAX_DRAIN_TIMEOUT = 3600.0
+
 
 def _fail(message: str, code: int = 1) -> NoReturn:
     """Print an error (to stderr) and exit with *code*."""
@@ -582,6 +588,24 @@ def _runtime_name_for(path: Path, name: str | None, runtime_name: str | None) ->
     return safe_runtime_name(name or load_manifest(path).name)
 
 
+class _ShutdownRequest(asyncio.Event):
+    """The event a shutdown request sets, with the drain it asked for.
+
+    :meth:`request` is the control API's ``on_shutdown`` callback:
+    ``promptise runtime stop --drain-timeout`` passes its value through
+    ``POST /api/v1/runtime/shutdown``.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.drain_timeout: float | None = None
+
+    def request(self, drain_timeout: float | None = None) -> None:
+        if drain_timeout is not None:
+            self.drain_timeout = drain_timeout
+        self.set()
+
+
 class _SignalCatcher:
     """Turns SIGINT / SIGTERM (and SIGBREAK on Windows) into an event.
 
@@ -666,7 +690,8 @@ def _make_api(
 
     The shutdown route (authenticated like every other) sets *shutdown*:
     the ``stop`` command uses it to shut the runtime down gracefully on
-    every platform (Windows has no SIGTERM a process can catch).
+    every platform (Windows has no SIGTERM a process can catch).  With a
+    :class:`_ShutdownRequest` the route also takes a ``drain_timeout``.
     """
     from .api import OrchestrationAPI
 
@@ -675,7 +700,7 @@ def _make_api(
         host=host,
         port=port,
         auth_token=token,
-        on_shutdown=shutdown.set,
+        on_shutdown=getattr(shutdown, "request", shutdown.set),
         allow_command_deploys=allow_command_deploys,
         allow_env_references=allow_env_references,
         allowed_env_vars=allowed_env_vars or (),
@@ -728,7 +753,11 @@ async def _wait_for_shutdown(
         await asyncio.wait({forever, waiter}, return_when=asyncio.FIRST_COMPLETED)
         announce()
         if not forever.done():
-            request_shutdown()
+            drain = getattr(shutdown, "drain_timeout", None)
+            if drain is None:
+                request_shutdown()
+            else:
+                request_shutdown(drain_timeout=drain)
         await asyncio.gather(forever)  # re-raises run_forever's error
     finally:
         if not waiter.done():
@@ -769,7 +798,7 @@ async def _run_foreground(
 
     launch_id = os.environ.pop(LAUNCH_ENV, None)
     loop = asyncio.get_running_loop()
-    shutdown = asyncio.Event()
+    shutdown = _ShutdownRequest()
     state: RuntimeState | None = None
 
     def _forget_state() -> None:
@@ -911,7 +940,10 @@ async def _run_foreground(
         try:
             if not shut_down:
                 close = getattr(runtime, "shutdown", None) or runtime.stop_all
-                await close()
+                if shutdown.drain_timeout is None:
+                    await close()
+                else:
+                    await close(drain_timeout=shutdown.drain_timeout)
         finally:
             if api is not None:
                 with contextlib.suppress(Exception):
@@ -1061,12 +1093,37 @@ def stop(
     ] = False,
     timeout: Annotated[
         float,
-        typer.Option("--timeout", min=0.0, help="Seconds to wait for a graceful shutdown"),
+        typer.Option(
+            "--timeout",
+            min=0.0,
+            help=(
+                "Seconds to wait for a graceful shutdown (with --drain-timeout at "
+                f"least the drain plus {_DRAIN_MARGIN:g})"
+            ),
+        ),
     ] = 30.0,
+    drain_timeout: Annotated[
+        float | None,
+        typer.Option(
+            "--drain-timeout",
+            min=0.0,
+            max=_MAX_DRAIN_TIMEOUT,
+            help=(
+                "Seconds runs in flight may take to finish before they are cancelled "
+                "(0: cancel them at once). Default: each process's drain_timeout "
+                "(5 unless its config sets it)."
+            ),
+        ),
+    ] = None,
     url: _UrlOption = None,
     token: _TokenOption = None,
 ) -> None:
     """Stop a running runtime (every process, then the runtime exits) or one process.
+
+    The stop is graceful: no new trigger event starts, and runs in flight
+    get up to --drain-timeout seconds (default: each process's
+    drain_timeout) to finish.  The ones still running then are cancelled,
+    journaled as run_interrupted and kept in the dead letters.
 
     The runtime is asked over its control API; if that fails or it hasn't
     exited within --timeout, it gets SIGTERM; with --force it is killed
@@ -1076,15 +1133,20 @@ def stop(
     target = targets[0]
 
     if proc_name is not None:
-        result = _api(target, lambda c: c.stop_process(proc_name), process=proc_name)
+        result = _api(
+            target,
+            lambda c: c.stop_process(proc_name, drain_timeout=drain_timeout),
+            process=proc_name,
+        )
         console.print(
             f"[green]Stopped process[/green] {escape(proc_name)} "
             f"({escape(str(result.get('state', 'stopped')))})"
         )
+        _report_interrupted(result)
         return
 
     async def _shutdown(client: OrchestrationClient) -> dict[str, Any]:
-        return await client.shutdown()
+        return await client.shutdown(drain_timeout=drain_timeout)
 
     from .api_client import OrchestrationAPIError
 
@@ -1096,11 +1158,12 @@ def stop(
         if exc.status_code == 404 and exc.code in (None, "NOT_FOUND"):
             # A plain OrchestrationAPI (not 'promptise runtime start'):
             # stop its processes; the server itself keeps running.
-            _api(target, lambda c: c.stop_all())
+            result = _api(target, lambda c: c.stop_all(drain_timeout=drain_timeout))
             console.print(
                 f"[green]Stopped every process[/green] of {escape(target.label)}. Its API "
                 "server keeps running (it wasn't started with 'promptise runtime start')."
             )
+            _report_interrupted(result)
             return
         if target.state is None:
             _fail(_api_error_message(target, exc))
@@ -1115,6 +1178,8 @@ def stop(
         console.print(f"[green]Shutdown requested[/green] for {escape(target.label)}.")
         return
 
+    if drain_timeout is not None:
+        timeout = max(timeout, drain_timeout + _DRAIN_MARGIN)
     if requested and wait_for_exit(state.pid, timeout, state):
         _stopped(state)
         return
@@ -1141,6 +1206,16 @@ def stop(
         f"Runtime {state.name!r} (pid {state.pid}) did not stop within {timeout:g}s. "
         "Wait longer with --timeout, or kill it with --force."
     )
+
+
+def _report_interrupted(result: dict[str, Any]) -> None:
+    """Say how many runs a stop cancelled (they are in the dead letters)."""
+    count = result.get("interrupted_runs")
+    if isinstance(count, int) and count > 0:
+        console.print(
+            f"[yellow]{count} run(s) in flight were cancelled[/yellow] (journaled as "
+            "run_interrupted, kept in the dead letters for redelivery)"
+        )
 
 
 def _stopped(state: RuntimeState) -> None:

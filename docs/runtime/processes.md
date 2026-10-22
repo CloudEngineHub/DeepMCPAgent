@@ -177,6 +177,14 @@ await process.stop()                    # cancel at once
 
 `AgentRuntime.run_forever()` stops this way on `SIGTERM` and Ctrl+C (see [Runtime Manager](runtime-manager.md#run_forever)).
 
+The [control API](api.md#stopping-with-a-drain) and `promptise runtime stop` stop this way too. There the default is the process's configured `drain_timeout`, as on `SIGTERM`, so an operator's stop doesn't cut off a run by surprise; `0` cancels at once:
+
+```bash
+promptise runtime stop prod --process data-watcher --drain-timeout 30
+curl -X POST -H "Authorization: Bearer $TOKEN" -d '{"drain_timeout": 0}' \
+    http://127.0.0.1:9100/api/v1/processes/data-watcher/stop
+```
+
 A cancelled run may have called tools that already took effect, so it is not dropped silently: the process logs a warning, writes a `run_interrupted` journal entry (at every journal level) with the event, and keeps the event in its journal checkpoint. A new process object with the same name and journal lists it in `dead_letters` again after `start()` (and counts it in `recovered["interrupted_runs"]`), so you can inspect it and call `redeliver_dead_letters()` if it should run again. Once redelivered or cleared, it is no longer carried over.
 
 ### suspend() and resume()

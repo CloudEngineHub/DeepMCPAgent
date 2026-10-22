@@ -111,7 +111,7 @@ names = await runtime.load_directory("agents/")  # every *.agent file, in name o
 | `await start_all()` | Starts every `CREATED`, `STOPPED` and `FAILED` process. A process that fails to start is logged and skipped. With `distributed.enabled`, the cluster node starts first, and its failure raises. |
 | `await stop_all()` | Stops every process that is not `STOPPED` or `CREATED` (`FAILED` and `SUSPENDED` ones too), then drains the shared event notifier |
 | `await start_process(name)` | `get_process(name).start()` |
-| `await stop_process(name)` | `get_process(name).stop()` |
+| `await stop_process(name, *, drain_timeout=0.0)` | `get_process(name).stop(drain_timeout=...)` |
 | `await restart_process(name, *, stop_timeout=30.0)` | Stops a running or suspended process, then starts it. A `FAILED` process is torn down by `start()` itself (old triggers, listeners and heartbeat end first), so nothing fires twice. A process that is already stopping (another stop or restart) is waited for, up to `stop_timeout` seconds; after that it raises `RuntimeError` and starts nothing. Context state, long-term memory and conversation history carry over. |
 | `await shutdown()` | `stop_all()`, then closes every process (memory, secrets, conversation), then stops the cluster node. The processes stay registered. |
 
@@ -133,7 +133,7 @@ await runtime.run_forever(drain_timeout=0)                # cancel runs in fligh
 It returns after:
 
 - `SIGTERM` (`docker stop`, Kubernetes, systemd) or `SIGINT` (Ctrl+C), when `install_signal_handlers=True` (the default). The handlers are installed on the running loop for the duration of the call, including the shutdown, and removed afterwards. Where the loop can't install them (Windows, or a thread other than the main one) they are skipped.
-- `runtime.request_shutdown()`, which is safe to call from your own signal handler or another task. `request_shutdown(force=True)` also ends a graceful wait that is in progress.
+- `runtime.request_shutdown()`, which is safe to call from your own signal handler or another task. `request_shutdown(force=True)` also ends a graceful wait that is in progress, and `request_shutdown(drain_timeout=N)` replaces `run_forever()`'s `drain_timeout` for that shutdown.
 - Cancellation of the task running it.
 
 ```text
@@ -210,7 +210,7 @@ With `RuntimeConfig(distributed=DistributedConfig(enabled=True, ...))`, `start_a
 | `await load_manifest(path, *, name_override=None)` | Register a process from a `.agent` file |
 | `await load_directory(path)` | Register every `*.agent` file in a directory |
 | `await start_all()` / `await stop_all(*, drain_timeout=0.0)` | Start / stop every process (`drain_timeout`: let runs in flight finish first; `None` = each process's `drain_timeout`) |
-| `await start_process(name)` / `await stop_process(name)` / `await restart_process(name, *, stop_timeout=30.0)` | Control one process |
+| `await start_process(name)` / `await stop_process(name, *, drain_timeout=0.0)` / `await restart_process(name, *, stop_timeout=30.0)` | Control one process |
 | `await shutdown(*, drain_timeout=0.0)` | Stop and close every process, stop the cluster node |
 | `await run_forever(*, install_signal_handlers=True, drain_timeout=None)` | Start everything and run until a signal or `request_shutdown()`, then stop gracefully |
 | `request_shutdown(*, force=False)` | Make `run_forever()` return (`force=True`: cancel runs still draining) |

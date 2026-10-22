@@ -495,7 +495,7 @@ promptise runtime stop                                  # stop the runtime
 |---|---|
 | `promptise runtime start MANIFEST` | Start the process(es) of a `.agent` file or directory, in the foreground or with `--detach` |
 | `promptise runtime status [NAME]` | Show the processes of the running runtime(s), or one process (`--process`, `--json`) |
-| `promptise runtime stop [NAME]` | Stop a runtime (or one process with `--process`); `--timeout`, `--force` |
+| `promptise runtime stop [NAME]` | Stop a runtime (or one process with `--process`); `--drain-timeout`, `--timeout`, `--force` |
 | `promptise runtime restart [NAME]` | Restart every process of a runtime, or one process |
 | `promptise runtime logs NAME` | Show the newest journal entries of a process (`--lines`, `--follow`, `--journal-path`) |
 | `promptise runtime rewind PROCESS [ENTRY_ID]` | Roll a process back to just before a journal entry (`--mode`, `--plan`, `--yes`) |
@@ -517,7 +517,7 @@ promptise runtime stop                                  # stop the runtime
 | `--allow-command-deploys` | off | Let the control API deploy processes with stdio MCP servers or command hooks (refused with `403 COMMANDS_NOT_ALLOWED` otherwise) |
 | `--import`, `-i` | -- | Import a Python module before loading the manifests, e.g. one that registers custom trigger types with `register_trigger_type()` (repeatable; the current directory is importable) |
 
-A foreground runtime stops gracefully on Ctrl+C, on SIGTERM (`docker stop`) and on `promptise runtime stop`. `stop` asks over the control API first, falls back to SIGTERM, and kills the runtime only with `--force`.
+A foreground runtime stops gracefully on Ctrl+C, on SIGTERM (`docker stop`) and on `promptise runtime stop`. `stop` asks over the control API first, falls back to SIGTERM, and kills the runtime only with `--force`. Runs in flight get up to `--drain-timeout` seconds to finish (default: each process's `drain_timeout`; `0` cancels them at once).
 
 **Exit codes.** `0` success, `1` an error with a message (no runtime running, unknown name, API error, invalid manifest, no process could start, a stop that timed out, an unconfirmed rewind), `2` a usage error, `130` a second Ctrl+C or SIGTERM during shutdown.
 

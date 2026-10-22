@@ -147,6 +147,8 @@ Stop a running runtime (every process, then the runtime exits), or one process.
 promptise runtime stop                      # the only running runtime
 promptise runtime stop prod
 promptise runtime stop prod --process data-watcher
+promptise runtime stop prod --process data-watcher --drain-timeout 0   # cancel its run now
+promptise runtime stop prod --drain-timeout 30                         # let runs finish for 30 s
 promptise runtime stop prod --timeout 60 --force
 ```
 
@@ -155,12 +157,15 @@ promptise runtime stop prod --timeout 60 --force
 | `NAME` | | -- | Runtime to stop, or a process name in a running runtime; may be omitted when only one runtime runs |
 | `--process` | `-p` | -- | Stop only this process (the runtime keeps running) |
 | `--force/--no-force` | | off | Kill the runtime if it hasn't stopped gracefully |
-| `--timeout` | | `30.0` | Seconds to wait for a graceful shutdown |
+| `--drain-timeout` | | each process's `drain_timeout` | Seconds runs in flight may take to finish before they are cancelled (0 to 3600; `0` cancels them at once) |
+| `--timeout` | | `30.0` | Seconds to wait for a graceful shutdown; with `--drain-timeout` at least the drain plus 10 |
 | `--url`, `--token` | | -- | Talk to an Orchestration API instead of a local runtime |
+
+The stop is graceful (see [Graceful stop](processes.md#graceful-stop)): no new trigger event starts, and runs in flight get up to `--drain-timeout` seconds to finish. Without the option each process waits up to its own `drain_timeout` (5 seconds unless its config sets it), as on SIGTERM. A run still going after that is cancelled, journaled as `run_interrupted` and kept in the dead letters; for one process, `stop` says how many runs it cancelled.
 
 How a runtime is stopped:
 
-1. `stop` asks it to shut down over its control API (`POST /api/v1/runtime/shutdown`) and waits up to `--timeout` seconds for it to exit.
+1. `stop` asks it to shut down over its control API (`POST /api/v1/runtime/shutdown`, with the `--drain-timeout` if given) and waits up to `--timeout` seconds for it to exit. Keep `--timeout` above the processes' `drain_timeout` when you don't pass `--drain-timeout`: a SIGTERM during the drain (step 2) is a second signal, and the runtime exits at once without a clean shutdown.
 2. When the API can't be reached or the runtime is still running, it sends SIGTERM and waits again (up to 10 more seconds after a successful request, `--timeout` otherwise). Windows has no catchable SIGTERM, so this step is skipped there.
 3. Still running: with `--force` the process is killed (SIGKILL) and its state file removed; without it, `stop` exits with 1 and suggests `--timeout` or `--force`.
 
