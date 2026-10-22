@@ -1120,6 +1120,17 @@ class ProcessConfig(BaseModel):
         hooks: Runtime lifecycle hooks (:class:`HookConfig`), registered
             on the process's :attr:`~AgentProcess.hooks` manager when the
             process is created.
+        extra_tools: Local tools the agent can call next to the MCP
+            servers' tools, as in :func:`~promptise.agent.build_agent`:
+            functions made tools with :func:`promptise.tool`, plain
+            functions (made tools as if decorated with ``@tool``) and
+            LangChain ``BaseTool`` instances.  Budget, approval, health and
+            journal apply to them as to MCP tools, and every rebuild of the
+            agent (restart, hot reload, new instructions) keeps them.
+            Code only, like :attr:`HookConfig.callback`: not serialised
+            (``to_dict()`` and ``model_dump()`` leave them out), and a
+            manifest or YAML config can't set them.  Anything that is not a
+            tool raises ``TypeError`` when the config is created.
 
     Unknown keys are rejected, so a misspelt option fails loudly instead
     of being ignored.
@@ -1232,6 +1243,28 @@ class ProcessConfig(BaseModel):
         default_factory=list,
         description="Lifecycle hooks: external commands or async Python callables",
     )
+
+    # -- Local tools (code only; not serialised) --
+    extra_tools: list[Any] = Field(
+        default_factory=list,
+        exclude=True,
+        description="Local tools: @tool functions, plain functions or LangChain tools (code only)",
+    )
+
+    @field_validator("extra_tools", mode="before")
+    @classmethod
+    def _check_extra_tools(cls, v: Any) -> list[Any]:
+        if v is None:
+            return []
+        if isinstance(v, (list, tuple)) and any(isinstance(item, str) for item in v):
+            raise TypeError(
+                "extra_tools takes Python tools (functions or LangChain tools) in code; "
+                "a manifest or YAML config can't name them. Pass them to ProcessConfig "
+                "or AgentProcess in Python, or serve them from an MCP server."
+            )
+        from promptise.function_tools import as_tools
+
+        return list(as_tools(v, argument="extra_tools"))
 
 
 class DistributedConfig(_WarnOnUnknownKeys):

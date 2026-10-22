@@ -53,10 +53,38 @@ AgentProcess(
     runtime=None,          # parent AgentRuntime (open mode's spawn_process needs it)
     event_notifier=None,   # EventNotifier for process.* and agent events
     hooks=None,            # shared HookManager, dispatched after the process's own hooks
+    extra_tools=None,      # local tools, added after config.extra_tools
 )
 ```
 
 The constructor checks each entry of `config.servers` and raises `ValueError` for one it can't use. Every setting lives in `ProcessConfig`; see [Configuration](configuration.md#processconfig) for all fields and defaults. Inside an `AgentRuntime`, use `runtime.add_process(name, config)` instead: it passes the runtime's bus, broker, notifier and hooks.
+
+### Local tools
+
+Python functions the agent can call need no MCP server: pass them in `extra_tools`, on `ProcessConfig` or the `AgentProcess` constructor (or both; the constructor's come after the config's). They take what `build_agent(extra_tools=...)` takes: functions made tools with `@tool`, plain functions (made tools as if decorated) and LangChain tools.
+
+```python
+from promptise import tool
+from promptise.runtime import AgentProcess, BudgetConfig, ProcessConfig
+
+@tool
+def lookup_order(order_id: str) -> str:
+    """Look up an order's status."""
+    return f"{order_id}: shipped"
+
+process = AgentProcess(
+    "orders",
+    ProcessConfig(
+        instructions="Answer questions about orders.",
+        extra_tools=[lookup_order],
+        budget=BudgetConfig(enabled=True, max_tool_calls_per_run=10),
+    ),
+)
+```
+
+They sit next to the MCP servers' tools, and budget, approval, health and the journal treat them the same way. Every agent the process builds has them: after a restart, a hot reload or new instructions. Anything that is not a tool raises `TypeError` when the config or process is created.
+
+They are code only, like a hook's `callback`: `model_dump()` and `RuntimeConfig.to_dict()` leave them out, and a manifest or YAML config can't name them (serve such tools from an MCP server instead). Processes spawned in open mode don't get them, and the agent can't create a tool with the name of one.
 
 ---
 

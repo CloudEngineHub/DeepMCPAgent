@@ -140,6 +140,7 @@ Configuration for one agent process. Unknown keys are rejected.
 | `adaptive` | `Any \| None` | `None` | Passed to `build_agent()`: adaptive strategy |
 | `max_invocation_time` | `float` | `0` | Per-run timeout in seconds, passed to `build_agent()` (0 = none) |
 | `hooks` | `list[HookConfig]` | `[]` | [Lifecycle hooks](hooks.md), registered on `process.hooks` when the process is created |
+| `extra_tools` | `list` | `[]` | Local tools, as in `build_agent(extra_tools=...)`: [`@tool`](../core/tools.md) functions, plain functions and LangChain tools. Code only: not serialised, and a manifest can't set them. See [Local tools](processes.md#local-tools). |
 
 ---
 

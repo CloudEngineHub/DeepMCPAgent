@@ -54,7 +54,7 @@ import secrets
 import time
 import warnings
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -435,6 +435,14 @@ class AgentProcess:
             secrets to the variables the operator allowed and makes an
             empty ``open_mode.allowed_mcp_urls`` mean no MCP server.
             Processes this one spawns get the same policy.
+        extra_tools: Local tools for the agent, added after
+            ``config.extra_tools`` (same kinds as
+            :func:`~promptise.agent.build_agent`'s ``extra_tools``:
+            :func:`promptise.tool` functions, plain functions and LangChain
+            tools).  They go through the same budget, approval, health and
+            journal checks as MCP tools and are kept on every rebuild of
+            the agent.  Anything that is not a tool raises ``TypeError``
+            here.
 
     Lifecycle hooks: the process dispatches every
     :class:`~promptise.runtime.hooks.HookEvent` to :attr:`hooks` (see the
@@ -444,6 +452,7 @@ class AgentProcess:
     Raises:
         ValueError: An entry of ``config.servers`` is not a server spec
             (see :func:`_resolve_server_specs`).
+        TypeError: An entry of ``extra_tools`` is not a tool or function.
     """
 
     def __init__(
@@ -458,7 +467,10 @@ class AgentProcess:
         event_notifier: Any | None = None,
         hooks: HookManager | None = None,
         deploy_policy: DeployPolicy | None = None,
+        extra_tools: Sequence[Any] | None = None,
     ) -> None:
+        from promptise.function_tools import as_tools
+
         self.name = name
         self.process_id = process_id or str(uuid4())
         self.config = config
@@ -468,6 +480,9 @@ class AgentProcess:
         self._inherited_hooks: tuple[HookManager, ...] = ()
         # Fail at construction for a server entry that can't be used.
         _resolve_server_specs(dict(config.servers or {}))
+        # Local tools given by the operator (config first), in every agent
+        # this process builds.  Fails here for anything that is not a tool.
+        self._extra_tools: list[Any] = [*config.extra_tools, *as_tools(extra_tools)]
         self._event_notifier = event_notifier
         # A notifier shared through an AgentRuntime is stopped by the
         # runtime (in stop_all()); otherwise this process stops it.
@@ -2347,8 +2362,10 @@ class AgentProcess:
         # Use dynamic instructions if set, otherwise config instructions
         instructions = self._dynamic_instructions or self.config.instructions or ""
 
-        # Collect extra tools: custom tools + meta-tools (open mode)
-        extra_tools: list[Any] = list(self._custom_tools)
+        # Collect extra tools: the operator's local tools, the agent's
+        # custom tools and meta-tools (open mode), context state tools and
+        # the MCP tools.
+        extra_tools: list[Any] = [*self._extra_tools, *self._custom_tools]
         if self.config.execution_mode == ExecutionMode.OPEN:
             from .meta_tools import create_meta_tools
 
@@ -4150,7 +4167,7 @@ class AgentProcess:
         approval policy, guardrail scanner, trigger delivery, journal
         level and open-mode limits (with spawning switched off, so
         spawned processes can't spawn more).  It gets no secrets, MCP
-        servers or identity of the parent, and no ``hooks`` in its config:
+        servers, local tools (``extra_tools``) or identity of the parent, and no ``hooks`` in its config:
         :meth:`spawn_process` makes the parent's hook managers dispatch for
         it instead.
         """

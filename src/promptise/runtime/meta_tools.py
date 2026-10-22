@@ -270,8 +270,8 @@ async def _create_tool(
     if len(process._custom_tools) >= max_tools:
         return f"Error: max custom tools ({max_tools}) reached"
 
-    # Check for duplicate names
-    for existing in process._custom_tools:
+    # Check for duplicate names (the operator's local tools included)
+    for existing in [*process._extra_tools, *process._custom_tools]:
         if existing.name == tool_name:
             return f"Error: tool '{tool_name}' already exists"
 
