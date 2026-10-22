@@ -5,17 +5,20 @@ description: "Test prompts with PromptTestCase: mock LLM calls and context, and 
 
 # Prompt Testing
 
-A purpose-built test framework for validating prompt behavior. `PromptTestCase` provides mocked LLM calls, context injection, and specialized assertions for latency, schema compliance, and guard behavior.
+A small test helper for prompts. `PromptTestCase` provides mocked LLM calls, context injection, and assertions for content, result type, latency and guards.
 
 ## Quick Example
 
 ```python
 import pytest
-from promptise.prompts import prompt
+from promptise.prompts import prompt, PromptInspector
 from promptise.prompts.testing import PromptTestCase
-from promptise.prompts.context import UserContext
+from promptise.prompts.context import context, user_context, UserContext
 
-@prompt(model="openai:gpt-5-mini")
+inspector = PromptInspector()
+
+@prompt(model="openai:gpt-5-mini", inspect=inspector)
+@context(user_context())
 async def analyze_sentiment(text: str) -> str:
     """Analyze the sentiment of this text: {text}"""
 
@@ -29,19 +32,22 @@ class TestSentiment(PromptTestCase):
 
     async def test_with_context(self):
         with self.mock_context(user=UserContext(expertise_level="expert")):
-            with self.mock_llm("expert analysis: strongly positive"):
-                result = await self.run_prompt("Great product")
-                self.assert_contains(result, "expert")
+            with self.mock_llm("strongly positive"):
+                await self.run_prompt("Great product")
+        # The mocked model ignores the prompt; check what would have been sent
+        assert "**Expertise:** expert" in inspector.last().input_text
 ```
+
+`mock_llm()` returns your fixed text whatever the prompt says, so assertions on the result only test parsing, strategies and guards. To test what the prompt *sends*, attach a [`PromptInspector`](inspector.md) and assert on `trace.input_text`, or call `await prompt.render_async(...)`.
 
 ## Concepts
 
-`PromptTestCase` is a base class for prompt tests. It works with both `pytest` and `unittest.TestCase` patterns. Key features:
+`PromptTestCase` is a plain base class (not a `unittest.TestCase`). With pytest, use `pytest-asyncio` (`asyncio_mode = "auto"`, or mark each test). With unittest, also inherit from `unittest.IsolatedAsyncioTestCase` so `async def test_*` methods run. Key features:
 
-- **`mock_llm(response)`** -- mock the LLM call to return a fixed string, eliminating API costs during testing.
-- **`mock_context(**contexts)`** -- temporarily inject world contexts into the prompt under test.
-- **Specialized assertions** -- purpose-built for prompt validation (schema, latency, guards, content).
-- **Stats access** -- retrieve `PromptStats` from the last call for latency assertions.
+- **`mock_llm(response)`**: mock the LLM call to return a fixed string, eliminating API costs during testing.
+- **`mock_context(**contexts)`**: temporarily inject world contexts into the prompt under test.
+- **Specialized assertions**: purpose-built for prompt validation (schema, latency, guards, content).
+- **Stats access**: retrieve `PromptStats` from the last call for latency assertions.
 
 ## Setting Up Tests
 
@@ -80,7 +86,7 @@ async def test_with_stats(self):
 
 ### Mocking LLM Calls
 
-`mock_llm(response)` patches the LLM to return a fixed string. No API calls are made:
+`mock_llm(response)` patches the chat model factory used by standalone prompt calls (`promptise.prompts.core.init_chat_model`) so the model returns a fixed string. No API calls are made, and no API key is needed. It does not affect agents built with `build_agent()`:
 
 ```python
 async def test_mocked(self):
@@ -106,7 +112,7 @@ async def test_with_user(self):
             self.assert_contains(result, "Expert")
 ```
 
-The original world contexts are restored when the context manager exits.
+The original world contexts are restored when the context manager exits. `mock_context()` changes the shared `Prompt` object while it is active, so don't run tests that use it on the same prompt concurrently. World contexts only reach the prompt text through a [context provider](context.md) such as `user_context()`.
 
 ### Combining Mocks
 
@@ -135,7 +141,7 @@ self.assert_not_contains(result, "error")
 
 ### Schema Assertions
 
-Validate that the result matches an expected type (works with dataclasses, Pydantic models, and basic types):
+Check the result's type with `isinstance` (works with dataclasses, Pydantic models, and basic types; it does not validate field values):
 
 ```python
 from pydantic import BaseModel
@@ -158,17 +164,28 @@ result, stats = await self.run_with_stats("test input")
 self.assert_latency(stats, max_ms=5000)
 ```
 
+`stats` is the prompt's `last_stats`, a `PromptStats`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `prompt_name` | `str` | The prompt's name |
+| `model` | `str` | The model string |
+| `latency_ms` | `float` | Wall time of the call, including guards |
+| `input_tokens` / `output_tokens` | `int` | Always `0` in 1.6.0 (not measured) |
+| `context_providers_used` | `list[str] \| None` | Class names of the attached context providers |
+| `strategy` / `perspective` | `str` | `repr()` of the strategy and perspective, or `""` |
+
 ### Context Provider Assertions
 
-Verify that a specific context provider contributed to the prompt:
+Verify that a context provider of a given class was attached to the prompt (it checks `stats.context_providers_used`, not whether the provider produced text):
 
 ```python
-self.assert_context_provided(stats, "ToolContextProvider")
+self.assert_context_provided(stats, "UserContextProvider")
 ```
 
 ### Guard Assertions
 
-Assert that the result was not blocked by a guard:
+Assert that the result was not blocked by a guard. Guards raise, so this only checks that the result is not `None`; test a rejection with `pytest.raises(GuardError)` as below:
 
 ```python
 self.assert_guard_passed(result)
@@ -255,30 +272,32 @@ class TestExpertiseAdaptation(PromptTestCase):
 
 | Method | Description |
 |--------|-------------|
-| `assert_schema(result, expected_type)` | Assert result matches type |
+| `assert_schema(result, expected_type)` | Assert `isinstance(result, expected_type)` |
 | `assert_contains(result, substring)` | Assert substring is present |
 | `assert_not_contains(result, substring)` | Assert substring is absent |
 | `assert_latency(stats, max_ms)` | Assert latency within limit |
-| `assert_context_provided(stats, name)` | Assert context provider was used |
-| `assert_guard_passed(result)` | Assert not blocked by a guard |
+| `assert_context_provided(stats, name)` | Assert a provider class name is in `stats.context_providers_used` |
+| `assert_guard_passed(result)` | Assert the result is not `None` |
+
+All assertions raise `AssertionError`. `run_prompt()` and `mock_context()` raise `ValueError` when the `prompt` attribute is not set.
 
 !!! tip "Mock for speed, real for confidence"
     Use `mock_llm()` in unit tests for fast, deterministic feedback loops. Use real LLM calls in integration tests (guarded by API key checks) for end-to-end validation.
 
 !!! tip "pytest compatibility"
-    `PromptTestCase` works seamlessly with pytest. Define your test classes with `PromptTestCase` as a base, use `async def test_*` methods, and run with `pytest --asyncio-mode=auto`.
+    Define your test classes with `PromptTestCase` as a base, use `async def test_*` methods, install `pytest-asyncio`, and run with `pytest --asyncio-mode=auto`.
 
 !!! warning "Set the prompt attribute"
     Calling `run_prompt()` without setting the `prompt` class attribute raises `ValueError`. Always set `prompt = my_prompt` on your test class.
 
 ## What's Next
 
-- [Guards](guards.md) -- Input/output validation to test against
-- [Inspector](inspector.md) -- Trace prompt assembly for debugging
-- [Prompt Chaining](chaining.md) -- Compose prompts into pipelines
+- [Guards](guards.md): Input/output validation to test against
+- [Inspector](inspector.md): Trace prompt assembly for debugging
+- [Prompt Chaining](chaining.md): Compose prompts into pipelines
 
 !!! tip "Learn the concept"
 
-    - [How to Test LLM Prompts and AI Agents in Python](https://www.promptise.com/guides/view/test-llm-prompts-ai-agents-python) -- Unit test prompts with pytest and catch regressions in CI.
-    - [How to Evaluate AI Agents: Evals, LLM Judges and pass^k](https://www.promptise.com/guides/view/evaluate-ai-agents-python) -- Golden tasks, LLM judges and pass^k for agents.
-    - [Topic hub: Testing and evals](https://www.promptise.com/guides/topics/testing-evals) -- Every guide on testing and evals.
+    - [How to Test LLM Prompts and AI Agents in Python](https://www.promptise.com/guides/view/test-llm-prompts-ai-agents-python): Unit test prompts with pytest and catch regressions in CI.
+    - [How to Evaluate AI Agents: Evals, LLM Judges and pass^k](https://www.promptise.com/guides/view/evaluate-ai-agents-python): Golden tasks, LLM judges and pass^k for agents.
+    - [Topic hub: Testing and evals](https://www.promptise.com/guides/topics/testing-evals): Every guide on testing and evals.

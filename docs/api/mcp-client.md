@@ -48,3 +48,24 @@ Client libraries for connecting to MCP servers.
     options:
       show_source: false
       heading_level: 3
+
+## MCPCredentialError
+
+::: promptise.mcp.client.MCPCredentialError
+    options:
+      show_source: false
+      heading_level: 3
+
+## MCPToolError
+
+::: promptise.mcp.client.MCPToolError
+    options:
+      show_source: false
+      heading_level: 3
+
+## BearerTokenProvider
+
+::: promptise.mcp.client.BearerTokenProvider
+    options:
+      show_source: false
+      heading_level: 3

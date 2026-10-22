@@ -5,7 +5,7 @@ description: "Stream agent runs with real-time tool activity and token-by-token 
 
 # Streaming with Tool Visibility
 
-Stream agent execution with real-time tool activity — see which tools are being called, their results, and the LLM generating text token by token.
+Stream agent execution with real-time tool activity: see which tools are being called, their results, and the LLM generating text token by token.
 
 ```python
 async for event in agent.astream_with_tools(
@@ -48,11 +48,13 @@ Expected delivery: March 25.
 
 `done` and `error` are always the last event of a run.
 
+Every class derives from `StreamEvent` (`from promptise import StreamEvent`), which carries `type` and `timestamp`; `event.to_dict()` gives a JSON-ready dict, for example to send over Server-Sent Events.
+
 ---
 
 ## What a Streamed Run Does
 
-A streamed run executes exactly the steps `ainvoke()` would — the stream is a
+A streamed run executes exactly the steps `ainvoke()` would: the stream is a
 view of that run, not a second one:
 
 - **One model call per step.** Each step's model call is streamed as it is
@@ -60,13 +62,13 @@ view of that run, not a second one:
   it is two (the call that asks for the tool, and the answer).
 - **The answer after a tool streams too.** Its tokens arrive after the
   `tool_end` events, and `full_response` is that answer.
-- **`full_response` is the final answer** — the text of the run's last model
+- **`full_response` is the final answer**: the text of the run's last model
   call, the same text `ainvoke()` returns as the last message. Text a model
   writes *before* calling a tool ("Let me look that up.") streams as tokens and
   is in `cumulative_text`, but not in `full_response`.
 - **Tool calls run in parallel**, as in `ainvoke()`. When the model asks for
   several tools at once, every `tool_start` comes first, then each `tool_end`
-  as that call finishes — possibly out of order. In a custom graph whose
+  as that call finishes: possibly out of order. In a custom graph whose
   calls a [`ToolNode`](engine-nodes.md#toolnode) runs, the calls of one turn
   run one after another, so each `tool_end` comes before the next call's
   `tool_start`.
@@ -78,8 +80,8 @@ view of that run, not a second one:
 - **`tool_index` and `duration_ms` belong to the call.** A `tool_end` has the
   same `tool_index` as its `tool_start`, and `duration_ms` is how long that
   call ran.
-- **Failed calls are `success: false`.** A tool that reports an error — an MCP
-  server's `ToolError`, which the server returns with `isError` set — ends with
+- **Failed calls are `success: false`.** A tool that reports an error: an MCP
+  server's `ToolError`, which the server returns with `isError` set: ends with
   `success: false` and the error's message as `tool_summary`. A tool that
   raises ends with `success: false` and `tool_summary` `"Tool call failed"`
   (the exception text is not streamed). The model sees the error either way
@@ -181,7 +183,7 @@ source.onerror = () => {
 
 !!! warning "Always close the EventSource on `done` and `error`"
     When the server ends the response, `EventSource` treats it as a dropped
-    connection and **reconnects about 3 seconds later** — the same GET, so the
+    connection and **reconnects about 3 seconds later**: the same GET, so the
     agent runs the question again (more model calls, more tool calls) and the
     page receives a second answer. Call `source.close()` when the `done` or
     `error` event arrives, and in `onerror`.
@@ -192,8 +194,8 @@ calls can finish in any order.
 ### POST with `fetch()`
 
 To send the question in a request body (long prompts, or a bearer token in a
-header), use a POST endpoint — the same handler with `@app.post` and a request
-model — and read the stream with `fetch()` instead of `EventSource`. A fetch
+header), use a POST endpoint: the same handler with `@app.post` and a request
+model, and read the stream with `fetch()` instead of `EventSource`. A fetch
 stream does not reconnect on its own:
 
 ```javascript
@@ -239,7 +241,8 @@ async for event in agent.astream_with_tools(
         "pg_query": "Querying database",
         "s3_upload": "Uploading to cloud storage",
     },
-)
+):
+    print(event)
 ```
 
 ---
@@ -270,7 +273,7 @@ Tool results are automatically summarized for display:
 ## Security
 
 - **Argument redaction**: Tool arguments are run through guardrails before streaming. PII and credentials are replaced with labels.
-- **Error sanitization**: `ErrorEvent.message` is always generic — no internal stack traces, file paths, or database URLs.
+- **Error sanitization**: `ErrorEvent.message` is always generic: no internal stack traces, file paths, or database URLs.
 - **Stream cancellation**: Closing the SSE connection cancels the agent's async task. No wasted LLM calls.
 - **No cumulative arguments**: `TokenEvent.cumulative_text` only contains LLM text, never tool arguments.
 
@@ -278,7 +281,7 @@ Tool results are automatically summarized for display:
 
 ## Integration
 
-`astream_with_tools()` runs the full agent pipeline — same guarantees as `ainvoke()`:
+`astream_with_tools()` runs the full agent pipeline: same guarantees as `ainvoke()`:
 
 - ✅ Input guardrails (block injection → ErrorEvent)
 - ✅ Memory injection (relevant context before LLM call)
@@ -330,7 +333,7 @@ tool_summary("")                                 # "Done"
 
 ### tool_error_summary()
 
-Summarize a failed tool call — the message of an MCP `ToolError`:
+Summarize a failed tool call: the message of an MCP `ToolError`:
 
 ```python
 from promptise.streaming import tool_error_summary
@@ -353,7 +356,7 @@ event.to_json()  # Returns JSON string (for SSE)
 ## Streaming the Conversation: `astream()`
 
 `agent.astream()` streams at a coarser grain: one chunk per step of the agent's
-graph, each the whole conversation so far — `{"messages": [...]}`. The last
+graph, each the whole conversation so far: `{"messages": [...]}`. The last
 chunk is what `ainvoke()` returns. Use it to process intermediate messages
 (tool calls and their results) in code; use `astream_with_tools()` for a chat
 UI.
@@ -370,10 +373,10 @@ async for chunk in agent.astream({"messages": [{"role": "user", "content": "Wher
 
 ## What's Next?
 
-- [Events & Notifications](events.md) -- webhook alerts for invocation, tool, and guardrail events
-- [Guardrails](guardrails.md) -- security scanning that redacts tool arguments in the stream
-- [Observability](observability.md) -- detailed execution traces alongside streaming
+- [Events & Notifications](events.md): webhook alerts for invocation, tool, and guardrail events
+- [Guardrails](guardrails.md): security scanning that redacts tool arguments in the stream
+- [Observability](observability.md): detailed execution traces alongside streaming
 
 !!! tip "Learn the concept"
 
-    - [Streaming LLM Responses with FastAPI: Tokens and Tool Calls](https://www.promptise.com/guides/view/stream-llm-response-fastapi) -- Stream tool calls and the answer to a web page with Server-Sent Events.
+    - [Streaming LLM Responses with FastAPI: Tokens and Tool Calls](https://www.promptise.com/guides/view/stream-llm-response-fastapi): Stream tool calls and the answer to a web page with Server-Sent Events.

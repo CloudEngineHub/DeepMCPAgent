@@ -25,12 +25,12 @@ On its own, outside a process:
 ```python
 from promptise.runtime.triggers.cron import CronTrigger
 
-trigger = CronTrigger("*/5 * * * *")
+trigger = CronTrigger("* * * * * */10")  # every 10 seconds (sixth field = seconds)
 await trigger.start()
 
-event = await trigger.wait_for_next()  # Blocks up to 5 minutes
+event = await trigger.wait_for_next()  # blocks until the next tick
 print(event.payload)
-# {"scheduled_time": "2026-03-04T10:05:00+00:00", "cron_expression": "*/5 * * * *", "timezone": "UTC"}
+# {'scheduled_time': '2026-03-04T10:05:10+00:00', 'cron_expression': '* * * * * */10', 'timezone': 'UTC'}
 
 await trigger.stop()
 ```
@@ -254,12 +254,12 @@ To change a running process's schedule, add the new trigger and remove the old o
 
 ## What's Next
 
-- [Triggers Overview](index.md) -- all trigger types, stable IDs and live trigger changes
-- [Event and Webhook Triggers](event-webhook.md) -- event-driven activation
-- [File Watch Trigger](file-watch.md) -- file-system change detection
-- [Autonomy Budget](../governance/budget.md) -- cap runs and tool calls per day
+- [Triggers Overview](index.md): all trigger types, stable IDs and live trigger changes
+- [Event and Webhook Triggers](event-webhook.md): event-driven activation
+- [File Watch Trigger](file-watch.md): file-system change detection
+- [Autonomy Budget](../governance/budget.md): cap runs and tool calls per day
 
 !!! tip "Learn the concept"
 
-    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- Scheduled agents alongside webhook and file triggers.
-    - [AI Agent Cron Jobs: Run an Agent on a Schedule](https://www.promptise.com/guides/view/ai-agent-cron-schedule) -- Time zones and DST, overlapping runs, missed ticks and testing.
+    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers): Scheduled agents alongside webhook and file triggers.
+    - [AI Agent Cron Jobs: Run an Agent on a Schedule](https://www.promptise.com/guides/view/ai-agent-cron-schedule): Time zones and DST, overlapping runs, missed ticks and testing.

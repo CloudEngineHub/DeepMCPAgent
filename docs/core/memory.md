@@ -176,8 +176,8 @@ from promptise.memory import InMemoryProvider, MemoryScope
 # Shared pool (default, legacy behavior)
 provider = InMemoryProvider(max_entries=1_000)
 
-# Or per-user isolated
-provider = InMemoryProvider(scope=MemoryScope.PER_USER)
+# Or per-user isolated: every call then needs user_id=...
+# provider = InMemoryProvider(scope=MemoryScope.PER_USER)
 
 await provider.add("Pipeline had 5% error rate at 07:30")
 await provider.add("User prefers dark mode")
@@ -331,7 +331,7 @@ Constructor parameters:
 
 ## MemoryAgent
 
-`MemoryAgent` wraps any LangGraph agent with automatic memory context injection. Before every `ainvoke()`, it:
+`MemoryAgent` wraps any agent `Runnable` (anything with `ainvoke`) with automatic memory context injection. Before every `ainvoke()`, it:
 
 1. Extracts the user query from the input
 2. Searches the memory provider for relevant content
@@ -357,7 +357,7 @@ result = await memory_agent.ainvoke({"messages": [{"role": "user", "content": "H
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `inner` | `Any` | required | The wrapped LangGraph agent |
+| `inner` | `Any` | required | The wrapped agent (any `Runnable`) |
 | `provider` | `MemoryProvider` | required | Memory provider instance |
 | `max_memories` | `int` | `5` | Max results to inject per invocation |
 | `min_score` | `float` | `0.0` | Min relevance score threshold |

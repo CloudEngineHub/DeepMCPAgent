@@ -5,7 +5,7 @@ description: "Run an MCP server in production: choose stdio, HTTP or SSE, valida
 
 # MCP Server Deployment
 
-Run your MCP server in production — choose the right transport, validate `Host` and `Origin`, configure CORS for browser clients, deploy behind a reverse proxy, containerize with Docker, probe it from Kubernetes, run it under uvicorn or gunicorn, and use the CLI for zero-boilerplate startup.
+Run your MCP server in production: choose the right transport, validate `Host` and `Origin`, configure CORS for browser clients, deploy behind a reverse proxy, containerize with Docker, probe it from Kubernetes, run it under uvicorn or gunicorn, and use the CLI for zero-boilerplate startup.
 
 ## Transport Selection
 
@@ -17,7 +17,7 @@ graph TD
     B -->|Yes| C[stdio]
     B -->|No| D{Needs SSE compatibility?}
     D -->|Yes| E[sse]
-    D -->|No| F[http — Streamable HTTP]
+    D -->|No| F[http: Streamable HTTP]
 ```
 
 | Transport | Protocol | Use case |
@@ -26,7 +26,7 @@ graph TD
 | `http` | Streamable HTTP | Remote agents, web apps, microservices, production |
 | `sse` | Server-Sent Events | Legacy clients, environments that don't support Streamable HTTP |
 
-### `stdio` — Local connections
+### `stdio`: Local connections
 
 ```python
 server = MCPServer(name="local-tools")
@@ -48,7 +48,7 @@ When the client closes stdin, the server answers the requests it is still runnin
 }
 ```
 
-### `http` — Streamable HTTP (recommended for remote)
+### `http`: Streamable HTTP (recommended for remote)
 
 ```python
 server = MCPServer(name="remote-api")
@@ -62,18 +62,18 @@ server.run(
 
 The server exposes a single endpoint at `/mcp` that handles all MCP protocol messages. Supports session tracking, bidirectional streaming, and concurrent requests. It also answers [`GET /health` and `GET /health/ready`](#health-probes) for container and Kubernetes probes.
 
-`run()` binds `127.0.0.1` unless you pass `host`: the server is reachable from the same machine only, and `Host`/`Origin` validation is on. To listen on every interface — in a container, or behind a load balancer on another machine — pass `host="0.0.0.0"` and name the public host in `allowed_hosts`, as above.
+`run()` binds `127.0.0.1` unless you pass `host`: the server is reachable from the same machine only, and `Host`/`Origin` validation is on. To listen on every interface (in a container, or behind a load balancer on another machine) pass `host="0.0.0.0"` and name the public host in `allowed_hosts`, as above.
 
-!!! warning "Changed in the next release: the default bind is `127.0.0.1`"
-    Up to 1.2.1, `run()` and `run_async()` defaulted to `host="0.0.0.0"`, which exposed an unauthenticated server to the whole network. A deployment that relied on that default — a container, or clients on other machines — must now pass `host="0.0.0.0"` explicitly (see [Docker](#docker)). `promptise serve`, `hot_reload()` and MCPcast-generated servers already defaulted to `127.0.0.1`.
+!!! warning "Changed in 1.3.0: the default bind is `127.0.0.1`"
+    Up to 1.2.1, `run()` and `run_async()` defaulted to `host="0.0.0.0"`, which exposed an unauthenticated server to the whole network. A deployment that relied on that default (a container, or clients on other machines) must now pass `host="0.0.0.0"` explicitly (see [Docker](#docker)). `promptise serve`, `hot_reload()` and MCPcast-generated servers already defaulted to `127.0.0.1`.
 
 #### Sessions, restarts and replicas
 
-A Streamable HTTP session lives in the server process that created it. After a restart or redeploy, the server answers the old `mcp-session-id` with `404`; the MCP specification tells the client to open a new session, and Promptise clients (`MCPClient`, `MCPMultiClient`, `build_agent`) do so transparently — they re-initialise, retry the call once and re-discover the server's tools. See [Reconnecting after a server restart](../client/index.md#reconnecting-after-a-server-restart).
+A Streamable HTTP session lives in the server process that created it. After a restart or redeploy, the server answers the old `mcp-session-id` with `404`; the MCP specification tells the client to open a new session, and Promptise clients (`MCPClient`, `MCPMultiClient`, `build_agent`) do so transparently: they re-initialise, retry the call once and re-discover the server's tools. See [Reconnecting after a server restart](../client/index.md#reconnecting-after-a-server-restart).
 
-With **several replicas or workers**, a request that reaches a process other than the one that holds its session gets the same `404`. Route each `mcp-session-id` to one process (sticky sessions on the `mcp-session-id` header at the load balancer), or serve the app stateless — see [Running under uvicorn or gunicorn](#running-under-uvicorn-or-gunicorn).
+With **several replicas or workers**, a request that reaches a process other than the one that holds its session gets the same `404`. Route each `mcp-session-id` to one process (sticky sessions on the `mcp-session-id` header at the load balancer), or serve the app stateless: see [Running under uvicorn or gunicorn](#running-under-uvicorn-or-gunicorn).
 
-### `sse` — Server-Sent Events (legacy)
+### `sse`: Server-Sent Events (legacy)
 
 ```python
 server = MCPServer(name="legacy-api")
@@ -89,9 +89,9 @@ Exposes `/sse` for the event stream and `/messages/` for client-to-server messag
 
 ### Identity is per request, not per session
 
-Both network transports keep an MCP *session* open across many HTTP requests. Everything the framework derives from HTTP headers — `ctx.meta`, the credential `AuthMiddleware` verifies, `ctx.client` (client id, tenant, roles, IP address), and `ctx.request_id` from `X-Request-ID` — is read from the HTTP request that carries **that** `tools/call`, never from the request that opened the session. A caller that sends a different credential on a later call is that credential's principal for that call; a call without one is unauthenticated, even inside a session that was opened with a valid token.
+Both network transports keep an MCP *session* open across many HTTP requests. Everything the framework derives from HTTP headers (`ctx.meta`, the credential `AuthMiddleware` verifies, `ctx.client` (client id, tenant, roles, IP address), and `ctx.request_id` from `X-Request-ID`) is read from the HTTP request that carries **that** `tools/call`, never from the request that opened the session. A caller that sends a different credential on a later call is that credential's principal for that call; a call without one is unauthenticated, even inside a session that was opened with a valid token.
 
-With the transport auth gate on (`MCPServer(require_auth=True)`), the session is additionally bound to the credential that created it: a request that presents a *different* valid credential for a known `mcp-session-id` is answered `404 Session not found`, exactly as if the session did not exist. A client that rotates its token therefore opens a new session (re-initialises) — it cannot ride the old one, and neither can anyone who picked the session id out of a proxy log.
+With the transport auth gate on (`MCPServer(require_auth=True)`), the session is additionally bound to the credential that created it: a request that presents a *different* valid credential for a known `mcp-session-id` is answered `404 Session not found`, exactly as if the session did not exist. A client that rotates its token therefore opens a new session (re-initialises): it cannot ride the old one, and neither can anyone who picked the session id out of a proxy log.
 
 ---
 
@@ -99,7 +99,7 @@ With the transport auth gate on (`MCPServer(require_auth=True)`), the session is
 
 ### When you need it
 
-A server bound to loopback is not reachable from the network — but it *is* reachable from a web page in the operator's browser. With **DNS rebinding**, a page served from `attacker.example` re-points that hostname at `127.0.0.1` after loading, and its scripts then talk to your MCP server with the browser's network position. If the server carries a credential of its own (an upstream token from the environment, for example), that page drives the upstream API with it.
+A server bound to loopback is not reachable from the network, but it *is* reachable from a web page in the operator's browser. With **DNS rebinding**, a page served from `attacker.example` re-points that hostname at `127.0.0.1` after loading, and its scripts then talk to your MCP server with the browser's network position. If the server carries a credential of its own (an upstream token from the environment, for example), that page drives the upstream API with it.
 
 The MCP Streamable HTTP specification requires servers to validate the `Origin` header for exactly this reason. Promptise validates `Host` and `Origin` at the transport, before any MCP message is parsed.
 
@@ -109,7 +109,7 @@ Binding `127.0.0.1`, `localhost` or `::1` (any `127.0.0.0/8` address counts) tur
 
 | Header | Accepted values |
 |--------|-----------------|
-| `Host` | `127.0.0.1[:port]`, `localhost[:port]`, `[::1][:port]` — plus the bind address itself |
+| `Host` | `127.0.0.1[:port]`, `localhost[:port]`, `[::1][:port]`, plus the bind address itself |
 | `Origin` | `http://` and `https://` forms of the same names, any port. A request **without** an `Origin` header (every non-browser MCP client) passes. |
 
 A request whose `Host` is anything else gets `421 Misdirected Request`; a foreign `Origin` gets `403 Forbidden`. Both apply to the opening `initialize` and to every later request on the session, on the `/mcp` endpoint and on the SSE `/sse` stream and `/messages/` posts alike.
@@ -122,7 +122,7 @@ server.run(transport="http", host="127.0.0.1", port=8080)   # protected, nothing
 
 ### Public binds: name your hosts
 
-A non-loopback bind (`0.0.0.0`, a LAN or public address) has **no** restriction unless you name the hosts you serve — the framework cannot guess the public hostname, and a wrong guess would refuse every request. Either terminate at a gateway that validates `Host` and `Origin` for you, or pass the lists explicitly:
+A non-loopback bind (`0.0.0.0`, a LAN or public address) has **no** restriction unless you name the hosts you serve: the framework cannot guess the public hostname, and a wrong guess would refuse every request. Either terminate at a gateway that validates `Host` and `Origin` for you, or pass the lists explicitly:
 
 ```python
 server.run(
@@ -135,12 +135,12 @@ server.run(
 ```
 
 - `allowed_hosts` is the `Host` allow-list. Naming it turns the validation on for a public bind, where the list is used exactly as given.
-- `allowed_origins` is the `Origin` allow-list for browser clients. Requests without an `Origin` header always pass it, so non-browser MCP clients need no entry. It requires `allowed_hosts` on a public bind (the transport validates `Host` whenever the protection is on; an empty host list would refuse everything — `run()` raises `ValueError` instead).
+- `allowed_origins` is the `Origin` allow-list for browser clients. Requests without an `Origin` header always pass it, so non-browser MCP clients need no entry. It requires `allowed_hosts` on a public bind (the transport validates `Host` whenever the protection is on; an empty host list would refuse everything: `run()` raises `ValueError` instead).
 - `Origin` validation is not CORS: `CORSConfig` tells the *browser* which origins may read responses; the `Origin` check decides which origins the *server* accepts at all. Configure both for browser clients.
 
 ### Behind a reverse proxy
 
-The [Nginx setup below](#reverse-proxy) forwards the public `Host` (`api.example.com`) to a backend bound on `127.0.0.1`. That backend is loopback-bound, so the validation is on — and it must know the public name. On a loopback bind the lists **add to** the loopback names (a request that names the bind address is by definition not rebound, and local health checks keep working):
+The [Nginx setup below](#reverse-proxy) forwards the public `Host` (`api.example.com`) to a backend bound on `127.0.0.1`. That backend is loopback-bound, so the validation is on, and it must know the public name. On a loopback bind the lists **add to** the loopback names (a request that names the bind address is by definition not rebound, and local health checks keep working):
 
 ```python
 server.run(
@@ -152,7 +152,7 @@ server.run(
 )
 ```
 
-Without this, the proxied requests are answered `421` — the same answer a rebound page gets.
+Without this, the proxied requests are answered `421`: the same answer a rebound page gets.
 
 From the command line, the same lists are `--allowed-host` and `--allowed-origin` (repeatable) on `promptise serve` and on the `serve` argument parser (`build_serve_parser`), and `hot_reload(...)` passes them through to the child process:
 
@@ -199,7 +199,7 @@ server.run(
 
 The defaults already cover what a browser MCP client needs: the preflight admits the MCP request headers, and the `mcp-session-id` the server assigns on `initialize` is exposed so the page can send it back on every later request. Name the origins; everything else can stay as it is.
 
-A browser client needs **both** settings: `allowed_origins` (the server's `Origin` validation — without it the server answers `403`) and `CORSConfig.allow_origins` (the CORS headers — without them the browser hides the answer from the page).
+A browser client needs **both** settings: `allowed_origins` (the server's `Origin` validation (without it the server answers `403`) and `CORSConfig.allow_origins` (the CORS headers) without them the browser hides the answer from the page).
 
 ### Configuration
 
@@ -209,7 +209,7 @@ A browser client needs **both** settings: `allowed_origins` (the server's `Origi
 | `allow_methods` | `["GET", "POST", "DELETE", "OPTIONS"]` | Allowed HTTP methods |
 | `allow_headers` | `["Content-Type", "Authorization", "x-api-key", "mcp-session-id", "mcp-protocol-version", "last-event-id", "mcp-method", "mcp-name"]` | Request headers the preflight admits. If you replace the list, keep `mcp-session-id` and `mcp-protocol-version` (the browser refuses every request after `initialize` without them) and `mcp-method` and `mcp-name` (it refuses every 2026-07-28 request without them) |
 | `expose_headers` | `["mcp-session-id"]` | Response headers the page may read. Without `mcp-session-id` a browser client cannot continue the session it opened |
-| `allow_credentials` | `False` | Allow cookies and auth headers. Cannot be combined with `allow_origins=["*"]` — `CORSConfig` raises `ValueError` |
+| `allow_credentials` | `False` | Allow cookies and auth headers. Cannot be combined with `allow_origins=["*"]`: `CORSConfig` raises `ValueError` |
 | `max_age` | `600` | Preflight cache duration (seconds) |
 
 `allow_origins=["*"]` together with `allow_credentials=True` is refused: the CORS layer would then echo *every* requesting origin back with `Access-Control-Allow-Credentials: true`, so any website could make credentialed requests to the server and read the answers. List the origins that need credentials explicitly.
@@ -257,8 +257,8 @@ server.run(transport="http", host="127.0.0.1", port=8080)
 
 With `require_auth=True` and an `AuthMiddleware` installed, the server checks every HTTP request for:
 
-1. **Bearer token**: `Authorization: Bearer <jwt-token>` — verified with the configured auth provider
-2. **API key**: `x-api-key: <key>` — verified with the API key provider
+1. **Bearer token**: `Authorization: Bearer <jwt-token>`: verified with the configured auth provider
+2. **API key**: `x-api-key: <key>`: verified with the API key provider
 
 Unauthenticated requests receive a `401` JSON response:
 
@@ -269,7 +269,7 @@ Unauthenticated requests receive a `401` JSON response:
 }
 ```
 
-The gate also binds each MCP session to the credential that opened it. A request that presents a different valid credential for an existing `mcp-session-id` is answered `404 Session not found`; a client whose token changes opens a new session. Inside a session, the credential on each request is still what `AuthMiddleware` verifies and what `ctx.client` describes — see [Identity is per request, not per session](#identity-is-per-request-not-per-session).
+The gate also binds each MCP session to the credential that opened it. A request that presents a different valid credential for an existing `mcp-session-id` is answered `404 Session not found`; a client whose token changes opens a new session. Inside a session, the credential on each request is still what `AuthMiddleware` verifies and what `ctx.client` describes: see [Identity is per request, not per session](#identity-is-per-request-not-per-session).
 
 ### Built-in token endpoint
 
@@ -348,7 +348,7 @@ server {
 | `proxy_read_timeout 86400s` | MCP sessions are long-lived |
 | `proxy_http_version 1.1` | Required for keep-alive and upgrade |
 | `Connection "upgrade"` | Required for WebSocket-like transports |
-| `proxy_set_header Host $host` | Forwards the public host — list it in `allowed_hosts` on the backend, see [Host and Origin Validation](#behind-a-reverse-proxy) |
+| `proxy_set_header Host $host` | Forwards the public host: list it in `allowed_hosts` on the backend, see [Host and Origin Validation](#behind-a-reverse-proxy) |
 
 ---
 
@@ -375,7 +375,7 @@ EXPOSE 8080
 CMD ["python", "-m", "myapp.server"]
 ```
 
-Inside a container the server must listen on every interface — the default `127.0.0.1` is unreachable from outside it, so a container is the one place to bind `0.0.0.0` on purpose. Read the bind and the public host name from the environment, and keep [authentication](#authentication-at-the-transport-level) on: a non-loopback bind without `AuthMiddleware` logs a startup warning because every tool is then open to anyone who can reach the port.
+Inside a container the server must listen on every interface: the default `127.0.0.1` is unreachable from outside it, so a container is the one place to bind `0.0.0.0` on purpose. Read the bind and the public host name from the environment, and keep [authentication](#authentication-at-the-transport-level) on: a non-loopback bind without `AuthMiddleware` logs a startup warning because every tool is then open to anyone who can reach the port.
 
 ```python title="myapp/server.py"
 import os
@@ -424,14 +424,14 @@ volumes:
 
 ### Health probes
 
-A probe cannot speak MCP — a plain `GET /mcp` is answered `406 Not Acceptable` — so the HTTP and SSE transports serve two plain routes next to the MCP endpoint:
+A probe cannot speak MCP (a plain `GET /mcp` is answered `406 Not Acceptable`) so the HTTP and SSE transports serve two plain routes next to the MCP endpoint:
 
 | Route | Answers | Use as |
 |-------|---------|--------|
 | `GET /health` | `200 {"status": "alive", ...}` while the process serves HTTP | Liveness probe |
 | `GET /health/ready` | `200` when every check registered with `required_for_ready=True` passes, `503` otherwise. Body: `{"status": "ready" \| "not_ready", "checks": {"database": {"healthy": true}}}` | Readiness probe, Docker `healthcheck` |
 
-Without a registered `HealthCheck`, `/health/ready` answers `200 {"status": "ready", "checks": {}}`. Both routes skip the transport auth gate and `Host` validation (a Kubernetes probe sends the pod IP as `Host` and no credentials), are never cached, and never include the text of an exception a check raised — the `health://readiness` MCP resource keeps that detail for authenticated callers.
+Without a registered `HealthCheck`, `/health/ready` answers `200 {"status": "ready", "checks": {}}`. Both routes skip the transport auth gate and `Host` validation (a Kubernetes probe sends the pod IP as `Host` and no credentials), are never cached, and never include the text of an exception a check raised: the `health://readiness` MCP resource keeps that detail for authenticated callers.
 
 ```python
 from promptise.mcp.server import MCPServer, HealthCheck
@@ -478,13 +478,13 @@ spec:
             failureThreshold: 2
 ```
 
-With more than one replica behind a Kubernetes `Service`, keep each MCP session on its pod — see [Sessions, restarts and replicas](#sessions-restarts-and-replicas).
+With more than one replica behind a Kubernetes `Service`, keep each MCP session on its pod: see [Sessions, restarts and replicas](#sessions-restarts-and-replicas).
 
 ---
 
 ## Running under uvicorn or gunicorn
 
-`run()` starts its own uvicorn server. To use your own ASGI server — uvicorn with your flags, gunicorn with worker processes, hypercorn — take the application from `asgi_app()`:
+`run()` starts its own uvicorn server. To use your own ASGI server (uvicorn with your flags, gunicorn with worker processes, hypercorn) take the application from `asgi_app()`:
 
 ```python title="myapp/asgi.py"
 import os
@@ -501,16 +501,16 @@ uvicorn myapp.asgi:app --host 0.0.0.0 --port 8080
 gunicorn myapp.asgi:app -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8080
 ```
 
-The app serves the same routes as `run()` — `/mcp` (or `/sse` and `/messages/` with `asgi_app("sse")`), `/health`, `/health/ready` and the token endpoint — with the same auth gate and CORS (`cors=CORSConfig(...)`). Its lifespan runs your startup and shutdown hooks and the MCP session manager, so leave the ASGI server's lifespan handling on (uvicorn's default).
+The app serves the same routes as `run()` (`/mcp` (or `/sse` and `/messages/` with `asgi_app("sse")`), `/health`, `/health/ready` and the token endpoint) with the same auth gate and CORS (`cors=CORSConfig(...)`). Its lifespan runs your startup and shutdown hooks and the MCP session manager, so leave the ASGI server's lifespan handling on (uvicorn's default).
 
 The ASGI server owns the bind address, so `Host` validation cannot follow it: the app always accepts the loopback names, plus everything in `allowed_hosts` (and `allowed_origins` for browser clients). Name the host your clients or proxy send, or their requests are answered `421`.
 
 ### Several workers: sticky sessions or stateless
 
-Each worker process keeps its own MCP sessions. With `-w 4`, a request whose session lives in another worker is answered `404`, and the client re-initialises — on nearly every call. Either:
+Each worker process keeps its own MCP sessions. With `-w 4`, a request whose session lives in another worker is answered `404`, and the client re-initialises: on nearly every call. Either:
 
 - run **one worker per replica** and route each `mcp-session-id` to its replica (sticky sessions at the load balancer), or
-- serve **stateless**: `server.asgi_app(stateless=True, allowed_hosts=[...])`. Every request is self-contained — no `mcp-session-id` — so any worker or replica can answer it. A stateless server cannot send requests back to the client, so MCP elicitation and sampling (including [elicitation approval gates](approval-gates.md)) and per-session state are unavailable. `stateless` applies to Streamable HTTP only.
+- serve **stateless**: `server.asgi_app(stateless=True, allowed_hosts=[...])`. Every request is self-contained (no `mcp-session-id`) so any worker or replica can answer it. A stateless server cannot send requests back to the client, so MCP elicitation and sampling (including [elicitation approval gates](approval-gates.md)) and per-session state are unavailable. `stateless` applies to Streamable HTTP only.
 
 ---
 
@@ -568,7 +568,7 @@ promptise serve myapp.server:server
 | `--port`, `-p` | `8080` | Bind port |
 | `--dashboard` | off | Live terminal dashboard |
 | `--reload` | off | Hot reload on file changes |
-| `--allowed-host HOST` | none | `Host` header value to accept on HTTP/SSE, e.g. `api.example.com` or `api.example.com:*` (repeatable). A loopback bind validates `Host` and `Origin` against the loopback names by default and the list adds to them; a non-loopback bind validates only when this is given -- see [Host and Origin Validation](#host-and-origin-validation) |
+| `--allowed-host HOST` | none | `Host` header value to accept on HTTP/SSE, e.g. `api.example.com` or `api.example.com:*` (repeatable). A loopback bind validates `Host` and `Origin` against the loopback names by default and the list adds to them; a non-loopback bind validates only when this is given: see [Host and Origin Validation](#host-and-origin-validation) |
 | `--allowed-origin ORIGIN` | none | `Origin` header value to accept for browser clients, e.g. `https://app.example.com` (repeatable). Requires `--allowed-host` on a non-loopback bind |
 
 ---
@@ -602,7 +602,7 @@ Or via the CLI:
 promptise serve myapp.server:server -t http --reload
 ```
 
-See [Advanced Patterns — Hot Reload](advanced-patterns.md#hot-reload) for details.
+See [Advanced Patterns: Hot Reload](advanced-patterns.md#hot-reload) for details.
 
 ---
 
@@ -612,17 +612,17 @@ Before deploying to production:
 
 - [ ] **Transport**: Use `http` (Streamable HTTP) for remote access, `stdio` for local
 - [ ] **Authentication**: Enable `require_auth=True` with JWT or API key validation
-- [ ] **Host/Origin validation**: Pass `allowed_hosts` (and `allowed_origins` for browser clients) on a public bind, or validate them at the gateway — loopback binds are protected by default
+- [ ] **Host/Origin validation**: Pass `allowed_hosts` (and `allowed_origins` for browser clients) on a public bind, or validate them at the gateway: loopback binds are protected by default
 - [ ] **CORS**: Restrict `allow_origins` to your actual frontend domains
 - [ ] **TLS**: Terminate TLS at the reverse proxy (Nginx, Caddy, cloud LB)
-- [ ] **Bind**: `run()` binds `127.0.0.1` by default — pass `host="0.0.0.0"` (with `allowed_hosts` and `AuthMiddleware`) only where the server must be reachable from other machines; check the startup log for the `WARNING` lines listed under [Host and Origin Validation](#host-and-origin-validation)
+- [ ] **Bind**: `run()` binds `127.0.0.1` by default: pass `host="0.0.0.0"` (with `allowed_hosts` and `AuthMiddleware`) only where the server must be reachable from other machines; check the startup log for the `WARNING` lines listed under [Host and Origin Validation](#host-and-origin-validation)
 - [ ] **Health checks**: Register `HealthCheck` with required dependency checks; point liveness at `/health` and readiness at `/health/ready`
 - [ ] **Replicas**: Sticky sessions on `mcp-session-id`, or `asgi_app(stateless=True)`
 - [ ] **Observability**: Add `MetricsMiddleware` or `OTelMiddleware` for monitoring
 - [ ] **Rate limiting**: Add `RateLimitMiddleware` to prevent abuse
 - [ ] **Circuit breakers**: Protect against flaky downstream dependencies
 - [ ] **Audit logging**: Add `AuditMiddleware` for a tamper-evident record of every tool call
-- [ ] **Process management**: Use systemd, supervisord, or Kubernetes — not `hot_reload`
+- [ ] **Process management**: Use systemd, supervisord, or Kubernetes, not `hot_reload`
 
 ## API Summary
 
@@ -636,17 +636,17 @@ Before deploying to production:
 | `hot_reload(server, ...)` | Function | File-watching dev server |
 | `build_serve_parser(...)` | Function | CLI argument parser builder |
 | `resolve_server(target)` | Function | Import server from `module:attr` |
-| `run_serve(args)` | Function | Run server from CLI args |
-| `TokenEndpointConfig(...)` | Dataclass | Built-in token endpoint config |
+| `run_serve(args, server=None)` | Function | Run server from CLI args |
+| `TokenEndpointConfig(jwt_auth, clients, *, path="/auth/token", default_expires_in=3600, refresh_token_ttl=2592000)` | Class | Built-in token endpoint settings; `enable_token_endpoint()` builds one |
 
 ## What's Next
 
-- [Authentication & Security](auth-security.md) — JWT, API keys, guards, roles
-- [Caching & Performance](caching-performance.md) — Cache, rate limit, concurrency
-- [Observability & Monitoring](observability.md) — Metrics, tracing, logging
-- [Resilience Patterns](resilience-patterns.md) — Circuit breakers, health checks
+- [Authentication & Security](auth-security.md): JWT, API keys, guards, roles
+- [Caching & Performance](caching-performance.md): Cache, rate limit, concurrency
+- [Observability & Monitoring](observability.md): Metrics, tracing, logging
+- [Resilience Patterns](resilience-patterns.md): Circuit breakers, health checks
 
 !!! tip "Learn the concept"
 
-    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse) -- Serving MCP over HTTP in production: host checks, auth and scaling.
-    - [How to Deploy an AI Agent with Docker (2026 Guide)](https://www.promptise.com/guides/view/deploy-ai-agent-docker) -- Docker compose with an agent and an MCP server.
+    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse): Serving MCP over HTTP in production: host checks, auth and scaling.
+    - [How to Deploy an AI Agent with Docker (2026 Guide)](https://www.promptise.com/guides/view/deploy-ai-agent-docker): Docker compose with an agent and an MCP server.

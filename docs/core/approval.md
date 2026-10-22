@@ -8,7 +8,7 @@ description: "Require human approval before an agent runs sensitive tools: appro
 Require human approval before executing sensitive tool calls. The agent pauses, sends an approval request to a human reviewer, and waits for a decision before proceeding or adapting.
 
 !!! info "Server-side approval gates"
-    This page covers **agent-side** approval — governance the agent applies to
+    This page covers **agent-side** approval: governance the agent applies to
     its own tool calls. To enforce approval **where the tool lives**, for any
     MCP client (declared with `@server.tool(requires_approval=True)` and
     enforced by `ApprovalGateMiddleware`), see
@@ -71,7 +71,7 @@ Agent reasons and decides to call send_email(to="alice@acme.com", subject="Invoi
    └─ TIMEOUT → on_timeout="deny" returns denial / on_timeout="allow" proceeds
 ```
 
-**Key principle:** The LLM calls tools normally. The approval wrapper intercepts matching tool calls. On approval, the tool runs. On denial, the tool returns a "DENIED" message as its result — the LLM sees this and adapts (tries alternatives, asks for help, or reports it can't proceed). If the reviewer changed the arguments, the result says so, so the LLM doesn't mistake the edited outcome for the one it asked for.
+**Key principle:** The LLM calls tools normally. The approval wrapper intercepts matching tool calls. On approval, the tool runs. On denial, the tool returns a "DENIED" message as its result: the LLM sees this and adapts (tries alternatives, asks for help, or reports it can't proceed). If the reviewer changed the arguments, the result says so, so the LLM doesn't mistake the edited outcome for the one it asked for.
 
 ---
 
@@ -82,13 +82,13 @@ Agent reasons and decides to call send_email(to="alice@acme.com", subject="Invoi
 Use glob patterns to match tool names:
 
 ```python
-tools=["send_email"]              # Exact match — only send_email
-tools=["send_*"]                  # Wildcard — send_email, send_notification, send_sms
+tools=["send_email"]              # Exact match, only send_email
+tools=["send_*"]                  # Wildcard: send_email, send_notification, send_sms
 tools=["delete_*", "payment_*"]   # Multiple patterns
 tools=["*"]                       # Every tool requires approval (for maximum control)
 ```
 
-Patterns use Python's `fnmatch` — `*` matches any characters, `?` matches one character.
+Patterns use Python's `fnmatch`: `*` matches any characters, `?` matches one character.
 
 ### Step 2: Choose a handler
 
@@ -98,7 +98,7 @@ Three built-in handlers + custom protocol:
 |---|---|---|
 | `CallbackApprovalHandler` | Quick integration, scripts, Slack bots | Call your async function, return decision |
 | `WebhookApprovalHandler` | External approval systems, REST APIs | POST request + poll for decision |
-| `QueueApprovalHandler` | In-process UIs (Gradio, Streamlit) | asyncio.Queue — UI reads, user clicks, decision flows back |
+| `QueueApprovalHandler` | In-process UIs (Gradio, Streamlit) | asyncio.Queue: UI reads, user clicks, decision flows back |
 | Custom (protocol) | Anything else | Implement one async method |
 
 ### Step 3: Configure the policy
@@ -136,7 +136,7 @@ That's it. Every tool call matching your patterns now requires human approval.
 
 ---
 
-## ApprovalPolicy — All Parameters
+## ApprovalPolicy: All Parameters
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
@@ -153,21 +153,21 @@ That's it. Every tool call matching your patterns now requires human approval.
 | `sequential` | `bool` | `False` | Ask about one call at a time. When the model requests several gated calls in one turn, they run concurrently and their requests reach the handler together. With `True`, each request waits until the previous one in the same invocation is decided. |
 | `context_messages` | `int` | `3` | How many of the conversation's last user/assistant messages go into `context_summary`. `0` leaves it empty. |
 | `metadata` | `dict \| Callable \| None` | `None` | Extra `ApprovalRequest.metadata`: a dict, or a callable `(tool_name, arguments) -> dict` (sync or async). The callable receives the **unredacted** arguments. |
-| `on_decision` | `Callable \| None` | `None` | Called with `(request, decision)` for **every** decision before the tool runs: the handler's, a classifier rule's, and the gate's own (`max_pending`, the retry limit, a timeout, a handler error). Sync or async; errors are logged and ignored. Use it for the audit log — see [Recording every decision](#recording-every-decision). |
+| `on_decision` | `Callable \| None` | `None` | Called with `(request, decision)` for **every** decision before the tool runs: the handler's, a classifier rule's, and the gate's own (`max_pending`, the retry limit, a timeout, a handler error). Sync or async; errors are logged and ignored. Use it for the audit log: see [Recording every decision](#recording-every-decision). |
 
 ---
 
-## ApprovalRequest — What the Handler Receives
+## ApprovalRequest: What the Handler Receives
 
 Every handler receives an `ApprovalRequest` with these fields:
 
 | Field | Type | Description |
 |---|---|---|
-| `request_id` | `str` | Cryptographically random unique ID (`secrets.token_hex(16)` — 32 hex chars). Use this to match requests with decisions. |
+| `request_id` | `str` | Cryptographically random unique ID (`secrets.token_hex(16)`: 32 hex chars). Use this to match requests with decisions. |
 | `tool_name` | `str` | The name of the tool the agent wants to call (e.g., `"send_email"`). |
-| `arguments` | `dict` | The tool arguments. Redacted if `redact_sensitive=True` — e.g., `{"to": "[EMAIL]", "body": "..."}`. Empty dict if `include_arguments=False`. |
+| `arguments` | `dict` | The tool arguments. Redacted if `redact_sensitive=True`, e.g., `{"to": "[EMAIL]", "body": "..."}`. Empty dict if `include_arguments=False`. |
 | `agent_id` | `str \| None` | The agent's identifier: the `AgentIdentity`'s agent id, or `build_agent(observer_agent_id=...)`. In the [Agent Runtime](#integration-with-agent-runtime), it is the process name. `None` when the agent has neither. |
-| `caller_user_id` | `str \| None` | The `user_id` from `CallerContext` — identifies which user triggered the action. |
+| `caller_user_id` | `str \| None` | The `user_id` from `CallerContext`: identifies which user triggered the action. |
 | `context_summary` | `str` | The last `context_messages` user/assistant messages of the conversation the invocation started from, one per line (`user: ...` / `assistant: ...`, each cut to 500 characters). Redacted like the arguments. Empty outside `ainvoke()` / `chat()` / `astream()` or with `context_messages=0`. |
 | `timestamp` | `float` | When the request was created (`time.time()`). |
 | `timeout` | `float` | How long the handler has to respond before the default action triggers. |
@@ -208,7 +208,7 @@ payload = request.to_dict()
 
 ---
 
-## ApprovalDecision — What the Handler Returns
+## ApprovalDecision: What the Handler Returns
 
 | Field | Type | Default | Description |
 |---|---|---|---|
@@ -246,7 +246,7 @@ The `approval.granted` / `approval.denied` events carry `decided_by` (and `class
 
 ---
 
-## Handlers — Detailed Setup
+## Handlers: Detailed Setup
 
 ### CallbackApprovalHandler
 
@@ -255,7 +255,7 @@ Wraps any Python async function. The simplest way to integrate.
 ```python
 from promptise import CallbackApprovalHandler, ApprovalDecision
 
-# Full control — return an ApprovalDecision
+# Full control: return an ApprovalDecision
 async def slack_approver(request):
     message = (
         f"*Approval needed*\n"
@@ -274,7 +274,7 @@ async def slack_approver(request):
 handler = CallbackApprovalHandler(slack_approver)
 ```
 
-**Shortcut — return a plain bool:**
+**Shortcut, return a plain bool:**
 
 ```python
 # Auto-approve everything (for testing)
@@ -299,7 +299,7 @@ from promptise import WebhookApprovalHandler
 handler = WebhookApprovalHandler(
     url="https://your-approval-api.com/requests",
     secret="your-hmac-secret",
-    poll_url="https://your-approval-api.com/decisions",  # Optional — defaults to {url}/{request_id}
+    poll_url="https://your-approval-api.com/decisions",  # Optional: defaults to {url}/{request_id}
     poll_interval=2.0,
     headers={"Authorization": "Bearer your-api-token"},
 )
@@ -310,7 +310,7 @@ handler = WebhookApprovalHandler(
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `url` | `str` | **required** | Webhook URL to POST approval requests to. Checked against private and internal addresses at construction and before every request (SSRF protection, see [SSRF Protection](#ssrf-protection)). |
-| `secret` | `str \| None` | Auto-generated | HMAC secret for signing requests. If not provided, a random secret is generated per process (not useful for cross-process verification — set your own for production). |
+| `secret` | `str \| None` | Auto-generated | HMAC secret for signing requests. If not provided, a random secret is generated per process (not useful for cross-process verification: set your own for production). |
 | `poll_url` | `str \| None` | `{url}/{request_id}` | URL to poll for the decision. Handler GETs this URL every `poll_interval` seconds. |
 | `poll_interval` | `float` | `2.0` | Seconds between poll attempts. Min: 0.5. |
 | `headers` | `dict[str, str] \| None` | `None` | Custom HTTP headers (e.g., auth tokens, API keys). |
@@ -390,7 +390,7 @@ import httpx
 
 # Corporate proxy
 client = httpx.AsyncClient(
-    proxies="http://corporate-proxy:8080",
+    proxy="http://corporate-proxy:8080",
     verify="/path/to/corporate-ca-bundle.crt",
     timeout=60,
 )
@@ -446,12 +446,12 @@ async def approval_ui_loop():
 
 | Method | Description |
 |---|---|
-| `handler.request_queue` | `asyncio.Queue[ApprovalRequest]` — read pending requests from here |
+| `handler.request_queue` | `asyncio.Queue[ApprovalRequest]`: read pending requests from here |
 | `handler.submit_decision(request_id, decision)` | Submit a decision for a pending request. Raises `KeyError` if the request_id is unknown or already resolved. |
 
 ### Custom Handler
 
-Implement the `ApprovalHandler` protocol — one async method:
+Implement the `ApprovalHandler` protocol, one async method:
 
 ```python
 from promptise import ApprovalHandler, ApprovalRequest, ApprovalDecision
@@ -644,7 +644,7 @@ Verify this in your approval API with [`verify_webhook_signature()`](#hmac-verif
 
 ### Single-Use Request IDs
 
-Every `request_id` is generated with `secrets.token_hex(16)` — 128 bits of cryptographic randomness. Request IDs are tracked per-agent to prevent replay attacks.
+Every `request_id` is generated with `secrets.token_hex(16)`: 128 bits of cryptographic randomness. Request IDs are tracked per-agent to prevent replay attacks.
 
 ### Argument Redaction
 
@@ -671,7 +671,7 @@ The reviewer sees enough to make a decision without seeing raw sensitive data. R
 
 - Private IP ranges (10.x, 172.16-31.x, 192.168.x)
 - Loopback (127.x) and `localhost`
-- Link-local (169.254.x — cloud metadata endpoints) and shared/carrier-grade NAT space (100.64.0.0/10)
+- Link-local (169.254.x: cloud metadata endpoints) and shared/carrier-grade NAT space (100.64.0.0/10)
 - `0.0.0.0`, multicast and reserved ranges
 
 The URL is checked when the handler is created, and again before the POST and before every poll: the host is resolved, every address is checked, and the request goes to the checked address (keeping the `Host` header and the TLS server name), so a DNS record that later points at an internal address (DNS rebinding) is not followed. A request to an internal address raises, and the tool call is denied. Redirects are never followed, even with an `http_client` configured to follow them.
@@ -741,7 +741,7 @@ Supported handler types in YAML:
 | `handler` | Needs | Who answers |
 |---|---|---|
 | `webhook` | `webhook_url`; set `webhook_secret` so your service can verify `X-Promptise-Signature` (without it a random per-process secret is used) | Your approval service |
-| `queue` | — | Code in the same process reading `handler.request_queue`. `promptise agent` asks each request as a y/N question when you run it at a terminal; with piped input nobody can answer, so requests time out and `on_timeout` applies. |
+| `queue` | - | Code in the same process reading `handler.request_queue`. `promptise agent` asks each request as a y/N question when you run it at a terminal; with piped input nobody can answer, so requests time out and `on_timeout` applies. |
 
 The file is checked when it is loaded (and by `promptise validate`): `handler: webhook` without `webhook_url`, `webhook_secret` with another handler, and `handler: callback` are validation errors.
 
@@ -784,8 +784,8 @@ When the autonomous agent hits a tool requiring approval at 3am, the webhook fir
 
 Approval and guardrails work together:
 
-1. **Input guardrails** run first — if the input is blocked, the agent never reaches tool calling
-2. **Approval** intercepts tool calls that match patterns — after the agent decides to call a tool but before execution
+1. **Input guardrails** run first: if the input is blocked, the agent never reaches tool calling
+2. **Approval** intercepts tool calls that match patterns: after the agent decides to call a tool but before execution
 3. **Argument redaction** uses guardrail detectors to sanitize arguments sent to the reviewer
 4. **Output guardrails** run on the tool result after execution (if approved)
 
@@ -795,13 +795,13 @@ Approval and guardrails work together:
 
 - Pending approvals count as in-progress tool calls for budget tracking
 - If the budget is exhausted while an approval is pending, the pending tool call is not affected (it was already counted when the request was created)
-- The `max_irreversible_per_run` limit is checked before sending the approval request — if the limit is already reached, the tool is denied without asking the reviewer
+- The `max_irreversible_per_run` limit is checked before sending the approval request: if the limit is already reached, the tool is denied without asking the reviewer
 
 ---
 
 ## Integration with Semantic Cache
 
-Cached responses bypass approval entirely — tools aren't called on cache hits, so there's nothing to approve. This is correct behavior: the original response was already approved (or didn't need approval) when it was first generated and cached.
+Cached responses bypass approval entirely: tools aren't called on cache hits, so there's nothing to approve. This is correct behavior: the original response was already approved (or didn't need approval) when it was first generated and cached.
 
 ---
 
@@ -821,7 +821,7 @@ Cached responses bypass approval entirely — tools aren't called on cache hits,
 | **No CallerContext provided** | Approval still works. `caller_user_id` is `None` in the request. |
 | **A server-side gate asks for confirmation** | Routed to the handler (see [Server-side approval gates](#server-side-approval-gates)). Without `approval=`, the server denies the call. |
 | **Server-side gate times out or the handler fails** | Declined: the server denies the call, whatever `on_timeout` says. |
-| **Delegation to a peer agent** | `ask_agent_<name>` tools match patterns like any tool. `broadcast_to_agents` does not call a peer whose `ask_agent_<name>` needs approval (unless the broadcast tool needs approval itself). A peer's own policy applies inside the peer -- also for the cross-agents of a `.superagent` file, which `build_superagent()` and `promptise agent` build with their whole file. See [Cross-Agent Delegation](agents/cross-agent.md#approval-and-identity). |
+| **Delegation to a peer agent** | `ask_agent_<name>` tools match patterns like any tool. `broadcast_to_agents` does not call a peer whose `ask_agent_<name>` needs approval (unless the broadcast tool needs approval itself). A peer's own policy applies inside the peer: also for the cross-agents of a `.superagent` file, which `build_superagent()` and `promptise agent` build with their whole file. See [Cross-Agent Delegation](agents/cross-agent.md#approval-and-identity). |
 
 ---
 
@@ -829,7 +829,7 @@ Cached responses bypass approval entirely — tools aren't called on cache hits,
 
 | Symbol | Import | Description |
 |---|---|---|
-| `ApprovalPolicy` | `from promptise import ApprovalPolicy` | Main configuration — tools, handler, timeout, behavior |
+| `ApprovalPolicy` | `from promptise import ApprovalPolicy` | Main configuration: tools, handler, timeout, behavior |
 | `ApprovalRequest` | `from promptise import ApprovalRequest` | Data sent to the handler (tool name, args, caller, etc.) |
 | `ApprovalDecision` | `from promptise import ApprovalDecision` | Human's decision (approved, modified args, reason) |
 | `ApprovalHandler` | `from promptise import ApprovalHandler` | Runtime-checkable protocol for custom handlers |
@@ -874,13 +874,13 @@ Call it once per agent: the wrapped tools share their state (pending count, deni
 
 ## What's Next?
 
-- [Guardrails](guardrails.md) -- input/output security scanning
-- [Semantic Cache](cache.md) -- reduce costs with response caching
-- [Conversations](conversations.md) -- multi-user session persistence
-- [Building Agents](agents/building-agents.md) -- full parameter reference
+- [Guardrails](guardrails.md): input/output security scanning
+- [Semantic Cache](cache.md): reduce costs with response caching
+- [Conversations](conversations.md): multi-user session persistence
+- [Building Agents](agents/building-agents.md): full parameter reference
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Human in the Loop: Approve Tool Calls in Python](https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval) -- Make an agent ask a human before it refunds, emails or deletes.
-    - [Approval Fatigue: Auto-Approve Safe AI Agent Actions](https://www.promptise.com/guides/view/ai-agent-approval-fatigue) -- Keep reviewers from rubber-stamping every request.
-    - [Topic hub: Human approvals (human-in-the-loop)](https://www.promptise.com/guides/topics/human-in-the-loop) -- Every guide on human approvals.
+    - [AI Agent Human in the Loop: Approve Tool Calls in Python](https://www.promptise.com/guides/view/ai-agent-human-in-the-loop-approval): Make an agent ask a human before it refunds, emails or deletes.
+    - [Approval Fatigue: Auto-Approve Safe AI Agent Actions](https://www.promptise.com/guides/view/ai-agent-approval-fatigue): Keep reviewers from rubber-stamping every request.
+    - [Topic hub: Human approvals (human-in-the-loop)](https://www.promptise.com/guides/topics/human-in-the-loop): Every guide on human approvals.

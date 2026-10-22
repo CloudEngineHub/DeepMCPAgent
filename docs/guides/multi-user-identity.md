@@ -5,7 +5,7 @@ description: "Carry user identity from your app through the agent to MCP tools w
 
 # Multi-User Identity: CallerContext to MCP Server
 
-How user identity flows from your application through the agent to MCP tool servers — end to end. Covers CallerContext, JWT token propagation, server-side auth, role guards, and per-user data isolation.
+How user identity flows from your application through the agent to MCP tool servers: end to end. Covers CallerContext, JWT token propagation, server-side auth, role guards, and per-user data isolation.
 
 ## The Flow
 
@@ -20,7 +20,7 @@ CallerContext        →  bearer_token in      →  AuthMiddleware
                                                 →  Handler receives ctx.client
 ```
 
-Only the `bearer_token` crosses the wire. Roles, scopes, and user metadata are extracted server-side from the JWT — never trusted from the client.
+Only the `bearer_token` crosses the wire. Roles, scopes, and user metadata are extracted server-side from the JWT: never trusted from the client.
 
 ## Step 1: Create CallerContext (Your Application)
 
@@ -71,7 +71,7 @@ result = await agent.ainvoke(
 
 # Or with conversation persistence
 response = await agent.chat(
-    user_message="What's my balance?",
+    "What's my balance?",
     session_id="session-alice-001",
     caller=alice,  # ← Isolated memory, cache, conversations
 )
@@ -87,7 +87,7 @@ The `caller` parameter:
 ### How the token travels
 
 The agent is built once and keeps one connection per server, opened with
-the credentials in its `HTTPServerSpec` — those are what tool discovery
+the credentials in its `HTTPServerSpec`: those are what tool discovery
 uses. When an invocation carries a `bearer_token`, its tool calls go over a
 separate MCP session opened with that token instead. Each distinct token
 gets its own session, so concurrent invocations for different users never
@@ -125,26 +125,26 @@ server = MCPServer("my-api")
 jwt_auth = JWTAuth(secret="your-jwt-secret")
 server.add_middleware(AuthMiddleware(jwt_auth))
 
-# Public tool — no auth required
+# Public tool: no auth required
 @server.tool()
 async def get_status() -> str:
     """Get system status. No auth needed."""
     return "OK"
 
-# Authenticated tool — any valid JWT
+# Authenticated tool: any valid JWT
 @server.tool(auth=True)
 async def get_profile(ctx: RequestContext) -> str:
     """Get the authenticated user's profile."""
     return f"User: {ctx.client.client_id}, Roles: {ctx.client.roles}"
 
-# Role-guarded tool — only analysts
+# Role-guarded tool, only analysts
 @server.tool(auth=True, roles=["analyst"])
 async def run_query(sql: str, ctx: RequestContext) -> str:
     """Run a SQL query. Analyst role required."""
     return f"Query by {ctx.client.client_id}: {sql}"
 
-# Scope-guarded tool — requires 'admin' scope
-@server.tool(auth=True, scopes=["admin"])
+# Scope-guarded tool: requires the 'admin' scope
+@server.tool(auth=True, guards=[HasScope("admin")])
 async def delete_user(user_id: str, ctx: RequestContext) -> str:
     """Delete a user. Admin scope required."""
     return f"Deleted {user_id} by {ctx.client.client_id}"
@@ -215,18 +215,18 @@ agent = await build_agent(
     cache=SemanticCache(),
 )
 
-# Alice's request — isolated memory, cache, conversations
+# Alice's request: isolated memory, cache, conversations
 await agent.chat("What did I ask last time?",
     session_id="session-alice", caller=alice)
 
-# Bob's request — completely separate
+# Bob's request: completely separate
 await agent.chat("What did I ask last time?",
     session_id="session-bob", caller=bob)
 ```
 
 | Feature | Isolation method |
 |---------|-----------------|
-| Conversations | Session ownership enforcement — Alice can't read Bob's sessions |
+| Conversations | Session ownership enforcement: Alice can't read Bob's sessions |
 | Memory | Search scoped to `caller.user_id` |
 | Semantic Cache | Cache entries keyed by `caller.user_id` |
 | Guardrails | Scan results tagged with `caller.user_id` for audit |
@@ -235,11 +235,11 @@ await agent.chat("What did I ask last time?",
 ### Continuity across cross-agent delegation
 
 The caller survives delegation hops. When an agent handling Alice's request
-delegates to a peer via `ask_peer` / `broadcast`, the peer's `ainvoke()`
+delegates to a peer through its `ask_agent_<name>` or `broadcast_to_agents` tool, the peer's `ainvoke()`
 **inherits the ambient `CallerContext`** (unless an explicit `caller=` is
 passed), so the peer's cache scoping, memory search, guardrail tagging, and
-conversation ownership all remain attributed to Alice — the original human
-principal — rather than running unattributed:
+conversation ownership all remain attributed to Alice: the original human
+principal, rather than running unattributed:
 
 ```python
 # Outer agent runs as Alice ...
@@ -248,12 +248,12 @@ await orchestrator.ainvoke({"messages": [...]}, caller=alice)
 # get_current_caller() inside the peer's run returns `alice`.
 ```
 
-Passing an explicit `caller=` to a peer still takes precedence — inheritance
+Passing an explicit `caller=` to a peer still takes precedence: inheritance
 only fills the gap when no caller is supplied.
 
 ### Tenant isolation
 
-Add `tenant_id` to make every isolation surface tenant-scoped — the table
+Add `tenant_id` to make every isolation surface tenant-scoped: the table
 above then keys on `tenant::user` instead of the bare `user_id`, so two
 tenants with the same `user_id` are fully isolated:
 
@@ -354,12 +354,12 @@ result = await agent.ainvoke(
 
 ## See Also
 
-- [Building Multi-User Systems](multi-user-systems.md) — Full 12-step guide with 30-tool server
-- [Secure Multi-Tenant Platform](secure-multi-tenant-platform.md) — one server, many customer orgs, provably isolated
-- [MCP Authentication](../mcp/server/auth-security.md) — JWT, OAuth, API key auth deep dive
-- [CallerContext API](../api/agent.md#callercontext) — API reference
+- [Building Multi-User Systems](multi-user-systems.md): Full 12-step guide with 30-tool server
+- [Secure Multi-Tenant Platform](secure-multi-tenant-platform.md): one server, many customer orgs, provably isolated
+- [MCP Authentication](../mcp/server/auth-security.md): JWT, OAuth, API key auth deep dive
+- [CallerContext API](../api/agent.md#callercontext): API reference
 
 !!! tip "Learn the concept"
 
-    - [Build an Authenticated MCP Server for Your AI Agent (Python)](https://www.promptise.com/guides/view/authenticated-mcp-server-ai-agent) -- How a user's identity travels from the agent to the MCP server.
-    - [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth) -- API keys, JWTs and OAuth on one server, with roles and scopes.
+    - [Build an Authenticated MCP Server for Your AI Agent (Python)](https://www.promptise.com/guides/view/authenticated-mcp-server-ai-agent): How a user's identity travels from the agent to the MCP server.
+    - [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth): API keys, JWTs and OAuth on one server, with roles and scopes.

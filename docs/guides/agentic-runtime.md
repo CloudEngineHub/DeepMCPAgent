@@ -1,5 +1,5 @@
 ---
-title: Build an Autonomous Agent Runtime — Python tutorial with Promptise Foundry
+title: Build an Autonomous Agent Runtime in Python with Promptise Foundry
 seo_title: "Build an Autonomous Agent Runtime in Python"
 description: "Build an autonomous agent system step by step: triggers, persistent state, crash recovery, budget, health, mission and secret governance, and multi-node runs."
 keywords: autonomous agent tutorial, agent runtime guide, build autonomous AI agent, cron AI agent, AI agent crash recovery, agent governance Python
@@ -13,9 +13,9 @@ A production-grade autonomous agent system that monitors data pipelines, reacts 
 
 ## Concepts
 
-An **agentic runtime** is the infrastructure that turns a stateless LLM into a persistent, autonomous process. Without a runtime, an agent exists only for the duration of a single request -- you call it, get a response, and it disappears. A runtime wraps that same agent in a long-running process with scheduling, event handling, persistent memory, crash recovery, and governance.
+An **agentic runtime** is the infrastructure that turns a stateless LLM into a persistent, autonomous process. Without a runtime, an agent exists only for the duration of a single request: you call it, get a response, and it disappears. A runtime wraps that same agent in a long-running process with scheduling, event handling, persistent memory, crash recovery, and governance.
 
-Think of the relationship like a web application versus a web framework: you could handle HTTP requests manually, but a framework gives you routing, middleware, sessions, and error handling. The Agent Runtime does the same for AI agents -- it provides the infrastructure so you can focus on what the agent should do, not how to keep it running.
+Think of the relationship like a web application versus a web framework: you could handle HTTP requests manually, but a framework gives you routing, middleware, sessions, and error handling. The Agent Runtime does the same for AI agents: it provides the infrastructure so you can focus on what the agent should do, not how to keep it running.
 
 The runtime is built in layers. Each layer adds capabilities without requiring changes to the layer below:
 
@@ -40,6 +40,8 @@ You can stop at any layer. Most projects need Layer 2 (a single autonomous agent
 Start with an `AgentProcess` wrapping a stateless agent in a persistent process.
 
 ```python
+import asyncio
+
 from promptise.runtime import AgentProcess, ProcessConfig, TriggerConfig
 
 process = AgentProcess(
@@ -143,7 +145,8 @@ config = ProcessConfig(
             "known_issues": [],
         },
 
-        # Restrict which keys the agent can modify
+        # Give the agent an update_state(key, value) tool, limited to these keys
+        state_tool=True,
         writable_keys=["alert_count", "last_healthy", "known_issues"],
 
         # Long-term memory (persists across restarts)
@@ -158,7 +161,7 @@ config = ProcessConfig(
         # Expose environment variables matching prefix
         env_prefix="PIPELINE_",
 
-        # Mount files the agent can reference
+        # Logical names for paths your tools look up (no file I/O by the context)
         file_mounts={
             "config": "/etc/pipeline/config.yaml",
             "runbook": "/docs/runbook.md",
@@ -170,7 +173,7 @@ config = ProcessConfig(
 )
 ```
 
-The context state is injected into every agent invocation as a system message. The agent can read and write state keys during execution.
+The context state is injected into every agent invocation as a system message. With `state_tool=True` the agent can also write the keys in `writable_keys` through its `update_state` tool; without it, only your code, triggers and the API write state. See [Agent Context](../runtime/context.md).
 
 **State access in code:**
 
@@ -196,7 +199,7 @@ for entry in history:
 
 ## Step 4: Crash Recovery with Journals
 
-The journal system records every state transition, trigger event, and invocation. When a process crashes, the `ReplayEngine` reconstructs the last known state.
+The journal records every state transition, context write and run result (and, at `level="full"`, every trigger event and tool call). When a process with the same name starts again after a crash or a redeploy, it restores its context state, conversation, budget counters and mission from the last checkpoint by itself (`JournalConfig.recover_on_start`, on by default).
 
 ```python
 from promptise.runtime.config import JournalConfig
@@ -209,7 +212,7 @@ config = ProcessConfig(
         backend="file",                        # "file" or "memory"
         path=".promptise/journal",             # Persist to disk
     ),
-    max_consecutive_failures=3,              # FAILED state after 3 crashes
+    max_consecutive_failures=3,              # FAILED after 3 failed runs in a row
     restart_policy="on_failure",             # Auto-restart on failure
     max_restarts=5,                          # Max restart attempts
     triggers=[
@@ -218,16 +221,15 @@ config = ProcessConfig(
 )
 ```
 
-**Recovery flow:**
+**Recovery flow:** the process does this on its first `start()`, and `process.recovered` reports what came back. To look at what a process would recover without starting it, use the `ReplayEngine` yourself. Entries are filed under the process **name**:
 
 ```python
 from promptise.runtime.journal import FileJournal, ReplayEngine
 
-# After a crash, recover state from journal
 journal = FileJournal(base_path=".promptise/journal")
 engine = ReplayEngine(journal)
 
-recovered = await engine.recover(process_id="proc-123")
+recovered = await engine.recover(process_id="monitor")
 print(f"Recovered state: {recovered['context_state']}")
 print(f"Last lifecycle state: {recovered['lifecycle_state']}")
 print(f"Entries replayed: {recovered['entries_replayed']}")
@@ -237,7 +239,7 @@ With `restart_policy="on_failure"`, the runtime automatically attempts to restar
 
 ---
 
-## Step 5: Governance -- Autonomy Budget
+## Step 5: Governance (Autonomy Budget)
 
 Without a budget, an autonomous agent can loop indefinitely, call expensive APIs without limit, or take irreversible actions at 3am. The autonomy budget defines the envelope within which the agent operates freely.
 
@@ -281,16 +283,16 @@ config = ProcessConfig(
 )
 ```
 
-When `inject_remaining=True`, the agent sees its remaining budget before every turn -- so it can prioritize actions and avoid hitting limits.
+When `inject_remaining=True`, the agent sees its remaining budget before every turn, so it can prioritize actions and avoid hitting limits.
 
 !!! warning "cost_weight is abstract, not dollars"
-    `cost_weight` values are **budget units you define**, not real money. The framework does not track LLM API costs (token pricing). `max_cost_per_day=100.0` with `cost_weight=5.0` on `stripe_charge` means "the agent can make 20 Stripe charges per day" — not "$100/day." Use `max_llm_turns_per_run` to limit LLM usage. See [Autonomy Budget](../runtime/governance/budget.md) for full details on designing your cost scale.
+    `cost_weight` values are **budget units you define**, not real money. The framework does not track LLM API costs (token pricing). `max_cost_per_day=100.0` with `cost_weight=5.0` on `stripe_charge` means "the agent can make 20 Stripe charges per day", not "$100/day." Use `max_llm_turns_per_run` to limit LLM usage. See [Autonomy Budget](../runtime/governance/budget.md) for full details on designing your cost scale.
 
 ---
 
-## Step 6: Governance -- Behavioral Health
+## Step 6: Governance (Behavioral Health)
 
-System monitoring watches CPU and memory. Nobody watches whether the agent is actually doing what it should be doing. Behavioral health catches stuck agents, infinite loops, empty responses, and high error rates -- without making any LLM calls.
+System monitoring watches CPU and memory. Nobody watches whether the agent is actually doing what it should be doing. Behavioral health catches stuck agents, infinite loops, empty responses, and high error rates, without making any LLM calls.
 
 ```python
 from promptise.runtime import ProcessConfig, HealthConfig, EscalationTarget
@@ -304,9 +306,9 @@ config = ProcessConfig(
         loop_window=20,            # Check last 20 tool calls for loops
         loop_min_repeats=2,        # 2+ repeats of a pattern = loop
         empty_threshold=3,         # 3 consecutive short responses = anomaly
-        empty_max_chars=10,        # Below 10 chars = trivial response
-        error_rate_threshold=0.5,  # 50%+ error rate = anomaly
-        on_anomaly="pause",        # "log", "pause", or "escalate"
+        empty_max_chars=10,        # At most 10 chars = trivial response
+        error_rate_threshold=0.5,  # 50%+ failed runs = anomaly
+        on_anomaly="pause",        # "log", "pause", "escalate" or "stop"
         cooldown=300,              # 5 min before the same anomaly is reported again
         escalation=EscalationTarget(
             webhook_url="https://hooks.slack.com/services/...",
@@ -322,16 +324,16 @@ Four anomaly detectors run automatically:
 
 | Anomaly | Detection | Example |
 |---------|-----------|---------|
-| **Stuck** | Last N calls identical (same tool, same args) | Agent calling `get_status("pipeline-3")` 5 times in a row |
+| **Stuck** | The same tool with the same arguments N times in a row within one run | Agent calling `get_status("pipeline-3")` 5 times in a row |
 | **Loop** | Repeating subsequence in tool call history | Agent cycling through check → fix → check → fix endlessly |
-| **Empty response** | N consecutive responses below char threshold | Agent returning `""` or `"ok"` repeatedly |
-| **High error rate** | Error rate above threshold in sliding window | 6 out of last 10 tool calls failing |
+| **Empty response** | N consecutive final replies of at most `empty_max_chars` characters | Agent returning `""` or `"ok"` repeatedly |
+| **High error rate** | Share of failed runs in the last `error_window` runs at or above the threshold | 6 of the last 10 runs raised |
 
 ---
 
-## Step 7: Governance -- Mission-Oriented Execution
+## Step 7: Governance (Mission-Oriented Execution)
 
-Standard agents run on a trigger, do something, stop. A mission-oriented agent runs until a goal is achieved -- accumulating context across invocations, with LLM-as-judge evaluation and automatic completion.
+Standard agents run on a trigger, do something, stop. A mission-oriented agent runs until a goal is achieved, accumulating context across invocations, with LLM-as-judge evaluation and automatic completion.
 
 ```python
 from promptise.runtime import ProcessConfig, MissionConfig, EscalationTarget
@@ -343,10 +345,10 @@ config = ProcessConfig(
         enabled=True,
         objective="Migrate all database tables to v2 schema",
         success_criteria="All tables pass v2 schema validation with zero errors",
-        eval_every=3,               # Evaluate every 3 invocations
-        confidence_threshold=0.7,   # Escalate if confidence drops below this
+        eval_every=3,               # Evaluate after every 3rd successful run
+        confidence_threshold=0.7,   # Below this: pause the mission and escalate
         timeout_hours=24,           # Fail after 24 hours
-        max_invocations=50,         # Fail after 50 invocations
+        max_invocations=50,         # Fail after 50 successful runs
         auto_complete=True,         # Stop when mission succeeds
         eval_model="openai:gpt-5-mini",  # Separate model for evaluation
         escalation=EscalationTarget(
@@ -362,14 +364,14 @@ config = ProcessConfig(
 The mission tracker:
 
 1. Prepends the objective and progress into every agent invocation context
-2. Every N invocations, runs an LLM-as-judge evaluation against the success criteria
+2. Every N successful runs, runs an LLM-as-judge evaluation against the success criteria (or your own `success_check` first)
 3. If `achieved=True` and `auto_complete=True`, stops the process
-4. If `confidence < threshold`, pauses the process and fires escalation
-5. If timed out or over invocation limit, fails the mission
+4. If the mission is not achieved and `confidence < confidence_threshold`, pauses the **mission** (the process keeps running its triggers) and notifies `escalation`
+5. If timed out or over the run limit, fails the mission; later runs are skipped
 
 ---
 
-## Step 8: Governance -- Scoped Secrets
+## Step 8: Governance (Scoped Secrets)
 
 Environment variables are shared across all agents on the same host. Secret scoping gives each process its own isolated credential context with automatic expiry and access logging.
 
@@ -400,11 +402,11 @@ config = ProcessConfig(
 
 Key security properties:
 
-- **Values live only in memory** -- never serialized to journal, checkpoint, or status output
-- **TTL-based expiry** -- secrets become inaccessible after their TTL expires
-- **Access logging** -- every `get_secret()` call is logged in the journal (name only, never the value)
-- **Zero-fill revocation** -- on process stop, all values are overwritten with zeros and removed
-- **Crash recovery** -- secrets are re-resolved from environment variables on restart, never from journal
+- **Values live only in memory**: encrypted, and redacted (`[REDACTED]`) from the journal, checkpoints, conversation history, hook data and API responses
+- **TTL-based expiry**: secrets become inaccessible after their TTL expires
+- **Access logging**: every access is logged in the journal (name only, never the value)
+- **Zero-fill revocation**: on process stop, all values are overwritten with zeros and removed
+- **Crash recovery**: secrets are resolved from the environment again on start, never from the journal
 
 ---
 
@@ -413,18 +415,20 @@ Key security properties:
 `AgentRuntime` manages multiple `AgentProcess` instances with centralized lifecycle control.
 
 ```python
-from promptise.runtime import AgentRuntime, ProcessConfig, TriggerConfig
+import asyncio
 
-# Shared communication channels — any objects implementing
-# subscribe/emit (event bus) and subscribe/publish (broker) interfaces
-event_bus = MyEventBus()
+from promptise.runtime import AgentRuntime, InProcessEventBus, ProcessConfig, TriggerConfig
+
+# Shared channels: InProcessEventBus for "event" triggers. A "message" trigger
+# needs a broker object you provide (subscribe(topic, handler) / unsubscribe(id)).
+event_bus = InProcessEventBus()
 broker = MyMessageBroker()
 
 async with AgentRuntime(event_bus=event_bus, broker=broker) as runtime:
     # Register agents
     await runtime.add_process("monitor", ProcessConfig(
         model="openai:gpt-5-mini",
-        instructions="Monitor pipelines. Emit 'alert.critical' events on failures.",
+        instructions="Monitor pipelines and report failures.",
         triggers=[
             TriggerConfig(type="cron", cron_expression="*/5 * * * *"),
         ],
@@ -460,8 +464,10 @@ async with AgentRuntime(event_bus=event_bus, broker=broker) as runtime:
 
 **Agent-to-agent communication** happens through two channels:
 
-- **EventBus**: Broadcast events that any listening agent can receive. Use `TriggerConfig(type="event", event_type="...")` to subscribe.
-- **MessageBroker**: Point-to-point or topic-based messaging with wildcard support. Use `TriggerConfig(type="message", topic="...")` to subscribe.
+- **Event bus**: broadcast events that any listening process receives. Use `TriggerConfig(type="event", event_type="...")` to subscribe.
+- **Message broker**: topic-based messaging (wildcards are up to your broker). Use `TriggerConfig(type="message", topic="...")` to subscribe.
+
+An agent has no built-in tool to publish on the bus or the broker. The events come from your code (a web handler, a scheduler), from an MCP tool you give the agent, or from a runtime hook that publishes when a run finishes; see the staged pipeline in [Multi-Agent Coordination](multi-agent-teams.md#5-a-staged-pipeline).
 
 **Loading from manifests:**
 
@@ -487,7 +493,7 @@ from promptise.runtime.distributed import RuntimeTransport, RuntimeCoordinator
 
 TOKEN = os.environ["PROMPTISE_NODE_TOKEN"]  # required for a non-loopback bind
 
-# Node 1 -- primary
+# Node 1: primary
 runtime_1 = AgentRuntime()
 transport_1 = RuntimeTransport(
     runtime_1,
@@ -498,7 +504,7 @@ transport_1 = RuntimeTransport(
 )
 await transport_1.start()
 
-# Node 2 -- secondary
+# Node 2: secondary
 runtime_2 = AgentRuntime()
 transport_2 = RuntimeTransport(
     runtime_2,
@@ -545,12 +551,12 @@ config = ProcessConfig(
     concurrency=3,                    # Up to 3 parallel invocations
 
     # Health monitoring
-    heartbeat_interval=10.0,          # Heartbeat every 10s
-    idle_timeout=300.0,               # Suspend after 5min idle
-    max_lifetime=86400.0,             # Restart after 24h
+    heartbeat_interval=10.0,          # Idle and lifetime checks every 10s
+    idle_timeout=300.0,               # Suspend after 5 min idle; the next event resumes it
+    max_lifetime=86400.0,             # Stop after 24h (recycled instead with restart_policy="always")
 
     # Failure handling
-    max_consecutive_failures=3,       # FAILED after 3 consecutive errors
+    max_consecutive_failures=3,       # FAILED after 3 failed runs in a row
     restart_policy="on_failure",      # Auto-restart on failure
     max_restarts=5,                   # Max 5 restart attempts
 
@@ -558,7 +564,6 @@ config = ProcessConfig(
     budget=BudgetConfig(
         enabled=True,
         max_tool_calls_per_day=1000,
-        max_cost_per_day=200.0,
         on_exceeded="pause",
     ),
     health=HealthConfig(
@@ -604,101 +609,97 @@ print(f"  Uptime: {detail['uptime_seconds']:.0f}s")
 
 ## Complete Example
 
-A three-agent system with full governance: a monitor watches pipelines with a budget and health checks, an analyst diagnoses issues, and a responder executes fixes with a mission objective.
+A three-agent system with full governance: a monitor watches pipelines with a budget and health checks, an analyst diagnoses issues, and a responder executes fixes with a mission objective. Each agent records its result with its state tool, and one runtime hook passes that result on as the next agent's event.
 
 ```python
 import asyncio
+
 from promptise.runtime import (
-    AgentRuntime, ProcessConfig, TriggerConfig,
-    BudgetConfig, HealthConfig, MissionConfig, SecretScopeConfig,
-    EscalationTarget, ToolCostAnnotation,
+    AgentRuntime, BudgetConfig, EscalationTarget, HealthConfig, HookContext, HookEvent,
+    HookManager, InProcessEventBus, MissionConfig, ProcessConfig, SecretScopeConfig, TriggerConfig,
 )
 from promptise.runtime.config import ContextConfig, JournalConfig
 
+PIPELINE = {"pipeline": {"url": "http://localhost:8080/mcp", "transport": "streamable-http"}}
+# Which state key a process fills, and which event announces it
+HAND_OFF = {"monitor": ("alert", "alert.critical"), "analyst": ("analysis", "analysis.complete")}
+
+
 async def main():
-    # Plug in your own event bus and message broker implementations
-    event_bus = MyEventBus()
-    broker = MyMessageBroker()
-
+    bus = InProcessEventBus()
+    hooks = HookManager()
     slack = EscalationTarget(webhook_url="https://hooks.slack.com/services/...")
+    runtime = AgentRuntime(event_bus=bus, hooks=hooks)
 
-    async with AgentRuntime(event_bus=event_bus, broker=broker) as runtime:
-        await runtime.add_process("monitor", ProcessConfig(
-            model="openai:gpt-5-mini",
-            instructions=(
-                "You monitor data pipelines. Check health every 5 minutes. "
-                "If a pipeline is unhealthy, emit an 'alert.critical' event."
-            ),
-            servers={
-                "pipeline": {"url": "http://localhost:8080/mcp", "transport": "streamable-http"},
-            },
-            triggers=[TriggerConfig(type="cron", cron_expression="*/5 * * * *")],
-            context=ContextConfig(
-                initial_state={"total_checks": 0, "alerts_raised": 0},
-                memory_provider="chroma",
-                memory_auto_store=True,
-            ),
-            journal=JournalConfig(level="full", backend="file"),
-            budget=BudgetConfig(
-                enabled=True,
-                max_tool_calls_per_day=500,
-                max_cost_per_day=50.0,
-                on_exceeded="pause",
-            ),
-            health=HealthConfig(
-                enabled=True,
-                stuck_threshold=5,
-                on_anomaly="escalate",
-                escalation=slack,
-            ),
-        ))
+    @hooks.on(HookEvent.TASK_COMPLETED)
+    async def hand_off(ctx: HookContext) -> None:
+        if ctx.data["outcome"] != "success" or ctx.process_id not in HAND_OFF:
+            return
+        key, event_type = HAND_OFF[ctx.process_id]
+        context = runtime.get_process(ctx.process_id).context
+        if context.get(key):
+            asyncio.create_task(bus.emit(event_type, {key: context.get(key)}, source=ctx.process_id))
+            context.put(key, None, source="hand_off")   # announce each result once
 
-        await runtime.add_process("analyst", ProcessConfig(
-            model="openai:gpt-5-mini",
-            instructions="Analyze pipeline alerts. Determine root cause.",
-            triggers=[TriggerConfig(type="event", event_type="alert.critical")],
-        ))
+    await runtime.add_process("monitor", ProcessConfig(
+        model="openai:gpt-5-mini",
+        instructions=(
+            "You monitor data pipelines. If a pipeline is unhealthy, describe the problem "
+            "with update_state('alert', ...)."
+        ),
+        servers=PIPELINE,
+        triggers=[TriggerConfig(type="cron", cron_expression="*/5 * * * *")],
+        context=ContextConfig(
+            initial_state={"alert": None},
+            state_tool=True,
+            writable_keys=["alert"],
+            memory_provider="chroma",
+            memory_auto_store=True,
+        ),
+        journal=JournalConfig(level="full", backend="file"),
+        budget=BudgetConfig(enabled=True, max_tool_calls_per_day=500, on_exceeded="pause"),
+        health=HealthConfig(enabled=True, stuck_threshold=5, on_anomaly="escalate", escalation=slack),
+    ))
 
-        await runtime.add_process("responder", ProcessConfig(
-            model="openai:gpt-5-mini",
-            instructions="Execute pipeline remediation.",
-            servers={
-                "pipeline": {"url": "http://localhost:8080/mcp", "transport": "streamable-http"},
-            },
-            triggers=[TriggerConfig(type="message", topic="analysis.complete")],
-            restart_policy="on_failure",
-            mission=MissionConfig(
-                enabled=True,
-                objective="Restore all pipelines to healthy status",
-                success_criteria="All pipeline stages pass health checks for 3 consecutive runs",
-                eval_every=3,
-                confidence_threshold=0.6,
-                timeout_hours=4,
-                auto_complete=True,
-                escalation=slack,
-            ),
-            secrets=SecretScopeConfig(
-                enabled=True,
-                secrets={"pipeline_admin_key": "${PIPELINE_ADMIN_KEY}"},
-                default_ttl=1800,
-                revoke_on_stop=True,
-            ),
-        ))
+    await runtime.add_process("analyst", ProcessConfig(
+        model="openai:gpt-5-mini",
+        instructions="Find the root cause of the alert. Save it with update_state('analysis', ...).",
+        triggers=[TriggerConfig(type="event", event_type="alert.critical", event_source="monitor")],
+        context=ContextConfig(state_tool=True, writable_keys=["analysis"]),
+    ))
 
-        await runtime.start_all()
+    await runtime.add_process("responder", ProcessConfig(
+        model="openai:gpt-5-mini",
+        instructions="Execute the pipeline remediation the analysis calls for.",
+        servers=PIPELINE,
+        triggers=[TriggerConfig(type="event", event_type="analysis.complete", event_source="analyst")],
+        restart_policy="on_failure",
+        mission=MissionConfig(
+            enabled=True,
+            objective="Restore all pipelines to healthy status",
+            success_criteria="All pipeline stages pass health checks for 3 consecutive runs",
+            eval_every=3,
+            confidence_threshold=0.6,
+            timeout_hours=4,
+            auto_complete=True,
+            escalation=slack,
+        ),
+        secrets=SecretScopeConfig(
+            enabled=True,
+            secrets={"pipeline_admin_key": "${PIPELINE_ADMIN_KEY}"},
+            default_ttl=1800,
+            revoke_on_stop=True,
+        ),
+    ))
 
-        while True:
-            status = runtime.status()
-            running = sum(
-                1 for p in status["processes"].values()
-                if p["state"] in ("running", "awaiting")
-            )
-            print(f"[Runtime] {running}/{status['process_count']} agents active")
-            await asyncio.sleep(60)
+    await runtime.run_forever()   # starts all three; Ctrl+C or SIGTERM stops them cleanly
+
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
+`run_forever()` starts every process and, on shutdown, stops and closes them. Check `runtime.status()` (or `promptise runtime status` when you start it from manifests) to see each process's state, counters and governance status.
 
 ---
 
@@ -706,31 +707,31 @@ if __name__ == "__main__":
 
 **Reference documentation:**
 
-- [Agent Processes](../runtime/processes.md) -- Lifecycle methods, triggers, and `ProcessConfig`
-- [Runtime Manager](../runtime/runtime-manager.md) -- Multi-process runtimes with `AgentRuntime`
-- [Context & State](../runtime/context.md) -- Persistent state, memory, and environment
-- [Triggers](../runtime/triggers/index.md) -- All five trigger types
+- [Agent Processes](../runtime/processes.md): Lifecycle methods, triggers, and `ProcessConfig`
+- [Runtime Manager](../runtime/runtime-manager.md): Multi-process runtimes with `AgentRuntime`
+- [Context & State](../runtime/context.md): Persistent state, memory, and environment
+- [Triggers](../runtime/triggers/index.md): All five trigger types
 
 **Governance:**
 
-- [Autonomy Budget](../runtime/governance/budget.md) -- Per-run and daily limits, tool cost annotations
-- [Behavioral Health](../runtime/governance/health.md) -- Stuck, loop, empty, and error rate detection
-- [Mission Model](../runtime/governance/mission.md) -- LLM-as-judge evaluation, confidence thresholds
-- [Secret Scoping](../runtime/governance/secrets.md) -- Per-process credentials with TTL and rotation
+- [Autonomy Budget](../runtime/governance/budget.md): Per-run and daily limits, tool cost annotations
+- [Behavioral Health](../runtime/governance/health.md): Stuck, loop, empty, and error rate detection
+- [Mission Model](../runtime/governance/mission.md): LLM-as-judge evaluation, confidence thresholds
+- [Secret Scoping](../runtime/governance/secrets.md): Per-process credentials with TTL and rotation
 
 **Infrastructure:**
 
-- [Journal & Recovery](../runtime/journal/index.md) -- Crash recovery with journals and replay
-- [Distributed](../runtime/distributed/coordinator.md) -- Multi-node coordination
-- [Agent Manifests](../runtime/manifests.md) -- `.agent` YAML files for declarative deployment
+- [Journal & Recovery](../runtime/journal/index.md): Crash recovery with journals and replay
+- [Distributed](../runtime/distributed/coordinator.md): Multi-node coordination
+- [Agent Manifests](../runtime/manifests.md): `.agent` YAML files for declarative deployment
 
 **Other guides:**
 
-- [Building Production MCP Servers](production-mcp-servers.md) -- Build the tool servers your agents connect to
-- [Building AI Agents](building-agents.md) -- The core agent that powers every process
-- [Prompt Engineering](prompt-engineering.md) -- Build reliable, testable system prompts
+- [Building Production MCP Servers](production-mcp-servers.md): Build the tool servers your agents connect to
+- [Building AI Agents](building-agents.md): The core agent that powers every process
+- [Prompt Engineering](prompt-engineering.md): Build reliable, testable system prompts
 
 !!! tip "Learn the concept"
 
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- Budgets, crash recovery and missions for agents that run on their own.
-    - [Topic hub: Runtime, triggers and deployment](https://www.promptise.com/guides/topics/runtime-deployment) -- Every guide on triggers, durable runs and deployment.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): Budgets, crash recovery and missions for agents that run on their own.
+    - [Topic hub: Runtime, triggers and deployment](https://www.promptise.com/guides/topics/runtime-deployment): Every guide on triggers, durable runs and deployment.

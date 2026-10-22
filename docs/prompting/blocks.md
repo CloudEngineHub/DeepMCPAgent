@@ -107,7 +107,7 @@ fmt = OutputFormat(
 
 ### ContextSlot
 
-Dynamic injection point filled at runtime. Priority configurable (default 6). Call `.fill()` to provide content -- it returns a new copy with the content set.
+Dynamic injection point filled at runtime. Priority configurable (default 6). Call `.fill()` to provide content: it returns a new copy with the content set.
 
 ```python
 from promptise.prompts.blocks import ContextSlot, PromptAssembler, Identity
@@ -144,6 +144,8 @@ dynamic = Section(
 )
 ```
 
+A callable with a required parameter is called with the `BlockContext` (which can be `None` when you call `assemble()` without one); a callable with no required parameters is called with none.
+
 ### Examples
 
 Few-shot examples with automatic truncation. Priority 4.
@@ -161,7 +163,7 @@ examples = Examples(
 )
 ```
 
-The `Examples` block automatically manages the number of examples included.
+`max_count` caps how many examples are rendered (the first ones in the list). Each example renders as `--- Example N ---` followed by one `Key: value` line per dict entry, so any keys work, not just `input` / `output`. Under a token budget the block is kept or dropped as a whole.
 
 ### Conditional
 
@@ -318,7 +320,7 @@ Create custom block types by implementing the `Block` protocol:
 from promptise.prompts.blocks import Block, BlockContext
 
 class Disclaimer:
-    """Custom block that always adds a legal disclaimer."""
+    """Custom block that always adds a disclaimer."""
 
     @property
     def name(self) -> str:
@@ -335,18 +337,110 @@ class Disclaimer:
 !!! warning "Empty renders are excluded"
     If a block's `render()` returns an empty string, it is automatically excluded from the assembled prompt regardless of priority.
 
+### SimpleBlock and `@block`
+
+For a one-off block you don't need a class. `SimpleBlock(name, content, priority=5)` takes a string or a callable `(ctx) -> str`; the `@block(name, *, priority=5)` decorator turns a function into a `SimpleBlock`:
+
+```python
+from promptise.prompts.blocks import SimpleBlock, block, PromptAssembler, Identity, BlockContext
+
+disclaimer = SimpleBlock("disclaimer", "This is not financial advice.", priority=9)
+stats = SimpleBlock("stats", lambda ctx: f"Active users: {ctx.metadata['users']}", priority=5)
+
+@block("safety_rules", priority=9)
+def safety_rules(ctx=None) -> str:
+    return "1. Never share personal data\n2. Always cite sources"
+
+assembled = PromptAssembler(Identity("Analyst"), disclaimer, stats, safety_rules).assemble(
+    BlockContext(metadata={"users": 1200})
+)
+print(assembled.text)
+```
+
+A `SimpleBlock` callable is always called with the context argument, so give it a parameter (`ctx=None`).
+
+### BlockContext
+
+`assemble(ctx)` passes a `BlockContext` to every block's `render()`. `@prompt` builds one per call with `state` set to the call's arguments; a [`ConversationFlow`](flows.md) sets `state`, `turn` and `phase`.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `state` | `dict[str, Any]` | `{}` | Arbitrary state (the prompt's arguments, or the flow's `ctx.state`) |
+| `turn` | `int` | `0` | Conversation turn |
+| `phase` | `str` | `""` | Current flow phase |
+| `active_tools` | `list[str]` | `[]` | Tool names, for blocks that adapt to them |
+| `conversation_summary` | `str` | `""` | A summary of earlier turns |
+| `metadata` | `dict[str, Any]` | `{}` | Anything else |
+
+### BlockTrace
+
+Each entry of `AssembledPrompt.block_details` is a `BlockTrace`:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `str` | Block name |
+| `priority` | `int` | Block priority |
+| `rendered_length` | `int` | Characters rendered |
+| `estimated_tokens` | `int` | Token estimate of the rendered text |
+| `included` | `bool` | Whether the block made it into the final text |
+| `render_time_ms` | `float` | Time spent in `render()` |
+
+## Agentic Blocks
+
+Five blocks hold state from an agent's reasoning loop. They are meant for [`PromptNode(blocks=[...])`](../core/engine-nodes.md) in the reasoning engine and work in any `PromptAssembler`. Their names are fixed, and each has an `update()` (or `set_phase()`) method that returns a new block with new state.
+
+| Block | Constructor | Name / priority | Renders |
+|-------|-------------|-----------------|---------|
+| `ToolsBlock` | `ToolsBlock(tools=None, *, show_schemas=True, max_tools=50)` | `tools` / 9 | Numbered tool names and descriptions, plus each tool's JSON parameter schema when `show_schemas` (tools beyond `max_tools` are counted, not listed) |
+| `ObservationBlock` | `ObservationBlock(observations=None, *, max_observations=5, max_result_length=500)` | `observations` / 6 | The last `max_observations` tool results from dicts with `tool`, `result`, `success` keys; each result cut to `max_result_length` characters |
+| `PlanBlock` | `PlanBlock(subgoals=None, completed=None, active="")` | `plan` / 7 | Each subgoal marked done, active or pending, and `Progress: n/m complete` |
+| `ReflectionBlock` | `ReflectionBlock(reflections=None, *, max_reflections=3)` | `reflections` / 4 | The last lessons from dicts with `iteration`, `mistake`, `correction` keys |
+| `PhaseBlock` | `PhaseBlock(instructions=None, current_phase="")` | `phase` / 8 | The instruction text for the current phase only; `ctx.metadata["phase"]` overrides `current_phase` |
+
+```python
+from promptise.prompts.blocks import PlanBlock, ObservationBlock, PhaseBlock, PromptAssembler
+
+plan = PlanBlock(subgoals=["Fetch orders", "Compute refunds", "Write summary"], completed=["Fetch orders"],
+                 active="Compute refunds")
+obs = ObservationBlock().update([{"tool": "get_orders", "result": "3 orders", "success": True}])
+phases = PhaseBlock({"plan": "List the steps.", "act": "Call one tool per step."}).set_phase("act")
+
+print(PromptAssembler(plan, obs, phases).assemble().text)
+```
+
+## Parameter Reference
+
+| Class | Signature | Priority |
+|-------|-----------|----------|
+| `Identity` | `Identity(description, *, name="identity", traits=None)` | 10 |
+| `Rules` | `Rules(rules, *, name="rules")` | 9 |
+| `OutputFormat` | `OutputFormat(*, format="text", schema=None, instructions="", name="output_format")` | 8 |
+| `ContextSlot` | `ContextSlot(name, *, priority=6, default="")` | `priority` |
+| `Section` | `Section(name, content, *, priority=5)` | `priority` |
+| `Examples` | `Examples(examples, *, name="examples", max_count=None)` | 4 |
+| `Conditional` | `Conditional(name, block, *, condition)` | inner block's |
+| `Composite` | `Composite(name, blocks, *, separator="\n\n")` | highest inner (1 if empty) |
+| `SimpleBlock` | `SimpleBlock(name, content, priority=5)` | `priority` |
+| `PromptAssembler` | `PromptAssembler(*initial_blocks, separator="\n\n", token_budget=None)` | |
+
+`OutputFormat(format=...)` adds "Respond with valid JSON." for `"json"` and "Respond in Markdown format." for `"markdown"`; `"text"` adds nothing. A `schema` (Pydantic model or dataclass) is rendered as its JSON schema. `Rules([])` renders nothing.
+
 ## Tips
 
 - Use `assembled.block_details` to inspect per-block token usage and render times.
-- `ContextSlot.fill()` returns a copy -- the original slot is unchanged, so you can reuse assemblers across requests.
+- `ContextSlot.fill()` returns a copy, but `PromptAssembler.fill_slot()` changes the assembler. To reuse one assembler across requests with different slot content, call `fill_slot()` again before each `assemble()` (the last fill wins), or build the assembler per request.
 - Combine `Conditional` blocks with `BlockContext.state` to build audience-aware or phase-aware prompts without manually managing if/else logic.
+- Block names must be unique within an assembly: `remove(name)`, `fill_slot(name, ...)` and a flow's `ctx.deactivate(name)` match by name.
+
+!!! warning "Decorator order"
+    Put `@blocks(...)` **below** `@prompt`. Applied below, it adds to the prompt's blocks. Applied above `@prompt` (to the finished `Prompt`), it **replaces** the blocks the prompt already had. To add blocks to an existing prompt, use `with_blocks()`.
 
 ## What's Next?
 
-- [Layer 2: ConversationFlow](flows.md) -- Evolve prompts across conversation turns
-- [Strategies](strategies.md) -- Prompt strategies and composition patterns
+- [Layer 2: ConversationFlow](flows.md): Evolve prompts across conversation turns
+- [Strategies](strategies.md): Prompt strategies and composition patterns
 
 !!! tip "Learn the concept"
 
-    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- Composing system prompts from reusable blocks.
-    - [Secure Prompt Design: Separate Instructions From Data](https://www.promptise.com/guides/view/structuring-prompts-for-safety-layers-that-hold) -- Separate instructions from data so injected text can't take over.
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices): Composing system prompts from reusable blocks.
+    - [Secure Prompt Design: Separate Instructions From Data](https://www.promptise.com/guides/view/structuring-prompts-for-safety-layers-that-hold): Separate instructions from data so injected text can't take over.

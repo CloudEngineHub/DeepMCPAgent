@@ -25,11 +25,11 @@ config = ProcessConfig(
 
 ## Concepts
 
-Every trigger implements the `BaseTrigger` protocol -- a simple contract with three methods:
+Every trigger implements the `BaseTrigger` protocol, a contract with three methods:
 
-1. **`start()`** -- begin listening for trigger conditions.
-2. **`stop()`** -- stop the trigger and release resources.
-3. **`wait_for_next()`** -- async method that blocks until the next event occurs and returns a `TriggerEvent`.
+1. **`start()`**: begin listening for trigger conditions.
+2. **`stop()`**: stop the trigger and release resources.
+3. **`wait_for_next()`**: async method that blocks until the next event occurs and returns a `TriggerEvent`.
 
 The `AgentProcess` runs a listener task for each trigger: it calls `wait_for_next()`, applies the trigger's [`filter_expression`](#filtering-events-before-the-agent-runs), and puts the event on the process queue. A worker takes it from there and runs the agent. The event payload reaches the agent as a [delimited untrusted-data block](#trigger-payloads-are-untrusted-input).
 
@@ -53,8 +53,11 @@ The runtime does not ship an event bus or a message broker. `event` and `message
 
 All trigger implementations must satisfy this protocol:
 
-```python
-from promptise.runtime.triggers.base import BaseTrigger
+```python title="Protocol (promptise.runtime.triggers.base)"
+from typing import Protocol
+
+from promptise.runtime.triggers.base import TriggerEvent
+
 
 class BaseTrigger(Protocol):
     trigger_id: str
@@ -116,8 +119,12 @@ event = TriggerEvent(
 ### Serialization
 
 ```python
-data = event.to_dict()
+from promptise.runtime.triggers.base import TriggerEvent
+
+event = TriggerEvent(trigger_id="manual", trigger_type="manual", payload={"reason": "test"})
+data = event.to_dict()                    # JSON-compatible; timestamp as ISO text
 restored = TriggerEvent.from_dict(data)
+assert restored.event_id == event.event_id
 ```
 
 ---
@@ -134,12 +141,12 @@ The ID is the trigger's `trigger_id`, the `trigger_id` of every event it produce
 
 ```python
 process.status()["triggers"]
-# [{'id': 'cron-fb9fa7b826', 'type': 'CronTrigger', 'source': 'config'},
-#  {'id': 'file_watch-06bfa13759', 'type': 'FileWatchTrigger', 'source': 'config',
+# [{'id': 'cron-fb9fa7b826', 'type': 'cron', 'source': 'config'},
+#  {'id': 'file_watch-06bfa13759', 'type': 'file_watch', 'source': 'config',
 #   'dropped_events': 0, 'pending_events': 0}]
 ```
 
-`type` is the trigger's `trigger_type` attribute when it has one, otherwise its class name. `source` is `config` for configured triggers and `dynamic` for triggers an [open-mode agent added](../meta-tools.md). A file watch also reports its back-pressure counters (see [File Watch Trigger](file-watch.md#back-pressure)).
+`type` is the trigger's `TriggerConfig` type (`cron`, `file_watch`, a custom type name): the process sets a `trigger_type` attribute on every trigger it creates unless the trigger already has one. Only an object without that attribute that can't take one is listed by its class name. `source` is `config` for configured triggers and `dynamic` for triggers an [open-mode agent added](../meta-tools.md). A file watch also reports its back-pressure counters (see [File Watch Trigger](file-watch.md#back-pressure)).
 
 To get the IDs without a running process, use `config_trigger_ids`:
 
@@ -363,6 +370,8 @@ config = ProcessConfig(
 | `WebhookTrigger` | HTTP webhook trigger |
 | `FileWatchTrigger` | File-system change trigger |
 | `create_trigger(config)` | Factory function to create triggers from config |
+| `compile_filter(expression)` | Compile a `filter_expression` into a match function; raises `FilterExpressionError` |
+| `FilterExpressionError` | Raised for a filter expression outside the allowed grammar (a `ValueError`) |
 | `config_trigger_ids(triggers)` | Stable IDs for a list of `TriggerConfig` |
 | `register_trigger_type(name, factory)` | Register a custom trigger type |
 | `unregister_trigger_type(name)` | Remove a registered trigger type |
@@ -395,7 +404,24 @@ The expression is parsed once, when the `TriggerConfig` is created, and evaluate
 | Functions | `len`, `lower`, `upper`, `str`, `int`, `float`, `bool`, `startswith(s, p)`, `endswith(s, p)`, `contains(c, x)` |
 | String methods | `.lower()`, `.upper()`, `.strip()`, `.startswith(...)`, `.endswith(...)` |
 
-Anything else (arithmetic, comprehensions, lambdas, slices, dunder names, attribute access on non-dict objects, other calls) is rejected with a `ValidationError`. If an expression fails at evaluation time (say it compares `None < 3`), the event counts as *not matching* and a warning is logged.
+Anything else (arithmetic, comprehensions, lambdas, slices, dunder names, attribute access on non-dict objects, other calls) is rejected with a `ValidationError` when the `TriggerConfig` is created. If an expression fails at evaluation time (say it compares `None < 3`), the event counts as *not matching* and a warning is logged.
+
+### Testing a filter: compile_filter
+
+`compile_filter(expression)` from `promptise.runtime.triggers` is what `TriggerConfig` uses. It takes an expression string (or a callable, returned wrapped) and returns a function that takes a `TriggerEvent` and returns `True` or `False`. An expression outside the allowed grammar raises `FilterExpressionError`, a `ValueError` subclass; `TriggerConfig` turns it into the `ValidationError` above. Use it to test a filter against sample payloads before you deploy it:
+
+```python
+from promptise.runtime.triggers import FilterExpressionError, TriggerEvent, compile_filter
+
+matches = compile_filter("payload.action == 'opened' and len(labels) > 0")
+print(matches(TriggerEvent(trigger_id="t", payload={"action": "opened", "labels": ["bug"]})))  # True
+print(matches(TriggerEvent(trigger_id="t", payload={"action": "closed", "labels": []})))       # False
+
+try:
+    compile_filter("payload['count'] + 1 > 3")
+except FilterExpressionError as exc:
+    print(exc)  # Invalid filter_expression "payload['count'] + 1 > 3": BinOp is not allowed
+```
 
 For logic that doesn't fit, pass a callable. It receives the `TriggerEvent` and is called synchronously, so it must be a regular `def` function: an `async def` filter is rejected when the `TriggerConfig` is created (it would never be awaited, and every event would pass):
 
@@ -440,7 +466,7 @@ Delimiting lowers the risk, but it is **not a guarantee**: a model can still be 
     from promptise.approval import ApprovalPolicy, QueueApprovalHandler
 
     config = ProcessConfig(
-        ...
+        model="openai:gpt-5-mini",
         approval=ApprovalPolicy(
             tools=["close_issue", "delete_*", "send_*"],
             handler=QueueApprovalHandler(),
@@ -460,7 +486,7 @@ Delimiting lowers the risk, but it is **not a guarantee**: a model can still be 
 from promptise.runtime import ProcessConfig, TriggerDeliveryConfig
 
 config = ProcessConfig(
-    ...
+    model="openai:gpt-5-mini",
     trigger_delivery=TriggerDeliveryConfig(scan_payloads=True),
 )
 ```
@@ -523,13 +549,13 @@ Understanding how triggers, queues, and workers interact is critical for product
 └─────────────────┘          Bounded queue          Semaphore(concurrency)
 ```
 
-1. **Each trigger runs its own listener task** — a cron trigger sleeping until its next tick does not block a webhook from accepting requests. All triggers operate in parallel as independent `asyncio.Task`s.
+1. **Each trigger runs its own listener task.** A cron trigger sleeping until its next tick does not block a webhook from accepting requests. All triggers operate in parallel as independent `asyncio.Task`s.
 
-2. **All triggers feed into one shared queue** — `asyncio.Queue(maxsize=1000)`. This is the central dispatch point. When any trigger fires, its `TriggerEvent` is placed in this queue.
+2. **All triggers feed into one shared queue**, an `asyncio.Queue(maxsize=1000)`. This is the central dispatch point. When any trigger fires, its `TriggerEvent` is placed in this queue.
 
-3. **Worker tasks consume from the queue** — the process starts `config.concurrency` worker tasks (default: 1). Each worker pulls the next event, acquires the concurrency semaphore, and calls `invoke_agent()`.
+3. **Worker tasks consume from the queue.** The process starts `config.concurrency` worker tasks (default: 1). Each worker pulls the next event, acquires the concurrency semaphore, and calls `invoke_agent()`.
 
-4. **The semaphore controls parallelism** — with `concurrency=1`, invocations run one at a time (queued). With `concurrency=3`, up to 3 agent invocations can run simultaneously.
+4. **The semaphore controls parallelism.** With `concurrency=1`, invocations run one at a time (queued). With `concurrency=3`, up to 3 agent invocations can run simultaneously.
 
 ### What happens when multiple triggers fire at once
 
@@ -564,7 +590,7 @@ A process suspended by `idle_timeout` resumes **by itself** when the next trigge
 
 ```python
 config = ProcessConfig(
-    ...
+    model="openai:gpt-5-mini",
     idle_timeout=600,        # suspend after 10 minutes without a run
     heartbeat_interval=10,   # how often the idle check runs (default 10 s)
 )
@@ -599,7 +625,7 @@ Each process counts consecutive failed events. When `max_consecutive_failures` i
 
 ```python
 config = ProcessConfig(
-    ...
+    model="openai:gpt-5-mini",
     max_consecutive_failures=5,  # default 3
 )
 ```
@@ -616,7 +642,7 @@ Restarting a `FAILED` process (`start()`, `restart_process()` or the API) first 
 from promptise.runtime import ProcessConfig, TriggerDeliveryConfig
 
 config = ProcessConfig(
-    ...
+    model="openai:gpt-5-mini",
     trigger_delivery=TriggerDeliveryConfig(
         max_retries=2,          # default 0: no retries
         retry_backoff=2.0,      # first retry after 2 s, then 4 s, 8 s ... (capped)
@@ -677,16 +703,16 @@ process.clear_dead_letters()
 
 ## What's Next
 
-- [Cron Trigger](cron.md) -- schedule-based triggering
-- [Event and Webhook Triggers](event-webhook.md) -- event-driven and HTTP-driven triggering
-- [File Watch Trigger](file-watch.md) -- file-system change detection
-- [Orchestration API](../api.md) -- manage triggers over HTTP
-- [Hooks](../hooks.md) -- react to trigger events and configuration changes
-- [Configuration](../configuration.md) -- full `TriggerConfig` reference
+- [Cron Trigger](cron.md): schedule-based triggering
+- [Event and Webhook Triggers](event-webhook.md): event-driven and HTTP-driven triggering
+- [File Watch Trigger](file-watch.md): file-system change detection
+- [Orchestration API](../api.md): manage triggers over HTTP
+- [Hooks](../hooks.md): react to trigger events and configuration changes
+- [Configuration](../configuration.md): full `TriggerConfig` reference
 
 !!! tip "Learn the concept"
 
-    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers) -- Run an agent on a webhook, a schedule or a new file, safely.
-    - [AI Agent Cron Jobs: Run an Agent on a Schedule](https://www.promptise.com/guides/view/ai-agent-cron-schedule) -- Schedules, time zones, overlapping runs and missed ticks.
-    - [AI Agent Webhook Trigger: Run an Agent on HTTP Events](https://www.promptise.com/guides/view/ai-agent-webhook-trigger) -- Signed webhooks, response codes and replay protection.
-    - [AI Agent File Watcher: Process New Files Automatically](https://www.promptise.com/guides/view/ai-agent-file-watcher) -- Debouncing, half-written files and avoiding loops.
+    - [Event-Driven AI Agents: Webhook, Cron and File Triggers](https://www.promptise.com/guides/view/event-driven-ai-agents-webhook-cron-triggers): Run an agent on a webhook, a schedule or a new file, safely.
+    - [AI Agent Cron Jobs: Run an Agent on a Schedule](https://www.promptise.com/guides/view/ai-agent-cron-schedule): Schedules, time zones, overlapping runs and missed ticks.
+    - [AI Agent Webhook Trigger: Run an Agent on HTTP Events](https://www.promptise.com/guides/view/ai-agent-webhook-trigger): Signed webhooks, response codes and replay protection.
+    - [AI Agent File Watcher: Process New Files Automatically](https://www.promptise.com/guides/view/ai-agent-file-watcher): Debouncing, half-written files and avoiding loops.

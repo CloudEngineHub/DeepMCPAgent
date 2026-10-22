@@ -7,7 +7,7 @@ description: "PromptiseCallbackHandler records LLM turns, tool calls, tokens, la
 
 The `PromptiseCallbackHandler` is a LangChain callback handler that captures
 every LLM turn, tool call, token count, latency, retry, and
-error -- and forwards them to the Promptise `ObservabilityCollector`.  It is
+error, and forwards them to the Promptise `ObservabilityCollector`.  It is
 the single integration point between LangChain's event system and Promptise's
 observability pipeline.
 
@@ -49,13 +49,13 @@ The handler implements LangChain's `BaseCallbackHandler` interface.  When
 attached to an agent's `config["callbacks"]`, LangChain invokes the handler's
 `on_*` methods at each lifecycle event.  The handler:
 
-1. **Records timing** -- starts a timer on each `on_*_start` event and
+1. **Records timing**: starts a timer on each `on_*_start` event and
    computes latency on the corresponding `on_*_end` event.
-2. **Extracts token usage** -- reads prompt/completion/total token counts
+2. **Extracts token usage**: reads prompt/completion/total token counts
    from `LLMResult.llm_output` and LangChain >=0.3 `usage_metadata`.
-3. **Accumulates session totals** -- maintains running counters for tokens,
+3. **Accumulates session totals**: maintains running counters for tokens,
    LLM calls, tool calls, errors, and retries.
-5. **Forwards events** -- sends structured timeline events to the
+5. **Forwards events**: sends structured timeline events to the
    `ObservabilityCollector` for later export or dashboard display.
 
 ### Constructor parameters
@@ -191,6 +191,6 @@ summary = handler.get_summary()
 
 ## What's next
 
-- [Observability](observability.md) -- the `ObservabilityCollector` that receives events
-- [Building Agents](agents/building-agents.md) -- pass the handler via `config["callbacks"]`
-- [Tools & Schema Helpers](tools.md) -- the tools whose calls the handler tracks
+- [Observability](observability.md): the `ObservabilityCollector` that receives events
+- [Building Agents](agents/building-agents.md): pass the handler via `config["callbacks"]`
+- [Tools & Schema Helpers](tools.md): the tools whose calls the handler tracks

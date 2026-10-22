@@ -5,7 +5,7 @@ description: "Overview of production features for MCP servers: caching, rate lim
 
 # MCP Server Production Features
 
-Everything you need to run MCP servers in production — caching, rate limiting, health checks, metrics, observability, resilience, and advanced patterns. Each feature has a dedicated deep-dive page with real-world examples and full configuration reference.
+The features for running MCP servers in production: caching, rate limiting, health checks, metrics, observability, resilience, and advanced patterns. Each feature has a dedicated deep-dive page with real-world examples and full configuration reference.
 
 ## Quick Start
 
@@ -49,16 +49,17 @@ async def expensive_query(query: str) -> dict:
     return await db.search(query)
 
 # Listen on every interface (the default is 127.0.0.1) and name the public host
-server.run(
-    transport="http",
-    host="0.0.0.0",
-    port=8080,
-    allowed_hosts=["mcp.example.com"],
-    dashboard=True,
-)
+if __name__ == "__main__":
+    server.run(
+        transport="http",
+        host="0.0.0.0",
+        port=8080,
+        allowed_hosts=["mcp.example.com"],
+        dashboard=True,
+    )
 ```
 
-`run()` binds `127.0.0.1` unless you pass `host`, so a server is reachable from the same machine only until you choose otherwise. Bind `0.0.0.0` deliberately — in a container, or behind a load balancer — together with `AuthMiddleware` (or an authenticating gateway) and `allowed_hosts`; a non-loopback bind without them logs a warning at startup. See [Deployment](deployment.md#host-and-origin-validation).
+`run()` binds `127.0.0.1` unless you pass `host`, so a server is reachable from the same machine only until you choose otherwise. Bind `0.0.0.0` deliberately (in a container, or behind a load balancer) together with `AuthMiddleware` (or an authenticating gateway) and `allowed_hosts`; a non-loopback bind without them logs a warning at startup. See [Deployment](deployment.md#host-and-origin-validation).
 
 ## Feature Guide
 
@@ -69,7 +70,7 @@ Choose the right page for what you need:
 | Cache tool results, rate limit agents, control concurrency | [Caching & Performance](caching-performance.md) |
 | Add metrics, tracing, Prometheus, structured logging, audit trails | [Observability & Monitoring](observability.md) |
 | Protect against failures, add health checks, webhooks, background tasks | [Resilience Patterns](resilience-patterns.md) |
-| Version tools, transform tool lists, compose servers, bridge OpenAPI | [Advanced Patterns](advanced-patterns.md) |
+| Version tools, control which tools a caller sees, compose servers, batch calls, elicitation, sampling | [Advanced Patterns](advanced-patterns.md) |
 | Deploy with HTTP/CORS, Host/Origin validation, Docker, reverse proxy, CLI serve | [Deployment](deployment.md) |
 | Add JWT auth, API keys, guards, roles | [Authentication & Security](auth-security.md) |
 | Test with TestClient, pytest fixtures, CI | [Testing](testing.md) |
@@ -119,7 +120,7 @@ server.add_middleware(ConcurrencyLimiter(max_concurrent=50))
 
 ### [Advanced Patterns](advanced-patterns.md)
 
-`VersionedToolRegistry`, `NamespaceTransform`, `VisibilityTransform`, `TagFilterTransform`, `mount()`, `OpenAPIProvider`, `register_batch_tool()`, `StreamingResult`, `Elicitor`, `Sampler`, `register_manifest()`, `hot_reload()`, CLI serve.
+Tool versioning, per-caller tool lists, `mount()`, `OpenAPIProvider` (see its 1.6.0 warning), `register_batch_tool()`, `StreamingResult`, `Elicitor`, `Sampler`, `register_manifest()`, `hot_reload()`, CLI serve.
 
 ### [Deployment](deployment.md)
 
@@ -127,11 +128,11 @@ Transport selection (stdio/HTTP/SSE), Host/Origin validation (`allowed_hosts` / 
 
 ## What's Next
 
-- [Caching & Performance](caching-performance.md) — start here for the most commonly needed production features
-- [Authentication & Security](auth-security.md) — if you haven't set up auth yet
-- [Testing](testing.md) — test your production server with `TestClient`
+- [Caching & Performance](caching-performance.md): start here for the most commonly needed production features
+- [Authentication & Security](auth-security.md): if you haven't set up auth yet
+- [Testing](testing.md): test your production server with `TestClient`
 
 !!! tip "Learn the concept"
 
-    - [LLM Tool Rate Limiting: Per-Client Limits for MCP Servers](https://www.promptise.com/guides/view/mcp-rate-limiting-per-client) -- Per-client and per-tool rate limits, and what the agent sees.
-    - [AI Agent Audit Logging: Tamper-Evident Logs in Python](https://www.promptise.com/guides/view/ai-agent-audit-log) -- Tamper-evident logs of every tool call.
+    - [LLM Tool Rate Limiting: Per-Client Limits for MCP Servers](https://www.promptise.com/guides/view/mcp-rate-limiting-per-client): Per-client and per-tool rate limits, and what the agent sees.
+    - [AI Agent Audit Logging: Tamper-Evident Logs in Python](https://www.promptise.com/guides/view/ai-agent-audit-log): Tamper-evident logs of every tool call.

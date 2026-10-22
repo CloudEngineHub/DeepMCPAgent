@@ -1,5 +1,5 @@
 ---
-title: Build a Production MCP Server in Python — 12-step guide
+title: "Build a Production MCP Server in Python: 12-step guide"
 seo_title: "Build a Production MCP Server in Python"
 description: "Build a production MCP server in 12 steps: tools, Pydantic validation, resources, prompts, JWT auth, guards, routers, middleware, caching and job queues."
 keywords: build MCP server, MCP server tutorial, production MCP server, MCP server Python, Model Context Protocol server, JWT MCP server, MCP authentication
@@ -7,18 +7,18 @@ keywords: build MCP server, MCP server tutorial, production MCP server, MCP serv
 
 # Building Production MCP Servers
 
-Build a production-grade MCP server from scratch in 12 incremental steps. Each step adds one concept so you understand the full picture.
+Build a production MCP server from scratch in 12 incremental steps. Each step adds one concept so you understand the full picture.
 
 !!! tip "This is the recommended starting point for building MCP servers"
     This guide walks you through building a complete server step by step. For deep reference on individual features, see the [Server Fundamentals](../mcp/server/building-servers.md), [Routers & Middleware](../mcp/server/routers-middleware.md), [Auth & Security](../mcp/server/auth-security.md), and [Production Features](../mcp/server/production-features.md) pages.
 
 ## What You'll Build
 
-A task management API with CRUD operations, JWT authentication with structured client context, route organization, middleware, caching, scope-based authorization, request tracing, response metadata, and background job queues -- the same patterns used in real-world deployments. By step 12, you'll have a server that agents can connect to and use immediately.
+A task management API with CRUD operations, JWT authentication with structured client context, route organization, middleware, caching, scope-based authorization, request tracing, response metadata, and background job queues: the same patterns used in real-world deployments. By step 12, you'll have a server that agents can connect to and use immediately.
 
 ## Concepts
 
-The **Model Context Protocol (MCP)** standardizes how AI agents discover and invoke tools. Instead of hardcoding tool definitions, agents connect to MCP servers and dynamically discover what's available. This decouples agent logic from tool implementation -- you can update tools without changing agents, and multiple agents can share the same tool server.
+The **Model Context Protocol (MCP)** standardizes how AI agents discover and invoke tools. Instead of hardcoding tool definitions, agents connect to MCP servers and dynamically discover what's available. This decouples agent logic from tool implementation: you can update tools without changing agents, and multiple agents can share the same tool server.
 
 An **MCPServer** is the central object. You register tools, resources, and prompts using decorators, add middleware for cross-cutting concerns, and call `server.run()` to start serving. The framework automatically generates JSON Schemas from your function signatures and Pydantic models, so clients always have accurate parameter descriptions.
 
@@ -183,7 +183,7 @@ For production, use a real identity provider (Auth0, Keycloak, Okta).
 
 ---
 
-## Step 5: Guards -- Roles and Scopes
+## Step 5: Guards: Roles and Scopes
 
 Guards enforce fine-grained permissions after authentication. Use role-based guards for API key auth, and scope-based guards for OAuth2/JWT:
 
@@ -232,10 +232,10 @@ Requires all scopes [tasks:read, tasks:write], client has [tasks:read], missing 
 
 ## Step 6: Client Enrichment Hook
 
-Use `on_authenticate` to add custom data to the client context after authentication -- look up user profiles, load permissions from a database, or inject organization metadata:
+Use `on_authenticate` to add custom data to the client context after authentication: look up user profiles, load permissions from a database, or inject organization metadata:
 
 ```python
-from promptise.mcp.server import AuthMiddleware, JWTAuth, RequestContext
+from promptise.mcp.server import AuthMiddleware, JWTAuth, RequestContext, ToolError
 
 async def enrich_client(client, ctx):
     """Called after every successful authentication."""
@@ -268,8 +268,8 @@ from promptise.mcp.server import MCPRouter
 # Task management tools
 task_router = MCPRouter(prefix="tasks", tags=["tasks"], auth=True)
 
-@task_router.tool()
-async def list(status: str = "all") -> list[dict]:
+@task_router.tool(name="list")
+async def list_tasks(status: str = "all") -> list[dict]:
     """List all tasks."""  # Tool name becomes "tasks_list"
     return []
 
@@ -398,7 +398,7 @@ async def traced_operation(ctx: RequestContext, data: str) -> dict:
     return {"processed": data, "trace_id": request_id}
 ```
 
-**ToolResponse** wraps your return value with metadata for audit and observability -- the metadata is captured automatically without changing what the client sees:
+**ToolResponse** wraps your return value with metadata for audit and observability: the metadata is captured automatically without changing what the client sees:
 
 ```python
 from promptise.mcp.server import ToolResponse
@@ -425,7 +425,7 @@ async def create_order(ctx: RequestContext, product_id: str, qty: int) -> ToolRe
 
 ## Step 11: Job Queues for Long-Running Work
 
-MCP tool calls are synchronous -- the agent blocks until the response. This breaks down for long-running work like report generation, data pipelines, or batch processing. `MCPQueue` turns any long operation into a non-blocking submit-and-poll workflow:
+MCP tool calls are synchronous: the agent blocks until the response. This breaks down for long-running work like report generation, data pipelines, or batch processing. `MCPQueue` turns any long operation into a non-blocking submit-and-poll workflow:
 
 ```python
 import asyncio
@@ -454,7 +454,7 @@ server.run(transport="http", port=8080)
 
 | Auto-registered tool | Purpose |
 |---------------------|---------|
-| `queue_submit` | Submit a job -- returns a `job_id` immediately |
+| `queue_submit` | Submit a job: returns a `job_id` immediately |
 | `queue_status` | Check job status and progress |
 | `queue_result` | Retrieve a completed job's return value |
 | `queue_cancel` | Cancel a pending or running job |
@@ -473,7 +473,7 @@ Agent: queue_result(job_id="a1b2c3d4")
   -> {"status": "completed", "result": {"department": "Engineering", "rows": 1250}}
 ```
 
-Jobs support priority levels (`low`, `normal`, `high`, `critical`), automatic retries with exponential backoff, per-job timeouts, and cancellation. The agent submits work and polls for completion -- no long-lived connections or blocking calls.
+Jobs support priority levels (`low`, `normal`, `high`, `critical`), automatic retries with exponential backoff, per-job timeouts, and cancellation. The agent submits work and polls for completion: no long-lived connections or blocking calls.
 
 ---
 
@@ -584,17 +584,17 @@ server.run(transport="http", port=8080)
 
 **Connect agents to your server:**
 
-- [Client Guide](../mcp/client/index.md) -- `MCPClient`, `MCPMultiClient`, and authentication
-- [Tool Adapter](../mcp/client/tool-adapter.md) -- Convert MCP tools to LangChain tools
+- [Client Guide](../mcp/client/index.md): `MCPClient`, `MCPMultiClient`, and authentication
+- [Tool Adapter](../mcp/client/tool-adapter.md): Convert MCP tools to LangChain tools
 
 **Other guides:**
 
-- [Building Agentic Runtime Systems](agentic-runtime.md) -- Autonomous agents that consume your MCP servers
-- [Building AI Agents](building-agents.md) -- The core agent that connects to your tools
-- [Prompt Engineering](prompt-engineering.md) -- Build reliable, testable system prompts
+- [Building Agentic Runtime Systems](agentic-runtime.md): Autonomous agents that consume your MCP servers
+- [Building AI Agents](building-agents.md): The core agent that connects to your tools
+- [Prompt Engineering](prompt-engineering.md): Build reliable, testable system prompts
 
 !!! tip "Learn the concept"
 
-    - [Build a Production MCP Server in Python (Step by Step)](https://www.promptise.com/guides/view/build-production-mcp-server-python) -- Typed tools, clear errors, roles, rate limits and audit logs explained.
-    - [Testing MCP Servers in Python: pytest Without a Live Server](https://www.promptise.com/guides/view/test-mcp-server-python) -- Test auth, guards and middleware without a running server.
-    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices) -- A security checklist to run before exposing a server.
+    - [Build a Production MCP Server in Python (Step by Step)](https://www.promptise.com/guides/view/build-production-mcp-server-python): Typed tools, clear errors, roles, rate limits and audit logs explained.
+    - [Testing MCP Servers in Python: pytest Without a Live Server](https://www.promptise.com/guides/view/test-mcp-server-python): Test auth, guards and middleware without a running server.
+    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices): A security checklist to run before exposing a server.

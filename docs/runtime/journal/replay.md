@@ -121,13 +121,13 @@ await engine.recover("new-process")
 
 ## What's Next
 
-- [Journal Overview](index.md) -- entry types, levels and recovery on start
-- [Journal Backends](backends.md) -- `FileJournal` and `InMemoryJournal`
-- [Rewind](rewind.md) -- go back to an earlier point instead of the latest one
-- [Lifecycle](../lifecycle.md) -- the state machine behind `state_transition` entries
-- [Context](../context.md) -- the state layer behind `context_update` entries
+- [Journal Overview](index.md): entry types, levels and recovery on start
+- [Journal Backends](backends.md): `FileJournal` and `InMemoryJournal`
+- [Rewind](rewind.md): go back to an earlier point instead of the latest one
+- [Lifecycle](../lifecycle.md): the state machine behind `state_transition` entries
+- [Context](../context.md): the state layer behind `context_update` entries
 
 !!! tip "Learn the concept"
 
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Resume from the last step after a crash, with idempotency keys.
-    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs) -- What a process keeps between runs and how it is restored.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Resume from the last step after a crash, with idempotency keys.
+    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs): What a process keeps between runs and how it is restored.

@@ -5,7 +5,7 @@ description: "Add document retrieval to agents: loader, chunker, embedder and ve
 
 # RAG (Retrieval-Augmented Generation)
 
-A small, pluggable foundation for adding document retrieval to Promptise agents. The framework ships with base classes you subclass for your own loader, chunker, embedder, and vector store — plus a batteries-included reference implementation (in-memory store + recursive text chunker) you can use immediately or swap out piece by piece as you productionise.
+A small, pluggable foundation for adding document retrieval to Promptise agents. The framework ships with base classes you subclass for your own loader, chunker, embedder, and vector store, plus a batteries-included reference implementation (in-memory store + recursive text chunker) you can use immediately or swap out piece by piece as you productionise.
 
 ```python
 from promptise import (
@@ -59,7 +59,7 @@ agent = await build_agent(
                                                     Your Agent
 ```
 
-Four base classes, a pipeline orchestrator, and a tool adapter. That's it. Each base class has one or two methods — override them, ship your own implementation, and pass it to `RAGPipeline`.
+Four base classes, a pipeline orchestrator, and a tool adapter. That's it. Each base class has one or two methods: override them, ship your own implementation, and pass it to `RAGPipeline`.
 
 ---
 
@@ -72,7 +72,7 @@ Four base classes, a pipeline orchestrator, and a tool adapter. That's it. Each 
 | `RetrievalResult` | A chunk plus a `score` in `[0.0, 1.0]`. Returned by `search()` and `retrieve()`. |
 | `IndexReport` | Summary of `pipeline.index()`: documents loaded, chunks created, chunks stored, errors, duration. |
 
-All four are `@dataclass`-based — cheap to construct, easy to pickle, introspectable.
+All four are `@dataclass`-based: cheap to construct, easy to pickle, introspectable.
 
 ---
 
@@ -94,7 +94,7 @@ class DocumentLoader:
 
 Override `load()` for sources that fit in memory, or `iter_load()` to stream a large source one document at a time.
 
-**Example — loading markdown files from disk:**
+**Example, loading markdown files from disk:**
 
 ```python
 from pathlib import Path
@@ -127,7 +127,7 @@ class Chunker:
         raise NotImplementedError
 ```
 
-**Built-in: `RecursiveTextChunker`** — splits on natural separators (`\n\n`, `\n`, `. `, ` `) with configurable `chunk_size` and `overlap`. Good default for prose, markdown, and code.
+**Built-in: `RecursiveTextChunker`**: splits on natural separators (`\n\n`, `\n`, `. `, ` `) with configurable `chunk_size` and `overlap`. Good default for prose, markdown, and code.
 
 ```python
 from promptise import RecursiveTextChunker
@@ -141,7 +141,7 @@ chunker = RecursiveTextChunker(
 
 When no separator splits a piece small enough, the piece is cut into `chunk_size`-character windows that share `overlap` characters. An empty string `""` in `separators` means that character-level cut, so LangChain-style lists such as `["\n\n", "\n", " ", ""]` work. `overlap` must be smaller than `chunk_size`. Empty and whitespace-only documents produce no chunks.
 
-Chunk IDs are deterministic (`{document_id}:chunk-{i}`) so re-indexing the same document produces stable IDs — useful for incremental updates (see [Updating documents](#updating-documents)).
+Chunk IDs are deterministic (`{document_id}:chunk-{i}`) so re-indexing the same document produces stable IDs: useful for incremental updates (see [Updating documents](#updating-documents)).
 
 **Rolling your own** is ~20 lines. Subclass `Chunker` and return a list of `Chunk` objects with `document_id`, `text`, and any metadata you want to pass through.
 
@@ -159,7 +159,7 @@ class Embedder:
         raise NotImplementedError
 ```
 
-**Example — OpenAI embeddings:**
+**Example, OpenAI embeddings:**
 
 ```python
 from openai import AsyncOpenAI
@@ -205,7 +205,7 @@ class VectorStore:
     async def close(self) -> None: ...
 ```
 
-**Built-in: `InMemoryVectorStore`** — cosine-similarity over an in-process list. Zero external dependencies, no persistence. Great for tests, notebooks, and small corpora (< ~10k chunks). When you outgrow it, subclass and wire up Pinecone, Qdrant, Weaviate, pgvector, Milvus, or Chroma.
+**Built-in: `InMemoryVectorStore`**: cosine-similarity over an in-process list. Zero external dependencies, no persistence. Great for tests, notebooks, and small corpora (< ~10k chunks). When you outgrow it, subclass and wire up Pinecone, Qdrant, Weaviate, pgvector, Milvus, or Chroma.
 
 ```python
 from promptise import InMemoryVectorStore
@@ -213,7 +213,7 @@ from promptise import InMemoryVectorStore
 store = InMemoryVectorStore(dimension=1536)  # optional dimension enforcement
 ```
 
-Scores are cosine similarity mapped from `[-1, 1]` onto `[0, 1]` as `(cosine + 1) / 2`: an identical direction scores `1.0` and an unrelated (orthogonal) chunk scores `0.5`. A query vector whose length differs from the stored vectors (or from `dimension`) raises `ValueError` — the query and the index must come from the same embedder. A non-positive `limit` returns no results. Results are copies, so changing one never changes the stored chunk.
+Scores are cosine similarity mapped from `[-1, 1]` onto `[0, 1]` as `(cosine + 1) / 2`: an identical direction scores `1.0` and an unrelated (orthogonal) chunk scores `0.5`. A query vector whose length differs from the stored vectors (or from `dimension`) raises `ValueError`: the query and the index must come from the same embedder. A non-positive `limit` returns no results. Results are copies, so changing one never changes the stored chunk.
 
 **Rolling your own** means implementing `add`, `search`, and `delete` against your backend. ~50-100 lines for most vector DBs.
 
@@ -258,7 +258,7 @@ await pipeline.index(documents=[
 
 Indexing a document whose `id` is already in the store replaces it: the pipeline removes the document's old chunks, then stores the new ones, so text you removed from a document can no longer be retrieved. If the new version's chunks fail to embed, the old version stays and the failure is in `report.errors`. When the same `id` appears twice in one `index()` call, the last one wins.
 
-Removing old chunks uses `VectorStore.delete_by_document()`. If your store doesn't implement it, the pipeline deletes the chunk ids it stored for that document itself — which only covers documents indexed by the same `RAGPipeline` instance, so implement `delete_by_document()` on a persistent store.
+Removing old chunks uses `VectorStore.delete_by_document()`. If your store doesn't implement it, the pipeline deletes the chunk ids it stored for that document itself, which only covers documents indexed by the same `RAGPipeline` instance, so implement `delete_by_document()` on a persistent store.
 
 ### Deletion
 
@@ -276,7 +276,7 @@ This uses the same removal as an update, and returns `0` (with a warning) when t
 
 ---
 
-## rag_to_tool — expose retrieval to an agent
+## rag_to_tool: expose retrieval to an agent
 
 The glue that turns a `RAGPipeline` into a LangChain tool the agent can call via `extra_tools`. The agent sees a single tool with a `query` argument; calling it runs retrieval and returns formatted results.
 
@@ -301,11 +301,11 @@ docs_tool = rag_to_tool(
 
 **Format cheat sheet:**
 
-- `"markdown"` — human + LLM friendly, includes source and title headers
-- `"json"` — structured: `{"notice": ..., "results": [{score, text, metadata}, ...]}`, best for downstream processing
-- `"text"` — plain text with source prefix, minimal token overhead
+- `"markdown"`: human + LLM friendly, includes source and title headers
+- `"json"`, structured: `{"notice": ..., "results": [{score, text, metadata}, ...]}`, best for downstream processing
+- `"text"`: plain text with source prefix, minimal token overhead
 
-**Retrieved text is untrusted.** Anyone who can put text into an indexed document — a wiki editor, a customer filing a ticket — can write instructions aimed at the model. The tool output says that the results are data, not instructions to follow. In `"markdown"` and `"text"` the results sit inside a block delimited by a random tag generated for each call (`<retrieved-documents-…>`), so a document can't close the block early and pose as the tool's own output; in `"json"` the `notice` field carries the same statement. This lowers the risk but doesn't remove it: keep side-effecting tools behind [approval](approval.md) when the agent also reads documents that outsiders can write.
+**Retrieved text is untrusted.** Anyone who can put text into an indexed document (a wiki editor, a customer filing a ticket) can write instructions aimed at the model. The tool output says that the results are data, not instructions to follow. In `"markdown"` and `"text"` the results sit inside a block delimited by a random tag generated for each call (`<retrieved-documents-…>`), so a document can't close the block early and pose as the tool's own output; in `"json"` the `notice` field carries the same statement. This lowers the risk but doesn't remove it: keep side-effecting tools behind [approval](approval.md) when the agent also reads documents that outsiders can write.
 
 ---
 
@@ -321,7 +321,7 @@ from promptise.rag import content_hash
 doc_id = f"{source_path}:{content_hash(text)}"
 ```
 
-The hash is a stable 12-character string derived from the text — same text always hashes to the same value.
+The hash is a stable 12-character string derived from the text: same text always hashes to the same value.
 
 ### Metadata filtering
 
@@ -400,7 +400,7 @@ Use both together: memory for who the user is, RAG for what the knowledge base s
 
 ## Testing
 
-The in-memory components are designed for tests — zero dependencies, deterministic behavior. Wire them up with a fake embedder and you've got an end-to-end RAG test in ~20 lines:
+The in-memory components are designed for tests: zero dependencies, deterministic behavior. Wire them up with a fake embedder and you've got an end-to-end RAG test in ~20 lines:
 
 ```python
 from promptise.rag import (
@@ -438,12 +438,12 @@ See `tests/test_rag.py` in the repo for the full test suite.
 
 ## Related
 
-- [Memory](memory.md) — auto-injected context from conversation history
-- [Tool Optimization](tool-optimization.md) — semantic tool selection for agents with large tool sets
-- [Building Agents](agents/building-agents.md) — full `build_agent()` reference
+- [Memory](memory.md): auto-injected context from conversation history
+- [Tool Optimization](tool-optimization.md): semantic tool selection for agents with large tool sets
+- [Building Agents](agents/building-agents.md): full `build_agent()` reference
 
 !!! tip "Learn the concept"
 
-    - [Agentic RAG in Python: Give Your AI Agent a Search Tool](https://www.promptise.com/guides/view/agentic-rag-ai-agent-python) -- Give an agent a search tool, cite sources and say "I don't know".
-    - [RAG for Beginners: Build a Tiny RAG Pipeline in Python](https://www.promptise.com/guides/view/rag-zero-to-one-tiny-corpus) -- How retrieval-augmented generation works, on a tiny corpus.
-    - [RAG Security: Stop Poisoned Documents and Prompt Injection](https://www.promptise.com/guides/view/managing-context-and-retrieval-safely-the-rag-security-path) -- Stop poisoned documents from injecting instructions.
+    - [Agentic RAG in Python: Give Your AI Agent a Search Tool](https://www.promptise.com/guides/view/agentic-rag-ai-agent-python): Give an agent a search tool, cite sources and say "I don't know".
+    - [RAG for Beginners: Build a Tiny RAG Pipeline in Python](https://www.promptise.com/guides/view/rag-zero-to-one-tiny-corpus): How retrieval-augmented generation works, on a tiny corpus.
+    - [RAG Security: Stop Poisoned Documents and Prompt Injection](https://www.promptise.com/guides/view/managing-context-and-retrieval-safely-the-rag-security-path): Stop poisoned documents from injecting instructions.

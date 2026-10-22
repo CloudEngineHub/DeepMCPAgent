@@ -5,7 +5,7 @@ description: "Chain of thought, self-critique, plan-and-execute and decompose st
 
 # Prompt Strategies & Perspectives
 
-Strategies control **how** the agent reasons. Perspectives control **from where** the agent reasons. They are orthogonal and composable -- any strategy pairs with any perspective, and strategies compose via the `+` operator.
+Strategies control **how** the agent reasons. Perspectives control **from where** the agent reasons. They are orthogonal and composable: any strategy pairs with any perspective, and strategies compose via the `+` operator.
 
 ## Quick Example
 
@@ -32,7 +32,7 @@ result = await configured("Quarterly revenue grew 15% year-over-year...")
 - **Strategy** = HOW to reason (step-by-step, critique, decompose). Strategies implement `wrap()` to inject reasoning instructions before the LLM call, and `parse()` to extract the final answer from the raw output.
 - **Perspective** = FROM WHERE to reason (analyst, critic, advisor). Perspectives implement `apply()` to prepend or inject cognitive framing into the prompt text.
 
-Both are composable and orthogonal -- any strategy can pair with any perspective.
+Both are composable and orthogonal: any strategy can pair with any perspective.
 
 ## Built-In Strategies
 
@@ -223,7 +223,7 @@ from promptise.prompts.strategies import perspective
 
 security_auditor = perspective(
     role="security auditor",
-    instructions="Focus on OWASP Top 10 vulnerabilities and compliance gaps.",
+    instructions="Focus on OWASP Top 10 vulnerabilities and missing authorization checks.",
 )
 
 result = await analyze.with_perspective(security_auditor)("Review this API code")
@@ -297,23 +297,33 @@ result = await configured("Evaluate quarterly performance data")
 | `perspective(role, instructions="")` | `CustomPerspective` | Create a custom perspective |
 | `StructuredReasoningStrategy(steps=[...])` | `StructuredReasoningStrategy` | Custom reasoning phases |
 | `SelfCritiqueStrategy(rounds=1)` | `SelfCritiqueStrategy` | Multi-round critique |
+| `CustomPerspective(role, instructions="")` | `CustomPerspective` | The class behind `perspective()` |
+| `CompositeStrategy(strategies)` | `CompositeStrategy` | The class behind `a + b`; nested composites are flattened |
+
+`SelfCritiqueStrategy.parse()` falls back to the text after the last `**Improved Answer**:` heading when the marker is missing; the other strategies return the whole reply.
 
 !!! tip "Use the ---ANSWER--- marker"
     All built-in strategies use the `---ANSWER---` marker to separate reasoning from the final answer. The `parse()` method strips the reasoning and returns only the answer. Custom strategies should follow this convention for consistency.
 
-!!! tip "Strategy + Perspective = powerful combination"
-    Pair `chain_of_thought` with `analyst` for data-driven step-by-step reasoning. Pair `self_critique` with `critic` for rigorous self-evaluation. The combinations multiply your prompt's effectiveness.
+!!! tip "Pairing strategies and perspectives"
+    Pair `chain_of_thought` with `analyst` for data-driven step-by-step reasoning, or `self_critique` with `critic` for a stricter review of the draft answer. Compare the outputs on your own inputs before settling on a pair: each strategy adds instructions and output tokens.
 
 !!! warning "Composite strategy ordering"
-    In a composite `A + B`, `wrap()` applies A first then B (outer wrapping), while `parse()` applies B first then A (inner unwrapping). This means B's reasoning instructions appear closest to the prompt text.
+    In a composite `A + B`, `wrap()` applies A first, then B wraps the result, so A's instructions come right after the prompt text and B's are appended after A's. `parse()` runs in reverse: B first, then A. Because every built-in strategy asks for the same `---ANSWER---` marker, combining two of them gives the model two sets of instructions for one marker; check the result on your prompts.
+
+## Where strategies and perspectives apply
+
+On every render and call, the perspective is applied first (its framing is **prepended**), then the strategy wraps the text (its instructions are **appended**), then constraints and schema instructions are added. After the LLM call, only the strategy's `parse()` runs. A `Strategy` is any object with `wrap(prompt_text, ctx) -> str` and `parse(raw_output, ctx) -> str`; a `Perspective` is any object with `apply(prompt_text, ctx) -> str`. Perspectives don't compose with `+`: a prompt has one perspective, and `with_perspective()` replaces it.
+
+The same objects work in the [reasoning engine](../core/engine-nodes.md) (`PromptNode(strategy=..., perspective=...)`) and in [`.prompt` files](loader-templates.md#available-strategy-names) by name.
 
 ## What's Next
 
-- [Guards](guards.md) -- Input/output validation
-- [Context System](context.md) -- Dynamic context injection
-- [PromptBuilder](builder.md) -- Fluent API for runtime prompt construction
+- [Guards](guards.md): Input/output validation
+- [Context System](context.md): Dynamic context injection
+- [PromptBuilder](builder.md): Fluent API for runtime prompt construction
 
 !!! tip "Learn the concept"
 
-    - [Chain-of-Thought Prompting for Beginners: Step by Step](https://www.promptise.com/guides/view/step-by-step-reasoning-chain-of-thought-lite) -- What chain-of-thought does and when it helps.
-    - [Self-Consistency and Least-to-Most Prompting: When They Help](https://www.promptise.com/guides/view/chain-of-thought-evolved-self-consistency-and-least-to-most) -- Self-consistency and least-to-most, and when they pay off.
+    - [Chain-of-Thought Prompting for Beginners: Step by Step](https://www.promptise.com/guides/view/step-by-step-reasoning-chain-of-thought-lite): What chain-of-thought does and when it helps.
+    - [Self-Consistency and Least-to-Most Prompting: When They Help](https://www.promptise.com/guides/view/chain-of-thought-evolved-self-consistency-and-least-to-most): Self-consistency and least-to-most, and when they pay off.

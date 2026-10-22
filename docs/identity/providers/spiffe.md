@@ -8,9 +8,9 @@ description: "Back an agent's identity with a SPIFFE JWT-SVID, read from a file 
 Back an agent's identity with a SPIFFE / SPIRE JWT-SVID. Two modes, with
 `mode="auto"` (default) choosing between them:
 
-- **File** — reads a JWT-SVID written by `spiffe-helper`. Needs no
+- **File**: reads a JWT-SVID written by `spiffe-helper`. Needs no
   SPIFFE library.
-- **SDK** — fetches a JWT-SVID from the SPIRE agent's Workload API
+- **SDK**: fetches a JWT-SVID from the SPIRE agent's Workload API
   socket with [py-spiffe](https://github.com/HewlettPackard/py-spiffe)
   (the `spiffe` package on PyPI).
 
@@ -24,7 +24,7 @@ so it needs py-spiffe installed too.
 - **SDK mode only:** `pip install "promptise[identity-spiffe]"`, which
   installs `spiffe` (py-spiffe 0.2 or later) and its gRPC dependencies.
   Promptise 1.5.0 and earlier named a `pyspiffe` package that does not
-  exist on PyPI, so this extra could not be installed; upgrade to 1.5.1.
+  exist on PyPI, so this extra could not be installed; upgrade to 1.5.1 or later.
 - The resource the agent calls must trust your SPIRE trust domain and
   accept the requested `audience`.
 
@@ -47,6 +47,37 @@ identity = AgentIdentity.from_spiffe(
 )
 ```
 
+## Parameters
+
+`AgentIdentity.from_spiffe(agent_id=None, *, name=None, owner=None, labels=None, mode="auto", token_file=None, socket_path=None, audience="api://promptise-agent")`
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `agent_id` | `None` | Local handle. Omit it to use the SVID's `sub` (the SPIFFE ID) |
+| `name`, `owner`, `labels` | `None` | Descriptive metadata |
+| `mode` | `"auto"` | `"auto"`, `"file"` or `"sdk"`; anything else raises `ProviderConfigError` |
+| `token_file` | `None` | JWT-SVID file (file mode). Required for `mode="file"` |
+| `socket_path` | `None` | Workload API address (SDK mode). Falls back to `$SPIFFE_ENDPOINT_SOCKET`, then `unix:///tmp/spire-agent/public/api.sock` |
+| `audience` | `"api://promptise-agent"` | Audience requested in the JWT-SVID (SDK mode) |
+
+`mode="auto"` picks file mode when `token_file` is given and SDK mode otherwise. The SDK provider is *active* (one SVID per requested audience, transient Workload API failures retried); the file provider is *passive* (the audience `spiffe-helper` requested) and re-reads the file on every refresh.
+
+## Provider classes
+
+| Class | Parameters (defaults, keyword-only) | Label |
+| --- | --- | --- |
+| `SpiffeFileProvider` | `token_file` (required) | `spiffe-file` |
+| `SpiffeSdkProvider` | `socket_path=None` (as above), `audience="api://promptise-agent"` | `spiffe-sdk` |
+
+`py-spiffe` is imported only when the SDK provider fetches its first SVID, so constructing it works without the package.
+
+```python
+from promptise.identity import AgentIdentity, SpiffeFileProvider
+
+identity = AgentIdentity("billing-bot", credential=SpiffeFileProvider(token_file="/run/spiffe/jwt-svid.token"))
+print(identity.credential_provider)  # spiffe-file
+```
+
 ## Verify
 
 ```python
@@ -61,4 +92,9 @@ credential = identity.get_credential()      # a signed JWT-SVID
 | `ProviderConfigError: … pip install promptise[identity-spiffe]` | SDK mode but py-spiffe (`spiffe`) is not installed. Install it, or use file mode. |
 | `CredentialAcquisitionError: fetching a JWT-SVID … failed` | No SPIRE agent on the socket, the socket address is not a `unix://` path, or no registration entry. |
 | `CredentialAcquisitionError: … could not be extracted` | The Workload API answered without a usable token (py-spiffe exposes it as `JwtSvid.token`). |
-| File mode: file-not-found | `spiffe-helper` not running or writing elsewhere. |
+| File mode: `projected token file not found` | `spiffe-helper` not running or writing elsewhere. |
+
+## Related
+
+- [Architecture](../architecture.md): caching, per-resource credentials and auto-detection
+- [Security](../security.md): what the identity guarantees, and errors

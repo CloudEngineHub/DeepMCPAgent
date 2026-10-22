@@ -5,7 +5,7 @@ description: "Cache LLM responses by query similarity, with per-user isolation, 
 
 # Semantic Cache
 
-Cache LLM responses by query similarity. Save 30-50% on API costs by serving cached responses for semantically similar queries. All embedding runs locally by default.
+Cache LLM responses by query similarity: a question that means the same as an earlier one gets the stored answer without a model call. Embedding runs locally by default.
 
 ```python
 from promptise import build_agent, SemanticCache, CallerContext
@@ -34,11 +34,11 @@ result = await agent.ainvoke(input, caller=CallerContext(user_id="user-42"))
 1. User sends a message
 2. Input guardrails scan the message (block injection attacks)
 3. Memory search runs (so the cache key includes memory context)
-4. **Cache check** — embed the query, search for similar cached queries with matching context
+4. **Cache check**: embed the query, search for similar cached queries with matching context
 5. **Cache hit** → run output guardrails on cached response → return instantly. The result holds *this* request's messages followed by the cached answer; the cache stores only the final answer, never the messages, injected context or tool results of the request that produced it
 6. **Cache miss** → continue to tools, LLM → output guardrails → **cache the post-guardrail response** → return
 
-Cache check runs **after** input guardrails and memory search (so the cache key reflects current memory state) but **before** tool selection and LLM call. Cached responses are stored **after** output guardrails — only safe, redacted content is ever persisted in the cache.
+Cache check runs **after** input guardrails and memory search (so the cache key reflects current memory state) but **before** tool selection and LLM call. Cached responses are stored **after** output guardrails, only safe, redacted content is ever persisted in the cache.
 
 ---
 
@@ -48,17 +48,17 @@ By default the cache only holds answers that are safe to replay:
 
 | Request | Cached by default | Option |
 |---------|-------------------|--------|
-| One user message, no tool calls | Yes | — |
-| Earlier turns in `messages` (a follow-up) | No — not looked up, not stored | `cache_multi_turn=True` |
+| One user message, no tool calls | Yes | - |
+| Earlier turns in `messages` (a follow-up) | No, not looked up, not stored | `cache_multi_turn=True` |
 | The agent called read-only tools | No | `cache_tool_turns=True` |
-| The agent called a write tool | **Never** | — |
-| The agent called a tool behind an [approval gate](approval.md) | **Never** | — |
+| The agent called a write tool | **Never** | - |
+| The agent called a tool behind an [approval gate](approval.md) | **Never** | - |
 
-**Follow-ups.** "What river runs through it?" means the Seine in a conversation about Paris and the Thames in one about London. With the default `cache_multi_turn=False`, a request whose `messages` carry earlier user, assistant or tool messages bypasses the cache (system messages don't count). With `cache_multi_turn=True` it is cached, and the earlier messages — their role, content and tool calls — are hashed into the cache key, so a follow-up only hits for the same conversation history.
+**Follow-ups.** "What river runs through it?" means the Seine in a conversation about Paris and the Thames in one about London. With the default `cache_multi_turn=False`, a request whose `messages` carry earlier user, assistant or tool messages bypasses the cache (system messages don't count). With `cache_multi_turn=True` it is cached, and the earlier messages (their role, content and tool calls) are hashed into the cache key, so a follow-up only hits for the same conversation history.
 
-**Tool turns.** A cached answer replaces the whole turn, tool calls included: the tool does not run. That is never acceptable for a write — a repeated "open a ticket" would answer "T-103 opened" without opening anything — so a turn that called a write tool is never stored. Answers built from read-only tools go stale when the data changes, so they are only cached with `cache_tool_turns=True`; [write invalidation](#write-invalidation) then evicts them when the agent writes, and `ttl_patterns` bound how long they live otherwise.
+**Tool turns.** A cached answer replaces the whole turn, tool calls included: the tool does not run. That is never acceptable for a write (a repeated "open a ticket" would answer "T-103 opened" without opening anything) so a turn that called a write tool is never stored. Answers built from read-only tools go stale when the data changes, so they are only cached with `cache_tool_turns=True`; [write invalidation](#write-invalidation) then evicts them when the agent writes, and `ttl_patterns` bound how long they live otherwise.
 
-**Approval.** An approval is a decision about one call. A turn that called a tool gated by `build_agent(approval=ApprovalPolicy(...))` — approved or denied — is never cached, so a repeated question asks the reviewer again instead of replaying the earlier outcome. Gates enforced by an MCP server (approval through elicitation) are invisible to the cache; don't list such tools in `read_only_tools` or annotate them `readOnlyHint=True`.
+**Approval.** An approval is a decision about one call. A turn that called a tool gated by `build_agent(approval=ApprovalPolicy(...))`: approved or denied: is never cached, so a repeated question asks the reviewer again instead of replaying the earlier outcome. Gates enforced by an MCP server (approval through elicitation) are invisible to the cache; don't list such tools in `read_only_tools` or annotate them `readOnlyHint=True`.
 
 ```python
 cache = SemanticCache(
@@ -72,7 +72,7 @@ cache = SemanticCache(
 
 ## Security: Per-User Isolation
 
-**Default scope is `per_user`** — every user gets an isolated cache partition. User A's cached responses are invisible to User B.
+**Default scope is `per_user`**: every user gets an isolated cache partition. User A's cached responses are invisible to User B.
 
 **No CallerContext = no caching.** If you don't pass `caller=CallerContext(user_id=...)`, caching is silently disabled for that request. This prevents accidental cross-user data leakage.
 
@@ -93,7 +93,7 @@ Three scopes:
 | `shared` | All users share one cache | Public knowledge (weather, docs, FAQ) |
 
 ```python
-# Shared scope — requires explicit acknowledgment
+# Shared scope: requires explicit acknowledgment
 cache = SemanticCache(scope="shared", shared_data_acknowledged=True)
 ```
 
@@ -110,7 +110,7 @@ agent = await build_agent(
     servers={...}, model="openai:gpt-5-mini", cache=cache,
 )
 
-# No CallerContext needed — works immediately
+# No CallerContext needed: works immediately
 result = await agent.ainvoke({"messages": [{"role": "user", "content": "What is Python?"}]})
 ```
 
@@ -140,13 +140,13 @@ await agent.ainvoke(input, caller=CallerContext(user_id="bob"))    # Bob's cache
 ```
 
 **How it works internally:**
-- Cache key prefix is `user:{user_id}` — Alice's entries are keyed `user:alice`, Bob's are `user:bob`
-- With `CallerContext(tenant_id="acme")` the key is tenant-qualified — an injective, colon-prefixed hash (`user:t:<sha256>`) disjoint from the untenanted namespace, so two tenants with the same `user_id` can never share a cache partition
-- Similarity search only runs within a user's own partition — no cross-user matching possible
+- Cache key prefix is `user:{user_id}`: Alice's entries are keyed `user:alice`, Bob's are `user:bob`
+- With `CallerContext(tenant_id="acme")` the key is tenant-qualified: an injective, colon-prefixed hash (`user:t:<sha256>`) disjoint from the untenanted namespace, so two tenants with the same `user_id` can never share a cache partition
+- Similarity search only runs within a user's own partition: no cross-user matching possible
 - If no `CallerContext` is provided, caching is silently disabled for that request (with a debug log: `"Cache: no CallerContext or user_id provided"`)
 - `purge_user("alice")` removes all of Alice's cached entries, for example when she asks you to delete her data
 
-**Per-session mode** isolates even further — each of a user's sessions has its own cache:
+**Per-session mode** isolates even further, each of a user's sessions has its own cache:
 
 ```python
 cache = SemanticCache(scope="per_session")
@@ -158,7 +158,7 @@ caller = CallerContext(
 await agent.ainvoke(input, caller=caller)
 ```
 
-A session partition belongs to the user and session together, so two users who pass the same `session_id` never share entries. A caller without a `user_id` is not cached, as with `per_user`; a caller without a `session_id` uses the user's partition. `purge_user()` removes the user partition only — per-session entries expire with their TTL — and a write evicts only the session it happened in.
+A session partition belongs to the user and session together, so two users who pass the same `session_id` never share entries. A caller without a `user_id` is not cached, as with `per_user`; a caller without a `session_id` uses the user's partition. `purge_user()` removes the user partition only (per-session entries expire with their TTL) and a write evicts only the session it happened in.
 
 ---
 
@@ -220,7 +220,7 @@ Shared across workers and servers. Survives restarts. Optional AES encryption at
 cache = SemanticCache(
     backend="redis",
     redis_url="redis://localhost:6379",
-    encrypt_values=True,  # AES encryption — set PROMPTISE_CACHE_KEY env var
+    encrypt_values=True,  # AES encryption: set PROMPTISE_CACHE_KEY env var
 )
 ```
 
@@ -228,7 +228,7 @@ Requires `pip install redis`. Encryption requires `pip install cryptography`.
 
 Set `PROMPTISE_CACHE_KEY` to a Fernet key for persistent encryption across restarts. If not set, a key is auto-generated per process (cache won't survive restart).
 
-**Graceful degradation:** If Redis is unreachable, cache operations fail silently (logged as warnings) and the agent continues normally — LLM is called directly.
+**Graceful degradation:** If Redis is unreachable, cache operations fail silently (logged as warnings) and the agent continues normally, LLM is called directly.
 
 ---
 
@@ -236,13 +236,16 @@ Set `PROMPTISE_CACHE_KEY` to a Fernet key for persistent encryption across resta
 
 ### Local (default)
 
-Uses `sentence-transformers` — the same model used for semantic tool optimization. Zero API calls, runs locally. It needs `sentence-transformers` and `numpy` (`pip install "promptise[all]"`); if either is missing, `build_agent(cache=...)` raises `ImportError` naming the package, rather than building an agent that never caches. Call `cache.warmup()` at startup to load the model before the first request.
+Uses `sentence-transformers`: the same model used for semantic tool optimization. Zero API calls, runs locally. It needs `sentence-transformers` and `numpy` (`pip install "promptise[all]"`); if either is missing, `build_agent(cache=...)` raises `ImportError` naming the package, rather than building an agent that never caches. Call `cache.warmup()` at startup to load the model before the first request.
 
 ```python
 cache = SemanticCache()  # all-MiniLM-L6-v2
 cache = SemanticCache(embedding="BAAI/bge-small-en-v1.5")
 cache = SemanticCache(embedding="/models/local/custom")
 ```
+
+A model name or path is wrapped in `LocalEmbeddingProvider(model=...)` (default
+`"all-MiniLM-L6-v2"`), which you can also create yourself and share between caches.
 
 ### OpenAI / Azure OpenAI
 
@@ -256,6 +259,14 @@ cache = SemanticCache(
     ),
 )
 ```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `model` | `"text-embedding-3-small"` | Embedding model, or the model name of an Azure deployment |
+| `api_key` | `None` | The key, or a `${VAR}` reference resolved on each call. Required: it is not read from `OPENAI_API_KEY` on its own |
+| `base_url` | `None` | An OpenAI-compatible server; `/v1/embeddings` is appended, so leave `/v1` off |
+| `azure_endpoint` | `None` | Azure OpenAI resource URL; the key is sent as the `api-key` header |
+| `azure_deployment` | `None` | Azure deployment name (default: `model`) |
 
 ### Custom provider
 
@@ -283,7 +294,7 @@ The cache key determines when a hit occurs. It includes:
 | Model ID | Serving GPT responses as Claude responses |
 | Instruction hash | Stale responses after prompt updates |
 
-The context fingerprint hashes the injected memory content and every message before the query — system messages, and with `cache_multi_turn=True` the earlier turns — not just how many there are.
+The context fingerprint hashes the injected memory content and every message before the query: system messages, and with `cache_multi_turn=True` the earlier turns, not just how many there are.
 
 With a [`FallbackChain`](fallback.md) the model ID is the chain member that is serving: answers are stored under the model that wrote them, and looked up under the first model whose circuit is not open. An answer from a fallback model is never served as the primary's.
 
@@ -301,12 +312,12 @@ create_ticket() runs → cache evicted
 "How many tickets are open?" → fresh LLM call → "48"
 ```
 
-**What counts as a write.** MCP servers describe their tools with annotations; a tool is read-only when it declares `readOnlyHint: true` (`@server.tool(read_only_hint=True)` in Promptise's server SDK). Any other tool — including one with no annotations, the MCP default — counts as a write. Override per tool name:
+**What counts as a write.** MCP servers describe their tools with annotations; a tool is read-only when it declares `readOnlyHint: true` (`@server.tool(read_only_hint=True)` in Promptise's server SDK). Any other tool (including one with no annotations, the MCP default) counts as a write. Override per tool name:
 
-- `read_only_tools=[...]` — read-only whatever the annotations say; use it for `extra_tools` and other tools without annotations.
-- `write_tools=[...]` — always a write; wins over `read_only_tools` and annotations. Annotations come from the server, so list a tool here if you don't trust its server.
+- `read_only_tools=[...]`: read-only whatever the annotations say; use it for `extra_tools` and other tools without annotations.
+- `write_tools=[...]`: always a write; wins over `read_only_tools` and annotations. Annotations come from the server, so list a tool here if you don't trust its server.
 
-**When.** The eviction happens as soon as the write tool finishes or fails — before the agent writes its answer, and even if the run fails afterwards. It also happens for runs made with `astream()` and `astream_with_tools()`. A request in the same scope that was already running when the write landed does not store its answer, since it may have read the old data. Writes made outside the agent are not seen: bound them with `default_ttl` and `ttl_patterns`.
+**When.** The eviction happens as soon as the write tool finishes or fails: before the agent writes its answer, and even if the run fails afterwards. It also happens for runs made with `astream()` and `astream_with_tools()`. A request in the same scope that was already running when the write landed does not store its answer, since it may have read the old data. Writes made outside the agent are not seen: bound them with `default_ttl` and `ttl_patterns`.
 
 To evict by hand, for example after a webhook reports a change: `await cache.invalidate_for_write("orders_updated", caller=caller)`.
 
@@ -330,9 +341,9 @@ count = await cache.purge_user("user-42", tenant_id="acme")
 
 With `observe=True`, cache events appear in the observability timeline:
 
-- `cache.hit` — response served from cache; `metadata` carries `similarity` (cosine similarity to the stored query), `age_seconds`, `scope` and `ttl`
-- `cache.miss` — no cache hit, proceeding to LLM
-- `cache.store` — new response stored in cache
+- `cache.hit`: response served from cache; `metadata` carries `similarity` (cosine similarity to the stored query), `age_seconds`, `scope` and `ttl`
+- `cache.miss`: no cache hit, proceeding to LLM
+- `cache.store`: new response stored in cache
 
 A cache failure (Redis unreachable, embedding API down) never fails the request: it is logged as a warning on the `promptise.cache` or `promptise.agent` logger and the request goes to the LLM.
 
@@ -342,10 +353,10 @@ A cache failure (Redis unreachable, embedding API down) never fails the request:
 
 ## What's Next?
 
-- [Guardrails](guardrails.md) — output guardrails always run on cached responses
-- [Tool Optimization](tool-optimization.md) — shares the same embedding model
-- [Building Agents](agents/building-agents.md) — the `cache` parameter on `build_agent()`
+- [Guardrails](guardrails.md): output guardrails always run on cached responses
+- [Tool Optimization](tool-optimization.md): shares the same embedding model
+- [Building Agents](agents/building-agents.md): the `cache` parameter on `build_agent()`
 
 !!! tip "Learn the concept"
 
-    - [LLM Semantic Cache and Model Fallback in Python](https://www.promptise.com/guides/view/llm-semantic-cache-fallback-python) -- How a semantic cache cuts LLM cost, with real hit rates.
+    - [LLM Semantic Cache and Model Fallback in Python](https://www.promptise.com/guides/view/llm-semantic-cache-fallback-python): How a semantic cache cuts LLM cost, with real hit rates.

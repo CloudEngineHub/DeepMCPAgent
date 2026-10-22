@@ -5,7 +5,7 @@ description: "See how a prompt was assembled: blocks included, token estimates, 
 
 # Prompt Inspector & Observability
 
-See exactly how your prompts are assembled, which blocks made it in, token estimates, what was dropped, guard results, and the exact text sent to the LLM. No other framework gives you this level of visibility.
+See how your prompts are assembled: which blocks made it in, token estimates, what was dropped, guard results, and the exact text sent to the LLM.
 
 ## Quick Example
 
@@ -26,7 +26,7 @@ result = await analyze("quarterly data")
 trace = inspector.last()
 print(trace.prompt_name)            # "analyze"
 print(trace.blocks_included)        # ["identity", "rules"]
-print(trace.total_tokens_estimated) # 45
+print(trace.total_tokens_estimated) # estimate for the assembled blocks
 print(trace.input_text)             # Full prompt sent to LLM
 print(trace.latency_ms)             # Execution time in ms
 ```
@@ -35,8 +35,8 @@ print(trace.latency_ms)             # Execution time in ms
 
 The prompt framework has two observability tools:
 
-- **`PromptInspector`** -- local debugging and tracing. Records detailed traces of every prompt assembly and execution. Designed for development and testing.
-- **`PromptObserver`** -- production telemetry. Records structured events to a pluggable `ObservabilityCollector`. Designed for metrics, monitoring, and dashboards.
+- **`PromptInspector`**: local debugging and tracing. Records detailed traces of every prompt assembly and execution. Designed for development and testing.
+- **`PromptObserver`**: production telemetry. Records structured events to a pluggable `ObservabilityCollector`. Designed for metrics, monitoring, and dashboards.
 
 Both can be used simultaneously. The inspector records everything locally; the observer emits events to your telemetry pipeline.
 
@@ -44,7 +44,7 @@ Both can be used simultaneously. The inspector records everything locally; the o
 
 ### Recording Traces
 
-Attach the inspector to a prompt via the `inspect` parameter:
+Attach the inspector to a prompt with `@prompt(inspect=...)` or `prompt.with_inspector(inspector)`. A [`ConversationFlow`](flows.md#inspecting-a-flow) takes `inspector=` too:
 
 ```python
 from promptise.prompts.inspector import PromptInspector
@@ -58,7 +58,7 @@ async def summarize(text: str) -> str:
 result = await summarize("long article text...")
 ```
 
-Every invocation records a `PromptTrace` with full assembly and execution details.
+Each standalone call, each `render_async()` (also when the prompt is an agent's `instructions`), and each flow `start()` / `next_turn()` / `transition()` records one `PromptTrace`. One inspector can be shared by many prompts.
 
 ### Reading Traces
 
@@ -81,15 +81,15 @@ print(inspector.summary())
 | `model` | `str` | Model used |
 | `timestamp` | `float` | Unix timestamp |
 | `blocks` | `list[BlockTrace]` | Per-block details |
-| `total_tokens_estimated` | `int` | Estimated token count |
+| `total_tokens_estimated` | `int` | Estimated tokens of the assembled **blocks** (not the whole prompt) |
 | `blocks_included` | `list[str]` | Blocks included in assembly |
 | `blocks_excluded` | `list[str]` | Blocks not included |
-| `context_providers` | `list[ContextTrace]` | Per-provider details |
-| `input_text` | `str` | Final text sent to LLM |
-| `output_text` | `str` | LLM response |
-| `latency_ms` | `float` | Execution time in milliseconds |
-| `guards_passed` | `list[str]` | Guard names that passed |
-| `guards_failed` | `list[str]` | Guard names that failed |
+| `context_providers` | `list[ContextTrace]` | Per-provider details, filled only by your own `record_context()` calls; `@prompt` leaves it empty |
+| `input_text` | `str` | Final text sent to the LLM (after input guards) |
+| `output_text` | `str` | Raw LLM response after the strategy's `parse()` (standalone calls only) |
+| `latency_ms` | `float` | Execution time in milliseconds (standalone calls only) |
+| `guards_passed` | `list[str]` | Output guards that passed (input guards are recorded only when they fail) |
+| `guards_failed` | `list[str]` | Guards that rejected the input or output |
 | `flow_phase` | `str` | Conversation flow phase (if used) |
 | `flow_turn` | `int` | Conversation flow turn number |
 
@@ -114,7 +114,9 @@ Produces a human-readable report covering all recorded prompt traces, including 
 | Method / Property | Returns | Description |
 |-------------------|---------|-------------|
 | `last()` | `PromptTrace \| None` | Most recent prompt trace |
-| `traces` | `list[PromptTrace]` | All recorded prompt traces |
+| `traces` | `list[PromptTrace]` | All recorded prompt traces (a copy) |
+| `last_graph()` | `GraphTrace \| None` | Most recent graph trace |
+| `graph_traces` | `list[GraphTrace]` | All recorded graph traces (a copy) |
 | `summary()` | `str` | Human-readable summary report |
 | `clear()` | `None` | Discard all recorded traces |
 
@@ -124,14 +126,17 @@ Recording methods (auto-called by `@prompt`; available for custom integrations):
 |--------|-------------|
 | `record_assembly(assembled, prompt_name, model)` | Record how the prompt was assembled |
 | `record_execution(trace, output, latency_ms)` | Record LLM output and latency |
-| `record_context(trace, provider_name, chars, time)` | Record a context provider contribution |
+| `record_context(trace, provider_name, chars_injected, render_time_ms)` | Record a context provider contribution |
 | `record_guard(trace, guard_name, passed)` | Record guard pass/fail |
+| `record_graph(graph_name, node_traces, total_duration_ms, path, iterations, final_state)` | Record a graph run as a `GraphTrace` (with `NodeTrace` entries) |
+
+Guard names in traces are the guard's `name` attribute, or its class name (`ContentFilterGuard`, `LengthGuard`, ...).
 
 ---
 
 ## PromptObserver
 
-`PromptObserver` is the production telemetry bridge. It wraps the `ObservabilityCollector` and emits structured events for prompt lifecycle stages.
+`PromptObserver(collector)` turns prompt lifecycle events into timeline events on an [`ObservabilityCollector`](../core/observability.md). Recording failures are logged at debug level and never raise.
 
 ### Setup
 
@@ -143,23 +148,50 @@ collector = ObservabilityCollector()
 observer = PromptObserver(collector)
 ```
 
-Attach to prompts via the `observer` parameter or `observe=True`:
+In 1.6.0, prompts don't call the observer for you: `@prompt` has no `observer` parameter, and `observe=True` only stores a flag. Call the observer from the prompt's lifecycle hooks:
 
 ```python
-@prompt(model="openai:gpt-5-mini", observer=observer)
+import time
+from promptise.prompts import prompt
+from promptise.prompts.observe import PromptObserver
+from promptise.observability import ObservabilityCollector
+
+collector = ObservabilityCollector()
+observer = PromptObserver(collector)
+
+@prompt(model="openai:gpt-5-mini")
 async def analyze(text: str) -> str:
     """Analyze: {text}"""
+
+started: dict[str, float] = {}
+
+def before(ctx):
+    started[ctx.prompt_name] = time.perf_counter()
+    observer.record_start(ctx.prompt_name, ctx.model, ctx.rendered_text)
+
+def after(ctx, result):
+    ms = (time.perf_counter() - started.pop(ctx.prompt_name, time.perf_counter())) * 1000
+    observer.record_end(ctx.prompt_name, ctx.model, ms, len(str(result)))
+
+def failed(ctx, exc):
+    observer.record_error(ctx.prompt_name, exc)
+
+observed = analyze.on_before(before).on_after(after).on_error(failed)
+result = await observed("Q3 revenue $3.2M")
+print([e.event_type for e in collector.get_timeline()])
 ```
 
 ### Events Recorded
 
 | Method | Event | Data |
 |--------|-------|------|
-| `record_start(prompt_name, model, input_text)` | `PROMPT_START` | prompt name, model, input length |
-| `record_end(prompt_name, model, latency_ms, output_length)` | `PROMPT_END` | prompt name, model, latency, output length |
-| `record_error(prompt_name, error)` | `PROMPT_ERROR` | prompt name, error type, error message |
-| `record_guard_block(prompt_name, guard_name, reason)` | `PROMPT_GUARD_BLOCK` | prompt name, guard name, reason |
-| `record_context(prompt_name, provider_name, chars_injected)` | `PROMPT_CONTEXT` | prompt name, provider, chars injected |
+| `record_start(prompt_name, model, input_text)` | `PROMPT_START` | `prompt_name`, `model`, `input_length` |
+| `record_end(prompt_name, model, latency_ms, output_length)` | `PROMPT_END` | `prompt_name`, `model`, `latency_ms`, `output_length` |
+| `record_error(prompt_name, error)` | `PROMPT_ERROR` | `prompt_name`, `error_type`, `error_message` |
+| `record_guard_block(prompt_name, guard_name, reason)` | `PROMPT_GUARD_BLOCK` | `prompt_name`, `guard_name`, `reason` |
+| `record_context(prompt_name, provider_name, chars_injected)` | `PROMPT_CONTEXT` | `prompt_name`, `provider`, `chars_injected` |
+
+Each event uses the prompt name as its `agent_id`.
 
 ### Observer API
 
@@ -179,5 +211,5 @@ async def analyze(text: str) -> str:
 
 ## What's Next
 
-- [Guards](guards.md) -- Input/output validation
-- [Strategies](strategies.md) -- Control how the agent reasons
+- [Guards](guards.md): Input/output validation
+- [Strategies](strategies.md): Control how the agent reasons

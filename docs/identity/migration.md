@@ -6,27 +6,30 @@ description: "Add Agent Identity to existing agents with a one-line change: name
 # Adding identity to existing agents
 
 Agent Identity is **additive**. It does not change how your agents are
-authenticated to their model or how they call tools — it gives them a
+authenticated to their model or how they call tools: it gives them a
 traceable identity on top of what you already have. Adopting it is a
 one-line change, and it touches nothing else.
 
 ## Before
 
 ```python
+from promptise import build_agent
+
 agent = await build_agent(
-    model="anthropic:claude-sonnet-4-5",
-    servers={...},
+    model="openai:gpt-5-mini",
+    servers={},   # your MCP servers, unchanged
 )
 ```
 
 ## After
 
 ```python
+from promptise import build_agent
 from promptise.identity import AgentIdentity
 
 agent = await build_agent(
-    model="anthropic:claude-sonnet-4-5",
-    servers={...},
+    model="openai:gpt-5-mini",
+    servers={},   # your MCP servers, unchanged
     identity=AgentIdentity("billing-bot", name="Billing Bot", owner="payments"),
 )
 ```
@@ -42,7 +45,7 @@ is that the agent's recorded actions are now attributed to
    Treat it like a service-account name: durable, unique, meaningful.
 
 2. **Add `identity=`** to each `build_agent()` call. Start with a local
-   identity — no infrastructure needed. With `observe=` enabled, the
+   identity (no infrastructure needed). With `observe=` enabled, the
    timeline immediately shows which agent produced each tool call and
    LLM turn.
 

@@ -1,5 +1,5 @@
 ---
-title: Lab — Build an MCP Server for Your SaaS API so Customers Can Use Any AI With It
+title: "Lab: Build an MCP Server for Your SaaS API so Customers Can Use Any AI With It"
 seo_title: "Lab: MCP Server for Your SaaS API"
 description: "Turn a SaaS OpenAPI spec into an MCP server with promptise mcpcast: risk-classified tools, approval for refunds, per-tenant credentials and a readiness score."
 keywords: MCP server for your SaaS API, let customers use AI with your product, human approval AI agent, OpenAPI to MCP server, agent readiness score, four-eyes approval, MCP server from REST API
@@ -11,7 +11,7 @@ Your customers keep asking the same question: *"does it work with Claude?"*
 
 You could build a chatbot into your product. Almost everyone does, and almost
 nobody uses it. The other answer is better: **ship an MCP server for the API you
-already have**, and let every customer bring their own AI — Claude Desktop,
+already have**, and let every customer bring their own AI: Claude Desktop,
 Claude Code, Cursor, an internal agent, whatever they already run.
 
 The hard part was never the protocol. It is that a REST API is not a tool
@@ -26,14 +26,14 @@ runnable code you can point at your own spec afterwards.
 
 From one OpenAPI file:
 
-- an **MCP server as editable Python** — not a black box, not a proxy: an
+- an **MCP server as editable Python**, not a black box, not a proxy: an
   installable package with its own tests that depends only on `promptise` and
   `httpx`
 - a **risk-classified tool surface** where every read is open, every write is
   approval-gated, and every excluded operation is recorded *with a reason*
 - **multi-tenant auth**: each customer's MCP key maps to their own upstream
   credential, and reviewers only ever see their own tenant's calls
-- a **four-eyes approval gate** enforced server-side — a refund waits for a
+- a **four-eyes approval gate** enforced server-side: a refund waits for a
   second human, for *any* MCP client, and is denied on timeout
 - an **Agent Readiness Score**: a real agent, real tasks, a grade, and a list of
   specific tool-design fixes
@@ -54,7 +54,7 @@ The complete lab lives in `examples/mcp/mcpcast_storefront_lab/`:
 
 | File | What it is |
 |---|---|
-| `storefront.yaml` | The API the company already ships — 13 operations |
+| `storefront.yaml` | The API the company already ships: 13 operations |
 | `fake_api.py` | The upstream, as an in-process `httpx.MockTransport` that records every request |
 | `run.py` | The lab itself, in five printed sections |
 
@@ -64,7 +64,7 @@ The complete lab lives in `examples/mcp/mcpcast_storefront_lab/`:
 
 ## The API you already have
 
-Nothing about `storefront.yaml` is unusual — that is the point. Customers,
+Nothing about `storefront.yaml` is unusual: that is the point. Customers,
 orders, a refund endpoint, a subscription cancellation, one admin route, one
 deprecated CSV export, one multipart upload:
 
@@ -92,7 +92,7 @@ deprecated CSV export, one multipart upload:
                   description: Amount to refund, in the order's currency.
 ```
 
-## Step 1 — Generate the server, and read what it decided
+## Step 1: Generate the server, and read what it decided
 
 One call does parse → classify → plan → emit. `write_project` puts three files
 on disk: the plan, the server, and a README for whoever runs it.
@@ -110,7 +110,7 @@ The CLI does the same, and adds the LLM curation pass and the review screen:
 promptise mcpcast storefront.yaml --profile full --auth api-key --out storefront-mcp
 ```
 
-The interesting part is not that it generated something — it is that it can tell
+The interesting part is not that it generated something: it is that it can tell
 you *why* it generated exactly this:
 
 ```text
@@ -151,11 +151,11 @@ wrong:
 
 - **`POST /customers/search` is a read.** Method is not intent. A POST whose
   leading verb is a query verb, with no mutating verb anywhere, is classified
-  `read` — so it survives the `read-only` profile.
+  `read`, so it survives the `read-only` profile.
 - **Two GETs were escalated.** `GET /reports/revenue` carries the OAuth scope
   `admin:read`; `GET /admin/customers/{id}/pii` sits under `/admin`. Both are
   HTTP reads that no one should hand an agent by default, so they come out as
-  `write` — exposed only from `standard` up, and approval-gated.
+  `write`: exposed only from `standard` up, and approval-gated.
 - **Nothing disappeared quietly.** The multipart upload cannot be sent by the
   generated client and the CSV export is `deprecated: true` in the spec; both
   are in `plan.dropped` with the reason, not silently missing.
@@ -163,16 +163,16 @@ wrong:
   default because it is the one you can ship to strangers.
 
 !!! tip "The plan file is the source of truth"
-    `mcpcast.plan.yaml` is what you edit — tool names, descriptions, examples,
-    hidden parameters, the dropped list — and then regenerate with
+    `mcpcast.plan.yaml` is what you edit (tool names, descriptions, examples,
+    hidden parameters, the dropped list) and then regenerate with
     `promptise mcpcast mcpcast.plan.yaml`. Your edits survive; the package and
     `server.py` are always rebuilt from the plan. See
     [the plan file](../mcp/server/mcpcast.md#the-plan-file).
 
-## Step 2 — Point a real agent at it
+## Step 2: Point a real agent at it
 
 The generated server is a normal `MCPServer`, so an agent can drive it
-in-process through `TestClient` — the full pipeline (validation, guards,
+in-process through `TestClient`: the full pipeline (validation, guards,
 middleware, approval gate, handler) with no ports involved.
 `tools_from_server()` does the bridging, and a `CallRecorder` notes every tool
 the agent picks.
@@ -216,7 +216,7 @@ a filtered list because the generated descriptions and examples told it how.
 That last line is the multi-tenancy in action. Under `--auth api-key` the
 generated server runs with `require_tenant=True`: the MCP client presents a key
 from `MCPCAST_CLIENT_KEYS`, the key names a tenant, and the tenant selects the
-upstream credential from `MCPCAST_UPSTREAM_TOKENS` — read per call, so rotating a
+upstream credential from `MCPCAST_UPSTREAM_TOKENS`: read per call, so rotating a
 customer's token needs no restart.
 
 ```python
@@ -225,10 +225,10 @@ CLIENT_KEYS = {
     REVIEWER_KEY:     {"client_id": "dana", "tenant_id": "northwind", "roles": ["approver"]},
     OTHER_TENANT_KEY: {"client_id": "gus",  "tenant_id": "globex",    "roles": ["approver"]},
 }
-UPSTREAM_TOKENS = {"northwind": "Bearer northwind-upstream-token", ...}
+UPSTREAM_TOKENS = {"northwind": "Bearer northwind-upstream-token", "globex": "Bearer globex-upstream-token"}
 ```
 
-## Step 3 — The refund that waits for a human
+## Step 3: The refund that waits for a human
 
 Now the agent is asked to move money. Same server, same agent, one different
 sentence:
@@ -243,54 +243,54 @@ sentence:
     API log so far: []
 ```
 
-The agent called the tool. The call is *parked* — because this is what the
+The agent called the tool. The call is *parked*, because this is what the
 generator wrote for that operation, in `storefront_mcp/tools/billing.py`, for
 you to read:
 
 ```python
-    # -- refund_order (financial, requires approval) -----------------------------
-    @server.tool(
-        name="refund_order",
-        description=(
-            "Refund an order. Move money back to the customer's original payment method. Partial "
-            "refunds are allowed; the sum of refunds may not exceed the order total.\n"
-            "\n"
-            "Parameters:\n"
-            "  - order_id (string, required): The order identifier, e.g. `ORD-1002`.\n"
-            "  - amount (number, required): Amount to refund, in the order's currency.\n"
-            "  - reason (string): Why the refund was issued (kept for the audit trail).\n"
-            "\n"
-            'Example: {"order_id": "ORD-1002", "amount": 24}'
-        ),
-        tags=["billing"],
-        open_world_hint=True,
-        requires_approval=True,
-    )
-    async def refund_order(
-        ctx: RequestContext,
-        order_id: str,
-        amount: float,
-        reason: str | None = None,
-    ) -> Any:
-        "Refund an order. Move money back to the customer's original payment method.…"
-        args: dict[str, Any] = {
-            "order_id": order_id,
-            "amount": amount,
-            "reason": reason,
-        }
-        return await upstream.call(select_route(ROUTES["refund_order"], args), args, ctx)
+# -- refund_order (financial, requires approval) -----------------------------
+@server.tool(
+    name="refund_order",
+    description=(
+        "Refund an order. Move money back to the customer's original payment method. Partial "
+        "refunds are allowed; the sum of refunds may not exceed the order total.\n"
+        "\n"
+        "Parameters:\n"
+        "  - order_id (string, required): The order identifier, e.g. `ORD-1002`.\n"
+        "  - amount (number, required): Amount to refund, in the order's currency.\n"
+        "  - reason (string): Why the refund was issued (kept for the audit trail).\n"
+        "\n"
+        'Example: {"order_id": "ORD-1002", "amount": 24}'
+    ),
+    tags=["billing"],
+    open_world_hint=True,
+    requires_approval=True,
+)
+async def refund_order(
+    ctx: RequestContext,
+    order_id: str,
+    amount: float,
+    reason: str | None = None,
+) -> Any:
+    "Refund an order. Move money back to the customer's original payment method.…"
+    args: dict[str, Any] = {
+        "order_id": order_id,
+        "amount": amount,
+        "reason": reason,
+    }
+    return await upstream.call(select_route(ROUTES["refund_order"], args), args, ctx)
 ```
 
 `ApprovalGateMiddleware` holds a `requires_approval` call before the handler
-runs. **The upstream API received nothing at all** — that
+runs. **The upstream API received nothing at all**: that
 empty log is the whole point. If nobody decides within
 `MCPCAST_APPROVAL_TIMEOUT`, the call is denied, not allowed.
 
 Because the callers are identified (api-key auth), the approver is the `pending`
-one: an independent human, reached through two generated, tenant-scoped tools —
+one: an independent human, reached through two generated, tenant-scoped tools:
 `approvals_list` and `approvals_decide`, both guarded by the `approver` role.
 
-Approving is itself a tool call, so a reviewer can be any MCP client — a
+Approving is itself a tool call, so a reviewer can be any MCP client: a
 dashboard, a Slack bot, or a second Claude session:
 
 ```python
@@ -319,14 +319,14 @@ dashboard, a Slack bot, or a second Claude session:
     authorization='Bearer northwind-upstream-token'  (northwind's upstream credential)
 ```
 
-Four attempts and what the server did with each — enforced by the server, not by
+Four attempts and what the server did with each: enforced by the server, not by
 the client's good manners:
 
 | Attempt | Outcome |
 |---|---|
-| A reviewer of another tenant lists pending calls | sees nothing — reviewers never see other tenants' arguments |
-| That reviewer decides by request id anyway | `NOT_FOUND` — the id does not exist *for them* |
-| The caller approves their own request, holding the `approver` role | `ACCESS_DENIED` — four-eyes, always |
+| A reviewer of another tenant lists pending calls | sees nothing: reviewers never see other tenants' arguments |
+| That reviewer decides by request id anyway | `NOT_FOUND`: the id does not exist *for them* |
+| The caller approves their own request, holding the `approver` role | `ACCESS_DENIED`: four-eyes, always |
 | A different human of the same tenant approves | the call resumes and hits the API, once |
 
 This is why the gate belongs in the server. Your customer might connect with
@@ -336,15 +336,15 @@ policy that lives on your side of the wire.
 !!! note "Which approver you get"
     `--auth api-key` defaults to `pending` (four-eyes review, shown here).
     `passthrough`, `env-token` and `none` default to `elicitation`: the human
-    behind the *calling* client confirms the action in their own UI — the right
+    behind the *calling* client confirms the action in their own UI: the right
     shape for a personal server launched by Claude Desktop over stdio. Both are
     fail-closed. See [Human approval](../mcp/server/mcpcast.md#human-approval).
 
-## Step 4 — Measure: the Agent Readiness Score
+## Step 4: Measure: the Agent Readiness Score
 
 You now have a server that is safe. Safe is not the same as *usable*: the real
 question is whether an agent picks the right tool from your descriptions.
-`evaluate()` answers it with evidence — a real agent, real tasks, the full
+`evaluate()` answers it with evidence: a real agent, real tasks, the full
 server pipeline, and mocks derived from your spec so nothing can touch real data.
 
 ```python
@@ -383,27 +383,27 @@ fixes are the payload: exact tool pairs the agent confuses, parameters that
 produced validation errors, tools no task covered, tools a task needed and the
 agent never reached for.
 
-A grade of A on eight tasks is *not* the interesting part — the three lines under
+A grade of A on eight tasks is *not* the interesting part: the three lines under
 it are. Two tools have no worked example, and three tools are not covered by any
 task at all, which means the run says nothing about them. That is the honest
 answer to "is my API agent-ready?": here is what I measured, here is what I did
 not, here is what to fix first.
 
-`--eval` writes the same thing to disk — `eval/tasks.yaml` (rerun the exact
-tasks) and `eval/report.md` (the table above, in Markdown) — so a readiness score
+`--eval` writes the same thing to disk (`eval/tasks.yaml` (rerun the exact
+tasks) and `eval/report.md` (the table above, in Markdown)) so a readiness score
 can live in CI next to your other tests.
 
 !!! warning "An evaluation never changes your data"
     The live/mock split is by **risk class**, not HTTP method: only routes of
     `read` tools may reach the real API (and only with `live_reads=True`).
-    Everything else — writes, refunds, cancellations, and any GET the classifier
-    escalated — is answered by a spec-derived mock behind an auto-approver.
+    Everything else (writes, refunds, cancellations, and any GET the classifier
+    escalated) is answered by a spec-derived mock behind an auto-approver.
 
-## Step 5 — Apply the fixes, regenerate, re-measure
+## Step 5: Apply the fixes, regenerate, re-measure
 
 The report is advice, and the plan is code, so the fixes are a few lines. Here
-the lab merges the two customer lookups into one *intent* tool with two routes —
-the agent should be picking a customer, not an HTTP endpoint — adds the examples
+the lab merges the two customer lookups into one *intent* tool with two routes
+(the agent should be picking a customer, not an HTTP endpoint) adds the examples
 the report asked for, drops the health check no task needs, and puts
 `notify_customer` on a param diet so an agent can never email a customer:
 
@@ -497,7 +497,7 @@ Then the *same eight requests* run again against the regenerated server:
 
 **The grade did not move, and the lab says so.** That is what an honest metric
 looks like: this surface was already unambiguous for these eight requests, so the
-score had nowhere to go. What *did* change is worth having anyway — two fewer
+score had nowhere to go. What *did* change is worth having anyway: two fewer
 tools to choose from and to pay tokens for, every tool carrying a worked example,
 and a fix list that shrank from three items to one. On a real API with a hundred
 endpoints the first run is rarely an A, and the confusion pairs the report prints
@@ -507,15 +507,15 @@ One row is worth reading twice. In the first run `t6` shows
 `get_customer -> get_customer`: the agent asked again, because the mock answers
 *every* customer id with the spec's canned `Customer` example, so the record that
 came back did not carry the id it had asked for. That wobble is mock-shaped, not
-tool-shaped — mocks are how an evaluation stays safe, and the exact row varies
+tool-shaped: mocks are how an evaluation stays safe, and the exact row varies
 from run to run because the model does. Run with `live_reads=True`
 (and a real credential in `MCPCAST_EVAL_AUTHORIZATION`) when you want reads to hit
 the real API and the numbers to reflect real payloads.
 
-## Step 6 — Hand it to Claude Desktop, Claude Code or Cursor
+## Step 6: Hand it to Claude Desktop, Claude Code or Cursor
 
 For a personal server that a desktop client launches over stdio, generate it
-with `--auth env-token` so it carries one credential — yours:
+with `--auth env-token` so it carries one credential: yours:
 
 ```bash
 promptise mcpcast examples/mcp/mcpcast_storefront_lab/storefront.yaml \
@@ -538,7 +538,7 @@ promptise mcpcast examples/mcp/mcpcast_storefront_lab/storefront.yaml \
 ```
 
 Claude Code takes the same command and the same token, passed with `-e` so it
-lands in the server's environment — the client launches the server itself and
+lands in the server's environment: the client launches the server itself and
 does not see your shell's exports:
 
 ```bash
@@ -547,11 +547,11 @@ claude mcp add storefront -e MCPCAST_UPSTREAM_TOKEN="Bearer <your Storefront API
 ```
 
 Cursor's `.cursor/mcp.json` uses the identical `command`/`args`/`env` shape. In
-all three the write tools still stop and ask the human before they run — that
+all three the write tools still stop and ask the human before they run: that
 policy came with the server, not with the client.
 
 For the multi-tenant deployment your customers connect to, keep `--auth api-key`
-and serve the same file over HTTP — the generated module exposes a module-level
+and serve the same file over HTTP: the generated module exposes a module-level
 `server`, so `promptise serve` picks it up:
 
 ```bash
@@ -566,14 +566,14 @@ promptise serve server:server --transport http --port 8080
 
 ## What You've Built
 
-- **An MCP server for an API you did not write a line of glue for** — 13 spec
+- **An MCP server for an API you did not write a line of glue for**: 13 spec
   operations became 11 tools, with 5 of them behind a human.
 - **A safety story you can explain to a security reviewer**: risk classes with
   reasons, three profiles, drops with reasons, and approval enforced at the tool.
 - **Per-tenant isolation**: one server, many customers, each with their own
   upstream credential, and reviewers who only see their own tenant.
 - **Evidence instead of vibes**: a grade for how well an agent drives your tool
-  surface, and a list of what to fix — with a before/after when you fix it.
+  surface, and a list of what to fix: with a before/after when you fix it.
 - **Editable output**: `mcpcast.plan.yaml` is yours, the package is regenerated
   from it, and all of it is plain, reviewable, diffable Python.
 
@@ -583,19 +583,19 @@ promptise serve server:server --transport http --port 8080
 --8<-- "examples/mcp/mcpcast_storefront_lab/run.py"
 ```
 
-The fake upstream it runs against is `fake_api.py` — a dict-backed store behind
+The fake upstream it runs against is `fake_api.py`: a dict-backed store behind
 an `httpx.MockTransport` that records every request, so the lab can *prove* what
 did and did not reach the API.
 
 ## Next Steps
 
-- [MCPcast an Existing API](mcpcast-existing-api.md) — the step-by-step guide to
+- [MCPcast an Existing API](mcpcast-existing-api.md): the step-by-step guide to
   running the same pipeline against *your* spec, with curation and review
-- [MCPcast reference](../mcp/server/mcpcast.md) — pipeline, curation, plan schema,
+- [MCPcast reference](../mcp/server/mcpcast.md): pipeline, curation, plan schema,
   auth modes, readiness scoring, limits
-- [Approval Gates](../mcp/server/approval-gates.md) — elicitation, pending,
+- [Approval Gates](../mcp/server/approval-gates.md): elicitation, pending,
   webhook and callback approvers in depth
-- [Multi-Tenancy](../mcp/server/multi-tenancy.md) — tenant claims, isolation
+- [Multi-Tenancy](../mcp/server/multi-tenancy.md): tenant claims, isolation
   keys, per-tenant rate limits and audit
-- [Build a Secure Multi-Tenant Agent Platform](secure-multi-tenant-platform.md) —
-  the same guarantees for a server you write by hand
+- [Build a Secure Multi-Tenant Agent Platform](secure-multi-tenant-platform.md):
+the same guarantees for a server you write by hand

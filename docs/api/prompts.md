@@ -5,7 +5,7 @@ description: "API reference for the prompt framework: the @prompt decorator, blo
 
 # Prompts API Reference
 
-Prompt engineering framework — decorators, blocks, flows, strategies, guards, context providers, chaining, loading, versioning, and testing.
+Prompt engineering framework: decorators, blocks, flows, strategies, guards, context providers, chaining, loading, versioning, and testing.
 
 ## Core
 
@@ -169,6 +169,13 @@ Composable prompt blocks with priority-based token budgeting.
       show_source: false
       heading_level: 4
 
+### BlockTrace
+
+::: promptise.prompts.blocks.BlockTrace
+    options:
+      show_source: false
+      heading_level: 4
+
 ### block (decorator)
 
 ::: promptise.prompts.blocks.block
@@ -318,6 +325,34 @@ Reasoning strategies and cognitive perspectives. Both are composable with `+`.
       show_source: false
       heading_level: 4
 
+### StructuredReasoningStrategy
+
+::: promptise.prompts.strategies.StructuredReasoningStrategy
+    options:
+      show_source: false
+      heading_level: 4
+
+### SelfCritiqueStrategy
+
+::: promptise.prompts.strategies.SelfCritiqueStrategy
+    options:
+      show_source: false
+      heading_level: 4
+
+### CompositeStrategy
+
+::: promptise.prompts.strategies.CompositeStrategy
+    options:
+      show_source: false
+      heading_level: 4
+
+### CustomPerspective
+
+::: promptise.prompts.strategies.CustomPerspective
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
 ## Context Providers
@@ -394,6 +429,104 @@ Pluggable async context that gets injected into the prompt at runtime.
       show_source: false
       heading_level: 4
 
+### user_context
+
+::: promptise.prompts.context.user_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### env_context
+
+::: promptise.prompts.context.env_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### conversation_context
+
+::: promptise.prompts.context.conversation_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### team_context
+
+::: promptise.prompts.context.team_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### error_context
+
+::: promptise.prompts.context.error_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### output_context
+
+::: promptise.prompts.context.output_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### world_context
+
+::: promptise.prompts.context.world_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### static_context
+
+::: promptise.prompts.context.static_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### callable_context
+
+::: promptise.prompts.context.callable_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### conditional_context
+
+::: promptise.prompts.context.conditional_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### memory_context
+
+::: promptise.prompts.context.memory_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### task_context
+
+::: promptise.prompts.context.task_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### blackboard_context
+
+::: promptise.prompts.context.blackboard_context
+    options:
+      show_source: false
+      heading_level: 4
+
+### tool_context
+
+::: promptise.prompts.context.tool_context
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
 ## Guards
@@ -415,6 +548,76 @@ Pluggable async context that gets injected into the prompt at runtime.
 ### guard (decorator)
 
 ::: promptise.prompts.guards.guard
+    options:
+      show_source: false
+      heading_level: 4
+
+### content_filter
+
+::: promptise.prompts.guards.content_filter
+    options:
+      show_source: false
+      heading_level: 4
+
+### length
+
+::: promptise.prompts.guards.length
+    options:
+      show_source: false
+      heading_level: 4
+
+### schema_strict
+
+::: promptise.prompts.guards.schema_strict
+    options:
+      show_source: false
+      heading_level: 4
+
+### input_validator
+
+::: promptise.prompts.guards.input_validator
+    options:
+      show_source: false
+      heading_level: 4
+
+### output_validator
+
+::: promptise.prompts.guards.output_validator
+    options:
+      show_source: false
+      heading_level: 4
+
+### ContentFilterGuard
+
+::: promptise.prompts.guards.ContentFilterGuard
+    options:
+      show_source: false
+      heading_level: 4
+
+### LengthGuard
+
+::: promptise.prompts.guards.LengthGuard
+    options:
+      show_source: false
+      heading_level: 4
+
+### SchemaStrictGuard
+
+::: promptise.prompts.guards.SchemaStrictGuard
+    options:
+      show_source: false
+      heading_level: 4
+
+### InputValidatorGuard
+
+::: promptise.prompts.guards.InputValidatorGuard
+    options:
+      show_source: false
+      heading_level: 4
+
+### OutputValidatorGuard
+
+::: promptise.prompts.guards.OutputValidatorGuard
     options:
       show_source: false
       heading_level: 4
@@ -476,6 +679,13 @@ Introspect prompt assembly step-by-step: which blocks were included, token count
 ### PromptTrace
 
 ::: promptise.prompts.inspector.PromptTrace
+    options:
+      show_source: false
+      heading_level: 4
+
+### ContextTrace
+
+::: promptise.prompts.inspector.ContextTrace
     options:
       show_source: false
       heading_level: 4
@@ -563,6 +773,27 @@ Load `.prompt` YAML files and render templates.
 ### render_template
 
 ::: promptise.prompts.template.render_template
+    options:
+      show_source: false
+      heading_level: 4
+
+### ShellExecutor
+
+::: promptise.prompts.template.ShellExecutor
+    options:
+      show_source: false
+      heading_level: 4
+
+### SubprocessShellExecutor
+
+::: promptise.prompts.template.SubprocessShellExecutor
+    options:
+      show_source: false
+      heading_level: 4
+
+### ShellExecutionError
+
+::: promptise.prompts.template.ShellExecutionError
     options:
       show_source: false
       heading_level: 4

@@ -25,7 +25,7 @@ out = engine.render(
 
 ## Disabled by default
 
-Without an explicit `shell_executor`, the `!`cmd`` syntax is left as **literal text** — there is no implicit shell access, ever. This is a deliberate security choice.
+Without an explicit `shell_executor`, the `!`cmd`` syntax is left as **literal text**: there is no implicit shell access. `@prompt` templates, `PromptBuilder` and `.prompt` files render without an executor, so shell interpolation only happens where you call `TemplateEngine` or `render_template(..., shell_executor=...)` yourself.
 
 ```python
 # No executor → syntax stays literal
@@ -56,7 +56,7 @@ With `shell=False` the command line is tokenized like a terminal would
 (`shlex.split`) and its executable resolved on `PATH`. Unless `cwd` is set,
 the process is started without `fork()` (CPython's `posix_spawn` path): a
 forked child of a multithreaded process that has used macOS system frameworks
-— any `httpx` client does — can die with SIGSEGV before `exec`, which surfaces
+(any `httpx` client does) can die with SIGSEGV before `exec`, which surfaces
 as `exited -11`. Setting `cwd` forces the fork path, so prefer running the
 command with an absolute path over changing directory.
 
@@ -65,41 +65,46 @@ command with an absolute path over changing directory.
 When `allowlist` is set, only commands whose first token matches are permitted:
 
 ```python
+from promptise.prompts import ShellExecutionError, SubprocessShellExecutor, TemplateEngine
+
 executor = SubprocessShellExecutor(allowlist={"echo", "git"})
-
-# Works
 engine = TemplateEngine(shell_executor=executor)
-engine.render("!`echo hello`", {})
 
-# Raises ShellExecutionError
-engine.render("!`rm -rf /`", {})
+print(engine.render("!`echo hello`", {}))   # hello
+
+try:
+    engine.render("!`rm -rf /tmp/x`", {})
+except ShellExecutionError as exc:
+    print(exc)                               # command 'rm' not in shell executor allowlist
 ```
 
 ---
 
 ## Custom executors
 
-Any callable `(str) -> str` works as a shell executor:
+Any synchronous callable `(str) -> str` works as a shell executor (the `ShellExecutor` protocol):
 
 ```python
+from promptise.prompts import TemplateEngine
+
 # Dry-run executor for testing
 engine = TemplateEngine(shell_executor=lambda cmd: f"[would run: {cmd}]")
-
-# Sandbox executor
-async def sandboxed(cmd: str) -> str:
-    return await sandbox.execute(cmd)
+print(engine.render("Status: !`git status --short`", {}))
+# Status: [would run: git status --short]
 ```
+
+The engine calls the executor synchronously, so an `async def` executor does not work: its coroutine would be inserted as text. Run async work before rendering and pass the result as a variable instead.
 
 ---
 
 ## Processing order
 
-Shell interpolation runs **after** template includes and **before** conditionals and variable substitution. This means:
+Shell interpolation runs **after** template includes and **before** conditionals and variable substitution. A variable's value is never executed, because commands run before variables are substituted. This means:
 
-1. `{% include "name" %}` — resolved first (included templates can contain `!`cmd``)
-2. `!`cmd`` — executed, stdout replaces the block
-3. `{% if %}`, `{% for %}` — conditionals and loops
-4. `{variable}` — variable interpolation
+1. `{% include "name" %}`: resolved first (included templates can contain `!`cmd``)
+2. `!`cmd``: executed, stdout replaces the block
+3. `{% if %}`, `{% for %}`: conditionals and loops
+4. `{variable}`: variable interpolation
 
 ---
 
@@ -109,11 +114,31 @@ Shell interpolation runs **after** template includes and **before** conditionals
 - **Timeout** → raises `ShellExecutionError`
 - **Command not in allowlist** → raises `ShellExecutionError`
 
-All errors propagate to the caller — there is no silent fallback.
+All errors propagate to the caller: there is no silent fallback. A command that can't start (unknown executable with `shell=False`, unbalanced quotes) also raises `ShellExecutionError`. Empty commands render as an empty string.
+
+!!! warning "Braces in command output"
+    Command output is inserted before variable interpolation, so `{` and `}` in the output are read as template syntax: output such as `{"ok": true}` raises `KeyError` or `ValueError`. Pass such output as a variable instead (run the command yourself and use `{status}`).
+
+!!! warning "The allowlist checks the first word only"
+    With `shell=True` (the default) the whole line goes to `/bin/sh`, so `echo hi; rm -rf /tmp/x` passes an allowlist containing `echo`. When templates are not fully trusted, use `shell=False` together with an allowlist: the command is split with `shlex` and run without a shell, so `;`, `|` and `&&` are plain arguments.
+
+## Parameter reference
+
+`SubprocessShellExecutor(*, timeout=5.0, shell=True, cwd=None, env=None, allowlist=None)`
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `timeout` | `5.0` | Seconds before the command is killed (`ShellExecutionError`) |
+| `shell` | `True` | Run through `/bin/sh -c`; `False` splits with `shlex` and runs the executable directly |
+| `cwd` | `None` | Working directory (inherits the caller's) |
+| `env` | `None` | Variables merged over `os.environ` |
+| `allowlist` | `None` | Set of allowed first words; any other command raises `ShellExecutionError` |
+
+The executor returns stdout with surrounding whitespace stripped. A non-zero exit raises `ShellExecutionError` with the exit code and up to 500 characters of stderr.
 
 ---
 
 ## Related
 
-- [Loader & Templates](loader-templates.md) — the full template engine reference
-- [Context & Variables](context.md) — dynamic context injection via providers
+- [Loader & Templates](loader-templates.md): the full template engine reference
+- [Context & Variables](context.md): dynamic context injection via providers

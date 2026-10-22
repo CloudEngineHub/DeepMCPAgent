@@ -5,12 +5,12 @@ description: "Test an MCP server without a network transport: TestClient runs va
 
 # MCP Server Testing
 
-The `TestClient` class lets you exercise the **full** MCP server pipeline --
-input validation, dependency injection, guard checks, middleware chain, handler
-invocation, and error serialisation -- without starting a network transport.
+The `TestClient` class lets you exercise the **full** MCP server pipeline
+(input validation, dependency injection, guard checks, middleware chain, handler
+invocation, and error serialisation) without starting a network transport.
 Tests run entirely in-process and are as fast as plain function calls.
 
-**Source:** `src/promptise/mcp/server/testing.py` and `src/promptise/mcp/server/_testing.py`
+Import it from `promptise.mcp.server` or `promptise.mcp.server.testing`. The examples use pytest with `pytest-asyncio`.
 
 ## Quick example
 
@@ -40,7 +40,7 @@ async def test_add():
 The `TestClient` replicates the exact same call pipeline as the real MCP
 transport.  Every tool call goes through:
 
-1. **Input validation** -- arguments are validated against the tool's Pydantic
+1. **Input validation**: arguments are validated against the tool's Pydantic
    input model. A call whose arguments are rejected is not answered at this
    point: it still runs through the middleware chain (authentication, rate
    limiting, audit, in your middleware order) and its guards, and then fails
@@ -50,19 +50,19 @@ transport.  Every tool call goes through:
    errors and a message capped at 1,000 characters. The live transports work
    the same way: the MCP SDK's own `inputSchema` check is turned off so that
    an invalid call cannot bypass the pipeline.
-2. **Dependency injection** -- `Depends(...)` parameters are resolved.
-3. **Context injection** -- parameters typed as `RequestContext` receive the
+2. **Dependency injection**: `Depends(...)` parameters are resolved.
+3. **Context injection**: parameters typed as `RequestContext` receive the
    current request context.
-4. **Guard checks** -- registered guards (`RequireAuth`, `HasRole`, etc.) are
+4. **Guard checks**: registered guards (`RequireAuth`, `HasRole`, etc.) are
    evaluated.
-5. **Middleware chain** -- server-level and router-level middleware run in order.
-6. **Handler invocation** -- the actual tool function is called.
-7. **Result serialisation** -- the return value is converted to MCP
+5. **Middleware chain**: server-level and router-level middleware run in order.
+6. **Handler invocation**: the actual tool function is called.
+7. **Result serialisation**: the return value is converted to MCP
    `TextContent` list.
-8. **Background tasks** -- any `BackgroundTasks` scheduled during the call are
+8. **Background tasks**: any `BackgroundTasks` scheduled during the call are
    executed before `call_tool` returns, so tests can assert on their effects.
    (A running server sends the response first and runs them afterwards.)
-9. **Error handling** -- `MCPError` subclasses are serialised to structured JSON.
+9. **Error handling**: `MCPError` subclasses are serialised to structured JSON.
 
 ### Creating a TestClient
 
@@ -107,7 +107,7 @@ async def test_greet():
 ### Handling errors
 
 When a tool is not found, or an exception occurs, the client returns structured
-error JSON rather than raising -- matching the real server's behaviour:
+error JSON rather than raising: matching the real server's behaviour:
 
 ```python
 import json
@@ -316,6 +316,27 @@ async def test_payroll_needs_admin():
     assert json.loads(await admin.read_resource("hr://payroll")) == {"alice": 100}
 ```
 
+## From the command line: `promptise list-tools`
+
+To see a server as an agent sees it (over a real transport, after the client's schema conversion), list its tools with `promptise list-tools`. It builds an agent with the servers you name and prints each tool's name, description and input schema; nothing is called:
+
+```bash
+# A stdio server
+promptise list-tools --model-id openai:gpt-5-mini \
+  --stdio "name=tasks command=python args='server.py'"
+
+# A running HTTP server, with a token
+promptise list-tools --model-id openai:gpt-5-mini \
+  --http "name=tasks url=http://127.0.0.1:8080/mcp bearer_token=$TOKEN"
+```
+
+| Option | Description |
+|---|---|
+| `--model-id` | Required model string. The agent is built, so the provider credential must be set, but no model call is made |
+| `--stdio "name=... command=... args='...' [env.X=Y] [cwd=...] [keep_alive=true\|false]"` | A stdio server (repeatable) |
+| `--http "name=... url=... [transport=http\|streamable-http\|sse] [header.X=Y] [bearer_token=...] [api_key=...]"` | An HTTP/SSE server (repeatable) |
+| `--instructions` | Optional system prompt override |
+
 ## API summary
 
 ### TestClient
@@ -329,14 +350,16 @@ async def test_payroll_needs_admin():
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `call_tool(name, arguments)` | `list[TextContent]` | Call a tool through the full pipeline |
-| `list_tools()` | `list[Tool]` | List all registered tools |
+| `call_tool(name, arguments=None, *, headers=None)` | `list[TextContent \| ImageContent \| EmbeddedResource]` | Call a tool through the full pipeline; `headers` are merged over `meta` for this call |
+| `list_tools(*, headers=None)` | `list[Tool]` | List the registered tools (filtered per caller with `hide_unauthorized_tools=True`) |
 | `read_resource(uri, *, headers=None)` | `str \| bytes` | Read a resource through the full pipeline |
 | `read_resource_contents(uri, *, headers=None)` | `list[TextResourceContents \| BlobResourceContents]` | Read a resource and return the MCP contents (with `mimeType`) |
-| `list_resources()` | `list[Resource]` | List all static resources, including `docs://manifest` |
-| `list_resource_templates()` | `list[ResourceTemplate]` | List all resource URI templates |
+| `list_resources(*, headers=None)` | `list[Resource]` | List all static resources, including `docs://manifest` |
+| `list_resource_templates(*, headers=None)` | `list[ResourceTemplate]` | List all resource URI templates |
 | `get_prompt(name, arguments, *, headers=None)` | `GetPromptResult` | Get a prompt through the full pipeline |
-| `list_prompts()` | `list[Prompt]` | List all registered prompts |
+| `list_prompts(*, headers=None)` | `list[Prompt]` | List all registered prompts |
+
+`TestClient` does not run the server's startup or shutdown hooks and opens no MCP session: features that send requests to the client (elicitation, sampling, `ElicitationApprover`) behave as if the client doesn't support them, and `ServerLogger` / `ProgressReporter` calls do nothing. Run startup work yourself in a fixture (for example `await queue.start()` for an [MCPQueue](queue.md#testing-with-testclient)).
 
 ## Tips and gotchas
 
@@ -380,13 +403,13 @@ async def test_payroll_needs_admin():
 
 ## What's next
 
-- [Building Servers](building-servers.md) — create the server you are testing
-- [Auth & Security](auth-security.md) — set up authentication for guard testing
-- [Routers & Middleware](routers-middleware.md) — modular routing that TestClient exercises
-- [Caching & Performance](caching-performance.md) — test caching and rate limiting behavior
-- [Deployment](deployment.md) — deploy your tested server to production
-- [MCP Client](../client/index.md) — connect to a real running server
+- [Building Servers](building-servers.md): create the server you are testing
+- [Auth & Security](auth-security.md): set up authentication for guard testing
+- [Routers & Middleware](routers-middleware.md): modular routing that TestClient exercises
+- [Caching & Performance](caching-performance.md): test caching and rate limiting behavior
+- [Deployment](deployment.md): deploy your tested server to production
+- [MCP Client](../client/index.md): connect to a real running server
 
 !!! tip "Learn the concept"
 
-    - [Testing MCP Servers in Python: pytest Without a Live Server](https://www.promptise.com/guides/view/test-mcp-server-python) -- Test a server's auth, guards and job queue with pytest, plus CI.
+    - [Testing MCP Servers in Python: pytest Without a Live Server](https://www.promptise.com/guides/view/test-mcp-server-python): Test a server's auth, guards and job queue with pytest, plus CI.

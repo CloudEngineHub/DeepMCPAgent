@@ -13,16 +13,32 @@ When you use `build_agent(servers=...)`, MCP tools are discovered at startup. Fo
 2. Tools are converted to LangChain `BaseTool` instances
 3. `build_agent()` hands them to the engine: `PromptGraphEngine(graph, model, tools=discovered)`
 4. Nodes with `inject_tools=True` receive those tools at runtime, together with every tool another node of the graph declares
-5. Injected tools merge with the node's own `tools` (no duplicates — the node's own tool wins on a name clash)
+5. Injected tools merge with the node's own `tools` (no duplicates, the node's own tool wins on a name clash)
 
 Nodes without `inject_tools=True` see only their own `tools`. `agent.tool_names` lists what was discovered; it does not mean every node can call them.
+
+Which node types use injected tools:
+
+| Node | Tools it can call |
+|------|-------------------|
+| `PromptNode` (and the reasoning nodes) with `inject_tools=True` | Its own `tools` plus the engine's tools |
+| `PromptNode` without it | Its own `tools` only |
+| `ToolNode` | Its own `tools` only |
+| `CodeActionNode` | Its own `tools`; with none, all of the engine's tools |
+| `AutonomousNode` | None itself; each pool step uses its own rule above, and the step menu lists each step's tools |
+
+With `build_agent(optimize_tools="semantic")`, a tool selector narrows the
+tools *offered* on each model call to the relevant ones; a call to a tool that
+was not offered on that step still runs, since every candidate stays callable.
 
 ## Usage
 
 ```python
+from promptise import build_agent
+from promptise.config import HTTPServerSpec
 from promptise.engine import PromptGraph, PromptNode
 
-graph = PromptGraph("my-agent")
+graph = PromptGraph("my-agent", mode="static")
 
 # This node gets ALL MCP tools at runtime
 graph.add_node(PromptNode("search",
@@ -58,7 +74,7 @@ agent = await build_agent(
 | Scenario | `inject_tools` | Why |
 |----------|---------------|-----|
 | Tool-calling node | `True` | Needs MCP tools to do work |
-| Pure reasoning | `False` | No tools — just thinking |
+| Pure reasoning | `False` | No tools, just thinking |
 | Routing decision | `False` | Lightweight, no tool overhead |
 | Guard/validation | `False` | No LLM call, no tools needed |
 | Mixed (custom + MCP) | `True` + explicit `tools` | Both available |
@@ -68,5 +84,21 @@ agent = await build_agent(
 Running a graph directly, pass the tools to the engine yourself:
 
 ```python
-engine = PromptGraphEngine(graph=graph, model=model, tools=my_tools)
+from promptise import resolve_model, tool
+from promptise.engine import PromptGraph, PromptGraphEngine, PromptNode
+
+
+@tool
+def lookup_order(order_id: str) -> str:
+    """Status of an order."""
+    return f"Order {order_id}: shipped"
+
+
+graph = PromptGraph("support", nodes=[
+    PromptNode("answer", instructions="Answer with the tools.", inject_tools=True,
+               is_entry=True, default_next="__end__"),
+])
+engine = PromptGraphEngine(graph, resolve_model("openai:gpt-5-mini"), tools=[lookup_order])
+result = await engine.ainvoke({"messages": [{"role": "user", "content": "Where is order A-17?"}]})
+print(result["messages"][-1].content)
 ```

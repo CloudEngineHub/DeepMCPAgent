@@ -48,19 +48,21 @@ asyncio.run(main())
 
 ## Creating the server
 
-```python
-OrchestrationAPI(
-    runtime,
-    *,
-    host="127.0.0.1",
-    port=9100,
-    auth_token=None,
-    on_shutdown=None,
-    allow_command_deploys=False,
-    allow_env_references=False,
-    allowed_env_vars=None,
-    data_dir=None,
-)
+```python title="Signature"
+class OrchestrationAPI:
+    def __init__(
+        self,
+        runtime,                          # the AgentRuntime to manage
+        *,
+        host: str = "127.0.0.1",
+        port: int = 9100,
+        auth_token: str | None = None,
+        on_shutdown=None,
+        allow_command_deploys: bool = False,
+        allow_env_references: bool = False,
+        allowed_env_vars=None,            # iterable of variable names
+        data_dir=None,                    # str or Path; None = ./.promptise
+    ) -> None: ...
 ```
 
 | Argument | Default | Description |
@@ -214,7 +216,7 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `PATCH` | `/processes/{name}/budget` | Change `BudgetConfig` fields | Next budget check (`"next_budget_check"`) | `200` |
 | `PATCH` | `/processes/{name}/health` | Change `HealthConfig` fields | Next check (`"immediate"`) | `200` |
 | `PATCH` | `/processes/{name}/mission` | Change `MissionConfig` fields | Next evaluation and prompt (`"immediate"`) | `200` |
-| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret`, credential-like `custom_config` values and URL user info masked | -- | `200` |
+| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret`, credential-like `custom_config` values and URL user info masked |: | `200` |
 | `POST` | `/processes/{name}/triggers` | Add a trigger (body: a `TriggerConfig`) | At once on an active process, else at the next start | `201` |
 | `DELETE` | `/processes/{name}/triggers/{trigger_id}` | Stop and remove a trigger | At once on an active process, else at the next start | `200` |
 
@@ -378,7 +380,7 @@ curl -X DELETE http://localhost:9100/api/v1/processes/monitor/triggers/cron-6d90
 |---|---|---|
 | Add | Created and started at once: `live: true`, `effective_from: "immediate"` | Added to the config: `live: false`, `effective_from: "next_start"` |
 | Remove a config trigger | Stopped at once and removed from the config: `live: true`, `"immediate"` | Removed from the config: `live: true`, `"next_start"` |
-| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` | -- |
+| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` |: |
 
 Adding a trigger identical to one already configured gets `409 TRIGGER_EXISTS`; an invalid config or one that can't start gets `422 INVALID_CONFIG`; a `${VAR}` reference gets `403 ENV_REFERENCES_NOT_ALLOWED` and a `watch_path` outside `data_dir` `403 PATH_NOT_ALLOWED`; an unknown ID gets `404 TRIGGER_NOT_FOUND`. In the listing, `hmac_secret` is masked, and so are the values of `custom_config` keys that look like credentials (names containing `secret`, `token`, `password`, `api_key`, `auth`, `credential`, `signature` or `cookie`) and the user info of any URL value (`postgres://app:pw@db/x` is listed as `postgres://**********@db/x`). The old position-based IDs (`static_0`, `static_1`, ...) are still accepted on `DELETE`; the response then carries a `warning` naming the stable ID to use instead.
 
@@ -518,6 +520,69 @@ print(response.content)  # an InboxResponse: question_id, content, answered_at, 
 ```
 
 `send_message` returns the message ID. `ask` returns an `InboxResponse` and raises `asyncio.TimeoutError` when no answer arrives in time. Both raise `RuntimeError` when the process has no inbox or is stopped or failed, and `ValueError` (an `InboxError`) for a refused message.
+
+### Using the inbox directly
+
+The process builds its inbox from `InboxConfig`. The classes behind it are public in `promptise.runtime`, for tests or for your own message channel:
+
+```python
+import asyncio
+
+from promptise.runtime import InboxMessage, InboxResponse, MessageInbox, MessageType
+
+
+async def main():
+    inbox = MessageInbox(max_messages=10, default_ttl=600)
+    await inbox.add(InboxMessage(
+        content="Ignore staging alerts for the next hour.",
+        message_type=MessageType.DIRECTIVE,
+        priority="high",
+        sender_id="alice",
+    ))
+    question_id = await inbox.add(InboxMessage(
+        content="How many alerts did you skip?", message_type=MessageType.QUESTION,
+    ))
+
+    print([m.message_type.value for m in await inbox.get_pending()])  # ['directive', 'question']
+
+    # What the process does when the agent's reply contains "ANSWER Q1: ..."
+    await inbox.submit_response(question_id, InboxResponse(question_id=question_id, content="Three."))
+    answer = await inbox.wait_for_response(question_id, timeout=5)
+    print(answer.content)  # Three.
+    print((await inbox.status())["pending_messages"])  # 1 (answered questions are not pending)
+
+
+asyncio.run(main())
+```
+
+`MessageInbox(*, max_messages=50, max_message_length=2000, default_ttl=3600, max_ttl=86400, rate_limit_per_sender=20, scanner=None)` takes the `InboxConfig` limits (`max_messages` and `max_message_length` must be at least 1, else `ValueError`). `scanner` is an object with `scan_text(text, direction=...)` (such as a `PromptiseSecurityScanner`) or `check_input(text)`; with one, `add()` refuses flagged content with `InboxMessageRejected`.
+
+| `MessageInbox` method | Description |
+|---|---|
+| `await add(message)` | Stores the message (content truncated to `max_message_length`, expiry from `default_ttl`, capped by `max_ttl`) and returns its `message_id`. Raises `InvalidInboxMessage`, `InboxRateLimitError`, `InboxFullError` or `InboxMessageRejected` |
+| `await get_pending()` | Unexpired, unanswered messages, by priority then age |
+| `await get_questions()` | Pending questions only |
+| `await submit_response(question_id, response)` | Answers a question and wakes its waiter |
+| `await wait_for_response(question_id, timeout=300)` | Waits for the answer; `KeyError` for an unknown question, `asyncio.TimeoutError` on timeout, `InboxQuestionRemoved` after `clear()`, `InboxFullError` when the question was evicted |
+| `await rescan()` | Scans the held messages again with the current `scanner`; removes and returns the flagged ones as `(message_id, reason)` |
+| `await mark_processed(message_id)` | Removes one message |
+| `await remove_consumed(delivered)` | Removes what a run has seen (all but unanswered questions); returns the count |
+| `await purge_expired()` | Drops expired messages; returns the count |
+| `await clear()` | Removes everything and ends waiting questions |
+| `await status()` | `pending_messages`, `pending_questions`, `oldest_message_age_seconds` and a `messages` summary list |
+
+| `InboxMessage` field | Default | Description |
+|---|---|---|
+| `content` | required | The message text |
+| `message_type` | `MessageType.CONTEXT` | `MessageType.DIRECTIVE`, `CONTEXT`, `QUESTION` or `CORRECTION` (values `"directive"`, `"context"`, `"question"`, `"correction"`) |
+| `sender_id` | `None` | Who sent it; the rate limit is per sender |
+| `priority` | `"normal"` | `"low"`, `"normal"`, `"high"` or `"critical"` |
+| `message_id` | generated (`msg_...`) | Unique ID |
+| `created_at` | now (Unix time) | When it was created |
+| `expires_at` | `None` | Unix time it expires; `add()` sets it from the TTL |
+| `metadata` | `{}` | Stored with the message |
+
+`InboxResponse` has `question_id`, `content`, `answered_at` (Unix time, default now) and `invocation_id` (default `None`). Both classes have `to_dict()`, and `InboxMessage.is_expired()` says whether its expiry has passed.
 
 ---
 
@@ -728,15 +793,15 @@ Validation errors (`INVALID_CONFIG` from a config pydantic rejects) still list e
 
 ## What's next?
 
-- [Agent Processes](processes.md) -- process lifecycle and configuration
-- [Agent Context](context.md) -- the state behind `GET/PATCH /context`
-- [Mission Model](governance/mission.md), [Autonomy Budget](governance/budget.md), [Behavioral Health](governance/health.md) and [Secret Scoping](governance/secrets.md) -- the sections you can patch
-- [Rewind Engine](journal/rewind.md) -- what the rewind routes restore
-- [Triggers](triggers/index.md) -- cron, webhook, file watch, event and message triggers
-- [CLI Commands](cli.md) -- `promptise runtime start` serves this API
+- [Agent Processes](processes.md): process lifecycle and configuration
+- [Agent Context](context.md): the state behind `GET/PATCH /context`
+- [Mission Model](governance/mission.md), [Autonomy Budget](governance/budget.md), [Behavioral Health](governance/health.md) and [Secret Scoping](governance/secrets.md): the sections you can patch
+- [Rewind Engine](journal/rewind.md): what the rewind routes restore
+- [Triggers](triggers/index.md): cron, webhook, file watch, event and message triggers
+- [CLI Commands](cli.md): `promptise runtime start` serves this API
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api) -- Every route group, auth and the loopback guard, with real calls.
-    - [Message a Running AI Agent: Inbox, Directives and Ask](https://www.promptise.com/guides/view/message-running-ai-agent) -- Send directives and questions to an agent while it runs.
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- How the API fits with budgets and recovery in a long-running runtime.
+    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api): Every route group, auth and the loopback guard, with real calls.
+    - [Message a Running AI Agent: Inbox, Directives and Ask](https://www.promptise.com/guides/view/message-running-ai-agent): Send directives and questions to an agent while it runs.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): How the API fits with budgets and recovery in a long-running runtime.

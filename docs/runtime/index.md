@@ -1,5 +1,5 @@
 ---
-title: Agent Runtime — Autonomous AI agents in Python with crash recovery
+title: Agent Runtime for autonomous AI agents in Python with crash recovery
 seo_title: "Agent Runtime for Autonomous AI Agents"
 description: "The Agent Runtime runs autonomous AI agents as processes: triggers, persistent state, crash recovery, governance, hooks, an HTTP API, a CLI and clustering."
 keywords: autonomous AI agents, agent runtime, AI agent scheduler, agent crash recovery, AI agent governance, Python agent process, cron AI agent
@@ -7,7 +7,7 @@ keywords: autonomous AI agents, agent runtime, AI agent scheduler, agent crash r
 
 # Agent Runtime
 
-LLMs are stateless by nature -- they don't remember, they don't persist, and they can't react to the world on their own. The Agent Runtime is the **operating system for your AI agents**. It gives a stateless LLM what a real process needs: a lifecycle, scheduling, persistent state, crash recovery, limits, and control from code, HTTP or the command line.
+LLMs are stateless by nature: they don't remember, they don't persist, and they can't react to the world on their own. The Agent Runtime is the **operating system for your AI agents**. It gives a stateless LLM what a real process needs: a lifecycle, scheduling, persistent state, crash recovery, limits, and control from code, HTTP or the command line.
 
 ```python
 import asyncio
@@ -39,11 +39,11 @@ asyncio.run(main())
 
 A standard `build_agent()` call creates a request-response agent. You send a message, get a reply, and the agent is done. That works for chatbots and one-off tasks, but long-running agent systems need more:
 
-- **Persistence** -- agents that remember what they've seen, track metrics over time, and keep context across runs
-- **Reactivity** -- agents that wake up on schedules, respond to webhooks, watch files, or listen to events from other agents
-- **Resilience** -- agents that restore their state from a journal after a crash, keep events they couldn't process as dead letters, and restart automatically after failures
-- **Control** -- limits on cost and behavior, hooks at every lifecycle point, and an API and CLI to inspect, pause, rewind and restart running agents
-- **Scale** -- many agents in one runtime, and runtimes on several machines in one cluster
+- **Persistence**: agents that remember what they've seen, track metrics over time, and keep context across runs
+- **Reactivity**: agents that wake up on schedules, respond to webhooks, watch files, or listen to events from other agents
+- **Resilience**: agents that restore their state from a journal after a crash, keep events they couldn't process as dead letters, and restart automatically after failures
+- **Control**: limits on cost and behavior, hooks at every lifecycle point, and an API and CLI to inspect, pause, rewind and restart running agents
+- **Scale**: many agents in one runtime, and runtimes on several machines in one cluster
 
 The Agent Runtime adds all of this on top of the same agent you already know how to build.
 
@@ -53,17 +53,17 @@ The Agent Runtime adds all of this on top of the same agent you already know how
 
 ### Agent processes
 
-An [**AgentProcess**](processes.md) wraps a `PromptiseAgent` in a managed lifecycle. It builds the agent, connects MCP servers, starts triggers, and runs the agent once per trigger event. Each process follows a fixed [state machine](lifecycle.md) -- created, starting, running, suspended, stopping, stopped, failed -- and every transition is validated, recorded and emitted as a `process.*` event. A failed process can restart itself with backoff (`restart_policy`).
+An [**AgentProcess**](processes.md) wraps a `PromptiseAgent` in a managed lifecycle. It builds the agent, connects MCP servers, starts triggers, and runs the agent once per trigger event. Each process follows a fixed [state machine](lifecycle.md) (created, starting, running, suspended, stopping, stopped, failed), and every transition is validated, recorded and emitted as a `process.*` event. A failed process can restart itself with backoff (`restart_policy`).
 
 ### Triggers
 
 [Triggers](triggers/index.md) are how agents wake up. Instead of calling `agent.ainvoke()` yourself, you configure triggers that fire on their own:
 
-- **Cron** -- every 5 minutes, hourly, weekdays at 9:00 in a time zone, or any cron expression
-- **Webhook** -- HTTP requests from CI/CD systems, monitoring tools or external APIs, with signature checks
-- **File Watch** -- new, changed, deleted or moved files
-- **Event** -- events on an event bus you provide
-- **Message** -- messages on topics of a message broker you provide
+- **Cron**: every 5 minutes, hourly, weekdays at 9:00 in a time zone, or any cron expression
+- **Webhook**: HTTP requests from CI/CD systems, monitoring tools or external APIs, with signature checks
+- **File Watch**: new, changed, deleted or moved files
+- **Event**: events on an event bus you provide
+- **Message**: messages on topics of a message broker you provide
 
 A process can have several triggers. Events go into one queue per process and run in arrival order.
 
@@ -79,10 +79,10 @@ The [journal](journal/index.md) records state transitions, run results, context 
 
 Autonomous agents need guardrails. Four governance subsystems are opt-in:
 
-- **[Autonomy Budget](governance/budget.md)** -- per-run and daily limits on tool calls, LLM turns, cost (abstract units) and irreversible actions. Enforcement can pause, stop or escalate. Counters survive restarts.
-- **[Behavioral Health](governance/health.md)** -- detects bad patterns without calling an LLM: stuck agents (the same call 3+ times), repeating loops (A→B→A→B), empty responses and high error rates. Logs, pauses, escalates or stops.
-- **[Mission Model](governance/mission.md)** -- an objective and success criteria. Every N runs an LLM judge (or your own check) evaluates progress.
-- **[Secret Scoping](governance/secrets.md)** -- per-process secrets, encrypted in memory, with TTLs, rotation without restart and access logging. Secret values are redacted from the journal, hooks and status output.
+- **[Autonomy Budget](governance/budget.md)**: per-run and daily limits on tool calls, LLM turns, cost (abstract units) and irreversible actions. Enforcement can pause, stop or escalate. Counters survive restarts.
+- **[Behavioral Health](governance/health.md)**: detects bad patterns without calling an LLM: stuck agents (the same call 3+ times), repeating loops (A→B→A→B), empty responses and high error rates. Logs, pauses, escalates or stops.
+- **[Mission Model](governance/mission.md)**: an objective and success criteria. Every N runs an LLM judge (or your own check) evaluates progress.
+- **[Secret Scoping](governance/secrets.md)**: per-process secrets, encrypted in memory, with TTLs, rotation without restart and access logging. Secret values are redacted from the journal, hooks and status output.
 
 All four are off by default and cost nothing while off. Turn them on one at a time as an agent moves from prototype to production.
 
@@ -113,7 +113,7 @@ graph TB
     subgraph "AgentProcess"
         direction TB
 
-        subgraph "Triggers — what wakes the agent"
+        subgraph "Triggers: what wakes the agent"
             T1["Cron<br><code>*/5 * * * *</code>"]
             T2["Webhook<br><code>POST /webhook</code>"]
             T3["File Watch<br><code>data/*.csv</code>"]
@@ -129,7 +129,7 @@ graph TB
             G["Governance<br>budget · health · mission · secrets"]
         end
 
-        subgraph "State — what the agent remembers"
+        subgraph "State: what the agent remembers"
             CTX["AgentContext<br>key-value + audit trail"]
             MEM["Memory<br>Chroma · Mem0 · InMemory"]
             CONV["ConversationBuffer<br>rolling message history"]
@@ -149,7 +149,7 @@ graph TB
         J --> R & RW
     end
 
-    subgraph "AgentRuntime — many processes"
+    subgraph "AgentRuntime: many processes"
         RT["Registry · start/stop · run_forever"]
         API["Orchestration API<br>HTTP control"]
         CLI["CLI · Dashboard"]
@@ -171,14 +171,14 @@ graph TB
 
 | Layer | Components | What it unlocks |
 |-------|-----------|-----------------|
-| **Triggers** | Cron, Webhook, File Watch, Event, Message | Agents that wake up on their own -- no manual `ainvoke()` calls |
-| **State** | AgentContext, MemoryProvider, ConversationBuffer | Agents that remember across runs -- accumulated metrics, customer history, conversation continuity |
-| **Durability** | Journal (InMemory/File), recovery on start, rewind, dead letters, restart policies | Agents that survive crashes -- restore state from the last checkpoint, redeliver undelivered events, roll back a bad run, restart automatically |
-| **Governance** | Budget, Health, Mission, Secrets | Agents with limits -- capped cost, caught loops, judged progress, scoped credentials |
-| **Hooks** | HookManager, ShellHook | Your policy at every lifecycle point -- audit, transform or refuse |
-| **Runtime** | AgentRuntime, Orchestration API, CLI, Dashboard | Many agents in one service -- managed from code, HTTP or a terminal, shut down cleanly on SIGTERM |
-| **Distributed** | ClusterNode, RuntimeCoordinator, RuntimeTransport, Discovery | Runtimes on several machines -- authenticated HTTP API per node, health checks, cluster membership, remote start/stop for failover you script |
-| **Self-modification** | Open mode, 14 meta-tools | Agents that change themselves -- instructions, tools, servers, triggers and spawned processes, within limits |
+| **Triggers** | Cron, Webhook, File Watch, Event, Message | Agents that wake up on their own: no manual `ainvoke()` calls |
+| **State** | AgentContext, MemoryProvider, ConversationBuffer | Agents that remember across runs: accumulated metrics, customer history, conversation continuity |
+| **Durability** | Journal (InMemory/File), recovery on start, rewind, dead letters, restart policies | Agents that survive crashes: restore state from the last checkpoint, redeliver undelivered events, roll back a bad run, restart automatically |
+| **Governance** | Budget, Health, Mission, Secrets | Agents with limits: capped cost, caught loops, judged progress, scoped credentials |
+| **Hooks** | HookManager, ShellHook | Your policy at every lifecycle point: audit, transform or refuse |
+| **Runtime** | AgentRuntime, Orchestration API, CLI, Dashboard | Many agents in one service: managed from code, HTTP or a terminal, shut down cleanly on SIGTERM |
+| **Distributed** | ClusterNode, RuntimeCoordinator, RuntimeTransport, Discovery | Runtimes on several machines: authenticated HTTP API per node, health checks, cluster membership, remote start/stop for failover you script |
+| **Self-modification** | Open mode, 14 meta-tools | Agents that change themselves: instructions, tools, servers, triggers and spawned processes, within limits |
 
 ---
 
@@ -227,7 +227,7 @@ With `execution_mode="open"`, agents get up to 14 [meta-tools](meta-tools.md) fo
 | `check_budget` | Agent checks its remaining budget (when the budget is enabled) |
 | `check_mission` | Agent checks mission progress (when a mission is enabled) |
 
-Every change goes through the process's limits (`OpenModeConfig`) and the `config_change` hook, and `rollback()` undoes the agent's changes. This enables agents that adapt over time -- an ops agent that learns new runbooks, a support agent that creates shortcuts for common issues, or a research agent that refines its own method.
+Every change goes through the process's limits (`OpenModeConfig`) and the `config_change` hook, and `rollback()` undoes the agent's changes. This enables agents that adapt over time: an ops agent that learns new runbooks, a support agent that creates shortcuts for common issues, or a research agent that refines its own method.
 
 ---
 
@@ -236,7 +236,7 @@ Every change goes through the process's limits (`OpenModeConfig`) and the `confi
 A single agent: see the example at the top of this page.
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project — Promptise loads it automatically, in scripts and in the CLI — or pass it in code with `Model(...)` — explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI), or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-5-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 
 Several agents in one runtime, run as a service:
 
@@ -304,30 +304,51 @@ Each layer is optional. Use Layer 1 alone for simple chatbots, add Layer 2 for a
 
 ---
 
+## Runtime errors
+
+Every runtime exception derives from `RuntimeBaseError` (itself a `RuntimeError`), so
+`except RuntimeBaseError` catches all of them. Import them from `promptise.runtime`:
+
+| Exception | Raised when |
+|---|---|
+| `ProcessStateError` | A lifecycle transition is not allowed, for example `resume()` on a process that is not suspended |
+| `ManifestError` | An `.agent` manifest cannot be read or parsed |
+| `ManifestValidationError` | A manifest does not match the schema (a `ManifestError`) |
+| `ManifestEnvVarError` | A `${VAR}` in a manifest names an unset variable (a `ManifestError`) |
+| `JournalError` | A journal read, write or replay fails |
+| `TriggerError` | A trigger fails to start, stop or produce events |
+| `BudgetExceededError` | A tool call would exceed an autonomy budget limit |
+
+`OrchestrationAPIError` is separate: it is an `httpx.HTTPStatusError` that
+`OrchestrationClient` raises for an error response, with `status_code`, `code`,
+`error_message` and `error_id` (see [Orchestration API](api.md)).
+
+---
+
 ## What's next
 
 **Learn the concepts in depth:**
 
-- [Agent Processes](processes.md) -- lifecycle methods, recovery, dead letters and restart policies
-- [Process Lifecycle](lifecycle.md) -- states, transitions and `process.*` events
-- [Runtime Manager](runtime-manager.md) -- many processes with `AgentRuntime` and `run_forever()`
-- [Configuration](configuration.md) -- every config class and field
-- [Agent Manifests](manifests.md) -- the declarative `.agent` YAML format
-- [Context & State](context.md) -- persistent state, memory and environment
-- [Triggers](triggers/index.md) -- all five trigger types
-- [Journal](journal/index.md) -- journals, recovery and rewind
-- [Runtime Hooks](hooks.md) -- code at every lifecycle point
-- [Meta-Tools](meta-tools.md) -- open mode and its limits
-- [Orchestration API](api.md) and [CLI Commands](cli.md) -- control a running runtime
-- [Distributed](distributed/coordinator.md) -- multi-node coordination
+- [Agent Processes](processes.md): lifecycle methods, recovery, dead letters and restart policies
+- [Process Lifecycle](lifecycle.md): states, transitions and `process.*` events
+- [Runtime Manager](runtime-manager.md): many processes with `AgentRuntime` and `run_forever()`
+- [Configuration](configuration.md): every config class and field
+- [Agent Manifests](manifests.md): the declarative `.agent` YAML format
+- [Context & State](context.md): persistent state, memory and environment
+- [Triggers](triggers/index.md): all five trigger types
+- [Journal](journal/index.md): journals, recovery and rewind
+- [Runtime Hooks](hooks.md): code at every lifecycle point
+- [Meta-Tools](meta-tools.md): open mode and its limits
+- [Orchestration API](api.md) and [CLI Commands](cli.md): control a running runtime
+- [Distributed](distributed/coordinator.md): multi-node coordination
 
 **Build something real:**
 
-- [Building Agentic Runtime Systems](../guides/agentic-runtime.md) -- step-by-step guide from a single agent to a distributed deployment
+- [Building Agentic Runtime Systems](../guides/agentic-runtime.md): step-by-step guide from a single agent to a distributed deployment
 
 !!! tip "Learn the concept"
 
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- What an agent runtime adds: budgets, restarts and crash recovery.
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- One runtime, many processes, and a clean shutdown on SIGTERM.
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Journal a process and continue where it stopped after a crash.
-    - [Topic hub: Runtime, triggers and deployment](https://www.promptise.com/guides/topics/runtime-deployment) -- Every guide on triggers, durable runs and deployment.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): What an agent runtime adds: budgets, restarts and crash recovery.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): One runtime, many processes, and a clean shutdown on SIGTERM.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Journal a process and continue where it stopped after a crash.
+    - [Topic hub: Runtime, triggers and deployment](https://www.promptise.com/guides/topics/runtime-deployment): Every guide on triggers, durable runs and deployment.

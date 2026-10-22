@@ -1,5 +1,5 @@
 ---
-title: MCP Client — Native Python client for the Model Context Protocol
+title: "MCP Client: native Python client for the Model Context Protocol"
 seo_title: "Python MCP Client: Connect to MCP Servers"
 description: "Connect to one or many MCP servers with MCPClient and MCPMultiClient: bearer token and API key auth, HTTP, SSE and stdio, tool calls, resources and prompts."
 keywords: MCP client Python, Model Context Protocol client, MCP client SDK, MCPMultiClient, MCPClient, MCP tool adapter, LangChain MCP
@@ -7,7 +7,7 @@ keywords: MCP client Python, Model Context Protocol client, MCP client SDK, MCPM
 
 # MCP Client
 
-Connect to MCP servers as a client -- authenticate, discover tools, and invoke them programmatically.
+Connect to MCP servers as a client: authenticate, discover tools, and invoke them programmatically.
 
 ## Quick Start
 
@@ -59,7 +59,7 @@ The `bearer_token` is injected as an `Authorization: Bearer <token>` header on e
 
 ### Short-lived tokens
 
-A fixed `bearer_token` stops working when it expires: the server answers `401` and the call fails with `MCPConnectionRejectedError` (`mid_session=True`). For tokens that expire while the client is open, such as an agent identity's credential, pass `bearer_token_provider` instead -- a callable (sync or async) that returns the current token:
+A fixed `bearer_token` stops working when it expires: the server answers `401` and the call fails with `MCPConnectionRejectedError` (`mid_session=True`). For tokens that expire while the client is open, such as an agent identity's credential, pass `bearer_token_provider` instead: a callable (sync or async) that returns the current token:
 
 ```python
 async with MCPClient(
@@ -71,10 +71,11 @@ async with MCPClient(
     result = await client.call_tool("search", {"query": "python"})
 ```
 
+- Its type is `promptise.mcp.client.BearerTokenProvider`: `Callable[[bool], str | None | Awaitable[str | None]]`. The argument is `force` (`True` after a `401`); returning `None` sends no `Authorization` header.
 - It is asked on every HTTP request, so keep it cheap (cache the token, as `AgentIdentity.get_credential` does). Sync callables run in a worker thread.
 - When the server answers `401`, it is called with `force=True` and the request is re-sent once with the new token. If that is refused too, the call fails with `MCPConnectionRejectedError`.
 - When it returns a token other than the one the session was opened with, the client opens a new session for the next call; calls still running on the old session finish there and are never re-sent.
-- If it raises, the call fails with `MCPCredentialError` and nothing is sent -- never a request without the credential.
+- If it raises, the call fails with `MCPCredentialError` and nothing is sent, never a request without the credential.
 
 `build_agent(identity=...)` wires this up for every HTTP/SSE server without a credential of its own (`bearer_token`, `api_key`, or an `Authorization` / `x-api-key` header), scoped to the server's `audience`. A caller token forwarded with `call_tool(..., bearer_token=...)` (see [Calling a tool as a specific user](#calling-a-tool-as-a-specific-user)) takes precedence: the per-caller session presents the caller's token, not the provider's.
 
@@ -151,8 +152,8 @@ async with MCPClient(
 | `cwd` | `str \| None` | `None` | Working directory for the stdio process |
 | `timeout` | `float` | `30.0` | HTTP request timeout in seconds |
 | `elicitation_callback` | SDK `ElicitationFnT \| None` | `None` | Answers the server's MCP elicitation requests; the elicitation capability is declared only when set. See [Answering elicitation](#answering-elicitation-server-side-approval-gates) |
-| `auto_reconnect` | `bool` | `True` | Open a new session and retry once when an HTTP/SSE server has lost the session — see [Reconnecting after a server restart](#reconnecting-after-a-server-restart). Ignored for stdio |
-| `bearer_token_provider` | `Callable[[bool], str \| None]` (or async) | `None` | Returns the current token on every request, instead of `bearer_token` — see [Short-lived tokens](#short-lived-tokens). HTTP/SSE only |
+| `auto_reconnect` | `bool` | `True` | Open a new session and retry once when an HTTP/SSE server has lost the session: see [Reconnecting after a server restart](#reconnecting-after-a-server-restart). Ignored for stdio |
+| `bearer_token_provider` | `Callable[[bool], str \| None]` (or async) | `None` | Returns the current token on every request, instead of `bearer_token`: see [Short-lived tokens](#short-lived-tokens). HTTP/SSE only |
 | `protocol` | `str` | `"handshake"` | `"handshake"` always opens the connection with `initialize`. `"auto"` (mcp 2.x, HTTP and stdio) uses the 2026-07-28 protocol when the server offers it. See [Protocol versions](#protocol-versions) |
 
 ### Fetching tokens
@@ -208,7 +209,7 @@ async def on_progress(progress: float, total: float | None, message: str | None)
 result = await client.call_tool("crawl_site", {"pages": 3}, progress_callback=on_progress)
 ```
 
-Without a callback the call carries no progress token, and servers don't send progress for it. `MCPMultiClient.call_tool()` accepts the same argument. Agents built with `build_agent()` take `on_tool_progress=` instead -- see [Progress Reporting](../server/resilience-patterns.md#receiving-progress-in-a-promptise-client-or-agent).
+Without a callback the call carries no progress token, and servers don't send progress for it. `MCPMultiClient.call_tool()` accepts the same argument. Agents built with `build_agent()` take `on_tool_progress=` instead: see [Progress Reporting](../server/resilience-patterns.md#receiving-progress-in-a-promptise-client-or-agent).
 
 ### Accessing the session
 
@@ -383,7 +384,7 @@ except MCPConnectionRejectedError as e:
     #  401 Unauthorized. Check the bearer_token/api_key configured for it."
 ```
 
-Through `MCPMultiClient` and `build_agent()` the message names the server instead (`Server 'orders' rejected the connection: 401 Unauthorized. ...`) and `e.server_name` is set. A `404` — usually a URL without the `/mcp` path — points you at the URL instead of the credentials:
+Through `MCPMultiClient` and `build_agent()` the message names the server instead (`Server 'orders' rejected the connection: 401 Unauthorized. ...`) and `e.server_name` is set. A `404` (usually a URL without the `/mcp` path) points you at the URL instead of the credentials:
 
 ```text
 Server at http://localhost:8080 rejected the connection: 404 Not Found.
@@ -399,7 +400,7 @@ Other connection failures (server down, connection refused) raise a plain `MCPCl
 A Streamable HTTP server keeps its sessions in memory. After a restart or redeploy it answers the old `mcp-session-id` with `404`, and the MCP specification requires the client to start a new session. `MCPClient` does this transparently:
 
 1. A call answered `404` for its session opens a new session (`initialize`) and is retried **once**. The server refused the request without running it, so the retry cannot run a tool twice. Concurrent calls that hit the same lost session share one re-initialisation.
-2. A connection that drops **during** a call (the server died mid-request) is not retried — the tool may already have run — and that call raises `MCPClientError`. The next call opens a new session, so the client recovers as soon as the server is back.
+2. A connection that drops **during** a call (the server died mid-request) is not retried (the tool may already have run) and that call raises `MCPClientError`. The next call opens a new session, so the client recovers as soon as the server is back.
 3. `MCPMultiClient` (and so every agent from `build_agent()`) then re-lists that server's tools, so routing follows the tools the new deployment serves.
 
 ```python
@@ -412,7 +413,7 @@ async with MCPClient(url="http://localhost:8080/mcp") as client:
 
 `client.session_generation` counts the sessions the client has opened (`1` after connecting). Pass `auto_reconnect=False` to handle a lost session yourself; the call then raises `MCPClientError` saying the server no longer knows the session.
 
-If the retry is answered `404` as well, the request reached a process that does not hold the brand-new session either — typically several replicas or workers behind a load balancer without sticky sessions. The error says so; route each `mcp-session-id` to one process, or serve the app stateless (see [Deployment — Sessions, restarts and replicas](../server/deployment.md#sessions-restarts-and-replicas)).
+If the retry is answered `404` as well, the request reached a process that does not hold the brand-new session either (typically several replicas or workers behind a load balancer without sticky sessions. The error says so; route each `mcp-session-id` to one process, or serve the app stateless (see [Deployment) Sessions, restarts and replicas](../server/deployment.md#sessions-restarts-and-replicas)).
 
 The legacy SSE transport has no session-level `404`: when its stream breaks, the call in progress fails and the next call opens a new session.
 
@@ -583,7 +584,10 @@ asyncio.run(main())
 | Symbol | Type | Description |
 |---|---|---|
 | `MCPClient(url, transport, bearer_token, ...)` | Class | Single-server MCP client |
-| `MCPClient.fetch_token(url, client_id, secret)` | Static method | Acquire a JWT from a token endpoint |
+| `MCPClient.fetch_token(token_url, client_id, client_secret, *, timeout=10.0)` | Static method | Acquire a JWT from a token endpoint |
+| `client.with_bearer_token(token)` | Method | An unconnected copy of the client that authenticates with *token* |
+| `client.supports_bearer_token` | Property | `False` for stdio (no request headers) |
+| `client.transport` | Property | `"http"`, `"sse"` or `"stdio"` |
 | `client.list_tools()` | Method | Discover all tools on the server |
 | `client.call_tool(name, arguments, progress_callback=None)` | Method | Call a tool and get a `CallToolResult`; the callback receives progress notifications |
 | `client.list_resources()` / `client.list_resource_templates()` | Method | Discover the server's resources and resource templates |
@@ -594,15 +598,17 @@ asyncio.run(main())
 | `client.session` | Property | Underlying MCP `ClientSession` (no automatic reconnect for calls made on it directly) |
 | `client.session_generation` | Property | Number of sessions opened; grows by one on each transparent re-initialisation |
 | `client.headers` | Property | Read-only copy of HTTP headers |
-| `MCPMultiClient(clients, elicitation_callback=None)` | Class | Multi-server aggregating client |
+| `MCPMultiClient(clients, *, elicitation_callback=None, max_caller_sessions=256, caller_session_idle_timeout=300.0)` | Class | Multi-server aggregating client |
 | `approval_elicitation_callback(handler, ...)` | Function | Elicitation callback that asks an approval handler (`promptise.approval`) |
 | `multi.list_tools()` | Method | Discover tools from all servers |
-| `multi.call_tool(name, arguments, progress_callback=None)` | Method | Call a tool, auto-routed to the correct server |
+| `multi.call_tool(name, arguments=None, *, bearer_token=None, progress_callback=None)` | Method | Call a tool, auto-routed to the correct server; `bearer_token` calls as that user |
 | `multi.tool_to_server` | Property | Tool name to server name mapping |
-| `multi.read_resource(uri, *, server=None)` | Method | Read a resource, routed by URI |
-| `multi.get_prompt(name, arguments, *, server=None)` | Method | Get a prompt, routed by name |
+| `multi.read_resource(uri, *, server=None, bearer_token=None)` | Method | Read a resource, routed by URI |
+| `multi.get_prompt(name, arguments, *, server=None, bearer_token=None)` | Method | Get a prompt, routed by name |
+| `multi.resource_to_server` / `template_to_server` / `prompt_to_server` | Property | Routing maps filled by discovery |
 | `multi.servers` | Property | Server name to `MCPClient` mapping |
-| `MCPToolAdapter(multi, on_before, on_after, on_error, on_progress)` | Class | MCP-to-LangChain tool converter |
+| `MCPToolAdapter(multi, *, on_before=None, on_after=None, on_error=None, optimize=None, forward_caller_token=False, on_progress=None)` | Class | MCP-to-LangChain tool converter ([Tool Adapter](tool-adapter.md)) |
+| `MCPToolError` | Exception | A tool call that returned an error result, raised by adapter tools ([Tool Adapter](tool-adapter.md)) |
 | `adapter.as_langchain_tools()` | Method | Convert MCP tools to `BaseTool` instances |
 | `adapter.list_tool_info()` | Method | Get tool metadata for introspection |
 | `MCPClientError` | Exception | Raised on client operation failures |
@@ -610,7 +616,7 @@ asyncio.run(main())
 | `MCPCredentialError` | Exception | `bearer_token_provider` could not supply a token; nothing was sent |
 
 !!! tip "Persistent connections"
-    `MCPClient` and `MCPMultiClient` maintain persistent connections for the lifetime of the context manager. Avoid creating a new client per tool call -- instead, keep the client alive for the duration of your agent session.
+    `MCPClient` and `MCPMultiClient` maintain persistent connections for the lifetime of the context manager. Avoid creating a new client per tool call: instead, keep the client alive for the duration of your agent session.
 
 !!! warning "Call list_tools() before call_tool()"
     With `MCPMultiClient`, you must call `list_tools()` at least once before `call_tool()` so the client can discover which server owns each tool. Without discovery, `call_tool()` raises `MCPClientError`.
@@ -620,12 +626,12 @@ asyncio.run(main())
 
 ## What's Next?
 
-- [Tool Adapter](tool-adapter.md) -- Convert MCP tools to LangChain `BaseTool` instances
-- [Step-by-Step Guide](../../guides/production-mcp-servers.md) -- Build the server your client connects to
-- [Server Fundamentals](../server/building-servers.md) -- Full reference for tools, resources, and config
-- [Auth & Security](../server/auth-security.md) -- Set up JWT auth on the server side
+- [Tool Adapter](tool-adapter.md): Convert MCP tools to LangChain `BaseTool` instances
+- [Step-by-Step Guide](../../guides/production-mcp-servers.md): Build the server your client connects to
+- [Server Fundamentals](../server/building-servers.md): Full reference for tools, resources, and config
+- [Auth & Security](../server/auth-security.md): Set up JWT auth on the server side
 
 !!! tip "Learn the concept"
 
-    - [How to Connect MCP Servers to Your AI Agent in Python](https://www.promptise.com/guides/view/connect-mcp-servers-to-ai-agent-python) -- Connect local and remote MCP servers to an agent.
-    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse) -- How each transport looks on the wire.
+    - [How to Connect MCP Servers to Your AI Agent in Python](https://www.promptise.com/guides/view/connect-mcp-servers-to-ai-agent-python): Connect local and remote MCP servers to an agent.
+    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse): How each transport looks on the wire.

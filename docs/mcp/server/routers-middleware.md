@@ -31,14 +31,15 @@ server.add_middleware(LoggingMiddleware())
 server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
 server.include_router(db_router)
 
-server.run()
+if __name__ == "__main__":
+    server.run()
 ```
 
 After mounting, the tools are registered as `db_query` and `db_tables` (prefix + underscore + function name).
 
 ## Concepts
 
-**MCPRouter** groups related tools, resources, and prompts into a reusable module -- analogous to FastAPI's `APIRouter`. Routers carry their own prefix, tags, auth defaults, middleware, and guards. When mounted on a server via `include_router()`, all registrations are merged into the server's registries.
+**MCPRouter** groups related tools, resources, and prompts into a reusable module: analogous to FastAPI's `APIRouter`. Routers carry their own prefix, tags, auth defaults, middleware, and guards. When mounted on a server via `include_router()`, all registrations are merged into the server's registries.
 
 **Middleware** intercepts every tool call, enabling cross-cutting concerns like logging, timeouts, authentication, and rate limiting. Middleware runs in registration order (first added = outermost), wrapping the handler like layers of an onion.
 
@@ -56,6 +57,16 @@ analytics_router = MCPRouter(
     guards=[RequireAuth()],  # Router-level guards applied to all tools
 )
 ```
+
+`MCPRouter(*, prefix="", tags=None, auth=None, middleware=None, guards=None)`:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `prefix` | `""` | Prepended to tool names with an underscore |
+| `tags` | `None` | Merged with each registration's tags |
+| `auth` | `None` | `True` / `False` overrides every registration's `auth`; `None` keeps each one's own |
+| `middleware` | `None` | Middleware for this router's tools, resources and prompts, run after the server's |
+| `guards` | `None` | Guards added to every registration (before its own guards) |
 
 ### Registering tools on a router
 
@@ -94,9 +105,12 @@ URIs and prompt names are not prefixed. The router's `auth`, `guards`, `middlewa
 server = MCPServer(name="platform")
 server.include_router(analytics_router)
 
-# Override prefix or add extra tags at mount time
-server.include_router(analytics_router, prefix="v2_analytics", tags=["v2"])
+# Add an extra prefix and tags at mount time
+server.include_router(analytics_router, prefix="v2", tags=["v2"])
+# Tool names: "v2_analytics_daily_report", ...
 ```
+
+`include_router(router, *, prefix="", tags=None)` **adds** `prefix` in front of the router's own prefix; it does not replace it. Registrations are copied into the server when you call it, so tools added to the router afterwards are not served. Two registrations with the same final name raise `ValueError`.
 
 ### Nesting routers
 
@@ -125,7 +139,7 @@ Prefixes are joined with underscores. Given:
 
 The final tool name is `v1_users_search`.
 
-Resource URIs are **not** prefixed -- they use the URI you specify.
+Resource URIs are **not** prefixed: they use the URI you specify.
 
 ## Middleware
 
@@ -178,7 +192,7 @@ from promptise.mcp.server import LoggingMiddleware
 server.add_middleware(LoggingMiddleware(log_level=logging.INFO))
 ```
 
-Output: `[req-abc123] search completed in 0.045s`
+Output, on the `promptise.server.<server name>` logger: `[abc123def456] search completed in 0.045s` (or `... failed after 0.045s`). `LoggingMiddleware(log_level=logging.INFO)`. For JSON log lines, use [`StructuredLoggingMiddleware`](observability.md).
 
 #### TimeoutMiddleware
 
@@ -190,11 +204,11 @@ from promptise.mcp.server import TimeoutMiddleware
 server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
 ```
 
-If a tool exceeds the timeout, a `ToolError` with code `TIMEOUT` is returned to the client. It says the call's outcome is unknown, and is `retryable` only for a tool declared with `read_only_hint=True` or `idempotent_hint=True`.
+If a tool exceeds the timeout, a `ToolError` with code `TIMEOUT` is returned to the client. It says the call's outcome is unknown, and is `retryable` only for a tool declared with `read_only_hint=True` or `idempotent_hint=True`. `TimeoutMiddleware(default_timeout=30.0)` applies to every request that passes through it (tools, resources and prompts), so include it only when you want a server-wide default.
 
 #### ConcurrencyLimiter
 
-Prevents resource exhaustion by capping the number of in-flight tool calls. Excess requests receive a retryable `RateLimitError`.
+Prevents resource exhaustion by capping the number of in-flight requests. Excess requests are rejected at once (not queued) with a retryable `ConcurrencyLimitError` (code `CONCURRENCY_LIMIT_EXCEEDED`). `ConcurrencyLimiter(max_concurrent=100)`; `0` means unlimited (tracking only). For a cap on one tool, use `@server.tool(max_concurrent=N)`.
 
 ```python
 from promptise.mcp.server import ConcurrencyLimiter
@@ -206,6 +220,7 @@ server.add_middleware(limiter)
 print(limiter.active_requests)   # Currently in-flight
 print(limiter.peak_concurrent)   # Highest observed
 print(limiter.total_requests)    # Total since server start
+print(limiter.stats())           # {"active": ..., "total": ..., "peak": ..., "max_concurrent": 50}
 ```
 
 ### Writing custom middleware
@@ -233,7 +248,7 @@ server.add_middleware(AuditMiddleware(audit_trail))
 
 ### Middleware ordering
 
-Middleware runs in **registration order** -- the first middleware added is the outermost layer:
+Middleware runs in **registration order**: the first middleware added is the outermost layer:
 
 ```python
 server.add_middleware(AuthMiddleware(jwt_auth))   # 1. Runs first (outermost)
@@ -267,17 +282,35 @@ The combined chain for tools on this router is: server middleware, then router m
 
 ## RequestContext
 
-Every middleware and handler receives a `RequestContext` with:
+Every middleware receives a `RequestContext`. A handler gets it by declaring a parameter typed `RequestContext` (it is injected and left out of the tool schema) or by calling `get_context()`, which raises `RuntimeError` outside a request:
 
 | Attribute | Type | Description |
 |---|---|---|
 | `server_name` | `str` | Name of the MCP server |
-| `tool_name` | `str` | Name of the tool being called |
-| `request_id` | `str` | Unique ID for this request |
-| `client_id` | `str \| None` | Authenticated client identifier |
-| `meta` | `dict` | Request metadata (headers, tokens) |
-| `state` | `dict` | Mutable state shared across the middleware chain |
-| `logger` | `Logger` | Pre-configured logger for this request |
+| `tool_name` | `str` | Name of the tool, resource or prompt being invoked |
+| `request_id` | `str` | The client's `X-Request-ID` header, or a random 12-character hex string |
+| `client_id` | `str \| None` | Authenticated client identifier (set by `AuthMiddleware`) |
+| `client` | `ClientContext` | Roles, scopes, claims, tenant, IP and user agent of the caller ([Auth](auth-security.md)) |
+| `meta` | `dict` | HTTP headers of this request, lower-cased (empty on stdio) |
+| `state` | `dict` | Mutable state shared across the middleware chain; `state["tool_def"]` is the definition being invoked |
+| `request_type` | `str` | `"tool"`, `"resource"` or `"prompt"` |
+| `logger` | `Logger` | `promptise.server.<server name>` (property) |
+
+```python
+from promptise.mcp.server import MCPServer, RequestContext, get_context
+
+server = MCPServer(name="ctx-demo")
+
+@server.tool()
+async def whoami(ctx: RequestContext) -> dict:
+    """Return the caller's identity."""
+    return {"client": ctx.client_id, "roles": sorted(ctx.client.roles), "request": ctx.request_id}
+
+def audit_helper() -> str:
+    return get_context().tool_name   # works anywhere inside a request
+```
+
+`get_request_headers()` returns the HTTP headers of the request being served (an empty dict on stdio); `set_request_headers()` and `clear_request_headers()` exist for transports and tests that need to bind them by hand.
 
 ## API Summary
 
@@ -294,10 +327,12 @@ Every middleware and handler receives a `RequestContext` with:
 | `@server.middleware` | Decorator | Register a middleware function |
 | `LoggingMiddleware(log_level)` | Class | Log tool calls with timing |
 | `TimeoutMiddleware(default_timeout)` | Class | Enforce per-call timeouts |
-| `ConcurrencyLimiter(max_concurrent)` | Class | Cap in-flight tool calls |
+| `ConcurrencyLimiter(max_concurrent=100)` | Class | Cap in-flight requests |
+| `MiddlewareChain(middlewares=None)` | Class | Run a list of middleware by hand: `await chain.run(ctx, handler, kwargs)` (the server compiles its own chain) |
+| `get_context()` | Function | The current `RequestContext` |
 
 !!! tip "Pre-compiled middleware chains"
-    Middleware chains are compiled once at server startup into frozen closures. This eliminates per-request overhead from chain construction, making middleware essentially zero-cost in the hot path.
+    Middleware chains are compiled once when the server is built into closures, so no chain is assembled per request. Middleware added after the server starts serving is not part of the compiled chain.
 
 !!! warning "Middleware order matters"
     Authentication middleware must run **before** any middleware that reads `ctx.client_id` or `ctx.state["roles"]`. Place `AuthMiddleware` first in your chain.
@@ -307,7 +342,7 @@ Every middleware and handler receives a `RequestContext` with:
 
 ## What's Next?
 
-- [Authentication & Security](auth-security.md) -- Add JWT, API keys, and role-based guards
-- [Production Features](production-features.md) -- Add caching, rate limiting, health checks, and metrics
-- [Testing](testing.md) -- Test servers in-process with `TestClient`
-- [Client Guide](../client/index.md) -- Connect to your server from Python code
+- [Authentication & Security](auth-security.md): Add JWT, API keys, and role-based guards
+- [Production Features](production-features.md): Add caching, rate limiting, health checks, and metrics
+- [Testing](testing.md): Test servers in-process with `TestClient`
+- [Client Guide](../client/index.md): Connect to your server from Python code

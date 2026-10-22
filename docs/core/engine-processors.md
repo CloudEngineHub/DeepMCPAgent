@@ -5,26 +5,51 @@ description: "Functions that run before or after a PromptNode's LLM call: contex
 
 # Node Processors
 
-Processors are functions that run before (preprocessors) or after (postprocessors) a PromptNode's LLM call. They transform state, validate inputs, parse outputs, and enrich results.
+Processors are functions that run before (preprocessors) or after (postprocessors) a PromptNode's LLM call. They transform state, parse outputs, and enrich results. The built-in ones are factories in `promptise.engine.processors`: call them to get the processor.
 
 ## Usage
 
 ```python
 from promptise.engine import PromptNode
 from promptise.engine.processors import (
-    context_enricher, json_extractor, confidence_scorer,
-    chain_preprocessors, chain_postprocessors,
+    chain_postprocessors, context_enricher, state_writer,
 )
+from pydantic import BaseModel
+
+
+class Answer(BaseModel):
+    answer: str
+    confidence: float
+
 
 node = PromptNode("analyze",
+    output_schema=Answer,
     preprocessor=context_enricher(),
-    postprocessor=chain_postprocessors(json_extractor(), confidence_scorer()),
+    postprocessor=chain_postprocessors(state_writer(fields={"answer": "final_answer"})),
 )
 ```
 
+!!! warning "What a postprocessor receives"
+    A postprocessor gets `NodeResult.output`, not the reply text. `output` is
+    a dict for a node with an `output_schema`, the extracted answer (a `str`)
+    for a node whose `strategy` parsed one (for example `chain_of_thought`
+    when the reply has its answer marker), and `None` for a plain-text reply.
+    So `json_extractor()` and `confidence_scorer()` see `None` on a plain
+    `PromptNode` (`confidence_scorer` then returns `{"text": "None", ...}`).
+    The reply text is in `state.context["{node_name}_output"]` if a
+    postprocessor needs it. A postprocessor's non-`None` return value becomes
+    the node's `output` (and is written to `output_key`).
+
+!!! warning "Exceptions are logged, not raised"
+    The node catches an exception from its preprocessor or postprocessor, logs
+    a warning on `promptise.engine` and carries on. `input_validator()`
+    therefore does not stop the model call when a key is missing; it only logs
+    it. To stop a run on missing input, check in a `pre_node`
+    [hook](engine-hooks.md) or a node that sets an `error`.
+
 ## Preprocessors
 
-Preprocessors run before the LLM call and modify `state` in place.
+Preprocessors run before the LLM call and modify `state` in place. A preprocessor can be sync or `async`; the node awaits a coroutine.
 
 **Signature:** `(state: GraphState, config: dict) -> None`
 
@@ -36,7 +61,12 @@ Adds timestamp and iteration info to `state.context`.
 context_enricher(include_timestamp=True, include_iteration=True)
 ```
 
-Sets `_timestamp` (UTC ISO), `_iteration`, and `_tools_called` in context.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `include_timestamp` | `bool` | `True` | Set `state.context["_timestamp"]` (UTC, ISO 8601) |
+| `include_iteration` | `bool` | `True` | Set `state.context["_iteration"]` (`state.iteration`) and `["_tools_called"]` (`state.tool_calls_made`) |
+
+The values are in `state.context`; list them in the node's `input_keys` for the model to see them.
 
 ### state_summarizer
 
@@ -46,39 +76,61 @@ Truncates long string values in `state.context` to save tokens.
 state_summarizer(max_context_chars=2000)
 ```
 
-Any string value exceeding `max_context_chars` is truncated with `... (truncated)`.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `max_context_chars` | `int` | `2000` | Every string value in `state.context` longer than this is cut to this length plus `"... (truncated)"` |
+
+It changes the shared `state.context` for every later node, not only this one's prompt.
 
 ### input_validator
 
-Validates that required keys exist in `state.context`. Raises `ValueError` if missing.
+Checks that required keys exist in `state.context` and raises `ValueError` naming the missing ones. Inside a node the exception is logged and the node goes on (see the warning above), so use it for logging or in your own code, not as a gate.
 
 ```python
 input_validator(required_keys=["query", "data_source"])
 ```
 
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `required_keys` | `list[str]` | *required* | Keys that must be in `state.context` |
+
 ## Postprocessors
 
-Postprocessors run after the LLM call and transform the output.
+Postprocessors run after the LLM call (and after guards and strategy parsing) and transform the output. Sync or `async`.
 
 **Signature:** `(output: Any, state: GraphState, config: dict) -> Any`
 
 ### json_extractor
 
-Parses JSON from LLM output strings. Handles nested braces correctly (e.g. `{"a": {"b": 1}}`). If the output is already a dict, filters to specified keys.
+Parses the first JSON object out of a string output (nested braces work, e.g. `{"a": {"b": 1}}`). A dict output is passed through, filtered to `keys` when given. Anything else (including `None`, or a string with no JSON object) is returned unchanged.
 
 ```python
 json_extractor()                        # Extract first JSON object from text
 json_extractor(keys=["answer", "confidence"])  # Only keep these keys
 ```
 
-### confidence_scorer
-
-Adds a `_confidence` score (0.1-1.0) based on hedging language in the output text.
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `keys` | `list[str] \| None` | `None` | Keep only these keys (missing ones are left out) |
 
 ```python
-confidence_scorer()
-# Detects: "might", "maybe", "perhaps", "possibly", "unclear", "I think", etc.
-# Returns: {"text": ..., "_confidence": 0.85}
+from promptise.engine import GraphState
+from promptise.engine.processors import json_extractor
+
+extract = json_extractor(keys=["answer"])
+print(extract('Result: {"answer": 42, "notes": "x"}', GraphState(), {}))   # {'answer': 42}
+```
+
+### confidence_scorer
+
+Adds a `_confidence` score from hedging words in the output text: `max(0.1, 1 - 10 * hedges / words)`, rounded to two decimals, where `hedges` counts which of 12 phrases ("might", "maybe", "perhaps", "possibly", "unclear", "uncertain", "not sure", "I think", "could be", "approximately", "roughly", "it seems") appear. A heuristic, not a calibrated probability. A dict output gets a `_confidence` key; any other output becomes `{"text": str(output), "_confidence": ...}`.
+
+```python
+from promptise.engine import GraphState
+from promptise.engine.processors import confidence_scorer
+
+score = confidence_scorer()
+print(score("The total is 42.", GraphState(), {}))   # {'text': 'The total is 42.', '_confidence': 1.0}
 ```
 
 ### state_writer
@@ -111,7 +163,7 @@ output_truncator(max_chars=4000)
 
 ### chain_preprocessors
 
-Combines multiple preprocessors into one. Runs sequentially in order.
+Combines multiple preprocessors into one. Runs them in order. The combined function is synchronous: it does not await an `async` preprocessor (its coroutine is never run), so chain only sync preprocessors, or write your own async wrapper.
 
 ```python
 preprocessor = chain_preprocessors(
@@ -123,7 +175,7 @@ preprocessor = chain_preprocessors(
 
 ### chain_postprocessors
 
-Combines multiple postprocessors into one. Pipes output through each function sequentially.
+Combines multiple postprocessors into one. Pipes the output through each function in order (each gets the previous one's return value, `None` included). Synchronous like `chain_preprocessors`: chain only sync postprocessors.
 
 ```python
 postprocessor = chain_postprocessors(
@@ -138,6 +190,13 @@ postprocessor = chain_postprocessors(
 Write your own processors using the same signatures:
 
 ```python
+import re
+from typing import Any
+
+from promptise.engine import GraphState, PromptNode
+from promptise.engine.processors import chain_preprocessors, context_enricher
+
+
 # Custom preprocessor
 def inject_user_profile(state: GraphState, config: dict) -> None:
     user_id = state.context.get("user_id")

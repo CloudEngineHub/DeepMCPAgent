@@ -105,7 +105,7 @@ In `mission.failed`, `reason` says who failed it (`"timeout"`, `"max_invocations
 
 ### Failing a mission
 
-An operator can fail a mission with a reason (fail only an `active` or `paused` one: in Python, `fail_mission()` doesn't check the state):
+An operator can fail an `active` or `paused` mission with a reason:
 
 ```python
 data = process.fail_mission("Requirements changed, migration cancelled")
@@ -114,7 +114,7 @@ data = process.fail_mission("Requirements changed, migration cancelled")
 #  "invocation_count": 6, "previous_state": "active", "failed_at": "2026-10-19T20:23:26+00:00"}
 ```
 
-`fail_mission()` stores the reason with the mission (`MissionTracker.failure_reason`, the `[Mission]` prompt block, checkpoints), journals a `mission_failed` entry, emits `mission.failed` and returns the event data. It raises `RuntimeError` when the process has no mission. Over the API: `POST /mission/fail` (see [Over the API](#over-the-api)).
+`fail_mission()` stores the reason with the mission (`MissionTracker.failure_reason`, the `[Mission]` prompt block, checkpoints), journals a `mission_failed` entry, emits `mission.failed` and returns the event data. It raises `RuntimeError` when the process has no mission, and `ValueError` when the mission is already completed or failed (`The mission is already failed; a failed mission can't be failed`). Over the API: `POST /mission/fail` (see [Over the API](#over-the-api)).
 
 ### Context injection
 
@@ -279,13 +279,13 @@ Created by the process when `mission.enabled=True` (or when a `PATCH /mission` e
 
 ## What's next
 
-- [Autonomy Budget](budget.md) -- cap what the mission may spend
-- [Behavioral Health](health.md) -- detect a stuck agent, and record tool calls as evidence
-- [Orchestration API](../api.md) -- the mission routes and the rest of the control API
-- [Journal](../journal/index.md) -- checkpoints that carry the mission across restarts
-- [Meta-Tools](../meta-tools.md) -- `check_mission` in open mode
+- [Autonomy Budget](budget.md): cap what the mission may spend
+- [Behavioral Health](health.md): detect a stuck agent, and record tool calls as evidence
+- [Orchestration API](../api.md): the mission routes and the rest of the control API
+- [Journal](../journal/index.md): checkpoints that carry the mission across restarts
+- [Meta-Tools](../meta-tools.md): `check_mission` in open mode
 
 !!! tip "Learn the concept"
 
-    - [Goal-Driven AI Agents: Missions With an LLM Judge](https://www.promptise.com/guides/view/goal-driven-ai-agent-mission) -- Objectives, success criteria, thresholds and judge costs on real runs.
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- Missions, budgets and recovery tested on real runs.
+    - [Goal-Driven AI Agents: Missions With an LLM Judge](https://www.promptise.com/guides/view/goal-driven-ai-agent-mission): Objectives, success criteria, thresholds and judge costs on real runs.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): Missions, budgets and recovery tested on real runs.

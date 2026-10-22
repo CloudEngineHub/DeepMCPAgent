@@ -1,5 +1,5 @@
 ---
-title: Promptise Foundry FAQ — Production Python framework for AI agents and MCP
+title: "Promptise Foundry FAQ: Python framework for AI agents and MCP"
 seo_title: "Promptise Foundry FAQ: Agents and MCP"
 description: "Answers about Promptise Foundry: what it is, how it compares to LangChain, LangGraph and CrewAI, models, MCP, the agent runtime, security and operations."
 keywords: Promptise Foundry FAQ, Python AI agent framework, MCP server framework, LangChain alternative, LangGraph alternative, CrewAI alternative, agentic AI, autonomous agents, Model Context Protocol
@@ -13,13 +13,13 @@ keywords: Promptise Foundry FAQ, Python AI agent framework, MCP server framework
     {"@type":"Question","name":"What is Promptise Foundry?","acceptedAnswer":{"@type":"Answer","text":"Promptise Foundry is a production-grade Python framework for building AI agents, MCP (Model Context Protocol) servers, prompt engineering systems, and autonomous runtimes. It is secure by default, model-agnostic, MCP-native, and designed for teams shipping agentic AI to production."}},
     {"@type":"Question","name":"How is Promptise Foundry different from LangChain?","acceptedAnswer":{"@type":"Answer","text":"LangChain is a general-purpose LLM toolkit with hundreds of integrations. Promptise Foundry is a focused production framework that ships one coherent stack covering agents, MCP servers, prompt engineering, and autonomous runtime, with built-in access control, audit trails, sandboxing, and governance. Promptise has fewer abstractions, no silent fallbacks, is async-first, and uses MCP-native tool discovery instead of manual wiring."}},
     {"@type":"Question","name":"How does Promptise Foundry compare to LangGraph?","acceptedAnswer":{"@type":"Answer","text":"LangGraph is an orchestration layer focused on stateful graphs. Promptise Foundry includes a full Agent Runtime with crash recovery via journals, governance (budget, health, mission), and five trigger types (cron, event, message, webhook, file watch) — built for long-running autonomous agents that survive restarts."}},
-    {"@type":"Question","name":"How does Promptise Foundry compare to CrewAI?","acceptedAnswer":{"@type":"Answer","text":"CrewAI focuses on multi-agent role-playing workflows. Promptise Foundry covers single agents, multi-agent coordination via cross-agent delegation (ask_peer and broadcast over HTTP+JWT), plus the production infrastructure — MCP servers, governance, observability, sandboxing."}},
+    {"@type":"Question","name":"How does Promptise Foundry compare to CrewAI?","acceptedAnswer":{"@type":"Answer","text":"CrewAI focuses on multi-agent role-playing workflows. Promptise Foundry covers single agents, multi-agent coordination through cross-agent delegation (peer agents become ask_agent_<name> tools), plus the production infrastructure — MCP servers, governance, observability, sandboxing."}},
     {"@type":"Question","name":"What is MCP and why does Promptise Foundry use it?","acceptedAnswer":{"@type":"Answer","text":"MCP (Model Context Protocol) is the open standard for connecting LLMs to tools, resources, and prompts. Promptise Foundry is MCP-native — agents auto-discover tools from any MCP server URL, schemas convert to typed tools automatically, and the framework includes a production SDK for building MCP servers."}},
     {"@type":"Question","name":"Does Promptise Foundry have its own MCP client?","acceptedAnswer":{"@type":"Answer","text":"Yes. Promptise Foundry ships a native MCP client built from scratch — MCPClient for single servers, MCPMultiClient for N servers with unified tool list and auto-routing, and MCPToolAdapter for LangChain BaseTool conversion. HTTP, SSE, and stdio transports with bearer token and API key authentication. No third-party MCP client dependencies."}},
     {"@type":"Question","name":"Which LLM models does Promptise Foundry support?","acceptedAnswer":{"@type":"Answer","text":"Any model. Promptise Foundry is model-agnostic. Use a string like openai:gpt-5-mini, anthropic:claude-sonnet-4-5, or ollama:llama3, or pass any LangChain BaseChatModel directly. Switching providers requires changing one string."}},
     {"@type":"Question","name":"Is Promptise Foundry production-ready?","acceptedAnswer":{"@type":"Answer","text":"Yes. No stub implementations, no half-finished features, no NotImplementedError in shipped code. Access control, capability-based policies, audit logging, encrypted transport, sandboxed code execution, observability with 8 transporters, and crash-recovery via journals are built in. Every backend listed as a parameter option works."}},
     {"@type":"Question","name":"How do I install Promptise Foundry?","acceptedAnswer":{"@type":"Answer","text":"Run pip install promptise. Python 3.10 or newer is required. Optional extras for memory backends (Chroma, Mem0), sandboxing (Docker, gVisor), and observability (Prometheus, OpenTelemetry) are available."}},
-    {"@type":"Question","name":"Does Promptise Foundry support self-hosted or local LLMs?","acceptedAnswer":{"@type":"Answer","text":"Yes. Use any Ollama model via the ollama:model-name string. Local embeddings via SentenceTransformers, local guardrail models (DeBERTa, GLiNER, Llama Guard), and local memory backends (ChromaDB) make air-gapped deployments fully supported."}},
+    {"@type":"Question","name":"Does Promptise Foundry support self-hosted or local LLMs?","acceptedAnswer":{"@type":"Answer","text":"Yes. Use any Ollama model via the ollama:model-name string. Local embeddings via SentenceTransformers, local guardrail models (DeBERTa, GLiNER, and Llama Guard through Ollama), and local memory backends (ChromaDB) make air-gapped deployments fully supported."}},
     {"@type":"Question","name":"Is Promptise Foundry open source?","acceptedAnswer":{"@type":"Answer","text":"Yes — Apache 2.0 licensed. The source code is at github.com/promptise-com/foundry."}},
     {"@type":"Question","name":"What is the Agent Runtime?","acceptedAnswer":{"@type":"Answer","text":"The Agent Runtime is the operating system for autonomous AI agents. It turns stateless LLM calls into persistent, governed processes with lifecycle states (CREATED, STARTING, RUNNING, SUSPENDED, STOPPING, STOPPED, FAILED), trigger queues, heartbeat monitoring, concurrency control, conversation buffer, and journaled state for crash recovery."}},
     {"@type":"Question","name":"What trigger types can launch an autonomous agent?","acceptedAnswer":{"@type":"Answer","text":"Five built-in trigger types — CronTrigger (cron expressions), EventTrigger (EventBus subscription), MessageTrigger (topic-based pub/sub with wildcards), WebhookTrigger (HTTP POST with HMAC verification), and FileWatchTrigger (directory monitoring with glob patterns). Multiple triggers can compose on one process."}},
@@ -28,18 +28,18 @@ keywords: Promptise Foundry FAQ, Python AI agent framework, MCP server framework
     {"@type":"Question","name":"How does Promptise Foundry handle prompt injection and security?","acceptedAnswer":{"@type":"Answer","text":"PromptiseSecurityScanner with six detection heads — DeBERTa-based prompt injection detection, PII detection (69 regex patterns), credential detection (97 patterns), GLiNER NER, content safety via Llama Guard or Azure AI, and custom rules. All models run locally."}},
     {"@type":"Question","name":"What memory backends does Promptise Foundry support?","acceptedAnswer":{"@type":"Answer","text":"Three providers — InMemoryProvider (testing), ChromaProvider (local vector search, persistent), and Mem0Provider (enterprise-grade graph search). The agent auto-searches memory before every invocation and injects relevant results with prompt-injection mitigation."}},
     {"@type":"Question","name":"Does Promptise Foundry support conversation persistence?","acceptedAnswer":{"@type":"Answer","text":"Yes. ConversationStore protocol with four backends — InMemoryConversationStore, SQLiteConversationStore, PostgresConversationStore, RedisConversationStore. The chat() method handles load, invoke, and persist automatically with session ownership enforcement."}},
-    {"@type":"Question","name":"Does Promptise Foundry support semantic caching?","acceptedAnswer":{"@type":"Answer","text":"Yes. SemanticCache with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for semantically similar queries — typically 30-50% cost reduction. purge_user() deletes one user's cached entries on request. Encrypted-at-rest option for Redis."}},
+    {"@type":"Question","name":"Does Promptise Foundry support semantic caching?","acceptedAnswer":{"@type":"Answer","text":"Yes. SemanticCache with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for semantically similar queries. purge_user() deletes one user's cached entries on request. Encrypted-at-rest option for Redis."}},
     {"@type":"Question","name":"Can I sandbox code execution in Promptise Foundry?","acceptedAnswer":{"@type":"Answer","text":"Yes. Docker-based sandbox with seccomp syscall filtering, capability dropping, read-only rootfs, resource limits, and network isolation. Optional gVisor kernel. Five agent tools auto-injected when sandbox is enabled. Path traversal and shell injection prevention built in."}},
     {"@type":"Question","name":"How does observability work?","acceptedAnswer":{"@type":"Answer","text":"Four levels — OFF, BASIC, STANDARD, FULL. Every LLM turn, tool call, token count, latency, retry, cache hit/miss is recorded. Eight transporters — HTML report, JSON file, structured log, console, Prometheus, OpenTelemetry, webhook, callback."}},
     {"@type":"Question","name":"What governance does the Agent Runtime provide?","acceptedAnswer":{"@type":"Answer","text":"Four governance subsystems — Budget (tool calls, LLM turns, cost units, irreversible actions), Health (anomaly detection), Mission (LLM-as-judge evaluation against success criteria), and Secrets (per-process credential context with TTL expiry, rotation, zero-fill revocation)."}},
-    {"@type":"Question","name":"Does Promptise Foundry support multi-agent systems?","acceptedAnswer":{"@type":"Answer","text":"Yes. Cross-agent delegation via ask_peer (send a question to another agent over HTTP+JWT and await the answer) and broadcast (send to multiple peers in parallel with timeout). Graceful degradation if a peer fails."}},
+    {"@type":"Question","name":"Does Promptise Foundry support multi-agent systems?","acceptedAnswer":{"@type":"Answer","text":"Yes. Pass peer agents to build_agent(cross_agents={...}) and each becomes an ask_agent_<name> tool the agent can call; include_broadcast=True adds a broadcast_to_agents tool that asks several peers in parallel. Delegation runs in-process, with per-peer timeouts and a delegation depth limit. For agents that run as separate processes, the Agent Runtime connects them through events."}},
     {"@type":"Question","name":"What is a SuperAgent file?","acceptedAnswer":{"@type":"Answer","text":"A .superagent YAML file that defines an entire agent declaratively — model, instructions, MCP servers, memory, sandbox, observability, cache, guardrails, cross-agents. Environment variable resolution via ${VAR}. Loadable via the CLI."}},
     {"@type":"Question","name":"What is the Open Mode?","acceptedAnswer":{"@type":"Answer","text":"Open Mode lets agents self-modify with 14 meta-tools — modify_instructions, create_tool, connect_mcp_server, add_trigger, remove_trigger, spawn_process, list_processes, store_memory, search_memory, forget_memory, list_capabilities, get_secret, check_budget, check_mission. Guardrails enforce limits and require sandbox for agent-written code."}},
-    {"@type":"Question","name":"Does Promptise Foundry have prompt engineering features?","acceptedAnswer":{"@type":"Answer","text":"Yes. The @prompt decorator, 8 PromptBlock types with priority-based token budgeting, ConversationFlow for phase-based system prompts, 5 composable strategies (ChainOfThought, StructuredReasoning, SelfCritique, PlanAndExecute, Decompose), 4 perspectives (Analyst, Critic, Advisor, Creative), guards, 14 context providers, and a PromptInspector."}},
+    {"@type":"Question","name":"Does Promptise Foundry have prompt engineering features?","acceptedAnswer":{"@type":"Answer","text":"Yes. The @prompt decorator, 8 PromptBlock types with priority-based token budgeting, ConversationFlow for phase-based system prompts, 5 composable strategies (chain_of_thought, structured_reasoning, self_critique, plan_and_execute, decompose), 4 perspectives (analyst, critic, advisor, creative), guards, 14 context providers, and a PromptInspector."}},
     {"@type":"Question","name":"Can I build my own MCP server with Promptise Foundry?","acceptedAnswer":{"@type":"Answer","text":"Yes. Decorators for tools, resources, and prompts. Schema auto-generated from type hints. Middleware (logging, timeout, rate limit, circuit breaker, audit). Authentication, guards, caching, health checks, metrics, exception handlers, webhooks, FastAPI-style Depends, session state, versioning, namespace transforms, OpenAPI ingestion, streaming, elicitation, sampling, and a TestClient for in-process testing."}},
     {"@type":"Question","name":"How do I deploy a Promptise Foundry MCP server?","acceptedAnswer":{"@type":"Answer","text":"Run promptise serve myapp:server --transport http --port 8080. Supports stdio, streamable HTTP, and SSE transports with configurable CORS. Auth gate at the transport level. CLI flags --dashboard (live terminal UI) and --reload (hot-reload). Kubernetes health probes (liveness, readiness, startup) built in."}},
     {"@type":"Question","name":"Does Promptise Foundry support distributed deployments?","acceptedAnswer":{"@type":"Answer","text":"Yes. RuntimeCoordinator for multi-node coordination, with StaticDiscovery and RegistryDiscovery for node discovery. Health checks over HTTP. No etcd or Consul dependency."}},
-    {"@type":"Question","name":"Can I track costs with Promptise Foundry?","acceptedAnswer":{"@type":"Answer","text":"Promptise Foundry does not estimate or track LLM provider prices. The Budget governance subsystem tracks tool calls, LLM turns, and abstract cost units that you can map to your own pricing model. ToolCostAnnotations on tools let you assign per-call cost weights."}},
+    {"@type":"Question","name":"Can I track costs with Promptise Foundry?","acceptedAnswer":{"@type":"Answer","text":"Promptise Foundry does not estimate or track LLM provider prices. The Budget governance subsystem tracks tool calls, LLM turns, and abstract cost units that you can map to your own pricing model. BudgetConfig(tool_costs={...}) maps tool names to a ToolCostAnnotation, which sets each tool's cost weight."}},
     {"@type":"Question","name":"How is testing done?","acceptedAnswer":{"@type":"Answer","text":"For MCP servers, TestClient runs the full pipeline in-process — validation, DI, guards, middleware, handler — with no network. For prompts, mock_llm, mock_context, assert_schema, assert_contains, assert_latency, and assert_guard_passed work with pytest."}},
     {"@type":"Question","name":"Where can I find examples?","acceptedAnswer":{"@type":"Answer","text":"Runnable examples at github.com/promptise-com/foundry/tree/main/examples — covering agents, MCP servers, prompt engineering, and runtime use cases. Every example uses real LLM calls."}}
   ]
@@ -84,7 +84,7 @@ LangGraph is an orchestration layer focused on stateful graphs. Promptise Foundr
 
 ### How does Promptise Foundry compare to CrewAI?
 
-CrewAI focuses on multi-agent role-playing workflows. Promptise Foundry covers single agents, multi-agent coordination via the **cross-agent delegation system** (`ask_peer` / `broadcast` over HTTP+JWT), plus the production infrastructure — MCP servers, governance, observability, sandboxing — that real deployments need.
+CrewAI focuses on multi-agent role-playing workflows. Promptise Foundry covers single agents, multi-agent coordination through **cross-agent delegation** (peer agents become `ask_agent_<name>` tools), plus the production infrastructure — MCP servers, governance, observability, sandboxing — that real deployments need.
 
 ## Models & Local-First
 
@@ -94,7 +94,7 @@ CrewAI focuses on multi-agent role-playing workflows. Promptise Foundry covers s
 
 ### Does Promptise Foundry support self-hosted or local LLMs?
 
-**Yes.** Use any Ollama model via `"ollama:model-name"`. Local embeddings via SentenceTransformers, local guardrail models (DeBERTa, GLiNER, Llama Guard), and local memory backends (ChromaDB) make **air-gapped deployments** fully supported.
+**Yes.** Use any Ollama model via `"ollama:model-name"`. Local embeddings via SentenceTransformers, local guardrail models (DeBERTa, GLiNER, and Llama Guard through Ollama), and local memory backends (ChromaDB) make **air-gapped deployments** fully supported.
 
 ## MCP — Model Context Protocol
 
@@ -135,7 +135,7 @@ The operating system for autonomous AI agents. Turns stateless LLM calls into **
 | | PromptiseAgent | Agent Runtime |
 |---|---|---|
 | **What** | Single agent created via `build_agent()` | Wraps an agent in an `AgentProcess` |
-| **Invocation** | `.run()` or `.chat()` | Triggered by events, cron, webhooks, files |
+| **Invocation** | `await agent.ainvoke(...)` or `await agent.chat(...)` | Triggered by events, cron, webhooks, files |
 | **Lifecycle** | Stateless between calls | Long-running, persistent, recoverable |
 | **Use case** | Request/response | Autonomous, ambient, scheduled |
 
@@ -230,7 +230,7 @@ The `chat()` method handles load → invoke → persist automatically. Session o
 
 ### Does Promptise Foundry support semantic caching?
 
-Yes. `SemanticCache` with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for **semantically similar queries** — typically 30–50% cost reduction. Output guardrails re-scan cached responses. `purge_user()` deletes one user's cached entries on request. Encrypted-at-rest option available for Redis.
+Yes. `SemanticCache` with in-memory or Redis backends. Per-user, per-session, or shared scope isolation. Serves cached responses for **semantically similar queries**. Output guardrails re-scan cached responses. `purge_user()` deletes one user's cached entries on request. Encrypted-at-rest option available for Redis.
 
 ## Prompt Engineering
 
@@ -241,7 +241,7 @@ Yes — prompts as software components:
 - `@prompt` decorator
 - **8 PromptBlock types** (`Identity`, `Rules`, `OutputFormat`, `ContextSlot`, `Section`, `Examples`, `Conditional`, `Composite`) with priority-based token budgeting
 - `ConversationFlow` — system prompts that transform across phases
-- **5 composable strategies**: `ChainOfThought`, `StructuredReasoning`, `SelfCritique`, `PlanAndExecute`, `Decompose`
+- **5 composable strategies**: `chain_of_thought`, `structured_reasoning`, `self_critique`, `plan_and_execute`, `decompose`
 - **4 built-in perspectives**: `Analyst`, `Critic`, `Advisor`, `Creative`
 - Guards: `ContentFilterGuard`, `LengthGuard`, `SchemaStrictGuard`, custom validators
 - **14 context providers** — Tool, Memory, Task, Blackboard, User, Environment, Conversation, Team, Error, Output, Static, Callable, Conditional, World
@@ -251,12 +251,7 @@ Yes — prompts as software components:
 
 ### Does Promptise Foundry support multi-agent systems?
 
-Yes. **Cross-agent delegation**:
-
-- `ask_peer()` — send a question to another agent over HTTP+JWT and await the answer
-- `broadcast()` — send to multiple peers in parallel with timeout
-
-Graceful degradation if a peer fails. SuperAgent YAML files declare cross-agent references with cycle detection.
+Yes. **Cross-agent delegation**: pass peer agents to `build_agent(cross_agents={"researcher": CrossAgent(agent=researcher)})` and each becomes an `ask_agent_<name>` tool. `include_broadcast=True` adds `broadcast_to_agents`, which asks several peers in parallel. Delegation runs in the same process, with per-peer timeouts and a `max_delegation_depth` limit. SuperAgent YAML files declare cross-agent references with cycle detection, and agent processes in the [Agent Runtime](runtime/index.md) coordinate through events. See [Multi-Agent Coordination](guides/multi-agent-teams.md).
 
 ## Configuration Files
 
@@ -288,7 +283,7 @@ Yes. Two dashboards — one for the MCP server (six tabs: server overview, tool 
 
 ### Can I track costs with Promptise Foundry?
 
-Promptise Foundry **does not estimate or track LLM provider prices** — those change weekly and would require constant maintenance. The **Budget governance system** tracks tool calls, LLM turns, and abstract cost units that you can map to your own pricing model. `ToolCostAnnotations` on tools let you assign per-call cost weights.
+Promptise Foundry **does not estimate or track LLM provider prices** — those change weekly and would require constant maintenance. The **Budget governance system** tracks tool calls, LLM turns, and abstract cost units that you can map to your own pricing model. `BudgetConfig(tool_costs={...})` maps tool names to a `ToolCostAnnotation(cost_weight=..., irreversible=...)`, which sets each tool's cost weight.
 
 ### What about job queues?
 

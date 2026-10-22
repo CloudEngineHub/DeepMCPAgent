@@ -5,7 +5,7 @@ description: "Build a code review agent that finds security, performance and sty
 
 # Lab: Code Review Agent
 
-Build an agent that reviews code for security vulnerabilities, performance issues, and best practices — using adversarial self-critique to catch false positives. Every finding must be justified with specific evidence.
+Build an agent that reviews code for security vulnerabilities, performance issues, and best practices: using adversarial self-critique to catch false positives. Every finding must be justified with specific evidence.
 
 ## What You'll Build
 
@@ -25,7 +25,7 @@ pip install promptise
 export OPENAI_API_KEY=sk-...
 ```
 
-## Step 1 — Build the Code Tools Server
+## Step 1: Build the Code Tools Server
 
 ```python
 # code_server.py
@@ -133,11 +133,11 @@ if __name__ == "__main__":
     server.run(transport="stdio")
 ```
 
-## Step 2 — Build the Review Agent with Adversarial Critique
+## Step 2: Build the Review Agent with Adversarial Critique
 
 The key pattern: **Read → Analyze → Critique → Justify → Synthesize**
 
-The CritiqueNode challenges the agent's own findings — forcing it to distinguish real vulnerabilities from false positives. The JustifyNode requires specific line references for every claim.
+The CritiqueNode challenges the agent's own findings: forcing it to distinguish real vulnerabilities from false positives. The JustifyNode requires specific line references for every claim.
 
 ```python
 # review_agent.py
@@ -172,7 +172,7 @@ async def main():
             ],
         ),
 
-        # Challenge the findings — adversarial self-review
+        # Challenge the findings: adversarial self-review
         CritiqueNode("challenge",
             severity_threshold=0.3,  # Low threshold = strict review
         ),
@@ -218,29 +218,34 @@ async def main():
 asyncio.run(main())
 ```
 
-## Step 3 — Per-Node Model Override
+## Step 3: Per-Node Model Override
 
 Use a cheaper model for reading files, a powerful model for security analysis:
 
 ```python
-# Cheap model reads files (just fetching data, no reasoning needed)
-PromptNode("read_code",
-    model_override="openai:gpt-4o-mini",
-    ...
-)
+from promptise.engine import NodeFlag, PromptGraph, PromptNode
+from promptise.engine.reasoning_nodes import CritiqueNode, JustifyNode, SynthesizeNode, ThinkNode
 
-# Powerful model for security analysis
-ThinkNode("analyze",
-    model_override="openai:gpt-4o",  # Better at catching subtle vulns
-    ...
-)
-
-# Cheap model for final formatting
-SynthesizeNode("report",
-    model_override="openai:gpt-4o-mini",
-    ...
-)
+graph = PromptGraph("code-reviewer", nodes=[
+    # Cheap model reads files (fetching data, little reasoning)
+    PromptNode("read_code",
+        instructions="Read ALL files with list_files and read_file before analysis.",
+        inject_tools=True,
+        is_entry=True,
+        flags={NodeFlag.RETRYABLE},
+        model_override="openai:gpt-4o-mini",
+    ),
+    # Stronger model for the security analysis
+    ThinkNode("analyze", model_override="openai:gpt-4o"),
+    CritiqueNode("challenge", severity_threshold=0.3),
+    JustifyNode("evidence"),
+    # Cheap model for the final formatting
+    SynthesizeNode("report", is_terminal=True, model_override="openai:gpt-4o-mini"),
+])
 ```
+
+Nodes without `model_override` use the agent's `model`. A model override is a model
+string, a `Model(...)` or a LangChain chat model.
 
 ## Expected Output
 
@@ -268,6 +273,6 @@ Without the CritiqueNode, agents produce generic reviews ("consider using parame
 
 ## Next Steps
 
-- [Custom Reasoning Guide](custom-reasoning.md) — Build more complex patterns
-- [Sandbox](../core/sandbox.md) — Run the agent's code analysis in a Docker sandbox
-- [Reasoning Engine](../core/engine.md) — Deep dive into the node system
+- [Custom Reasoning Guide](custom-reasoning.md): Build more complex patterns
+- [Sandbox](../core/sandbox.md): Run the agent's code analysis in a Docker sandbox
+- [Reasoning Engine](../core/engine.md): Deep dive into the node system

@@ -5,7 +5,7 @@ description: "Keep an MCP server reliable when dependencies fail: circuit breake
 
 # MCP Server Resilience Patterns
 
-Keep your MCP server running reliably when things go wrong -- circuit breakers for flaky dependencies, health checks for monitoring, webhooks for alerting, background tasks for deferred work, and exception handlers for clean error responses.
+Keep your MCP server running reliably when things go wrong: circuit breakers for flaky dependencies, health checks for monitoring, webhooks for alerting, background tasks for deferred work, and exception handlers for clean error responses.
 
 ## Circuit Breaker
 
@@ -124,7 +124,9 @@ retryable error that says how long to wait:
 Register an exception handler to reshape it:
 
 ```python
-from promptise.mcp.server import CircuitOpenError
+from promptise.mcp.server import CircuitOpenError, MCPServer
+
+server = MCPServer(name="payment-api")
 
 @server.exception_handler(CircuitOpenError)
 async def handle_circuit_open(ctx, exc):
@@ -204,7 +206,7 @@ This exposes two resources:
 
 Agents and MCP clients can read these resources to check server health.
 
-Container and Kubernetes probes cannot speak MCP, so over HTTP and SSE the same checks back two plain routes: `GET /health` (liveness, always `200`) and `GET /health/ready` (`200` when every required check passes, `503` otherwise). They skip the auth gate and never include the text of an exception a check raised. See [Deployment — Health probes](deployment.md#health-probes).
+Container and Kubernetes probes cannot speak MCP, so over HTTP and SSE the same checks back two plain routes: `GET /health` (liveness, always `200`) and `GET /health/ready` (`200` when every required check passes, `503` otherwise). They skip the auth gate and never include the text of an exception a check raised. See [Deployment: Health probes](deployment.md#health-probes).
 
 ---
 
@@ -212,7 +214,7 @@ Container and Kubernetes probes cannot speak MCP, so over HTTP and SSE the same 
 
 ### When you need it
 
-Your ops team uses Slack for alerts. When a tool call fails, you want a Slack message immediately -- not waiting for someone to check logs.
+Your ops team uses Slack for alerts. When a tool call fails, you want a Slack message immediately, not waiting for someone to check logs.
 
 ### `WebhookMiddleware`
 
@@ -249,7 +251,7 @@ server.add_middleware(WebhookMiddleware(
 }
 ```
 
-Webhooks are fire-and-forget -- they never block or fail the tool call. If the webhook endpoint is unreachable, the failure is logged and the tool call proceeds normally.
+`WebhookMiddleware(url, *, events=None, headers=None, timeout=5.0)`; `events=None` fires all three events. A delivery failure never fails the tool call: an unreachable endpoint is logged at `DEBUG` and the call proceeds. Delivery is awaited in the request, though, so a slow endpoint adds up to `timeout` seconds per event to the call (with the default events, `tool.call` and the result event both wait). Keep `timeout` short, or limit `events` to `{"tool.error"}`. Each payload is also kept in `middleware.sent` (a list that is never cleared), which helps in tests but grows for the life of the process. The event names are `tool.*`, but the middleware runs for resource reads and prompt requests too; `tool` then holds the resource or prompt name.
 
 ---
 
@@ -303,7 +305,7 @@ async def create_employee(
     return {"id": emp_id, "name": name, "status": "created"}
 ```
 
-Background tasks start once the handler has returned, in a task of their own, so the client gets its response right away -- it never waits for the email. They run sequentially; if one raises, the error is logged (never sent to the client) and the remaining tasks still run.
+Background tasks start once the handler has returned, in a task of their own, so the client gets its response right away: it never waits for the email. They run sequentially; if one raises, the error is logged (never sent to the client) and the remaining tasks still run.
 
 - **Request context:** `get_context()` still works inside a background task and returns the request that scheduled it.
 - **Dependencies:** dependencies with cleanup (`yield`) are closed when the call returns, before background tasks run. Pass background tasks plain values, not a request-scoped database session.
@@ -361,7 +363,7 @@ async def get_employee(employee_id: str) -> dict:
 
 The handler receives the `RequestContext` and the exception. It returns a `ToolError` that's sent to the client as a structured error response.
 
-**How clients see a failed call**: whenever a tool call fails — a `ToolError` or other `MCPError` raised by the handler, an exception mapped by a handler here, an unhandled exception (`INTERNAL_ERROR`, details kept in the server log), or an unknown tool (`TOOL_NOT_FOUND`) — the server answers with a `CallToolResult` that has `isError: true` and the structured `{"error": {"code", "message", "retryable", ...}}` JSON as its text content, as the MCP specification requires for tool execution errors. Clients can tell a failed call from a result without parsing the text, and the model still reads the message and can correct itself. A Promptise agent records these calls as `tool.error` events.
+**How clients see a failed call**: whenever a tool call fails (a `ToolError` or other `MCPError` raised by the handler, an exception mapped by a handler here, an unhandled exception (`INTERNAL_ERROR`, details kept in the server log), or an unknown tool (`TOOL_NOT_FOUND`)) the server answers with a `CallToolResult` that has `isError: true` and the structured `{"error": {"code", "message", "retryable", ...}}` JSON as its text content, as the MCP specification requires for tool execution errors. Clients can tell a failed call from a result without parsing the text, and the model still reads the message and can correct itself. A Promptise agent records these calls as `tool.error` events.
 
 **MRO-based matching**: If you register a handler for `ValueError` and throw a `SpecificValueError(ValueError)`, the `ValueError` handler catches it. The most specific handler in the MRO wins.
 
@@ -483,8 +485,8 @@ async def long_running_task(
 
 When the client cancels the call (an MCP `notifications/cancelled` for its request id), the client is answered `Request cancelled` straight away, and the server:
 
-1. sets the token (`cancel.is_cancelled` is `True`, `cancel.reason` is `"Request cancelled by the client"` -- the MCP SDK doesn't pass on the client's own reason),
-2. gives the handler `cancel_grace_period` seconds (default 5) to stop on its own -- `cancel.check()` raises, `cancel.wait()` returns `True`,
+1. sets the token (`cancel.is_cancelled` is `True`, `cancel.reason` is `"Request cancelled by the client"`: the MCP SDK doesn't pass on the client's own reason),
+2. gives the handler `cancel_grace_period` seconds (default 5) to stop on its own: `cancel.check()` raises, `cancel.wait()` returns `True`,
 3. then cancels the handler's task if it is still running.
 
 Whatever the handler returns after the cancellation is discarded. Tools that don't take a `CancellationToken` are cancelled immediately, as before. Tune or disable the grace period per server:
@@ -568,10 +570,10 @@ health.register_resources(server)
 
 ## What's Next
 
-- [Caching & Performance](caching-performance.md) -- Cache, rate limit, concurrency control
-- [Observability & Monitoring](observability.md) -- Metrics, tracing, Prometheus, logging
-- [Advanced Patterns](advanced-patterns.md) -- Composition, versioning, transforms, OpenAPI
+- [Caching & Performance](caching-performance.md): Cache, rate limit, concurrency control
+- [Observability & Monitoring](observability.md): Metrics, tracing, Prometheus, logging
+- [Advanced Patterns](advanced-patterns.md): Composition, versioning, transforms, OpenAPI
 
 !!! tip "Learn the concept"
 
-    - [MCP Server Caching, Timeouts and Circuit Breakers in Python](https://www.promptise.com/guides/view/mcp-server-caching-circuit-breaker) -- Retries with backoff and circuit breakers for a flaky upstream API.
+    - [MCP Server Caching, Timeouts and Circuit Breakers in Python](https://www.promptise.com/guides/view/mcp-server-caching-circuit-breaker): Retries with backoff and circuit breakers for a flaky upstream API.

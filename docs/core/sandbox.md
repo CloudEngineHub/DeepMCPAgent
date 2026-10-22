@@ -172,7 +172,7 @@ config = SandboxConfig(
 
 ### Constructor
 
-```python
+```text
 SandboxManager(config: SandboxConfig | dict | bool)
 ```
 

@@ -38,8 +38,11 @@ Service discovery provides mechanisms for runtime nodes to find each other. Two 
 
 All discovery implementations satisfy this protocol:
 
-```python
-from promptise.runtime.distributed.discovery import ProcessDiscovery
+```python title="Protocol (promptise.runtime.distributed.discovery)"
+from typing import Protocol
+
+from promptise.runtime.distributed.discovery import DiscoveredNode
+
 
 class ProcessDiscovery(Protocol):
     async def discover(self) -> list[DiscoveredNode]:
@@ -59,12 +62,14 @@ class ProcessDiscovery(Protocol):
 
 Each discovered node is represented as a `DiscoveredNode` dataclass:
 
-| Field | Type | Description |
-|---|---|---|
-| `node_id` | `str` | Unique node identifier |
-| `url` | `str` | Base URL for the node's transport API |
-| `discovered_at` | `float` | Timestamp when the node was discovered |
-| `metadata` | `dict[str, Any]` | Additional node metadata |
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `node_id` | `str` | required | Unique node identifier |
+| `url` | `str` | required | Base URL for the node's transport API |
+| `discovered_at` | `float` | now (`time.monotonic()`) | Monotonic time the node was discovered or last refreshed |
+| `metadata` | `dict[str, Any]` | `{}` | Additional node metadata |
+
+`to_dict()` returns the fields as a dict.
 
 ---
 
@@ -404,14 +409,14 @@ async def run_coordinator() -> None:
 |---|---|
 | `ProcessDiscovery` | Protocol for discovery implementations |
 | `DiscoveredNode` | Dataclass for discovered nodes |
-| `StaticDiscovery(nodes)` | Fixed-topology discovery |
-| `RegistryDiscovery(ttl)` | Dynamic registry with TTL |
+| `StaticDiscovery(nodes=None)` | Fixed-topology discovery (`node_id -> URL`) |
+| `RegistryDiscovery(ttl=60.0)` | Dynamic registry with TTL; `heartbeat(node_id)` refreshes an entry |
 
 ### Transport
 
 | Method / Property | Description |
 |---|---|
-| `RuntimeTransport(runtime, host, port, node_id, auth_token, allow_unauthenticated, coordinator, discovery)` | Create a transport server |
+| `RuntimeTransport(runtime, *, host="127.0.0.1", port=9100, node_id="node-1", auth_token=None, allow_unauthenticated=False, coordinator=None, discovery=None, allowed_node_hosts=None)` | Create a transport server |
 | `node_id` | This node's unique identifier |
 | `port` | The port being listened on (the OS-assigned one after `start()` with `port=0`) |
 | `await start()` | Start the HTTP server |
@@ -443,13 +448,13 @@ async def run_coordinator() -> None:
 
 ## What's Next
 
-- [Distributed Mode](index.md) -- `DistributedConfig`, `ClusterNode` and a two-node setup
-- [Coordinator](coordinator.md) -- cluster coordination and health monitoring
-- [Configuration](../configuration.md) -- `DistributedConfig` reference
-- [Runtime Manager](../runtime-manager.md) -- the `AgentRuntime` that runs on each node
-- [Triggers Overview](../triggers/index.md) -- trigger events that can be injected remotely
+- [Distributed Mode](index.md): `DistributedConfig`, `ClusterNode` and a two-node setup
+- [Coordinator](coordinator.md): cluster coordination and health monitoring
+- [Configuration](../configuration.md): `DistributedConfig` reference
+- [Runtime Manager](../runtime-manager.md): the `AgentRuntime` that runs on each node
+- [Triggers Overview](../triggers/index.md): trigger events that can be injected remotely
 
 !!! tip "Learn the concept"
 
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- Many processes in one runtime, and when to spread them across nodes.
-    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api) -- Manage running agents over HTTP with a bearer token.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): Many processes in one runtime, and when to spread them across nodes.
+    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api): Manage running agents over HTTP with a bearer token.

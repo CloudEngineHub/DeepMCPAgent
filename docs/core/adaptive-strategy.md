@@ -91,7 +91,7 @@ Failures carry the caller's arguments and error text, and lessons are derived fr
 | `per_user` (default) | `CallerContext.isolation_key` (`tenant::user`) | Callers without a `user_id` share one anonymous partition that identified users never see |
 | `per_tenant` | `tenant_id`: users of one tenant share lessons | Falls back to `per_user` |
 | `per_session` | The `chat(session_id=...)` session, or `CallerContext.metadata["session_id"]` for `ainvoke` (always within the caller's own `isolation_key`) | Nothing is recorded or injected |
-| `shared` | One partition for every caller | — |
+| `shared` | One partition for every caller | - |
 
 Each entry is tagged with its partition (a `_promptise_adaptive_scope` metadata key) and checked on every read, so a `SHARED` memory provider is partitioned too. The provider also receives the partition as `user_id`, so a `PER_USER` provider stores each user's entries under that user (with `scope="per_user"`, `purge_user()` erases a user's lessons and failure logs with their memories). Adaptive entries are never injected as recalled memory.
 
@@ -240,12 +240,12 @@ Adaptive strategy stores everything in the agent's memory provider (`memory=...`
 
 ## Security
 
-- **Per-caller partitions** — one user's or tenant's failures, arguments and lessons never reach another's prompt (`scope="per_user"` by default)
-- **Infrastructure failures ignored** — can't poison lessons with network errors
-- **Tool output is untrusted** — fenced in the synthesis prompt; lessons are limited to the failing tool's own usage and vetted (no other tools, URLs, emails, IPs or prompt markers)
-- **Review and allowlist** — `review_lessons=True` and `allowed_tools=[...]`
-- **Human feedback verified** — guardrails scan, LLM-as-judge when evidence is given, rate limited per sender
-- **Fenced injection** — lessons are wrapped in `<strategy_context>` with an anti-injection disclaimer
+- **Per-caller partitions**: one user's or tenant's failures, arguments and lessons never reach another's prompt (`scope="per_user"` by default)
+- **Infrastructure failures ignored**: can't poison lessons with network errors
+- **Tool output is untrusted**: fenced in the synthesis prompt; lessons are limited to the failing tool's own usage and vetted (no other tools, URLs, emails, IPs or prompt markers)
+- **Review and allowlist**: `review_lessons=True` and `allowed_tools=[...]`
+- **Human feedback verified**: guardrails scan, LLM-as-judge when evidence is given, rate limited per sender
+- **Fenced injection**: lessons are wrapped in `<strategy_context>` with an anti-injection disclaimer
 
 ---
 
@@ -256,14 +256,14 @@ Adaptive strategy stores everything in the agent's memory provider (`memory=...`
 ```python
 from promptise import FailureCategory
 
-FailureCategory.INFRASTRUCTURE  # MCP down, network, rate limit — not stored
-FailureCategory.STRATEGY        # Wrong params, wrong tool — triggers learning
-FailureCategory.UNKNOWN         # Unclassified — stored with low confidence
+FailureCategory.INFRASTRUCTURE  # MCP down, network, rate limit, not stored
+FailureCategory.STRATEGY        # Wrong params, wrong tool: triggers learning
+FailureCategory.UNKNOWN         # Unclassified: stored with low confidence
 ```
 
 ### classify_failure()
 
-Deterministic error classifier — no LLM call needed.
+Deterministic error classifier: no LLM call needed.
 
 ```python
 from promptise import classify_failure
@@ -329,11 +329,11 @@ Created by `build_agent()` when `adaptive` and `memory` are set, and available a
 
 ## What's Next?
 
-- [Memory](memory.md) — the storage layer lessons use
-- [Approval](approval.md) — denial reasons become corrections
-- [Guardrails](guardrails.md) — scans human corrections for injection
-- [Context Engine](context-engine.md) — the `strategies` layer
+- [Memory](memory.md): the storage layer lessons use
+- [Approval](approval.md): denial reasons become corrections
+- [Guardrails](guardrails.md): scans human corrections for injection
+- [Context Engine](context-engine.md): the `strategies` layer
 
 !!! tip "Learn the concept"
 
-    - [Self-Improving AI Agent: Learn From Tool Failures in Python](https://www.promptise.com/guides/view/self-improving-ai-agent-python) -- Learning from failed tool calls without fine-tuning, and the risks.
+    - [Self-Improving AI Agent: Learn From Tool Failures in Python](https://www.promptise.com/guides/view/self-improving-ai-agent-python): Learning from failed tool calls without fine-tuning, and the risks.

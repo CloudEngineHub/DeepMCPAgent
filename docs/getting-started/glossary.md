@@ -1,5 +1,5 @@
 ---
-title: Agentic AI Glossary — Promptise Foundry terms and concepts
+title: "Agentic AI Glossary: Promptise Foundry terms and concepts"
 seo_title: "Agentic AI Glossary: Agent and MCP Terms"
 description: "Definitions of the terms used in Promptise Foundry and agentic AI: agents, MCP, tools, memory, triggers, journals, governance, guardrails and sandboxing."
 keywords: AI agent glossary, agentic AI terms, MCP glossary, Promptise terms, autonomous agent definitions, AI agent vocabulary
@@ -24,11 +24,11 @@ A single agent wrapped with lifecycle, triggers, journals, and governance. State
 
 ## AgentRuntime
 
-The manager of multiple `AgentProcess` instances. Centralizes lifecycle control, exposes a shared `EventBus`, and routes inter-agent messages.
+The manager of multiple `AgentProcess` instances. Centralizes lifecycle control and passes the `event_bus` and `broker` you give it to every process, so event and message triggers reach each other.
 
-## ask_peer
+## ask_agent_&lt;name&gt;
 
-Cross-agent delegation primitive. Sends a question to another agent over HTTP+JWT and awaits the answer. Pairs with `broadcast` for one-to-many.
+The tool an agent gets for each peer in `build_agent(cross_agents={...})`: it sends a question to that peer agent and returns its answer. `include_broadcast=True` adds `broadcast_to_agents` for one-to-many. See [Cross-Agent Delegation](../core/agents/cross-agent.md).
 
 ## Audit log
 
@@ -80,7 +80,7 @@ Trigger type that fires on a cron expression. One of five built-in trigger types
 
 ## Cross-agent delegation
 
-Pattern where one agent calls another agent (instead of calling a tool). Used to compose specialized agents into a system. Promptise Foundry ships `ask_peer` and `broadcast` primitives over HTTP+JWT.
+Pattern where one agent calls another agent (instead of calling a tool). Used to compose specialized agents into a system. In Promptise Foundry, peers passed as `cross_agents` become `ask_agent_<name>` tools (and, opt-in, `broadcast_to_agents`); delegation runs in-process.
 
 ## Discovery
 
@@ -92,7 +92,7 @@ MCP primitive where the server requests structured input from the user mid-execu
 
 ## EventBus
 
-Shared pub/sub channel inside the Agent Runtime. Used by `EventTrigger` and by agents to emit/consume events.
+Shared pub/sub channel inside the Agent Runtime, such as `InProcessEventBus`. Event triggers subscribe to it; your code, hooks and `EventBusSink` emit to it.
 
 ## File watch trigger
 
@@ -236,7 +236,7 @@ Per-client key-value storage that persists across multiple tool calls in a sessi
 
 ## Strategy
 
-Reasoning pattern wrapper. Five built-in: `ChainOfThought`, `StructuredReasoning`, `SelfCritique`, `PlanAndExecute`, `Decompose`. Composable with `+` (e.g., `chain_of_thought + self_critique`).
+Reasoning pattern wrapper. Five built-in: `chain_of_thought`, `structured_reasoning`, `self_critique`, `plan_and_execute` and `decompose` (instances of `ChainOfThoughtStrategy`, `StructuredReasoningStrategy`, ...). Composable with `+` (e.g., `chain_of_thought + self_critique`).
 
 ## SuperAgent
 
@@ -248,7 +248,7 @@ A callable function exposed to the LLM. In Promptise Foundry, tools come from MC
 
 ## Tool optimization
 
-Selecting the relevant subset of tools for a given query to reduce token usage. Promptise Foundry has four levels: `NONE`, `MINIMAL`, `STANDARD`, `SEMANTIC`. Semantic mode uses local embeddings — typically 40–70% fewer tokens.
+Selecting the relevant subset of tools for a given query to reduce token usage. Promptise Foundry has three levels, `MINIMAL`, `STANDARD` and `SEMANTIC`; it is off unless you set `optimize_tools`. Semantic mode uses local embeddings to pick the tools.
 
 ## Trigger
 

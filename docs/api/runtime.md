@@ -111,6 +111,10 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
       show_source: false
       heading_level: 4
 
+### DEFAULT_DEVELOPMENT_CONFIG and DEFAULT_PRODUCTION_CONFIG
+
+Two `RuntimeConfig` presets, both with no processes and distributed mode off (they are identical). See [Configuration: Presets](../runtime/configuration.md#presets).
+
 ---
 
 ## Lifecycle
@@ -142,6 +146,10 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
     options:
       show_source: false
       heading_level: 4
+
+### VALID_TRANSITIONS
+
+`VALID_TRANSITIONS` (`promptise.runtime.lifecycle`, also exported from `promptise.runtime`) maps each `ProcessState` to the `frozenset` of states it may move to. `ProcessLifecycle.transition()` checks it. The table is on [Process Lifecycle](../runtime/lifecycle.md#valid-transitions).
 
 ---
 
@@ -224,9 +232,44 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
       show_source: false
       heading_level: 4
 
+### unregister_trigger_type
+
+::: promptise.runtime.triggers.unregister_trigger_type
+    options:
+      show_source: false
+      heading_level: 4
+
+### compile_filter
+
+::: promptise.runtime.triggers.filters.compile_filter
+    options:
+      show_source: false
+      heading_level: 4
+
+### FilterExpressionError
+
+::: promptise.runtime.triggers.filters.FilterExpressionError
+    options:
+      show_source: false
+      heading_level: 4
+
+### InProcessEventBus
+
+::: promptise.runtime.triggers.event.InProcessEventBus
+    options:
+      show_source: false
+      heading_level: 4
+
+### BusEvent
+
+::: promptise.runtime.triggers.event.BusEvent
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
-## Governance — Budget
+## Governance: Budget
 
 ### BudgetConfig
 
@@ -270,9 +313,16 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
       show_source: false
       heading_level: 4
 
+### BudgetExceededError
+
+::: promptise.runtime.exceptions.BudgetExceededError
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
-## Governance — Health
+## Governance: Health
 
 ### HealthConfig
 
@@ -304,7 +354,7 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
 
 ---
 
-## Governance — Mission
+## Governance: Mission
 
 ### MissionConfig
 
@@ -343,7 +393,7 @@ Agent process lifecycle, triggers, governance (budget, health, mission, secrets)
 
 ---
 
-## Governance — Secrets
+## Governance: Secrets
 
 ### SecretScopeConfig
 
@@ -647,6 +697,20 @@ Remote HTTP control of running processes.
       show_source: false
       heading_level: 4
 
+### ProcessDiscovery
+
+::: promptise.runtime.distributed.discovery.ProcessDiscovery
+    options:
+      show_source: false
+      heading_level: 4
+
+### NodeUnreachableError
+
+::: promptise.runtime.distributed.coordinator.NodeUnreachableError
+    options:
+      show_source: false
+      heading_level: 4
+
 ---
 
 ## Lifecycle hooks
@@ -685,6 +749,10 @@ Remote HTTP control of running processes.
     options:
       show_source: false
       heading_level: 4
+
+### HookCallable and BLOCKABLE_EVENTS
+
+`HookCallable` is the type of a hook callback, `Callable[[HookContext], Awaitable[None]]`. `BLOCKABLE_EVENTS` is the `frozenset` of the six `HookEvent`s a hook can refuse: `USER_PROMPT_SUBMIT`, `PERMISSION_REQUEST`, `SUBAGENT_START`, `FILE_CHANGED`, `CONFIG_CHANGE` and `TASK_CREATED`. Both are importable from `promptise.runtime`. See [Runtime Hooks](../runtime/hooks.md).
 
 ### ShellHook
 
@@ -753,6 +821,13 @@ Remote HTTP control of running processes.
 ### ManifestValidationError
 
 ::: promptise.runtime.exceptions.ManifestValidationError
+    options:
+      show_source: false
+      heading_level: 4
+
+### ManifestEnvVarError
+
+::: promptise.runtime.exceptions.ManifestEnvVarError
     options:
       show_source: false
       heading_level: 4

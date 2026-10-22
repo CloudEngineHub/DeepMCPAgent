@@ -25,7 +25,7 @@ pip install promptise
 export OPENAI_API_KEY=sk-...
 ```
 
-## Step 1 — Build the Knowledge Base Server
+## Step 1: Build the Knowledge Base Server
 
 Create an MCP server that the agent connects to for customer data and KB articles.
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     server.run(transport="stdio")
 ```
 
-## Step 2 — Build the Agent with a Custom Reasoning Pattern
+## Step 2: Build the Agent with a Custom Reasoning Pattern
 
 Instead of generic ReAct, use a specialized support pattern:
 **Classify → Search KB → Draft → Validate → Respond**
@@ -215,7 +215,7 @@ async def main():
 asyncio.run(main())
 ```
 
-## Step 3 — Add Conversation Persistence
+## Step 3: Add Conversation Persistence
 
 Make the agent remember past interactions:
 
@@ -229,37 +229,42 @@ agent = await build_agent(
 
 # Use chat() for persistent sessions
 response = await agent.chat(
+    "Hi, I'm customer C-1001. My order ORD-5001 is late.",
     session_id="session-alice-001",
-    user_message="Hi, I'm customer C-1001. My order ORD-5001 is late.",
     caller=CallerContext(user_id="C-1001"),
 )
 
-# Second message — agent remembers the first
+# Second message: agent remembers the first
 response = await agent.chat(
+    "Can you check the tracking number?",
     session_id="session-alice-001",
-    user_message="Can you check the tracking number?",
     caller=CallerContext(user_id="C-1001"),
 )
 ```
 
-## Step 4 — Add Escalation Rules
+## Step 4: Add Escalation Rules
 
 Use approval workflows for sensitive actions:
 
 ```python
-from promptise.agent import ApprovalConfig
+from promptise import ApprovalDecision, ApprovalPolicy
+
+async def review(request):
+    # Show request.tool_name and request.arguments to a person, then decide.
+    return ApprovalDecision(approved=True, reviewer_id="support-lead")
 
 agent = await build_agent(
-    ...,
-    approval=ApprovalConfig(
-        # Require human approval before creating tickets
-        tools_requiring_approval=["crm_create_ticket"],
-        handler="callback",
+    model="openai:gpt-5-mini",
+    servers=servers,
+    approval=ApprovalPolicy(
+        tools=["crm_create_ticket"],  # glob patterns of the tools that need approval
+        handler=review,
+        timeout=300,                  # seconds to wait; on_timeout="deny" by default
     ),
 )
 ```
 
-## Step 5 — Add Guardrails
+## Step 5: Add Guardrails
 
 Prevent the agent from leaking PII or making unauthorized promises:
 
@@ -272,10 +277,13 @@ agent = await build_agent(
 
 The guardrails will:
 
-- Block prompt injection attempts in customer messages
-- Detect and redact PII in agent responses (credit card numbers, SSNs)
-- Flag credential patterns
-- Run content safety checks
+- Block prompt injection attempts in customer messages (a local classifier model)
+- Detect and redact PII in agent responses (credit card numbers, SSNs, emails)
+- Detect and redact credentials (API keys, tokens)
+
+Toxicity and NER detection are not in the default set; add `ContentSafetyDetector`
+or `NERDetector` to a `PromptiseSecurityScanner(detectors=[...])` for them. See
+[Guardrails](../core/guardrails.md).
 
 ## What You've Built
 
@@ -291,6 +299,6 @@ A production customer support agent with:
 
 ## Next Steps
 
-- [Multi-User Systems Guide](multi-user-systems.md) — Add JWT auth and per-user isolation
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — Customize the reasoning flow
-- [Prompt Engineering Guide](prompt-engineering.md) — Add ConversationFlow for phase-based prompts
+- [Multi-User Systems Guide](multi-user-systems.md): Add JWT auth and per-user isolation
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md): Customize the reasoning flow
+- [Prompt Engineering Guide](prompt-engineering.md): Add ConversationFlow for phase-based prompts

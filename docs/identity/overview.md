@@ -7,11 +7,11 @@ description: "Give every AI agent a stable, traceable non-human identity, stampe
 
 **Know, trace, and identify the agent that acts.**
 
-Agent Identity gives every agent a stable, traceable identity — a
+Agent Identity gives every agent a stable, traceable identity: a
 non-human, service-account-style identity (modelled on things like
 Microsoft Entra Agent ID) that answers one question: *which agent did
-this?* That identity is stamped onto everything the agent does — tool
-calls, LLM turns, audit entries — and, when you want it, presented to
+this?* That identity is stamped onto everything the agent does (tool
+calls, LLM turns, audit entries) and, when you want it, presented to
 the resources the agent calls (such as MCP servers) so they can
 authenticate and attribute the caller too.
 
@@ -20,8 +20,8 @@ from promptise import build_agent
 from promptise.identity import AgentIdentity
 
 agent = await build_agent(
-    model="anthropic:claude-sonnet-4-5",
-    servers={...},
+    model="openai:gpt-5-mini",
+    servers={},   # your MCP servers
     identity=AgentIdentity("billing-bot", name="Billing Bot", owner="payments"),
 )
 # Every action this agent records is now attributed to "billing-bot".
@@ -33,37 +33,36 @@ authorization.
 
 ## Why this matters
 
-Agents are a new class of **non-human actor** — they call tools, hit APIs, and
+Agents are a new class of **non-human actor**: they call tools, hit APIs, and
 act continuously, often with no human in the loop. Most teams run them with **no
 real identity**: a shared API key, or a name a process asserts about itself in a
 log. That breaks down fast:
 
-- **Attribution** — across a fleet, *"which agent did this?"* has no reliable
+- **Attribution**: across a fleet, *"which agent did this?"* has no reliable
   answer. A shared key, or a string a process printed about itself, can't be
   trusted after the fact.
-- **Least privilege** — without a verifiable identity, every agent holding the
+- **Least privilege**: without a verifiable identity, every agent holding the
   shared key has the **same** access. You can't scope one agent to billing and
   another to read-only.
-- **Audit** — security and incident reviewers ask *who* performed
+- **Audit**: security and incident reviewers ask *who* performed
   each action. "The model" is not an answer; "`billing-bot`, verified by your
   IdP" is.
-- **Blast radius** — an over-privileged or unattributable agent is exactly the
-  risk reviewers worry about. The 2025–2026 wave of agent deployments has run
-  ahead of the identity controls that would govern them.
+- **Blast radius**: an over-privileged or unattributable agent is exactly the
+  risk reviewers worry about.
 
 Agent Identity closes the gap with the model enterprises already trust for
 service accounts: a **stable identity** for attribution, plus an optional
-**verifiable credential** minted by your existing IdP — so resources can
+**verifiable credential** minted by your existing IdP, so resources can
 authenticate and authorize the agent with **no new secrets to manage**.
 
 **Who needs it, and when:**
 
 | If you… | Use |
 |---|---|
-| Run more than one agent, or one across a fleet | a **local identity** for attribution — start today, zero infrastructure |
+| Run more than one agent, or one across a fleet | a **local identity** for attribution (no infrastructure) |
 | Have agents call protected MCP servers / internal APIs | a **verifiable identity** backed by your IdP |
 | Need an audit record of who did what | a **verifiable identity** (the verified subject is recorded in the tamper-evident audit log) |
-| Run multi-tenant or accept untrusted input | a **verifiable identity** + least-privilege scoping — the control that bounds the blast radius |
+| Run multi-tenant or accept untrusted input | a **verifiable identity** + least-privilege scoping, which bounds the blast radius |
 
 ## Two tiers of identity
 
@@ -82,8 +81,8 @@ identity.claims()        # {"agent_id": "billing-bot", "name": ..., "owner": ...
 
 ### Verifiable identity
 
-Additionally backed by a **credential provider** — Microsoft Entra, AWS
-IAM, Google Cloud, SPIFFE/SPIRE, or a generic OIDC issuer — that mints a
+Additionally backed by a **credential provider** (Microsoft Entra, AWS
+IAM, Google Cloud, SPIFFE/SPIRE, or a generic OIDC issuer) that mints a
 short-lived, signed JWT proving the identity. The agent presents this
 credential to the resources it calls so they can *verify* the caller
 rather than trust a self-asserted id.
@@ -96,29 +95,29 @@ identity.is_verifiable       # True
 identity.get_credential()    # a signed JWT, presented to the resource
 identity.auth_header()       # {"Authorization": "Bearer <jwt>"}
 
-# One identity, several resources — a credential per audience:
+# One identity, several resources: a credential per audience
 identity.get_credential("api://billing")   # scoped to the billing resource
 identity.get_credential("api://crm")       # scoped to the CRM resource
 ```
 
 A single verifiable identity can present a resource-scoped credential to
-each service it calls — see
+each service it calls; see
 [Per-resource credentials](architecture.md#per-resource-credentials).
 
 ## Where the identity shows up
 
-- **Observability** — every tool call and LLM turn the agent records is
+- **Observability**: every tool call and LLM turn the agent records is
   tagged with the agent's identifier (its `agent_id`, or the IdP
   `subject`), so the timeline tells you which agent acted.
-- **MCP & APIs** — a verifiable identity is presented to MCP servers
+- **MCP & APIs**: a verifiable identity is presented to MCP servers
   **automatically** (its credential becomes their `bearer_token`); the
   server verifies it with [`JwksAuth`](../mcp/server/auth-security.md#jwksauth)
   and authorizes the agent via its JWT auth and `RequireClientId` / role
   guards.
-- **Audit** — the Guardrails audit log records the verified agent
+- **Audit**: the Guardrails audit log records the verified agent
   identity (subject/issuer/audience/roles) inside its tamper-evident HMAC
   chain.
-- **Cross-agent** — when one agent delegates to another, the peer's
+- **Cross-agent**: when one agent delegates to another, the peer's
   observability records *who* delegated (the caller's `claims()`).
 
 The `agent_id` / subject drives attribution; the richer `claims()`
@@ -152,7 +151,7 @@ workload runs**:
 | Google Compute Engine / Cloud Run / GKE | `from_gcp()` | metadata server |
 | Any SPIFFE/SPIRE mesh | `from_spiffe()` | Workload API socket, or `spiffe-helper` file |
 | GitHub Actions, GitLab CI, or any OIDC issuer | `from_oidc()` | env var / file / callable |
-| Local laptop, tests, or "just attribution" | `AgentIdentity("id")` | **local** — no provider |
+| Local laptop, tests, or "just attribution" | `AgentIdentity("id")` | **local** (no provider) |
 
 Optional cloud SDKs are needed only for some modes (boto3 for AWS STS, py-spiffe
 (`spiffe`) for the SPIFFE SDK); the metadata/IMDS/projected-token and OIDC paths need none.
@@ -161,11 +160,11 @@ See the per-provider pages linked in the table above for setup and prerequisites
 ## Persistence lives in your IdP
 
 An agent's identity is **durable because it lives in an identity
-provider** — a Microsoft Entra **Agent ID**, an app / service principal in
+provider**: a Microsoft Entra **Agent ID**, an app / service principal in
 your OIDC provider, an AWS IAM role, a SPIFFE registration. That directory
 is the system of record: it persists the identity, and it is where you
 create, inventory, govern, and revoke agents. Promptise keeps **no
-identity store of its own** — it authenticates against the IdP through a
+identity store of its own**: it authenticates against the IdP through a
 credential provider and uses the identity the IdP issues.
 
 The authoritative identifier comes *from* the IdP, not from a string you
@@ -175,21 +174,21 @@ Entra):
 
 ```python
 identity = AgentIdentity.from_entra(resource="api://my-mcp-server")
-identity.agent_id            # None — no local handle
-identity.subject()           # "…" — the IdP-assigned identity (sub / oid)
+identity.agent_id            # None: no local handle
+identity.subject()           # the IdP-assigned identity (sub / oid)
 identity.idp_claims()        # {"sub": …, "oid": …, "iss": …, "aud": …}
 identity.resolve_identifier()  # the authoritative id used for attribution
 ```
 
-`"billing-bot"` is the same identity across restarts because the IdP —
-not Promptise — makes it so.
+`"billing-bot"` is the same identity across restarts because the IdP,
+not Promptise, makes it so.
 
 ## Next steps
 
-- [Quickstart](quickstart.md) — a traceable agent in five minutes.
-- [Architecture](architecture.md) — how identity is stamped and presented.
-- [Security](security.md) — the threat model and guarantees.
+- [Quickstart](quickstart.md): a traceable agent in five minutes.
+- [Architecture](architecture.md): how identity is stamped and presented.
+- [Security](security.md): the threat model and guarantees.
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication) -- Give an agent its own verifiable identity, checked by MCP servers.
+    - [AI Agent Identity: Authenticate Agents to MCP Servers](https://www.promptise.com/guides/view/ai-agent-identity-authentication): Give an agent its own verifiable identity, checked by MCP servers.

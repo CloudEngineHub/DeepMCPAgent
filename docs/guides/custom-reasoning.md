@@ -5,7 +5,7 @@ description: "Build your own agent reasoning patterns on the reasoning graph: pi
 
 # Building Custom Agentic Reasoning Patterns
 
-This guide shows how to build your own agent reasoning strategies using the Reasoning Graph — from simple tool-calling agents to sophisticated multi-stage reasoning systems.
+This guide shows how to build your own agent reasoning strategies using the Reasoning Graph, from simple tool-calling agents to sophisticated multi-stage reasoning systems.
 
 ## Concepts
 
@@ -28,12 +28,12 @@ graph LR
 
 Each node controls:
 
-- **What the LLM sees** — blocks, strategy, perspective, context layers
-- **What the LLM can do** — tools, tool_choice, inject_tools
-- **What the LLM must produce** — output_schema, guards
-- **How data flows** — input_keys, output_key, inherit_context_from
-- **Pre/post processing** — preprocessor, postprocessor
-- **Where to go next** — transitions, default_next, LLM-routed
+- **What the LLM sees**: blocks, strategy, perspective, context layers
+- **What the LLM can do**: tools, tool_choice, inject_tools
+- **What the LLM must produce**: output_schema, guards
+- **How data flows**: input_keys, output_key, inherit_context_from
+- **Pre/post processing**: preprocessor, postprocessor
+- **Where to go next**: transitions, default_next, LLM-routed
 
 ## Example 1: Simple Tool Agent
 
@@ -44,7 +44,7 @@ graph LR
     style A fill:#1e3a5f,stroke:#60a5fa,color:#fff
 ```
 
-The simplest pattern — one node with tools:
+The simplest pattern, one node with tools:
 
 ```python
 from promptise.engine import PromptGraph, PromptNode
@@ -79,40 +79,49 @@ Three stages with data flow between nodes:
 from promptise.engine import PromptGraph, PromptNode
 from promptise.prompts import chain_of_thought
 
-graph = PromptGraph("researcher")
+from pydantic import BaseModel
 
-# Stage 1: Search (has tools)
+
+class Analysis(BaseModel):
+    key_findings: list[str]
+    open_questions: list[str]
+
+
+graph = PromptGraph("researcher", mode="static")
+
+# Stage 1: Search (has tools). Its final reply text lands in state.context["search_output"].
 graph.add_node(PromptNode(
     "search",
-    instructions="Search for information about the topic.",
+    instructions="Search for information about the topic, then summarize what you found.",
     tools=search_tools,
-    output_key="search_results",      # Write results to state
-    include_observations=True,
     default_next="analyze",
 ))
 
-# Stage 2: Analyze (reads search results, no tools)
+# Stage 2: Analyze (reads the search summary, no tools, structured output)
 graph.add_node(PromptNode(
     "analyze",
     instructions="Analyze the search results. Identify key findings.",
-    inherit_context_from="search",    # Read search output
-    tools=None,
-    output_key="analysis",
+    inherit_context_from="search",    # Reads state.context["search_output"]
+    output_schema=Analysis,
+    output_key="analysis",            # A parsed output, so it is written
     default_next="write",
 ))
 
-# Stage 3: Write (reads analysis, produces final answer)
+# Stage 3: Write (reads the analysis, produces the final answer)
 graph.add_node(PromptNode(
     "write",
     instructions="Write a comprehensive answer based on the analysis.",
-    input_keys=["analysis", "search_results"],
+    input_keys=["analysis"],
     strategy=chain_of_thought,
-    tools=None,
     default_next="__end__",
 ))
 
 graph.set_entry("search")
 ```
+
+`output_key` is written only for a parsed output (here the `Analysis` dict).
+A plain-text node like `search` is read with `inherit_context_from` instead,
+since every `PromptNode` writes its reply to `state.context["{name}_output"]`.
 
 ## Example 3: Quality-Controlled Output
 
@@ -133,16 +142,16 @@ Add a guard node for quality control with retry:
 from promptise.engine import PromptNode, GuardNode, PromptGraph
 from promptise.prompts.guards import ContentFilterGuard, LengthGuard
 
-graph = PromptGraph("quality-agent")
+graph = PromptGraph("quality-agent", mode="static")
 
 graph.add_node(PromptNode(
     "draft",
-    instructions="Write a technical blog post about the topic.",
+    instructions="Write a technical blog post about the topic, with an introduction and a conclusion.",
     tools=research_tools,
-    output_key="draft",
     default_next="review",
 ))
 
+# No model call: checks the last message (the latest draft) and routes.
 graph.add_node(GuardNode(
     "review",
     guards=[
@@ -155,16 +164,21 @@ graph.add_node(GuardNode(
 
 graph.add_node(PromptNode(
     "revise",
-    instructions="The draft failed quality review. Revise it.",
+    instructions=("The draft failed review: it must be 500-3000 characters and contain the "
+                  "words 'introduction' and 'conclusion'. Rewrite it."),
     inherit_context_from="draft",
-    input_keys=["review_feedback"],
-    output_key="draft",
     default_next="review",
-    max_iterations=3,
+    max_iterations=3,                # at most 3 revisions,
+    transitions={"error": "__end__"},  # then stop with the last draft
 ))
 
 graph.set_entry("draft")
 ```
+
+`GuardNode` does not write the guard messages anywhere the model reads, so put
+the rules in the reviser's instructions (or read
+`state.node_history[-1].guards_failed` in a custom node). The run ends on the
+last message, so the reply is the latest draft.
 
 ## Example 4: Parallel Research
 
@@ -184,13 +198,16 @@ graph TD
     style SY fill:#1a2e1a,stroke:#4ade80,color:#fff
 ```
 
-Search multiple sources simultaneously:
+Search multiple sources simultaneously. Each child runs one model call: a
+child that calls a tool runs it, but does not get a second turn to read the
+result. The successful tool results go to `state.observations`, and
+`synthesize` (a node without tools) sees the latest five in its prompt:
 
 ```python
 from promptise.engine import PromptNode, ParallelNode, PromptGraph
 from promptise.prompts import chain_of_thought, self_critique
 
-graph = PromptGraph("parallel-research")
+graph = PromptGraph("parallel-research", mode="static")
 
 graph.add_node(ParallelNode(
     "gather",
@@ -230,7 +247,7 @@ graph TD
     style CR fill:#3a2a0a,stroke:#fbbf24,color:#fff
 ```
 
-The LLM decides where to go at each step. Give the node an `output_schema` with a `route` field: the engine follows the transition whose key the model picks (a node name works too).
+The LLM decides where to go at each step. Give the node an `output_schema` with a `route` field: the engine follows the transition whose key the model picks (a node name works too). Without a schema the reply is plain text and the route is never read.
 
 ```python
 from typing import Literal
@@ -245,7 +262,7 @@ class Triage(BaseModel):
     route: Literal["simple_answer", "research", "code_task", "creative"]
 
 
-graph = PromptGraph("dynamic-agent")
+graph = PromptGraph("dynamic-agent", mode="static")
 
 graph.add_node(PromptNode(
     "triage",
@@ -284,11 +301,12 @@ async def load_customer_data(state, config):
         state.context["customer_history"] = data.recent_tickets[:5]
 
 async def format_ticket(output, state, config):
-    """Postprocessor: format the output as a support ticket."""
+    """Postprocessor: format the reply as a support ticket."""
     return {
         "ticket_id": generate_id(),
         "customer": state.context.get("customer_name"),
-        "resolution": output,
+        # output is None for a plain-text reply; the text is in {name}_output
+        "resolution": state.context.get("support_output"),
         "created_at": datetime.now().isoformat(),
     }
 
@@ -359,7 +377,7 @@ graph.add_node(PromptNode(
 ))
 graph.set_entry("main")
 
-# Pass it to build_agent — nodes with inject_tools=True get the MCP tools
+# Pass it to build_agent: nodes with inject_tools=True get the MCP tools
 agent = await build_agent(
     model="openai:gpt-5-mini",
     servers={"analytics": HTTPServerSpec(url="http://localhost:8000/mcp")},
@@ -378,9 +396,20 @@ print(graph.describe())
 print(graph.to_mermaid())
 ```
 
+### Validate before you run
+
+```python
+problems = graph.validate()   # [] when the entry, edges and transitions all resolve
+assert not problems, problems
+```
+
 ### Execution Report
 
 ```python
+from promptise import resolve_model
+from promptise.engine import PromptGraphEngine
+
+engine = PromptGraphEngine(graph, resolve_model("openai:gpt-5-mini"))
 result = await engine.ainvoke({"messages": [{"role": "user", "content": "Analyze Q4 trends"}]})
 print(engine.last_report.summary())
 ```
@@ -390,6 +419,9 @@ print(engine.last_report.summary())
 A `post_node` hook sees every node's `NodeResult` as the run goes:
 
 ```python
+from promptise.engine import PromptGraphEngine
+
+
 class PrintSteps:
     async def post_node(self, node, result, state):
         print(f"{result.node_name}: {result.duration_ms:.0f}ms, tokens={result.total_tokens}, "
@@ -420,50 +452,66 @@ engine = PromptGraphEngine(
 Use [typed flags](../core/engine-flags.md) to make graphs production-safe:
 
 ```python
-from promptise.engine import PromptNode, NodeFlag
+from promptise.engine import NodeFlag, PromptGraph, PromptNode
 from promptise.engine.reasoning_nodes import ThinkNode, SynthesizeNode
 
 graph = PromptGraph("production-safe", nodes=[
-    # Must succeed — abort graph on failure
+    # Must succeed: abort graph on failure
     ThinkNode("plan", is_entry=True, flags={NodeFlag.CRITICAL}),
 
-    # Retry flaky API calls with exponential backoff
-    PromptNode("fetch_data", inject_tools=True,
+    # Retry a failed model call with exponential backoff (up to max_iterations attempts)
+    PromptNode("fetch_data", inject_tools=True, max_iterations=3,
                flags={NodeFlag.RETRYABLE, NodeFlag.OBSERVABLE}),
 
-    # Skip enrichment if fetch failed — don't block the pipeline
+    # Skip enrichment if fetch failed: don't block the pipeline
     PromptNode("enrich", flags={NodeFlag.SKIP_ON_ERROR}),
 
-    # Cache expensive analysis — same inputs return cached result
+    # Cache within the run: a revisit with the same input_keys values reuses the result
     PromptNode("analyze", flags={NodeFlag.CACHEABLE},
-               input_keys=["data"], output_key="analysis"),
+               input_keys=["data"]),
 
-    # Final answer with cost-optimized model
+    # Final answer with a smaller model
     SynthesizeNode("answer", is_terminal=True,
-                   model_override="openai:gpt-4o-mini"),
+                   model_override="openai:gpt-5-mini"),
 ])
 ```
 
 ### Processors for Data Quality
 
 ```python
+from pydantic import BaseModel
+
+from promptise.engine import PromptNode
 from promptise.engine.processors import (
-    json_extractor, confidence_scorer, input_validator,
-    chain_preprocessors, chain_postprocessors,
+    chain_postprocessors, chain_preprocessors, context_enricher, json_extractor,
+    state_summarizer, state_writer,
 )
 
+
+class Report(BaseModel):
+    answer: str
+    confidence: float
+    sources: list[str]
+
+
 PromptNode("analyze",
-    # Validate input before LLM call
+    output_schema=Report,
+    input_keys=["data"],
+    # Before the LLM call: cap long context values, add timestamp/iteration
     preprocessor=chain_preprocessors(
-        input_validator(required_keys=["query", "data"]),
+        state_summarizer(max_context_chars=4000),
+        context_enricher(),
     ),
-    # Parse and score output after LLM call
+    # After: keep the fields you need, copy the answer into state.context
     postprocessor=chain_postprocessors(
-        json_extractor(keys=["answer", "confidence", "sources"]),
-        confidence_scorer(),
+        json_extractor(keys=["answer", "sources"]),
+        state_writer(fields={"answer": "final_answer"}),
     ),
 )
 ```
+
+Processor exceptions are logged and ignored, so a processor cannot stop a
+node; see [Processors](../core/engine-processors.md).
 
 ### Budget and Metrics Hooks
 
@@ -491,34 +539,39 @@ for node_name, stats in metrics.summary().items():
 
 ### Error Handling
 
-A run that ends on a failed node — a provider error, a CRITICAL node, a RETRYABLE node out of attempts — raises `GraphExecutionError`, which carries the run's report:
+A run that ends on a failed node (a provider error, a CRITICAL node, a RETRYABLE node out of attempts) raises `GraphExecutionError`, which carries the run's report:
 
 ```python
 from promptise.engine import GraphExecutionError
 
 try:
-    result = await agent.ainvoke({"messages": [{"role": "user", "content": "Analyze Q4 trends"}]})
+    result = await engine.ainvoke({"messages": [{"role": "user", "content": "Analyze Q4 trends"}]})
 except GraphExecutionError as exc:
     print(f"Graph failed at {exc.node_name}: {exc.error}")
     report = exc.report
 else:
-    report = agent.last_report
+    report = engine.last_report
 
 print(report.summary())  # path, tokens, tool calls, guards
 ```
 
+An agent from `build_agent` raises the same exceptions from `agent.ainvoke()`;
+the report of a failed agent run is `exc.report`.
+
 ## Best Practices
 
-1. **Start simple** — Use `PromptGraph.react()` first. Add complexity only when needed.
-2. **One responsibility per node** — Each node should do ONE thing well.
-3. **Use output_key/input_keys** — Explicit data flow is easier to debug than implicit state.
-4. **Set max_iterations** — Every node that can loop should have a limit.
-5. **Add guards** — Validate output at key checkpoints, not just at the end.
-6. **Use flags for safety** — `CRITICAL` for must-succeed nodes, `RETRYABLE` for flaky calls, `SKIP_ON_ERROR` for optional steps.
-7. **Use hooks for cross-cutting concerns** — Logging, timing, metrics, budget enforcement.
-8. **Test incrementally** — Test each node in isolation, then the graph.
-9. **Use model_override for cost** — Cheap models for routing/classification, expensive for reasoning/synthesis.
-10. **Cap everything** — Observations (capped at 50), reflections (capped at 5), node iterations, total iterations.
+1. **Start simple**: Use `PromptGraph.react()` first. Add complexity only when needed.
+2. **One responsibility per node**: Each node should do ONE thing well.
+3. **Use output_key/input_keys**: Explicit data flow is easier to debug than implicit state.
+4. **Set max_iterations**: Every node that can loop should have a limit.
+5. **Add guards**: Validate output at key checkpoints, not just at the end.
+6. **Use flags for safety**: `CRITICAL` for must-succeed nodes, `RETRYABLE` for flaky calls, `SKIP_ON_ERROR` for optional steps.
+7. **Use hooks for cross-cutting concerns**: Logging, timing, metrics, budget enforcement.
+8. **Test incrementally**: Test each node in isolation, then the graph.
+9. **Use model_override for cost**: Cheap models for routing/classification, expensive for reasoning/synthesis.
+10. **Cap everything**: Observations (capped at 50), reflections (capped at 5), node iterations, total iterations.
+11. **Give routing nodes a schema**: `route`, pass/fail and severity are read from structured output only.
+12. **Call `graph.validate()`** in a test, it catches typos in edge and transition targets before a run does.
 
 !!! tip "Learn the concept"
 

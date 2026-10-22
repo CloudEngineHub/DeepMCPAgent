@@ -1,5 +1,5 @@
 ---
-title: Configuration & Secrets — where API keys live in Promptise Foundry
+title: "Configuration & Secrets: where API keys live in Promptise Foundry"
 seo_title: "Where to Put LLM API Keys: .env and Secrets"
 description: "Where to keep LLM API keys: a .env file loaded automatically, environment variables, Model(...) in code or a .superagent file, and which one wins."
 keywords: Promptise API key, where to put OpenAI API key Python, .env file AI agent, Azure OpenAI key configuration, secrets management AI agent, environment variables LLM
@@ -124,7 +124,9 @@ export OPENAI_API_KEY=sk-...
 ```
 
 The variable each provider reads is listed in [Model Setup](model-setup.md)
-and printed by `promptise models env <provider>`.
+and printed by `promptise models env <provider>`. Every other variable Promptise
+reads (`.env` loading, cache encryption, audit keys, the runtime CLI, identity,
+MCPcast) is in the [Environment Variables reference](../reference/environment-variables.md).
 
 ## In code — `Model(...)`
 

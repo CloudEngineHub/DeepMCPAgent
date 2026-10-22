@@ -321,13 +321,13 @@ A `str` enum; the value is what events and the API show.
 
 ## See also
 
-- [Autonomy Budget](budget.md) -- hard limits on tool calls, runs and cost
-- [Mission](mission.md) -- goal tracking with an LLM judge
-- [Orchestration API](../api.md) -- read anomalies and patch the config over HTTP
-- [Events & Notifications](../../core/events.md) -- deliver `health.*` events to webhooks and logs
-- [Triggers Overview](../triggers/index.md#what-happens-when-the-process-is-suspended) -- what happens to events while a process is suspended
+- [Autonomy Budget](budget.md): hard limits on tool calls, runs and cost
+- [Mission](mission.md): goal tracking with an LLM judge
+- [Orchestration API](../api.md): read anomalies and patch the config over HTTP
+- [Events & Notifications](../../core/events.md): deliver `health.*` events to webhooks and logs
+- [Triggers Overview](../triggers/index.md#what-happens-when-the-process-is-suspended): what happens to events while a process is suspended
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop) -- How agent loops get stuck and how to stop them.
-    - [AI Agent Health Monitoring: Catch Silent Failures](https://www.promptise.com/guides/view/ai-agent-health-monitoring) -- Empty replies, rising error rates and when to log, pause or escalate.
+    - [AI Agent Stuck in a Loop? How to Detect and Stop It](https://www.promptise.com/guides/view/ai-agent-stuck-in-loop): How agent loops get stuck and how to stop them.
+    - [AI Agent Health Monitoring: Catch Silent Failures](https://www.promptise.com/guides/view/ai-agent-health-monitoring): Empty replies, rising error rates and when to log, pause or escalate.

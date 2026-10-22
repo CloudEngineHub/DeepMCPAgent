@@ -5,7 +5,7 @@ description: "Build an autonomous agent that watches a data pipeline, fixes reco
 
 # Lab: Pipeline Observer Agent
 
-Build an autonomous agent that **watches a data pipeline, detects anomalies, fixes recoverable issues, and escalates critical problems** — all without human intervention.
+Build an autonomous agent that **watches a data pipeline, detects anomalies, fixes recoverable issues, and escalates critical problems**, all without human intervention.
 
 By the end of this lab, you'll have a daemon that:
 
@@ -72,7 +72,7 @@ Before you run anything, it helps to understand the story.
  │  │       ▼                                               │  │
  │  │  Worker(s) → invoke agent                             │  │
  │  │                                                       │  │
- │  │  Agent (gpt-4o-mini)                                  │  │
+ │  │  Agent (gpt-5-mini)                                   │  │
  │  │    │                                                  │  │
  │  │    ├─► MCP Tools (via stdio)                          │  │
  │  │    │     check_pipeline_health, get_stage_metrics,    │  │
@@ -81,7 +81,7 @@ Before you run anything, it helps to understand the story.
  │  │    │     create_incident, send_slack_alert,           │  │
  │  │    │     page_oncall                                  │  │
  │  │    │                                                  │  │
- │  │    ├─► Budget (20 tools/run, $5/day)                  │  │
+ │  │    ├─► Budget (20 tools/run, 2000/day)                │  │
  │  │    ├─► Health (stuck/loop/empty detection)            │  │
  │  │    ├─► Mission ("99.9% uptime")                       │  │
  │  │    └─► Journal (FileJournal → disk)                   │  │
@@ -101,7 +101,7 @@ Before you run anything, it helps to understand the story.
 
 ---
 
-## Step 1 — Build the MCP tool server
+## Step 1: Build the MCP tool server
 
 The MCP server is what the agent calls to interact with the outside world. In production this connects to real systems; here we use JSON files as a stand-in so everything stays local and observable.
 
@@ -254,20 +254,19 @@ if __name__ == "__main__":
 ```
 
 !!! tip "Why JSON files?"
-    The JSON files (`pipeline_state.json`, `incidents.json`, `alerts.json`) act as observable side effects. You can `cat` them at any time to see exactly what the agent has done. In production, replace `_save_state()` with a call to your Kubernetes API or monitoring service, `_save_list(INCIDENTS_FILE)` with a PagerDuty incident creation call, etc. The agent logic doesn't change — only the tool implementations.
+    The JSON files (`pipeline_state.json`, `incidents.json`, `alerts.json`) act as observable side effects. You can `cat` them at any time to see exactly what the agent has done. In production, replace `_save_state()` with a call to your Kubernetes API or monitoring service, `_save_list(INCIDENTS_FILE)` with a PagerDuty incident creation call, etc. The agent logic doesn't change; only the tool implementations do.
 
 ---
 
-## Step 2 — Build the observer daemon
+## Step 2: Build the observer daemon
 
 This is the actual agent process. It uses `AgentRuntime` to register a long-lived `AgentProcess` with a webhook trigger, full governance, and a file journal.
 
 Create `pipeline_observer.py`:
 
 ```python
-"""Pipeline Observer daemon — runs as an AgentProcess with a webhook trigger."""
+"""Pipeline Observer daemon: runs as an AgentProcess with a webhook trigger."""
 import asyncio
-import signal
 import sys
 from pathlib import Path
 
@@ -288,19 +287,19 @@ via webhook and must respond appropriately.
 ## Your capabilities
 
 Observation:
-- check_pipeline_health — see which stages are healthy
-- get_stage_metrics — throughput, errors, latency, queue depth for a stage
-- get_recent_errors — recent error messages from a stage
+- check_pipeline_health: see which stages are healthy
+- get_stage_metrics: throughput, errors, latency, queue depth for a stage
+- get_recent_errors: recent error messages from a stage
 
 Remediation (try these FIRST for recoverable issues):
-- restart_stage — for stuck or frozen stages
-- retry_failed_jobs — for transient failures (best for schema errors)
-- clear_queue — when queue depth is excessive
+- restart_stage: for stuck or frozen stages
+- retry_failed_jobs: for transient failures (best for schema errors)
+- clear_queue: when queue depth is excessive
 
 Escalation:
-- create_incident — document the issue formally
-- send_slack_alert — notify the team
-- page_oncall — wake up the on-call engineer (CRITICAL only)
+- create_incident: document the issue formally
+- send_slack_alert: notify the team
+- page_oncall: wake up the on-call engineer (CRITICAL only)
 
 ## Decision framework
 
@@ -330,7 +329,7 @@ async def main():
     Path(JOURNAL_DIR).mkdir(parents=True, exist_ok=True)
 
     config = ProcessConfig(
-        model="openai:gpt-4o-mini",
+        model="openai:gpt-5-mini",
         instructions=INSTRUCTIONS,
         servers={
             "pipeline": {
@@ -350,7 +349,6 @@ async def main():
             enabled=True,
             max_tool_calls_per_run=20,
             max_tool_calls_per_day=2000,
-            max_cost_per_day=5.0,
             on_exceeded="pause",
         ),
         health=HealthConfig(
@@ -376,19 +374,13 @@ async def main():
 
     print("[observer] Starting AgentRuntime with webhook on :9090/alerts")
 
-    async with AgentRuntime() as runtime:
-        await runtime.add_process("pipeline-observer", config)
-        await runtime.start_all()
-
-        print("[observer] Process running. Send events to http://localhost:9090/alerts")
-        print("[observer] Press Ctrl+C to stop.")
-
-        stop_event = asyncio.Event()
-        loop = asyncio.get_running_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, stop_event.set)
-        await stop_event.wait()
-        print("[observer] Shutting down...")
+    runtime = AgentRuntime()
+    await runtime.add_process("pipeline-observer", config)
+    print("[observer] Send events to http://localhost:9090/alerts")
+    print("[observer] Press Ctrl+C to stop.")
+    # Starts every process, runs until Ctrl+C or SIGTERM, then stops and closes them
+    await runtime.run_forever()
+    print("[observer] Stopped.")
 
 
 if __name__ == "__main__":
@@ -397,7 +389,7 @@ if __name__ == "__main__":
 
 ---
 
-## Step 3 — The event sender
+## Step 3: The event sender
 
 A tiny script you run from a second terminal to simulate pipeline events hitting your agent.
 
@@ -442,7 +434,7 @@ if __name__ == "__main__":
 
 ---
 
-## Step 4 — Run it
+## Step 4: Run it
 
 Set up your environment (one time):
 
@@ -462,7 +454,7 @@ echo "[]" > alerts.json
 export OPENAI_API_KEY=sk-...
 ```
 
-**Terminal 1 — start the observer:**
+**Terminal 1: start the observer**
 
 ```bash
 python pipeline_observer.py
@@ -472,13 +464,13 @@ You should see:
 
 ```
 [observer] Starting AgentRuntime with webhook on :9090/alerts
-[observer] Process running. Send events to http://localhost:9090/alerts
+[observer] Send events to http://localhost:9090/alerts
 [observer] Press Ctrl+C to stop.
 ```
 
-The daemon is now listening. It's idle — no events yet, no LLM calls made, no cost incurred. This is a long-lived process: it will stay running until you stop it with Ctrl+C.
+The daemon is now listening. It's idle: no events yet, no LLM calls made, no cost incurred. This is a long-lived process: it will stay running until you stop it with Ctrl+C.
 
-**Terminal 2 — send events:**
+**Terminal 2: send events**
 
 ```bash
 python send_event.py info
@@ -494,22 +486,22 @@ Each command prints the HTTP response code:
 [202] CRITICAL: Stage FAILED: Connection refused to database. Pipeline halted.
 ```
 
-**202 Accepted** means the webhook received the event and queued it for processing. The HTTP response returns immediately — the agent does its work asynchronously in the background. This is important for real monitoring integrations: your monitoring system doesn't wait for the agent to finish, it just fires the webhook and moves on.
+**202 Accepted** means the webhook received the event and queued it for processing. The HTTP response returns immediately; the agent does its work asynchronously in the background. This is important for real monitoring integrations: your monitoring system doesn't wait for the agent to finish, it just fires the webhook and moves on.
 
 ---
 
 ## What the agent actually does with each event
 
-Let's walk through what happens in real time for each severity. These are actual runs with GPT-4o-mini — not scripted, not hardcoded, the agent reasons through each one fresh.
+Let's walk through what happens in real time for each severity. The model decides each step itself, so your run can differ in the details; the tables show what to expect.
 
-### INFO event — Acknowledgment only
+### INFO event: Acknowledgment only
 
 When an INFO event arrives:
 
 1. Webhook trigger receives the POST and enqueues a `TriggerEvent`
 2. Worker dequeues it, invokes the agent
 3. Agent reads the event, sees severity is INFO
-4. Per the instructions, the agent **does not call any tools** — it just returns a brief acknowledgment
+4. Per the instructions, the agent **does not call any tools**; it just returns a brief acknowledgment
 
 **Expected behavior:**
 
@@ -518,12 +510,10 @@ When an INFO event arrives:
 | Tool calls | 0 |
 | Incidents created | 0 |
 | Alerts sent | 0 |
-| LLM cost | ~$0.0001 |
-| Time | ~1-2 seconds |
 
-**Why it matters:** INFO events are noise. A healthy pipeline generates hundreds of them per minute. If the agent called a tool for every one, you'd burn your budget in an hour. The instructions explicitly tell the agent to ignore them — and it listens.
+**Why it matters:** INFO events are noise. A healthy pipeline generates hundreds of them per minute. If the agent called a tool for every one, you'd burn your budget in an hour. The instructions explicitly tell the agent to ignore them, and it does.
 
-### WARNING event — Investigate, remediate, document
+### WARNING event: Investigate, remediate, document
 
 When a WARNING event arrives:
 
@@ -534,7 +524,7 @@ When a WARNING event arrives:
 5. **Calls `retry_failed_jobs(stage="transformation", max_retries=3)`** to remediate. Gets back: `{"retried": 42, "succeeded": 36}`. The tool also marks the stage as healthy in `pipeline_state.json`.
 6. **Calls `create_incident(title="High Error Rate in Transformation Stage", severity="WARNING", description="Error rate was 3.2%, 6 jobs still failing after retry with 'legacy_id' schema issue", affected_stage="transformation")`**. Gets back: `{"incident_id": "INC-0001"}`
 7. **Calls `send_slack_alert(channel="#data-pipeline", message="INC-0001: auto-recovered 36/42 jobs. 6 need review.")`** to notify the team.
-8. **Does NOT call `page_oncall`** — WARNINGs never wake up humans at 2am.
+8. **Does NOT call `page_oncall`**: WARNINGs never wake up humans at 2am.
 9. Returns a concise final response summarizing what it did.
 
 **Expected behavior:**
@@ -546,12 +536,10 @@ When a WARNING event arrives:
 | Alerts sent | 1 (Slack #data-pipeline) |
 | PagerDuty pages | 0 |
 | Pipeline state | `transformation: degraded → healthy` |
-| LLM cost | ~$0.002 |
-| Time | ~8-15 seconds |
 
 **Why it matters:** This is the whole point of the agent. A human would have to: see the alert, open the dashboard, investigate metrics, check error logs, restart jobs, file a ticket, post in Slack. That's 15 minutes of human attention. The agent does it in 10 seconds while you sleep.
 
-### CRITICAL event — Escalate AND remediate
+### CRITICAL event: Escalate AND remediate
 
 When a CRITICAL event arrives:
 
@@ -560,7 +548,7 @@ When a CRITICAL event arrives:
 3. **Calls `get_stage_metrics(stage="loading")`** for specifics.
 4. **Calls `restart_stage(stage="loading", reason="Connection refused to database. Attempting restart.")`** to try remediation. Gets back: `{"result": "Stage 'loading' restarted successfully."}`
 5. **Calls `create_incident(title="Loading Stage Failed", severity="CRITICAL", description="Database connection refused. Restarted stage. Watching for recurrence.", affected_stage="loading")`**. Gets back: `{"incident_id": "INC-0002"}`
-6. **Calls `page_oncall(service="data-platform", message="INC-0002: Loading stage failed — DB connection refused. Auto-restarted. Investigate root cause.")`**. A real human gets woken up.
+6. **Calls `page_oncall(service="data-platform", message="INC-0002: Loading stage failed, DB connection refused. Auto-restarted. Investigate root cause.")`**. A real human gets woken up.
 7. **Calls `send_slack_alert(channel="#incidents", message="CRITICAL: INC-0002 loading stage failed. Auto-restarted. On-call paged.")`**.
 8. Returns final response.
 
@@ -573,10 +561,8 @@ When a CRITICAL event arrives:
 | Alerts sent | 1 (Slack #incidents) |
 | PagerDuty pages | 1 (on-call) |
 | Pipeline state | `loading: healthy` (restored) |
-| LLM cost | ~$0.003 |
-| Time | ~10-20 seconds |
 
-**Why it matters:** A CRITICAL incident needs both a human AND a fix. The agent doesn't just page someone and wait — it also attempts remediation so the pipeline is back up by the time the human wakes up. The human just needs to figure out the root cause and prevent recurrence.
+**Why it matters:** A CRITICAL incident needs both a human AND a fix. The agent doesn't just page someone and wait; it also attempts remediation so the pipeline is back up by the time the human wakes up. The human just needs to figure out the root cause and prevent recurrence.
 
 ---
 
@@ -604,7 +590,7 @@ cat alerts.json
 }
 ```
 
-Notice `transformation` is now `healthy` — the agent auto-remediated it by calling `retry_failed_jobs`. And `loading` stays `healthy` because `restart_stage` fixed it. **The agent actually changed real state.**
+Notice `transformation` is now `healthy`: the agent auto-remediated it by calling `retry_failed_jobs`. And `loading` stays `healthy` because `restart_stage` fixed it. **The agent actually changed real state.**
 
 **Expected contents of `incidents.json`:**
 
@@ -663,35 +649,29 @@ This is exactly how a real SRE team structures their alerting. The agent respect
 
 ## Understanding each governance feature
 
-The observer isn't just an agent with tools — it's an agent with **guardrails**. Each governance feature prevents a specific failure mode.
+The observer isn't just an agent with tools; it's an agent with **guardrails**. Each governance feature prevents a specific failure mode.
 
-### Budget — prevents cost runaway
+### Budget: prevents cost runaway
 
 ```python
 budget=BudgetConfig(
     enabled=True,
     max_tool_calls_per_run=20,
     max_tool_calls_per_day=2000,
-    max_cost_per_day=5.0,
     on_exceeded="pause",
 ),
 ```
 
-**What it tracks:** every LLM call and tool call, with running counters for the current run and the current day.
+**What it tracks:** tool calls (per run and per day), LLM turns per run, and abstract cost units when you give tools a `cost_weight`. It does not track money: token spend is not counted.
 
-**What it prevents:** an agent getting stuck in a loop and calling 10,000 tools in an hour, or a traffic spike causing an unexpected $500 bill.
+**What it prevents:** an agent stuck in a loop calling thousands of tools, or a burst of events driving tool usage far past what you planned for.
 
-**What happens when it triggers:** `on_exceeded="pause"` transitions the process to `SUSPENDED` state. Events keep arriving but they're re-queued instead of processed. The agent stops spending money. You get a chance to investigate.
+**What happens when it triggers:** a tool call that would cross a limit is refused before it runs, and after that run `on_exceeded="pause"` suspends the process (`suspend_reason == "budget"`). New events wait in the queue until you `resume()` it. You get a chance to investigate.
 
-**Real example from our test run:** When we sent 3 events in rapid succession and the agent kept processing them, it eventually hit `max_cost_per_day=5.0`. The daemon log showed:
+!!! warning "`max_cost_per_day` is not dollars"
+    Every tool without a `ToolCostAnnotation` costs 1 unit. `max_cost_per_day=5.0` would therefore refuse the sixth tool call of the day and pause the observer, in the middle of the first warning. Set cost limits only together with `tool_costs`, sized for your workload. See [Understanding cost_weight](../runtime/governance/budget.md#understanding-cost_weight).
 
-```
-Budget violation: max_cost_per_day (limit=5.0, current=6.0), action=pause
-```
-
-The runtime paused the process automatically. No runaway costs. This is exactly what budget enforcement should do.
-
-### Health — detects bad behavior
+### Health: detects bad behavior
 
 ```python
 health=HealthConfig(
@@ -711,11 +691,11 @@ health=HealthConfig(
 - **Repeating patterns:** agent calls `A → B → A → B → A → B`. Probably confused about which step to do next.
 - **Empty responses:** agent returns 3 responses under 10 characters in a row. Probably the model is broken or the prompt is confusing it.
 
-**What happens when it triggers:** `on_anomaly="escalate"` fires an escalation webhook (if configured) and logs the anomaly. You can also set it to `pause` or `stop` for stricter behavior.
+**What happens when it triggers:** `on_anomaly="escalate"` sends the escalation (when `escalation` is set) and suspends the process until you resume it; a `health.anomaly` event is emitted either way. `"log"` only logs, `"pause"` suspends without notifying, `"stop"` stops the process.
 
-**Why it matters:** LLMs are non-deterministic. Even with good instructions they sometimes get confused. Health detection is your safety net — it catches problems before they burn your budget.
+**Why it matters:** LLMs are non-deterministic. Even with good instructions they sometimes get confused. Health detection is your safety net: it catches problems before they burn your budget.
 
-### Mission — tracks progress against objectives
+### Mission: tracks progress against objectives
 
 ```python
 mission=MissionConfig(
@@ -726,17 +706,11 @@ mission=MissionConfig(
 ),
 ```
 
-**What it does:** every 10 invocations, the runtime takes a snapshot of what the agent has done (recent tool calls, state changes, incidents created) and asks an LLM-as-judge: "Given this activity, is the agent making progress toward its mission?"
+**What it does:** after every 10th successful run, an LLM judge gets the objective, the success criteria and the evidence (the conversation, the context state, the trigger event, and the run's tool calls because health monitoring is on) and answers whether the mission is achieved, with a confidence and its reasoning.
 
-**Why it matters:** you can have an agent that looks fine at the individual-event level but is drifting off-mission overall. Examples:
+**Why it matters:** an agent can look fine event by event and still drift. The judge's reasoning (in `GET /mission`, the journal and the agent's `[Mission]` prompt block) shows the trend, and a verdict below `confidence_threshold` pauses the mission and notifies `escalation`. Each evaluation is one extra model call; see [Mission Model](../runtime/governance/mission.md).
 
-- Escalating too many false alarms → mission says "on-call is fatigued, reduce paging"
-- Missing real anomalies → mission says "auto-remediation rate is too high, issues aren't being surfaced"
-- Creating duplicate incidents → mission says "incident dedup is failing"
-
-The mission tracker catches these trajectory issues that no single event would reveal.
-
-### Journal — audit trail and crash recovery
+### Journal: audit trail and crash recovery
 
 ```python
 journal=JournalConfig(
@@ -745,16 +719,16 @@ journal=JournalConfig(
 ),
 ```
 
-**What it records:** every state transition (CREATED → RUNNING → SUSPENDED → STOPPED), every invocation (which event, what the agent decided, how many tool calls), every lifecycle event, every checkpoint.
+**What it records** (at the default `"checkpoint"` level): every state transition, every context write, each run's result (the reply, cut at 2000 characters), errors, restarts, mission evaluations, operator API requests, and a checkpoint after every run. `level="full"` adds the trigger events and every tool call and result.
 
 **Two purposes:**
 
-1. **Audit trail** — reviewers want to know every decision the agent made. The journal is append-only JSONL on disk. You can grep it.
-2. **Crash recovery** — if the process dies (OOM kill, server restart, power failure), it restarts from the last checkpoint. No events lost, no duplicate actions taken.
+1. **Audit trail**: reviewers want to know every decision the agent made. The journal is append-only JSONL on disk. You can grep it.
+2. **Crash recovery**: when the observer starts again after a crash or a restart, it restores its context state, conversation, budget counters and mission from the last checkpoint of the same process name. Events that were still queued are not recovered, and what tools already did (an incident filed, a page sent) is not undone, so make remediation tools safe to repeat.
 
-**Format:** JSONL files in `./pipeline_journal/<process-id>.jsonl` — one line per event, timestamped, structured.
+**Format:** `./pipeline_journal/pipeline-observer.jsonl` (entries are filed under the process name) plus `pipeline-observer.checkpoint.json`. Read them with `promptise runtime logs` or any JSONL tool; see [Journal](../runtime/journal/index.md).
 
-### Concurrency — control parallelism
+### Concurrency: control parallelism
 
 ```python
 concurrency=1,
@@ -762,17 +736,17 @@ concurrency=1,
 
 With `concurrency=1`, events are processed **one at a time**. Event 2 waits for event 1 to finish. Safer, simpler, easier to reason about.
 
-With `concurrency=3`, up to 3 events can be processed in parallel by separate workers. Faster for high-throughput scenarios, but be careful — shared state between invocations can get confusing.
+With `concurrency=3`, up to 3 events can be processed in parallel by separate workers. Faster for high-throughput scenarios, but be careful: shared state between invocations can get confusing.
 
 **Rule of thumb:** start with `concurrency=1`. Only increase it if your event queue is backing up.
 
-### max_consecutive_failures — auto-fail on repeated errors
+### max_consecutive_failures: auto-fail on repeated errors
 
 ```python
 max_consecutive_failures=5,
 ```
 
-If the agent fails 5 times in a row (tool errors, LLM errors, whatever), the process transitions to `FAILED` state. It won't process any more events until a human restarts it.
+If 5 runs in a row raise (a model error, a timeout, a crashed MCP server), the process transitions to `FAILED` state. A tool that returns an error does not count: the model sees the error and carries on. A `FAILED` process dead-letters new events until it is restarted, by you or by `restart_policy="on_failure"`.
 
 **Why it matters:** you don't want a broken agent to keep burning budget and creating noise. Fail loudly after a few attempts.
 
@@ -800,9 +774,9 @@ When you run `pipeline_observer.py`, here's what happens:
    f. Spawn worker tasks (concurrency=1 means 1 worker)
    g. Spawn heartbeat task
    h. Transition lifecycle: STARTING → RUNNING
-   i. Journal entry written: "lifecycle: running"
+   i. Journal entry written: a state_transition entry (starting -> running)
 
-4. Main loop: await stop_event.wait()
+4. runtime.run_forever() waits
    (process lives here until Ctrl+C or SIGTERM)
 
 5. When an event arrives:
@@ -813,7 +787,7 @@ When you run `pipeline_observer.py`, here's what happens:
 
 6. Worker loop:
    a. Pulls event from trigger_queue
-   b. Checks state: if SUSPENDED, re-queues and sleeps
+   b. Checks state: if SUSPENDED, holds the event and waits for resume()
    c. Acquires concurrency semaphore
    d. Calls agent.ainvoke() with the event payload as user message
    e. Agent reasons, calls tools, gets LLM responses
@@ -823,9 +797,9 @@ When you run `pipeline_observer.py`, here's what happens:
    i. Journal appends invocation entry
    j. Worker releases semaphore, loops to next event
 
-7. On Ctrl+C:
-   a. stop_event is set
-   b. AgentRuntime.__aexit__ runs:
+7. On Ctrl+C or SIGTERM:
+   a. run_forever() stops waiting
+   b. AgentRuntime.shutdown() runs:
       - Each process: transition STOPPING
       - Stop all triggers (webhook server shuts down)
       - Cancel worker tasks
@@ -833,7 +807,7 @@ When you run `pipeline_observer.py`, here's what happens:
       - Cancel heartbeat task
       - Transition STOPPED
       - Close the agent (shuts down MCP subprocess)
-      - Journal entry: "lifecycle: stopped"
+      - Journal entries: state_transition (stopping -> stopped) and a final checkpoint
 ```
 
 Every one of those steps is real, not stubbed. You can trace it through the runtime source code.
@@ -886,38 +860,34 @@ TriggerConfig(
     type="webhook",
     webhook_path="/alerts",
     webhook_port=9090,
-    webhook_hmac_secret=os.environ["WEBHOOK_SECRET"],
+    hmac_secret=os.environ["WEBHOOK_SECRET"],
 ),
 ```
 
 Without this, anyone who can reach port 9090 can fire events at your agent. With it, incoming requests must include a valid HMAC-SHA256 signature in the `X-Webhook-Signature` header.
 
-### 3. Use per-severity models
+### 3. Use a different model per severity
 
-Cheap model for classification, strong model for critical events. Use the Reasoning Engine's `model_override`:
+A process has one model. To handle routine events with a small model and critical ones with a larger one, run two processes, each with its own webhook port, and send each kind of event to its own port; a `filter_expression` makes sure a process only runs for its severity:
 
 ```python
-from promptise.engine import PromptGraph, PromptNode, RouterNode
+from promptise.runtime import ProcessConfig, TriggerConfig
 
-graph = PromptGraph("event-handler", nodes=[
-    RouterNode("classify",
-        instructions="Classify the event severity. Route to 'info', 'warning', or 'critical'.",
-        model_override="openai:gpt-4o-mini",  # Cheap classifier
-    ),
-    PromptNode("handle_critical",
-        instructions="Handle a critical event. Investigate, remediate, escalate.",
-        inject_tools=True,
-        model_override="anthropic:claude-sonnet-4-6",  # Strong for critical decisions
-    ),
-    PromptNode("handle_warning",
-        instructions="Handle a warning event. Investigate and remediate.",
-        inject_tools=True,
-        model_override="openai:gpt-4o-mini",  # Cheap for warnings
-    ),
-])
+routine = ProcessConfig(
+    model="openai:gpt-5-mini",
+    instructions=INSTRUCTIONS,
+    triggers=[TriggerConfig(type="webhook", webhook_path="/alerts", webhook_port=9090,
+                            filter_expression="severity in ['INFO', 'WARNING']")],
+)
+critical = ProcessConfig(
+    model="openai:gpt-5",
+    instructions=INSTRUCTIONS,
+    triggers=[TriggerConfig(type="webhook", webhook_path="/alerts", webhook_port=9091,
+                            filter_expression="severity == 'CRITICAL'")],
+)
 ```
 
-Pass it via `agent_pattern=graph` in `ProcessConfig`.
+A request that doesn't match the filter is answered `200 {"status": "ignored"}` without a model call. Add the governance settings from Step 2 to both.
 
 ### 4. Run behind a reverse proxy
 
@@ -929,7 +899,7 @@ Don't expose port 9090 directly to the internet. Put nginx, Caddy, or a cloud lo
 - **Kubernetes**: Deployment with `restartPolicy: Always`, liveness probe on `/health` (the webhook includes one)
 - **Docker**: `docker run --restart unless-stopped ...`
 
-The runtime handles crash recovery via the journal — you just need the OS to restart the process if it crashes.
+The runtime handles crash recovery via the journal; you just need the OS to restart the process if it crashes.
 
 ### 6. Monitor the observer itself
 
@@ -942,13 +912,12 @@ health=HealthConfig(
     enabled=True,
     on_anomaly="escalate",
     escalation=EscalationTarget(
-        type="webhook",
-        url=os.environ["ESCALATION_WEBHOOK"],  # Your Slack/PagerDuty for the observer itself
+        webhook_url=os.environ["ESCALATION_WEBHOOK"],  # Your Slack/PagerDuty for the observer itself
     ),
 ),
 ```
 
-Now if the observer gets stuck, paused, or hits budget limits, you'll find out immediately.
+Now if the observer gets stuck or loops, the escalation tells you. Set the same `escalation` on `BudgetConfig` (with `on_exceeded="escalate"`) to hear about budget limits too, and send the runtime's `process.failed` events to a sink of your [event notifier](../core/events.md).
 
 ---
 
@@ -956,7 +925,7 @@ Now if the observer gets stuck, paused, or hits budget limits, you'll find out i
 
 ### Webhook returns "connection refused"
 
-The observer daemon isn't running. Check Terminal 1 — did `pipeline_observer.py` start successfully? Look for the `[observer] Process running` line.
+The observer daemon isn't running. Check Terminal 1: did `pipeline_observer.py` start successfully? Look for the `[observer] Send events to` line.
 
 ### Webhook returns 500
 
@@ -976,7 +945,7 @@ The LLM decided not to. Check its response in the daemon log. Usually this means
 
 ### Budget violations every time
 
-Your `max_tool_calls_per_run` or `max_cost_per_day` is too strict for the actual workload. Check how many tool calls a typical event generates and set the budget to ~2x that as a safety margin.
+Your `max_tool_calls_per_run` or daily limits are too strict for the actual workload (or you set `max_cost_per_day` without `tool_costs`, so every tool call costs 1 unit). Check how many tool calls a typical event generates (`process.status()["budget"]`) and set the limits to about twice that.
 
 ### Incidents being created for INFO events
 
@@ -988,7 +957,7 @@ The agent isn't following the decision framework. Make the INFO instructions mor
    Do NOT create incidents. Do NOT send alerts. Do NOT call any tools whatsoever.
 ```
 
-Clearer instructions → better compliance.
+Clearer instructions, fewer wrong actions.
 
 ### Agent calls the same tool 3 times and gets paused
 
@@ -1002,13 +971,13 @@ Fix the instructions or the tool, then restart the observer.
 
 ### Journal files aren't appearing
 
-Check the `journal.path` in `ProcessConfig` — is it a writable directory? The runtime creates it if missing. If you see permission errors, check file system permissions.
+Check the `journal.path` in `ProcessConfig`: is it a writable directory? The runtime creates it if missing. If you see permission errors, check file system permissions.
 
 ### Events are being dropped
 
-The trigger queue is full (default max 1000). Either:
+Events are not dropped silently: when the process queue (1000 events) is full, the webhook answers `503` with `Retry-After: 30`, and events that could not run are in `process.dead_letters`. A full queue means:
 
-- Your concurrency is too low — events are queuing faster than they can be processed
+- Your concurrency is too low: events are queuing faster than they can be processed
 - The agent is too slow per event (big LLM calls, many tool calls)
 - There's an infinite loop somewhere blocking the workers
 
@@ -1020,22 +989,22 @@ Increase `concurrency`, use a faster model for high-volume events, or check the 
 
 Now that you have a working observer, extend it:
 
-1. **Add more triggers.** A cron trigger for periodic health checks (`"*/30 * * * * *"` for every 30 seconds), a file watch trigger for log file changes, an event trigger for internal pub/sub.
+1. **Add more triggers.** A cron trigger for periodic health checks (`"*/5 * * * *"` for every 5 minutes, or `"* * * * * */30"` for every 30 seconds), a file watch trigger for log file changes, an event trigger for internal pub/sub.
 
-2. **Add approval for destructive actions.** Use `approval=ApprovalPolicy(tools=["restart_stage"])` in `build_agent` to pause for human approval before running certain tools.
+2. **Add approval for destructive actions.** Set `approval=ApprovalPolicy(tools=["restart_stage", "page_oncall"], handler=...)` on the `ProcessConfig` to wait for a human decision before those tools run. See [Approval](../core/approval.md).
 
-3. **Add long-term memory.** Connect a `ChromaProvider` so the agent remembers past incidents and can correlate new events to previous root causes.
+3. **Add long-term memory.** Set `context=ContextConfig(memory_provider="chroma", memory_persist_directory="./memory", memory_auto_store=True)` so the agent remembers past incidents and can relate new events to earlier root causes. See [Agent Context](../runtime/context.md#memory-integration).
 
-4. **Multi-agent coordination.** Split the observer into an "investigator" agent (reads metrics, builds context) and a "responder" agent (decides actions, escalates). Use `cross_agents` to let them talk.
+4. **Multi-agent coordination.** Split the observer into an "investigator" process (reads metrics, builds context) and a "responder" process (decides actions, escalates), connected by events. See [Multi-Agent Coordination](multi-agent-teams.md).
 
-5. **Enable Open Mode.** Let the agent create its own tools as it learns patterns. For example, after seeing the same "schema mismatch" issue 5 times, it could create a `fix_schema_mismatch` tool that automates the workaround.
+5. **Enable Open Mode.** Let the agent change its own instructions and triggers as it learns patterns, within `OpenModeConfig` limits. Read [Meta-Tools: Security](../runtime/meta-tools.md#security) first: tool creation runs model-written Python in the runtime's process.
 
 ---
 
 ## Related docs
 
-- [Agent Runtime Overview](../runtime/index.md) — the full runtime API
-- [Triggers](../runtime/triggers/index.md) — all 5 trigger types and the concurrency architecture
-- [Runtime API Reference](../runtime/api.md) — budget, health, mission, journal reference
-- [Building Production MCP Servers](production-mcp-servers.md) — auth, rate limits, audit trails
-- [Multi-Agent Coordination](multi-agent-teams.md) — coordinate multiple agents across a system
+- [Agent Runtime Overview](../runtime/index.md): the full runtime API
+- [Triggers](../runtime/triggers/index.md): all 5 trigger types and the concurrency architecture
+- [Runtime API Reference](../api/runtime.md): budget, health, mission, journal reference
+- [Building Production MCP Servers](production-mcp-servers.md): auth, rate limits, audit trails
+- [Multi-Agent Coordination](multi-agent-teams.md): coordinate multiple agents across a system

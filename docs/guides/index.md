@@ -1,5 +1,5 @@
 ---
-title: Guides — Build production AI agents and MCP servers with Promptise Foundry
+title: "Guides: Build production AI agents and MCP servers with Promptise Foundry"
 seo_title: "Guides: AI Agents, MCP Servers, Runtimes"
 description: "End-to-end guides for building with Promptise Foundry: AI agents, production MCP servers, MCPcast, multi-user systems, agent runtimes and hands-on labs."
 keywords: AI agent tutorials, MCP server tutorial, build AI agent guide, agent runtime tutorial, multi-agent Python, multi-user AI system
@@ -8,7 +8,7 @@ keywords: AI agent tutorials, MCP server tutorial, build AI agent guide, agent r
 # Promptise Foundry Guides
 
 Practical, end-to-end guides for building real systems with Promptise Foundry.
-Each takes you from concept to working code — architecture decisions,
+Each takes you from concept to working code: architecture decisions,
 implementation patterns, and production considerations included.
 
 New here? Follow the **learning path** below in order. Already building? Jump
@@ -28,13 +28,18 @@ straight to the guide for the problem you're solving.
 
 ---
 
-## 1 · Foundations — build and shape an agent
+## 1 · Foundations: build and shape an agent
 
 ### [Building AI Agents](building-agents.md)
-Build a production-ready agent from scratch with MCP tool discovery, persistent
-memory, observability, sandboxed code execution, and cross-agent delegation.
+Build a production agent in twelve runnable steps: Python tools, an MCP server,
+conversations, memory, guardrails, human approval, observability, a code sandbox,
+delegation to other agents, a reasoning pattern and a `.superagent` file.
 One function call creates it; every capability is opt-in.
-**You'll learn:** `build_agent()`, model independence, MCP auto-discovery, memory, observability, sandbox, cross-agent delegation, SuperAgent files.
+**You'll learn:** `build_agent()`, `@tool`, MCP servers, `chat()` and conversation stores, memory, guardrails, `ApprovalPolicy`, observability, sandbox, `CrossAgent`, `agent_pattern`, SuperAgent files.
+
+### [Cookbook](../getting-started/cookbook.md)
+Short, copy-paste recipes for the tasks you reach for most, each with a link to the
+full reference.
 
 ### [Prompt Engineering](prompt-engineering.md)
 Build reliable, testable system prompts with typed blocks, token budgeting,
@@ -49,7 +54,7 @@ for multi-stage graphs.
 
 ### [Code-Action: Agents that Write Programs](code-action.md)
 For aggregation and data-traversal, have the model write **one Python program**
-over your tools — a single LLM turn instead of dozens of tool calls — run in a
+over your tools (a single LLM turn instead of dozens of tool calls) run in a
 hardened Docker sandbox.
 **You'll learn:** `agent_pattern="code-action"`, the sandbox tool-bridge, `max_tool_calls`, when to reach for it.
 
@@ -66,7 +71,7 @@ middleware, caching, and request tracing.
 ### [MCPcast an Existing API](mcpcast-existing-api.md)
 Already have an API? Don't hand-write the server. `promptise mcpcast` turns an
 OpenAPI 3.x or Swagger 2 spec into a curated, safe, agent-ready MCP server
-emitted as **editable code** — read-only by default, with every write gated by
+emitted as **editable code**: read-only by default, with every write gated by
 human approval the server enforces, so any MCP client can drive your product.
 **You'll learn:** `promptise mcpcast`, risk classification, safety profiles, LLM curation with code-enforced post-conditions, the plan file, auth modes, server-side approval, Agent Readiness Score.
 
@@ -88,7 +93,7 @@ guardrails, and tamper-evident audit are all wired to that identity.
 **You'll learn:** `CallerContext`, JWT/OAuth flow, guards, conversation ownership, per-user isolation, audit.
 
 ### [CallerContext: Agent → MCP Identity](multi-user-identity.md)
-The focused reference for *how* identity crosses the wire — what the bearer
+The focused reference for *how* identity crosses the wire: what the bearer
 token carries, what the server extracts, and how guards see it.
 **You'll learn:** `CallerContext` fields, JWT propagation, server-side extraction, guard evaluation.
 
@@ -108,9 +113,9 @@ from crashes, enforce governance, and scale across machines.
 **You'll learn:** `AgentProcess`, triggers, journals, governance (budget/health/mission/secrets), `AgentRuntime`, distributed coordination.
 
 ### [Multi-Agent Coordination](multi-agent-teams.md)
-Systems where agents collaborate — sharing tools, delegating, communicating
+Systems where agents collaborate: sharing tools, delegating, communicating
 through events, and coordinating through shared state.
-**You'll learn:** shared servers with per-agent roles, `ask_peer()`/`broadcast()`, EventBus, shared context, supervisor/pipeline patterns.
+**You'll learn:** a shared MCP server with per-agent roles, `CrossAgent` delegation, `InProcessEventBus` and event triggers, shared state, supervisor and pipeline patterns.
 
 ---
 
@@ -119,11 +124,11 @@ through events, and coordinating through shared state.
 Domain-specific, copy-paste-ready tutorials. Each includes a pre-built MCP
 server, a specialized reasoning pattern, and runnable code.
 
-- **[Customer Support Agent](lab-customer-support.md)** — issue classification, KB search, policy validation, human escalation. *(Classify → Investigate → Draft → Validate → Respond)*
-- **[Data Analysis Agent](lab-data-analysis.md)** — questions → SQL, cross-table joins, accurate reports. *(Plan → Execute → Observe → Verify → Report)*
-- **[Code Review Agent](lab-code-review.md)** — security review via adversarial self-critique with line-referenced claims. *(Read → Analyze → Critique → Justify → Synthesize)*
-- **[Pipeline Observer Agent](lab-pipeline-observer.md)** — an autonomous runtime agent that watches a pipeline, reacts to events, and escalates.
-- **[MCPcast Your SaaS API](lab-mcpcast-storefront.md)** — a storefront API turned into agent tools end to end: risk-classified tools, a real agent completing a business task, a refund held by the server-side approval gate, and an Agent Readiness Score before and after fixing the plan.
+- **[Customer Support Agent](lab-customer-support.md)**: issue classification, KB search, policy validation, human escalation. *(Classify → Investigate → Draft → Validate → Respond)*
+- **[Data Analysis Agent](lab-data-analysis.md)**: questions → SQL, cross-table joins, accurate reports. *(Plan → Execute → Observe → Verify → Report)*
+- **[Code Review Agent](lab-code-review.md)**: security review via adversarial self-critique with line-referenced claims. *(Read → Analyze → Critique → Justify → Synthesize)*
+- **[Pipeline Observer Agent](lab-pipeline-observer.md)**: an autonomous runtime agent that watches a pipeline, reacts to events, and escalates.
+- **[MCPcast Your SaaS API](lab-mcpcast-storefront.md)**: a storefront API turned into agent tools end to end: risk-classified tools, a real agent completing a business task, a refund held by the server-side approval gate, and an Agent Readiness Score before and after fixing the plan.
 
 ---
 
@@ -131,11 +136,11 @@ server, a specialized reasoning pattern, and runnable code.
 
 Every guide follows the same progression:
 
-1. **What You'll Build** -- A concrete description of the end result
-2. **Concepts** -- The key ideas before any code
-3. **Step-by-Step** -- Progressive implementation with working code at each step
-4. **Complete Example** -- Full working code you can copy and run
-5. **What's Next** -- Links to reference docs for deeper exploration
+1. **What You'll Build**: A concrete description of the end result
+2. **Concepts**: The key ideas before any code
+3. **Step-by-Step**: Progressive implementation with working code at each step
+4. **Complete Example**: Full working code you can copy and run
+5. **What's Next**: Links to reference docs for deeper exploration
 
 ## Prerequisites
 

@@ -1,5 +1,5 @@
 ---
-title: Build a Multi-User AI Agent System — Multi-tenant Python tutorial
+title: "Build a Multi-User AI Agent System: multi-tenant Python tutorial"
 seo_title: "Build a Multi-User AI Agent System"
 description: "Build a multi-user agent system: JWT auth and guards on MCP servers, audit logs, per-user conversations, cache and memory, guardrails and observability."
 keywords: multi-user AI agent, multi-tenant AI agent, AI agent authentication, JWT AI agent, AI agent access control, secure AI agent Python
@@ -477,7 +477,7 @@ agent = await build_agent(
             bearer_token=user_jwt,
         ),
     },
-    optimize_tools="semantic",  # 40-70% fewer tokens per request
+    optimize_tools="semantic",  # offer each model call only the relevant tools
 )
 ```
 
@@ -486,14 +486,15 @@ agent = await build_agent(
 The embedding model runs locally (no API calls, no data leaving your infrastructure). For custom models or air-gapped deployments:
 
 ```python
-from promptise.tools import ToolOptimizationConfig, OptimizationLevel
+from promptise import OptimizationLevel, ToolOptimizationConfig
 
 agent = await build_agent(
-    ...,
+    model="openai:gpt-5-mini",
+    servers=servers,
     optimize_tools=ToolOptimizationConfig(
         level=OptimizationLevel.SEMANTIC,
-        max_tools=8,                                    # Send at most 8 tools per request
-        embedding_model="/models/local/all-MiniLM-L6-v2",  # Fully offline
+        semantic_top_k=8,                                  # offer at most 8 tools per model call
+        embedding_model="/models/local/all-MiniLM-L6-v2",  # a local directory: fully offline
     ),
 )
 ```
@@ -763,7 +764,7 @@ async def handle_user_message(user_jwt: str, user_id: str, session_id: str, mess
             "Help users with their accounts, orders, billing, and support tickets. "
             "Be concise and professional. Never share data from other customers."
         ),
-        # 30 tools discovered, but only 5-8 sent per request (40-70% token savings)
+        # 30 tools discovered, but only the relevant ones (8 by default) sent per model call
         optimize_tools="semantic",
         # Each user gets isolated conversation history
         conversation_store=conversation_store,
@@ -816,7 +817,7 @@ async def handle_user_message(user_jwt: str, user_id: str, session_id: str, mess
 4. Memory searches for relevant context → injected into system prompt
 5. Semantic cache checks for similar query from this user → instant return if hit
 6. Conversation history loaded from PostgreSQL → ownership verified
-7. **Semantic tool selection** picks 5-8 relevant tools from 30 → saves 40-70% tokens
+7. **Semantic tool selection** picks the relevant tools from 30 (8 by default), so each request sends fewer tool definitions
 8. LLM invoked with enriched context (memory + history + selected tools)
 9. Agent calls MCP tools → JWT validated → guards enforced → audit logged
 10. Output guardrails scan response → PII/credentials redacted

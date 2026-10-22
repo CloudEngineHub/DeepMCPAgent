@@ -5,7 +5,7 @@ description: "Build agents whose system prompt changes across the phases of a co
 
 # Layer 2: ConversationFlow
 
-Build conversation agents where the system prompt evolves across phases -- different blocks activate as the conversation progresses.
+Build conversation agents where the system prompt evolves across phases: different blocks activate as the conversation progresses.
 
 ## Quick Example
 
@@ -50,7 +50,7 @@ A `ConversationFlow` is a state machine where:
 - **Phases** define distinct conversation stages (greeting, investigation, resolution)
 - **Base blocks** are always included in the prompt regardless of phase
 - **Phase handlers** activate and deactivate blocks as the conversation evolves
-- The system prompt is **not static** -- it is reassembled every turn with the currently active blocks
+- The system prompt is **not static**: it is reassembled every turn with the currently active blocks
 
 Each call to `next_turn()` or `transition()` runs the current phase handler, which can modify the active block composition, then returns a freshly assembled `AssembledPrompt`.
 
@@ -111,6 +111,11 @@ The `@phase` decorator accepts:
 | `on_enter` | `Callable` | Callback invoked when entering this phase |
 | `on_exit` | `Callable` | Callback invoked when leaving this phase |
 
+Signature: `phase(name, *, initial=False, blocks=None, on_enter=None, on_exit=None)`. `on_enter` and `on_exit` are called with **no arguments** (sync or async); use the phase handler when you need the `TurnContext`. On a transition the old phase's blocks are removed and its `on_exit` runs, then the new phase's blocks are added and its `on_enter` runs, then its handler runs.
+
+!!! note "`Phase` is a plain record"
+    `promptise.prompts.Phase(name, blocks=[], on_enter=None, on_exit=None)` is a dataclass describing a phase. `ConversationFlow` does not take `Phase` objects: phases are always declared with `@phase` on a subclass.
+
 ## TurnContext
 
 Every phase handler receives a `TurnContext` that provides methods to manipulate the prompt and control flow.
@@ -121,7 +126,7 @@ Every phase handler receives a `TurnContext` that provides methods to manipulate
 |----------|------|-------------|
 | `turn` | `int` | Current turn number (0-based) |
 | `phase` | `str` | Current phase name |
-| `state` | `dict[str, Any]` | Arbitrary flow state dict -- mutate freely |
+| `state` | `dict[str, Any]` | Arbitrary flow state dict: mutate freely |
 | `history` | `list[dict]` | Conversation message history (read-only copy) |
 
 ### Block Manipulation
@@ -170,7 +175,7 @@ async def greet(self, ctx: TurnContext) -> None:
 flow = SupportFlow()
 prompt = await flow.start("Hi, my app keeps crashing")
 print(prompt.text)              # Full prompt with base + greeting blocks
-print(prompt.included)          # ["identity", "rules", "greeting_instructions"]
+print(prompt.included)          # ["identity", "rules", "greet"]
 ```
 
 `start()` with no argument still works and starts the flow before any message arrives.
@@ -196,11 +201,13 @@ prompt = await flow.next_turn(
 
 ### Explicit Transitions
 
-`transition()` moves to a new phase, runs the new phase handler, and returns the updated prompt:
+`transition()` moves to a new phase, runs the new phase handler, and returns the updated prompt. It does not advance the turn counter:
 
 ```python
 prompt = await flow.transition("resolution")
 ```
+
+A transition to an unknown phase raises `ValueError`. If the handler run by `transition()` itself calls `ctx.transition()`, the flow enters that next phase but does not run its handler until the next turn (in `start()` and `next_turn()` the next handler runs in the same turn).
 
 ### Reading the Current Prompt
 
@@ -237,6 +244,15 @@ Give the flow a [`PromptInspector`](inspector.md) and every `start()`, `next_tur
 
 ```python
 from promptise.prompts.inspector import PromptInspector
+from promptise.prompts.flows import ConversationFlow, TurnContext, phase
+from promptise.prompts.blocks import Identity, Section
+
+class SupportFlow(ConversationFlow):
+    base_blocks = [Identity("Customer support specialist")]
+
+    @phase("greeting", initial=True)
+    async def greet(self, ctx: TurnContext) -> None:
+        ctx.activate(Section("greet", "Ask how you can help today."))
 
 inspector = PromptInspector()
 flow = SupportFlow(inspector=inspector)   # or set `inspector = ...` on the class
@@ -405,21 +421,21 @@ asyncio.run(main())
 | `get_prompt()` | Assemble and return current prompt |
 
 !!! warning "One initial phase required"
-    Exactly one phase must be marked `initial=True`. Defining zero or multiple initial phases raises a `ValueError`.
+    Exactly one phase must be marked `initial=True`. Two initial phases raise `ValueError` when the flow is created; phases with no initial one raise `ValueError` on `start()`. A flow with no phases at all is allowed: `start()` returns the base blocks.
 
 ## Tips
 
 - Use `ctx.state` to track conversation metadata (e.g., `questions_asked`, `issue_category`) across phases.
-- Phase handlers run on every turn within that phase -- use them to dynamically adjust blocks based on conversation progress.
+- Phase handlers run on every turn within that phase: use them to dynamically adjust blocks based on conversation progress.
 - Blocks from `@phase(blocks=[...])` are automatically activated on phase entry and deactivated on exit. Blocks added via `ctx.activate()` persist until explicitly deactivated.
-- `flow._history` stores all user and assistant messages. Use `ctx.history` for a read-only copy inside handlers.
+- Use `ctx.history` inside handlers for a copy of the recorded messages (`{"role": ..., "content": ...}` dicts). Only `start()` and `next_turn()` record messages; the assistant reply is recorded only when you pass `assistant_message=`.
 - Run a flow by hand (as in the full example) when you drive the model yourself. Create one flow per conversation and keep it with that conversation.
 
 ## What's Next?
 
-- [Strategies](strategies.md) -- Prompt strategies and composition patterns
-- [Layer 1: PromptBlocks](blocks.md) -- Composable prompt components reference
+- [Strategies](strategies.md): Prompt strategies and composition patterns
+- [Layer 1: PromptBlocks](blocks.md): Composable prompt components reference
 
 !!! tip "Learn the concept"
 
-    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- Switching system prompts by conversation phase.
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices): Switching system prompts by conversation phase.

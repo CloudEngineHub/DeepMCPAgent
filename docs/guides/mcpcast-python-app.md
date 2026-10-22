@@ -1,5 +1,5 @@
 ---
-title: Make Your Python API MCP-Ready — FastAPI, Django, Flask or Litestar to an MCP server for Claude, Cursor and every AI
+title: "Make Your Python API MCP-Ready: FastAPI, Django, Flask or Litestar to an MCP server for Claude, Cursor and every AI"
 seo_title: "FastAPI, Django or Flask API to MCP Server"
 description: "Make your FastAPI, Django, Flask or Litestar API usable from Claude, Cursor and any MCP client: improve the spec, generate a server, map auth, gate writes."
 keywords: FastAPI MCP server, make my Python API MCP ready, Django REST MCP, Flask MCP, expose my API to Claude, Litestar MCP server, Django Ninja MCP, FastAPI Claude Desktop, OpenAPI to MCP Python, Cursor MCP server from FastAPI
@@ -7,8 +7,8 @@ keywords: FastAPI MCP server, make my Python API MCP ready, Django REST MCP, Fla
 
 # Make Your Python API MCP-Ready
 
-You are looking at your own codebase — a FastAPI, Django, Flask or Litestar
-service — and the question is concrete: *exactly what do I do so Claude, Cursor
+You are looking at your own codebase (a FastAPI, Django, Flask or Litestar
+service) and the question is concrete: *exactly what do I do so Claude, Cursor
 and every other AI can use this API?*
 
 Not a spec file in hand. An app in hand. This guide is that sequence, step by
@@ -25,18 +25,18 @@ every output below is what it printed.
 
 ## What You'll Build
 
-- **Step 1** — the URL your framework already serves the spec at
-- **Step 2** — a spec that is a good *tool surface*: names, descriptions and
+- **Step 1**: the URL your framework already serves the spec at
+- **Step 2**: a spec that is a good *tool surface*: names, descriptions and
   examples a model can act on, with a before/after
-- **Step 3** — an MCP server generated from the *running* app, with reads open,
+- **Step 3**: an MCP server generated from the *running* app, with reads open,
   writes gated, and the admin, deprecated and health endpoints kept out
-- **Step 4** — your app's authentication mapped onto the right auth mode
-- **Step 5** — a real agent using it over MCP stdio, then Claude Desktop, Claude
+- **Step 4**: your app's authentication mapped onto the right auth mode
+- **Step 5**: a real agent using it over MCP stdio, then Claude Desktop, Claude
   Code and Cursor
-- **Step 6** — a write denied fail-closed, then executed once a human approves
-- **Step 7** — the server shipped next to your app: CI guard, `promptise serve`,
+- **Step 6**: a write denied fail-closed, then executed once a human approves
+- **Step 7**: the server shipped next to your app: CI guard, `promptise serve`,
   a Dockerfile, the environment variables
-- **Step 8** — "works with Claude" as a feature of your product, with a
+- **Step 8**: "works with Claude" as a feature of your product, with a
   readiness score as the quality bar
 
 ## Concepts
@@ -48,7 +48,7 @@ hand and nothing to keep in sync: `mcpcast` fetches the document from the
 running app.
 
 **The spec's words are the model's only eyes.** An agent never reads your
-code. It sees a tool *name*, a tool *description* and parameter descriptions —
+code. It sees a tool *name*, a tool *description* and parameter descriptions,
 which are your `operation_id`, your `summary` plus docstring, and your
 `Field(description=...)`. A route without them becomes a tool called
 `search_books_search_post` described as *"Search"*, and that is what the model
@@ -57,12 +57,12 @@ has to choose between. Step 2 is the highest-value twenty minutes on this page.
 **Exposure is a policy, not a side effect.** Every operation is risk-classified
 by fixed rules (`read`, `write`, `destructive`, `financial`). The safety profile
 decides which classes become tools at all, and everything that changes data is
-`requires_approval=True` — enforced by the generated server's middleware for
+`requires_approval=True`: enforced by the generated server's middleware for
 *every* MCP client, not just polite ones. Your `DELETE` never reaches an agent
 unless you opt in, and then never runs without a human.
 
 **Your app's auth maps onto one of four modes.** A personal bearer token, a
-token per user forwarded over HTTP, or a key per customer — each is one
+token per user forwarded over HTTP, or a key per customer: each is one
 `--auth` flag, and the generated server carries the credential so the model
 never sees it.
 
@@ -75,8 +75,8 @@ on every commit.
 
 ## The app
 
-The runnable example at `examples/mcp/mcpcast_fastapi_app/` is a Bookshelf API
-— a deliberately ordinary FastAPI service with the shapes every real app has:
+The runnable example at `examples/mcp/mcpcast_fastapi_app/` is a Bookshelf API:
+a deliberately ordinary FastAPI service with the shapes every real app has:
 
 | Route | `operation_id` | What it is |
 |---|---|---|
@@ -93,11 +93,11 @@ The runnable example at `examples/mcp/mcpcast_fastapi_app/` is a Bookshelf API
 Everything under `/books` and `/admin` needs `Authorization: Bearer demo-token`,
 checked by a FastAPI dependency. The store is in memory. `run.py` starts the app,
 generates the server, drives it with a real agent and exercises the approval
-gate — the [whole driver](#the-whole-example) is at the end of this page.
+gate: the [whole driver](#the-whole-example) is at the end of this page.
 
 ---
 
-## Step 1 — Get your spec URL
+## Step 1: Get your spec URL
 
 Start your app and open the OpenAPI document in a browser. You should see a
 JSON (or YAML) document with `"openapi": "3.x.x"` and a `paths` object. Where it
@@ -106,11 +106,11 @@ lives depends on the framework:
 | Framework | Where the spec is | Notes |
 |---|---|---|
 | **FastAPI** | `/openapi.json` | `FastAPI(openapi_url=...)` moves it; `None` disables it. Behind a proxy with `root_path` set, the document gains a relative `servers` entry |
-| **Django Ninja** | `/api/openapi.json` | `NinjaAPI(openapi_url="/openapi.json")` by default, relative to where you mounted `api.urls` — `/api/` in the usual `path("api/", api.urls)` |
-| **Django REST Framework + drf-spectacular** | `/api/schema/` | if you routed `SpectacularAPIView` there, as the drf-spectacular quickstart does; YAML by default, `?format=json` for JSON — `mcpcast` reads both. Offline: `python manage.py spectacular --file schema.yml` |
-| **Flask + flask-smorest** | `<OPENAPI_URL_PREFIX>/openapi.json` | only served when `OPENAPI_URL_PREFIX` is set — with `"/"` the spec is at `/openapi.json` |
+| **Django Ninja** | `/api/openapi.json` | `NinjaAPI(openapi_url="/openapi.json")` by default, relative to where you mounted `api.urls`: `/api/` in the usual `path("api/", api.urls)` |
+| **Django REST Framework + drf-spectacular** | `/api/schema/` | if you routed `SpectacularAPIView` there, as the drf-spectacular quickstart does; YAML by default, `?format=json` for JSON: `mcpcast` reads both. Offline: `python manage.py spectacular --file schema.yml` |
+| **Flask + flask-smorest** | `<OPENAPI_URL_PREFIX>/openapi.json` | only served when `OPENAPI_URL_PREFIX` is set: with `"/"` the spec is at `/openapi.json` |
 | **Litestar** | `/schema/openapi.json` | `OpenAPIConfig(path=...)` moves the whole `/schema` group |
-| **Starlette, aiohttp, plain WSGI** | — | no full OpenAPI generator built in (Starlette's `SchemaGenerator` is docstring-only). Write the document by hand, or skip the spec and build the tools directly with the [Server SDK](../mcp/server/building-servers.md) |
+| **Starlette, aiohttp, plain WSGI** | - | no full OpenAPI generator built in (Starlette's `SchemaGenerator` is docstring-only). Write the document by hand, or skip the spec and build the tools directly with the [Server SDK](../mcp/server/building-servers.md) |
 
 These are the defaults as of the versions current when this page was written;
 your project may have moved them, so confirm by opening the URL.
@@ -130,14 +130,14 @@ curl -s http://127.0.0.1:8011/openapi.json | head -c 160
 
 !!! note "The spec URL is also the API URL"
     FastAPI emits no `servers` block. When `mcpcast` fetches the document over
-    HTTP it resolves the API base against the URL it fetched from — the app's
-    own origin — so nothing else is needed. The same resolution handles a
+    HTTP it resolves the API base against the URL it fetched from (the app's
+    own origin) so nothing else is needed. The same resolution handles a
     *relative* `servers` entry (FastAPI with `root_path`, DRF's generators).
     Working from a saved file instead, pass `--base-url https://api.yourcompany.com`.
 
 ---
 
-## Step 2 — Make the spec good enough to be a tool surface
+## Step 2: Make the spec good enough to be a tool surface
 
 This is where the quality of the result is decided, and it happens in *your*
 code. The mapping is exact:
@@ -145,12 +145,12 @@ code. The mapping is exact:
 | In your app | In the spec | What the agent sees |
 |---|---|---|
 | `operation_id="search_books"` | `operationId` | the **tool name** |
-| `summary="…"` + the docstring | `summary`, `description` | the **tool description** — the only thing the model reads when choosing |
+| `summary="…"` + the docstring | `summary`, `description` | the **tool description**: the only thing the model reads when choosing |
 | `Field(description=…)`, `Query(description=…)` | parameter `description` | each **parameter's description** |
 | `Field(examples=[…])` | `examples` | the worked **example** in the description |
 | `tags=[…]` | `tags` | tool tags, kept in the plan and on the generated `@server.tool(tags=…)` |
 | `deprecated=True` | `deprecated` | always dropped, with the reason `deprecated in spec` |
-| `include_in_schema=False` | absent | never seen — the right answer for internal endpoints |
+| `include_in_schema=False` | absent | never seen: the right answer for internal endpoints |
 
 **Before.** A route as most of us write it on day one:
 
@@ -176,6 +176,8 @@ parameters. Exactly what the generated tools module registers:
     read_only_hint=True,
     open_world_hint=True,
 )
+async def search_books_search_post(ctx: RequestContext, q: str, limit: int | None = None) -> Any:
+    ...
 ```
 
 A model choosing between `search_books_search_post`, `get_books_book_id_get`
@@ -226,7 +228,7 @@ The checklist, in the order it pays off:
    most of what the model has to go on. Use verbs in your product's language:
    `search_books`, not `search`, not `books_post`.
 2. **A `summary` and a docstring** that say what the operation does *and when
-   to use it* — "Full-text search … use `get_book` when you already have an
+   to use it*: "Full-text search … use `get_book` when you already have an
    id". Write them for a model that cannot ask follow-up questions.
 3. **`Field(description=…)` on every request-model field** and
    `Query(description=…)` on every query parameter. A parameter called `q` with
@@ -235,8 +237,8 @@ The checklist, in the order it pays off:
    example from them; without them the example is `{"q": "string"}`.
 5. **Response models** (`-> list[Book]`). They are how the agent knows what
    comes back, and how the readiness evaluation mocks writes safely.
-6. **`deprecated=True`** on routes you are retiring — they are dropped
-   automatically — and **`include_in_schema=False`** on anything that was
+6. **`deprecated=True`** on routes you are retiring: they are dropped
+   automatically, and **`include_in_schema=False`** on anything that was
    never for API consumers.
 
 !!! warning "Set `operation_id` before anything else"
@@ -253,7 +255,7 @@ docstring's first line as the summary and `@blp.doc(operationId=…)` for the id
 
 ---
 
-## Step 3 — Generate the server from the running app
+## Step 3: Generate the server from the running app
 
 Point `mcpcast` at the URL. `--profile standard` opens reads and gated writes,
 `--auth env-token` is the mode for a personal server (Step 4 explains why),
@@ -301,7 +303,7 @@ Read that against your own endpoints:
   the generated server, so it holds for Claude Desktop, Cursor and a script
   alike.
 - **`delete_book` is not there.** `DELETE` is `destructive`, and `standard`
-  refuses that class. It appears — still gated — only under `--profile full`.
+  refuses that class. It appears (still gated) only under `--profile full`.
 - **`reset_catalogue` is not there either**, twice over: the verb `reset`
   makes it destructive, and a path segment `admin` escalates whatever class an
   operation has. An admin-only `GET` under `standard` would still be generated
@@ -312,7 +314,7 @@ Read that against your own endpoints:
   that needs a liveness probe. Deterministic generation keeps every read.
   Three fixes, pick one: `include_in_schema=False` in the app (best if no API
   consumer needs it in the docs either), move it to `dropped` in the plan
-  (below), or let curation decide — it drops health checks on its own.
+  (below), or let curation decide: it drops health checks on its own.
 
 The plan file is the artifact. In `bookshelf-mcp/mcpcast.plan.yaml` the fix is
 moving one entry:
@@ -337,10 +339,10 @@ five tools and four drops.
 !!! note "With curation on"
     Drop `--no-curate` and a model designs the surface (it needs
     `OPENAI_API_KEY`; `--model` picks another provider). On this app one run
-    produced two tools: `find_books` (three routes: by id, search, list —
-    dispatched by which parameters you pass) and `save_book` (create + update),
+    produced two tools: `find_books` (three routes: by id, search, list
+(dispatched by which parameters you pass) and `save_book` (create + update),
     with `health_check`, the deprecated route and `reset_catalogue` dropped
-    with written reasons. It also marked `notes` on `save_book` as hidden — a
+    with written reasons. It also marked `notes` on `save_book` as hidden) a
     hidden parameter is never shown to the agent, and that is the one field
     `update_book` mostly exists for. Curation is a strong first draft that you
     review, which is what `--review` is for; every proposal is
@@ -350,16 +352,16 @@ five tools and four drops.
 
 ---
 
-## Step 4 — Map your app's auth to an auth mode
+## Step 4: Map your app's auth to an auth mode
 
 The generated server calls your API with a credential. Which one, and where it
-comes from, is the `--auth` mode — pick it from how your app authenticates
+comes from, is the `--auth` mode: pick it from how your app authenticates
 today:
 
 | Your app today | Who will use the MCP server | `--auth` | What the server does |
 |---|---|---|---|
 | one bearer token / API key per developer or per team | you, in Claude Desktop, Claude Code, Cursor (stdio) | `env-token` | sends `MCPCAST_UPSTREAM_TOKEN` as `Authorization` on every call |
-| a token per user (JWT, OAuth access token) | many users, over HTTP, each as themselves | `passthrough` (default) | forwards the caller's `Authorization` header unchanged — your API's own permissions still apply |
+| a token per user (JWT, OAuth access token) | many users, over HTTP, each as themselves | `passthrough` (default) | forwards the caller's `Authorization` header unchanged: your API's own permissions still apply |
 | a key per customer / tenant | your customers, on a server you host | `api-key` | clients present `x-api-key`; each key names a tenant whose upstream credential lives on the server, never on the client |
 | nothing (a local sandbox) | you, locally | `none` | no credentials; the server refuses to bind to anything but loopback |
 
@@ -381,11 +383,11 @@ configuration with the credential in the client's *own* environment block:
 
 and it says why it is there:
 
-> The credential goes in the client's own config below — a desktop client
+> The credential goes in the client's own config below: a desktop client
 > launched from the GUI does not inherit your shell, so `export
 > MCPCAST_UPSTREAM_TOKEN=…` in a terminal will not reach it.
 
-The value is the whole header — `Bearer demo-token`, scheme included. Get it
+The value is the whole header: `Bearer demo-token`, scheme included. Get it
 wrong and the failure is specific: without the variable the tool returns
 `UPSTREAM_AUTH_MISSING`; with the wrong token your API answers and the tool
 relays it as `UPSTREAM_ERROR … HTTP 401` (both verbatim in
@@ -393,17 +395,17 @@ relays it as `UPSTREAM_ERROR … HTTP 401` (both verbatim in
 
 For the other two shapes: `passthrough` is a shared HTTP deployment
 (`promptise serve server:server -t http`) where every client sends its own
-`Authorization` header — see [Auth & Security](../mcp/server/auth-security.md);
-`api-key` adds per-tenant credentials and tenant-scoped four-eyes approval — see
+`Authorization` header (see [Auth & Security](../mcp/server/auth-security.md);
+`api-key` adds per-tenant credentials and tenant-scoped four-eyes approval) see
 [Multi-Tenancy](../mcp/server/multi-tenancy.md) and the
 [storefront lab](lab-mcpcast-storefront.md), which runs it end to end.
 
 ---
 
-## Step 5 — Try it with a real agent
+## Step 5: Try it with a real agent
 
 `run.py` connects `build_agent("openai:gpt-5-mini")` to the generated server
-over the real MCP stdio transport — the same way Claude Desktop launches it —
+over the real MCP stdio transport (the same way Claude Desktop launches it)
 with the token in the server's environment, and asks a question the live app
 has to answer:
 
@@ -437,7 +439,7 @@ The oldest is A Wizard of Earthsea (1968).
 ```
 
 One tool call, the right one, with the `author` filter the description
-advertised — because Step 2 gave the model something to read.
+advertised, because Step 2 gave the model something to read.
 
 The port, the model's wording and the exact arguments it picks (a `limit`
 of 10 or 20, say) vary between runs; the tool table, the dropped list and
@@ -499,15 +501,15 @@ overrides it at runtime.
 
 ---
 
-## Step 6 — Writes and approval
+## Step 6: Writes and approval
 
-Reads are half the value. The other half — *"add a note to that book"* — is
+Reads are half the value. The other half (*"add a note to that book"*) is
 where a raw API handed to a model becomes a headline. The generated server gates
 it, and the gate is not advisory.
 
 **Over stdio, with no human to ask.** `run.py` asks the same agent for a write.
 The Promptise MCP client does not implement elicitation, so the server has
-nobody to put the question to — and denies:
+nobody to put the question to, and denies:
 
 ```text
 4. Writes: denied fail-closed over stdio, executed once a human approves
@@ -531,7 +533,7 @@ of retrying or inventing a result.
 its arguments, and runs only if you accept. `run.py` reproduces that
 in-process: `build_server()` in the
 generated module takes an `approval_handler`, and `TestClient` runs the full
-pipeline — validation, middleware, gate, handler — without a port:
+pipeline (validation, middleware, gate, handler) without a port:
 
 ```python
 def reviewer(request: ApprovalRequest) -> bool:
@@ -553,13 +555,13 @@ client = TestClient(import_generated().build_server(approval_handler=reviewer))
 The reviewer sees exactly what will run, the `PATCH` hits the live app once
 approved, and the follow-up read proves it. A timeout denies; a handler crash
 denies; nothing is ever silently allowed. Elicitation is "confirm your own
-action"; for an independent reviewer — someone *other* than the person driving
-the agent — use `--auth api-key` with `--approval pending`, covered in
+action"; for an independent reviewer (someone *other* than the person driving
+the agent) use `--auth api-key` with `--approval pending`, covered in
 [Approval Gates](../mcp/server/approval-gates.md).
 
 ---
 
-## Step 7 — Ship it next to your app
+## Step 7: Ship it next to your app
 
 **Keep the project in the repository**, beside the code it exposes:
 
@@ -580,7 +582,7 @@ your-service/
 
 **Guard it in CI.** Your API will change; the tool surface should fail loudly
 when it does, not drift. The pipeline is a Python API, and `app.openapi()` is
-the spec — no server needed:
+the spec: no server needed:
 
 ```python
 """CI guard: the shipped MCP tool surface matches the app. Offline, deterministic, fast."""
@@ -635,7 +637,7 @@ in the general guide adds a model-scored floor on top.
 
 **Run it.** The launcher exposes `server`, so the standard runner works from
 inside the project directory, with the dashboard and hot reload from
-[Deployment](../mcp/server/deployment.md) — or install the project and run it
+[Deployment](../mcp/server/deployment.md), or install the project and run it
 as a command:
 
 ```bash
@@ -652,7 +654,7 @@ INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
     Tools       5 registered
 ```
 
-**Containerise it.** The project ships with a `Dockerfile` (written once —
+**Containerise it.** The project ships with a `Dockerfile` (written once:
 edit it freely): a fully-qualified base image, a non-root user, no baked-in
 configuration. The server depends only on `promptise` and `httpx` and talks
 to your API over HTTP, so it can run in the same image as your app or in its
@@ -686,7 +688,7 @@ CMD ["bookshelf-mcp"]
 docker build -t bookshelf-mcp . && docker run -i --env-file .env bookshelf-mcp
 ```
 
-This is an `env-token` project — one credential, no caller authentication —
+This is an `env-token` project (one credential, no caller authentication)
 so the image serves stdio and the server refuses a non-loopback bind unless
 you pass `--public` behind an authenticating gateway. Regenerate with
 `--auth api-key` for a shared HTTP deployment that authenticates its callers.
@@ -695,13 +697,13 @@ you pass `--public` behind an authenticating gateway. Regenerate with
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `MCPCAST_BASE_URL` | Where your API is — staging vs production, or the port the app got this time. One clean absolute URL: a query string or fragment, `user:password@` or whitespace is refused at start-up | `api.base_url` from the plan |
-| `MCPCAST_UPSTREAM_TOKEN` | `env-token`: the full `Authorization` value sent upstream, scheme included — or the raw key in the header / query parameter your app's security scheme names (`.env.example` says which); a `<placeholder>` left in place is refused | — |
-| `MCPCAST_CLIENT_KEYS` | `api-key`: JSON map of client key → `{client_id, tenant_id, roles}`; the server refuses to start with none, with a `<placeholder>` key or with a documentation key (`sk-acme`, `sk-reviewer`) — `.env.example` ships no working key | — |
-| `MCPCAST_UPSTREAM_TOKENS` | `api-key`: JSON map of tenant → upstream credential, read per call so rotation needs no restart | — |
-| `MCPCAST_TIMEOUT` | Total time one upstream call may take, seconds — connecting, sending, waiting and reading the body together | `30` |
+| `MCPCAST_BASE_URL` | Where your API is: staging vs production, or the port the app got this time. One clean absolute URL: a query string or fragment, `user:password@` or whitespace is refused at start-up | `api.base_url` from the plan |
+| `MCPCAST_UPSTREAM_TOKEN` | `env-token`: the full `Authorization` value sent upstream, scheme included, or the raw key in the header / query parameter your app's security scheme names (`.env.example` says which); a `<placeholder>` left in place is refused | - |
+| `MCPCAST_CLIENT_KEYS` | `api-key`: JSON map of client key → `{client_id, tenant_id, roles}`; the server refuses to start with none, with a `<placeholder>` key or with a documentation key (`sk-acme`, `sk-reviewer`): `.env.example` ships no working key | - |
+| `MCPCAST_UPSTREAM_TOKENS` | `api-key`: JSON map of tenant → upstream credential, read per call so rotation needs no restart | - |
+| `MCPCAST_TIMEOUT` | Total time one upstream call may take, seconds: connecting, sending, waiting and reading the body together | `30` |
 | `MCPCAST_APPROVAL_TIMEOUT` | How long a gated call waits for a decision before it is denied | `300` |
-| `MCPCAST_MAX_RESPONSE_BYTES`, `MCPCAST_ERROR_EXCERPT_CHARS`, `MCPCAST_ALLOW_INSECURE_HTTP`, `MCPCAST_PUBLIC`, `MCPCAST_MAX_PENDING`, `MCPCAST_MAX_PENDING_PER_TENANT`, `MCPCAST_MAX_PENDING_PER_CLIENT` | Response cap, error-excerpt length (the credential is scrubbed from the body first), plain-http opt-in (pre-set in `.env.example` when the plan's upstream is plain http), non-loopback opt-in, pending-approval capacity (server-wide, per tenant, per API key) — see the generated README's configuration table | see README |
+| `MCPCAST_MAX_RESPONSE_BYTES`, `MCPCAST_ERROR_EXCERPT_CHARS`, `MCPCAST_ALLOW_INSECURE_HTTP`, `MCPCAST_PUBLIC`, `MCPCAST_MAX_PENDING`, `MCPCAST_MAX_PENDING_PER_TENANT`, `MCPCAST_MAX_PENDING_PER_CLIENT` | Response cap, error-excerpt length (the credential is scrubbed from the body first), plain-http opt-in (pre-set in `.env.example` when the plan's upstream is plain http), non-loopback opt-in, pending-approval capacity (server-wide, per tenant, per API key): see the generated README's configuration table | see README |
 
 The `run.py` example bakes the ephemeral port it was given into the plan; for
 anything that outlives one run, regenerate against the app's stable URL or set
@@ -709,7 +711,7 @@ anything that outlives one run, regenerate against the app's stable URL or set
 
 ---
 
-## Step 8 — Make it a feature
+## Step 8: Make it a feature
 
 Once the server is in the repo, "works with Claude" is a line in your product's
 README rather than a roadmap item. The block your users need is three lines:
@@ -726,9 +728,9 @@ Reads work immediately. Anything that changes data asks you to approve it first.
 
 **Make the readiness score your quality bar.** Tool design is usually a matter
 of opinion; `--eval` makes it a measurement. A model writes realistic tasks for
-your tools, a real agent attempts them against the generated server — reads
+your tools, a real agent attempts them against the generated server (reads
 against your live API, writes against spec-derived mocks behind an
-auto-approver, so nothing real changes — and you get a grade with named fixes:
+auto-approver, so nothing real changes) and you get a grade with named fixes:
 
 ```bash
 export MCPCAST_EVAL_AUTHORIZATION='Bearer demo-token'   # so live reads are authenticated
@@ -745,19 +747,19 @@ Report: bookshelf-mcp/eval/report.md  Tasks: bookshelf-mcp/eval/tasks.yaml
 
 (Report paths shortened; the CLI prints them absolute.) `eval/report.md`
 records score 0.95, correct tool selected first 88%, parameter error rate 0%,
-and a per-task table — every task landed, and the one selection miss was
+and a per-task table: every task landed, and the one selection miss was
 `get_book` called before `update_book` on a task that said "update book id 1".
 
 Both fixes are small. The generated example only covers *required*
 parameters and `list_books` has none, so its example is one line in the plan:
 `example: {author: Ursula K. Le Guin}`. The ambiguity is one sentence in
-`update_book`'s docstring, in your code — "use `get_book` to read; this tool
+`update_book`'s docstring, in your code: "use `get_book` to read; this tool
 only changes fields". Regenerate, re-score. An **A** before a release is a bar
 a team can hold, and the score moves a little between runs, so assert a floor
 rather than a number.
 
 **When your API is big.** A nine-operation API reads fine as one tool per
-operation; a two-hundred-operation one does not. That is what curation is for — a model that
+operation; a two-hundred-operation one does not. That is what curation is for: a model that
 merges routes serving one intent, renames into your domain language, puts
 parameters on a diet and drops what no user task needs, with every proposal
 checked in code. The [recipes](../mcp/server/mcpcast-recipes.md) show it on
@@ -770,7 +772,7 @@ tag before curating.
 
 - **The spec URL for your framework**, and a spec whose names, descriptions
   and examples are written for a model
-- **An MCP server generated from the running app** — reads open, writes
+- **An MCP server generated from the running app**: reads open, writes
   `requires_approval=True`, the delete and the admin reset refused by the
   profile, the deprecated route and the health check dropped with reasons
 - **The right auth mode** for your app's authentication, with the credential
@@ -787,24 +789,24 @@ tag before curating.
 
 | Message | Cause | Fix |
 |---|---|---|
-| `could not fetch spec from http://127.0.0.1:8011/: Client error '404 Not Found'` | The URL is your app's root, not the spec | Use the path from the Step 1 table — `/openapi.json`, `/api/openapi.json`, `/api/schema/`, `/schema/openapi.json` |
-| `http://127.0.0.1:8011/docs: not valid JSON or YAML: …` | You pointed at the Swagger UI page, not the document it renders | Same fix — the JSON/YAML URL, not `/docs` or `/redoc` |
+| `could not fetch spec from http://127.0.0.1:8011/: Client error '404 Not Found'` | The URL is your app's root, not the spec | Use the path from the Step 1 table: `/openapi.json`, `/api/openapi.json`, `/api/schema/`, `/schema/openapi.json` |
+| `http://127.0.0.1:8011/docs: not valid JSON or YAML: …` | You pointed at the Swagger UI page, not the document it renders | Same fix: the JSON/YAML URL, not `/docs` or `/redoc` |
 | `spec has no 'paths' — is this an OpenAPI document?` | The URL returned JSON that is not an OpenAPI document (an endpoint's payload, an error body) | Open the URL in a browser and check for `"openapi"` and `"paths"` |
 | `base_url must start with http:// or https:// (got '/api'); the spec declares a relative server URL '/api'; pass --base-url https://<api-host>/api` | A spec read from a *file* with a relative `servers` entry (FastAPI `root_path`, DRF generators) | Fetch it over HTTP so it resolves against the spec URL, or pass `--base-url` |
-| Tools named `search_books_search_post`, `get_books_book_id_get` | No `operation_id` on the routes | Step 2 — set them in the app; renaming in the plan is undone by the next regeneration from the spec |
+| Tools named `search_books_search_post`, `get_books_book_id_get` | No `operation_id` on the routes | Step 2: set them in the app; renaming in the plan is undone by the next regeneration from the spec |
 | `UPSTREAM_AUTH_MISSING: MCPCAST_UPSTREAM_TOKEN is not set. Auth mode 'env-token' presents that value as the Authorization header on every upstream call …` | The server has no credential in *its* environment | Put it in the client's `env` block (or `-e` for `claude mcp add`); a shell `export` does not reach a GUI-launched client |
-| `UPSTREAM_AUTH_MISSING` on a `passthrough` server | The MCP client sent no `Authorization` header — stdio clients cannot | Regenerate with `--auth env-token` for a personal server, or run over HTTP with the header |
-| `UPSTREAM_ERROR: GET /books/{book_id} returned HTTP 401: {"detail":"invalid token"}` | Your app rejected the token — `MCPCAST_UPSTREAM_TOKEN` is wrong | Set the token your app accepts, scheme included: `Bearer demo-token` |
+| `UPSTREAM_AUTH_MISSING` on a `passthrough` server | The MCP client sent no `Authorization` header: stdio clients cannot | Regenerate with `--auth env-token` for a personal server, or run over HTTP with the header |
+| `UPSTREAM_ERROR: GET /books/{book_id} returned HTTP 401: {"detail":"invalid token"}` | Your app rejected the token: `MCPCAST_UPSTREAM_TOKEN` is wrong | Set the token your app accepts, scheme included: `Bearer demo-token` |
 | `UPSTREAM_ERROR: … HTTP 401: {"detail":"Not authenticated"}` | The variable holds the bare token without `Bearer ` | The value is the whole header value |
-| `UPSTREAM_UNREACHABLE: GET /books/{book_id} failed: ConnectError` | The app is not running at `api.base_url` — for the example, the port changes every run | Start the app, or set `MCPCAST_BASE_URL` |
-| `UPSTREAM_TIMEOUT: GET /books did not complete within 30s (MCPCAST_TIMEOUT)` | The app accepted the connection but did not answer in time — the whole call, headers and body, has a wall-clock deadline | Raise `MCPCAST_TIMEOUT` for slow endpoints; the error is marked retryable |
+| `UPSTREAM_UNREACHABLE: GET /books/{book_id} failed: ConnectError` | The app is not running at `api.base_url`: for the example, the port changes every run | Start the app, or set `MCPCAST_BASE_URL` |
+| `UPSTREAM_TIMEOUT: GET /books did not complete within 30s (MCPCAST_TIMEOUT)` | The app accepted the connection but did not answer in time: the whole call, headers and body, has a wall-clock deadline | Raise `MCPCAST_TIMEOUT` for slow endpoints; the error is marked retryable |
 | `APPROVAL_DENIED: Approval denied for tool 'update_book': client declined or returned an invalid elicitation response` | A gated tool was called from a client that cannot show an approval prompt | Expected. Use a client that implements elicitation, `--approval pending` with `--auth api-key`, or an `approval_handler` in tests |
 | `bookshelf-mcp already contains an mcpcast project — pass --force to overwrite it, or regenerate from bookshelf-mcp/mcpcast.plan.yaml to keep your edits` | Re-running against the *spec* would discard your plan edits | Regenerate from the plan to keep them; `--force` only if you mean to start over |
 | `auth mode 'none' refuses to bind to a non-loopback address` | `--auth none` served on `0.0.0.0` | `none` is for local demos; regenerate with a real auth mode |
 
 ## The whole example
 
-`examples/mcp/mcpcast_fastapi_app/run.py` — start the app, generate, drive with
+`examples/mcp/mcpcast_fastapi_app/run.py`: start the app, generate, drive with
 a real agent, deny and approve a write, print the shipping commands. It needs
 `fastapi`, `uvicorn` and `OPENAI_API_KEY`; the app it MCPcasts is `app.py` in
 the same directory.
@@ -815,25 +817,25 @@ the same directory.
 
 ## Next Steps
 
-- [MCPcast, end to end](../mcpcast/index.md) — how MCP works, the full real run, and the review checklist
+- [MCPcast, end to end](../mcpcast/index.md): how MCP works, the full real run, and the review checklist
 
-- **[MCPcast an Existing API](mcpcast-existing-api.md)** — the general
+- **[MCPcast an Existing API](mcpcast-existing-api.md)**: the general
   walkthrough: the `full` profile, four-eyes review, curation and hand edits,
   acting on a readiness score, the nightly CI job
-- **[MCPcast Recipes](../mcp/server/mcpcast-recipes.md)** — Stripe, GitHub,
+- **[MCPcast Recipes](../mcp/server/mcpcast-recipes.md)**: Stripe, GitHub,
   Swagger 2, and what to do when the spec fights back
-- **[MCPcast reference](../mcp/server/mcpcast.md)** — risk rules, curation
+- **[MCPcast reference](../mcp/server/mcpcast.md)**: risk rules, curation
   post-conditions, the plan schema, auth modes, readiness metrics
-- **[Approval Gates](../mcp/server/approval-gates.md)** — elicitation, pending
+- **[Approval Gates](../mcp/server/approval-gates.md)**: elicitation, pending
   stores, webhooks and custom handlers
-- **[Deployment](../mcp/server/deployment.md)** — `promptise serve`, the
+- **[Deployment](../mcp/server/deployment.md)**: `promptise serve`, the
   dashboard, transports, CORS
-- **[Building Production MCP Servers](production-mcp-servers.md)** — for the
+- **[Building Production MCP Servers](production-mcp-servers.md)**: for the
   tools your spec cannot express, hand-written and mounted alongside the
   generated ones
-- **[Examples gallery](../resources/examples.md)** — every runnable example,
+- **[Examples gallery](../resources/examples.md)**: every runnable example,
   including this one
 
 !!! tip "Learn the concept"
 
-    - [FastAPI MCP Server: Turn Your FastAPI App into MCP Tools](https://www.promptise.com/guides/view/fastapi-mcp-server) -- Turning a FastAPI app into agent tools: auth, names, descriptions and gated writes.
+    - [FastAPI MCP Server: Turn Your FastAPI App into MCP Tools](https://www.promptise.com/guides/view/fastapi-mcp-server): Turning a FastAPI app into agent tools: auth, names, descriptions and gated writes.

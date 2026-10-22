@@ -37,14 +37,6 @@ class MyHook:
         in one model turn of a ToolNode(deduplicate=True))."""
         pass
 
-    async def on_error(self, node: BaseNode, error: Exception, state: GraphState) -> None:
-        """Called when a node raises an exception."""
-        pass
-
-    async def on_graph_mutation(self, mutation: GraphMutation, state: GraphState) -> None:
-        """Called when the graph is mutated at runtime."""
-        pass
-
     async def on_observable_event(self, event: NodeEvent, state: GraphState) -> None:
         """Called for nodes with the OBSERVABLE flag after execution."""
         pass
@@ -54,11 +46,40 @@ class MyHook:
         pass
 ```
 
-Only implement the methods you need — the engine checks `hasattr()` before calling.
+Only implement the methods you need, the engine checks `hasattr()` before calling. The `Hook` protocol (`from promptise.engine import Hook`) describes them for type checking.
+
+!!! note "`on_error` and `on_graph_mutation` are not called in 1.6.0"
+    The `Hook` protocol also declares `on_error(node, error, state)` and
+    `on_graph_mutation(mutation, state)`, but the 1.6.0 engine never calls
+    them. To react to a failed node, check `result.error` in `post_node`
+    (or route with an [`on_error` edge](engine-edges.md#on_error-error-routing));
+    mutations show up in `NodeResult.graph_mutations` and
+    `ExecutionReport.graph_mutations`.
+
+When each method runs:
+
+| Method | When | Return value | If it raises |
+|--------|------|--------------|--------------|
+| `pre_node` | Before every node execution (after the node budget check, before flags) | The state to use | Logged, the run goes on |
+| `post_node` | After every node execution (not after a `CRITICAL` failure), before the next node is chosen | The result to use | Logged, the run goes on |
+| `pre_tool` | Before each tool call of a `PromptNode`, `ToolNode` or `CodeActionNode` program | The args to use | The call fails (see below) |
+| `post_tool` | After each tool call | The result text to use | The call fails |
+| `on_tool_reused` | Instead of the two above, for a reused result | ignored | Logged |
+| `on_observable_event` | After an `OBSERVABLE` node runs | ignored | **Not caught**: the run raises |
+| `on_human_required` | Before a `REQUIRES_HUMAN` node runs | ignored | **Not caught**: the run raises |
+
+A hook can end a run by setting `state.current_node = "__end__"` in `pre_node`
+or `post_node`. The node being processed still finishes (from `pre_node`, it
+still runs once), then the run ends; mid tool loop that raises
+`GraphStoppedError`. `post_node` runs before `NodeResult.duration_ms` is final
+for nodes that do not set it themselves, and before the engine adds the
+node's tokens to `state.total_tokens`.
 
 ## Usage
 
 ```python
+import logging
+
 from promptise.engine import PromptGraphEngine, LoggingHook, MetricsHook, BudgetHook
 
 engine = PromptGraphEngine(
@@ -122,16 +143,23 @@ LoggingHook(level=logging.INFO)
 |-----------|------|---------|-------------|
 | `level` | `int` | `logging.INFO` | Python logging level |
 
+Logs on the `promptise.engine.hooks` logger, so enable that logger (or its parent `promptise`) at the chosen level to see the lines.
+
 **Log output format:**
 
 ```
-▶ Node 'plan' (iter=1, type=PlanNode)
-◀ Node 'plan' → act (150ms, 340 tokens, 0 tools, 0 errors)
+▶ Node 'plan' (iter=0, type=PlanNode)
+◀ Node 'plan' → (resolve) (150ms, tokens=340)
+◀ Node 'act' → (resolve) (900ms, tokens=1210, tools=2)
 ```
+
+The arrow shows `NodeResult.next_node` when the node set one, else `(resolve)`
+(the engine picks the next node after the hooks). `tools=` and `error=` appear
+only when there are tool calls or an error.
 
 ### TimingHook
 
-Enforces per-node time budgets. If a node exceeds its budget, the hook sets an error on the result (but does NOT abort the graph — use the `CRITICAL` flag for that).
+Enforces per-node time budgets. It measures from `pre_node` to `post_node` (the node's whole execution, tool calls included). If a node took longer than its budget, the hook logs a warning and, when the result has no error yet, sets `result.error = "Time budget exceeded: 12034ms > 10000ms"`. It does not interrupt the slow node, and it does not fail the run: the error is a note that an [`on_error` edge](engine-edges.md#on_error-error-routing), `SKIP_ON_ERROR` on the next node and `MetricsHook` (when it runs after `TimingHook`) all see. For a hard stop, set timeouts on the model and tools.
 
 ```python
 TimingHook(
@@ -158,11 +186,20 @@ CycleDetectionHook(sequence_length=3, max_repeats=3)
 | `sequence_length` | `int` | `3` | Length of node sequence to check for repetition |
 | `max_repeats` | `int` | `3` | Max times a sequence can repeat before forcing end |
 
-Example: If visited nodes are `[A, B, C, A, B, C, A, B, C]`, the pattern `[A, B, C]` has repeated 3 times — the hook sets `state.current_node = "__end__"`.
+Example: If visited nodes are `[A, B, C, A, B, C, A, B, C]`, the pattern `[A, B, C]` has repeated 3 times, the hook sets `state.current_node = "__end__"`. It checks in `pre_node`, where `visited` already includes the node about to run, so that node runs once more before the run ends.
+
+!!! warning "It also ends a long single-node tool loop"
+    A tool loop re-runs the same node, so `visited` becomes
+    `[reason, reason, reason, ...]`, which is a repeating pattern of any
+    length. With the defaults, the ReAct graph's `reason` node is stopped
+    after 9 model calls, and since the model was still calling tools the run
+    raises `GraphStoppedError`. Raise `max_repeats` (and `sequence_length`)
+    above the tool loop length you expect, or rely on node budgets
+    (`max_iterations`) for single-node loops.
 
 ### MetricsHook
 
-Collects per-node execution metrics. Access collected data via `summary()` after the run.
+Collects per-node execution metrics in its `metrics` dict. Access them via `summary()` (a copy) after the run. Metrics add up across runs until you call `reset()`; with concurrent runs on one engine, they mix.
 
 ```python
 hook = MetricsHook()
@@ -284,10 +321,10 @@ class HumanApprovalHook:
 
 ### ExecutionReport
 
-Every `ainvoke()` call produces an `ExecutionReport`:
+Every run (`ainvoke()`, `astream()`, `astream_events()`) produces an `ExecutionReport`:
 
 ```python
-result = await engine.ainvoke(input)
+result = await engine.ainvoke({"messages": [{"role": "user", "content": "Summarize Q3"}]})
 report = engine.last_report
 print(report.summary())
 ```
@@ -302,11 +339,16 @@ print(report.summary())
 | `graph_mutations` | `int` | Number of runtime graph mutations |
 | `guards_passed` | `int` | Total guards passed across all nodes |
 | `guards_failed` | `int` | Total guards failed across all nodes |
-| `error` | `str \| None` | Error message if a CRITICAL node failed |
+| `error` | `str \| None` | Why the run failed or stopped: the error of the node failure the run ended on (any unrecovered failure, not only `CRITICAL`), or the iteration-limit / hook-stop message of a run stopped mid tool loop. `None` for a run that answered |
+
+`summary()` returns the report as readable text. The report is also on every
+engine exception as `exc.report`. `tool_calls` counts calls recorded as
+observations (`PromptNode`, `ToolNode`, `CodeActionNode` programs, and the
+children of a `ParallelNode`), failed and reused calls included.
 
 ### NodeResult
 
-Every node execution produces a `NodeResult` with 30+ fields for full traceability:
+Every node execution produces a `NodeResult` (27 fields, all with defaults) for full traceability:
 
 | Category | Fields |
 |----------|--------|
@@ -317,8 +359,8 @@ Every node execution produces a `NodeResult` with 30+ fields for full traceabili
 | **LLM Output** | `output` (parsed), `raw_output` (string), `next_node`, `transition_reason` |
 | **Messages** | `messages_added` (messages appended to state) |
 | **Prompt Trace** | `blocks_used`, `blocks_dropped`, `strategy_applied`, `perspective_applied` |
-| **Guards** | `guards_passed`, `guards_failed`, `guard_retries` |
+| **Guards** | `guards_passed`, `guards_failed`, `guard_retries` (not set by the built-in nodes; stays 0) |
 | **Mutations** | `graph_mutations` (list of GraphMutation) |
 | **Error** | `error`, `error_recovered` |
 
-All `NodeResult` objects are stored in `state.node_history` for full execution replay.
+All `NodeResult` objects are stored in `state.node_history` for full execution replay. `tool_calls` entries are dicts with `name`, `args`, `result`, `success` (and `reused: True` for a reused result). `error_recovered=True`, set by a hook, makes the engine treat a failed node as recovered.

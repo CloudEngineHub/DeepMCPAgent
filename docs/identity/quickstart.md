@@ -5,12 +5,12 @@ description: "Give an agent a traceable identity in five minutes with no infrast
 
 # Agent Identity Quickstart
 
-Give an agent a traceable identity in five minutes — no infrastructure
+Give an agent a traceable identity in five minutes, with no infrastructure
 required. Then, optionally, make it verifiable.
 
 ## 1. A local identity (no key, no infrastructure)
 
-Creating and inspecting an identity needs nothing — no cloud, no model API key:
+Creating and inspecting an identity needs nothing: no cloud, no model API key.
 
 ```python
 from promptise import AgentIdentity
@@ -23,7 +23,7 @@ identity = AgentIdentity(
 )
 
 identity.agent_id          # "billing-bot"
-identity.is_verifiable     # False — local identity (id only)
+identity.is_verifiable     # False: local identity (id only)
 identity.claims()          # {"agent_id": "billing-bot", "verifiable": False,
                            #  "name": "Billing Bot", "owner": "payments-team", ...}
 ```
@@ -33,7 +33,7 @@ script: [`examples/identity/local/app.py`](https://github.com/promptise-com/foun
 
 ## 2. See it on the agent's timeline (needs a model key)
 
-Attach the identity to an agent and enable observability — every tool call and
+Attach the identity to an agent and enable observability: every tool call and
 LLM turn is then tagged with `agent_id="billing-bot"`, so across a fleet you can
 answer *which agent did what*:
 
@@ -61,12 +61,12 @@ asyncio.run(main())
 ```
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project — Promptise loads it automatically, in scripts and in the CLI — or pass it in code with `Model(...)` — explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI), or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-5-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 
 ## 3. Make it verifiable
 
-When the agent calls resources that must *verify* who it is — an MCP
-server, a protected API — back the identity with a credential provider.
+When the agent calls resources that must *verify* who it is (an MCP
+server, a protected API), back the identity with a credential provider.
 The signed credential is what the agent presents; the resource validates
 it and attributes the caller.
 
@@ -113,14 +113,14 @@ authenticate and attribute the calling agent (via its JWT auth and
 from promptise.config import HTTPServerSpec
 
 agent = await build_agent(
-    model="anthropic:claude-sonnet-4-5",
+    model="openai:gpt-5-mini",
     servers={"tools": HTTPServerSpec(url="https://tools.internal/mcp")},
     identity=identity,   # presented to "tools" as its bearer token
 )
 ```
 
 To override for a specific server, set its `bearer_token` (or `api_key`)
-explicitly — an explicit per-server credential always wins, so one agent can
+explicitly: an explicit per-server credential always wins, so one agent can
 use identity-authenticated servers and API-key servers side by side. You can also present the
 credential by hand anywhere with `identity.get_credential()` /
 `identity.auth_header()`.
@@ -129,13 +129,13 @@ credential by hand anywhere with `identity.get_credential()` /
 
 When the agent calls more than one protected resource, give each server
 its own `audience`. The same identity then mints a credential scoped to
-each — no need for a second `AgentIdentity`:
+each, with no need for a second `AgentIdentity`:
 
 ```python
 from promptise.config import HTTPServerSpec
 
 agent = await build_agent(
-    model="anthropic:claude-sonnet-4-5",
+    model="openai:gpt-5-mini",
     identity=identity,
     servers={
         "billing": HTTPServerSpec(url="https://billing.internal/mcp",
@@ -151,7 +151,7 @@ SPIFFE SDK) honour the per-server audience; fixed-audience sources
 (projected-token files, OIDC file/env) use the audience the platform
 issued. See [Per-resource credentials](architecture.md#per-resource-credentials).
 
-## 6. Declarative — `.superagent` files
+## 6. Declarative: `.superagent` files
 
 You don't have to wire identity in Python. Add an `identity:` block to a
 [`.superagent` file](../core/agents/superagent-files.md#identity) and it is
@@ -161,7 +161,7 @@ applied automatically by `build_agent`, the CLI (`promptise agent`,
 ```yaml
 version: "1.0"
 agent:
-  model: "anthropic:claude-sonnet-4-5"
+  model: "openai:gpt-5-mini"
 identity:
   provider: entra                  # local|entra|aws|gcp|spiffe|oidc|auto
   agent_id: billing-bot

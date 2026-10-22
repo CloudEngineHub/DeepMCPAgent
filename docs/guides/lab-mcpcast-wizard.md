@@ -1,5 +1,5 @@
 ---
-title: Lab — Turn a Running API into an MCP Server with the Guided Setup, Then Prove It Works
+title: "Lab: Turn a Running API into an MCP Server with the Guided Setup, Then Prove It Works"
 seo_title: "Lab: API to MCP Server with the MCPcast Wizard"
 description: "Hands-on lab for the mcpcast terminal wizard: generate an MCP server from a running Helpdesk API, review the model's tools, test the approval gate, score it."
 keywords: promptise mcpcast wizard lab, MCP server from FastAPI, guided setup MCP, review generated MCP tools, agent readiness score, approval gate MCP
@@ -8,7 +8,7 @@ keywords: promptise mcpcast wizard lab, MCP server from FastAPI, guided setup MC
 # Lab: The Guided Setup
 
 You have an API. You want to know, in twenty minutes, what it takes to hand it
-to an AI assistant safely — and what the tool surface a model designs for it
+to an AI assistant safely, and what the tool surface a model designs for it
 actually looks like when you read it.
 
 This lab is that twenty minutes. A small, realistic **Helpdesk API** stands in
@@ -25,7 +25,7 @@ Everything is in
 pip install promptise fastapi              # fastapi is the sample app's own dependency
 ```
 
-`OPENAI_API_KEY` in a `.env` file in the directory you run from, or exported —
+`OPENAI_API_KEY` in a `.env` file in the directory you run from, or exported:
 [Configuration & Secrets](../getting-started/configuration.md) explains where
 keys live. The wizard's step 2 shows whether it was found; without it, choose
 *Offline* in step 2 and the lab stops before the agent steps with the reason.
@@ -47,7 +47,7 @@ Twelve operations, chosen so every risk class shows up:
 
 Nothing in the file knows about MCP. Its `summary=`, docstrings, `operation_id=`
 and `Field(description=...)` are what become tool descriptions, tool names and
-parameter descriptions — which is why the review step matters.
+parameter descriptions, which is why the review step matters.
 
 ## Run it
 
@@ -73,51 +73,51 @@ Press Enter and the wizard opens in the same terminal.
 7 Write      Finish (Enter). The lab continues from here.
 ```
 
-## Step 1 – 5 — the choices
+## Step 1 – 5: the choices
 
 Three things to notice on the way through:
 
 - **Step 1** lists what it found on the usual local ports. If the
   [end-to-end lab's](lab-mcpcast-storefront.md) bookshelf app or your own
-  service is also running, it is listed too — `↓` to the Helpdesk entry.
+  service is also running, it is listed too: `↓` to the Helpdesk entry.
 - **Step 3** is not a generic menu. The wizard ran the deterministic planner
   over *this* spec for each profile: `read-only — 5 tools · reads only`,
   `standard — 8 tools · 3 require human approval`, `full — 11 tools · 6 require
   human approval`. Pick `standard`.
 - **Step 5** shows the folder pre-filled by the lab (`generated/helpdesk-mcp`)
   and, if you switch the evaluation on, whether `MCPCAST_EVAL_AUTHORIZATION` is
-  set — the lab sets it, so the evaluation's live reads reach the app
+  set: the lab sets it, so the evaluation's live reads reach the app
   authenticated.
 
-## Step 6 — read what the model decided
+## Step 6: read what the model decided
 
 Curation runs (a real `openai:gpt-5-mini` call, about half a minute). Then the
 review workspace. In the run this page was written from, the model:
 
 - merged `get_ticket`, `search_tickets` and `list_tickets` into one
-  `find_ticket` — a good call: one tool, three routes, the most specific first;
+  `find_ticket`: a good call: one tool, three routes, the most specific first;
 - wrote *"use create_ticket, update_ticket, delete_ticket or refund_ticket
-  instead"* into three descriptions — but `delete_ticket` and `refund_ticket`
+  instead"* into three descriptions, but `delete_ticket` and `refund_ticket`
   were **excluded by the `standard` profile**. An agent that reads this will look
   for tools that do not exist;
 - hid `priority` on `create_ticket` and `note` on `update_ticket`, sending fixed
-  defaults instead — so no user can set them through the agent.
+  defaults instead, so no user can set them through the agent.
 
-The review summary line shows the first of these as ⚠ warnings — they are
-computed from the plan, not guessed — and the checklist on the right is the
+The review summary line shows the first of these as ⚠ warnings (they are
+computed from the plan, not guessed) and the checklist on the right is the
 rest of the job. Press *Write project*.
 
 !!! danger "Never trust it blindly"
     Every one of the three findings above is a one-line fix in
-    `mcpcast.plan.yaml` — after a human read it. The wizard can tell you that a
+    `mcpcast.plan.yaml`: after a human read it. The wizard can tell you that a
     description names a tool that is not in the plan; it cannot tell you
     whether your users need to set `priority`. Read every row.
 
-## After the wizard — what the lab proves
+## After the wizard: what the lab proves
 
 ### 3. What was written, as a reviewer reads it
 
-Eighteen files — a project, not a script: `mcpcast.plan.yaml`, the
+Eighteen files: a project, not a script: `mcpcast.plan.yaml`, the
 `helpdesk_mcp/` package (config, HTTP client, approval gate, `build_server()`,
 `tools/tickets.py`, `tools/customers.py`), the `server.py` launcher, `tests/`,
 `README.md`, `pyproject.toml`, `Dockerfile`, `.env.example`, `.gitignore`.
@@ -153,7 +153,7 @@ is a place to edit.
 ### 4. A real agent drives it
 
 `build_agent("openai:gpt-5-mini")` launches `generated/helpdesk-mcp/server.py`
-over MCP stdio — the transport Claude Desktop uses — with the upstream token
+over MCP stdio (the transport Claude Desktop uses) with the upstream token
 in the server's environment, and asks a question the live app answers:
 
 ```text
@@ -180,7 +180,7 @@ in the server's environment, and asks a question the live app answers:
 ```
 
 Over stdio there is no human to ask, so the server-side gate denies the write
-fail-closed — the app's own state confirms nothing changed. The refund is not
+fail-closed: the app's own state confirms nothing changed. The refund is not
 denied; it does not exist: `standard` never generated it. Run the wizard again
 with `full` to see `refund_ticket` generated *and* gated.
 
@@ -198,8 +198,8 @@ regenerate, re-measure.
 
 ## What you've built
 
-- A reviewed, editable MCP server for an API you started ten minutes ago —
-  `mcpcast.plan.yaml` is yours, `server.py` is derived from it.
+- A reviewed, editable MCP server for an API you started ten minutes ago:
+`mcpcast.plan.yaml` is yours, `server.py` is derived from it.
 - Evidence, not hope: a real agent answered from the live app; a write was
   denied by the server, not by a prompt; a refund tool did not exist because
   the profile said so; the evaluation named the exact examples to fix.
@@ -212,13 +212,13 @@ promptise mcpcast http://127.0.0.1:8001/openapi.json --profile standard --auth e
 ## Next steps
 
 - Fix the six warnings in `generated/helpdesk-mcp/mcpcast.plan.yaml`, then
-  re-measure with the app running and the API's token for the live reads —
-  `MCPCAST_EVAL_AUTHORIZATION='Bearer demo-token' promptise mcpcast generated/helpdesk-mcp/mcpcast.plan.yaml --eval`.
+  re-measure with the app running and the API's token for the live reads:
+`MCPCAST_EVAL_AUTHORIZATION='Bearer demo-token' promptise mcpcast generated/helpdesk-mcp/mcpcast.plan.yaml --eval`.
   `--eval` writes a fresh task set from the fixed plan and a new grade; without
   the variable every read task fails on the missing credential, not the tools.
 - Add it to Claude Code with the app running:
   `claude mcp add helpdesk -e MCPCAST_UPSTREAM_TOKEN='Bearer demo-token' -- python generated/helpdesk-mcp/server.py`
 - Point the wizard at your own API: `promptise mcpcast`, with it running.
-- [The guided setup](../mcpcast/guided-setup.md) — every step, with screenshots.
-- [MCPcast, end to end](../mcpcast/index.md) — how MCP works, the full review
+- [The guided setup](../mcpcast/guided-setup.md): every step, with screenshots.
+- [MCPcast, end to end](../mcpcast/index.md): how MCP works, the full review
   checklist, shipping.

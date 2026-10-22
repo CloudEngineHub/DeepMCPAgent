@@ -20,3 +20,11 @@ Cross-agent communication utilities for Promptise Foundry. Exposes other in-proc
     options:
       show_source: false
       heading_level: 3
+
+## DelegationError
+
+::: promptise.cross_agent.DelegationError
+    options:
+      show_source: false
+      heading_level: 3
+

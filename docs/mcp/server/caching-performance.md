@@ -11,7 +11,7 @@ Control costs, protect downstream services, and keep your server responsive with
 
 ### The problem
 
-Your MCP server wraps an external API that charges per call. An agent asks the same question five times in a conversation — without caching, you pay five times and add five round trips of latency.
+Your MCP server wraps an external API that charges per call. An agent asks the same question five times in a conversation: without caching, you pay five times and add five round trips of latency.
 
 ### `@cached` decorator
 
@@ -47,7 +47,7 @@ async def get_weather(city: str, units: str = "metric") -> dict:
     }
 ```
 
-**How cache keys work**: The key is the server, the function, the tool's arguments and the caller (see [Who shares a cached result](#who-shares-a-cached-result)). So `get_weather("London", "metric")` and `get_weather("London", "imperial")` are separate cache entries. Parameters the framework injects — `ctx: RequestContext`, `Depends(...)` values, `BackgroundTasks` — are not part of the key.
+**How cache keys work**: The key is the server, the function, the tool's arguments and the caller (see [Who shares a cached result](#who-shares-a-cached-result)). So `get_weather("London", "metric")` and `get_weather("London", "imperial")` are separate cache entries. Parameters the framework injects (`ctx: RequestContext`, `Depends(...)` values, `BackgroundTasks`) are not part of the key.
 
 **Custom key functions**: Override how the arguments map to a key when you need control. The function receives every keyword argument the handler gets, and its key is still prefixed with the server and the scope, so it cannot widen sharing beyond `scope`:
 
@@ -212,6 +212,9 @@ async def cancel_order(order_id: str) -> dict:
 Implement the `CacheBackend` protocol for any storage (Memcached, DynamoDB, etc.):
 
 ```python
+import time
+from typing import Any
+
 from promptise.mcp.server import CacheBackend
 
 class DynamoCache:
@@ -261,6 +264,18 @@ server.add_middleware(RateLimitMiddleware(
 ))
 ```
 
+`RateLimitMiddleware(limiter=None, *, per_tool=False, key_func=None, rate_per_minute=60, burst=None)`:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `limiter` | `None` | Any object with a synchronous `consume(key) -> (allowed, retry_after_seconds)`; `None` builds a `TokenBucketLimiter(rate_per_minute, burst)` |
+| `per_tool` | `False` | One bucket per client **and** tool, instead of per client |
+| `key_func` | `None` | `(ctx) -> str` that picks the bucket key; overrides `per_tool` |
+| `rate_per_minute` | `60` | Rate of the default limiter |
+| `burst` | `None` | Burst of the default limiter (`None`: same as the rate) |
+
+It applies to tool calls, resource reads and prompt requests.
+
 !!! warning "Per client needs authentication first"
     Buckets are per client (and per tenant) only when `ctx.client_id` is set
     by the time the limiter runs. That takes an `AuthMiddleware` added
@@ -294,7 +309,7 @@ async def get_employee(employee_id: str) -> dict:
     return await db.get_employee(employee_id)
 ```
 
-Declared limits are enforced automatically — no middleware wiring needed. The
+Declared limits are enforced automatically: no middleware wiring needed. The
 spec is parsed at registration (`"N/sec"`, `"N/min"`, or `"N/hour"`; a typo
 raises `ValueError` immediately instead of silently never limiting), and each
 declaring tool gets its own token bucket sized to the declared count. Buckets
@@ -306,7 +321,7 @@ contract.
 
 ### `TokenBucketLimiter`
 
-The built-in rate limiter uses the token bucket algorithm — steady rate with burst capacity:
+The built-in rate limiter uses the token bucket algorithm: steady rate with burst capacity:
 
 ```python
 limiter = TokenBucketLimiter(
@@ -542,10 +557,10 @@ async def search_products(query: str, category: str = "all") -> list[dict]:
 
 ## What's Next
 
-- [Observability & Monitoring](observability.md) -- Metrics, tracing, Prometheus, structured logging
-- [Resilience Patterns](resilience-patterns.md) -- Circuit breaker, health checks, background tasks
-- [Authentication & Security](auth-security.md) -- JWT, API keys, guards
+- [Observability & Monitoring](observability.md): Metrics, tracing, Prometheus, structured logging
+- [Resilience Patterns](resilience-patterns.md): Circuit breaker, health checks, background tasks
+- [Authentication & Security](auth-security.md): JWT, API keys, guards
 
 !!! tip "Learn the concept"
 
-    - [MCP Server Caching, Timeouts and Circuit Breakers in Python](https://www.promptise.com/guides/view/mcp-server-caching-circuit-breaker) -- Caching, timeouts and limits with before and after numbers.
+    - [MCP Server Caching, Timeouts and Circuit Breakers in Python](https://www.promptise.com/guides/view/mcp-server-caching-circuit-breaker): Caching, timeouts and limits with before and after numbers.

@@ -40,15 +40,17 @@ asyncio.run(main())
 
 ## Creating a runtime
 
-```python
-AgentRuntime(
-    config=None,           # RuntimeConfig: processes to register, distributed settings
-    *,
-    event_bus=None,        # shared bus for "event" triggers
-    broker=None,           # shared broker for "message" triggers
-    event_notifier=None,   # EventNotifier shared by every process
-    hooks=None,            # HookManager whose hooks fire for every process
-)
+```python title="Signature"
+class AgentRuntime:
+    def __init__(
+        self,
+        config: RuntimeConfig | None = None,  # processes to register, distributed settings
+        *,
+        event_bus=None,        # shared bus for "event" triggers
+        broker=None,           # shared broker for "message" triggers
+        event_notifier=None,   # EventNotifier shared by every process
+        hooks=None,            # HookManager whose hooks fire for every process
+    ) -> None: ...
 ```
 
 The processes in `config.processes` are registered when the runtime is created, in `CREATED` state; nothing starts until you call `start_all()`, `start_process()` or `run_forever()`. `await AgentRuntime.from_config(config, ...)` takes the same arguments and is equivalent.
@@ -233,14 +235,14 @@ With `RuntimeConfig(distributed=DistributedConfig(enabled=True, ...))`, `start_a
 
 ## What's next
 
-- [Agent Processes](processes.md) -- what each process does on start, stop and restart
-- [Process Lifecycle](lifecycle.md) -- states, transitions and `process.*` events
-- [Configuration](configuration.md) -- `RuntimeConfig`, `ProcessConfig` and every sub-config
-- [Orchestration API](api.md) -- manage a running runtime over HTTP
-- [CLI Commands](cli.md) -- `promptise runtime start`, `status`, `stop` and `restart`
+- [Agent Processes](processes.md): what each process does on start, stop and restart
+- [Process Lifecycle](lifecycle.md): states, transitions and `process.*` events
+- [Configuration](configuration.md): `RuntimeConfig`, `ProcessConfig` and every sub-config
+- [Orchestration API](api.md): manage a running runtime over HTTP
+- [CLI Commands](cli.md): `promptise runtime start`, `status`, `stop` and `restart`
 
 !!! tip "Learn the concept"
 
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- Add and remove processes, load manifests, contain failures and shut down cleanly on SIGTERM.
-    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart) -- Restart policies, backoff and an alert when the runtime gives up.
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- What a runtime adds around an agent: budgets, restarts and crash recovery.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): Add and remove processes, load manifests, contain failures and shut down cleanly on SIGTERM.
+    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart): Restart policies, backoff and an alert when the runtime gives up.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): What a runtime adds around an agent: budgets, restarts and crash recovery.

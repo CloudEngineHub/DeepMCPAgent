@@ -392,7 +392,7 @@ config = manifest_to_process_config(manifest)          # ProcessConfig
 process = AgentProcess(name=manifest.name, config=config)
 
 warnings = validate_manifest("agents/watcher.agent")
-# ['No MCP servers configured — agent has no tools']
+# ['No MCP servers configured: agent has no tools']
 
 save_manifest(manifest, "agents/watcher-copy.agent")
 ```
@@ -443,14 +443,14 @@ See [CLI Commands](cli.md) for every option.
 
 ## What's next
 
-- [Configuration](configuration.md) -- every field of every section
-- [Agent Processes](processes.md) -- what the process does with its config
-- [Runtime Manager](runtime-manager.md) -- load many manifests into one runtime
-- [Runtime Hooks](hooks.md) -- hook events and their data
-- [CLI Commands](cli.md) -- `promptise runtime validate`, `start` and `init`
+- [Configuration](configuration.md): every field of every section
+- [Agent Processes](processes.md): what the process does with its config
+- [Runtime Manager](runtime-manager.md): load many manifests into one runtime
+- [Runtime Hooks](hooks.md): hook events and their data
+- [CLI Commands](cli.md): `promptise runtime validate`, `start` and `init`
 
 !!! tip "Learn the concept"
 
-    - [AI Agent YAML: Define and Run an Agent From a Config File](https://www.promptise.com/guides/view/ai-agent-yaml-config-file) -- Keep an agent's definition in a reviewed config file.
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- Load a directory of manifests into one runtime.
-    - [AI Agent Secrets Management: Scoped, Expiring Credentials](https://www.promptise.com/guides/view/ai-agent-secrets-management) -- Keep credentials out of config with scoped secrets.
+    - [AI Agent YAML: Define and Run an Agent From a Config File](https://www.promptise.com/guides/view/ai-agent-yaml-config-file): Keep an agent's definition in a reviewed config file.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): Load a directory of manifests into one runtime.
+    - [AI Agent Secrets Management: Scoped, Expiring Credentials](https://www.promptise.com/guides/view/ai-agent-secrets-management): Keep credentials out of config with scoped secrets.

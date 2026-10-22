@@ -8,7 +8,7 @@ description: "Stop context bloat in long tool loops: how compaction works, conte
 The single biggest reason long-running agents get slow, expensive, and *wrong*
 is **context bloat**. Every tool call appends its request and result to the
 transcript. On a deep task the model ends up re-reading a growing wall of its
-own past calls — it loses the thread, re-queries facts it already has, and pays
+own past calls, it loses the thread, re-queries facts it already has, and pays
 for thousands of redundant tokens on every turn.
 
 Promptise bounds this for you: the default agent compacts a tool loop once it
@@ -19,8 +19,8 @@ table for picking the right one.
 
 !!! info "Runnable example"
     Everything here is demonstrated end-to-end in
-    [`examples/reasoning/verify_and_managed.py`](https://github.com/promptise-com/foundry/blob/main/examples/reasoning/verify_and_managed.py)
-    — real LLM calls, just set `OPENAI_API_KEY`.
+    [`examples/reasoning/verify_and_managed.py`](https://github.com/promptise-com/foundry/blob/main/examples/reasoning/verify_and_managed.py).
+    Real LLM calls, just set `OPENAI_API_KEY`.
 
 ## The problem: transcripts grow, models drown
 
@@ -36,7 +36,7 @@ turn 12: [system, user, + 22 more messages]   ← the model re-reads ALL of this
 ```
 
 For a task that needs ~13 distinct facts, a naive loop can make **dozens** of
-tool calls — repeatedly looking up the same employee or record because the
+tool calls, repeatedly looking up the same employee or record because the
 relevant result is buried far back in the transcript. Tokens grow
 super-linearly, latency climbs, and accuracy can *drop* as the signal gets lost
 in the middle.
@@ -111,7 +111,8 @@ ledger shows the model the facts it already has, each as it was when its call
 ran, so it has no reason to fetch a fact again unless the value can change.
 
 A model that keeps repeating a call is stopped by the node's iteration limit
-(`max_iterations`; 15 on the ReAct agent's `reason` node). A run stopped that
+(`max_iterations`; 15 on the ReAct agent's `reason` node, or the run's
+`max_agent_iterations` when that is lower). A run stopped that
 way in the middle of a tool loop raises `GraphIterationLimitError` (a
 [`GraphExecutionError`](../core/engine.md#failures-reach-the-caller)); it never returns the last
 tool result as the answer.
@@ -188,14 +189,14 @@ reference.
 
 ## Two ready-made patterns
 
-You rarely need to wire a node by hand — two built-in `agent_pattern` values
+You rarely need to wire a node by hand, two built-in `agent_pattern` values
 package these levers for the common cases.
 
-### `verify` — accuracy via a one-turn self-check
+### `verify`: accuracy via a one-turn self-check
 
 A single node that must **plan, solve, and re-check its own answer** within one
 generation. You get the accuracy benefit of an explicit verification step at
-one-turn latency — no multi-call pipeline.
+one-turn latency, no multi-call pipeline.
 
 ```python
 from promptise import build_agent
@@ -216,13 +217,12 @@ result = await agent.ainvoke({"messages": [
 ```
 
 !!! note "Honest scope"
-    `verify` lifts accuracy on **weak and mainstream** models where a forced
-    self-check recovers careless errors. A frontier model that already reasons
-    internally is usually at its ceiling with a plain prompt, so `verify` there
-    is a cheap safety net, not a step change. On a capable model it is
-    *comparable to* a well-prompted single pass.
+    `verify` helps where a single pass makes careless errors that a forced
+    self-check catches. A model that already reasons carefully may gain little
+    over a plain prompt, so treat it as a cheap safety net and measure it on
+    your own questions.
 
-### `managed` — efficiency for deep tool chains
+### `managed`: efficiency for deep tool chains
 
 A single tool-using node run with `context_scope="ledger"`. Best for traversing
 a database or graph: gather many facts, then aggregate.
@@ -236,19 +236,26 @@ agent = await build_agent(
     agent_pattern="managed",
     instructions=(
         "Answer by calling tools. A ledger of facts you already gathered is "
-        "provided each turn — consult it and don't re-fetch a fact you have "
+        "provided each turn, consult it and don't re-fetch a fact you have "
         "unless you are waiting for it to change (a job's status, for example)."
     ),
-    max_agent_iterations=30,          # deep chains make many calls
+    max_agent_iterations=30,          # the run's cap on node executions
 )
 ```
 
+The `managed` node's own budget is 30 model calls, but the engine caps every
+node at 25 (`max_node_iterations`, which `build_agent` does not change), so
+under `build_agent` the tool loop stops after 25 model calls whatever
+`max_agent_iterations` says. To allow more, run
+`PromptGraph.managed(...)` with
+`PromptGraphEngine(..., max_node_iterations=40, max_iterations=40)`.
+
 !!! note "Honest scope"
-    `managed` is an **efficiency primitive**. On long chains it cuts redundant
-    tool calls and bounds token growth at **equal accuracy** — a real cost and
-    latency win. It does **not** by itself make the model's final answer more
-    correct; if your bottleneck is the model mis-aggregating gathered facts,
-    that is a model-capability limit, not a context one.
+    `managed` is an **efficiency primitive**. On long chains it bounds token
+    growth; whether it also cuts tool calls depends on the model (see
+    [the note on `managed`](../core/engine-prebuilts.md#managed-context-managed-tool-loop)).
+    It does **not** by itself make the model's final answer more correct; for
+    computing over many facts, see [code-action](code-action.md).
 
 ## Which one should I use?
 
@@ -263,16 +270,17 @@ agent = await build_agent(
 
 ## Composing it yourself
 
-`context_scope` is a node-level primitive — drop it onto any node in a custom
+`context_scope` is a node-level primitive, drop it onto any node in a custom
 graph, mixing modes per stage:
 
 ```python
 from promptise.engine import PromptGraph, PromptNode
 
 graph = PromptGraph("research", mode="static")
-graph.add_node(PromptNode("gather", inject_tools=True, context_scope="ledger"))
+graph.add_node(PromptNode("gather", inject_tools=True, context_scope="ledger",
+                          instructions="Gather the facts with the tools, then summarize them."))
 graph.add_node(PromptNode("write", context_scope="scoped",
-                          inherit_context_from="gather"))
+                          inherit_context_from="gather", default_next="__end__"))
 graph.sequential("gather", "write")
 graph.set_entry("gather")
 
@@ -281,7 +289,7 @@ agent = await build_agent(servers=my_servers, model="openai:gpt-5-mini",
 ```
 
 Here `gather` runs a bounded tool loop (ledger), then `write` sees only the
-distilled output it inherits plus the task (scoped) — neither stage drowns in
+distilled output it inherits plus the task (scoped), neither stage drowns in
 the other's raw messages.
 
 ## Key takeaways
@@ -298,15 +306,15 @@ the other's raw messages.
   Answering repeats from the earlier result is an opt-in for lookups whose
   result cannot change (`reuse_results`), and it is never silent.
 - **`verify` is the accuracy lever; `managed` is the efficiency lever.** Be
-  honest about which problem you have — they solve different ones.
+  honest about which problem you have, they solve different ones.
 
 ## See also
 
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — all 10 built-in patterns
-- [Code-Action](code-action.md) — the most radical context move: collapse a long tool loop into one program
-- [Nodes reference: Context scope](../core/engine-nodes.md#context-scope) — the full mechanism
-- [Prebuilt Patterns](../core/engine-prebuilts.md) — `verify` and `managed` factories
-- [`examples/reasoning/verify_and_managed.py`](https://github.com/promptise-com/foundry/blob/main/examples/reasoning/verify_and_managed.py) — runnable demo
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md): all 9 built-in patterns
+- [Code-Action](code-action.md): the most radical context move: collapse a long tool loop into one program
+- [Nodes reference: Context scope](../core/engine-nodes.md#context-scope): the full mechanism
+- [Prebuilt Patterns](../core/engine-prebuilts.md): `verify` and `managed` factories
+- [`examples/reasoning/verify_and_managed.py`](https://github.com/promptise-com/foundry/blob/main/examples/reasoning/verify_and_managed.py): runnable demo
 
 !!! tip "Learn the concept"
 

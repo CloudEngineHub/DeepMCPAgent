@@ -5,7 +5,7 @@ description: "Decide which agent tool calls need a human with six ordered layers
 
 # AutoApprovalClassifier
 
-An explicit decision hierarchy that sits in front of your approval handler. Instead of sending every tool call to a human, the classifier evaluates six ordered layers — deny rules, ask rules, allow rules, read-only detection, an optional LLM classifier, and finally the fallback handler — and returns the first definitive answer.
+An explicit decision hierarchy that sits in front of your approval handler. Instead of sending every tool call to a human, the classifier evaluates six ordered layers: deny rules, ask rules, allow rules, read-only detection, an optional LLM classifier, and finally the fallback handler, and returns the first definitive answer.
 
 ```python
 from promptise import (
@@ -102,7 +102,7 @@ ApprovalRule(tool="delete_*", argument_contains='"force": true')   # matches
 ApprovalRule(tool="delete_*", argument_contains="'force': True")   # does not
 ```
 
-Matching is case-sensitive, and JSON escapes quotes and backslashes (`C:\temp` is `C:\\temp` in the JSON). For anything beyond a plain substring — case-insensitive email domains, numeric limits — use a `predicate`.
+Matching is case-sensitive, and JSON escapes quotes and backslashes (`C:\temp` is `C:\\temp` in the JSON). For anything beyond a plain substring (case-insensitive email domains, numeric limits) use a `predicate`.
 
 ### Rules see the real arguments
 
@@ -114,7 +114,7 @@ ApprovalRule(tool="send_*", argument_contains="@competitor.example", reason="nev
 
 Inside a predicate or the LLM classifier, `request.arguments` holds the real arguments. The fallback handler receives the reviewer's copy: `arguments` redacted as configured, and no `raw_arguments`. Rules also still work with `ApprovalPolicy(include_arguments=False)`, which hides the arguments from reviewers only.
 
-`raw_arguments` is never part of `to_dict()` (webhook payloads), the webhook signature or `repr()`. Your LLM classifier gets the real arguments — the same values the agent's model produced — so redact them yourself if it sends them somewhere the agent's model doesn't.
+`raw_arguments` is never part of `to_dict()` (webhook payloads), the webhook signature or `repr()`. Your LLM classifier gets the real arguments (the same values the agent's model produced) so redact them yourself if it sends them somewhere the agent's model doesn't.
 
 ---
 
@@ -122,13 +122,15 @@ Inside a predicate or the LLM classifier, `request.arguments` holds the real arg
 
 Enabled by default. A tool is auto-approved as read-only when:
 
-1. no word of its name is a destructive verb — `fetch_and_purge_cache`, `show_and_delete` and `getAndResetCounter` are never read-only (see `DEFAULT_DESTRUCTIVE_VERBS`: `delete`, `purge`, `drop`, `update`, `send`, `reset`, …), **and**
-2. its MCP annotations don't say otherwise — `readOnlyHint=False` or `destructiveHint=True` rule it out, **and**
+1. no word of its name is a destructive verb: `fetch_and_purge_cache`, `show_and_delete` and `getAndResetCounter` are never read-only (see `DEFAULT_DESTRUCTIVE_VERBS`: `delete`, `purge`, `drop`, `update`, `send`, `reset`, …), **and**
+2. its MCP annotations don't say otherwise: `readOnlyHint=False` or `destructiveHint=True` rule it out, **and**
 3. either it is annotated `readOnlyHint=True`, or (without a `readOnlyHint`) its name starts with one of the read-only prefixes:
 
 `get_`, `list_`, `read_`, `search_`, `find_`, `fetch_`, `describe_`, `show_`, `view_`, `lookup_`, `query_`, `head_`, `stat_`, `exists_`, `count_`
 
-Annotations come from the MCP server — `@server.tool(read_only_hint=True)` on a Promptise server, or any server that sets `ToolAnnotations` — and reach the classifier as `ApprovalRequest.tool_annotations`. Promptise's MCP client keeps them on each tool's `metadata` (as `langchain-mcp-adapters` does), and the gate copies them from there, so a LangChain tool you build yourself can declare `metadata={"readOnlyHint": True}`. Annotations are hints from the server, not guarantees, so a destructive verb in the name always wins over `readOnlyHint=True`.
+Both default lists are importable: `from promptise import DEFAULT_READ_ONLY_PREFIXES, DEFAULT_DESTRUCTIVE_VERBS`.
+
+Annotations come from the MCP server: `@server.tool(read_only_hint=True)` on a Promptise server, or any server that sets `ToolAnnotations`, and reach the classifier as `ApprovalRequest.tool_annotations`. Promptise's MCP client keeps them on each tool's `metadata` (as `langchain-mcp-adapters` does), and the gate copies them from there, so a LangChain tool you build yourself can declare `metadata={"readOnlyHint": True}`. Annotations are hints from the server, not guarantees, so a destructive verb in the name always wins over `readOnlyHint=True`.
 
 Words are split on `_`, `-` and camelCase and compared whole: `get_settings` is fine (`settings` is not `set`), `get_and_set_flag` is not.
 
@@ -192,7 +194,7 @@ Every decision the classifier returns carries its trace in `decision.trace`, and
 
 `trace.rule_reason` holds the matched rule's `reason` or the LLM's reason, and `trace.matched_rule` the rule itself.
 
-To record every decision, pass `on_decision` to the policy. It is called for the classifier's decisions and also for those the gate makes without asking the handler at all — `max_pending`, the [repeated-denial limit](approval.md#repeated-denials), a timeout or a handler error (`decided_by="gate"`, `trace=None`):
+To record every decision, pass `on_decision` to the policy. It is called for the classifier's decisions and also for those the gate makes without asking the handler at all: `max_pending`, the [repeated-denial limit](approval.md#repeated-denials), a timeout or a handler error (`decided_by="gate"`, `trace=None`):
 
 ```python
 import json, time
@@ -220,7 +222,7 @@ policy = ApprovalPolicy(tools=["*"], handler=classifier, on_decision=write_audit
 `on_decision` may be async. If it raises, the error is logged and the decision stands. A handler that wraps the classifier sees only the decisions that reach the handler, so it misses the gate's own denials; use `on_decision` for the audit log.
 
 !!! warning "`classifier.last_trace` is shared"
-    `last_trace` is the trace of the most recently *finished* decision. When several requests are in flight — several gated calls in one turn, or one call waiting on a human — another request can overwrite it before you read it. Read `decision.trace` instead.
+    `last_trace` is the trace of the most recently *finished* decision. When several requests are in flight (several gated calls in one turn, or one call waiting on a human) another request can overwrite it before you read it. Read `decision.trace` instead.
 
 ### Stats
 
@@ -234,6 +236,12 @@ print(classifier.stats.read_only_allows)   # 189
 print(classifier.stats.llm_allows)         # 7
 print(classifier.stats.fallback_denies)    # 1
 ```
+
+`classifier.stats` is a `ClassifierStats` dataclass (`from promptise import ClassifierStats`)
+with the counters `allow_rule_hits`, `deny_rule_hits`, `ask_rule_hits`,
+`read_only_allows`, `llm_allows`, `llm_denies`, `llm_escalations`, `fallback_allows`,
+`fallback_denies` and `errors`, plus `last_updated` (a Unix timestamp).
+`classifier.reset_stats()` starts the counts again.
 
 ### Classifier denials and the retry limit
 
@@ -267,10 +275,10 @@ You can also use the classifier on an MCP server, as the handler of `ApprovalGat
 
 ## Related
 
-- [Approval (HITL)](approval.md) — the underlying approval system
-- [Runtime Hooks](../runtime/hooks.md) — react to PERMISSION_REQUEST / PERMISSION_DENIED events
-- [Guardrails](guardrails.md) — input/output security scanning
+- [Approval (HITL)](approval.md): the underlying approval system
+- [Runtime Hooks](../runtime/hooks.md): react to PERMISSION_REQUEST / PERMISSION_DENIED events
+- [Guardrails](guardrails.md): input/output security scanning
 
 !!! tip "Learn the concept"
 
-    - [Approval Fatigue: Auto-Approve Safe AI Agent Actions](https://www.promptise.com/guides/view/ai-agent-approval-fatigue) -- Auto-approve routine calls, send only risky ones to a human.
+    - [Approval Fatigue: Auto-Approve Safe AI Agent Actions](https://www.promptise.com/guides/view/ai-agent-approval-fatigue): Auto-approve routine calls, send only risky ones to a human.

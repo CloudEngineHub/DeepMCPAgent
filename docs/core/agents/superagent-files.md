@@ -393,6 +393,133 @@ the agent fails instead of running it without a sandbox.
 | `workdir` | `str` | `"/workspace"` | Working directory inside container. |
 | `env` | `dict[str, str]` | `{}` | Additional environment variables. |
 | `allow_sudo` | `bool` | `false` | Allow sudo access in container. |
+| `user` | `str` | `"65534:65534"` | User the sandboxed code runs as (`nobody`); `"root"` runs it as root. |
+
+#### `observability`
+
+Optional. `true` records at the `standard` level with the HTML transporter, or give a
+mapping. Same options as [`ObservabilityConfig`](../observability.md).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `level` | `"off" \| "basic" \| "standard" \| "full"` | `"standard"` | How much is recorded. |
+| `session_name` | `str` | `"promptise"` | Name of the recorded session. |
+| `record_prompts` | `bool \| None` | `None` | Store prompt and response text. Unset: only at `full`. |
+| `record_tool_io` | `bool` | `true` | Store tool arguments and result previews. |
+| `transporters` | `list[str]` | `["html"]` | Any of `html`, `json`, `log` (JSON lines), `console`, `prometheus`, `otlp`, `webhook`. |
+| `output_dir` | `str \| None` | `None` | Directory for the HTML and JSON output. |
+| `log_file` | `str \| None` | `None` | File for the `log` transporter. |
+| `console_live` | `bool` | `false` | Print events to the console as they happen. |
+| `webhook_url` | `str \| None` | `None` | Target of the `webhook` transporter. |
+| `prometheus_port` | `int` | `9090` | Port of the Prometheus `/metrics` endpoint. |
+| `otlp_endpoint` | `str` | `"http://localhost:4317"` | OpenTelemetry collector (gRPC). |
+| `correlation_id` | `str \| None` | `None` | External ID attached to every event. |
+
+#### `optimize_tools`
+
+Optional. Shortens tool definitions, or offers each model call only the relevant
+tools. See [Tool Optimization](../tool-optimization.md).
+
+```yaml
+optimize_tools: semantic   # or minimal / standard; true means minimal
+```
+
+!!! warning "Use the string form"
+    The schema also accepts a mapping (`level`, `embedding_model`, `top_k`,
+    `score_threshold`), but in 1.6.0 its settings are not applied: the agent runs with
+    the `minimal` preset. Write the level as a string, or build the agent in Python
+    with a `ToolOptimizationConfig` for finer control.
+
+#### `cache`
+
+Optional. `cache: true` adds a [`SemanticCache`](../cache.md) with its defaults
+(in-memory, per-user, similarity 0.92, one-hour TTL).
+
+!!! warning "Use `cache: true`"
+    The schema accepts a mapping (`backend`, `redis_url`, `similarity_threshold`,
+    `default_ttl`, `scope`, `max_entries_per_user`, `encrypt_values`,
+    `embedding_model`), but in 1.6.0 building an agent from a file with a `cache:`
+    mapping fails with `TypeError: ... unexpected keyword argument 'embedding_model'`.
+    For other cache settings, build the agent in Python with `SemanticCache(...)`.
+
+#### `events`
+
+Optional. Sends [event notifications](../events.md) to webhook or log sinks.
+
+```yaml
+events:
+  slow_tool_threshold: 5          # seconds before a tool.slow event (null = off)
+  sinks:
+    - type: webhook
+      url: https://hooks.example.com/promptise
+      secret: "${EVENTS_WEBHOOK_SECRET}"
+      events: [invocation.error, tool.error, guardrail.blocked]
+    - type: log
+      min_severity: warning
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `sinks` | list | `[]` | Where events go. With no usable sink, no notifier is added. |
+| `shutdown_timeout` | `float` | `10.0` | Seconds shutdown waits for queued events to be delivered. |
+| `slow_tool_threshold` | `float \| None` | `5.0` | Seconds after which a tool call emits `tool.slow`; `null` turns it off. |
+
+Each sink:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `type` | `"webhook" \| "log"` | **required** | `callback` and event-bus sinks need Python: use `build_agent(events=...)`. |
+| `url` | `str \| None` | `None` | Webhook URL. A `webhook` sink without `url` is skipped. |
+| `events` | `list[str] \| None` | `None` | Event types to send; `None` sends all. |
+| `headers` | `dict[str, str]` | `{}` | Extra HTTP headers (webhook). |
+| `secret` | `str \| None` | `None` | HMAC signing secret (webhook). |
+| `min_severity` | `str \| None` | `None` | `info`, `warning`, `error` or `critical`. |
+| `max_retries` | `int` | `3` | Delivery retries (webhook). |
+| `redact_sensitive` | `bool` | `true` | Redact PII and credentials in payloads. |
+| `allow_private_networks` | `bool` | `false` | Allow a `url` on localhost or a private network. |
+
+#### `adaptive`
+
+Optional. [Adaptive strategy](../adaptive-strategy.md): the agent learns from failed
+tool calls. It needs a `memory` section; without one it is turned off with a warning.
+`true` uses the defaults below.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `bool` | `true` | Turn learning on. |
+| `synthesis_threshold` | `int` | `5` | Failures before a lesson is written. |
+| `synthesis_model` | `str \| None` | `None` | Model that writes lessons; `None` uses the agent's model. |
+| `max_strategies` | `int` | `20` | Most stored lessons. |
+| `auto_cleanup` | `bool` | `true` | Delete raw failure logs after a lesson is written. |
+| `strategy_ttl` | `int` | `0` | Seconds a lesson lives; `0` keeps it. |
+| `failure_retention` | `int` | `50` | Most raw failure logs kept. |
+| `verify_human_feedback` | `bool` | `true` | Check human corrections with the model before storing them. |
+| `feedback_rate_limit` | `int` | `10` | Most corrections per hour per sender. |
+| `scope` | `"per_user" \| "per_tenant" \| "per_session" \| "shared"` | `"per_user"` | Who shares failures and lessons. |
+| `confidence_half_life` | `float` | `0.0` | Seconds for a lesson's confidence to halve; `0` turns decay off. |
+| `min_confidence` | `float` | `0.3` | Lessons below this confidence are dropped. |
+| `allowed_tools` | `list[str] \| None` | `None` | Only learn from these tools. |
+| `review_lessons` | `bool` | `false` | Hold new lessons as pending until approved. |
+| `learn_from_approval_denials` | `bool` | `true` | Store approval denial reasons as human corrections. |
+
+#### `guardrails`
+
+Optional. `true` uses `PromptiseSecurityScanner.default()`. A mapping turns detectors
+on and off. See [Guardrails](../guardrails.md).
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `detect_injection` | `bool` | `true` | Prompt-injection classifier (a local model). |
+| `detect_pii` | `bool` | `true` | PII detection and redaction. |
+| `detect_credentials` | `bool` | `true` | Credential detection and redaction. |
+| `detect_toxicity` | `bool` | `false` | Toxicity classifier (a local model). |
+| `injection_threshold` | `float` | `0.85` | Injection confidence that blocks the input. |
+| `warmup` | `bool` | `true` | Load the models when the agent is built rather than on the first message. |
+
+#### `max_invocation_time`
+
+Optional top-level number. Seconds one invocation may take; `0` (the default) means no
+limit. A longer run raises `TimeoutError`.
 
 ## Environment Variable Resolution
 
@@ -432,6 +559,9 @@ The loader resolves references at every depth. If agent A references agent B and
 
 ```yaml
 # main.superagent
+agent:
+  model: openai:gpt-5-mini
+  instructions: "Answer questions. Ask the researcher for facts and the analyst for numbers."
 cross_agents:
   researcher:
     file: "./researcher.superagent"
@@ -439,6 +569,20 @@ cross_agents:
   analyst:
     file: "./analyst.superagent"
     description: "Data analysis specialist"
+```
+
+Each peer is a complete file of its own. Like every `.superagent` file it needs at
+least one of `servers`, `cross_agents` or `sandbox`:
+
+```yaml
+# researcher.superagent
+agent:
+  model: openai:gpt-5-mini
+  instructions: "You research facts with your tools and cite sources."
+servers:
+  search:
+    type: http
+    url: "${SEARCH_MCP_URL:-http://localhost:8001/mcp}"
 ```
 
 ```python
@@ -500,6 +644,18 @@ agent = await build_superagent("agent.superagent")
 | `build_superagent()` | `from promptise import build_superagent` | `await build_superagent(path_or_loader, *, model=None, instructions=None, trace=None, extra_servers=None)` -- builds the agent and every cross-agent in its file, at any depth, in the running event loop. `shutdown()` on the result shuts down the team. Overrides apply to the top agent. |
 | `SuperAgentSchema` | `from promptise.superagent_schema import SuperAgentSchema` | Pydantic model for the full `.superagent` YAML schema. |
 | `SuperAgentConfig` | `from promptise.superagent import SuperAgentConfig` | Processed config with `to_build_kwargs(*, cross_agents=None)` for `build_agent()`. |
+
+Each section of the file is validated by a Pydantic model, importable from
+`promptise` (or `promptise.superagent_schema`) to build or check a file in code:
+
+| Section | Model |
+|---|---|
+| `agent:` | `AgentSection`; its `model:` is a `ModelConfig` (a string, or a `DetailedModelConfig` mapping) |
+| `servers:` entries | `ServerConfig`, the union of `HTTPServerConfig` (`type: http`) and `StdioServerConfig` (`type: stdio`) |
+| `cross_agents:` entries | `CrossAgentConfig` |
+| `memory:` | `MemorySection` |
+| `sandbox:` | `SandboxConfigSection` |
+| the whole file | `SuperAgentSchema` |
 
 !!! tip "File extensions"
     The loader accepts `.superagent`, `.superagent.yaml`, and `.superagent.yml` extensions.

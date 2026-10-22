@@ -5,7 +5,7 @@ description: "Build an agent that turns natural language questions into SQL, cro
 
 # Lab: Data Analysis Agent
 
-Build an agent that converts natural language questions into SQL queries, cross-references data across tables, and produces accurate analytical reports. Uses a specialized reasoning pattern that outperforms generic ReAct by 60% on accuracy benchmarks.
+Build an agent that converts natural language questions into SQL queries, cross-references data across tables, and produces accurate analytical reports. It uses a reasoning pattern that plans, executes, observes and verifies before it reports.
 
 ## What You'll Build
 
@@ -25,7 +25,7 @@ pip install promptise
 export OPENAI_API_KEY=sk-...
 ```
 
-## Step 1 — Build the Database Server
+## Step 1: Build the Database Server
 
 Create an MCP server with SQL-like query tools.
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     server.run(transport="stdio")
 ```
 
-## Step 2 — Build the Specialized Reasoning Pattern
+## Step 2: Build the Specialized Reasoning Pattern
 
 The key insight: a domain-specific prompt with schema documentation produces better results than a generic "use tools" instruction.
 
@@ -189,13 +189,13 @@ async def main():
 asyncio.run(main())
 ```
 
-## Step 3 — Add Caching for Repeated Queries
+## Step 3: Add Caching for Repeated Queries
 
 Use the CACHEABLE flag to avoid re-executing identical queries:
 
 ```python
 PromptNode("execute",
-    ...,
+    inject_tools=True,
     flags={NodeFlag.RETRYABLE, NodeFlag.CACHEABLE},
     input_keys=["query_plan"],  # Cache key based on the plan
 )
@@ -203,7 +203,7 @@ PromptNode("execute",
 
 Same question asked twice? The second call returns instantly from cache.
 
-## Step 4 — Add Semantic Cache for Similar Questions
+## Step 4: Add Semantic Cache for Similar Questions
 
 ```python
 from promptise.cache import SemanticCache
@@ -216,18 +216,19 @@ agent = await build_agent(
 
 "What was Q1 revenue?" and "How much revenue did we make in Q1?" will return the same cached answer.
 
-## Why This Pattern Wins
+## Why This Pattern Helps
 
-In benchmarks against generic ReAct (LangGraph's default), this pattern:
+Compared with a plain tool loop (`agent_pattern="react"`), this graph:
 
-- **Scored 8/13 accuracy** vs ReAct's 5/13 on complex analytical questions
-- **Used fewer tool calls** (the plan step prevents redundant queries)
-- **Produced more precise answers** (the verify step catches calculation errors)
+- **Plans before querying**, so it avoids redundant queries
+- **Verifies the result** before reporting, which catches calculation errors
+- **Gives the model the schema**: the prompt names the exact columns and types, where a plain tool loop has to guess them
 
-The key difference: the schema-aware prompt tells the LLM exact column names and types. Generic ReAct guesses.
+Measure it on your own questions: run both patterns with `observe=True` and compare
+answers, tool calls and tokens.
 
 ## Next Steps
 
-- [Custom Reasoning Guide](custom-reasoning.md) — Build more complex patterns
-- [Node Flags Reference](../core/engine-flags.md) — All 18 production flags
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — 10 built-in patterns
+- [Custom Reasoning Guide](custom-reasoning.md): Build more complex patterns
+- [Node Flags Reference](../core/engine-flags.md): All 18 production flags
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md): 9 built-in patterns

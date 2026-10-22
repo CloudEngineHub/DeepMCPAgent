@@ -73,6 +73,7 @@ plugins:
       # Pages merged into the promptise.com guides. Blog posts are keyed by their
       # URL (blog/<slug>.md -> /blog/<slug>/), not by their source path.
       redirect_maps:
+        core/agents/network-server.md: runtime/index.md
         blog/agent-reasoning-patterns.md: https://www.promptise.com/guides/view/ai-agent-reasoning-patterns
         blog/agent-stuck-in-tool-loop.md: https://www.promptise.com/guides/view/ai-agent-stuck-in-loop
         blog/agent-token-usage-observability.md: https://www.promptise.com/guides/view/ai-agent-cost-tracking
@@ -221,48 +222,14 @@ markdown_extensions:
 nav:
   - Getting Started:
       - Installation: index.md
-      - Installation Extras: getting-started/installation-extras.md
       - Quick Start: getting-started/quickstart.md
+      - Key Concepts: getting-started/concepts.md
       - Configuration & Secrets: getting-started/configuration.md
       - Model Setup: getting-started/model-setup.md
-      - Cookbook (Recipes): getting-started/cookbook.md
-      - Why Promptise Foundry: getting-started/why-promptise.md
+      - Installation Extras: getting-started/installation-extras.md
       - What is MCP?: getting-started/what-is-mcp.md
-      - Key Concepts: getting-started/concepts.md
+      - Why Promptise Foundry: getting-started/why-promptise.md
       - Glossary: getting-started/glossary.md
-
-  - Guides:
-      - Overview: guides/index.md
-      - Framework:
-          - Building AI Agents: guides/building-agents.md
-          - Context Lifecycle Management: guides/context-lifecycle.md
-          - "Code-Action: Agents that Write Programs": guides/code-action.md
-          - Building Production MCP Servers: guides/production-mcp-servers.md
-          - Building Agentic Runtime Systems: guides/agentic-runtime.md
-          - Prompt Engineering: guides/prompt-engineering.md
-          - Building Multi-User Systems: guides/multi-user-systems.md
-          - "CallerContext: Agent to MCP Identity": guides/multi-user-identity.md
-          - Secure Multi-Tenant Platform: guides/secure-multi-tenant-platform.md
-          - Multi-Agent Coordination: guides/multi-agent-teams.md
-      - Labs:
-          - "Lab: Customer Support Agent": guides/lab-customer-support.md
-          - "Lab: Data Analysis Agent": guides/lab-data-analysis.md
-          - "Lab: Code Review Agent": guides/lab-code-review.md
-          - "Lab: Pipeline Observer Agent": guides/lab-pipeline-observer.md
-      - Learn on promptise.com:
-          - Concept Guides: https://www.promptise.com/guides
-          - "Learning Path: Agentic Engineering": https://www.promptise.com/learning-paths/agentic-engineering-promptise-foundry
-
-  - MCPcast:
-      - End to End: mcpcast/index.md
-      - Guided Setup: mcpcast/guided-setup.md
-      - Reference: mcp/server/mcpcast.md
-      - Step-by-Step Guide: guides/mcpcast-existing-api.md
-      - Your Python API: guides/mcpcast-python-app.md
-      - "Recipes: Stripe, GitHub, your app": mcp/server/mcpcast-recipes.md
-      - "Lab: MCPcast Your SaaS API": guides/lab-mcpcast-storefront.md
-      - "Lab: The Guided Setup": guides/lab-mcpcast-wizard.md
-      - API Reference: api/mcpcast.md
 
   - Agent:
       - core/index.md
@@ -272,7 +239,6 @@ nav:
           - Testing Agents: core/testing.md
           - Models & Providers: core/agents/models.md
           - Server Configuration: core/agents/server-specs.md
-          - Network Server: core/agents/network-server.md
           - SuperAgent Files: core/agents/superagent-files.md
           - Custom Reasoning Patterns: core/agents/reasoning-patterns.md
           - Cross-Agent Delegation: core/agents/cross-agent.md
@@ -344,6 +310,17 @@ nav:
           - Client Guide: mcp/client/index.md
           - Tool Adapter: mcp/client/tool-adapter.md
 
+  - MCPcast:
+      - End to End: mcpcast/index.md
+      - Guided Setup: mcpcast/guided-setup.md
+      - Reference: mcp/server/mcpcast.md
+      - Step-by-Step Guide: guides/mcpcast-existing-api.md
+      - Your Python API: guides/mcpcast-python-app.md
+      - "Recipes: Stripe, GitHub, your app": mcp/server/mcpcast-recipes.md
+      - "Lab: MCPcast Your SaaS API": guides/lab-mcpcast-storefront.md
+      - "Lab: The Guided Setup": guides/lab-mcpcast-wizard.md
+      - API Reference: api/mcpcast.md
+
   - Agent Runtime:
       - runtime/index.md
       - Core:
@@ -412,7 +389,32 @@ nav:
           - Testing Utilities: prompting/testing.md
       - Suite & Registry: prompting/suite-registry.md
 
+  - Guides:
+      - Overview: guides/index.md
+      - Cookbook (Recipes): getting-started/cookbook.md
+      - Framework:
+          - Building AI Agents: guides/building-agents.md
+          - Context Lifecycle Management: guides/context-lifecycle.md
+          - "Code-Action: Agents that Write Programs": guides/code-action.md
+          - Building Production MCP Servers: guides/production-mcp-servers.md
+          - Building Agentic Runtime Systems: guides/agentic-runtime.md
+          - Prompt Engineering: guides/prompt-engineering.md
+          - Building Multi-User Systems: guides/multi-user-systems.md
+          - "CallerContext: Agent to MCP Identity": guides/multi-user-identity.md
+          - Secure Multi-Tenant Platform: guides/secure-multi-tenant-platform.md
+          - Multi-Agent Coordination: guides/multi-agent-teams.md
+      - Labs:
+          - "Lab: Customer Support Agent": guides/lab-customer-support.md
+          - "Lab: Data Analysis Agent": guides/lab-data-analysis.md
+          - "Lab: Code Review Agent": guides/lab-code-review.md
+          - "Lab: Pipeline Observer Agent": guides/lab-pipeline-observer.md
+      - Learn on promptise.com:
+          - Concept Guides: https://www.promptise.com/guides
+          - "Learning Path: Agentic Engineering": https://www.promptise.com/learning-paths/agentic-engineering-promptise-foundry
+
   - API Reference:
+      - Public API Index: reference/public-api.md
+      - Environment Variables: reference/environment-variables.md
       - Core:
           - Agent: api/agent.md
           - Configuration: api/config.md

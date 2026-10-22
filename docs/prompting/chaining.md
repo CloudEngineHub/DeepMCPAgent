@@ -35,13 +35,13 @@ The chaining module provides five composition operators:
 
 | Operator | Behavior |
 |----------|----------|
-| `chain` | Sequential -- output of each step feeds the next |
-| `parallel` | Concurrent -- all prompts run at once on the same input |
-| `branch` | Conditional -- route to different prompts based on a predicate |
-| `retry` | Resilience -- retry a prompt with exponential backoff |
-| `fallback` | Graceful degradation -- try alternatives on failure |
+| `chain` | Sequential: output of each step feeds the next |
+| `parallel` | Concurrent: all prompts run at once on the same input |
+| `branch` | Conditional: route to different prompts based on a predicate |
+| `retry` | Resilience: retry a prompt with exponential backoff |
+| `fallback` | Graceful degradation: try alternatives on failure |
 
-All operators return callable objects that behave like prompts. You can nest and combine them freely.
+All operators return async callables: `await op(*args, **kwargs)`. They are not `Prompt` objects (no `with_*()`, `render()` or `name`), but any operator can be used where another operator expects a prompt, so you can nest them.
 
 ## Chain (Sequential)
 
@@ -62,9 +62,9 @@ The data flow:
 
 ### How Output Feeds Input
 
-- **String output** -- passed as the first positional argument to the next prompt.
-- **Dict output** -- unpacked as keyword arguments to the next prompt.
-- **Other types** -- converted to string via `str()` and passed as the first argument.
+- **String output**: passed as the first positional argument to the next prompt.
+- **Dict output**: unpacked as keyword arguments to the next prompt.
+- **Other types**: converted to string via `str()` and passed as the first argument. This includes Pydantic models and lists from typed prompts, so the next prompt receives their `str()` text, not JSON. Return a `dict`, or convert the result yourself, when the next step needs structured input.
 
 ```python
 # String -> positional arg
@@ -97,7 +97,7 @@ print(results["sentiment"])  # Sentiment analysis
 print(results["topics"])     # Topic extraction
 ```
 
-All prompts receive the same arguments. Execution uses `asyncio.gather` for true concurrency.
+All prompts receive the same arguments and run concurrently with `asyncio.gather`. If one fails, the exception propagates and the other results are lost; wrap individual prompts in `retry()` or `fallback()` when partial failure matters.
 
 !!! warning "Parallel requires at least 2 prompts"
     Calling `parallel()` with fewer than 2 named prompts raises `ValueError`.
@@ -139,7 +139,7 @@ result = await router("Explain the TCP protocol")
 # Routes to technical_response
 ```
 
-If the condition returns a key not in `routes` and no `default` is set, a `ValueError` is raised.
+The condition is a plain (sync) function called with the same arguments as the prompts. If it returns a key not in `routes` and no `default` is set, a `ValueError` is raised.
 
 ## Retry (Exponential Backoff)
 
@@ -151,6 +151,8 @@ from promptise.prompts.chain import retry
 resilient = retry(analyze_facts, max_retries=3, backoff=1.0)
 result = await resilient("data...")
 ```
+
+Any exception triggers a retry: an LLM error, a `GuardError`, a `ValidationError` from a typed return. `max_retries` counts retries after the first attempt (`max_retries=3` means up to 4 calls; `0` means no retry; negative raises `ValueError`).
 
 Backoff schedule with `backoff=1.0`:
 
@@ -182,7 +184,7 @@ safe = fallback(fast_analyze, thorough_analyze)
 result = await safe("quarterly data...")
 ```
 
-If the primary fails, each alternative is tried in order. If all fail, the last exception is raised.
+If the primary fails, each alternative is tried in order. Errors from all but the last are swallowed; if the last fails, its exception is raised.
 
 ## Combining Operators
 
@@ -208,8 +210,8 @@ result = await pipeline("Raw data...")
 
 | Function | Returns | Description |
 |----------|---------|-------------|
-| `chain(*prompts)` | Callable | Sequential execution, output feeds next input |
-| `parallel(**prompts)` | Callable | Concurrent execution, returns dict of results |
+| `chain(*prompts)` | Callable | Sequential execution, output feeds next input (at least 2) |
+| `parallel(**prompts)` | Callable | Concurrent execution, returns dict of results (at least 2) |
 | `branch(condition, routes, default=None)` | Callable | Conditional routing based on a predicate |
 | `retry(target, max_retries=3, backoff=1.0)` | Callable | Exponential backoff retry |
 | `fallback(primary, *alternatives)` | Callable | Try alternatives on failure |
@@ -217,11 +219,11 @@ result = await pipeline("Raw data...")
 !!! tip "Retry + Fallback together"
     Combine `retry` and `fallback` for maximum resilience: `fallback(retry(primary, max_retries=2), backup_prompt)`. This retries the primary prompt, then falls back to a backup if all retries fail.
 
-!!! warning "Context propagation"
-    The `PromptContext.state` dict carries data between chain steps. Use it to pass metadata that does not fit into the prompt's return value.
+!!! warning "No shared state between steps"
+    Each prompt in a pipeline builds its own `PromptContext`, so nothing but the return value travels from one step to the next. To pass extra data, return a `dict` whose keys match the next prompt's parameters (it is unpacked as keyword arguments).
 
 ## What's Next
 
-- [Strategies](strategies.md) -- Control how the agent reasons
-- [Guards](guards.md) -- Input/output validation
-- [Testing](testing.md) -- Test your prompt pipelines
+- [Strategies](strategies.md): Control how the agent reasons
+- [Guards](guards.md): Input/output validation
+- [Testing](testing.md): Test your prompt pipelines

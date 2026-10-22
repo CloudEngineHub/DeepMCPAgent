@@ -5,7 +5,7 @@ description: "React to what happens to an agent process with hooks on 13 lifecyc
 
 # Runtime Lifecycle Hooks
 
-Runtime hooks let you react to what happens *to* an agent process -- a session starting, a prompt about to reach the model, a tool approval being denied, a trigger event entering or leaving the queue -- without changing the agent. Use them to audit prompts, add standing context, notify a chat channel, or refuse an action by policy. Every `AgentProcess` dispatches the 13 lifecycle events itself; you only register the hooks.
+Runtime hooks let you react to what happens *to* an agent process (a session starting, a prompt about to reach the model, a tool approval being denied, a trigger event entering or leaving the queue) without changing the agent. Use them to audit prompts, add standing context, notify a chat channel, or refuse an action by policy. Every `AgentProcess` dispatches the 13 lifecycle events itself; you only register the hooks.
 
 ```python
 from promptise.runtime import (
@@ -197,6 +197,39 @@ process.hooks.clear()                         # everything (or clear(event))
 
 `process.status()["hook_count"]` reports how many hooks the process's own manager holds.
 
+### HookManager reference
+
+`HookManager(*, default_timeout=None)` holds hook registrations and dispatches events. `default_timeout` (seconds) applies to every hook registered without its own `timeout`; `None` means no limit. The manager a process creates for `process.hooks` uses 30 seconds.
+
+| Method | Description |
+|---|---|
+| `on(event, *, once=False, priority=0, tag=None, timeout=None, fail_closed=False)` | Decorator form of `register()`; returns the function unchanged |
+| `register(event, callback, *, once=False, priority=0, tag=None, timeout=None, fail_closed=False)` | Registers an async callback; returns its hook ID. `event` is a `HookEvent` or its value |
+| `await remove(hook_id)` | Removes one hook; `True` if it was registered |
+| `await remove_by_tag(tag)` | Removes every hook with that tag; returns how many |
+| `clear(event=None)` | Removes all hooks, or those of one event |
+| `registered(event=None)` | Hook IDs, of all events or one |
+| `has_hooks(event)` | Whether any hook is registered for the event |
+| `await dispatch(event, *, process_id="", data=None, metadata=None)` | Runs the event's hooks and returns a `DispatchResult` |
+
+`HookCallable` is the type of a callback: `Callable[[HookContext], Awaitable[None]]`. Use it to type your own hook functions or helpers that return one:
+
+```python
+from promptise.runtime import HookCallable, HookContext, HookEvent, HookManager
+
+
+def make_logger(prefix: str) -> HookCallable:
+    async def log(ctx: HookContext) -> None:
+        print(prefix, ctx.event.value, ctx.process_id)
+    return log
+
+
+manager = HookManager(default_timeout=10)
+manager.register(HookEvent.SESSION_START, make_logger("[ops]"), tag="ops")
+result = await manager.dispatch(HookEvent.SESSION_START, process_id="demo")
+print(result.fired, result.blocked)  # 1 False
+```
+
 ---
 
 ## ShellHook: external commands
@@ -269,7 +302,7 @@ A hook error is logged and ignored, or blocks the action when the hook is `fail_
 
 `ShellHook.run(ctx)` runs the program and returns a `ShellHookResult` (`block`, `reason`, `data`, `log`, `raw`) without applying it, which is handy in tests.
 
-Unless `cwd` is set, the program starts without `fork()` (CPython's `posix_spawn` path). That matters on macOS: a forked child of a multithreaded process that has used system frameworks -- any `httpx` client does -- can die with SIGSEGV before `exec` (`exited -11`). Prefer an absolute script path over `cwd` when you can.
+Unless `cwd` is set, the program starts without `fork()` (CPython's `posix_spawn` path). That matters on macOS: a forked child of a multithreaded process that has used system frameworks (any `httpx` client does) can die with SIGSEGV before `exec` (`exited -11`). Prefer an absolute script path over `cwd` when you can.
 
 ---
 
@@ -287,15 +320,15 @@ Unless `cwd` is set, the program starts without `fork()` (CPython's `posix_spawn
 
 ## Related
 
-- [Agent Processes](processes.md) -- the lifecycle that dispatches these events
-- [Agent Manifests](manifests.md) -- the `hooks:` section
-- [Orchestration API](api.md) -- `allow_command_deploys` and `COMMANDS_NOT_ALLOWED`
-- [Secret Scoping](governance/secrets.md) -- what is redacted from hook data
-- [Reasoning Graph Hooks](../core/engine-hooks.md) -- per-node and per-tool hooks inside a run
-- [Approval](../core/approval.md) -- the approval flow behind `PERMISSION_REQUEST`
-- [Events](../core/events.md) -- structured event notifications
+- [Agent Processes](processes.md): the lifecycle that dispatches these events
+- [Agent Manifests](manifests.md): the `hooks:` section
+- [Orchestration API](api.md): `allow_command_deploys` and `COMMANDS_NOT_ALLOWED`
+- [Secret Scoping](governance/secrets.md): what is redacted from hook data
+- [Reasoning Graph Hooks](../core/engine-hooks.md): per-node and per-tool hooks inside a run
+- [Approval](../core/approval.md): the approval flow behind `PERMISSION_REQUEST`
+- [Events](../core/events.md): structured event notifications
 
 !!! tip "Learn the concept"
 
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- How a runtime supervises long-running agents and where hooks fit in.
-    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api) -- Deploy and manage processes over HTTP, and what the API refuses.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): How a runtime supervises long-running agents and where hooks fit in.
+    - [AI Agent Control API: Manage Running Agents Over HTTP](https://www.promptise.com/guides/view/ai-agent-control-api): Deploy and manage processes over HTTP, and what the API refuses.

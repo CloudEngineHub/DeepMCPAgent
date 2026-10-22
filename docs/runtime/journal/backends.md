@@ -159,11 +159,11 @@ Keep two rules the built-in backends follow, because recovery and rewind depend 
 
 ## What's Next
 
-- [Journal Overview](index.md) -- entry types, levels and recovery on start
-- [Replay Engine](replay.md) -- how recovery rebuilds state
-- [Rewind](rewind.md) -- roll a process back to an earlier entry
-- [Configuration](../configuration.md) -- `JournalConfig` reference
+- [Journal Overview](index.md): entry types, levels and recovery on start
+- [Replay Engine](replay.md): how recovery rebuilds state
+- [Rewind](rewind.md): roll a process back to an earlier entry
+- [Configuration](../configuration.md): `JournalConfig` reference
 
 !!! tip "Learn the concept"
 
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Journal progress and resume so side effects never run twice.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Journal progress and resume so side effects never run twice.

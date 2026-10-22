@@ -19,7 +19,7 @@ from promptise.prompts.guards import guard, content_filter, length
     length(max_length=2000),
 )
 async def analyze(text: str) -> str:
-    """Analyze: {text}"""
+    """Analyze in at most three sentences: {text}"""
 
 result = await analyze("Quarterly revenue grew 15%...")
 ```
@@ -30,10 +30,20 @@ If the input contains a blocked word, the guard raises `GuardError` before the L
 
 Guards implement two async methods:
 
-- **`check_input(input_text)`** -- runs before the LLM call. Returns the (possibly transformed) text or raises `GuardError` to reject.
-- **`check_output(output)`** -- runs after the LLM call. Returns the (possibly transformed) output or raises `GuardError` to reject.
+- **`check_input(input_text)`**: runs before the LLM call. Returns the (possibly transformed) text or raises `GuardError` to reject.
+- **`check_output(output)`**: runs after the LLM call, on the **parsed** result (a string, or your Pydantic model / dict / list for a typed return). Returns the (possibly transformed) output or raises `GuardError` to reject.
 
-Guards are attached to prompts via the `@guard()` decorator. Multiple guards execute in order -- each guard's output feeds the next.
+Guards are attached to prompts via the `@guard()` decorator, `with_guards()`, `PromptBuilder.guard()` or a suite's `default_guards`. Every guard is registered on both sides: its `check_input` and its `check_output` both run. Multiple guards execute in order, each guard's output feeding the next.
+
+What `check_input` receives depends on how the prompt runs:
+
+| Mode | `check_input` receives | `check_output` receives |
+|------|------------------------|-------------------------|
+| Standalone call (`await my_prompt(...)`) | The full rendered prompt text: blocks, template, context, perspective, strategy, constraints, schema instructions | The parsed result |
+| Agent `instructions` (`build_agent(instructions=my_prompt)`) | Each user message | The agent's reply text |
+
+!!! warning "Input guards see your own prompt text in standalone calls"
+    `content_filter(blocked=["password"])` on a standalone prompt also rejects the call when your own blocks, template or constraints contain "password". Keep blocked words out of your instructions, or check only the user-supplied value in an `input_validator`.
 
 ## Built-In Guards
 
@@ -76,13 +86,16 @@ bounded = length(min_length=100, max_length=2000)
 
 ### SchemaStrictGuard
 
-Validates that LLM output is well-formed JSON. Raises `GuardError` if the output cannot be parsed as JSON. Non-string outputs are passed through unchanged.
+Validates that LLM output is well-formed JSON. Raises `GuardError` if the output cannot be parsed as JSON. Non-string outputs (a parsed Pydantic model, dict or list) are passed through unchanged. `schema_strict()` takes no arguments: it does not check a schema and does not retry.
 
 ```python
 from promptise.prompts.guards import schema_strict
 
 strict = schema_strict()
 ```
+
+!!! tip "Prefer a typed return for structured output"
+    With a `str` return type, a reply wrapped in a Markdown code fence fails `schema_strict()`. Annotating the return type with a Pydantic model (`-> Analysis`) adds the JSON schema to the request, strips fences, extracts the first JSON value and validates it; a reply that doesn't validate raises `ValidationError`. Wrap the prompt in [`retry()`](chaining.md#retry-exponential-backoff) to try again.
 
 ### InputValidatorGuard
 
@@ -134,13 +147,13 @@ from promptise.prompts.guards import guard, content_filter, length, schema_stric
 @guard(
     content_filter(blocked=["secret"]),
     length(max_length=2000),
-    schema_strict(max_retries=2),
+    schema_strict(),
 )
 async def summarize(text: str) -> str:
-    """Summarize: {text}"""
+    """Summarize as a JSON object with a "summary" key: {text}"""
 ```
 
-The `@guard` decorator can be applied before or after `@prompt` -- it detects whether it is decorating a `Prompt` object or a plain function and acts accordingly.
+The `@guard` decorator can be applied before or after `@prompt`: it detects whether it is decorating a `Prompt` object or a plain function and adds the guards either way.
 
 ## Custom Guards
 
@@ -174,7 +187,7 @@ async def process(text: str) -> str:
 
 ## Handling GuardError
 
-When a guard rejects input or output, it raises `GuardError` with a descriptive message and the guard's name:
+When a built-in guard rejects input or output, it raises `GuardError(message, guard_name="")` with the message in `reason` (and `str(e)`) and the guard's name in `guard_name` (`"content_filter"`, `"length"`, `"schema_strict"`). Exceptions raised by your own validators propagate as they are; raise `GuardError` yourself to get the same shape. The prompt's `on_error` hook runs before the exception reaches you, and an attached [inspector](inspector.md) lists the guard in `guards_failed`.
 
 ```python
 from promptise.prompts.guards import GuardError
@@ -192,7 +205,7 @@ except GuardError as e:
 |-----------------|-------------|
 | `content_filter(blocked=[], required=[])` | Block or require specific words (case-insensitive) |
 | `length(min_length=None, max_length=None)` | Enforce output character length bounds |
-| `schema_strict(max_retries=3)` | Retry on schema validation failure |
+| `schema_strict()` | Reject a string output that is not valid JSON |
 | `input_validator(fn)` | Wrap any callable as an input-only validator |
 | `output_validator(fn)` | Wrap any callable as an output-only validator |
 | `guard(*guards)` | Decorator that attaches guards to a `Prompt` |
@@ -203,15 +216,18 @@ except GuardError as e:
     Guards can transform data, not just reject it. Use `InputValidatorGuard` to sanitize input (redact PII, normalize whitespace) and `OutputValidatorGuard` to clean up output (strip extra whitespace, fix formatting) before it reaches your application.
 
 !!! warning "Guard ordering matters"
-    Guards execute in the order they are passed to `@guard()`. Place content filters before length checks -- a blocked-word rejection is cheaper than measuring the length of content you are about to reject anyway.
+    Guards execute in the order they are passed to `@guard()`, and a transforming guard changes what the next one sees. Put redaction before a `content_filter` that would otherwise reject the unredacted text.
+
+!!! note "Built-in guard classes"
+    The factories return `ContentFilterGuard(blocked=None, required=None)`, `LengthGuard(min_length=None, max_length=None)`, `SchemaStrictGuard()`, `InputValidatorGuard(fn)` and `OutputValidatorGuard(fn)`, all importable from `promptise.prompts.guards`. `content_filter` matching is a case-insensitive substring test, so `blocked=["ssn"]` also matches "lessons". `required` words are checked on output only, and `length` checks output only.
 
 ## What's Next
 
-- [Strategies](strategies.md) -- Control how the agent reasons
-- [Context System](context.md) -- Inject dynamic information into prompts
-- [PromptBuilder](builder.md) -- Fluent API for runtime prompt construction
+- [Strategies](strategies.md): Control how the agent reasons
+- [Context System](context.md): Inject dynamic information into prompts
+- [PromptBuilder](builder.md): Fluent API for runtime prompt construction
 
 !!! tip "Learn the concept"
 
-    - [Structured Outputs: Get Reliable JSON from an LLM](https://www.promptise.com/guides/view/structured-outputs-without-tears) -- Get reliable JSON from an LLM.
-    - [LLM Output Validation: Check Responses Before You Use Them](https://www.promptise.com/guides/view/output-verification-trusting-what-comes-back) -- Check responses before you use them.
+    - [Structured Outputs: Get Reliable JSON from an LLM](https://www.promptise.com/guides/view/structured-outputs-without-tears): Get reliable JSON from an LLM.
+    - [LLM Output Validation: Check Responses Before You Use Them](https://www.promptise.com/guides/view/output-verification-trusting-what-comes-back): Check responses before you use them.

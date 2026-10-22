@@ -5,7 +5,7 @@ description: "API reference for the MCP server SDK: MCPServer, routers, auth, gu
 
 # MCP Server API Reference
 
-Production framework for building MCP-compliant tool servers. Every middleware, auth provider, guard, transform, and utility is documented here.
+The classes and functions for building MCP tool servers: every middleware, auth provider, guard, transform, and utility.
 
 ## Core
 
@@ -809,6 +809,99 @@ Generate MCP tools from OpenAPI specs automatically.
 ### DeclaredRateLimitMiddleware
 
 ::: promptise.mcp.server.DeclaredRateLimitMiddleware
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Audit Log Verification
+
+### verify_audit_log
+
+::: promptise.mcp.server.verify_audit_log
+    options:
+      show_source: false
+      heading_level: 4
+
+### AuditVerification
+
+::: promptise.mcp.server.AuditVerification
+    options:
+      show_source: false
+      heading_level: 4
+
+### AuditIssue
+
+::: promptise.mcp.server.AuditIssue
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Composition, Manifest and Batch
+
+### build_manifest
+
+::: promptise.mcp.server.build_manifest
+    options:
+      show_source: false
+      heading_level: 4
+
+### register_manifest
+
+::: promptise.mcp.server.register_manifest
+    options:
+      show_source: false
+      heading_level: 4
+
+### register_batch_tool
+
+::: promptise.mcp.server.register_batch_tool
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## CLI Serve
+
+### build_serve_parser
+
+::: promptise.mcp.server.build_serve_parser
+    options:
+      show_source: false
+      heading_level: 4
+
+### resolve_server
+
+::: promptise.mcp.server.resolve_server
+    options:
+      show_source: false
+      heading_level: 4
+
+### run_serve
+
+::: promptise.mcp.server.run_serve
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Schema and Cache Helpers
+
+### dereference_schema
+
+::: promptise.mcp.server.dereference_schema
+    options:
+      show_source: false
+      heading_level: 4
+
+### CacheScope
+
+::: promptise.mcp.server.CacheScope
     options:
       show_source: false
       heading_level: 4

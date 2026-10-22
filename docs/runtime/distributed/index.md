@@ -8,7 +8,7 @@ description: "Run several agent runtimes on different machines as one cluster: w
 Distributed mode lets several `AgentRuntime`s on different machines (or ports) work as one cluster. Each runtime runs a small management transport (an HTTP API for its processes); one runtime also hosts the coordinator, which knows every node and checks its health. You turn it on with `RuntimeConfig.distributed`; `start_all()` and `run_forever()` start it, `shutdown()` stops it. Use it when one machine is not enough, or when agents must run close to the systems they work on.
 
 ```python
-# coordinator.py -- hosts the cluster coordinator and one process
+# coordinator.py: hosts the cluster coordinator and one process
 import asyncio
 
 from promptise.runtime import AgentRuntime, DistributedConfig, ProcessConfig, RuntimeConfig
@@ -31,7 +31,7 @@ asyncio.run(AgentRuntime(config).run_forever())
 ```
 
 ```python
-# node.py -- a worker node that registers with the coordinator
+# node.py: a worker node that registers with the coordinator
 import asyncio
 
 from promptise.runtime import AgentRuntime, DistributedConfig, ProcessConfig, RuntimeConfig
@@ -204,12 +204,12 @@ The coordinator calls every registered node URL with the cluster token, so a tok
 
 ## What's Next
 
-- [Coordinator](coordinator.md) -- health monitoring, cluster status and remote operations
-- [Discovery and Transport](discovery-transport.md) -- the HTTP routes of every node and the discovery classes
-- [Runtime Manager](../runtime-manager.md) -- `AgentRuntime`, `start_all()`, `run_forever()` and `shutdown()`
-- [Configuration](../configuration.md) -- `RuntimeConfig` and the other options
+- [Coordinator](coordinator.md): health monitoring, cluster status and remote operations
+- [Discovery and Transport](discovery-transport.md): the HTTP routes of every node and the discovery classes
+- [Runtime Manager](../runtime-manager.md): `AgentRuntime`, `start_all()`, `run_forever()` and `shutdown()`
+- [Configuration](../configuration.md): `RuntimeConfig` and the other options
 
 !!! tip "Learn the concept"
 
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- When one runtime with many processes is enough, and when to spread out.
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- How a runtime supervises long-running agents.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): When one runtime with many processes is enough, and when to spread out.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): How a runtime supervises long-running agents.

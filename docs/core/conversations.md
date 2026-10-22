@@ -5,16 +5,16 @@ description: "Persist agent conversation history across sessions with Postgres, 
 
 # Conversation Persistence
 
-Persist conversation history across sessions with pluggable database backends. Every chat application needs this — Promptise makes it one line of configuration.
+Persist conversation history across sessions with pluggable database backends. Every chat application needs this: Promptise makes it one line of configuration.
 
 ## Concepts
 
-The **conversation store** separates chat history from the agent. The agent remains stateless — the store handles loading, saving, and managing conversations. This means:
+The **conversation store** separates chat history from the agent. The agent remains stateless: the store handles loading, saving, and managing conversations. This means:
 
-- **Sessions are isolated** — each `session_id` has its own message history
-- **History survives restarts** — conversations persist in your database
-- **Backends are swappable** — switch from SQLite to PostgreSQL without changing application code
-- **Custom stores are trivial** — implement 4 async methods and you're done
+- **Sessions are isolated**: each `session_id` has its own message history
+- **History survives restarts**: conversations persist in your database
+- **Backends are swappable**: switch from SQLite to PostgreSQL without changing application code
+- **Custom stores are trivial**: implement 4 async methods and you're done
 
 **Conversation store vs. memory**: These serve different purposes and work together.
 
@@ -82,8 +82,8 @@ Requires: `pip install asyncpg`
 
 **Auto-created schema:**
 
-- `{prefix}sessions` — session metadata (id, user, title, timestamps)
-- `{prefix}messages` — messages with role, content, metadata, timestamps
+- `{prefix}sessions`: session metadata (id, user, title, timestamps)
+- `{prefix}messages`: messages with role, content, metadata, timestamps
 - Indexes on `(session_id, created_at)` and `(user_id, updated_at)`
 
 ### SQLiteConversationStore
@@ -123,7 +123,7 @@ Requires: `pip install redis`
 
 `agent.chat()` is the high-level interface. It handles the full cycle:
 
-1. **Ownership check** — verify session belongs to caller (when `user_id` or `caller` is provided)
+1. **Ownership check**: verify session belongs to caller (when `user_id` or `caller` is provided)
 2. Load history from store (by `session_id`)
 3. Build LangChain message list with history + new user message
 4. Invoke the agent (with memory injection, prompt context, etc.)
@@ -133,7 +133,7 @@ Requires: `pip install redis`
 ```python
 from promptise.conversations import generate_session_id
 
-# Always use generate_session_id() — never user-controlled or predictable IDs
+# Always use generate_session_id(): never user-controlled or predictable IDs
 sid = generate_session_id()  # "sess_a1b2c3d4e5f6..."
 
 # Multi-user: user_id enables ownership enforcement. It is shorthand for
@@ -146,10 +146,10 @@ response = await agent.chat(
     metadata={"source": "web", "ip": "1.2.3.4"},
 )
 
-# Same user, same session — works
+# Same user, same session: works
 response = await agent.chat("Follow up", session_id=sid, user_id="user-42")
 
-# Different user, same session — raises SessionAccessDenied
+# Different user, same session: raises SessionAccessDenied
 response = await agent.chat("Hack", session_id=sid, user_id="attacker")
 
 # With a per-call system prompt override
@@ -173,7 +173,7 @@ sid = generate_session_id()
 # First chat assigns ownership
 await agent.chat("Hello", session_id=sid, user_id="alice")
 
-# Alice can continue — same user
+# Alice can continue: same user
 await agent.chat("More", session_id=sid, user_id="alice")
 
 # Bob cannot access Alice's session
@@ -193,7 +193,7 @@ except SessionAccessDenied as e:
 | `user_id=None`, session exists | Access granted (no enforcement) |
 | `user_id` provided, session has no owner | Access granted (unowned) |
 
-Ownership is enforced on `chat()`, `delete_session()`, `update_session()`, and `get_session()`. The `list_sessions()` method filters by `user_id` at the database level — users only see their own sessions.
+Ownership is enforced on `chat()`, `delete_session()`, `update_session()`, and `get_session()`. The `list_sessions()` method filters by `user_id` at the database level: users only see their own sessions.
 
 ## Session Management
 
@@ -220,7 +220,7 @@ await agent.delete_session("sess_abc", user_id="user-42")
 
 ## Custom Stores
 
-Implement 5 data methods plus `close()`. The protocol is intentionally small — no auth logic in the store, just data:
+Implement 5 data methods plus `close()`. The protocol is intentionally small, no auth logic in the store, just data:
 
 ```python
 from promptise.conversations import ConversationStore, Message, SessionInfo
@@ -276,11 +276,11 @@ class MongoConversationStore:
         pass  # MongoDB client manages its own lifecycle
 ```
 
-The agent handles all authorization on top of your store. Your store just reads and writes data — it never needs to know about users or permissions.
+The agent handles all authorization on top of your store. Your store just reads and writes data: it never needs to know about users or permissions.
 
 ## Combining with Memory
 
-Conversation store and memory provider are orthogonal — use both:
+Conversation store and memory provider are orthogonal, use both:
 
 ```python
 from promptise import build_agent
@@ -308,17 +308,17 @@ response = await agent.chat("Continue where we left off", session_id="s1", user_
 
 **Session isolation:**
 
-- **Ownership enforcement** — when `user_id` is provided, the agent verifies session ownership before every read, write, delete, and update. `SessionAccessDenied` (a `PermissionError`) is raised on mismatch.
-- **Secure session IDs** — `generate_session_id()` creates 32-character hex tokens using `secrets.token_hex()`. Non-enumerable, unpredictable.
-- **Scoped listing** — `list_sessions(user_id=...)` filters at the database level, never exposing other users' sessions.
+- **Ownership enforcement**: when `user_id` is provided, the agent verifies session ownership before every read, write, delete, and update. `SessionAccessDenied` (a `PermissionError`) is raised on mismatch.
+- **Secure session IDs**: `generate_session_id()` creates 32-character hex tokens using `secrets.token_hex()`. Non-enumerable, unpredictable.
+- **Scoped listing**: `list_sessions(user_id=...)` filters at the database level, never exposing other users' sessions.
 
 **Data protection:**
 
-- **Table prefix validation** — SQL stores reject prefixes containing anything other than `[a-zA-Z0-9_]` to prevent SQL injection.
-- **Parameterized queries** — all user data passes through parameterized queries, never interpolated into SQL.
-- **Connection pooling** — PostgreSQL store uses `asyncpg` connection pools with configurable min/max.
-- **Lazy initialization** — database connections are created on first use, not at construction time.
-- **Store failures** — see [When the store fails](#when-the-store-fails).
+- **Table prefix validation**: SQL stores reject prefixes containing anything other than `[a-zA-Z0-9_]` to prevent SQL injection.
+- **Parameterized queries**: all user data passes through parameterized queries, never interpolated into SQL.
+- **Connection pooling**: PostgreSQL store uses `asyncpg` connection pools with configurable min/max.
+- **Lazy initialization**: database connections are created on first use, not at construction time.
+- **Store failures**: see [When the store fails](#when-the-store-fails).
 
 ## When the store fails
 
@@ -331,7 +331,7 @@ response = await agent.chat("Continue where we left off", session_id="s1", user_
 | Saving history (`save_messages`) | Logged (`Failed to save conversation history`); the reply is returned but this turn is not persisted. |
 | Assigning ownership of a new session (`update_session`) | Logged as a warning (`Failed to assign session ... to its user`); the reply is returned, and the session has no owner until one is assigned, so ownership is not enforced for it. |
 
-Handle the `RuntimeError` the way you handle any other unavailable dependency — for example, return HTTP 503 and let the client retry:
+Handle the `RuntimeError` the way you handle any other unavailable dependency, for example, return HTTP 503 and let the client retry:
 
 ```python
 from fastapi import HTTPException
@@ -349,8 +349,8 @@ except RuntimeError:
 
 | Symbol | Description |
 |--------|-------------|
-| `ConversationStore` | Protocol — implement this for custom backends |
-| `Message` | A single conversation message (role, content, metadata, timestamp) |
+| `ConversationStore` | Protocol: implement this for custom backends |
+| `Message` | A single conversation message: `role` (`user`, `assistant`, `system` or `tool`), `content`, `metadata` and `created_at`. Also exported from the top level as `promptise.ConversationMessage` |
 | `SessionInfo` | Session metadata (id, user, title, counts, timestamps) |
 | `SessionAccessDenied` | Raised when a user accesses a session they don't own |
 | `generate_session_id()` | Create a cryptographically secure session ID |
@@ -366,4 +366,4 @@ except RuntimeError:
 
 !!! tip "Learn the concept"
 
-    - [AI Agent Memory in Python: Short-Term and Long-Term](https://www.promptise.com/guides/view/ai-agent-memory-python) -- How session history differs from long-term memory.
+    - [AI Agent Memory in Python: Short-Term and Long-Term](https://www.promptise.com/guides/view/ai-agent-memory-python): How session history differs from long-term memory.

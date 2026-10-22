@@ -27,10 +27,11 @@ async def app_config() -> str:
     """Return application configuration."""
     return '{"version": "1.0.0"}'
 
-server.run()  # stdio transport by default
+if __name__ == "__main__":
+    server.run()  # stdio transport by default
 ```
 
-Run this file and any MCP-compatible client can discover and call the `add` tool. Parameters are validated automatically from the function signature and type hints.
+Run this file and any MCP-compatible client can discover and call the `add` tool. Parameters are validated automatically from the function signature and type hints: a call with a wrong or missing argument gets a validation error, and the handler does not run.
 
 ## Concepts
 
@@ -162,6 +163,20 @@ async def create_user(user: CreateUserRequest) -> dict:
 
 The `tags` parameter is metadata for categorisation and does not affect behaviour.
 
+Nested models would normally appear in the schema as `$ref` pointers into `$defs`. Many MCP clients can't resolve those, so the server inlines every reference before it lists the tool: the `inputSchema` clients receive has no `$ref` or `$defs`. The same helper is public as `dereference_schema(schema) -> dict`, for schemas you build yourself:
+
+```python
+from promptise.mcp.server import dereference_schema
+
+schema = {
+    "$defs": {"Addr": {"type": "object", "properties": {"city": {"type": "string"}}}},
+    "properties": {"address": {"$ref": "#/$defs/Addr"}},
+    "type": "object",
+}
+print(dereference_schema(schema))
+# {'properties': {'address': {'type': 'object', 'properties': {'city': {'type': 'string'}}}}, 'type': 'object'}
+```
+
 ### Tool-level options
 
 The `@server.tool()` decorator accepts several options:
@@ -190,11 +205,34 @@ async def delete_user(user_id: str) -> dict:
 ```
 
 Two more options carry server-wide invariants: `requires_approval=True`
-requires a human decision before every call — the server **refuses to build**
+requires a human decision before every call, and the server **refuses to build**
 unless an `ApprovalGateMiddleware` is installed (see
-[Approval Gates](approval-gates.md)) — and tenant access is enforced with the
+[Approval Gates](approval-gates.md)). Tenant access is enforced with the
 tenant guards or `MCPServer(require_tenant=True)` (see
 [Multi-Tenancy](multi-tenancy.md)).
+
+#### `@server.tool()` parameters
+
+| Parameter | Default | Description |
+|---|---|---|
+| `name` | function name | Tool name sent to clients |
+| `description` | docstring summary | See [How the description is chosen](#how-the-description-is-chosen) |
+| `tags` | `None` | Categorisation tags (used by routers, `TagFilterTransform`, the manifest) |
+| `auth` | `False` | Require an authenticated caller (needs an `AuthMiddleware`) |
+| `rate_limit` | `None` | `"<count>/<unit>"` with unit `s`/`sec`/`second`, `m`/`min`/`minute` or `h`/`hr`/`hour` (for example `"100/min"`). One bucket per authenticated client (and tenant), one shared bucket for anonymous callers; enforced with no extra middleware; a malformed string raises `ValueError` at registration |
+| `timeout` | `None` | Per-call timeout in seconds |
+| `guards` | `None` | Guards checked before the handler; a built-in identity guard implies `auth=True` |
+| `roles` | `None` | Shorthand for `guards=[HasRole(*roles)]`; implies `auth=True` |
+| `title` | `None` | MCP annotation: human-readable title |
+| `read_only_hint` | `None` | MCP annotation: the tool doesn't change state |
+| `destructive_hint` | `None` | MCP annotation: the tool may destroy data (such tools are never cached) |
+| `idempotent_hint` | `None` | MCP annotation: repeating a call has no further effect |
+| `open_world_hint` | `None` | MCP annotation: the tool talks to external systems |
+| `max_concurrent` | `None` | Per-tool concurrency cap; extra calls get a retryable error |
+| `requires_approval` | `False` | Human approval before every call (needs `ApprovalGateMiddleware`) |
+| `cache` | `True` | `False` keeps a server-wide `CacheMiddleware` from caching this tool |
+
+The five annotation parameters are sent to clients as the tool's MCP `annotations` (`title`, `readOnlyHint`, ...) only when at least one is set; they are hints, not enforcement. The registered definition is a `ToolDef` (with an `annotations` field of type `ToolAnnotations`), which you see in transforms and the manifest.
 
 ### Structured tool outputs
 
@@ -231,16 +269,21 @@ Supported return types:
 
 | Return type | Behaviour |
 |---|---|
-| `str`, `int`, `float`, etc. | Wrapped in `TextContent` |
-| `dict`, `list` (plain data) | JSON-serialised into `TextContent` |
-| `ImageContent(data, mime_type)` | Converted to MCP `ImageContent` (base64-encoded) |
+| `str`, `int`, `float`, etc. | `str(value)` in one `TextContent` |
+| `dict`, `list` (plain data) | JSON-serialised into `TextContent` (non-JSON values with `str()`) |
+| `None` | `TextContent` with the text `OK` |
+| `ImageContent(data, mime_type="image/png")` | Converted to MCP `ImageContent` (base64-encoded) |
 | `TextContent(type="text", text=...)` | Passed through as-is |
 | `EmbeddedResource(...)` | Passed through as-is |
 | Mixed `list` of the above | Each item serialised individually |
+| `ToolResponse(content, metadata={})` | `content` serialised as above; `metadata` stored in `ctx.state["response_metadata"]` for middleware and audit |
+
+!!! warning "Return Pydantic models as dicts"
+    A tool that returns a Pydantic model is serialised with `str()`, so the client receives `title='Dune' year=1965`, not JSON (a `list` of models becomes a JSON list of those strings). Return `model.model_dump(mode="json")` (or a list of them) to send JSON. Resources do serialise models as JSON.
 
 ## Registering Resources
 
-Resources expose read-only data at a fixed URI.
+Resources expose read-only data at a fixed URI. Signature: `@server.resource(uri, *, name=None, description=None, mime_type=None, tags=None, auth=False, roles=None, guards=None, rate_limit=None, timeout=None)`; `@server.resource_template(uri_template, ...)` takes the same options.
 
 ```python
 @server.resource("config://app")
@@ -290,7 +333,7 @@ A template without a catch-all is tried before one with a catch-all, so `docs://
 
 ## Registering Prompts
 
-Prompts are reusable templates that clients discover and render with arguments.
+Prompts are reusable templates that clients discover and render with arguments. Signature: `@server.prompt(name=None, *, description=None, tags=None, auth=False, roles=None, guards=None, rate_limit=None, timeout=None)`. To serve prompts built with the [Promptise prompt framework](../../prompting/index.md), use `server.include_prompts(my_prompt, MySuite(), registry)`: each becomes an MCP prompt whose arguments come from the function signature (descriptions from `Annotated[..., Field(description=...)]`, the `.prompt` file's `arguments`, or the placeholder name), rendered with `render_async()` (blocks, context providers, strategy and constraints applied).
 
 ```python
 @server.prompt()
@@ -388,9 +431,21 @@ server = MCPServer(
     instructions="Use the HR tools to manage employees.",  # Sent to clients on init
     auto_manifest=True,           # Register a manifest resource (default: True)
     shutdown_timeout=30.0,        # Graceful shutdown timeout in seconds
-    require_auth=False,           # Force auth=True on all tools
+    require_auth=False,           # Force auth=True on every tool, resource and prompt
 )
 ```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `name` | `"promptise-server"` | Server name advertised to clients |
+| `version` | `"0.1.0"` | Server version |
+| `instructions` | `None` | Instructions sent to clients in the `initialize` result |
+| `auto_manifest` | `True` | Register the `docs://manifest` resource |
+| `shutdown_timeout` | `30.0` | Seconds to wait for in-flight requests and shutdown hooks; `None` waits without limit |
+| `require_auth` | `False` | Force `auth=True` on every tool, resource and prompt, from every registration path |
+| `require_tenant` | `False` | Also add a `RequireTenant` guard everywhere (implies `require_auth`); see [Multi-Tenancy](multi-tenancy.md) |
+| `hide_unauthorized_tools` | `False` | Filter `tools/list`, `resources/list`, `resources/templates/list`, `prompts/list` and the manifest per caller |
+| `cancel_grace_period` | `5.0` | When a client cancels a call to a tool that takes a `CancellationToken`, seconds the handler gets to stop before its task is cancelled |
 
 ### ServerSettings for environment variables
 
@@ -498,6 +553,11 @@ if __name__ == "__main__":
 | `@server.on_shutdown` | Decorator | Register a shutdown hook |
 | `server.add_middleware(mw)` | Method | Add middleware to the chain |
 | `server.include_router(router)` | Method | Merge a router into the server |
+| `@server.middleware` | Decorator | Register a function middleware `async (ctx, call_next)` |
+| `@server.exception_handler(exc_type)` | Decorator | Map an exception type to an `MCPError` |
+| `server.include_prompts(*sources)` | Method | Serve Promptise `Prompt`s, suites or registries as MCP prompts |
+| `server.enable_token_endpoint(jwt_auth, clients, ...)` | Method | Dev/test OAuth2 token endpoint ([Auth](auth-security.md)) |
+| `server.notify_tools_changed()` (and resources, prompts) | Async method | Send a `list_changed` notification |
 | `server.run(transport, host, port)` | Method | Start the server (blocking) |
 | `server.asgi_app(transport, allowed_hosts, ...)` | Method | The server as an ASGI app for uvicorn / gunicorn |
 | `server.run_async(...)` | Method | Start the server (async) |
@@ -514,13 +574,13 @@ if __name__ == "__main__":
 
 ## What's Next?
 
-- [Routers & Middleware](routers-middleware.md) -- Organize tools into modules and add cross-cutting concerns
-- [Authentication & Security](auth-security.md) -- Secure your server with JWT, API keys, and guards
-- [Production Features](production-features.md) -- Add caching, rate limiting, health checks, and metrics
-- [Testing](testing.md) -- Test servers in-process with `TestClient`
-- [Step-by-Step Guide](../../guides/production-mcp-servers.md) -- Build a complete server incrementally
+- [Routers & Middleware](routers-middleware.md): Organize tools into modules and add cross-cutting concerns
+- [Authentication & Security](auth-security.md): Secure your server with JWT, API keys, and guards
+- [Production Features](production-features.md): Add caching, rate limiting, health checks, and metrics
+- [Testing](testing.md): Test servers in-process with `TestClient`
+- [Step-by-Step Guide](../../guides/production-mcp-servers.md): Build a complete server incrementally
 
 !!! tip "Learn the concept"
 
-    - [Build a Production MCP Server in Python (Step by Step)](https://www.promptise.com/guides/view/build-production-mcp-server-python) -- Build a server that real agents can use, step by step.
-    - [MCP Tools vs Resources vs Prompts (With Python Examples)](https://www.promptise.com/guides/view/mcp-tools-vs-resources-vs-prompts) -- When to expose a tool, a resource or a prompt.
+    - [Build a Production MCP Server in Python (Step by Step)](https://www.promptise.com/guides/view/build-production-mcp-server-python): Build a server that real agents can use, step by step.
+    - [MCP Tools vs Resources vs Prompts (With Python Examples)](https://www.promptise.com/guides/view/mcp-tools-vs-resources-vs-prompts): When to expose a tool, a resource or a prompt.

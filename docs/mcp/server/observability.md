@@ -57,12 +57,12 @@ server.run(transport="http", port=8080, dashboard=True)
 
 The dashboard shows 6 tabs (switch with 1-6 keys):
 
-1. **Overview** -- Server info, uptime, key metrics
-2. **Tools** -- Registered tools with per-tool call stats
-3. **Agents** -- Connected clients and session details
-4. **Logs** -- Scrolling request log
-5. **Metrics** -- Performance data and error breakdown
-6. **Raw Logs** -- Python logger output
+1. **Overview**: Server info, uptime, key metrics
+2. **Tools**: Registered tools with per-tool call stats
+3. **Agents**: Connected clients and session details
+4. **Logs**: Scrolling request log
+5. **Metrics**: Performance data and error breakdown
+6. **Raw Logs**: Python logger output
 
 ---
 
@@ -70,7 +70,7 @@ The dashboard shows 6 tabs (switch with 1-6 keys):
 
 ### When you need it
 
-Your MCP server is one piece of a larger system -- the agent calls your server, which calls a database, which calls a cache. When something is slow, you need to trace the entire request path across services.
+Your MCP server is one piece of a larger system: the agent calls your server, which calls a database, which calls a cache. When something is slow, you need to trace the entire request path across services.
 
 ### `OTelMiddleware`
 
@@ -109,8 +109,8 @@ Each tool call becomes a span with these attributes:
 
 The middleware also records:
 
-- **Histogram**: `mcp.tool.duration` -- call duration distribution
-- **Counter**: `mcp.tool.errors` -- error count by tool
+- **Histogram**: `mcp.tool.duration`: call duration distribution
+- **Counter**: `mcp.tool.errors`: error count by tool
 
 **Requires OpenTelemetry**: without `opentelemetry-api`, creating an `OTelMiddleware` raises `ImportError`. Install the packages with `pip install "promptise[all]"`, or on their own with `pip install opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp`. With the API installed but no provider configured (neither passed in nor set globally), OpenTelemetry's default no-op providers record nothing.
 
@@ -236,31 +236,28 @@ server = MCPServer(name="api")
 server.add_middleware(StructuredLoggingMiddleware())
 ```
 
-Every tool call emits a JSON log entry:
+`StructuredLoggingMiddleware(log_level=logging.INFO, *, include_args=False)` writes two JSON lines per request (tool call, resource read or prompt) to the `promptise.server` logger at `log_level`, one when it starts and one when it ends:
 
 ```json
-{
-  "event": "tool_call",
-  "tool": "search_employees",
-  "request_id": "a3f2b1",
-  "duration_ms": 45.2,
-  "status": "ok",
-  "timestamp": "2026-03-07T10:30:00Z"
-}
+{"event": "tool_call_start", "tool": "search_employees", "request_id": "a3f2b1c4d5e6", "client_id": "agent-hr"}
+{"event": "tool_call_end", "tool": "search_employees", "request_id": "a3f2b1c4d5e6", "duration_ms": 45.2, "status": "ok", "client_id": "agent-hr"}
 ```
 
-On error:
+On error, the end line has `"status": "error"` and `"error"` with the exception message:
 
 ```json
-{
-  "event": "tool_call",
-  "tool": "search_employees",
-  "request_id": "b4c3d2",
-  "duration_ms": 12.1,
-  "status": "error",
-  "error": "ConnectionError: database unreachable",
-  "timestamp": "2026-03-07T10:30:05Z"
-}
+{"event": "tool_call_end", "tool": "search_employees", "request_id": "b4c3d2e1f0a9", "duration_ms": 12.1, "status": "error", "error": "database unreachable"}
+```
+
+`client_id` is present only for authenticated callers (put the middleware after `AuthMiddleware` to see it). The lines carry no timestamp of their own: configure your log handler's formatter to add one. The message is the JSON text, so emit it as-is (for example with `logging.Formatter("%(message)s")`) for a log aggregator. `include_args` is accepted, but in 1.6.0 arguments are not logged.
+
+```python
+import logging
+
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter("%(message)s"))
+logging.getLogger("promptise.server").addHandler(handler)
+logging.getLogger("promptise.server").setLevel(logging.INFO)
 ```
 
 ---
@@ -269,18 +266,20 @@ On error:
 
 ### When you need it
 
-You need a tamper-evident record of every tool call -- who called what, when, with what arguments, and what happened -- so a security or incident reviewer can trace any action later. Some uses of AI are regulated in some places; ask your legal and compliance team what applies to you.
+You need a tamper-evident record of every tool call (who called what, when, with what arguments, and what happened) so a security or incident reviewer can trace any action later. Whether you need such a record is a question for your legal team.
 
 ### `AuditMiddleware`
 
 ```python
+import os
+
 from promptise.mcp.server import MCPServer, AuditMiddleware
 
 server = MCPServer(name="medical-records-api")
 server.add_middleware(AuditMiddleware(
     log_path="audit.jsonl",    # Write to file
     signed=True,               # HMAC chain for tamper detection
-    hmac_secret="your-secret", # Or set PROMPTISE_AUDIT_SECRET env var
+    hmac_secret=os.environ["PROMPTISE_AUDIT_SECRET"],  # or omit: read from that variable
     include_args=True,         # Log tool arguments
     include_result=False,      # Don't log results (may contain patient data)
 ))
@@ -309,7 +308,7 @@ Each entry in `audit.jsonl`:
 }
 ```
 
-When the caller authenticated with a JWT (e.g. [`JwksAuth`](auth-security.md#jwksauth) for an agent presenting an [IdP identity](../../identity/overview.md)), the entry carries an `identity` block with the verified `subject` / `issuer` / `audience` / `roles` — inside the HMAC chain, so *which agent did what* is both attributable and tamper-evident. Only these descriptors are recorded; the token and full claim set are never written to the log.
+When the caller authenticated with a JWT (e.g. [`JwksAuth`](auth-security.md#jwksauth) for an agent presenting an [IdP identity](../../identity/overview.md)), the entry carries an `identity` block with the verified `subject` / `issuer` / `audience` / `roles`: inside the HMAC chain, so *which agent did what* is both attributable and tamper-evident. Only these descriptors are recorded; the token and full claim set are never written to the log.
 
 ### Errors and denials
 
@@ -337,7 +336,7 @@ Count failed logins and permission denials with `error_code`, not with the class
 
 ### HMAC chain integrity
 
-Each entry's `hmac` is an HMAC-SHA256, under your key, over the entry's fields including `prev_hash` — the previous entry's `hmac` (64 zeros for the first entry) — and `seq`, the entry's position in the chain. Editing, deleting, inserting or reordering entries breaks the chain, and without the key nobody can sign a replacement.
+Each entry's `hmac` is an HMAC-SHA256, under your key, over the entry's fields including `prev_hash` (the previous entry's `hmac` (64 zeros for the first entry)) and `seq`, the entry's position in the chain. Editing, deleting, inserting or reordering entries breaks the chain, and without the key nobody can sign a replacement.
 
 The key must be one you keep: `hmac_secret=` or `PROMPTISE_AUDIT_SECRET`. A signed log file without either raises `ValueError` when the middleware is created, because a random per-process key would make the file impossible to verify. (Without `log_path`, the in-memory chain still falls back to a random key, with a warning.)
 
@@ -447,7 +446,7 @@ The log never contains the key, the caller's token or its full claim set. With `
 
 ### When you need it
 
-Your tool runs a multi-step process and you want the agent (or human watching) to see progress messages -- not just the final result.
+Your tool runs a multi-step process and you want the agent (or human watching) to see progress messages, not just the final result.
 
 ### `ServerLogger`
 
@@ -468,6 +467,7 @@ async def import_csv(
     await logger.info(f"Parsing {len(data)} rows...")
     rows = parse_csv(data)
 
+    skipped = sum(1 for r in rows if not r)
     await logger.warning(f"Skipped {skipped} invalid rows")
 
     await logger.info("Inserting into database...")
@@ -478,7 +478,7 @@ async def import_csv(
 
 Log messages are sent to the client via MCP's `notifications/message` protocol. The client can display them in real-time.
 
-Available log levels: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`.
+Available log levels: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`. Each is `await logger.<level>(data, *, logger=None)`; `data` can be any JSON-serialisable value and `logger=` names the source shown to the client. Outside a request bound to a client session (for example, called directly in a unit test), the calls do nothing.
 
 ---
 
@@ -487,6 +487,8 @@ Available log levels: `debug`, `info`, `notice`, `warning`, `error`, `critical`,
 A production server typically layers multiple observability tools:
 
 ```python
+import os
+
 from promptise.mcp.server import (
     MCPServer, AuthMiddleware, JWTAuth,
     MetricsCollector, MetricsMiddleware,
@@ -508,7 +510,7 @@ server.add_middleware(OTelMiddleware(                   # Distributed tracing
 ))
 server.add_middleware(PrometheusMiddleware())           # Prometheus metrics
 server.add_middleware(MetricsMiddleware(metrics))       # Built-in metrics
-server.add_middleware(AuthMiddleware(JWTAuth(...)))     # Auth (before tools)
+server.add_middleware(AuthMiddleware(JWTAuth(secret=os.environ["JWT_SECRET"])))  # Auth (before tools)
 
 metrics.register_resource(server)
 ```
@@ -524,7 +526,8 @@ metrics.register_resource(server)
 | `MetricsCollector.register_resource(server)` | Method | Expose `metrics://server` resource |
 | `OTelMiddleware(service_name, *, tracer_provider, meter_provider)` | Class | OpenTelemetry tracing middleware |
 | `PrometheusMiddleware(namespace, *, registry)` | Class | Prometheus metrics middleware |
-| `StructuredLoggingMiddleware()` | Class | JSON structured logging middleware |
+| `StructuredLoggingMiddleware(log_level=logging.INFO, *, include_args=False)` | Class | JSON structured logging middleware |
+| `DashboardState`, `DashboardMiddleware` | Classes | The data and middleware behind `run(dashboard=True)`; the server creates them for you |
 | `AuditMiddleware(log_path, signed, ...)` | Class | HMAC-chained audit log middleware |
 | `verify_audit_log(path, key, anchor=None)` | Function | Verify an audit log file; returns `AuditVerification` |
 | `ServerLogger` | Class | Send log messages to MCP client (via DI) |
@@ -532,10 +535,10 @@ metrics.register_resource(server)
 
 ## What's Next
 
-- [Caching & Performance](caching-performance.md) -- Cache, rate limit, concurrency control
-- [Resilience Patterns](resilience-patterns.md) -- Circuit breaker, health checks, webhooks
-- [Deployment](deployment.md) -- HTTP deployment, CORS, containers
+- [Caching & Performance](caching-performance.md): Cache, rate limit, concurrency control
+- [Resilience Patterns](resilience-patterns.md): Circuit breaker, health checks, webhooks
+- [Deployment](deployment.md): HTTP deployment, CORS, containers
 
 !!! tip "Learn the concept"
 
-    - [MCP Server Monitoring: Prometheus, OpenTelemetry and Logs](https://www.promptise.com/guides/view/mcp-server-monitoring-python) -- Metrics, logs, traces and alerts for slow, failing or abused tools.
+    - [MCP Server Monitoring: Prometheus, OpenTelemetry and Logs](https://www.promptise.com/guides/view/mcp-server-monitoring-python): Metrics, logs, traces and alerts for slow, failing or abused tools.

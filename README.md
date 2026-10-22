@@ -154,7 +154,7 @@ For people and teams who need their agentic systems to be accountable: who did w
 
 - **A real identity for each agent.** Agents authenticate as themselves to the APIs they call, backed by Microsoft Entra ID, AWS, Google Cloud, SPIFFE, or plain OIDC — so you can retire the shared API key, and every action traces to the person it acted for, even across agents calling agents. → [Agent Identity](https://docs.promptise.com/identity/overview/)
 
-- **Audit you can hand to a reviewer.** Every action is written to a tamper-evident chain, tied to the tenant and the user. Delete one tenant's data with a single call when they ask. → [Auth & Security](https://docs.promptise.com/mcp/server/auth-security/)
+- **Audit you can hand to a reviewer.** Every action is written to a tamper-evident chain, tied to the tenant and the user. Delete one user's cached answers, memories and recorded events with `purge_user()` when they ask. → [Auth & Security](https://docs.promptise.com/mcp/server/auth-security/)
 
 - **Runs offline.** The security models, embeddings, and vector store can all run locally — so the whole stack works air-gapped, for on-premises and regulated environments where data can't leave. → [Guardrails](https://docs.promptise.com/core/guardrails/) · [Model Setup](https://docs.promptise.com/getting-started/model-setup/)
 

@@ -1,5 +1,5 @@
 ---
-title: What is MCP? — Model Context Protocol explained for Python developers
+title: "What is MCP?: Model Context Protocol explained for Python developers"
 seo_title: "What Is MCP? Model Context Protocol Explained"
 description: "What the Model Context Protocol is, its tool, resource, prompt and sampling primitives, how it works, and how Promptise implements an MCP client and server."
 keywords: Model Context Protocol, MCP, MCP server, MCP client, MCP Python, what is MCP, MCP tutorial, MCP framework, agentic AI tools
@@ -16,10 +16,10 @@ If you've built agentic systems before, you know the pain: every tool integratio
 
 Before MCP, the agent ecosystem had four problems:
 
-1. **Bespoke tool wiring per framework** — LangChain tools, CrewAI tools, OpenAI function specs, Anthropic tool blocks. Each had its own format.
-2. **No transport standard** — some frameworks shipped HTTP, others stdio, others process-spawning. Hard to mix and match.
-3. **No security primitives** — auth, rate limits, audit trails were left to the developer.
-4. **No interactive primitives** — agents that need to ask the user for input mid-execution had no standard way to do it.
+1. **Bespoke tool wiring per framework**: LangChain tools, CrewAI tools, OpenAI function specs, Anthropic tool blocks. Each had its own format.
+2. **No transport standard**: some frameworks shipped HTTP, others stdio, others process-spawning. Hard to mix and match.
+3. **No security primitives**: auth, rate limits, audit trails were left to the developer.
+4. **No interactive primitives**: agents that need to ask the user for input mid-execution had no standard way to do it.
 
 MCP standardizes all of this. One protocol. One transport contract. One schema format. One auth pattern.
 
@@ -34,16 +34,16 @@ MCP standardizes all of this. One protocol. One transport contract. One schema f
 
 Plus two interactive primitives added in later spec revisions:
 
-- **Elicitation** — the server requests structured input from the user mid-execution
-- **Roots** — the server tells the client which filesystem paths it has access to
+- **Elicitation**: the server requests structured input from the user mid-execution
+- **Roots**: the server tells the client which filesystem paths it has access to
 
 ## How it works
 
 An MCP **client** (your agent) and an MCP **server** (your tool provider) speak JSON-RPC over one of three transports:
 
-- **stdio** — server runs as a subprocess; messages flow over stdin/stdout
-- **streamable HTTP** — single HTTP endpoint with bidirectional streaming
-- **SSE** — server-sent events for one-way streaming responses
+- **stdio**: server runs as a subprocess; messages flow over stdin/stdout
+- **streamable HTTP**: single HTTP endpoint with bidirectional streaming
+- **SSE**: server-sent events for one-way streaming responses
 
 The handshake:
 
@@ -60,21 +60,30 @@ That's it. The same flow works whether the server is a 50-line Python script or 
 Promptise Foundry is built on MCP from day one. **Tools are discovered, not wired.**
 
 ```python
+import asyncio
+import sys
 from promptise import build_agent
+from promptise.config import HTTPServerSpec, StdioServerSpec
 
-agent = build_agent(
-    model="openai:gpt-5-mini",
-    servers=[
-        "https://your-mcp-server.example.com",
-        "stdio:./local-server.py",
-    ],
-)
+async def main():
+    agent = await build_agent(
+        model="openai:gpt-5-mini",
+        servers={
+            "crm": HTTPServerSpec(url="https://your-mcp-server.example.com/mcp"),
+            "local": StdioServerSpec(command=sys.executable, args=["local_server.py"]),
+        },
+    )
+    result = await agent.ainvoke(
+        {"messages": [{"role": "user", "content": "What's in the customer database?"}]}
+    )
+    print(result["messages"][-1].content)
+    await agent.shutdown()
 
-answer = await agent.run("What's in the customer database?")
+asyncio.run(main())
 ```
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project — Promptise loads it automatically, in scripts and in the CLI — or pass it in code with `Model(...)` — explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 
 The agent connects to both servers, calls `tools/list`, and starts using the tools. No manual schema translation, no per-tool registration, no boilerplate.
 
@@ -82,12 +91,12 @@ The agent connects to both servers, calls `tools/list`, and starts using the too
 
 ### As a client
 
-- **`MCPClient`** — single-server connection
-- **`MCPMultiClient`** — N servers with unified tool list and auto-routing
-- **`MCPToolAdapter`** — converts MCP tools to LangChain `BaseTool` for interop
+- **`MCPClient`**: single-server connection
+- **`MCPMultiClient`**: N servers with unified tool list and auto-routing
+- **`MCPToolAdapter`**: converts MCP tools to LangChain `BaseTool` for interop
 - All three transports: stdio, HTTP, SSE
 - Bearer token + API key authentication
-- **No third-party MCP client dependencies** — built from scratch
+- **No third-party MCP client dependencies**: built from scratch
 
 ### As a server
 
@@ -106,7 +115,7 @@ async def search_database(query: str) -> list[dict]:
 
 Type hints become the JSON schema. Docstrings become the description. Decorators handle the protocol plumbing.
 
-And when the API already exists, you don't hand-write the server at all. `promptise mcpcast` reads its OpenAPI 3.x or Swagger 2 spec, classifies every operation's risk, curates a tool surface an agent can pick from correctly, and emits an editable MCP server — read-only unless you opt in, with writes, deletes and money-moving calls gated by human approval the server enforces. See [MCPcast an Existing API](../guides/mcpcast-existing-api.md).
+And when the API already exists, you don't hand-write the server at all. `promptise mcpcast` reads its OpenAPI 3.x or Swagger 2 spec, classifies every operation's risk, curates a tool surface an agent can pick from correctly, and emits an editable MCP server: read-only unless you opt in, with writes, deletes and money-moving calls gated by human approval the server enforces. See [MCPcast an Existing API](../guides/mcpcast-existing-api.md).
 
 Production features built in:
 
@@ -138,7 +147,7 @@ Production features built in:
 
 **Skip MCP when:**
 
-- You have one agent calling one private function — direct invocation is simpler
+- You have one agent calling one private function: direct invocation is simpler
 - You're prototyping and the JSON-RPC overhead doesn't pay off yet
 
 For everything else: MCP gives you a separation of concerns the LLM ecosystem has been missing.
@@ -157,6 +166,6 @@ For everything else: MCP gives you a separation of concerns the LLM ecosystem ha
 
 !!! tip "Learn the concept"
 
-    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol) -- A developer's walk through hosts, clients, servers, tools and transports.
-    - [MCP Tools vs Resources vs Prompts (With Python Examples)](https://www.promptise.com/guides/view/mcp-tools-vs-resources-vs-prompts) -- When to expose a tool, a resource or a prompt.
-    - [Topic hub: Tools and the Model Context Protocol (MCP)](https://www.promptise.com/guides/topics/tools-and-mcp) -- Every guide on building, connecting, securing and testing MCP servers.
+    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol): A developer's walk through hosts, clients, servers, tools and transports.
+    - [MCP Tools vs Resources vs Prompts (With Python Examples)](https://www.promptise.com/guides/view/mcp-tools-vs-resources-vs-prompts): When to expose a tool, a resource or a prompt.
+    - [Topic hub: Tools and the Model Context Protocol (MCP)](https://www.promptise.com/guides/topics/tools-and-mcp): Every guide on building, connecting, securing and testing MCP servers.

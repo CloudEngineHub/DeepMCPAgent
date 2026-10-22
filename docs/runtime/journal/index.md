@@ -69,6 +69,15 @@ Unknown keys are ignored with a `FutureWarning`.
 
 A failing journal backend is logged and never stops the process.
 
+The levels are also the `JournalLevel` enum (`promptise.runtime.journal.JournalLevel`, a `str` enum: `NONE`, `CHECKPOINT`, `FULL`), which `JournalConfig.level` accepts as well as the strings:
+
+```python
+from promptise.runtime import JournalConfig, JournalLevel
+
+config = JournalConfig(level=JournalLevel.FULL)
+print(config.level)  # full
+```
+
 ---
 
 ## Entry types
@@ -197,13 +206,13 @@ Backends implement the `JournalProvider` protocol: `append(entry)`, `read(proces
 
 ## What's Next
 
-- [Journal Backends](backends.md) -- `FileJournal`, `InMemoryJournal` and `RedactingJournal`
-- [Replay Engine](replay.md) -- how recovery rebuilds state from the journal
-- [Rewind](rewind.md) -- roll a process back to an earlier entry
-- [Configuration](../configuration.md) -- `JournalConfig` among the other options
-- [CLI Commands](../cli.md) -- `promptise runtime logs` and `promptise runtime rewind`
+- [Journal Backends](backends.md): `FileJournal`, `InMemoryJournal` and `RedactingJournal`
+- [Replay Engine](replay.md): how recovery rebuilds state from the journal
+- [Rewind](rewind.md): roll a process back to an earlier entry
+- [Configuration](../configuration.md): `JournalConfig` among the other options
+- [CLI Commands](../cli.md): `promptise runtime logs` and `promptise runtime rewind`
 
 !!! tip "Learn the concept"
 
-    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery) -- Journal progress and resume so side effects never run twice.
-    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs) -- What a process remembers between runs and how it is recorded.
+    - [Durable AI Agents: Crash Recovery and Safe Resume](https://www.promptise.com/guides/view/durable-ai-agent-crash-recovery): Journal progress and resume so side effects never run twice.
+    - [AI Agent State Between Runs: Context, Keys and Audit](https://www.promptise.com/guides/view/ai-agent-state-between-runs): What a process remembers between runs and how it is recorded.

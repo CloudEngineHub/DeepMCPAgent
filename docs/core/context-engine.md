@@ -5,7 +5,7 @@ description: "Assemble what the LLM sees from priority-ranked context layers, wi
 
 # Context Engine
 
-Unified context assembly with token budgeting. Controls exactly what the LLM sees, in what order, with how many tokens — and trims gracefully when the context window is tight.
+Unified context assembly with token budgeting. Controls exactly what the LLM sees, in what order, with how many tokens, and trims gracefully when the context window is tight.
 
 ```python
 from promptise import build_agent, ContextEngine
@@ -22,13 +22,13 @@ agent = await build_agent(
 
 ## Why
 
-Without the Context Engine, context is assembled ad-hoc — memory, strategies, prompt blocks, conversation history, and runtime context all inject independently with no coordination. If the total exceeds the model's context window, the LLM either errors out or silently truncates (often losing the user's message at the end).
+Without the Context Engine, context is assembled ad-hoc: memory, strategies, prompt blocks, conversation history, and runtime context all inject independently with no coordination. If the total exceeds the model's context window, the LLM either errors out or silently truncates (often losing the user's message at the end).
 
 The Context Engine:
 - **Knows the model's context window** (auto-detected or explicit)
 - **Counts tokens exactly** (tiktoken for OpenAI, estimation fallback)
 - **Assigns priorities** to every context layer
-- **Trims by priority** when budget exceeded — conversation history first, then memory, then strategies
+- **Trims by priority** when budget exceeded: conversation history first, then memory, then strategies
 - **Reports** per-layer token usage for debugging and optimization
 
 ---
@@ -89,13 +89,13 @@ Add domain-specific context at any priority level:
 ```python
 engine = ContextEngine(model="openai:gpt-5-mini")
 
-# Company knowledge — high priority, always included
+# Company knowledge: high priority, always included
 engine.add_layer("company_policy", priority=7, content="Never share customer data outside the company...", required=True)
 
-# Seasonal context — medium priority, may be trimmed if window is tight
+# Seasonal context: medium priority, may be trimmed if window is tight
 engine.add_layer("seasonal", priority=4, content="It's Q4 — focus on year-end reports.")
 
-# Background info — low priority, first to be trimmed
+# Background info: low priority, first to be trimmed
 engine.add_layer("background", priority=1, content="Historical context about the project...")
 ```
 
@@ -105,11 +105,11 @@ engine.add_layer("background", priority=1, content="Historical context about the
 
 When total context exceeds the token budget, the engine trims lowest-priority non-required layers first:
 
-1. **Conversation history** (priority 1) — oldest messages removed first, preserving user/assistant pairs
-2. **Strategies** (priority 2) — truncated from the end
-3. **Memory** (priority 3) — truncated from the end
-4. **Custom layers** — by their configured priority
-5. **Required layers** — NEVER trimmed
+1. **Conversation history** (priority 1): oldest messages removed first, preserving user/assistant pairs
+2. **Strategies** (priority 2): truncated from the end
+3. **Memory** (priority 3): truncated from the end
+4. **Custom layers**: by their configured priority
+5. **Required layers**: NEVER trimmed
 
 ```python
 report = engine.get_report()
@@ -269,10 +269,10 @@ engine.set_content("company_policy", "Never discuss competitor pricing.")
 
 ## What's Next?
 
-- [Memory](memory.md) — the recall layer that feeds into the engine
-- [Adaptive Strategy](adaptive-strategy.md) — the strategies layer
-- [Observability](observability.md) — track context usage alongside token costs
+- [Memory](memory.md): the recall layer that feeds into the engine
+- [Adaptive Strategy](adaptive-strategy.md): the strategies layer
+- [Observability](observability.md): track context usage alongside token costs
 
 !!! tip "Learn the concept"
 
-    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents) -- Context window management for long agent runs, with real token counts.
+    - [Context Engineering for AI Agents: Context Window Management](https://www.promptise.com/guides/view/context-engineering-ai-agents): Context window management for long agent runs, with real token counts.

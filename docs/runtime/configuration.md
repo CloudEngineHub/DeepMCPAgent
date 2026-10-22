@@ -55,8 +55,7 @@ Values are validated when the config is created: types, ranges, required trigger
 | Models | Unknown key |
 |---|---|
 | `ProcessConfig`, `TriggerConfig`, `TriggerDeliveryConfig`, `InboxConfig`, `HookConfig` | Rejected: `ValidationError` ("Extra inputs are not permitted") |
-| `OpenModeConfig`, `JournalConfig`, `ContextConfig`, `SecretScopeConfig`, `BudgetConfig`, `HealthConfig`, `MissionConfig`, `ToolCostAnnotation`, `EscalationTarget`, `DistributedConfig` | Ignored with a `FutureWarning` naming the key and the valid keys; a future release will reject them |
-| `RuntimeConfig` | Ignored |
+| `RuntimeConfig`, `OpenModeConfig`, `JournalConfig`, `ContextConfig`, `SecretScopeConfig`, `BudgetConfig`, `HealthConfig`, `MissionConfig`, `ToolCostAnnotation`, `EscalationTarget`, `DistributedConfig` | Ignored with a `FutureWarning` naming the key and the valid keys; a future release will reject them |
 
 ```python
 HealthConfig(error_windw=5)
@@ -435,14 +434,14 @@ Distributed mode (`RuntimeConfig.distributed`). With `enabled=True`, `AgentRunti
 
 ## What's next
 
-- [Agent Processes](processes.md) -- what the process does with these settings
-- [Agent Manifests](manifests.md) -- the same settings in a `.agent` YAML file
-- [Runtime Manager](runtime-manager.md) -- `AgentRuntime` and `RuntimeConfig`
-- [Triggers Overview](triggers/index.md) -- trigger types in detail
-- [Context](context.md) -- the state layer `ContextConfig` configures
+- [Agent Processes](processes.md): what the process does with these settings
+- [Agent Manifests](manifests.md): the same settings in a `.agent` YAML file
+- [Runtime Manager](runtime-manager.md): `AgentRuntime` and `RuntimeConfig`
+- [Triggers Overview](triggers/index.md): trigger types in detail
+- [Context](context.md): the state layer `ContextConfig` configures
 
 !!! tip "Learn the concept"
 
-    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime) -- Which settings turn an agent into a bounded, recoverable process.
-    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart) -- `restart_policy`, `max_restarts`, `restart_backoff`, `max_lifetime` and run timeouts in practice.
-    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents) -- `RuntimeConfig` with several processes in one runtime.
+    - [Autonomous AI Agent Runtime: Budgets, Crash Recovery, API](https://www.promptise.com/guides/view/autonomous-ai-agent-runtime): Which settings turn an agent into a bounded, recoverable process.
+    - [AI Agent Auto-Restart: Restart Policies and Timeouts](https://www.promptise.com/guides/view/ai-agent-auto-restart): `restart_policy`, `max_restarts`, `restart_backoff`, `max_lifetime` and run timeouts in practice.
+    - [Run Multiple AI Agents: One Runtime, Many Processes](https://www.promptise.com/guides/view/run-multiple-ai-agents): `RuntimeConfig` with several processes in one runtime.
