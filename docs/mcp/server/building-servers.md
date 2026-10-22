@@ -270,7 +270,8 @@ Supported return types:
 | Return type | Behaviour |
 |---|---|
 | `str`, `int`, `float`, etc. | `str(value)` in one `TextContent` |
-| `dict`, `list` (plain data) | JSON-serialised into `TextContent` (non-JSON values with `str()`) |
+| `dict`, `list` (plain data) | JSON-serialised into `TextContent` (Pydantic models inside become JSON objects, other non-JSON values `str()`) |
+| A Pydantic model | Its JSON (`model_dump(mode="json")`) in one `TextContent`, the same form a resource sends |
 | `None` | `TextContent` with the text `OK` |
 | `ImageContent(data, mime_type="image/png")` | Converted to MCP `ImageContent` (base64-encoded) |
 | `TextContent(type="text", text=...)` | Passed through as-is |
@@ -278,8 +279,21 @@ Supported return types:
 | Mixed `list` of the above | Each item serialised individually |
 | `ToolResponse(content, metadata={})` | `content` serialised as above; `metadata` stored in `ctx.state["response_metadata"]` for middleware and audit |
 
-!!! warning "Return Pydantic models as dicts"
-    A tool that returns a Pydantic model is serialised with `str()`, so the client receives `title='Dune' year=1965`, not JSON (a `list` of models becomes a JSON list of those strings). Return `model.model_dump(mode="json")` (or a list of them) to send JSON. Resources do serialise models as JSON.
+```python
+from pydantic import BaseModel
+
+class Book(BaseModel):
+    title: str
+    year: int
+
+@server.tool()
+async def get_book() -> Book:
+    return Book(title="Dune", year=1965)        # client receives {"title": "Dune", "year": 1965}
+
+@server.tool()
+async def list_books() -> list[Book]:
+    return [Book(title="Dune", year=1965)]      # [{"title": "Dune", "year": 1965}]
+```
 
 ## Registering Resources
 

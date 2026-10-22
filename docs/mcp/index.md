@@ -180,7 +180,7 @@ Build MCP servers with the patterns you know from web frameworks:
 | **Prometheus** | `PrometheusMiddleware` for standard metrics export |
 | **Structured logging** | `StructuredLoggingMiddleware` for JSON log output |
 | **Redis cache** | `RedisCache` distributed cache backend for multi-instance deployments |
-| **OpenAPI** | `promptise mcpcast` generates a curated server from an OpenAPI/Swagger spec ([MCPcast](server/mcpcast.md)); the older `OpenAPIProvider` has [known limits in 1.6.0](server/advanced-patterns.md#openapi-bridge) |
+| **OpenAPI** | `promptise mcpcast` generates a curated server from an OpenAPI/Swagger spec ([MCPcast](server/mcpcast.md)); `OpenAPIProvider` registers one tool per operation at startup ([OpenAPI bridge](server/advanced-patterns.md#openapi-bridge)) |
 | **Server composition** | `mount()` composes child servers into a gateway with prefixed tools |
 | **Hot reload** | `hot_reload()` watches files and restarts the server during development |
 | **CLI serve** | `promptise serve module:server` runs servers from the command line |

@@ -18,8 +18,8 @@ from __future__ import annotations
 import ipaddress
 import json
 import logging
-from typing import Any
-from urllib.parse import urlparse
+from typing import Any, Optional
+from urllib.parse import quote, urlparse
 
 logger = logging.getLogger("promptise.server")
 
@@ -182,8 +182,17 @@ class OpenAPIProvider:
             _validate_url_not_private(base)
 
         for path, methods in paths.items():
+            if "$ref" in methods:
+                methods = {**self._resolve_ref(methods["$ref"], spec), **methods}
+            # Path-level parameters apply to every operation on the path;
+            # an operation's own parameter with the same name and location
+            # replaces it.
+            path_params = [
+                self._resolve_ref(p["$ref"], spec) if "$ref" in p else p
+                for p in methods.get("parameters", []) or []
+            ]
             for method, operation in methods.items():
-                if method in ("parameters", "summary", "description", "$ref"):
+                if method.lower() not in _HTTP_METHODS or not isinstance(operation, dict):
                     continue
 
                 op_id = operation.get("operationId", f"{method}_{path}")
@@ -195,8 +204,17 @@ class OpenAPIProvider:
                 if op_id in self._exclude:
                     continue
 
+                params: dict[tuple[str, str], dict[str, Any]] = {}
+                for param in [*path_params, *(operation.get("parameters", []) or [])]:
+                    if "$ref" in param:
+                        param = self._resolve_ref(param["$ref"], spec)
+                    params[(param.get("name", ""), param.get("in", "query"))] = param
+                parameters = list(params.values())
+
                 # Build input schema from parameters and request body
-                input_schema = self._build_input_schema(operation, spec)
+                input_schema, locations = self._build_input_schema(
+                    {**operation, "parameters": parameters}, spec
+                )
 
                 ops.append(
                     {
@@ -207,7 +225,8 @@ class OpenAPIProvider:
                         "summary": operation.get("summary", ""),
                         "description": operation.get("description", ""),
                         "input_schema": input_schema,
-                        "parameters": operation.get("parameters", []),
+                        "parameters": parameters,
+                        "locations": locations,
                     }
                 )
 
@@ -215,39 +234,66 @@ class OpenAPIProvider:
 
     def _build_input_schema(
         self, operation: dict[str, Any], spec: dict[str, Any]
-    ) -> dict[str, Any]:
-        """Build a JSON Schema for the operation's inputs."""
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        """Build a JSON Schema for the operation's inputs.
+
+        Returns the schema (every ``$ref`` inlined) and where each argument
+        goes in the request: ``"path"``, ``"query"``, ``"header"``,
+        ``"cookie"``, ``"body"`` (one property of a JSON object body) or
+        ``"body:whole"`` (the whole body, as the ``body`` argument).
+        """
         properties: dict[str, Any] = {}
         required: list[str] = []
+        locations: dict[str, str] = {}
 
-        # Path + query + header params
+        # Path + query + header + cookie params
         for param in operation.get("parameters", []):
             if "$ref" in param:
                 param = self._resolve_ref(param["$ref"], spec)
             name = param.get("name", "")
-            schema = param.get("schema", {"type": "string"})
-            properties[name] = {
-                **schema,
-                "description": param.get("description", name),
-            }
-            if param.get("required", False):
+            location = param.get("in", "query")
+            if not name or name in properties:
+                continue
+            if location == "body":
+                # Swagger 2.x body parameter: the whole JSON body
+                schema = self._deref(param.get("schema", {}), spec)
+                properties[name] = {**schema, "description": param.get("description", name)}
+                locations[name] = "body:whole"
+            else:
+                # Swagger 2.x puts the type on the parameter itself
+                schema = param.get("schema") or {
+                    k: param[k] for k in ("type", "format", "items", "enum") if k in param
+                }
+                schema = self._deref(schema or {"type": "string"}, spec)
+                properties[name] = {**schema, "description": param.get("description", name)}
+                locations[name] = location
+            if param.get("required", False) or location == "path":
                 required.append(name)
 
         # Request body
         body = operation.get("requestBody", {})
+        if "$ref" in body:
+            body = self._resolve_ref(body["$ref"], spec)
         content = body.get("content", {})
         json_content = content.get("application/json", {})
-        body_schema = json_content.get("schema", {})
-        if "$ref" in body_schema:
-            body_schema = self._resolve_ref(body_schema["$ref"], spec)
+        body_schema = self._deref(json_content.get("schema", {}), spec)
 
         if body_schema.get("properties"):
             for k, v in body_schema["properties"].items():
+                if k in properties:
+                    logger.debug(
+                        "OpenAPI: body field %r clashes with a parameter of the same name; "
+                        "the parameter is kept",
+                        k,
+                    )
+                    continue
                 properties[k] = v
-            if body_schema.get("required"):
-                required.extend(body_schema["required"])
-        elif body_schema:
+                locations[k] = "body"
+            if body.get("required", False):
+                required.extend(r for r in body_schema.get("required", []) if r in locations)
+        elif body_schema and "body" not in properties:
             properties["body"] = body_schema
+            locations["body"] = "body:whole"
             if body.get("required", False):
                 required.append("body")
 
@@ -256,16 +302,31 @@ class OpenAPIProvider:
             "properties": properties,
         }
         if required:
-            result["required"] = required
-        return result
+            result["required"] = list(dict.fromkeys(required))
+        return result, locations
 
     def _resolve_ref(self, ref: str, spec: dict[str, Any]) -> dict[str, Any]:
         """Resolve a $ref pointer."""
         parts = ref.lstrip("#/").split("/")
         node: Any = spec
         for part in parts:
-            node = node.get(part, {})
+            node = node.get(part, {}) if isinstance(node, dict) else {}
         return dict(node) if isinstance(node, dict) else {}
+
+    def _deref(self, node: Any, spec: dict[str, Any], _seen: frozenset[str] = frozenset()) -> Any:
+        """Inline every local ``$ref`` in *node*, so clients get a self-contained schema."""
+        if isinstance(node, dict):
+            if "$ref" in node and isinstance(node["$ref"], str):
+                ref = node["$ref"]
+                if ref in _seen:
+                    return {"type": "object"}  # recursive schema: stop here
+                resolved = self._deref(self._resolve_ref(ref, spec), spec, _seen | {ref})
+                siblings = {k: self._deref(v, spec, _seen) for k, v in node.items() if k != "$ref"}
+                return {**resolved, **siblings}
+            return {k: self._deref(v, spec, _seen) for k, v in node.items()}
+        if isinstance(node, list):
+            return [self._deref(item, spec, _seen) for item in node]
+        return node
 
     def parse(self) -> list[dict[str, Any]]:
         """Parse the spec and return operations (does not register tools).
@@ -300,31 +361,35 @@ class OpenAPIProvider:
         return count
 
     def _register_tool(self, server: Any, op: dict[str, Any]) -> None:
-        """Register a single operation as an MCP tool."""
+        """Register a single operation as an MCP tool.
+
+        The tool's input schema is the operation's parameters and JSON body
+        from the spec; arguments are validated against it and sent where the
+        spec puts them (path, query, header, cookie or body).
+        """
+        from dataclasses import replace
+
+        from ._decorators import build_tool_def
+        from ._types import ToolAnnotations
+
         tool_name = f"{self._prefix}{op['operation_id']}"
         description = op.get("summary") or op.get("description") or tool_name
         method = op["method"]
         path = op["path"]
         base_url = op["base_url"]
         auth_header = self._auth_header
+        locations: dict[str, str] = op.get("locations", {})
+        input_schema: dict[str, Any] = op["input_schema"]
 
-        from ._types import ToolAnnotations
-
-        _annotations = ToolAnnotations(  # noqa: F841 — reserved for future use
+        annotations = ToolAnnotations(
             title=description[:50] if len(description) > 50 else description,
-            read_only_hint=method == "GET",
+            read_only_hint=method in ("GET", "HEAD"),
             destructive_hint=method == "DELETE",
-            idempotent_hint=method in ("GET", "PUT", "DELETE"),
+            idempotent_hint=method in ("GET", "HEAD", "PUT", "DELETE"),
+            open_world_hint=True,
         )
 
-        # Create a handler that makes the HTTP request
-        async def handler(
-            _method=method,
-            _base=base_url,
-            _path=path,
-            _auth=auth_header,
-            **kwargs: Any,
-        ) -> dict[str, Any]:
+        async def handler(**arguments: Any) -> Any:
             try:
                 import httpx
             except ImportError:
@@ -332,40 +397,114 @@ class OpenAPIProvider:
                     "httpx is required for OpenAPI tools. Install with: pip install httpx"
                 )
 
-            # Separate path params from body/query
-            url = f"{_base}{_path}"
-            for key, value in list(kwargs.items()):
-                placeholder = f"{{{key}}}"
-                if placeholder in url:
-                    url = url.replace(placeholder, str(value))
-                    del kwargs[key]
-
-            headers = {}
-            if _auth:
-                headers[_auth[0]] = _auth[1]
-
-            async with httpx.AsyncClient(timeout=30) as client:
-                if _method in ("GET", "HEAD", "DELETE"):
-                    resp = await client.request(_method, url, params=kwargs, headers=headers)
+            url_path = path
+            query: dict[str, Any] = {}
+            headers: dict[str, str] = {}
+            cookies: dict[str, str] = {}
+            json_body: Any = None
+            body_fields: dict[str, Any] = {}
+            for key, value in arguments.items():
+                location = locations.get(key, "query" if method in _NO_BODY else "body")
+                if value is None and location in ("path", "query", "header", "cookie"):
+                    continue  # an explicit null: send nothing
+                if location == "path":
+                    url_path = url_path.replace(f"{{{key}}}", quote(_as_text(value), safe=""))
+                elif location == "query":
+                    query[key] = value
+                elif location == "header":
+                    headers[key] = _as_text(value)
+                elif location == "cookie":
+                    cookies[key] = _as_text(value)
+                elif location == "body:whole":
+                    json_body = value
                 else:
-                    resp = await client.request(_method, url, json=kwargs, headers=headers)
+                    body_fields[key] = value
+            if body_fields:
+                json_body = (
+                    {**json_body, **body_fields} if isinstance(json_body, dict) else body_fields
+                )
+            if auth_header:
+                headers[auth_header[0]] = auth_header[1]
 
+            async with httpx.AsyncClient(timeout=30, cookies=cookies or None) as client:
+                resp = await client.request(
+                    method,
+                    f"{base_url}{url_path}",
+                    params=query or None,
+                    headers=headers,
+                    json=json_body,
+                )
                 try:
                     return resp.json()
                 except Exception:
                     return {"status": resp.status_code, "body": resp.text}
 
-        # Use a factory to create unique handler with proper name
         handler.__name__ = tool_name
         handler.__doc__ = description
 
-        @server.tool(
-            name=tool_name,
-            description=description,
-            tags=self._tags,
+        tool_def = replace(
+            build_tool_def(
+                handler,
+                name=tool_name,
+                description=description,
+                tags=list(self._tags),
+                auth=bool(getattr(server, "_require_auth", False)),
+                annotations=annotations,
+            ),
+            input_schema=input_schema,
         )
-        async def _tool(**kwargs: Any) -> dict[str, Any]:
-            return await handler(**kwargs)
+        server._tool_registry.register(tool_def)
+        server._input_models[tool_name] = _arguments_model(tool_name, input_schema)
 
-        # Override the handler name for the registered tool
-        _tool.__name__ = tool_name
+
+_HTTP_METHODS = frozenset({"get", "put", "post", "delete", "options", "head", "patch", "trace"})
+_NO_BODY = frozenset({"GET", "HEAD", "DELETE", "OPTIONS", "TRACE"})
+
+
+def _as_text(value: Any) -> str:
+    """A path, header or cookie value as text (JSON booleans, not ``True``)."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (dict, list)):
+        return json.dumps(value)
+    return str(value)
+
+
+def _arguments_model(tool_name: str, schema: dict[str, Any]) -> type[Any]:
+    """A Pydantic model that validates a call against the operation's schema.
+
+    Property names come from the spec and need not be Python identifiers
+    (``X-Request-Id``, ``page[size]``), so each field gets a safe name and
+    the spec name as its alias.  Validated arguments are passed on as JSON
+    under the spec names, with only the arguments the caller gave (the API
+    applies its own defaults).
+    """
+    from pydantic import BaseModel, ConfigDict, Field, create_model
+
+    from promptise.tools import _schema_to_annotation
+
+    properties: dict[str, Any] = schema.get("properties", {}) or {}
+    required = set(schema.get("required", []) or [])
+    fields: dict[str, Any] = {}
+    for index, (prop_name, prop_schema) in enumerate(properties.items()):
+        prop_schema = prop_schema or {}
+        annotation: Any = _schema_to_annotation(prop_schema, {}, f"{tool_name}_arg{index}")
+        description = prop_schema.get("description")
+        if prop_name in required:
+            field = Field(..., alias=prop_name, description=description)
+        else:
+            field = Field(default=None, alias=prop_name, description=description)
+            annotation = Optional[annotation]
+        fields[f"arg_{index}"] = (annotation, field)
+
+    def _dump(instance: BaseModel) -> dict[str, Any]:
+        return instance.model_dump(mode="json", by_alias=True, exclude_unset=True)
+
+    model = create_model(  # type: ignore[call-overload]
+        f"{tool_name}_Arguments",
+        __config__=ConfigDict(populate_by_name=False),
+        **fields,
+    )
+    model.__promptise_has_models__ = False
+    model.__promptise_dump_arguments__ = staticmethod(_dump)
+    return model  # type: ignore[no-any-return]

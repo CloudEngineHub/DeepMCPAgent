@@ -208,10 +208,27 @@ mount(gateway, users, prefix="usr", tags=["user-management"])
 
 You have an existing REST API with an OpenAPI (or Swagger 2) spec and want agents to call it through MCP.
 
-!!! warning "Use MCPcast for OpenAPI in 1.6.0"
-    `OpenAPIProvider` registers one tool per operation, but in 1.6.0 the generated tools are not usable: their input schema is a single required `kwargs` field instead of the operation's parameters, so a call with the real arguments fails with `VALIDATION_ERROR`, and the method-based annotations are not attached. Use [MCPcast](mcpcast.md) (`promptise mcpcast ./openapi.yaml`), which generates a typed, curated server from the same spec.
+`OpenAPIProvider` registers one tool per operation. Each tool's input schema is the operation's parameters (path-level ones included) plus its JSON request body, with every `$ref` inlined; calls are validated against it and each argument is sent where the spec puts it: path (URL-encoded), query, header, cookie or body. Arguments the caller leaves out are not sent, so the API applies its own defaults.
 
-`OpenAPIProvider(spec, *, base_url=None, prefix="", include=None, exclude=None, auth_header=None, tags=None)` and `provider.register(server) -> int` (the number of tools) remain available:
+```python
+import os
+
+from promptise.mcp.server import MCPServer, OpenAPIProvider
+
+server = MCPServer(name="petstore-bridge")
+provider = OpenAPIProvider(
+    "./openapi.json",
+    prefix="pets_",
+    auth_header=("Authorization", "Bearer " + os.environ["PETSTORE_TOKEN"]),
+)
+count = provider.register(server)   # one tool per operation
+```
+
+Annotations come from the HTTP method: `GET`/`HEAD` are read-only, `DELETE` is destructive, `GET`/`HEAD`/`PUT`/`DELETE` are idempotent, and every tool has `open_world_hint=True`; the title is the operation's summary. A JSON object body contributes its properties as arguments (a parameter with the same name wins); any other JSON body (an array, a string) is the single `body` argument. Only `application/json` bodies are mapped. The tool returns the response's JSON, or `{"status": ..., "body": ...}` when the response is not JSON, whatever the status code.
+
+For a curated, typed server (descriptions written for agents, selected operations, generated tests), use [MCPcast](mcpcast.md) (`promptise mcpcast ./openapi.yaml`) instead.
+
+`OpenAPIProvider(spec, *, base_url=None, prefix="", include=None, exclude=None, auth_header=None, tags=None)` and `provider.register(server) -> int` (the number of tools):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -790,7 +807,7 @@ The current directory is put on `sys.path`, so `promptise serve server:server` f
 | `TagFilterTransform(required_tags)` | Class | Keep tools with at least one of the tags |
 | `ToolDef` | Dataclass | A registered tool: `name`, `description`, `handler`, `input_schema`, `tags`, `auth`, `rate_limit`, `timeout`, `guards`, `roles`, `router_middleware`, `annotations`, `max_concurrent`, `requires_approval`, `cache` |
 | `mount(parent, child, prefix, tags)` | Function | Compose servers |
-| `OpenAPIProvider(spec, ...)` | Class | Generate tools from OpenAPI (see the warning above; prefer MCPcast) |
+| `OpenAPIProvider(spec, ...)` | Class | One tool per OpenAPI operation, with the spec's input schema |
 | `register_batch_tool(server, ...)` | Function | Parallel batch execution |
 | `StreamingResult` | Class | Incremental result collection |
 | `Elicitor` | Class | Ask user for input mid-execution (via DI) |

@@ -50,8 +50,9 @@ from mcp.types import (
 from mcp.types import (
     ToolAnnotations as MCPToolAnnotations,
 )
+from pydantic import BaseModel
 
-from . import _sdk
+from . import _dispatch, _sdk
 from ._context import RequestContext, _current_context, clear_context, set_context
 from ._decorators import build_prompt_def, build_resource_def, build_tool_def
 from ._di import DependencyResolver
@@ -1805,8 +1806,6 @@ class MCPServer:
 
         @_sdk.handler(ll, "read_resource")
         async def read_resource(uri: AnyUrl) -> list[ReadResourceContents]:
-            from . import _dispatch
-
             session = note_session(ll)
             headers = _request_headers(ll)
             try:
@@ -1850,8 +1849,6 @@ class MCPServer:
 
         @_sdk.handler(ll, "get_prompt")
         async def get_prompt(name: str, arguments: dict[str, str] | None) -> GetPromptResult:
-            from . import _dispatch
-
             session = note_session(ll)
             headers = _request_headers(ll)
             try:
@@ -1876,6 +1873,8 @@ def _serialise_result(result: Any) -> list[TextContent | MCPImageContent | MCPEm
     Supports:
     - ``str`` → ``TextContent``
     - ``dict`` / ``list`` → JSON-serialised ``TextContent``
+    - a Pydantic model → its JSON (``model_dump(mode="json")``); models
+      inside a ``dict`` or ``list`` become JSON objects too, as in resources
     - ``ImageContent`` → ``MCPImageContent`` (base64-encoded)
     - ``MCPImageContent`` / ``MCPEmbeddedResource`` / ``TextContent`` → pass-through
     - ``list`` of the above → mixed content
@@ -1918,10 +1917,10 @@ def _serialise_result(result: Any) -> list[TextContent | MCPImageContent | MCPEm
                     items.append(TextContent(type="text", text=str(item)))
             return items
         # Plain data list → JSON
-        return [TextContent(type="text", text=json.dumps(result, default=str))]
+        return [TextContent(type="text", text=_dispatch.dumps_json(result))]
 
-    if isinstance(result, dict):
-        return [TextContent(type="text", text=json.dumps(result, default=str))]
+    if isinstance(result, (dict, BaseModel)):
+        return [TextContent(type="text", text=_dispatch.dumps_json(result))]
     if result is None:
         return [TextContent(type="text", text="OK")]
     return [TextContent(type="text", text=str(result))]
