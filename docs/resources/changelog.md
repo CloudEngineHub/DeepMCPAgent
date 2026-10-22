@@ -9,7 +9,7 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
-## v1.7.0 — Unreleased
+## v1.7.0 — 2026-10-23
 
 ### Added
 
