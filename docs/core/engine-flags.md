@@ -10,7 +10,7 @@ Every node in a Reasoning Graph declares its capabilities and behaviors through 
 ## Using Flags
 
 ```python
-from promptise.engine import PromptNode, NodeFlag
+from promptise.engine import GraphState, NodeFlag, NodeResult, PromptNode, node
 
 # Set flags on any node
 PromptNode("analyze",
@@ -19,9 +19,9 @@ PromptNode("analyze",
 )
 
 # Functional nodes support flags too
-@node("validate", flags={NodeFlag.VALIDATE_OUTPUT, NodeFlag.RETRYABLE})
+@node("validate", flags={NodeFlag.RETRYABLE})
 async def validate(state: GraphState) -> NodeResult:
-    ...
+    return NodeResult(output={"ok": True})
 
 # Check flags at runtime (@node returns a node object)
 if validate.has_flag(NodeFlag.RETRYABLE):
@@ -34,49 +34,49 @@ if validate.has_flag(NodeFlag.RETRYABLE):
 
 | Flag | Engine Behavior |
 |------|----------------|
-| `ENTRY` | Marks the graph's starting node. Set via `is_entry=True`. |
-| `TERMINAL` | Reaching this node can end the graph. Set via `is_terminal=True`. |
-| `CRITICAL` | If this node errors, the engine **aborts the entire graph** immediately. The error is captured in `ExecutionReport.error` and `ainvoke()` raises `GraphExecutionError` (the node's exception is its `__cause__`). |
-| `SKIP_ON_ERROR` | If the **previous** node produced an error, this node is skipped entirely. Useful for optional enrichment steps. |
-| `RETRYABLE` | On failure, the engine retries this node with exponential backoff (0.5s, 1s, 2s...) up to `max_iterations` times. Between retries, `state.context["_retry_error"]` contains the last error so the node can adapt. |
-| `REQUIRES_HUMAN` | Flags `state.context["_awaiting_human"]` with the node name. The node still executes, but downstream consumers can check this flag to pause for human input. |
+| `ENTRY` | Marks the starting node. Set via `is_entry=True`. Read by `PromptGraph(nodes=[...])` (the first such node becomes the entry) and by `from_pool()` / `build_agent(node_pool=...)` (the pool's first step). A node added later with `add_node()` needs `set_entry()`. |
+| `TERMINAL` | Set via `is_terminal=True`. Only an `AutonomousNode` pool reads it: a terminal step that succeeds ends the autonomous loop and writes the answer. In a static graph it does nothing; end a path with `default_next="__end__"` or an edge to `"__end__"`. |
+| `CRITICAL` | If this node errors, the engine **aborts the run** right away: post-node hooks, mutations and transitions are skipped, the stream gets `on_node_error` with `critical: True`, `ExecutionReport.error` is set, and `ainvoke()` raises `GraphExecutionError` (the node's exception is its `__cause__`). |
+| `SKIP_ON_ERROR` | If the **previous** node's result has an `error` (including a note a hook wrote, such as a `TimingHook` overrun), this node does not run: its result is empty with `transition_reason="skipped_on_error"`, and the transitions are resolved from that. Useful for optional enrichment steps. |
+| `RETRYABLE` | On failure (a result with an `error`, or an exception), the engine runs the node again, up to `max_iterations` attempts in total (default 10), waiting `min(0.5 * 2**n, 8)` seconds between attempts (0.5s, 1s, 2s, 4s, 8s, 8s...). Before each retry `state.context["_retry_attempt"]` and `["_retry_error"]` are set, so the node can adapt; both are removed afterwards. The attempts run through `execute()`, so a streamed run gets no token chunks from a `RETRYABLE` node. |
+| `REQUIRES_HUMAN` | Sets `state.context["_awaiting_human"]` to the node name and awaits `on_human_required(node_name, state)` on every hook that has it, before the node runs. The node still executes; the flag does not pause anything by itself. An exception in `on_human_required` is not caught and ends the run. For a real approval step, use [`HumanNode`](engine-nodes.md#humannode). |
 
 ### Context & Memory
 
 | Flag | Engine Behavior |
 |------|----------------|
-| `NO_HISTORY` | The engine strips all conversation messages before execution, keeping only the system message. After the node runs, original messages are restored (plus any new messages the node added). |
-| `ISOLATED_CONTEXT` | The node runs with a clean `state.context` containing only its `input_keys` data. After execution, the original context is restored and only `output_key` is merged back. Prevents context pollution between nodes. |
-| `CACHEABLE` | The engine caches the node's `NodeResult` keyed on `node.name + input_keys values`. On subsequent visits with the same inputs, the cached result is returned without re-executing. |
+| `NO_HISTORY` | Before the node runs, the engine keeps only the first message when it is a system message (no messages otherwise). Afterwards the original messages are restored, plus the messages the node added. The node then sees no user question, so give it what it needs through `input_keys` or `inherit_context_from`. |
+| `ISOLATED_CONTEXT` | The node runs with a `state.context` holding only its `input_keys` (empty when it has none). Afterwards the original context is restored, and only the node's `output_key` and `{name}_output` values are merged back. |
+| `CACHEABLE` | Within one run, a second visit to the node with the same `input_keys` values returns the first visit's result (output, raw output and `next_node`; no new messages or tool calls) without executing. The key is the node name plus the `input_keys` values (only the name for a node without `input_keys`). The cache lives in `state.context["_node_cache"]`, holds up to 128 results, skips results with an error, and starts empty on every run, so it never carries results between runs. |
 
 ### Model Selection
 
 | Flag | Engine Behavior |
 |------|----------------|
-| `INJECT_TOOLS` | The node receives all MCP tools discovered by `build_agent()` at runtime. Set via `inject_tools=True` on PromptNode. |
-| `LIGHTWEIGHT` | If the node has no `model_override` and the engine was created with a `lightweight_model`, the engine swaps to that model for this node. Use for routing, classification, or simple analysis where a smaller model suffices. |
+| `INJECT_TOOLS` | A `PromptNode` receives the engine's tools at runtime (the tools `build_agent()` discovered, or `PromptGraphEngine(tools=...)`) on top of its own. Set via `inject_tools=True`. Other node types ignore it. |
+| `LIGHTWEIGHT` | If the node has no `model_override` and the engine was created with a `lightweight_model`, the engine swaps to that model for this node. `build_agent` creates the engine without one, so in an agent the flag has no effect; use `model_override` there. `ThinkNode` has this flag by default. |
 
 ### Observability
 
 | Flag | Engine Behavior |
 |------|----------------|
-| `OBSERVABLE` | Emits an additional `on_node_metrics` event to hooks with timing, token count, and tool call stats. |
-| `VERBOSE` | Logs the full raw output at DEBUG level. Use for audit-critical nodes. |
+| `OBSERVABLE` | After the node runs, awaits `on_observable_event(event, state)` on every hook that has it, with a `NodeEvent(event="on_node_metrics", data={node_name, duration_ms, total_tokens, tool_calls, error})`. `duration_ms` is the node's own measurement (the engine's timing is set afterwards), and an exception in the hook is not caught. |
+| `VERBOSE` | Logs the first 2,000 characters of the raw output at DEBUG level on the `promptise.engine` logger. |
 
 ### Output Processing
 
 | Flag | Engine Behavior |
 |------|----------------|
-| `SUMMARIZE_OUTPUT` | If `raw_output` exceeds 1000 characters, the engine calls the LLM to produce a concise summary. Preserves key facts, numbers, and conclusions while removing redundancy. |
-| `VALIDATE_OUTPUT` | Validates `result.output` against the node's `output_schema` (Pydantic model or dict). Validation errors are added to `result.guards_failed`. |
+| `SUMMARIZE_OUTPUT` | If `raw_output` is longer than 1,000 characters, the engine makes one extra model call (the engine's model) to summarize it and replaces `NodeResult.raw_output` with the summary. The conversation, `output` and `state.context["{name}_output"]` keep the full text, so it mainly shortens what hooks and reports see. A failed summary call is logged and ignored. |
+| `VALIDATE_OUTPUT` | Validates `result.output` against the node's `output_schema` (a Pydantic model, or a dict whose keys must be present). Problems are added to `result.guards_failed` (an `on_guard_fail` edge can route on them); a pass adds `"output_schema_validation"` to `guards_passed`. Does nothing without an `output_schema` or with a `None` output. |
 
 ### Concurrency & State
 
 | Flag | Engine Behavior |
 |------|----------------|
-| `READONLY` | Declares that this node only reads state, never writes. Used by ParallelNode and the engine to determine safe concurrent execution. |
-| `STATEFUL` | Declares that this node modifies `state.context`. Used for dependency tracking. |
-| `PARALLEL_SAFE` | Declares that this node can run concurrently with other `PARALLEL_SAFE` nodes. |
+| `READONLY` | Declares that this node only reads state. Informational: the engine does not act on it (hooks and your own code can, with `node.has_flag()`). |
+| `STATEFUL` | Declares that this node writes `state.context`. Informational. |
+| `PARALLEL_SAFE` | Declares that this node can run concurrently. Informational: `ParallelNode` and `FanOutNode` run their children concurrently whatever their flags. |
 
 ## Pre-built Reasoning Node Flags
 
@@ -87,7 +87,7 @@ Each reasoning node ships with sensible default flags:
 | ThinkNode | `READONLY`, `LIGHTWEIGHT` | Pure reasoning, no state writes, smaller model sufficient |
 | ReflectNode | `STATEFUL`, `OBSERVABLE` | Writes reflections to state, worth logging |
 | ObserveNode | `STATEFUL` | Writes entities/facts to state.context |
-| JustifyNode | `READONLY`, `OBSERVABLE`, `VERBOSE` | Audit trail — full logging matters |
+| JustifyNode | `READONLY`, `OBSERVABLE`, `VERBOSE` | Audit trail, full logging matters |
 | CritiqueNode | `READONLY`, `OBSERVABLE` | Pure analysis, severity worth logging |
 | PlanNode | `STATEFUL`, `OBSERVABLE` | Writes to state.plan |
 | SynthesizeNode | `OBSERVABLE` | Final output, important to capture |
@@ -127,3 +127,9 @@ engine = PromptGraphEngine(
     lightweight_model=small_model,  # Used for LIGHTWEIGHT nodes
 )
 ```
+
+Flags are processed in this order around a node: `SKIP_ON_ERROR`, `CACHEABLE`
+(lookup), `NO_HISTORY`, `ISOLATED_CONTEXT`, `LIGHTWEIGHT`, `REQUIRES_HUMAN`;
+then the node runs (with `RETRYABLE` retries); then the restores, `CACHEABLE`
+(store), `VERBOSE`, `OBSERVABLE`, `SUMMARIZE_OUTPUT`, `VALIDATE_OUTPUT`;
+then `CRITICAL`. A skipped or cached node gets none of the post-execute steps.

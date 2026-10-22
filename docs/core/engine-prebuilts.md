@@ -5,7 +5,17 @@ description: "Ten ready-made reasoning graphs: ReAct, verify, managed, code-acti
 
 # Prebuilt Reasoning Patterns
 
-Ten ready-to-use reasoning patterns. Each factory function returns a configured `PromptGraph`. Use as `agent_pattern` in `build_agent()` or pass directly to `PromptGraphEngine`.
+Ten ready-to-use reasoning patterns: nine you can name with `build_agent(agent_pattern="...")` and `PromptGraph.pipeline(...)`, which takes your nodes. Each factory is a static method on `PromptGraph` that returns a configured graph; pass it as `agent_pattern` to `build_agent()` or run it with `PromptGraphEngine`.
+
+With a pattern name, `build_agent` passes its tools, its system prompt (`instructions`) and `graph_blocks` to the factory (for `research`, the tools become `search_tools`; for `code-action`, the `code_action=` settings and a sandbox factory are added). With no `agent_pattern` at all, the default ReAct graph gets the tools and system prompt but not `graph_blocks`; pass `agent_pattern="react"` to apply them. An unknown name raises `ValueError`.
+
+!!! note "Node budgets above 25"
+    The engine caps every node at `max_node_iterations` (25), and `build_agent`
+    does not change that cap. A budget a factory sets above it (such as
+    `managed`'s `max_node_iterations=30`) runs as 25 under `build_agent`; run the
+    graph with `PromptGraphEngine(..., max_node_iterations=30)` to use it all.
+    The whole run is also capped by `build_agent(max_agent_iterations=...)`
+    (default 25 node executions).
 
 ## ReAct (Default)
 
@@ -30,18 +40,20 @@ The engine loops: LLM → tools → LLM → tools → ... → final answer.
 
 ```python
 PromptGraph.react(
-    tools=None,              # LangChain BaseTool instances
-    system_prompt="",        # System prompt text
+    tools=None,              # Tools (@tool functions, MCP tools)
+    system_prompt="",        # The reason node's instructions
     blocks=None,             # PromptBlock objects
-    max_node_iterations=15,  # Max tool-calling loops
+    max_node_iterations=15,  # The reason node's max_iterations (each model call counts)
 )
 ```
+
+One `PromptNode("reason")` with `context_scope="auto"` and `default_next="__end__"`.
 
 ## Verify (single-pass self-checking)
 
 A single LLM call in which the model must **plan, solve, and verify its own
 answer** before responding. It adds the accuracy benefit of an explicit
-self-verification step at **one-turn latency** — no multi-call overhead.
+self-verification step at **one-turn latency**, no multi-call overhead.
 
 ```mermaid
 graph LR
@@ -63,19 +75,21 @@ PromptGraph.verify(
 )
 ```
 
+One `PromptNode("reason")` whose instructions add a PLAN, SOLVE, VERIFY,
+final-answer structure after `system_prompt`. It has `context_scope="full"`
+(no compaction) and a budget of 6 model calls.
+
 !!! note "When it helps"
-    The forced self-check lifts accuracy over a plain direct prompt on **weak
-    and mainstream models** at one-turn latency. A *frontier* model that
-    already reasons strongly internally is typically at its ceiling with a
-    direct prompt, so `verify` there only adds a cheap safety check rather than
-    more accuracy. On a capable model it is **comparable to**, not strictly
-    better than, a well-prompted ReAct pass. For multi-stage deliberate
+    The self-check is part of the same generation, so it costs output tokens,
+    not extra calls. It is most useful where a single pass makes careless
+    errors; a model that already reasons carefully may gain little over a
+    direct prompt. Measure it on your own tasks. For multi-stage deliberate
     reasoning with per-stage context scoping, compose a custom graph (see
     *Custom Graph*).
 
 ## Managed (context-managed tool loop)
 
-For **deep multi-tool tasks** — traversing a database or graph, gathering
+For **deep multi-tool tasks**, traversing a database or graph, gathering
 many facts then aggregating. A single tool-using node run with
 `context_scope="ledger"`: instead of feeding the model an ever-growing
 transcript of tool calls and results (where it loses track and re-queries the
@@ -102,7 +116,7 @@ PromptGraph.managed(
     tools=my_tools,
     system_prompt="",
     blocks=None,
-    max_node_iterations=30,   # deep tasks make many calls
+    max_node_iterations=30,   # deep tasks make many calls (25 under build_agent, see above)
 )
 ```
 
@@ -112,27 +126,23 @@ which any custom graph can use on a long-running tool node.
 !!! note "What it does, honestly"
     The ledger **bounds context** on long tool chains: the request stops
     growing with every tool result. Whether it also cuts tool calls depends
-    on the model. Models that re-query facts buried in a long transcript make
-    fewer calls with it; others re-read facts the ledger lists. In one audit
-    (30 records of about 2,400 characters each), gpt-5-mini made no extra
-    calls with compaction, while gpt-4.1-mini on 1.3.3 re-read the same
-    records until its token budget ran out (136 calls against 31 without
-    compaction). 1.3.4 keeps a result the model fetched again in full and
-    stops inviting re-reads of values that "change over time", which removes
-    the re-read loop compaction itself caused, but measure your own model
-    with `ContextCompaction(enabled=False)` as the baseline. It is an
+    on the model: models that re-query facts buried in a long transcript make
+    fewer calls with it, others re-read facts the ledger lists. A result the
+    model fetches again is kept in full from then on, so it does not have to
+    re-read it a third time. Measure your own model with
+    `ContextCompaction(enabled=False)` as the baseline. It is an
     **efficiency** primitive: it does not by itself make the model's final
     answer more correct.
 
 ## Code-Action (one sandboxed program)
 
 For **aggregation / data-traversal tasks**, the model writes **one Python
-program** over your tools in a single LLM turn — instead of chaining dozens of
+program** over your tools in a single LLM turn, instead of chaining dozens of
 conversational tool calls. The program runs in Promptise's hardened Docker
 sandbox; its tool calls bridge back to the real host tools, so the model gets
 code's exactness (loops, sums, filters, joins) while every tool call still
-keeps its protections — approval gates if configured, plus budget/health/audit
-hooks when the Agent Runtime has attached them — and the node enforces a hard
+keeps its protections, approval gates if configured, plus budget/health/audit
+hooks when the Agent Runtime has attached them, and the node enforces a hard
 `max_tool_calls` cap on each program regardless.
 
 ```mermaid
@@ -187,16 +197,17 @@ programs' calls. See [Code-Action](../guides/code-action.md#the-tool-call-budget
 as ordinary Python functions. Inside the sandbox those functions are RPC stubs:
 each writes a request to the workspace; a concurrent host loop runs the *real*
 tool and writes back the response. The sandbox has a **read-only rootfs, dropped
-capabilities, and no network** — the program's only outside reach is your
+capabilities, and no network**, the program's only outside reach is your
 bridged tools.
 
 !!! warning "Requirements & honest scope"
     Requires **Docker** (auto-enabled for this pattern). It shines when your
     tools return **structured data** (lists/dicts/numbers) the program can use
     directly, and on tasks a conversational loop gets wrong by re-querying and
-    mis-aggregating. It is a *pattern, not a replacement* — for ambiguous or
-    conversational tasks prefer `react`/`managed`. Validated end-to-end on a
-    real sandbox + real model (see `tests/test_code_action_integration.py`).
+    mis-aggregating. It is a *pattern, not a replacement*, for ambiguous or
+    conversational tasks prefer `react`/`managed`. `PromptGraph.code_action()`
+    without a `sandbox_factory` builds a graph whose node fails with "code-action
+    requires a sandbox"; `build_agent(agent_pattern="code-action")` supplies one.
 
 ## PEOATR
 
@@ -242,11 +253,11 @@ PromptGraph.peoatr(
 
 Each stage has its own role:
 
-- **Plan** (PlanNode) — Create subgoals and rate the plan; a plan rated below 3 is redone
-- **Act** (PromptNode) — Execute tools for the active subgoal, then summarize what it found
-- **Think** (ThinkNode) — Analyze the results: call another tool now (`continue`) or step back (`reflect`)
-- **Reflect** (ReflectNode) — Evaluate progress and route: `answer`, `replan` or `continue`
-- **Answer** (SynthesizeNode) — Write the final answer from the gathered results
+- **Plan** (PlanNode): Create subgoals and rate the plan; a plan rated below 3 is redone
+- **Act** (PromptNode): Execute tools for the active subgoal, then summarize what it found
+- **Think** (ThinkNode): Analyze the results: call another tool now (`continue`) or step back (`reflect`)
+- **Reflect** (ReflectNode): Evaluate progress and route: `answer`, `replan` or `continue`
+- **Answer** (SynthesizeNode): Write the final answer from the gathered results
 
 Plan, think and reflect return structured output (`PeoatrPlan`, `PeoatrThought`, `PeoatrReflection` in `promptise.engine.prebuilts`), so their routing decisions always reach the engine. Every stage has an iteration budget (plan 3, act and think `max_act_steps`, reflect 4). A stage that has used its budget hands over to `answer` (`plan` hands over to `act`), so a run always ends with a written answer instead of looping to the engine's step cap.
 
@@ -284,9 +295,9 @@ PromptGraph.research(
 )
 ```
 
-- **Search** (PromptNode) — Gather information with the tools, then reply with the findings. After a failed check it sees the verifier's issues (`state.context["verification"]`) and looks up what is missing.
-- **Verify** (ValidateNode) — A model call that checks the findings against the tool results in the conversation and returns a `ResearchVerdict` (`passes`, `issues`; in `promptise.engine.prebuilts`): every claim backed by a tool result, nothing contradicting the sources or itself, the whole question covered. A failed check routes back to search.
-- **Synthesize** (PromptNode) — Write the final answer from the findings.
+- **Search** (PromptNode): Gather information with the tools, then reply with the findings. After a failed check it sees the verifier's issues (`state.context["verification"]`) and looks up what is missing.
+- **Verify** (ValidateNode): A model call that checks the findings against the tool results in the conversation and returns a `ResearchVerdict` (`passes`, `issues`; in `promptise.engine.prebuilts`): every claim backed by a tool result, nothing contradicting the sources or itself, the whole question covered. A failed check routes back to search.
+- **Synthesize** (PromptNode): Write the final answer from the findings.
 
 Verify runs at most `max_verify_rounds` times; once it has, and when search has used its budget, the run moves on to synthesize, so it always ends with a written answer. Each check is one extra model call; pass `verify=False` for search → synthesize without it. For a deterministic check without a model call instead, build the graph yourself with a [`GuardNode`](engine-nodes.md) and your own guards in place of verify.
 
@@ -332,7 +343,7 @@ The LLM sees the node catalog (names, descriptions, the tools each step calls, w
 - **A step runs its whole tool loop.** A chosen node is re-run while its model keeps calling tools (up to the node's `max_iterations`), so one step can make several tool calls and read their results before the agent picks again.
 - **The routing exchange stays out of the conversation.** The step menu and the model's JSON choice are sent for that one call and never added to the messages, so they can't pile up or become the reply.
 - **Tool names map to steps.** A tool name given as the next step runs the pool node that has that tool; an unknown name is reported back to the next routing call.
-- **The run ends with an answer.** When the agent finishes (`__done__`, `max_steps`, or an unparseable choice) without a terminal node having run last, the `AutonomousNode`'s `answer_node` runs — by default the first terminal node; with none in the pool, the node asks the model for the final answer itself.
+- **The run ends with an answer.** When the agent finishes (`__done__`, `max_steps`, or an unparseable choice) without a terminal node having run last, the `AutonomousNode`'s `answer_node` runs, by default the first terminal node; with none in the pool, the node asks the model for the final answer itself.
 - **Streaming.** `AutonomousNode` streams the chosen steps' model chunks and tool events; the routing calls are not streamed.
 
 ## Deliberate
@@ -411,10 +422,10 @@ PromptGraph.debate(
 )
 ```
 
-- **Proposer** (PromptNode) — Answers with the tools. On a revision it sees the latest critique and verdict (`state.context["critique"]`, `state.context["verdict"]`).
-- **Critic** (CritiqueNode) — Returns a `DebateCritique` (`weaknesses`, `improvements`, `severity` from 0.0 to 1.0); above 0.3 the answer goes back to the proposer.
-- **Judge** (ValidateNode) — Returns a `DebateVerdict` (`passes`, `issues`); a failed verdict goes back to the proposer, a pass goes to `answer`.
-- **Answer** (SynthesizeNode) — Writes the final reply: the latest proposal, corrected for any issue still listed.
+- **Proposer** (PromptNode): Answers with the tools. On a revision it sees the latest critique and verdict (`state.context["critique"]`, `state.context["verdict"]`).
+- **Critic** (CritiqueNode): Returns a `DebateCritique` (`weaknesses`, `improvements`, `severity` from 0.0 to 1.0); above 0.3 the answer goes back to the proposer.
+- **Judge** (ValidateNode): Returns a `DebateVerdict` (`passes`, `issues`); a failed verdict goes back to the proposer, a pass goes to `answer`.
+- **Answer** (SynthesizeNode): Writes the final reply: the latest proposal, corrected for any issue still listed.
 
 The schemas are in `promptise.engine.prebuilts`. When the critic has run `max_rounds` times the run goes to the judge; when the judge or the proposer has used its budget, it goes to `answer`, so a debate always ends with a written answer.
 
@@ -475,15 +486,27 @@ graph TD
 ```
 
 ```python
+from pydantic import BaseModel
+
 from promptise.engine import PromptGraph, PromptNode, GuardNode
 from promptise.engine.skills import planner, web_researcher, summarizer
+from promptise.prompts.guards import LengthGuard
+
+
+class Analysis(BaseModel):
+    findings: str
+    quality: int   # 1-5: is the research good enough to write from?
+
 
 graph = PromptGraph("custom", mode="static")
 graph.add_node(planner("plan"))
 graph.add_node(web_researcher("search", tools=search_tools))
-graph.add_node(PromptNode("analyze", instructions="Analyze findings.", output_key="analysis"))
-graph.add_node(summarizer("write"))
-graph.add_node(GuardNode("review", on_pass="__end__", on_fail="write"))
+graph.add_node(PromptNode("analyze", instructions="Analyze the findings and rate their quality 1-5.",
+                          output_schema=Analysis, output_key="analysis", max_iterations=3,
+                          transitions={"error": "write"}))
+graph.add_node(summarizer("write", input_keys=["analysis"]))
+graph.add_node(GuardNode("review", guards=[LengthGuard(max_length=2000)],
+                         on_pass="__end__", on_fail="write"))
 
 graph.always("plan", "search")
 graph.always("search", "analyze")
@@ -492,6 +515,7 @@ graph.when("analyze", "search", lambda r: (r.output or {}).get("quality", 0) < 4
 graph.always("write", "review")
 
 graph.set_entry("plan")
+assert graph.validate() == []
 agent = await build_agent(..., agent_pattern=graph)
 ```
 

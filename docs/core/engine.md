@@ -5,7 +5,7 @@ description: "The engine behind every Promptise agent: a graph of composable nod
 
 # Reasoning Graph
 
-The Reasoning Graph is Promptise's agent execution engine — a directed graph of composable reasoning nodes where every node is a complete processing pipeline with its own blocks, tools, guards, strategy, context layers, and data flow ports.
+The Reasoning Graph is Promptise's agent execution engine, a directed graph of composable reasoning nodes where every node is a complete processing pipeline with its own blocks, tools, guards, strategy, context layers, and data flow ports.
 
 ## How It Works
 
@@ -46,7 +46,7 @@ graph TD
 
 ## Two Modes
 
-### Autonomous (Default) — Agent Builds Its Own Path
+### Autonomous (Default): Agent Builds Its Own Path
 
 Give the agent a pool of nodes. It decides which to run and in what order.
 
@@ -67,15 +67,21 @@ agent = await build_agent(
 )
 ```
 
-Each node is fully pre-configured — the developer just picks the building bricks:
+Each node is fully pre-configured; the developer just picks the building bricks:
 
-- **PlanNode** — Creates subgoals, self-evaluates quality, re-plans if below threshold
-- **ThinkNode** — Analyzes gaps, recommends next step, no tools
-- **ReflectNode** — Self-evaluation, identifies mistakes, stores corrections
-- **SynthesizeNode** — Combines all findings into final answer
-- **PromptNode** with `inject_tools=True` — Gets MCP tools at runtime, the only node that calls tools
+- **PlanNode**: Creates subgoals, self-evaluates quality, re-plans if below threshold
+- **ThinkNode**: Analyzes gaps, recommends next step, no tools
+- **ReflectNode**: Self-evaluation, identifies mistakes, stores corrections
+- **SynthesizeNode**: Combines all findings into final answer
+- **PromptNode** with `inject_tools=True`: gets MCP tools at runtime, the only node that calls tools
 
-### Static (Opt-in) — Developer Wires Edges
+`build_agent` turns a graph with `mode="autonomous"` (the default), two or more
+nodes and no edges into an [`AutonomousNode`](engine-nodes.md#autonomousnode)
+over that pool. `PromptGraphEngine` does not: run the same pool directly with
+`PromptGraph.from_pool(nodes)`, otherwise the engine just runs the entry node
+and follows its transitions.
+
+### Static (Opt-in): Developer Wires Edges
 
 ```python
 graph = PromptGraph("pipeline", mode="static")
@@ -116,11 +122,12 @@ Reasoning Graph Engine
 │
 ├─ Nodes ─────────────────────────────────────────────────────────
 │  │
-│  ├─ Standard (10 types)
+│  ├─ Standard (11 types)
 │  │  ├─ Core
 │  │  │  ├── PromptNode              LLM reasoning with full pipeline
 │  │  │  ├── ToolNode                Explicit tool execution
-│  │  │  └── TransformNode           Pure data transformation (no LLM)
+│  │  │  ├── TransformNode           Pure data transformation (no LLM)
+│  │  │  └── CodeActionNode          One sandboxed program over the tools
 │  │  │
 │  │  ├─ Flow Control
 │  │  │  ├── RouterNode              LLM-based dynamic routing
@@ -239,7 +246,7 @@ Reasoning Graph Engine
 │  │
 │  └─ Reporting
 │     ├── ExecutionReport             Per-run summary (iterations, tokens, path)
-│     └── NodeResult                  Per-node trace (30+ fields)
+│     └── NodeResult                  Per-node trace (27 fields)
 │
 ├─ Prebuilt Patterns (10) ───────────────────────────────────────
 │  │
@@ -297,7 +304,7 @@ step, tool calls in parallel.
 
 | Method | Yields |
 |---|---|
-| `ainvoke(input)` | Nothing — returns `{"messages": [...]}` at the end |
+| `ainvoke(input)` | Nothing, returns `{"messages": [...]}` at the end |
 | `astream(input)` | `{"messages": [...]}` after every node; the last chunk equals `ainvoke()`'s result |
 | `astream_events(input)` | Events: `on_chat_model_stream` per model chunk, `on_tool_start` / `on_tool_end` / `on_tool_error` per tool call (a start and its end share a `run_id`), `on_node_start` / `on_node_end` / `on_node_error` |
 
@@ -305,14 +312,14 @@ When streaming, the engine runs each node through `node.stream()`.
 `PromptNode.stream()` streams its one model call and runs the same pipeline as
 `execute()`; other nodes execute once and report their result. A node's stream
 must end with an `on_node_end` event carrying its `NodeResult` under
-`data["result"]` — a stream that ends without one fails the run rather than
+`data["result"]`: a stream that ends without one fails the run rather than
 running the node a second time. `PromptGraphEngine.astream_events()` is what
 [`agent.astream_with_tools()`](streaming.md) consumes.
 
 ## Failures reach the caller
 
-A run that ends on a node whose own execution failed — a rejected API key, a
-provider outage, a `CRITICAL` node error, a `RETRYABLE` node out of retries —
+A run that ends on a node whose own execution failed (a rejected API key, a
+provider outage, a `CRITICAL` node error, a `RETRYABLE` node out of retries)
 raises `GraphExecutionError` from `ainvoke()` (and from `astream()` and
 `astream_events()` after their output). The exception names the graph and node, carries the
 `ExecutionReport`, and chains the provider exception as `__cause__`;
@@ -324,18 +331,16 @@ never happens: an "answer" that silently echoes the question because the
 model call failed.
 
 ```python
-from langchain_core.messages import HumanMessage
-
 from promptise.engine import GraphExecutionError
 
 try:
-    result = await agent.ainvoke({"messages": [HumanMessage(content="Hi")]})
+    result = await agent.ainvoke({"messages": [{"role": "user", "content": "Hi"}]})
 except GraphExecutionError as exc:
     print(exc.node_name, exc.__cause__)   # 'reason' AuthenticationError(...)
 ```
 
-An iteration limit that stops a run in the middle of a tool loop — the model
-asked for tools and the limit ended the run before it saw their results —
+An iteration limit that stops a run in the middle of a tool loop (the model
+asked for tools and the limit ended the run before it saw their results)
 raises `GraphIterationLimitError`, a `GraphExecutionError` with `limit` and
 `pending_tools` (the tools whose results the model never saw, including calls
 a `ToolNode(tool_selector=...)` made without a model turn). The limit is
@@ -356,64 +361,253 @@ raises `GraphIterationLimitError`. In a graph with separate nodes (a `ToolNode`,
 a planner, a reflection step) every node execution counts.
 
 A hook that ends a run in the middle of a tool loop raises
-`GraphStoppedError` for the same reason — `GraphBudgetExceededError` when it is
-a [`BudgetHook`](engine-hooks.md#budgethook) that the run went over.
+`GraphStoppedError` for the same reason (`GraphBudgetExceededError` when it is
+a [`BudgetHook`](engine-hooks.md#budgethook) that the run went over).
 
 ```python
 from promptise.engine import GraphIterationLimitError
 
 try:
-    result = await agent.ainvoke({"messages": [HumanMessage(content="Wait for job 42")]})
+    result = await agent.ainvoke({"messages": [{"role": "user", "content": "Wait for job 42"}]})
 except GraphIterationLimitError as exc:
     print(exc.node_name, exc.limit, exc.pending_tools)   # 'reason' 15 ['queue_status']
 ```
 
-## Performance
+## Run a graph without an agent
 
-The engine adds **<0.02ms overhead** per invocation (excluding LLM latency). Key optimizations:
+`build_agent()` wraps the engine for you. To run a graph on its own (tests, a
+batch job, a graph inside your own service), create a `PromptGraphEngine`:
 
-- **O(1) edge resolution** — precomputed adjacency index, rebuilt lazily on mutation
-- **Auto tool schema injection** — tool-using nodes auto-inject parameter names, types, and descriptions into the system prompt for better accuracy
-- **Parallel tool execution** — 2+ tool calls in one LLM response execute concurrently
-- **Cached system prompts** — on tool-loop re-entries, the system message + model binding are reused
-- **Cached tool maps** — tool name→instance dict built once per node execution
-- **Zero data truncation** — full tool results flow through (no arbitrary character limits)
+```python
+from promptise import resolve_model, tool
+from promptise.engine import PromptGraph, PromptGraphEngine
 
-See [OPTIMIZATIONS.md](https://github.com/promptise-com/foundry/blob/main/OPTIMIZATIONS.md) for full technical details and benchmarks.
+
+@tool
+def add(a: int, b: int) -> int:
+    """Add two integers."""
+    return a + b
+
+
+graph = PromptGraph.react(tools=[add], system_prompt="Use the tools for arithmetic.")
+engine = PromptGraphEngine(graph, resolve_model("openai:gpt-5-mini"))
+
+result = await engine.ainvoke({"messages": [{"role": "user", "content": "What is 17 + 25?"}]})
+print(result["messages"][-1].content)   # 42 (wording varies by model)
+print(engine.last_report.summary())     # iterations, tokens, path, tool calls
+```
+
+Input messages can be dicts (`{"role": "user", "content": ...}`), `(role, text)`
+tuples or LangChain message objects; dicts and tuples are converted when the run
+starts. The result's messages are LangChain message objects.
+
+### PromptGraphEngine
+
+`PromptGraphEngine(graph, model, *, ...)`:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `graph` | `PromptGraph` | *required* | The graph to run. Every run works on `graph.copy()`, so runtime mutations never change it and concurrent runs do not interfere |
+| `model` | chat model | *required* | The model nodes call when they set no `model_override`. `build_agent` passes the model it resolved; standalone, use `resolve_model("openai:gpt-5-mini")` |
+| `max_iterations` | `int` | `50` | Node executions per run; `N` allows exactly `N`. `build_agent` sets it from `max_agent_iterations` (default 25) |
+| `max_node_iterations` | `int` | `25` | Ceiling on how often one node runs in a run (each tool-loop round counts). A node's own `max_iterations` applies when it is lower. `build_agent` leaves it at 25, so a node budget above 25 (such as `PromptGraph.managed()`'s 30) is capped at 25 |
+| `hooks` | `list` | `None` | [Hooks](engine-hooks.md), called in list order |
+| `allow_self_modification` | `bool` | `True` | Follow `_graph_action` fields in a node's structured output (see [Runtime graph mutation](engine-edges.md#runtime-graph-mutation)). `False` ignores them; `GraphMutation`s a node returns in `NodeResult.graph_mutations` are applied either way |
+| `max_mutations_per_run` | `int` | `10` | Cap on mutations per run (both kinds); later ones are dropped with a warning |
+| `lightweight_model` | chat model | `None` | Model for nodes with the `LIGHTWEIGHT` flag and no `model_override`. `build_agent` sets none, so the flag has no effect in agents |
+| `tools` | `list` | `None` | Tools for nodes with `inject_tools=True`; tools declared on the graph's nodes are added to them |
+| `compaction` | `ContextCompaction` | `None` | [Compaction settings](../guides/context-lifecycle.md#tune-it-or-turn-it-off) for compacting nodes that set none of their own |
+| `tool_summary` | `str \| None` | `None` | `"off"`, `"names"` or `"full"`: the "Available tools" block of `PromptNode`s that set no `tool_summary`. `None` means `"off"`; any other value raises `ValueError` |
+
+| Member | Description |
+|--------|-------------|
+| `await ainvoke(input, config=None)` | Run to the end; returns `{"messages": [...]}` |
+| `astream(input, config=None)` | Async iterator of `{"messages": [...]}` after every node |
+| `astream_events(input, *, config=None, version="v2")` | Async iterator of event dicts (see [Streaming](#streaming-runs-the-same-steps)) |
+| `last_report` | The `ExecutionReport` of the latest run (also after a stream or a raised error) |
+
+`config` is the LangChain run config (callbacks, tags, metadata). Keys starting
+with `_` are the engine's own: `_human_handler` sets the [`HumanNode`](engine-nodes.md#humannode)
+handler, the others are set by the engine and by `build_agent`.
+
+### PromptGraph
+
+`PromptGraph(name="graph", *, mode="autonomous", nodes=None)`. Passing `nodes`
+adds them and makes the first node with `is_entry=True` the entry (adding a
+node later with `add_node()` does not set the entry; call `set_entry()`).
+`mode` is `"autonomous"` or `"static"`; it only changes what `build_agent` does
+with an edgeless graph (see [Two Modes](#two-modes)).
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `add_node(node)` | `self` | Add a node; a node with the same name replaces the old one (with a warning) |
+| `remove_node(name)` | `self` | Remove a node, its edges, its `loop_until` budget, and the entry if it was the entry |
+| `get_node(name)` | node | Raises `KeyError` listing the available names |
+| `has_node(name)` | `bool` | |
+| `nodes` | `dict` | Copy of the name → node mapping |
+| `set_entry(name)` / `entry` | `self` / `str \| None` | Set (raises `KeyError` for an unknown node) and read the entry node |
+| `add_edge(from_node, to_node, *, condition=None, label="", priority=0)` | `self` | See [Edges](engine-edges.md); unknown node names only log a warning, since nodes may be added later |
+| `always`, `when`, `on_tool_call`, `on_no_tool_call`, `on_output`, `on_error`, `on_confidence`, `on_guard_fail`, `sequential`, `loop_until` | `self` | [Edge helpers](engine-edges.md#edge-helpers) |
+| `get_edges_from(name)` / `edges` | `list[Edge]` | Outgoing edges sorted by priority (highest first) / all edges |
+| `loop_limit(name)` | `(max_iterations, exit_to) \| None` | The budget `loop_until()` set for a node |
+| `validate()` | `list[str]` | Problems found: no or unknown entry, edges or transitions to unknown nodes, nodes unreachable from the entry. Empty means valid. The engine does not call it; call it in tests |
+| `describe()` | `str` | One line per node with its type and targets |
+| `to_mermaid()` | `str` | The graph as a Mermaid `graph TD` diagram |
+| `copy()` | `PromptGraph` | Copy for one run: nodes are shared, edges are copied on first change |
+| `apply_mutation(mutation)` | `None` | Apply a `GraphMutation` (what the engine does with runtime mutations) |
+| `PromptGraph.from_pool(nodes, *, system_prompt="", name="autonomous")` | `PromptGraph` | One `AutonomousNode("orchestrator")` over the pool |
+| `PromptGraph.react(...)`, `.managed(...)`, `.code_action(...)`, `.verify(...)`, `.peoatr(...)`, `.research(...)`, `.autonomous(...)`, `.deliberate(...)`, `.debate(...)`, `.pipeline(*nodes)` | `PromptGraph` | [Prebuilt patterns](engine-prebuilts.md) |
+
+```python
+from promptise.engine import PromptGraph, PromptNode
+
+graph = PromptGraph("checked", mode="static")
+graph.add_node(PromptNode("draft", instructions="Draft an answer."))
+graph.add_node(PromptNode("polish", instructions="Polish the draft.", default_next="__end__"))
+graph.always("draft", "polish")
+graph.set_entry("draft")
+
+assert graph.validate() == []
+print(graph.describe())
+# PromptGraph "checked"
+# ├── [entry] draft (PromptNode) → polish
+# ├── polish (PromptNode) → __end__
+print(graph.to_mermaid())
+```
+
+## State, results and events
+
+### GraphState
+
+Every node gets the run's `GraphState`. It is created per run from the input
+messages and passed to hooks.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `messages` | `list` | `[]` | The conversation; nodes append to it |
+| `context` | `dict` | `{}` | Key-value data shared by the nodes (`output_key`, `input_keys`, `{name}_output`) |
+| `current_node` | `str` | `""` | The node being run; a hook that sets it to `"__end__"` ends the run |
+| `visited` | `list[str]` | `[]` | Node names in the order they ran |
+| `iteration` | `int` | `0` | Node executions so far in the run |
+| `node_iterations` | `dict[str, int]` | `{}` | Executions per node, checked against the node budget |
+| `max_messages` | `int` | `200` | After each node, `messages` is trimmed to this many: system messages and the current question are kept, then the most recent messages (`0` disables trimming) |
+| `graph` | `PromptGraph` | `None` | The run's live copy of the graph |
+| `plan` | `list[str]` | `[]` | Subgoals (set by a `PlanNode` with a structured output) |
+| `completed` | `list[str]` | `[]` | Completed subgoals (`complete_subgoal()`) |
+| `observations` | `list[dict]` | `[]` | One `{tool, result, args, success, duration_ms}` per tool call; the last 50 are kept |
+| `reflections` | `list[dict]` | `[]` | `{iteration, mistake, correction, confidence, stage}`; the last 5 are kept |
+| `tool_calls_made` | `int` | `0` | Tool calls recorded through `add_observation()`; becomes `ExecutionReport.tool_calls` |
+| `node_timings` | `dict[str, float]` | `{}` | Total milliseconds per node |
+| `total_tokens` | `int` | `0` | Tokens so far in the run |
+| `node_history` | `list[NodeResult]` | `[]` | Every node's result, in order |
+| `turn_question` | message | `None` | The current question: the last user message of the input |
+| `turn_input` | `list` | `[]` | The input up to and including `turn_question` (system messages and chat history) |
+
+Helpers: `add_observation(tool_name, result, args=None, success=True, duration_ms=0.0)`,
+`add_reflection(iteration, mistake, correction, confidence=0.5, stage="")`,
+`complete_subgoal(subgoal)`, the `active_subgoal` and `all_subgoals_complete`
+properties, `record_node_timing(name, ms)`, `increment_node_iteration(name)` and
+`trim_messages()`.
+
+### NodeResult, NodeEvent, GraphMutation, ExecutionReport
+
+- [`NodeResult`](engine-hooks.md#noderesult) is what one node execution produced (27 fields: timing, tokens, tool calls, output, routing, guards, error).
+- [`ExecutionReport`](engine-hooks.md#executionreport) summarizes a run (`engine.last_report`, `exc.report`).
+- `NodeEvent(event, node_name="", data={}, timestamp=time.monotonic())` is what a node's `stream()` yields. Built-in nodes yield `on_node_start`, `on_chat_model_stream` (`data["chunk"]`, `data["run_id"]`), `on_tool_start` / `on_tool_end` / `on_tool_error` and a final `on_node_end` with `data["result"]` (the `NodeResult`). The engine also passes an `on_node_metrics` `NodeEvent` to hooks' `on_observable_event()` for `OBSERVABLE` nodes.
+- `GraphMutation` is a change a node asks for in `NodeResult.graph_mutations`:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `action` | `str` | *required* | `"add_node"`, `"remove_node"`, `"add_edge"` or `"remove_edge"`; anything else is logged and ignored |
+| `node_name` | `str` | `""` | Node to add (defaults to the config's `name`) or remove |
+| `node_config` | `dict` | `{}` | For `add_node`: `PromptNode.from_config()` settings (`name`, `instructions`, `transitions`, `default_next`, ...). Only `PromptNode`s can be added this way |
+| `from_node` | `str` | `""` | Edge source (`add_edge`, `remove_edge`) |
+| `to_node` | `str` | `""` | Edge target |
+| `condition` | `str` | `""` | Used as the new edge's **label**; an added edge is always unconditional |
+
+```python
+from promptise.engine import GraphMutation, NodeResult, node
+
+
+@node("triage", default_next="__end__")
+async def triage(state):
+    # Add a review step to this run's graph, and route to it.
+    return NodeResult(
+        node_name="triage",
+        next_node="review",
+        graph_mutations=[GraphMutation(
+            action="add_node",
+            node_config={"name": "review", "instructions": "Review the answer.",
+                         "default_next": "__end__"},
+        )],
+    )
+```
+
+## Exceptions
+
+All are in `promptise.engine` and carry the run's `ExecutionReport` as `report`.
+
+| Exception | Raised when | Extra attributes |
+|-----------|-------------|------------------|
+| `GraphExecutionError` (a `RuntimeError`) | The run ended on a node failure nothing recovered from | `graph_name`, `node_name`, `error`, `report`; the provider exception as `__cause__` |
+| `GraphIterationLimitError` | A node budget or `max_iterations` stopped the run between a tool call and the model's next step | `limit`, `pending_tools` |
+| `GraphStoppedError` | A hook ended the run (`state.current_node = "__end__"`) between a tool call and the model's next step | `reason`, `stopped_by` (hook class name), `pending_tools` |
+| `GraphBudgetExceededError` | A `GraphStoppedError` caused by a `BudgetHook` | as `GraphStoppedError` |
+| `CodeActionBudgetError` | A code-action run could not do the job within `max_tool_calls` | `max_tool_calls`, `attempts` |
+
+All of them subclass `GraphExecutionError`, so one `except GraphExecutionError`
+catches every engine failure.
+
+A graph without an entry node raises `ValueError` before anything runs; a
+transition to a node name that is not in the graph logs an error and ends the
+run.
+
+## What the engine does for you
+
+- **Edge lookup by index**: outgoing edges are kept in a precomputed, priority-sorted index, rebuilt when edges change.
+- **Parallel tool calls**: two or more tool calls in one model reply run concurrently; their results are appended in the order the model asked for them.
+- **Binding reuse**: a `PromptNode` reuses its tool binding (`bind_tools()` and structured output) when it runs again in the same run with the same model and tools. The system prompt is rebuilt on every execution, since its inputs change.
+- **Full tool results by default**: a `PromptNode` passes tool results through as they are. They are cut only where you ask: `ToolNode(max_result_chars=4000)`, and the ledger excerpt of [context compaction](../guides/context-lifecycle.md) (`keep_result_chars`, 2,000).
+- **Bounded state**: observations (last 50), reflections (last 5) and messages (`max_messages`, 200) are capped per run.
 
 ## Runtime Tool Injection
 
-Nodes with `inject_tools=True` receive MCP tools at runtime:
+Nodes with `inject_tools=True` receive the agent's tools at runtime (see [Runtime Tool Injection](engine-tools.md)):
 
 ```python
+from promptise.engine import PromptNode, ThinkNode
+
 PromptNode("search", inject_tools=True)  # Gets all MCP tools at runtime
 ThinkNode("think")                        # No tools (pre-configured)
 ```
 
 ## Dynamic LLM Routing
 
-Every node can route dynamically. The LLM outputs a `route` field:
-
-```python
-# LLM outputs: {"route": "search"} → engine goes to "search" node
-```
+A node routes dynamically when its structured output has a `route`, `_next`,
+`next_step` or `goto` field naming one of its transition keys or a node. Give
+the node an `output_schema` with that field; see
+[Dynamic LLM Routing](engine-edges.md#dynamic-llm-routing).
 
 ## Runtime Graph Mutation
 
-The LLM can modify the graph during execution — add nodes, skip to nodes, change context.
+A node can change the run's copy of the graph: by returning `GraphMutation`s
+(above), or, when `allow_self_modification=True` (the default), through
+`_graph_action` fields in its structured output. See
+[Runtime Graph Mutation](engine-edges.md#runtime-graph-mutation) for what each
+action does and its limits.
 
 ## Next Steps
 
-- [Nodes](engine-nodes.md) — All 21 node types with full parameter reference
-- [Edges & Transitions](engine-edges.md) — 10 edge helpers, transition resolution, LLM routing
-- [Node Flags](engine-flags.md) — 18 typed flags controlling execution, caching, error handling
-- [Processors](engine-processors.md) — Pre/post processors for data transformation
-- [Runtime Tool Injection](engine-tools.md) — How MCP tools flow into nodes
-- [Hooks & Observability](engine-hooks.md) — 5 hooks, execution reports, per-node metrics
-- [Prebuilt Patterns](engine-prebuilts.md) — 10 ready-to-use patterns with Mermaid diagrams
-- [Skills Library](engine-skills.md) — 15 pre-configured node factories
-- [Serialization](engine-serialization.md) — YAML load/save
-- [Building Custom Reasoning](../guides/custom-reasoning.md) — Step-by-step guide
+- [Nodes](engine-nodes.md): All 21 node types with full parameter reference
+- [Edges & Transitions](engine-edges.md): 10 edge helpers, transition resolution, LLM routing
+- [Node Flags](engine-flags.md): 18 typed flags controlling execution, caching, error handling
+- [Processors](engine-processors.md): Pre/post processors for data transformation
+- [Runtime Tool Injection](engine-tools.md): How MCP tools flow into nodes
+- [Hooks & Observability](engine-hooks.md): 5 hooks, execution reports, per-node metrics
+- [Prebuilt Patterns](engine-prebuilts.md): 10 ready-to-use patterns with Mermaid diagrams
+- [Skills Library](engine-skills.md): 15 pre-configured node factories
+- [Serialization](engine-serialization.md): YAML load/save
+- [Building Custom Reasoning](../guides/custom-reasoning.md): Step-by-step guide
 
 !!! tip "Learn the concept"
 

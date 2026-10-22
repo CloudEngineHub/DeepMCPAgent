@@ -5,7 +5,33 @@ description: "Pre-configured node factories for agent tasks such as web research
 
 # Skills Library
 
-Pre-configured node factories for common agent tasks. Each function returns a fully configured node with domain-specific instructions, default flags, and sensible settings. All parameters can be overridden.
+Pre-configured node factories for common agent tasks, in `promptise.engine.skills`. Each function returns a node with task-specific instructions. Import them from `promptise.engine.skills` by name: `critic` in particular is also the name of a perspective in `promptise.prompts`.
+
+```python
+from promptise.engine.skills import critic, planner, web_researcher
+
+nodes = [planner("plan", is_entry=True), web_researcher("search", tools=[]), critic("review")]
+print([type(n).__name__ for n in nodes])   # ['PromptNode', 'PromptNode', 'CritiqueNode']
+```
+
+!!! warning "Settings a standard skill fixes"
+    The standard skills pass some settings themselves, so passing the same
+    keyword again raises `TypeError: got multiple values for keyword argument`:
+
+    | Skill | Fixed settings (can't be passed) |
+    |-------|----------------------------------|
+    | `web_researcher` | `instructions`, `tool_choice` |
+    | `code_reviewer`, `data_analyst` | `instructions` |
+    | `fact_checker` | `instructions` |
+    | `summarizer` | `instructions`, `tools`, `default_next` (`"__end__"`) |
+    | `planner` | `instructions`, `tools` |
+    | `decision_router` | `instructions` |
+    | `formatter` | `instructions`, `default_next` (`"__end__"`) |
+
+    For different instructions, build the node directly (`PromptNode(name,
+    instructions=...)`, `GuardNode`, ...). The reasoning skills
+    (`thinker`, `reflector`, ...) only set defaults, so every parameter of
+    their node class can be overridden.
 
 ## Standard Skills
 
@@ -17,8 +43,8 @@ Search the web with multi-source citation and fact verification.
 web_researcher(
     name="web_research",
     tools=None,              # Search tools (BaseTool instances)
-    max_iterations=5,        # Max tool-calling loops
-    **kwargs,                # All PromptNode parameters
+    max_iterations=5,        # Model calls per run (each tool-loop round counts)
+    **kwargs,                # Other PromptNode parameters
 )
 # Returns: PromptNode
 ```
@@ -56,12 +82,12 @@ Validates findings for accuracy. Returns a GuardNode with pass/fail routing.
 ```python
 fact_checker(
     name="verify",
-    guards=None,             # Guard instances (defaults to content filters)
+    guards=None,             # Guard instances; None means no guards, so every check passes
     on_pass="__end__",       # Node on pass
     on_fail=None,            # Node on fail
-    **kwargs,                # All GuardNode parameters
+    **kwargs,                # Other GuardNode parameters
 )
-# Returns: GuardNode
+# Returns: GuardNode (no model call; pass the guards that do the checking)
 ```
 
 ### summarizer
@@ -71,10 +97,10 @@ Compresses information into structured response: key finding, supporting details
 ```python
 summarizer(
     name="summarize",
-    max_length=2000,         # Target summary length (chars)
-    **kwargs,                # All PromptNode parameters
+    max_length=2000,         # Length asked for in the instructions (chars); not enforced
+    **kwargs,                # Other PromptNode parameters
 )
-# Returns: PromptNode
+# Returns: PromptNode with no tools and default_next="__end__"
 ```
 
 ### planner
@@ -84,10 +110,10 @@ Creates step-by-step plans with self-evaluation (rates quality 1-5).
 ```python
 planner(
     name="plan",
-    max_subgoals=4,          # Maximum number of subgoals
-    **kwargs,                # All PromptNode parameters
+    max_subgoals=4,          # Number of subgoals asked for in the instructions
+    **kwargs,                # Other PromptNode parameters
 )
-# Returns: PromptNode
+# Returns: PromptNode (not a PlanNode: it does not set state.plan; use PlanNode for that)
 ```
 
 ### decision_router
@@ -98,7 +124,7 @@ Routes to next step based on progress. Lightweight LLM call to choose between na
 decision_router(
     name="decide",
     routes=None,             # Dict mapping route labels to node names
-    **kwargs,                # All RouterNode parameters
+    **kwargs,                # Other RouterNode parameters (default_next, model_override, ...)
 )
 # Returns: RouterNode
 ```
@@ -111,15 +137,15 @@ Pure data transformation (no LLM call) for formatting final output.
 formatter(
     name="format",
     output_key="formatted_result",  # Where to store in state.context
-    transform=None,                  # Custom transform function
-    **kwargs,                        # All TransformNode parameters
+    transform=None,                  # fn(state) -> Any; without one the node fails
+    **kwargs,                        # Other TransformNode parameters
 )
-# Returns: TransformNode
+# Returns: TransformNode with default_next="__end__"
 ```
 
 ## Reasoning Skills
 
-Pre-built reasoning node factories. Each returns a fully configured reasoning node with built-in instructions and default [Node Flags](engine-flags.md).
+Pre-built reasoning node factories. Each returns the [reasoning node](engine-nodes.md#reasoning-nodes-pre-built-building-bricks) of the same kind, with its built-in instructions and default [Node Flags](engine-flags.md). Like the nodes themselves, they read routing and state fields only from a structured output, so pass an `output_schema` when the node should route or update state.
 
 ### thinker
 
@@ -150,6 +176,8 @@ reflector(
 Adversarial review with severity-based routing. Default flags: `READONLY`, `OBSERVABLE`.
 
 ```python
+from promptise.engine.skills import critic
+
 critic(
     name="critique",
     **kwargs,                # All CritiqueNode parameters (severity_threshold, etc.)
@@ -223,20 +251,28 @@ graph.add_node(synthesizer("conclude", is_terminal=True))
 
 ## Customization
 
-Skills are functions that return nodes. Override any parameter:
+Skills are functions that return nodes. Pass any parameter the skill does not fix (see the table above):
 
 ```python
+from promptise.engine import NodeFlag, PromptGraph, PromptNode
+from promptise.engine.skills import thinker, web_researcher
+
+graph = PromptGraph("custom")
+
 # Custom max iterations
 graph.add_node(web_researcher("search", tools=my_tools, max_iterations=10))
 
-# Custom instructions override the built-in ones
-graph.add_node(summarizer("conclude", instructions="Summarize in bullet points only."))
+# Custom instructions: build the node directly (summarizer fixes its instructions)
+graph.add_node(PromptNode("conclude", instructions="Summarize in bullet points only.",
+                          default_next="__end__"))
+
+# Reasoning skills take any parameter, including their instructions
+graph.add_node(thinker("think", instructions="List what is still unknown."))
 
 # Per-node model override
-graph.add_node(thinker("think", model_override="openai:gpt-4o-mini"))
+graph.add_node(thinker("think_fast", model_override="openai:gpt-5-mini"))
 
 # Additional flags
-from promptise.engine import NodeFlag
 graph.add_node(web_researcher("search",
     tools=my_tools,
     flags={NodeFlag.CRITICAL, NodeFlag.RETRYABLE},

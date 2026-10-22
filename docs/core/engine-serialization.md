@@ -36,16 +36,26 @@ The file is written only if the whole graph can be represented (see [What can't 
 ## Load a Graph
 
 ```python
+from pydantic import BaseModel
+
 from promptise.engine.serialization import load_graph
 
-graph = load_graph("my-agent.yaml", tools=agent.tools, refs=[Verdict])
+
+class Verdict(BaseModel):   # the class the saved graph references (__main__:Verdict)
+    passes: bool
+    issues: list[str]
+
+
+# tools=agent.tools when the graph names tools; this one only uses inject_tools
+graph = load_graph("my-agent.yaml", tools=[], refs=[Verdict])
+print(graph.describe())
 ```
 
 | Argument | What it's for |
 |----------|---------------|
-| `tools` | Tools are saved by name. Pass the tools to resolve them against — a list (typically `agent.tools`) or a `{name: tool}` mapping. A name that isn't provided raises. |
-| `refs` | Python objects the file references by import path — `output_schema` models, processors, edge conditions, `@node` functions. Pass them as a list (or a `{"module:QualName": obj}` mapping). References into `promptise` itself resolve without it. |
-| `allow_imports` | Import any other reference instead of requiring `refs`. Importing a module runs its code — only for files you trust. Default `False`. |
+| `tools` | Tools are saved by name. Pass the tools to resolve them against, a list (typically `agent.tools`) or a `{name: tool}` mapping. A name that isn't provided raises. |
+| `refs` | Python objects the file references by import path, `output_schema` models, processors, edge conditions, `@node` functions. Pass them as a list (or a `{"module:QualName": obj}` mapping). References into `promptise` itself resolve without it. |
+| `allow_imports` | Import any other reference instead of requiring `refs`. Importing a module runs its code, only for files you trust. Default `False`. |
 
 The file may hold the graph at the top level or under a `graph` key.
 
@@ -54,7 +64,7 @@ The file may hold the graph at the top level or under a `graph` key.
 | Setting | Stored as |
 |---------|-----------|
 | Instructions, transitions, `default_next`, `max_iterations`, metadata | Plain data |
-| Every node type's own settings — `input_keys`, `output_key`, `inherit_context_from`, `context_scope`, `temperature`, `on_pass`/`on_fail`, `max_subgoals`, … | Plain data |
+| Every node type's own settings: `input_keys`, `output_key`, `inherit_context_from`, `context_scope`, `temperature`, `on_pass`/`on_fail`, `max_subgoals`, … | Plain data |
 | Flags (including `inject_tools`, `is_entry`, `is_terminal`) | `flags: [inject_tools, ...]` |
 | `compaction` (a `ContextCompaction`, or `True`/`False`/an `int`) | Its fields, e.g. `compaction: {after_tool_results: 3}` or `compaction: {reuse_results: [get_user]}` (a custom `count_tokens` as an import reference) |
 | Tools | Tool names, resolved from `tools=` on load |
@@ -73,7 +83,7 @@ Values a node would get by default are left out, so a saved graph stays short an
 
 These are Python objects with state of their own. Saving a graph that uses them raises `GraphSerializationError`; remove them before saving and set them in code after loading:
 
-- A lambda, or a function or class defined inside another function (as an `output_schema`, processor or edge condition) — move it to module level. An object defined in the script you run is saved as `__main__:Name`; pass it in `refs=` when loading.
+- A lambda, or a function or class defined inside another function (as an `output_schema`, processor or edge condition), move it to module level. An object defined in the script you run is saved as `__main__:Name`; pass it in `refs=` when loading.
 - `blocks`, `strategy`, `perspective`, `guards`, a `RouterNode`'s `context_blocks`.
 - A `model_override` that is a model object rather than a model id string (it may carry credentials).
 - A node class that isn't registered (see [Custom Node Types](#custom-node-types)).
@@ -85,7 +95,7 @@ try:
     save_graph(graph, "agent.yaml")
 except GraphSerializationError as exc:
     print(exc)
-    # Edge act → verify condition: can't be saved — it is a lambda or defined
+    # Edge act → verify condition: can't be saved, it is a lambda or defined
     # inside a function. Define it at module level in an importable module, ...
 ```
 
@@ -149,10 +159,18 @@ The built-in conditions are `EdgeCondition` objects (`from promptise.engine impo
 ## Python Dict Format
 
 ```python
+from promptise.engine import PromptGraph, PromptNode
 from promptise.engine.serialization import graph_from_config, graph_to_config
 
+graph = PromptGraph("two-step", mode="static")
+graph.add_node(PromptNode("draft", instructions="Draft the answer."))
+graph.add_node(PromptNode("polish", instructions="Polish it.", default_next="__end__"))
+graph.on_no_tool_call("draft", "polish")
+graph.set_entry("draft")
+
 config = graph_to_config(graph)                    # plain data, with "version": 2
-graph = graph_from_config(config, tools=agent.tools, refs=[Verdict])
+print(config["edges"])   # [{'from': 'draft', 'to': 'polish', 'label': 'no_tools', 'condition': {'kind': 'no_tool_call'}}]
+graph = graph_from_config(config, tools=[], refs=[])   # tools=agent.tools, refs=[...] as needed
 ```
 
 `node_to_config(node)` and `node_from_config(config, tools=..., refs=..., allow_imports=...)` do the same for a single node.
@@ -200,7 +218,7 @@ class AuditedNode(PromptNode):
 register_node_type("audited", AuditedNode)
 ```
 
-A registered subclass of a built-in node keeps all of the built-in's settings. If its constructor takes parameters of its own, define `to_config()` and `from_config()` so they are saved too — otherwise saving raises rather than dropping them. `from_config()` receives the node's whole config, base fields such as `instructions` and `default_next` included:
+A registered subclass of a built-in node keeps all of the built-in's settings. If its constructor takes parameters of its own, define `to_config()` and `from_config()` so they are saved too, otherwise saving raises rather than dropping them. `from_config()` receives the node's whole config, base fields such as `instructions` and `default_next` included:
 
 ```python
 class DatabaseNode(BaseNode):

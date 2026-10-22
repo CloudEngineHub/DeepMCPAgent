@@ -5,7 +5,7 @@ description: "How the reasoning engine works under the hood: the execution loop,
 
 # Reasoning Engine Internals
 
-How the Reasoning Engine works under the hood — execution flow, transition resolution, autonomous path building, caching, flag processing, and the complete data flow from `build_agent()` to tool response.
+How the Reasoning Engine works under the hood, execution flow, transition resolution, autonomous path building, caching, flag processing, and the complete data flow from `build_agent()` to tool response.
 
 ## The Big Picture
 
@@ -36,7 +36,7 @@ graph TB
     style EXEC fill:#2d1b4e,stroke:#c084fc,color:#fff
 ```
 
-## Execution Loop — What Happens on Every `ainvoke()`
+## Execution Loop: What Happens on Every `ainvoke()`
 
 ```mermaid
 graph TD
@@ -47,7 +47,9 @@ graph TD
 
     LOOP --> |yes| GET[Get node from graph]
     GET --> |not found| END_ERR[Log error, end]
-    GET --> |found| PRE_HOOK[Run pre_node hooks]
+    GET --> |found| BUDGET{Node budget left?}
+    BUDGET --> |"no: loop exit, error transition, __error__ node, or end"| LOOP
+    BUDGET --> |yes| PRE_HOOK[Run pre_node hooks]
 
     PRE_HOOK --> PRE_FLAG[Pre-execute flags]
     PRE_FLAG --> |SKIP_ON_ERROR + prev errored| SKIP[Return skip result]
@@ -70,16 +72,20 @@ graph TD
     POST_FLAG --> |CACHEABLE| CACHE_STORE[Store in cache]
     POST_FLAG --> |SUMMARIZE_OUTPUT| SUMMARIZE[LLM summarize if > 1000 chars]
     POST_FLAG --> |VALIDATE_OUTPUT| VALIDATE[Validate against schema]
-    POST_FLAG --> POST_HOOK
+    POST_FLAG --> MUT[Apply graph mutations]
+    MUT --> POST_HOOK
 
     POST_HOOK[Run post_node hooks] --> |hook sets __end__| END
     POST_HOOK --> TRANSITION[Resolve transition]
-    TRANSITION --> LOOP
+    TRANSITION --> ITER{iteration >= max_iterations?}
+    ITER --> |yes| END
+    ITER --> |no| LOOP
 
     ABORT --> END[Build ExecutionReport]
     END_ERR --> END
     LOOP --> |no| END
     END --> |run ended on an unrecovered node failure| RAISE[raise GraphExecutionError]
+    END --> |"limit or hook stopped it mid tool loop"| RAISE2[raise GraphIterationLimitError / GraphStoppedError]
 
     style START fill:#1e3a5f,stroke:#60a5fa,color:#fff
     style EXEC_NODE fill:#0e4429,stroke:#4ade80,color:#fff
@@ -88,23 +94,23 @@ graph TD
     style CACHE_HIT fill:#1a2e3a,stroke:#22d3ee,color:#fff
 ```
 
-## Transition Resolution — How the Engine Picks the Next Node
+## Transition Resolution: How the Engine Picks the Next Node
 
 After every node executes, the engine decides where to go next. This is the 7-step priority chain:
 
 ```mermaid
 graph TD
-    NE[Node finished executing] --> TC{Tool calls in result?}
-    TC --> |"yes, transition_reason = tool_calls_present"| SAME[Re-enter same node]
-    TC --> |no| LLM{output.route or _next or goto set?}
+    NE[Node finished executing] --> TC{"Tool calls in result and<br/>transition_reason = tool_calls_present?"}
+    TC --> |yes| SAME[Re-enter same node]
+    TC --> |no| NR{NodeResult.next_node set?}
 
-    LLM --> |"yes, target exists in graph"| TARGET[Go to named node]
-    LLM --> |no| NR{NodeResult.next_node set?}
+    NR --> |"yes (reasoning nodes, routers, guards set this)"| TARGET2[Go to next_node]
+    NR --> |no| LLM{"output.route / _next / next_step / goto<br/>names a transition key or a node?"}
 
-    NR --> |"yes (reasoning nodes set this)"| TARGET2[Go to next_node]
-    NR --> |no| EDGE{Conditional edges from this node?}
+    LLM --> |yes| TARGET[Follow that transition or go to that node]
+    LLM --> |no| EDGE{Edges from this node?}
 
-    EDGE --> |"match (checked by priority desc)"| TARGET3[Follow matched edge]
+    EDGE --> |"first match, by priority desc"| TARGET3[Follow matched edge]
     EDGE --> |no match| TR{Node transitions dict match output?}
 
     TR --> |yes| TARGET4[Follow transition]
@@ -123,9 +129,14 @@ graph TD
     style TARGET3 fill:#2d1b4e,stroke:#c084fc,color:#fff
 ```
 
-**Key insight:** Tool-calling nodes re-enter themselves automatically. The LLM calls tools → engine adds ToolMessages to conversation → re-enters the node → LLM sees results → calls more tools or produces final answer. This loop continues until the LLM stops calling tools.
+**Key insight:** Tool-calling nodes re-enter themselves automatically. The LLM calls tools → the node adds ToolMessages to the conversation → the engine re-enters the node → the LLM sees the results → calls more tools or produces a final answer. This loop continues until the LLM stops calling tools or the node's budget (`min(max_iterations, max_node_iterations)`) is used up.
 
-## Autonomous Mode — How the AI Builds Its Own Path
+Before a node runs, the engine checks its budget. A node that has used it is
+not run again: the engine goes to its `loop_until` exit, else its `"error"`
+transition, else an `__error__` node, else ends the run. A run ended that way
+in the middle of a tool loop raises `GraphIterationLimitError`.
+
+## Autonomous Mode: How the AI Builds Its Own Path
 
 ```mermaid
 sequenceDiagram
@@ -160,93 +171,68 @@ sequenceDiagram
 In autonomous mode, the `AutonomousNode` wraps the pool and orchestrates:
 
 1. Builds a routing prompt listing all available nodes with descriptions and their tools
-2. Asks the LLM which node to run next — the prompt and reply are sent for that call only, never added to `state.messages`
+2. Asks the LLM which node to run next: the prompt and reply are sent for that call only, never added to `state.messages`
 3. Extracts JSON from the response (balanced brace parser for nested objects)
 4. Executes the chosen node, re-running it while its model keeps calling tools (a tool name runs the node that has the tool)
 5. Loops back to step 2 until the LLM chooses `__done__` or a terminal node succeeds
 6. When no terminal node ran last, runs the answer node, so the run ends with a written answer
 
-The developer controls the pool composition — what nodes are available. The LLM controls the path — which nodes to use and in what order.
+The developer controls the pool composition, what nodes are available. The LLM controls the path, which nodes to use and in what order.
 
-## PromptNode Execution — The 9-Step Pipeline
+## PromptNode Execution: The Pipeline
 
-Every PromptNode runs this pipeline internally:
+Every execution of a PromptNode is one model call:
 
 ```mermaid
 graph TD
-    START[PromptNode.execute] --> PRE[1. Preprocessor]
-    PRE --> CTX[2. Context Assembly]
-    CTX --> |instructions + blocks + input_keys + inherited context| CTX2[+ observations + plan + reflections]
-    CTX2 --> |"skip observations for tool nodes"| SCHEMA[+ Auto tool schema injection]
-    SCHEMA --> STRAT[3. Strategy wrapping + perspective]
-    STRAT --> BIND[4. Tool binding + structured output]
-    BIND --> |"first call: build + cache"| CACHE_CHECK{Cached from previous tool loop?}
-    CACHE_CHECK --> |yes| REUSE[Reuse cached sys msg + model]
-    CACHE_CHECK --> |no| BUILD[Build SystemMessage + bind_tools]
-    BUILD --> CACHE_STORE[Cache in config for re-entry]
-    REUSE --> LLM[5. LLM call]
-    CACHE_STORE --> LLM
+    START[PromptNode.execute] --> MODEL[1. Resolve model: override or engine model]
+    MODEL --> PRE[2. Preprocessor]
+    PRE --> CTX[3. System prompt assembly]
+    CTX --> |"instructions + tool summary (off by default) + input_keys + inherited output + context_layers + blocks"| CTX2["+ observations (nodes without tools) + plan + reflections + route choices"]
+    CTX2 --> STRAT[4. Strategy wrap + perspective]
+    STRAT --> BIND{5. Binding cached for this model, tools, schema?}
+    BIND --> |yes| REUSE[Reuse bound model]
+    BIND --> |no| BUILD[bind_tools + with_structured_output, cache in config]
+    REUSE --> SCOPE[6. Context scope: full, or compacted view]
+    BUILD --> SCOPE
+    SCOPE --> LLM[7. LLM call]
 
-    LLM --> RESP{6. Response type?}
+    LLM --> RESP{8. Response type?}
     RESP --> |AIMessage with tool_calls| TOOL_EXEC[Execute tools]
-    RESP --> |AIMessage text only| PARSE[Parse output]
-    RESP --> |Structured output| STRUCT[Use as-is]
+    RESP --> |AIMessage text only| PARSE[raw_output = text]
+    RESP --> |Structured output| STRUCT[output = dict]
 
-    TOOL_EXEC --> |"2+ calls"| PARALLEL[asyncio.gather parallel]
-    TOOL_EXEC --> |"1 call"| SEQUENTIAL[Sequential execution]
-    PARALLEL --> TOOL_MSG[Append ToolMessages to state]
+    TOOL_EXEC --> |"2+ calls"| PARALLEL[Run concurrently]
+    TOOL_EXEC --> |"1 call"| SEQUENTIAL[Run directly]
+    PARALLEL --> TOOL_MSG[Append ToolMessages in call order]
     SEQUENTIAL --> TOOL_MSG
-    TOOL_MSG --> |"transition_reason = tool_calls_present"| RETURN[Return result → engine re-enters node]
+    TOOL_MSG --> |"transition_reason = tool_calls_present"| GUARD
 
-    PARSE --> GUARD[7. Guard checking sync + async]
+    PARSE --> GUARD[9. Transitions from output, guards]
     STRUCT --> GUARD
-    GUARD --> STRAT_PARSE[8. Strategy parsing]
-    STRAT_PARSE --> POST[9. Postprocessor]
-    POST --> WRITE[Write output_key to state.context]
-    WRITE --> DONE[Return NodeResult]
+    GUARD --> STRAT_PARSE[10. Strategy parse]
+    STRAT_PARSE --> POST[11. Postprocessor]
+    POST --> WRITE["12. output_key (parsed output) + {name}_output"]
+    WRITE --> DONE[Return NodeResult → engine re-enters on tool calls]
 
     style START fill:#1e3a5f,stroke:#60a5fa,color:#fff
     style LLM fill:#2d1b4e,stroke:#c084fc,color:#fff
     style PARALLEL fill:#0e4429,stroke:#4ade80,color:#fff
-    style RETURN fill:#3a2a0a,stroke:#fbbf24,color:#fff
     style DONE fill:#1a1a1a,stroke:#666,color:#fff
 ```
 
-## Caching Strategy — What Gets Cached and When
+## Caching: What Is Reused and When
 
-```mermaid
-graph LR
-    subgraph "First execution (cold)"
-        A1[Build system prompt] --> A2[Resolve tools]
-        A2 --> A3[bind_tools on model]
-        A3 --> A4[Create SystemMessage]
-        A4 --> A5[Build tool_map dict]
-        A5 --> A6["Cache all in config[_node_cache_{name}]"]
-    end
+| Item | Where | Reused while |
+|------|-------|--------------|
+| Bound model (tools + structured output) | `config["_node_cache_{name}"]` | Same run, same model object (or same `model_override`), same tool names, same `output_schema` |
+| Edge adjacency index | `graph._edge_index` | Until an edge is added or removed (lazy dirty flag) |
+| Node result (`CACHEABLE` flag) | `state.context["_node_cache"]` | Same run, same `input_keys` values; up to 128 entries |
 
-    subgraph "Tool loop re-entry (hot)"
-        B1["Read from config cache"] --> B2[Reuse SystemMessage]
-        B2 --> B3[Reuse bound model]
-        B3 --> B4[Reuse tool_map]
-        B4 --> B5[Skip: prompt assembly, tool resolution, bind_tools]
-    end
-
-    A6 -.-> B1
-
-    style A6 fill:#22d3ee,stroke:#0891b2,color:#000
-    style B1 fill:#22d3ee,stroke:#0891b2,color:#000
-```
-
-**What's cached per node:**
-
-| Item | Cache key | Rebuilt when? |
-|------|-----------|---------------|
-| SystemMessage (assembled prompt) | `config[_node_cache_{name}].sys_msg` | Never during same invocation |
-| Bound model (with tools) | `config[_node_cache_{name}].model` | Never during same invocation |
-| Active tools list | `config[_node_cache_{name}].tools` | Never during same invocation |
-| Tool name→instance map | `config[_tool_map_{name}]` | Never during same invocation |
-| Edge adjacency index | `graph._edge_index` | On edge add/remove (lazy dirty flag) |
-| Node result (CACHEABLE flag) | `state.context._node_cache[hash]` | When input_keys change |
+The system prompt is **not** cached: it is rebuilt on every execution, since
+`input_keys`, plan, reflections, observations and the offered tools can change
+between steps. The run config is copied per run, so these caches never leak
+between runs.
 
 ## Flag Processing Order
 
@@ -315,8 +301,8 @@ Three ways nodes pass data:
 
 | Method | How it works | Use when |
 |--------|-------------|----------|
-| `output_key` → `input_keys` | Node A writes to `state.context[output_key]`. Node B reads from `state.context[input_keys[i]]`. | Structured data with named fields |
-| `inherit_context_from` | Node B gets `state.context["{A_name}_output"]` auto-injected into its prompt. | One node directly continues another's work |
+| `output_key` → `input_keys` | Node A writes its parsed output to `state.context[output_key]` (an `output_schema` dict, a strategy's extracted answer, or a postprocessor's value; nothing for a plain-text reply). Node B gets `state.context[input_keys[i]]` in its prompt. | Structured data with named fields |
+| `inherit_context_from` | Node B gets `state.context["{A_name}_output"]` (A's reply text, or its structured output as JSON) in its prompt. Every `PromptNode` writes this key. | One node directly continues another's work, including plain-text replies |
 | `state.context` direct | Node's execute() reads/writes `state.context` directly. | Custom state management in BaseNode subclasses |
 
 ## CallerContext → MCP Server Identity Flow
@@ -364,7 +350,7 @@ graph TD
         FLAGS_POST --> H2["post_node hooks (result modifiable)"]
     end
 
-    subgraph "Per-tool execution (PromptNode and ToolNode)"
+    subgraph "Per-tool execution (PromptNode, ToolNode, CodeActionNode programs)"
         H3["pre_tool hooks (args modifiable)"] --> TOOL["tool.ainvoke()"]
         TOOL --> H4["post_tool hooks (result modifiable)"]
     end
@@ -372,7 +358,7 @@ graph TD
     subgraph "Special hooks"
         H5["on_observable_event (OBSERVABLE nodes)"]
         H6["on_human_required (REQUIRES_HUMAN nodes)"]
-        H7["on_graph_mutation (runtime mutations)"]
+        H7["on_tool_reused (reused results)"]
     end
 
     style H1 fill:#1e3a5f,stroke:#60a5fa,color:#fff
@@ -381,7 +367,7 @@ graph TD
     style TOOL fill:#2d1b4e,stroke:#c084fc,color:#fff
 ```
 
-All hooks are wrapped in try/except — a failing hook never crashes the graph. Hooks run in registration order.
+Hooks run in registration order. A failing `pre_node` or `post_node` hook is logged and skipped. A `pre_tool` or `post_tool` hook that raises fails that tool call (the model gets the error). `on_observable_event` and `on_human_required` are not wrapped: an exception there ends the run. The `Hook` protocol's `on_error` and `on_graph_mutation` are not called in 1.6.0.
 
 ## Safety Mechanisms
 
@@ -389,7 +375,7 @@ All hooks are wrapped in try/except — a failing hook never crashes the graph. 
 graph TD
     subgraph "Iteration Guards"
         S1["max_iterations (default 50)"] --> |"reached: that many node executions"| S1R["Force graph end"]
-        S2["node budget: min(node.max_iterations, max_node_iterations)"] --> |"used up — node not run again"| S2R["_handle_stuck_node()"]
+        S2["node budget: min(node.max_iterations, max_node_iterations)"] --> |"used up, node not run again"| S2R["_handle_stuck_node()"]
         S2R --> |"error transition exists"| S2A["Follow error edge"]
         S2R --> |"__error__ node exists"| S2B["Go to error handler"]
         S2R --> |"nothing"| S2C["Force __end__"]
@@ -419,23 +405,6 @@ graph TD
     style S9R fill:#0e4429,stroke:#4ade80,color:#fff
 ```
 
-## Performance Architecture
+## Performance
 
-```
-Measurement: 5-node pipeline × 100 invocations
-
-Per-node overhead:     0.009ms (9 microseconds)
-Per-invocation:        0.04ms
-PromptNode (mock LLM): 0.02ms
-
-Where time goes:
-├── Graph copy:           ~0.001ms (once per invocation)
-├── Edge lookup:          ~0.0001ms (O(1) adjacency index)
-├── Flag processing:      ~0.001ms (conditional checks)
-├── Hook execution:       ~0.001ms (if hooks registered)
-├── System prompt cache:  ~0.0001ms (dict lookup on re-entry)
-├── Tool map cache:       ~0.0001ms (dict lookup)
-└── LLM call:             99.99% of wall clock time
-```
-
-The engine is not the bottleneck. The LLM provider is.
+The engine's own work per node (copying the graph, looking up edges, flag checks, hooks) is small next to the model and tool calls, which take nearly all of a run's time.
