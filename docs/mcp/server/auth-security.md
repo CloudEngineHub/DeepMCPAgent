@@ -35,7 +35,8 @@ async def health() -> str:
     """Public health check (no auth required)."""
     return "ok"
 
-server.run(transport="http", host="127.0.0.1", port=8080)
+if __name__ == "__main__":
+    server.run(transport="http", host="127.0.0.1", port=8080)
 ```
 
 Only tools with `auth=True` require authentication. Unauthenticated clients can still call `health`.
@@ -46,7 +47,7 @@ The auth system has three layers:
 
 1. **Auth providers** (`JWTAuth`, `APIKeyAuth`, `AsymmetricJWTAuth`) verify credentials and extract client identity.
 2. **AuthMiddleware** runs in the middleware chain, calling the provider for tools that require auth. On success, it populates `ctx.client` with a structured `ClientContext` containing identity, roles, scopes, JWT claims, IP address, and user-agent.
-3. **Guards** (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`, `RequireClientId`, `RequireTenant`, `HasTenant`) enforce fine-grained permissions after authentication. When a guard denies access, the error message explains *why* — which roles or scopes were required vs. what the client has.
+3. **Guards** (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`, `RequireClientId`, `RequireTenant`, `HasTenant`) enforce fine-grained permissions after authentication. When a guard denies access, the error message explains *why*, which roles or scopes were required vs. what the client has.
 
 After authentication, everything you need is on `ctx.client`:
 
@@ -99,7 +100,15 @@ set, they are checked too:
 the payload does not set them, so test tokens verify against the same
 provider.
 
-Clients send tokens via the `Authorization: Bearer <token>` header. The provider strips the `Bearer ` prefix automatically.
+Clients send tokens via the `Authorization: Bearer <token>` header. The provider strips the `Bearer ` prefix automatically. Only HS256 tokens are accepted (a token whose header names another algorithm is rejected), and a token without `exp` is rejected.
+
+| Parameter | Default | Description |
+|---|---|---|
+| `secret` | required | Shared HS256 secret |
+| `audience` | `None` | Accepted `aud` value or list of values |
+| `issuer` | `None` | Required `iss` value |
+| `meta_key` | `"authorization"` | Lower-case header name that carries the token |
+| `cache_size` | `256` | Verified tokens kept in the LRU cache; `0` disables it |
 
 **Token payload format:**
 
@@ -130,7 +139,7 @@ is_valid = jwt_auth.verify_token(token)
 
 Pre-shared key authentication with optional role support. Maps API keys to client identifiers.
 
-**Simple format** — key maps to a client ID string:
+**Simple format**: key maps to a client ID string:
 
 ```python
 from promptise.mcp.server import APIKeyAuth
@@ -144,7 +153,7 @@ api_auth = APIKeyAuth(
 )
 ```
 
-**Rich format** — key maps to a config dict with roles for guard compatibility:
+**Rich format**: key maps to a config dict with roles for guard compatibility:
 
 ```python
 api_auth = APIKeyAuth(
@@ -155,13 +164,16 @@ api_auth = APIKeyAuth(
 )
 ```
 
-Rich keys automatically populate `ctx.state["roles"]`, so role-based guards (`HasRole`, `HasAllRoles`) work out of the box — no JWT required.
+Rich keys automatically populate `ctx.state["roles"]`, so role-based guards (`HasRole`, `HasAllRoles`) work out of the box, with no JWT required. A rich entry may also carry `"tenant_id": "acme"`, which becomes `ctx.client.tenant_id` for [tenant guards](multi-tenancy.md).
 
-Clients send their key via the `x-api-key` header (configurable via `header`). The matching client ID becomes `ctx.client_id`.
+Clients send their key via the `x-api-key` header (configurable via `header`). The matching client ID becomes `ctx.client_id`. Keys are compared in constant time.
+
+!!! warning "Give `header` in lower case"
+    Request headers reach `ctx.meta` with lower-case names, and `APIKeyAuth` looks the header up exactly as given. `APIKeyAuth(keys, header="X-API-Key")` never finds the key over HTTP; write `header="x-api-key"`. With `MCPServer(require_auth=True)`, the [transport gate](deployment.md#transport-level-auth-gate) only reads `Authorization: Bearer` and `x-api-key`, so keep the default header name there.
 
 ### AsymmetricJWTAuth
 
-For production deployments using RS256 or ES256 (asymmetric) JWT tokens — common with Auth0, Keycloak, and other identity providers:
+For production deployments using RS256 or ES256 (asymmetric) JWT tokens: common with Auth0, Keycloak, and other identity providers:
 
 ```python
 from promptise.mcp.server import AsymmetricJWTAuth, AuthMiddleware
@@ -184,11 +196,11 @@ auth = AsymmetricJWTAuth(
 )
 ```
 
-`AsymmetricJWTAuth` uses the same interface as `JWTAuth` — it works with `AuthMiddleware`, guards, and `ctx.client_id`. It takes the same `audience` and `issuer` arguments. Set `audience` for IdP-issued tokens: without it, a token that carries an `aud` claim is rejected. Requires the `PyJWT` and `cryptography` packages (optional dependencies).
+`AsymmetricJWTAuth(public_key, *, algorithm="RS256", audience=None, issuer=None, meta_key="authorization", cache_size=256)` uses the same interface as `JWTAuth`: it works with `AuthMiddleware`, guards, and `ctx.client_id`. `public_key` is a PEM string or the path to a PEM file; `algorithm` must be `"RS256"` or `"ES256"` (anything else raises `ValueError`). Set `audience` for IdP-issued tokens: without it, a token that carries an `aud` claim is rejected. Requires the `PyJWT` and `cryptography` packages (optional dependencies).
 
 ### JwksAuth
 
-For tokens issued by an identity provider whose signing keys rotate and are published at a **JWKS** endpoint — Microsoft Entra, Okta, Auth0, Keycloak, any OIDC provider. This is the server-side counterpart to [Agent Identity](../../identity/overview.md): an agent presents an IdP-issued identity credential, and `JwksAuth` verifies it against the IdP's public keys (fetched on demand and cached, so key rotation needs no reconfiguration):
+For tokens issued by an identity provider whose signing keys rotate and are published at a **JWKS** endpoint: Microsoft Entra, Okta, Auth0, Keycloak, any OIDC provider. This is the server-side counterpart to [Agent Identity](../../identity/overview.md): an agent presents an IdP-issued identity credential, and `JwksAuth` verifies it against the IdP's public keys (fetched on demand and cached, so key rotation needs no reconfiguration):
 
 ```python
 from promptise.mcp.server import JwksAuth, AuthMiddleware
@@ -203,6 +215,17 @@ server.add_middleware(AuthMiddleware(auth))
 
 The validated token's `sub` and claims are surfaced on `ctx.client` (subject, issuer, audience, claims), so guards (`RequireClientId`, `HasRole`) and audit logs can see **which agent** called. Requires the `PyJWT` and `cryptography` packages.
 
+| Parameter | Default | Description |
+|---|---|---|
+| `jwks_url` | required | The IdP's JWKS endpoint |
+| `audience` | required | Expected `aud`; an empty value raises `ValueError` |
+| `issuer` | `None` | Expected `iss` (recommended) |
+| `algorithms` | `("RS256", "ES256")` | Accepted signing algorithms (asymmetric only) |
+| `meta_key` | `"authorization"` | Header carrying the bearer token |
+| `leeway` | `60.0` | Seconds of clock skew allowed on `exp`, `nbf` and `iat` |
+
+Keys are cached for five minutes; a token signed with an unknown `kid` triggers an immediate re-fetch (at most once per key id per minute), so a rotated key works on first use.
+
 !!! note "`audience` is required"
     `JwksAuth` verifies the `aud` claim on every token. This is what stops an agent from replaying a token it was legitimately issued for a *different* resource of the same IdP. Set `audience` to the resource this server represents.
 
@@ -215,7 +238,7 @@ auth = JwksAuth.from_discovery(
 )
 ```
 
-The discovery document is fetched once (lazily, on the first verified call) and its `issuer` is checked against the configured one before its `jwks_uri` is trusted.
+The discovery document is fetched once (lazily, on the first verified call) and its `issuer` is checked against the configured one before its `jwks_uri` is trusted. `from_discovery(*, issuer, audience, algorithms=("RS256", "ES256"), meta_key="authorization", request_timeout=5.0, leeway=60.0)`.
 
 ### Custom auth provider
 
@@ -248,7 +271,7 @@ Install it like any provider: `server.add_middleware(AuthMiddleware(OAuth2Intros
 
 ## AuthMiddleware
 
-`AuthMiddleware` wraps an auth provider and runs it for tools marked with `auth=True`:
+`AuthMiddleware` wraps an auth provider and runs it for tools, resources and prompts marked with `auth=True`:
 
 ```python
 from promptise.mcp.server import AuthMiddleware
@@ -256,20 +279,28 @@ from promptise.mcp.server import AuthMiddleware
 server.add_middleware(AuthMiddleware(jwt_auth))
 ```
 
+`AuthMiddleware(provider, *, on_authenticate=None, tenant_claim="tenant_id")`:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `provider` | required | Any `AuthProvider`: an object with `async def authenticate(ctx) -> str` (the client id). `verify_token(token) -> bool` is optional and used by the [transport gate](deployment.md#transport-level-auth-gate) |
+| `on_authenticate` | `None` | `OnAuthenticateHook`: sync or async `(client: ClientContext, ctx: RequestContext)`, called after a successful authentication |
+| `tenant_claim` | `"tenant_id"` | JWT claim copied to `ctx.client.tenant_id` (string values only) |
+
 When a tool has `auth=True`:
 
 1. The middleware calls `provider.authenticate(ctx)`.
-2. On success, `ctx.client_id` is set and `ctx.client` is populated with a full `ClientContext` — identity, roles, scopes, JWT claims (`iss`, `aud`, `sub`, `iat`, `exp`), client IP address, and user-agent.
+2. On success, `ctx.client_id` is set and `ctx.client` is populated with a full `ClientContext`: identity, roles, scopes, JWT claims (`iss`, `aud`, `sub`, `iat`, `exp`), client IP address, and user-agent.
 3. On failure, an `AuthenticationError` is returned to the client.
 
 Tools without `auth=True` pass through the middleware without authentication checks. `roles=[...]` and the built-in identity guards (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`, `RequireClientId`, `RequireTenant`, `HasTenant`) imply `auth=True`, since they can only pass once the caller is identified. A custom guard does not: give its tool `auth=True` if the guard reads `ctx.client`.
 
 ### Identity is resolved per request
 
-On the HTTP and SSE transports an MCP session spans many HTTP requests. The credential the provider verifies, and everything `ctx.client` reports (client id, tenant, roles, IP address, user-agent), come from the HTTP request that carries **this** `tools/call` — never from the request that opened the session:
+On the HTTP and SSE transports an MCP session spans many HTTP requests. The credential the provider verifies, and everything `ctx.client` reports (client id, tenant, roles, IP address, user-agent), come from the HTTP request that carries **this** `tools/call`, never from the request that opened the session:
 
 - A call that presents a different valid credential than the one that opened the session runs as *that* credential's principal, with its own tenant and roles.
-- A call with no credential is unauthenticated, even inside a session opened with a valid one — `auth=True` tools answer `AuthenticationError`.
+- A call with no credential is unauthenticated, even inside a session opened with a valid one: `auth=True` tools answer `AuthenticationError`.
 - With `MCPServer(require_auth=True)` the transport gate goes one step further and binds the session to the credential that created it: a different credential on a known `mcp-session-id` is answered `404 Session not found`. See [Transport-level auth gate](deployment.md#transport-level-auth-gate).
 
 `TestClient` behaves the same way: headers passed to one `call_tool` apply to that call only.
@@ -305,7 +336,8 @@ After successful authentication, `ctx.client` is a `ClientContext` dataclass wit
 
 | Field | Type | Source |
 |---|---|---|
-| `client_id` | `str` | JWT `sub` or API key mapping |
+| `client_id` | `str` | JWT `sub` (else `client_id` claim) or API key mapping; `"anonymous"` before authentication |
+| `tenant_id` | `str \| None` | JWT claim named by `tenant_claim`, or the API key's `tenant_id` |
 | `roles` | `set[str]` | JWT `roles` claim + provider roles |
 | `scopes` | `set[str]` | JWT `scope` claim (space-separated per RFC 8693) |
 | `claims` | `dict` | Full JWT payload (empty for API key auth) |
@@ -322,7 +354,7 @@ Helper methods: `has_role()`, `has_any_role()`, `has_all_roles()`, `has_scope()`
 
 ### Force auth on all tools
 
-Set `require_auth=True` on the server constructor to force `auth=True` on every tool, including those registered without the flag:
+Set `require_auth=True` on the server constructor to force `auth=True` on every tool, resource and prompt, including those registered without the flag (and those from routers, mounts, OpenAPI imports and `include_prompts()`):
 
 ```python
 server = MCPServer(name="locked-down", require_auth=True)
@@ -359,9 +391,14 @@ async def manage_team() -> str:
 The `roles=["admin", "manager"]` shorthand on `@server.tool()` creates a `HasRole` guard automatically:
 
 ```python
-# These two are equivalent:
+# These two tools are protected the same way:
 @server.tool(auth=True, roles=["admin", "manager"])
+async def manage_team_shorthand() -> str:
+    return "team managed"
+
 @server.tool(auth=True, guards=[HasRole("admin", "manager")])
+async def manage_team_explicit() -> str:
+    return "team managed"
 ```
 
 ### HasAllRoles
@@ -430,11 +467,11 @@ When a guard denies access, the error message explains *why*:
 "Requires any of scopes [read, write], but client has [(none)]"
 ```
 
-This makes debugging auth issues straightforward — you see exactly which roles or scopes are required, which the client has, and what's missing.
+This makes debugging auth issues straightforward: you see exactly which roles or scopes are required, which the client has, and what's missing.
 
 ### Custom guards
 
-Implement the `Guard` protocol. Override `describe_denial()` to provide helpful error messages:
+Implement the `Guard` protocol: `async def check(ctx) -> bool`, plus an optional `describe_denial(ctx) -> str` for the error message (the default names the guard class). A custom guard does not imply `auth=True`; set it on the tool when the guard reads `ctx.client`:
 
 ```python
 from promptise.mcp.server import Guard, RequestContext
@@ -466,7 +503,7 @@ async def my_tool(ctx: RequestContext) -> str:
 
 Propagate the `X-Request-ID` from your upstream services to enable end-to-end distributed tracing through your MCP tools.
 
-## ToolResponse — response metadata
+## ToolResponse: response metadata
 
 Handlers can return a `ToolResponse` to attach metadata for audit, observability, and middleware:
 
@@ -486,11 +523,11 @@ async def search(query: str, ctx: RequestContext) -> ToolResponse:
     )
 ```
 
-The `content` is serialized normally (the agent sees the results). The `metadata` is stored on `ctx.state["response_metadata"]` for downstream use by audit middleware, webhook middleware, or custom logging. The agent never sees the metadata — it's for your infrastructure.
+The `content` is serialized normally (the agent sees the results). The `metadata` is stored on `ctx.state["response_metadata"]` for downstream use by audit middleware, webhook middleware, or custom logging. The agent never sees the metadata: it's for your infrastructure.
 
 ## Dependency Injection
 
-Use `Depends()` to inject shared resources into tool handlers -- database connections, HTTP clients, configuration, or any callable.
+Use `Depends()` to inject shared resources into tool handlers: database connections, HTTP clients, configuration, or any callable.
 
 ### Basic injection
 
@@ -587,7 +624,9 @@ Response:
 {"access_token": "eyJhbGciOiJIUzI1NiIs...", "refresh_token": "prf_...", "token_type": "bearer", "expires_in": 86400}
 ```
 
-Exchange the refresh token for a new pair with `grant_type=refresh_token&refresh_token=prf_...`; each refresh token works once. Errors use the OAuth 2.0 shape: `{"error": "invalid_client", "error_description": "..."}`.
+Exchange the refresh token for a new pair with `grant_type=refresh_token&refresh_token=prf_...`; each refresh token works once and expires after 30 days. Refresh tokens are kept in memory, so a restart invalidates them. Errors use the OAuth 2.0 shape: `{"error": "invalid_client", "error_description": "..."}`.
+
+`enable_token_endpoint(jwt_auth, clients, *, path="/auth/token", default_expires_in=86400)`. Each client entry needs `"secret"` and may set `"roles"` (list), `"expires_in"` (seconds, overrides the default) and `"claims"` (extra JWT claims, for example `{"tenant_id": "acme", "scope": "read write"}`). The issued token has `sub` = the client id and `roles`, plus the provider's audience and issuer. The endpoint is served on the HTTP and SSE transports and by `asgi_app()`. The settings are held in a `TokenEndpointConfig(jwt_auth, clients, *, path="/auth/token", default_expires_in=3600, refresh_token_ttl=2592000)`; `enable_token_endpoint()` builds it for you.
 
 !!! warning "Not for production"
     The built-in token endpoint is a convenience for development. In production, use a proper Identity Provider (Auth0, Keycloak, Okta) and pass tokens to clients via `bearer_token`.
@@ -666,7 +705,7 @@ caller = CallerContext(
 result = await agent.ainvoke(input, caller=caller)
 ```
 
-The agent's `MCPClient` sends the `bearer_token` as an `Authorization: Bearer <token>` header. Your server's `AuthMiddleware` validates it and populates `ctx.client` — the handler never sees the raw token.
+The agent's `MCPClient` sends the `bearer_token` as an `Authorization: Bearer <token>` header. Your server's `AuthMiddleware` validates it and populates `ctx.client`: the handler never sees the raw token.
 
 ```python
 # Server side — handler receives validated identity
@@ -696,7 +735,11 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
 | `JWTAuth.verify_token(token)` | Method | Check token validity without context |
 | `APIKeyAuth(keys, header)` | Class | Pre-shared API key authentication (simple or rich format) |
 | `AsymmetricJWTAuth(public_key, algorithm, audience, issuer)` | Class | RS256/ES256 asymmetric JWT authentication |
-| `AuthMiddleware(provider, on_authenticate)` | Class | Middleware that enforces auth and populates `ClientContext` |
+| `JwksAuth(jwks_url, audience, issuer, algorithms, meta_key, leeway)` | Class | JWT authentication against an IdP's rotating JWKS keys |
+| `JwksAuth.from_discovery(issuer, audience, ...)` | Class method | Discover the JWKS URL from OIDC metadata |
+| `AuthProvider` | Protocol | `async authenticate(ctx) -> str` for custom providers |
+| `AuthMiddleware(provider, on_authenticate, tenant_claim)` | Class | Middleware that enforces auth and populates `ClientContext` |
+| `OnAuthenticateHook` | Type | `(ClientContext, RequestContext) -> None` (sync or async) |
 | `ClientContext` | Dataclass | Structured client info: identity, roles, scopes, JWT claims, IP, user-agent |
 | `ToolResponse(content, metadata)` | Dataclass | Response wrapper with metadata for audit/observability |
 | `RequireAuth()` | Guard | Require any authenticated client |
@@ -705,11 +748,13 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
 | `HasScope(*scopes)` | Guard | Require **any** of the given OAuth2 scopes (JWT only) |
 | `HasAllScopes(*scopes)` | Guard | Require **all** of the given OAuth2 scopes (JWT only) |
 | `RequireClientId(*ids)` | Guard | Require specific client identifiers |
+| `RequireTenant()` / `HasTenant(*ids)` | Guard | Require a tenant / one of the given tenants ([Multi-Tenancy](multi-tenancy.md)) |
+| `Guard` | Protocol | `async check(ctx) -> bool`, optional `describe_denial(ctx) -> str` |
 | `Depends(dependency, use_cache)` | Function | Dependency injection marker |
 | `server.enable_token_endpoint(...)` | Method | Enable built-in dev token endpoint |
 
 !!! tip "Guard composition"
-    Pass multiple guards to a tool's `guards` list. They are checked in order; the first failure short-circuits and returns an `ACCESS_DENIED` error.
+    Pass multiple guards to a tool's `guards` list. They are checked in order after the middleware chain; the first failure short-circuits and returns an `ACCESS_DENIED` error with the guard's `describe_denial()` text.
 
 !!! warning "Secret management"
     Never hardcode JWT secrets in source code. Use environment variables or a secrets manager. The `ServerSettings` class supports loading secrets from env vars with a configurable prefix.
@@ -719,14 +764,14 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
 
 ## What's Next
 
-- [Caching & Performance](caching-performance.md) — Cache tool results, rate limit agents, control concurrency
-- [Observability & Monitoring](observability.md) — Metrics, tracing, audit trails, structured logging
-- [Resilience Patterns](resilience-patterns.md) — Circuit breakers, health checks, background tasks
-- [Deployment](deployment.md) — HTTP transport, CORS, transport-level auth, Docker
-- [Testing](testing.md) — Test authenticated endpoints with `TestClient`
-- [Client Guide](../client/index.md) — Connect to your server with authentication
+- [Caching & Performance](caching-performance.md): Cache tool results, rate limit agents, control concurrency
+- [Observability & Monitoring](observability.md): Metrics, tracing, audit trails, structured logging
+- [Resilience Patterns](resilience-patterns.md): Circuit breakers, health checks, background tasks
+- [Deployment](deployment.md): HTTP transport, CORS, transport-level auth, Docker
+- [Testing](testing.md): Test authenticated endpoints with `TestClient`
+- [Client Guide](../client/index.md): Connect to your server with authentication
 
 !!! tip "Learn the concept"
 
-    - [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth) -- API keys, JWTs and OAuth with JWKS, roles and scopes.
-    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices) -- A checklist for securing an MCP server.
+    - [MCP Authentication in Python: API Keys, JWT and OAuth](https://www.promptise.com/guides/view/mcp-server-authentication-jwt-oauth): API keys, JWTs and OAuth with JWKS, roles and scopes.
+    - [MCP Security Best Practices: A Checklist for MCP Servers](https://www.promptise.com/guides/view/mcp-security-best-practices): A checklist for securing an MCP server.

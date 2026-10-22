@@ -6,9 +6,9 @@ description: "Isolate tenants across the stack: tenant_id from the JWT, tenant g
 # Multi-Tenancy for MCP Servers and Agents
 
 First-class tenant isolation across the whole stack. When a caller carries a
-`tenant_id`, it becomes part of **every isolation key** — semantic cache,
+`tenant_id`, it becomes part of **every isolation key** (semantic cache,
 memory scoping, conversation ownership, rate-limit buckets, audit entries,
-and tool access — so two tenants with the *same* `user_id` can never see
+and tool access) so two tenants with the *same* `user_id` can never see
 each other's data. Isolation is a structural invariant, not a naming
 convention buried in `metadata`.
 
@@ -17,7 +17,7 @@ convention buried in `metadata`.
     multi-customer platform. Conventions ("we always prefix keys with the
     org") fail silently the first time one call site forgets. Promptise
     bakes the tenant into the key derivation itself, in one place per
-    surface — there is no code path that stores or reads tenant data
+    surface: there is no code path that stores or reads tenant data
     without it.
 
 ## Server side: `ClientContext.tenant_id`
@@ -26,7 +26,7 @@ convention buried in `metadata`.
 (default `tenant_id`) and attaches it to `ctx.client.tenant_id`:
 
 ```python
-from promptise.mcp.server import AuthMiddleware, JWTAuth, MCPServer
+from promptise.mcp.server import AuthMiddleware, JWTAuth, MCPServer, RequestContext
 
 server = MCPServer(name="api")
 server.add_middleware(
@@ -80,7 +80,7 @@ async def acme_only_tool() -> str: ...
 ```
 
 To make tenancy a **server-wide invariant**, build the server with
-`require_tenant=True` — every tool (from decorators, routers, mounts, or
+`require_tenant=True`: every tool (from decorators, routers, mounts, or
 OpenAPI import) is forced to authenticate and carries a `RequireTenant`
 guard. A client whose token lacks the tenant claim is denied on every call:
 
@@ -92,11 +92,11 @@ server = MCPServer(name="api", require_tenant=True)  # implies require_auth
 
 | Surface | Behavior with a tenant present |
 |---------|-------------------------------|
-| Rate limiting | Bucket keys are tenant-qualified in both `RateLimitMiddleware` and declared per-tool limits — one tenant's traffic can never exhaust another's quota, even for identical `client_id` strings |
-| Audit log | `AuditMiddleware` records `tenant_id` in each entry's identity descriptors — tenant-scoped forensics without joining external data |
-| Result caching | `CacheMiddleware` and `@cached` key every entry on the caller (issuer, tenant and client id) by default, so a result computed for one tenant is never served to another. Widen with `scope="tenant"` or `scope="shared"` only for data that does not depend on the caller — see [Caching](caching-performance.md#who-shares-a-cached-result) |
+| Rate limiting | Bucket keys are tenant-qualified in both `RateLimitMiddleware` and declared per-tool limits: one tenant's traffic can never exhaust another's quota, even for identical `client_id` strings |
+| Audit log | `AuditMiddleware` records `tenant_id` in each entry's identity descriptors: tenant-scoped forensics without joining external data |
+| Result caching | `CacheMiddleware` and `@cached` key every entry on the caller (issuer, tenant and client id) by default, so a result computed for one tenant is never served to another. Widen with `scope="tenant"` or `scope="shared"` only for data that does not depend on the caller: see [Caching](caching-performance.md#who-shares-a-cached-result) |
 | Tool access | `RequireTenant` / `HasTenant` guards, or the server-wide `require_tenant` invariant |
-| Tool listing | Every tool is listed to every client unless you build the server with `hide_unauthorized_tools=True` — see below |
+| Tool listing | Every tool is listed to every client unless you build the server with `hide_unauthorized_tools=True`: see below |
 | Job queue | `MCPQueue` jobs record the submitting client and tenant; `queue_status`, `queue_result`, `queue_cancel` and `queue_list` only show a caller its own jobs, and the admin role widens that to its own tenant only ([Job ownership](queue.md#job-ownership)) |
 
 `SessionState` needs no tenant prefix: it is keyed by the live transport
@@ -150,8 +150,8 @@ and `guards`.
 ## Agent side: `CallerContext.tenant_id`
 
 The same invariant applies inside the agent. `CallerContext` gains
-`tenant_id`, and one derivation — `CallerContext.isolation_key`
-(`"{tenant_id}::{user_id}"`, or the plain `user_id` without a tenant) —
+`tenant_id`, and one derivation (`CallerContext.isolation_key`
+(`"{tenant_id}::{user_id}"`, or the plain `user_id` without a tenant))
 feeds every per-user isolation surface:
 
 ```python
@@ -166,11 +166,11 @@ await agent.chat("...", session_id=sid, caller=acme_alice)
 
 | Surface | Behavior |
 |---------|----------|
-| Semantic cache | Scope keys embed the tenant — cross-tenant cache hits are structurally impossible. `purge_user("alice", tenant_id="acme")` purges exactly that tenant's scope |
-| Memory | Providers receive the isolation key as `user_id` — no provider changes needed, isolation guaranteed at the scoping layer |
-| Conversations | Session ownership keys on the isolation key — a same-`user_id` caller from another tenant gets `SessionAccessDenied` |
+| Semantic cache | Scope keys embed the tenant, so cross-tenant cache hits can't happen. `await cache.purge_user("alice", tenant_id="acme")` purges exactly that tenant's user |
+| Memory | Providers receive the isolation key as `user_id`: no provider changes needed, isolation guaranteed at the scoping layer |
+| Conversations | Session ownership keys on the isolation key: a same-`user_id` caller from another tenant gets `SessionAccessDenied` |
 | Cross-agent delegation | The full `CallerContext` (including tenant) is inherited by peers via caller-context continuity |
-| MCP tool calls | `CallerContext.bearer_token` is sent on every call to an HTTP/SSE MCP server during the invocation, over a session opened for that token — so the server authenticates the user and derives *their* tenant |
+| MCP tool calls | `CallerContext.bearer_token` is sent on every call to an HTTP/SSE MCP server during the invocation, over a session opened for that token, so the server authenticates the user and derives *their* tenant |
 
 ### The user's token reaches the MCP server
 
@@ -199,7 +199,7 @@ session or a header. Idle sessions close after five minutes, and at most
 256 idle sessions stay open. `SERVICE_TOKEN` is used to discover the tools
 when the agent is built, and for invocations without a caller token.
 
-Two things to check:
+Three things to check:
 
 - **The server's tenant comes from the token, not from
   `CallerContext.tenant_id`.** A caller with a `tenant_id` but no
@@ -224,7 +224,7 @@ Two things to check:
     containing **any** colon and a `user_id` containing the **`::`** sequence.
     That makes the `tenant::user` join unambiguous and injective, and keeps
     the tenanted keyspace (always containing `::`) provably disjoint from the
-    untenanted one (a raw user_id, which can never contain `::`) — an
+    untenanted one (a raw user_id, which can never contain `::`): an
     untenanted `user_id="acme::alice"` cannot forge tenant `acme`'s user
     `alice`, it simply fails to construct. Single colons in `user_id` (SSO
     ids like `google:12345`, `auth0|abc`) remain fine; tenant ids are plain
@@ -248,11 +248,11 @@ reply = await agent.chat("Which renewals are due?", session_id=sid, caller=calle
 
 ## See Also
 
-- [`examples/mcp/multi_tenant_agent.py`](https://github.com/promptise-com/foundry/blob/main/examples/mcp/multi_tenant_agent.py) — runnable: one agent serving two tenants, audience checks, caller-scoped caching, per-tenant tool lists
-- [Authentication & Security](auth-security.md) — auth providers, guards, `ClientContext`
-- [Multi-User Identity guide](../../guides/multi-user-identity.md) — end-to-end `CallerContext` flow
-- [Approval Gates](approval-gates.md) — server-side human-in-the-loop
+- [`examples/mcp/multi_tenant_agent.py`](https://github.com/promptise-com/foundry/blob/main/examples/mcp/multi_tenant_agent.py): runnable: one agent serving two tenants, audience checks, caller-scoped caching, per-tenant tool lists
+- [Authentication & Security](auth-security.md): auth providers, guards, `ClientContext`
+- [Multi-User Identity guide](../../guides/multi-user-identity.md): end-to-end `CallerContext` flow
+- [Approval Gates](approval-gates.md): server-side human-in-the-loop
 
 !!! tip "Learn the concept"
 
-    - [Multi-Tenant AI Agents: Keep Each Customer's Data Apart](https://www.promptise.com/guides/view/multi-tenant-ai-agent) -- Tenant-scoped tools and runs proving one tenant can't read another.
+    - [Multi-Tenant AI Agents: Keep Each Customer's Data Apart](https://www.promptise.com/guides/view/multi-tenant-ai-agent): Tenant-scoped tools and runs proving one tenant can't read another.

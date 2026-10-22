@@ -5,7 +5,7 @@ description: "Run long jobs behind MCP tools with MCPQueue: agents submit and po
 
 # MCP Server Job Queue & Background Jobs
 
-MCP tool calls are synchronous -- the agent sends a request and blocks until the response. This breaks down for long-running work like report generation, data pipelines, or model training. MCPQueue lets server authors define async job types that agents submit and poll for results, turning any long operation into a non-blocking workflow.
+MCP tool calls are synchronous: the agent sends a request and blocks until the response. This breaks down for long-running work like report generation, data pipelines, or model training. MCPQueue lets server authors define async job types that agents submit and poll for results, turning any long operation into a non-blocking workflow.
 
 ## Quick Start
 
@@ -25,7 +25,8 @@ async def generate_report(department: str) -> dict:
     return {"department": department, "rows": 1250, "status": "ready"}
 
 
-server.run(transport="http", port=8080)
+if __name__ == "__main__":
+    server.run(transport="http", port=8080)
 ```
 
 MCPQueue auto-registers 5 MCP tools on the server and starts its workers when the server starts. No extra wiring needed.
@@ -39,7 +40,7 @@ Once your queue server is running, agents interact through 5 auto-registered too
 
 | Tool | Purpose |
 |------|---------|
-| `queue_submit` | Submit a job -- returns a `job_id` immediately |
+| `queue_submit` | Submit a job: returns a `job_id` immediately |
 | `queue_status` | Check job status and progress |
 | `queue_result` | Retrieve a completed job's return value |
 | `queue_cancel` | Cancel a pending or running job |
@@ -87,7 +88,7 @@ async def train_model(dataset: str, epochs: int = 10) -> dict:
     return {"accuracy": 0.95, "model_id": "model-abc123"}
 ```
 
-The first line of the docstring is the job type's description in `queue_submit`.
+The first line of the docstring is the job type's description in `queue_submit`. Signature: `queue.job(name=None, *, timeout=None, max_retries=0, backoff_base=1.0)`; `timeout=None` uses the queue's `default_timeout`, and `max_retries=0` means a failure is final.
 
 ### Job arguments
 
@@ -142,7 +143,7 @@ async def process_data(
     return {"rows_processed": 10_000}
 ```
 
-The reporter is injected automatically (an annotation or a `Depends(ProgressReporter)` default both work) and is not part of the job's arguments. In a job it writes progress onto the job record instead of sending MCP progress notifications -- the call that submitted the job has long returned -- and agents see it via `queue_status`:
+The reporter is injected automatically (an annotation or a `Depends(ProgressReporter)` default both work) and is not part of the job's arguments. In a job it writes progress onto the job record instead of sending MCP progress notifications (the call that submitted the job has long returned) and agents see it via `queue_status`:
 
 ```
 Agent: queue_status(job_id="xyz")
@@ -159,7 +160,7 @@ Agent: queue_status(job_id="xyz")
 - A **running** job's `CancellationToken` is set and its task is cancelled, so a handler that never checks the token still stops at its next `await`. Whatever the handler returns afterwards is discarded: the job stays `cancelled` and has no result.
 - A finished job is left as it is (`"message": "Job already finished."`).
 
-Take a `CancellationToken` to see the cancellation inside the handler -- for example to clean up:
+Take a `CancellationToken` to see the cancellation inside the handler: for example to clean up:
 
 ```python
 from promptise.mcp.server import CancellationToken, ProgressReporter
@@ -202,7 +203,7 @@ A job belongs to the client that submitted it, and to that client's tenant. `que
 | A client with the admin role (`admin_role`, default `"admin"`) | Every job of its own tenant |
 | A client of tenant A, admin or not | Never a job of tenant B (or of no tenant) |
 
-Ownership comes from the authenticated identity -- `ctx.client_id` and `ctx.client.tenant_id`, set by `AuthMiddleware` -- so the queue tools must authenticate. Either build the server with `require_auth=True` (or `require_tenant=True`), or authenticate only the queue tools:
+Ownership comes from the authenticated identity (`ctx.client_id` and `ctx.client.tenant_id`, set by `AuthMiddleware`) so the queue tools must authenticate. Either build the server with `require_auth=True` (or `require_tenant=True`), or authenticate only the queue tools:
 
 ```python
 from promptise.mcp.server import APIKeyAuth, AuthMiddleware, MCPQueue, MCPServer
@@ -285,7 +286,7 @@ The backoff formula is `backoff_base * 2^(attempt - 1)`:
 | 2 | 4s |
 | 3 | 8s |
 
-During the backoff the job is `pending` with `"error": "Attempt 1 failed: ... Retrying in 2.0s."`. The worker doesn't wait it out -- it moves on to other jobs, and the job is queued again when the backoff ends. Once an attempt succeeds, `error` is cleared. Wrong arguments are never retried: they are rejected when the job is submitted.
+During the backoff the job is `pending` with `"error": "Attempt 1 failed: ... Retrying in 2.0s."`. The worker doesn't wait it out: it moves on to other jobs, and the job is queued again when the backoff ends. Once an attempt succeeds, `error` is cleared. Wrong arguments are never retried: they are rejected when the job is submitted.
 
 ## Configuration
 
@@ -325,7 +326,7 @@ queue = MCPQueue(server, backend=InMemoryQueueBackend(max_size=1000))
 
 That means:
 
-- **A restart loses every job** -- pending, running and finished. A client polling a job id from before the restart gets `JOB_NOT_FOUND`.
+- **A restart loses every job**: pending, running and finished. A client polling a job id from before the restart gets `JOB_NOT_FOUND`.
 - **Replicas don't share jobs.** Each replica has its own queue; a job submitted to replica A is `JOB_NOT_FOUND` on replica B.
 
 It fits a single server process, development and tests. With several replicas, route each client to the same replica (sticky sessions) and accept that a restart drops its jobs, or implement a shared backend.
@@ -349,7 +350,7 @@ class MyQueueBackend:  # satisfies QueueBackend
     async def count(self, status: JobStatus | None = None) -> int: ...
 ```
 
-Store every `Job` field, including `owner_client_id` and `owner_tenant_id` -- ownership checks read them -- and make `dequeue` atomic so two replicas never claim the same job. Some state stays in the process that runs a job: a cancel sent to another replica marks the job `cancelled` in storage (and its result is then discarded), but the handler keeps running until it finishes, and retry timers live in the replica that ran the failed attempt.
+Store every `Job` field, including `owner_client_id` and `owner_tenant_id` (ownership checks read them) and make `dequeue` atomic so two replicas never claim the same job. Some state stays in the process that runs a job: a cancel sent to another replica marks the job `cancelled` in storage (and its result is then discarded), but the handler keeps running until it finishes, and retry timers live in the replica that ran the failed attempt.
 
 ## Health Check Integration
 
@@ -432,4 +433,4 @@ See `examples/mcp/queue_server.py` in the repository for a full runnable example
 
 !!! tip "Learn the concept"
 
-    - [MCP Long-Running Tasks: Background Jobs in Python](https://www.promptise.com/guides/view/mcp-long-running-tasks-background-jobs) -- Submit, poll, retry and cancel slow tools as background jobs.
+    - [MCP Long-Running Tasks: Background Jobs in Python](https://www.promptise.com/guides/view/mcp-long-running-tasks-background-jobs): Submit, poll, retry and cancel slow tools as background jobs.

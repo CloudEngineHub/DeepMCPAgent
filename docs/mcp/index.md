@@ -1,5 +1,5 @@
 ---
-title: MCP — Production Model Context Protocol server and client SDK in Python
+title: "MCP: Model Context Protocol server and client SDK in Python"
 seo_title: "MCP Server and Client SDK for Python"
 description: "Build MCP servers that AI agents call and connect agents to existing ones: auth, guards, middleware, caching, rate limits, observability and a native client."
 keywords: MCP server Python, Model Context Protocol server, MCP SDK, MCP client, MCP framework, build MCP server, Python MCP
@@ -7,11 +7,11 @@ keywords: MCP server Python, Model Context Protocol server, MCP SDK, MCP client,
 
 # MCP Overview
 
-Build MCP servers that AI agents can connect to for tool access, and connect agents to existing servers with the client SDK. Promptise Foundry's MCP implementation is fully protocol-compliant and adds production features like authentication, middleware, guards, caching, rate limiting, and observability on top.
+Build MCP servers that AI agents can connect to for tool access, and connect agents to existing servers with the client SDK. Promptise Foundry implements the Model Context Protocol and adds production features like authentication, middleware, guards, caching, rate limiting, and observability on top.
 
 ## Quick Example
 
-**Server** -- expose tools that agents can call:
+**Server**: expose tools that agents can call:
 
 ```python
 from promptise.mcp.server import MCPServer
@@ -23,10 +23,11 @@ async def add(a: int, b: int) -> int:
     """Add two numbers."""
     return a + b
 
-server.run()
+if __name__ == "__main__":
+    server.run(transport="http", port=8080)   # serves http://127.0.0.1:8080/mcp
 ```
 
-**Agent** -- connect and let the LLM decide which tools to call:
+**Agent**: connect and let the LLM decide which tools to call:
 
 ```python
 import asyncio
@@ -48,20 +49,20 @@ asyncio.run(main())
 ```
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project — Promptise loads it automatically, in scripts and in the CLI — or pass it in code with `Model(...)` — explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 
-That's it -- the agent discovers tools from the server automatically, no manual wiring needed.
+That's it: the agent discovers tools from the server automatically, no manual wiring needed.
 
 ## Already have an API? MCPcast it
 
-You don't have to hand-write a server for an API that already exists. `promptise mcpcast` takes an OpenAPI 3.x or Swagger 2 spec, classifies every operation's risk, curates a small tool surface an agent can use correctly, and emits an editable Promptise `MCPServer` project (`mcpcast.plan.yaml`, `server.py`, `README.md`). It is read-only by default; write, destructive and financial tools are only generated under `--profile standard` / `full` and are approval-gated server-side, so any MCP client -- Claude Desktop, Claude Code, Cursor, or a Promptise agent -- can use your product safely. Add `--eval` to score the result with a real agent. See the [MCPcast guide](server/mcpcast.md).
+You don't have to hand-write a server for an API that already exists. `promptise mcpcast` takes an OpenAPI 3.x or Swagger 2 spec, classifies every operation's risk, curates a small tool surface an agent can use correctly, and emits an editable Promptise `MCPServer` project (`mcpcast.plan.yaml`, `server.py`, `README.md`). It is read-only by default; write, destructive and financial tools are only generated under `--profile standard` / `full` and are approval-gated server-side, so any MCP client (Claude Desktop, Claude Code, Cursor, or a Promptise agent) can use your product safely. Add `--eval` to score the result with a real agent. See the [MCPcast guide](server/mcpcast.md).
 
 ```bash
 promptise mcpcast openapi.yaml --profile standard --review   # generate + review the plan
 promptise mcpcast openapi.yaml --no-curate --serve -t http   # deterministic, serve immediately
 ```
 
-New to it? Follow [MCPcast an Existing API](../guides/mcpcast-existing-api.md) — the step-by-step walkthrough from a spec to a server an AI can drive. Already know the shape and want the specifics for your stack? See [MCPcast Recipes](server/mcpcast-recipes.md) for Stripe, GitHub and your own app.
+New to it? Follow [MCPcast an Existing API](../guides/mcpcast-existing-api.md): the step-by-step walkthrough from a spec to a server an AI can drive. Already know the shape and want the specifics for your stack? See [MCPcast Recipes](server/mcpcast-recipes.md) for Stripe, GitHub and your own app.
 
 ## Developer Journey
 
@@ -90,9 +91,9 @@ graph LR
 | 5a | [Caching & Performance](server/caching-performance.md) | `@cached`, `InMemoryCache`, `RedisCache`, rate limiting, concurrency, timeouts |
 | 5b | [Observability & Monitoring](server/observability.md) | Metrics, OTel, Prometheus, structured logging, audit trails, dashboard |
 | 5c | [Resilience Patterns](server/resilience-patterns.md) | Circuit breaker, health checks, webhooks, background tasks, cancellation |
-| 5d | [Advanced Patterns](server/advanced-patterns.md) | Versioning, transforms, composition, OpenAPI, batch, streaming, elicitation |
+| 5d | [Advanced Patterns](server/advanced-patterns.md) | Versioning, per-caller tool lists, composition, batch, streaming, elicitation, sampling |
 | 6 | [Deployment](server/deployment.md) | HTTP transport, CORS, reverse proxy, Docker, CLI serve, hot reload |
-| 7 | [Testing](server/testing.md) | Test servers in-process with `TestClient` -- no transport needed |
+| 7 | [Testing](server/testing.md) | Test servers in-process with `TestClient`: no transport needed |
 
 !!! tip "Start with the Step-by-Step Guide"
     If you're new to building MCP servers, the [Step-by-Step Guide](../guides/production-mcp-servers.md) walks you through building a production server in 9 incremental steps. Each step adds one concept (validation, auth, routers, middleware, etc.) so you understand the full picture before diving into reference docs.
@@ -104,7 +105,7 @@ graph LR
 | 1 | [Client Guide](client/index.md) | `MCPClient`, `MCPMultiClient`, auth, transports, multi-server aggregation |
 | 2 | [Tool Adapter](client/tool-adapter.md) | Convert MCP tools to LangChain `BaseTool` for use with `build_agent()` |
 
-Most developers don't need the client SDK directly -- `build_agent()` handles tool discovery and connection automatically. Use the client SDK when you need direct control over tool calls, multi-server routing, or custom callback hooks.
+Most developers don't need the client SDK directly: `build_agent()` handles tool discovery and connection automatically. Use the client SDK when you need direct control over tool calls, multi-server routing, or custom callback hooks.
 
 ## Architecture
 
@@ -132,10 +133,10 @@ graph LR
 
 MCP (Model Context Protocol) defines a standard JSON-RPC interface for:
 
-- **Tool discovery** -- servers expose a list of available tools with JSON Schema descriptions of their parameters.
-- **Tool invocation** -- clients call tools by name with validated arguments and receive structured results.
-- **Resource access** -- servers can expose read-only data resources.
-- **Prompt templates** -- servers can expose reusable prompt templates.
+- **Tool discovery**: servers expose a list of available tools with JSON Schema descriptions of their parameters.
+- **Tool invocation**: clients call tools by name with validated arguments and receive structured results.
+- **Resource access**: servers can expose read-only data resources.
+- **Prompt templates**: servers can expose reusable prompt templates.
 
 The protocol supports three transport layers:
 
@@ -147,7 +148,7 @@ The protocol supports three transport layers:
 
 ## Server SDK Features
 
-Build production-ready MCP servers using the same patterns you know from web frameworks:
+Build MCP servers with the patterns you know from web frameworks:
 
 | Feature | Description |
 |---------|-------------|
@@ -161,7 +162,7 @@ Build production-ready MCP servers using the same patterns you know from web fra
 | **Caching** | `@cached` decorator with `InMemoryCache` or custom backends |
 | **Rate limiting** | `RateLimitMiddleware` with `TokenBucketLimiter`, per-tool granularity; declared `rate_limit="100/min"` enforced automatically |
 | **Multi-tenancy** | `ClientContext.tenant_id` from a configurable JWT claim; tenant-scoped rate limits + audit, `RequireTenant`/`HasTenant` guards, `require_tenant=True` invariant |
-| **Approval gates (HITL)** | `requires_approval=True` + `ApprovalGateMiddleware` — human approval enforced server-side for any client; pending-queue admin tools, elicitation, callbacks |
+| **Approval gates (HITL)** | `requires_approval=True` + `ApprovalGateMiddleware`: human approval enforced server-side for any client; pending-queue admin tools, elicitation, callbacks |
 | **Health checks** | Liveness and readiness probes via `HealthCheck` |
 | **Metrics** | `MetricsCollector` with per-tool call counts, error rates, latency |
 | **Dashboard** | Live terminal UI with tool stats, agent activity, and logs |
@@ -179,13 +180,12 @@ Build production-ready MCP servers using the same patterns you know from web fra
 | **Prometheus** | `PrometheusMiddleware` for standard metrics export |
 | **Structured logging** | `StructuredLoggingMiddleware` for JSON log output |
 | **Redis cache** | `RedisCache` distributed cache backend for multi-instance deployments |
-| **OpenAPI provider** | `OpenAPIProvider` auto-generates tools from OpenAPI/Swagger specs |
+| **OpenAPI** | `promptise mcpcast` generates a curated server from an OpenAPI/Swagger spec ([MCPcast](server/mcpcast.md)); the older `OpenAPIProvider` has [known limits in 1.6.0](server/advanced-patterns.md#openapi-bridge) |
 | **Server composition** | `mount()` composes child servers into a gateway with prefixed tools |
 | **Hot reload** | `hot_reload()` watches files and restarts the server during development |
 | **CLI serve** | `promptise serve module:server` runs servers from the command line |
 | **Asymmetric JWT** | `AsymmetricJWTAuth` for RS256/ES256 JWT verification |
-| **Tool versioning** | `VersionedToolRegistry` for multiple tool versions with pinned lookup |
-| **Tool transforms** | `NamespaceTransform`, `VisibilityTransform`, `TagFilterTransform` modify tools at discovery |
+| **Per-caller tool lists** | `hide_unauthorized_tools=True` lists only the tools each caller's guards allow |
 | **Elicitation** | `Elicitor` requests structured user input mid-execution |
 | **Sampling** | `Sampler` requests LLM completions from the client |
 | **Circuit breaker** | `CircuitBreakerMiddleware` protects downstream services from cascading failures |
@@ -235,8 +235,7 @@ Connect to one or many MCP servers with authentication and LangChain integration
 | Rate limit agents | `RateLimitMiddleware` + `TokenBucketLimiter` ([Caching & Performance](server/caching-performance.md)) |
 | Add metrics, tracing, audit logs | `MetricsMiddleware`, `OTelMiddleware`, `AuditMiddleware` ([Observability](server/observability.md)) |
 | Protect against downstream failures | `CircuitBreakerMiddleware` + `HealthCheck` ([Resilience](server/resilience-patterns.md)) |
-| Version tools or compose servers | `VersionedToolRegistry`, `mount()` ([Advanced Patterns](server/advanced-patterns.md)) |
-| Wrap a REST API as MCP tools | `OpenAPIProvider` ([Advanced Patterns](server/advanced-patterns.md)) |
+| Version tools or compose servers | New tool names, `mount()` ([Advanced Patterns](server/advanced-patterns.md)) |
 | Generate a safe, curated server from an OpenAPI spec | `promptise mcpcast` ([MCPcast](server/mcpcast.md), [step-by-step guide](../guides/mcpcast-existing-api.md), [recipes](server/mcpcast-recipes.md)) |
 | Deploy with HTTP, CORS, Docker | Transport config + `CORSConfig` ([Deployment](server/deployment.md)) |
 | Test my server without HTTP | `TestClient` ([Testing](server/testing.md)) |
@@ -290,13 +289,13 @@ server.add_middleware(TimeoutMiddleware(default_timeout=30.0))
 
 ## What's Next
 
-- [Step-by-Step Guide](../guides/production-mcp-servers.md) -- build a production server in 9 steps
-- [Server Fundamentals](server/building-servers.md) -- full reference for tools, resources, and server config
-- [Client Guide](client/index.md) -- connect to MCP servers with authentication
-- [API Reference: Server](../api/mcp-server.md) -- auto-generated API docs for every server class
-- [API Reference: Client](../api/mcp-client.md) -- auto-generated API docs for every client class
+- [Step-by-Step Guide](../guides/production-mcp-servers.md): build a production server in 9 steps
+- [Server Fundamentals](server/building-servers.md): full reference for tools, resources, and server config
+- [Client Guide](client/index.md): connect to MCP servers with authentication
+- [API Reference: Server](../api/mcp-server.md): auto-generated API docs for every server class
+- [API Reference: Client](../api/mcp-client.md): auto-generated API docs for every client class
 
 !!! tip "Learn the concept"
 
-    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol) -- How MCP works: hosts, clients, servers, tools and transports.
-    - [Topic hub: Tools and the Model Context Protocol (MCP)](https://www.promptise.com/guides/topics/tools-and-mcp) -- Every guide on building, connecting, securing and testing MCP servers.
+    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol): How MCP works: hosts, clients, servers, tools and transports.
+    - [Topic hub: Tools and the Model Context Protocol (MCP)](https://www.promptise.com/guides/topics/tools-and-mcp): Every guide on building, connecting, securing and testing MCP servers.
