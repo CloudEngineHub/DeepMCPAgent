@@ -19,7 +19,7 @@ Promptise Foundry is a production-grade agentic framework used by enterprises, c
 
 ### Requirements
 
-- Python 3.11 or higher
+- Python 3.10 or higher (the package supports 3.10 to 3.13)
 - Virtual environment at `.venv/`
 
 ### Getting Started
@@ -34,16 +34,17 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install in development mode
-pip install -e ".[dev,deep,sandbox]"
+pip install -e ".[dev]"   # [all] plus tests, lint, type checks and docs tooling
 ```
 
 ### Environment Variables
 
-Set these for running examples and integration tests:
+Put the model keys the examples and integration tests use in a `.env` file at the
+repository root (Promptise loads it automatically; it is git-ignored):
 
-```bash
-export OPENAI_API_KEY=sk-...
-export ANTHROPIC_API_KEY=sk-ant-...
+```bash title=".env"
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 ---

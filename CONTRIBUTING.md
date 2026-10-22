@@ -8,7 +8,7 @@ Thank you for your interest in contributing to Promptise Foundry! This document 
 
 ```bash
 git clone https://github.com/promptise-com/foundry.git
-cd promptise
+cd foundry
 ```
 
 2. **Create a virtual environment**
@@ -21,7 +21,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 3. **Install development dependencies**
 
 ```bash
-pip install -e ".[dev,docs]"
+pip install -e ".[dev]"   # tests, lint, type checks and the docs tooling
 ```
 
 4. **Create a feature branch**
@@ -113,8 +113,8 @@ pytest tests/ -v --cov=src/promptise
 ### Build documentation locally
 
 ```bash
-# Install docs dependencies
-pip install -e ".[docs]"
+# The docs tooling is part of the dev extra
+pip install -e ".[dev]"
 
 # Serve docs locally (live reload)
 mkdocs serve
@@ -134,7 +134,8 @@ Visit http://127.0.0.1:8000 to view the documentation.
 ### Writing documentation
 
 - Use clear, concise language
-- Include code examples
+- Include code examples that run against the released package (`from promptise import tool, build_agent`)
+- Give every new page `seo_title` and `description` front matter and a place in the `nav` of `mkdocs.yml`
 - Add diagrams where helpful (Mermaid supported)
 - Follow existing style and structure
 
