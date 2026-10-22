@@ -644,6 +644,18 @@ agent = await build_superagent("agent.superagent")
 | `SuperAgentSchema` | `from promptise.superagent_schema import SuperAgentSchema` | Pydantic model for the full `.superagent` YAML schema. |
 | `SuperAgentConfig` | `from promptise.superagent import SuperAgentConfig` | Processed config with `to_build_kwargs(*, cross_agents=None)` for `build_agent()`. |
 
+Each section of the file is validated by a Pydantic model, importable from
+`promptise` (or `promptise.superagent_schema`) to build or check a file in code:
+
+| Section | Model |
+|---|---|
+| `agent:` | `AgentSection`; its `model:` is a `ModelConfig` (a string, or a `DetailedModelConfig` mapping) |
+| `servers:` entries | `ServerConfig`, the union of `HTTPServerConfig` (`type: http`) and `StdioServerConfig` (`type: stdio`) |
+| `cross_agents:` entries | `CrossAgentConfig` |
+| `memory:` | `MemorySection` |
+| `sandbox:` | `SandboxConfigSection` |
+| the whole file | `SuperAgentSchema` |
+
 !!! tip "File extensions"
     The loader accepts `.superagent`, `.superagent.yaml`, and `.superagent.yml` extensions.
 
