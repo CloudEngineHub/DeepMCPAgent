@@ -580,20 +580,20 @@ deployments look like this:
 
 ```mermaid
 flowchart TB
-    subgraph personal["env-token — personal, over stdio"]
+    subgraph personal["env-token: personal, over stdio"]
         direction LR
         D1["Claude Desktop / Code / Cursor"] -- "stdio" --> S1["server.py + MCPCAST_UPSTREAM_TOKEN"] -- "Bearer ‹operator token›" --> A1["API"]
     end
-    subgraph shared["passthrough — shared, behind an authenticating gateway"]
+    subgraph shared["passthrough: shared, behind an authenticating gateway"]
         direction LR
         D2["users' agents"] -- "HTTP + their Authorization" --> GW["gateway"] --> S2["server.py --transport http"] -- "the caller's header, relayed" --> A2["API"]
     end
-    subgraph tenants["api-key — multi-tenant product"]
+    subgraph tenants["api-key: multi-tenant product"]
         direction LR
         D3["tenant agents"] -- "HTTP + x-api-key" --> S3["server.py --transport http<br/>MCPCAST_CLIENT_KEYS → tenant → MCPCAST_UPSTREAM_TOKENS"] -- "that tenant's token" --> A3["API"]
         R["reviewer (approver role)"] -. "approvals_list / approvals_decide" .-> S3
     end
-    subgraph local["none — local demo"]
+    subgraph local["none: local demo"]
         direction LR
         D4["a client on this machine"] -- "loopback only" --> S4["server.py"] --> A4["API without auth"]
     end

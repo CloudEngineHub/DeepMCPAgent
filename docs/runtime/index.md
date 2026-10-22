@@ -113,7 +113,7 @@ graph TB
     subgraph "AgentProcess"
         direction TB
 
-        subgraph "Triggers — what wakes the agent"
+        subgraph "Triggers: what wakes the agent"
             T1["Cron<br><code>*/5 * * * *</code>"]
             T2["Webhook<br><code>POST /webhook</code>"]
             T3["File Watch<br><code>data/*.csv</code>"]
@@ -129,7 +129,7 @@ graph TB
             G["Governance<br>budget · health · mission · secrets"]
         end
 
-        subgraph "State — what the agent remembers"
+        subgraph "State: what the agent remembers"
             CTX["AgentContext<br>key-value + audit trail"]
             MEM["Memory<br>Chroma · Mem0 · InMemory"]
             CONV["ConversationBuffer<br>rolling message history"]
@@ -149,7 +149,7 @@ graph TB
         J --> R & RW
     end
 
-    subgraph "AgentRuntime — many processes"
+    subgraph "AgentRuntime: many processes"
         RT["Registry · start/stop · run_forever"]
         API["Orchestration API<br>HTTP control"]
         CLI["CLI · Dashboard"]

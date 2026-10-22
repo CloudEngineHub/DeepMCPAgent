@@ -17,7 +17,7 @@ graph TD
     B -->|Yes| C[stdio]
     B -->|No| D{Needs SSE compatibility?}
     D -->|Yes| E[sse]
-    D -->|No| F[http — Streamable HTTP]
+    D -->|No| F[http: Streamable HTTP]
 ```
 
 | Transport | Protocol | Use case |

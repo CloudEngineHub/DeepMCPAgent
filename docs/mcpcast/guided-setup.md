@@ -35,13 +35,13 @@ possible in the wizard that is impossible on the command line, and vice versa.
 
 ```mermaid
 flowchart TB
-    s1["<b>1 · API spec</b> — a file, a URL, or an API detected on this machine  (SPEC, --base-url)"]
-    s2["<b>2 · Model</b> — a model designs the tools, or offline  (--model, --no-curate)"]
-    s3["<b>3 · Safety</b> — read-only · standard · full, with live tool counts from your spec  (--profile)"]
-    s4["<b>4 · Auth</b> — personal · shared · multi-tenant · local demo  (--auth, --approval)"]
-    s5["<b>5 · Project</b> — name, folder, tool budget, evaluation  (--name, --out, --max-tools, --eval)"]
-    s6["<b>6 · Review</b> — every tool the model decided, warnings computed from the plan"]
-    s7["<b>7 · Write</b> — the project on disk, and the command that reproduces it"]
+    s1["<b>1 · API spec</b>: a file, a URL, or an API detected on this machine  (SPEC, --base-url)"]
+    s2["<b>2 · Model</b>: a model designs the tools, or offline  (--model, --no-curate)"]
+    s3["<b>3 · Safety</b>: read-only · standard · full, with live tool counts from your spec  (--profile)"]
+    s4["<b>4 · Auth</b>: personal · shared · multi-tenant · local demo  (--auth, --approval)"]
+    s5["<b>5 · Project</b>: name, folder, tool budget, evaluation  (--name, --out, --max-tools, --eval)"]
+    s6["<b>6 · Review</b>: every tool the model decided, warnings computed from the plan"]
+    s7["<b>7 · Write</b>: the project on disk, and the command that reproduces it"]
     s1 --> s2 --> s3 --> s4 --> s5 --> s6 --> s7
     classDef human stroke:#f97316,stroke-width:3px
     class s6 human

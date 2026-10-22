@@ -42,17 +42,17 @@ the credential, the approval gate and the routing living in code you can read.
 
 ```mermaid
 flowchart TB
-    A["<b>AI assistant</b> — any MCP client<br/>Claude Desktop · Claude Code · Cursor · build_agent()"]
-    subgraph server["<b>Generated MCP server</b> — the code you own"]
+    A["<b>AI assistant</b>: any MCP client<br/>Claude Desktop · Claude Code · Cursor · build_agent()"]
+    subgraph server["<b>Generated MCP server</b>: the code you own"]
         direction TB
-        S1["MCP layer — initialize · tools/list · tools/call"]
-        S2["auth — who is calling (env-token · passthrough · api-key · none)"]
-        S3["approval gate — every non-read tool waits for a human, server-side"]
-        S4["tools/‹resource›.py — typed arguments → route selection"]
-        S5["upstream.py — credential slot · timeouts · size caps · redaction"]
+        S1["MCP layer: initialize · tools/list · tools/call"]
+        S2["auth: who is calling (env-token · passthrough · api-key · none)"]
+        S3["approval gate: every non-read tool waits for a human, server-side"]
+        S4["tools/‹resource›.py: typed arguments → route selection"]
+        S5["upstream.py: credential slot · timeouts · size caps · redaction"]
         S1 --> S2 --> S3 --> S4 --> S5
     end
-    U["<b>Your API</b> — unchanged<br/>the endpoints in its OpenAPI document"]
+    U["<b>Your API</b>: unchanged<br/>the endpoints in its OpenAPI document"]
     A <-- "MCP · JSON-RPC 2.0 over stdio or HTTP" --> S1
     S5 <-- "HTTPS · your API's own contract (path, query, body)" --> U
 ```
@@ -135,13 +135,13 @@ A generated MCPcast server speaks both: `python server.py` is stdio,
 
 ```mermaid
 flowchart TB
-    spec["<b>openapi.json</b> — file · URL · running app"]
-    parse["<b>parse</b> — operations, parameters, schemas, security schemes"]
-    classify["<b>classify</b> — read · write · destructive · financial (fixed rules)"]
-    curate["<b>curate</b> (model) — merge, rename, describe, hide, one example each"]
-    review["<b>review</b> (you) — --review, the wizard, mcpcast.plan.yaml"]
-    emit["<b>emit</b> — package · launcher · tests · README · Dockerfile"]
-    score["<b>eval</b> — a real agent drives it: Agent Readiness A–F"]
+    spec["<b>openapi.json</b>: file · URL · running app"]
+    parse["<b>parse</b>: operations, parameters, schemas, security schemes"]
+    classify["<b>classify</b>: read · write · destructive · financial (fixed rules)"]
+    curate["<b>curate</b> (model): merge, rename, describe, hide, one example each"]
+    review["<b>review</b> (you): --review, the wizard, mcpcast.plan.yaml"]
+    emit["<b>emit</b>: package · launcher · tests · README · Dockerfile"]
+    score["<b>eval</b>: a real agent drives it: Agent Readiness A–F"]
     spec --> parse --> classify --> curate --> review --> emit --> score
     profile["safety profile<br/>read-only · standard · full"] -. filters .-> review
     score -. fixes go back into the plan .-> review
@@ -312,10 +312,10 @@ Where the credential in step 8 comes from is the auth mode you chose (the *serve
 flowchart LR
     subgraph modes["--auth"]
         direction TB
-        E["env-token — MCPCAST_UPSTREAM_TOKEN<br/>in the server's environment"]
-        P["passthrough — the caller's own<br/>Authorization header, relayed"]
-        K["api-key — x-api-key → tenant →<br/>MCPCAST_UPSTREAM_TOKENS[tenant]"]
-        N["none — no credential<br/>(loopback only)"]
+        E["env-token: MCPCAST_UPSTREAM_TOKEN<br/>in the server's environment"]
+        P["passthrough: the caller's own<br/>Authorization header, relayed"]
+        K["api-key: x-api-key → tenant →<br/>MCPCAST_UPSTREAM_TOKENS[tenant]"]
+        N["none: no credential<br/>(loopback only)"]
     end
     slot["credential slot<br/>Authorization: Bearer …<br/>or the header / query key the<br/>spec's securitySchemes declare"]
     E --> slot
