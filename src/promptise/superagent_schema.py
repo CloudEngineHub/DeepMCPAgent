@@ -427,11 +427,24 @@ class ObservabilitySection(BaseModel):
 class ToolOptimizationSection(BaseModel):
     """Tool optimization configuration for .superagent files.
 
+    Maps to :class:`~promptise.tool_optimization.ToolOptimizationConfig`.
+    Fields left out take the level's preset.
+
     Attributes:
-        level: Optimization level (none, minimal, standard, aggressive, semantic).
-        embedding_model: Sentence-transformers model name or local path.
-        top_k: Number of tools to select per query (semantic mode).
-        score_threshold: Minimum similarity score (semantic mode).
+        level: Optimization level (``minimal``, ``standard``, ``semantic``).
+        embedding_model: Sentence-transformers model name or local path
+            (semantic level; preset ``all-MiniLM-L6-v2``).
+        top_k: Tools to offer per model call (semantic level;
+            ``semantic_top_k``, preset 8).
+        context_turns: Recent user turns in the selection query
+            (``semantic_context_turns``, preset 3).
+        max_description_length: Truncate tool descriptions at N characters.
+        preserve_tools: Tool names never optimized and always offered.
+        always_include_fallback: Offer the ``request_more_tools`` fallback
+            (semantic level).
+        score_threshold: Not used: semantic selection offers the ``top_k``
+            most relevant tools, whatever their score.  Accepted so older
+            files still load; setting it logs a warning.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -439,15 +452,58 @@ class ToolOptimizationSection(BaseModel):
     level: Literal["minimal", "standard", "semantic"] = Field(
         "semantic", description="Optimization level"
     )
-    embedding_model: str = Field(
-        "all-MiniLM-L6-v2", description="Embedding model name or local path"
+    embedding_model: str | None = Field(
+        None, description="Embedding model name or local path (default all-MiniLM-L6-v2)"
     )
-    top_k: int = Field(10, gt=0, description="Tools to select per query")
-    score_threshold: float = Field(0.1, ge=0.0, le=1.0, description="Min similarity")
+    top_k: int | None = Field(
+        None, gt=0, description="Tools to offer per model call (semantic level, default 8)"
+    )
+    context_turns: int | None = Field(
+        None, gt=0, description="Recent user turns in the selection query (default 3)"
+    )
+    max_description_length: int | None = Field(
+        None, gt=0, description="Truncate tool descriptions at N characters"
+    )
+    preserve_tools: list[str] | None = Field(
+        None, description="Tools never optimized and always offered"
+    )
+    always_include_fallback: bool | None = Field(
+        None, description="Offer the request_more_tools fallback (semantic level)"
+    )
+    score_threshold: float | None = Field(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Not used (semantic selection offers the top_k tools); accepted for older files",
+    )
+
+    def to_config(self) -> Any:
+        """The :class:`~promptise.tool_optimization.ToolOptimizationConfig` for this section."""
+        from .tool_optimization import OptimizationLevel, ToolOptimizationConfig
+
+        if self.score_threshold is not None:
+            import logging
+
+            logging.getLogger("promptise.superagent").warning(
+                "optimize_tools.score_threshold has no effect: semantic selection "
+                "offers the top_k most relevant tools; remove it from the file"
+            )
+        return ToolOptimizationConfig(
+            level=OptimizationLevel(self.level),
+            embedding_model=self.embedding_model,
+            semantic_top_k=self.top_k,
+            semantic_context_turns=self.context_turns,
+            max_description_length=self.max_description_length,
+            preserve_tools=set(self.preserve_tools) if self.preserve_tools is not None else None,
+            always_include_fallback=self.always_include_fallback,
+        )
 
 
 class CacheSection(BaseModel):
     """Semantic cache configuration for .superagent files.
+
+    Maps to :class:`~promptise.cache.SemanticCache` (``embedding_model`` is
+    its ``embedding`` argument; the other fields have the same names).
 
     Attributes:
         backend: Cache backend — ``"memory"`` (default) or ``"redis"``.
@@ -456,8 +512,16 @@ class CacheSection(BaseModel):
         default_ttl: Default time-to-live in seconds for cached entries.
         scope: Cache isolation — ``"per_user"``, ``"per_session"``, or ``"shared"``.
         max_entries_per_user: Maximum cached entries per user scope.
+        max_total_entries: Maximum cached entries in all.
         embedding_model: Sentence-transformers model name or local path.
         encrypt_values: Encrypt cached values at rest (Redis backend).
+        ttl_patterns: Regex on the query → TTL in seconds.
+        invalidate_on_write: Clear the caller's entries after a write tool runs.
+        cache_multi_turn: Also cache answers in conversations with history.
+        cache_tool_turns: Also cache answers that called tools.
+        write_tools: Tool name patterns that count as writes.
+        read_only_tools: Tool name patterns that never count as writes.
+        shared_data_acknowledged: Confirm ``scope: shared`` is intended.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -472,10 +536,32 @@ class CacheSection(BaseModel):
         "per_user", description="Cache isolation scope"
     )
     max_entries_per_user: int = Field(1000, gt=0, description="Max entries per user")
+    max_total_entries: int = Field(100_000, gt=0, description="Max entries in all")
     embedding_model: str = Field(
         "all-MiniLM-L6-v2", description="Embedding model name or local path"
     )
     encrypt_values: bool = Field(False, description="Encrypt values at rest")
+    ttl_patterns: dict[str, int] | None = Field(
+        None, description="Regex on the query -> TTL in seconds"
+    )
+    invalidate_on_write: bool = Field(
+        True, description="Clear the caller's entries after a write tool runs"
+    )
+    cache_multi_turn: bool = Field(False, description="Cache answers in multi-turn conversations")
+    cache_tool_turns: bool = Field(False, description="Cache answers that called tools")
+    write_tools: list[str] | None = Field(None, description="Tool name patterns that write")
+    read_only_tools: list[str] | None = Field(
+        None, description="Tool name patterns that never write"
+    )
+    shared_data_acknowledged: bool = Field(
+        False, description="Confirm scope 'shared' (every caller sees the same answers)"
+    )
+
+    def to_kwargs(self) -> dict[str, Any]:
+        """Keyword arguments for :class:`~promptise.cache.SemanticCache`."""
+        kwargs = self.model_dump()
+        kwargs["embedding"] = kwargs.pop("embedding_model")
+        return kwargs
 
 
 class ApprovalSection(BaseModel):
@@ -891,9 +977,14 @@ class SuperAgentSchema(BaseModel):
     observability: bool | ObservabilitySection | None = Field(
         None, description="Observability config (True for defaults, or detailed)"
     )
-    optimize_tools: bool | str | ToolOptimizationSection | None = Field(
+    optimize_tools: (
+        bool | Literal["minimal", "standard", "semantic"] | ToolOptimizationSection | None
+    ) = Field(
         None,
-        description=("Tool optimization (True or 'semantic' for defaults, or detailed config)"),
+        description=(
+            "Tool optimization: true (the 'minimal' level), a level name "
+            "('minimal', 'standard', 'semantic'), or detailed config"
+        ),
     )
     cache: bool | CacheSection | None = Field(
         None,
@@ -959,5 +1050,19 @@ class SuperAgentSchema(BaseModel):
         if not self.servers and not self.cross_agents and not self.sandbox:
             raise ValueError(
                 "At least one of 'servers', 'cross_agents', or 'sandbox' must be configured"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_adaptive_has_memory(self) -> SuperAgentSchema:
+        """Adaptive strategy keeps its failures and lessons in the agent's memory."""
+        adaptive = self.adaptive
+        enabled = adaptive is True or (isinstance(adaptive, AdaptiveSection) and adaptive.enabled)
+        if enabled and self.memory is None:
+            raise ValueError(
+                "'adaptive' needs a 'memory' section: adaptive strategy stores tool "
+                "failures and the lessons learned from them in the agent's memory. "
+                "Add one (for example 'memory: {provider: in_memory}', or chroma / "
+                "mem0 to keep lessons across restarts), or remove 'adaptive'"
             )
         return self

@@ -63,6 +63,8 @@
 - **`ConversationFlow.transition()` skipped the handler of a phase its handler moved to.** When the handler run by `transition("b")` called `ctx.transition("c")`, the flow entered `c` without running `c`'s handler, unlike `start()` and `next_turn()`; and in `start()` and `next_turn()` a third chained transition was dropped. All three now follow transitions requested by handlers, running each phase's handler, up to 5 phases per call; circular transitions raise `RecursionError` (the depth limit never triggered before).
 - **`PromptInspector` traces had no context providers and no passed input guards.** `context_providers` now lists each provider that ran (class name, characters, time), for calls and `render_async()`, and `guards_passed` lists each guard once when it passed every check it ran (input-only guards included); a guard that passes the input but rejects the output is listed only in `guards_failed`.
 - **`PromptStats.input_tokens` / `output_tokens` were always `0`.** They now come from the reply's `usage_metadata` when the provider reports usage.
+- **A `.superagent` `optimize_tools:` mapping was ignored.** It reached `build_agent` as a plain dict, which became the `minimal` preset, so `level: semantic`, `top_k` and `embedding_model` had no effect. The mapping now becomes a `ToolOptimizationConfig`: `level`, `top_k` (`semantic_top_k`), `embedding_model`, and the new `context_turns`, `max_description_length`, `preserve_tools` and `always_include_fallback`; fields left out take the level's preset (`top_k` and `embedding_model` no longer default to values that were never applied). `score_threshold` has no counterpart (semantic selection offers the `top_k` most relevant tools), so it is accepted with a warning. A string other than `minimal`, `standard` or `semantic` is now a validation error, and the schema says `true` means the `minimal` level (it said "True or 'semantic' for defaults").
+- **A `.superagent` `cache:` mapping always failed to build.** `SemanticCache(**section)` raised `TypeError: unexpected keyword argument 'embedding_model'`, even for `cache: {backend: memory}`. `embedding_model` is now passed as `SemanticCache`'s `embedding`, and the section gains `SemanticCache`'s other options: `max_total_entries`, `ttl_patterns`, `invalidate_on_write`, `cache_multi_turn`, `cache_tool_turns`, `write_tools`, `read_only_tools` and `shared_data_acknowledged`.
 
 ### Changed
 
@@ -84,6 +86,8 @@
 - Docs: the shell interpolation page says what the allowlist enforces and that command output is literal text.
 - `Prompt.to_messages()`'s docstring says when it adds a `HumanMessage` (when `ctx.rendered_text` is set, not when template variables are given).
 - Docs: the prompting pages describe `observe=`, the inspector's context and guard records, token counts and chained flow transitions in place of the earlier limitations.
+- A `.superagent` file with `adaptive:` (not disabled) but no `memory:` section now fails validation with a message that says to add one; it used to load and build an agent whose adaptive strategy was turned off with only a log warning. `build_agent(adaptive=...)` without memory still warns.
+- Docs: the `.superagent` reference lists the `optimize_tools` and `cache` mapping fields in place of the warnings that they did not work; the `identity` retry helpers' docstring says that a failed credential fetch fails the request (it said it was downgraded to a warning).
 
 
 ## 1.6.0 — 2026-10-21

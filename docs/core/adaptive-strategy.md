@@ -209,7 +209,7 @@ agent = await build_agent(..., memory=provider, adaptive=True)
 agent = await build_agent(..., memory=provider, adaptive={"scope": "per_tenant"})
 ```
 
-Without `memory`, `adaptive` is ignored with a warning.
+Without `memory`, `build_agent(adaptive=...)` turns adaptive strategy off with a warning. A `.superagent` file with `adaptive` but no `memory` section is refused when it is loaded (`SuperAgentValidationError`), so the mistake can't go unnoticed.
 
 ### .superagent files
 
