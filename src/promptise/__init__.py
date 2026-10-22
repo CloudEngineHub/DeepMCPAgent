@@ -200,6 +200,21 @@ from .tool_optimization import (
 )
 from .tools import ToolInfo
 
+
+def _installed_version() -> str:
+    """The installed distribution's version; ``"0.0.0+unknown"`` without metadata."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("promptise")
+    except PackageNotFoundError:  # a source tree on sys.path, never installed
+        return "0.0.0+unknown"
+
+
+#: The installed version of Promptise Foundry (from the package metadata).
+__version__: str = _installed_version()
+del _installed_version
+
 __all__ = [
     "HTTPServerSpec",
     "ServerSpec",
