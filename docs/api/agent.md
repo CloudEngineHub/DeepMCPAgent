@@ -144,6 +144,50 @@ Core agent creation, native tools, invocation, identity, conversations, and the 
 
 ---
 
+### EdgeCondition
+
+::: promptise.engine.graph.EdgeCondition
+    options:
+      show_source: false
+      heading_level: 4
+
+### ContextCompaction
+
+::: promptise.engine.compaction.ContextCompaction
+    options:
+      show_source: false
+      heading_level: 4
+
+### CodeActionConfig
+
+::: promptise.engine.code_action.CodeActionConfig
+    options:
+      show_source: false
+      heading_level: 4
+
+## Skill Registry
+
+### Skill
+
+::: promptise.engine.skill_registry.Skill
+    options:
+      show_source: false
+      heading_level: 4
+
+### SkillRegistry
+
+::: promptise.engine.skill_registry.SkillRegistry
+    options:
+      show_source: false
+      heading_level: 4
+
+### parse_frontmatter
+
+::: promptise.engine.skill_registry.parse_frontmatter
+    options:
+      show_source: false
+      heading_level: 4
+
 ## Graph State
 
 ### GraphState
@@ -607,3 +651,18 @@ Pluggable functions that run before/after a node's LLM call. Compose with `chain
     options:
       show_source: false
       heading_level: 4
+
+### SessionAccessDenied
+
+::: promptise.conversations.SessionAccessDenied
+    options:
+      show_source: false
+      heading_level: 3
+
+### generate_session_id
+
+::: promptise.conversations.generate_session_id
+    options:
+      show_source: false
+      heading_level: 3
+

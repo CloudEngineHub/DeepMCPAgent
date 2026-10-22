@@ -112,6 +112,39 @@ Pause the agent before destructive actions and wait for explicit human approval.
       show_source: false
       heading_level: 4
 
+### AutoApprovalClassifier
+
+::: promptise.approval_classifier.AutoApprovalClassifier
+    options:
+      show_source: false
+      heading_level: 4
+
+### ApprovalRule
+
+::: promptise.approval_classifier.ApprovalRule
+    options:
+      show_source: false
+      heading_level: 4
+
+### ClassifierDecisionTrace
+
+::: promptise.approval_classifier.ClassifierDecisionTrace
+    options:
+      show_source: false
+      heading_level: 4
+
+### ClassifierStats
+
+::: promptise.approval_classifier.ClassifierStats
+    options:
+      show_source: false
+      heading_level: 4
+
+### DEFAULT_READ_ONLY_PREFIXES and DEFAULT_DESTRUCTIVE_VERBS
+
+Tuples of the tool-name prefixes the classifier treats as read-only and the verbs that rule a tool out of the read-only layer. See [AutoApprovalClassifier](../core/approval-classifier.md#read-only-auto-allow).
+
+
 ---
 
 ## Semantic Cache
@@ -236,6 +269,21 @@ Webhook + callback sinks for structured agent events (invocation errors, tool fa
       show_source: false
       heading_level: 4
 
+### verify_webhook_signature
+
+::: promptise.approval.verify_webhook_signature
+    options:
+      show_source: false
+      heading_level: 4
+
+### verify_event_signature
+
+::: promptise.events.verify_event_signature
+    options:
+      show_source: false
+      heading_level: 4
+
+
 ---
 
 ## Model Fallback
@@ -303,6 +351,56 @@ Multi-head security scanner: prompt injection (DeBERTa ML), PII detection (69 re
     options:
       show_source: false
       heading_level: 4
+
+### InjectionDetector
+
+::: promptise.guardrails.InjectionDetector
+    options:
+      show_source: false
+      heading_level: 4
+
+### PIIDetector
+
+::: promptise.guardrails.PIIDetector
+    options:
+      show_source: false
+      heading_level: 4
+
+### CredentialDetector
+
+::: promptise.guardrails.CredentialDetector
+    options:
+      show_source: false
+      heading_level: 4
+
+### NERDetector
+
+::: promptise.guardrails.NERDetector
+    options:
+      show_source: false
+      heading_level: 4
+
+### ContentSafetyDetector
+
+::: promptise.guardrails.ContentSafetyDetector
+    options:
+      show_source: false
+      heading_level: 4
+
+### CustomRule
+
+::: promptise.guardrails.CustomRule
+    options:
+      show_source: false
+      heading_level: 4
+
+### GuardrailViolation
+
+::: promptise.guardrails.GuardrailViolation
+    options:
+      show_source: false
+      heading_level: 4
+
 
 ---
 
@@ -540,3 +638,54 @@ Bridges LangChain callbacks into the observability collector.
     options:
       show_source: false
       heading_level: 4
+
+---
+
+## Context Engine
+
+### ContextEngine
+
+::: promptise.context_engine.ContextEngine
+    options:
+      show_source: false
+      heading_level: 4
+
+---
+
+## Projects (`promptise run`)
+
+### RunContext
+
+::: promptise.run.context.RunContext
+    options:
+      show_source: false
+      heading_level: 4
+
+### ProjectManifest
+
+::: promptise.run.manifest.ProjectManifest
+    options:
+      show_source: false
+      heading_level: 4
+
+### find_manifest
+
+::: promptise.run.manifest.find_manifest
+    options:
+      show_source: false
+      heading_level: 4
+
+### load_manifest
+
+::: promptise.run.manifest.load_manifest
+    options:
+      show_source: false
+      heading_level: 4
+
+### ManifestError
+
+::: promptise.run.manifest.ManifestError
+    options:
+      show_source: false
+      heading_level: 4
+

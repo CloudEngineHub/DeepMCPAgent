@@ -124,7 +124,9 @@ export OPENAI_API_KEY=sk-...
 ```
 
 The variable each provider reads is listed in [Model Setup](model-setup.md)
-and printed by `promptise models env <provider>`.
+and printed by `promptise models env <provider>`. Every other variable Promptise
+reads (`.env` loading, cache encryption, audit keys, the runtime CLI, identity,
+MCPcast) is in the [Environment Variables reference](../reference/environment-variables.md).
 
 ## In code — `Model(...)`
 

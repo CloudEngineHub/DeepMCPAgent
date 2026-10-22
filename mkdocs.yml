@@ -412,6 +412,7 @@ nav:
           - "Learning Path: Agentic Engineering": https://www.promptise.com/learning-paths/agentic-engineering-promptise-foundry
 
   - API Reference:
+      - Public API Index: reference/public-api.md
       - Environment Variables: reference/environment-variables.md
       - Core:
           - Agent: api/agent.md

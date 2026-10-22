@@ -21,6 +21,13 @@ SuperAgent file loader, validator, and schema definitions. Handles loading, pars
       show_source: false
       heading_level: 3
 
+## build_superagent
+
+::: promptise.superagent.build_superagent
+    options:
+      show_source: false
+      heading_level: 3
+
 ## load_superagent_file
 
 ::: promptise.superagent.load_superagent_file
