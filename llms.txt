@@ -1,113 +1,225 @@
 # Promptise Foundry
 
-> Promptise Foundry is a production-grade Python framework for building agentic AI systems. It is organised as **five pillars**: **Agent** (single-function production agents with auto MCP tool discovery, memory, guardrails, semantic cache, observability), **Reasoning Engine** (`PromptGraph` with 20 composable node types, 18 flags, 7 prebuilt patterns, agent-assembled paths), **MCP Server SDK** (FastAPI-style production servers with auth, middleware, queues, versioning, testing), **Agent Runtime** (the operating system for autonomous agents — triggers, journals, governance, secrets, meta-tools, REST API, distributed coordination), and **Prompt Engineering** (typed blocks, composable strategies, conversation flows, 14 context providers, inspector). Install with `pip install promptise`. Requires Python 3.10+.
+> Promptise Foundry is a Python framework for agentic AI systems: agents
+> (`build_agent()`), the tools they call (`@tool` functions and MCP servers built
+> with the MCP server SDK or generated from an OpenAPI spec with MCPcast), a
+> reasoning graph engine, prompt engineering, agent identity and an agent runtime
+> for long-running agents with triggers, journals and governance.
+> Install with `pip install promptise` (Python 3.10+).
 
-The core entry point is `build_agent()` — one async function call produces a production-ready `PromptiseAgent`: connected to MCP servers, with tools auto-discovered from type hints, memory auto-searched before every turn, guardrails scanning input and output, semantic cache deduping similar queries, observability recording every decision, and optional sandboxed code execution. Any LLM via a model string: `"openai:gpt-5-mini"`, `"anthropic:claude-sonnet-4-20250514"`, `"ollama:llama3"`, `"google:gemini-2.0-flash"` — or any LangChain `BaseChatModel`.
+Key facts:
 
-Key concepts:
-- **MCP-first tool discovery**: Every tool comes from a Model Context Protocol server. Agents auto-discover them — no manual wiring.
-- **Reasoning engine**: 20 composable node types (10 standard + 10 reasoning) compile into a `PromptGraph`. 7 prebuilt patterns (`react`, `peoatr`, `research`, `autonomous`, `deliberate`, `debate`, `pipeline`) or agent-assembled at runtime from a node pool.
-- **CallerContext**: Per-request user identity (`user_id`, `bearer_token`, `roles`, `scopes`, `metadata`) propagated via asyncio contextvars through cache, guardrails, conversations, observability, and outbound MCP calls.
-- **Async-first**: All public APIs are async. Use `asyncio.run()` at the top level.
-- **Native, no-fallback**: Native MCP client (no third-party dep). If something fails, it raises — never silently switches.
+- `await build_agent(model="openai:gpt-5-mini", extra_tools=[...], servers={...})`
+  returns a `PromptiseAgent`; run it with `await agent.ainvoke({"messages": [...]})`
+  or `await agent.chat(message, session_id=...)`, and `await agent.shutdown()`.
+- Python functions become tools with `from promptise import tool`. MCP servers are
+  connected with `HTTPServerSpec` / `StdioServerSpec` from `promptise.config`.
+- Models are a `"provider:model"` string or `Model(...)`; keys come from `.env`,
+  the environment or code. `promptise models check <model>` explains what is missing.
+- Every feature is a keyword argument of `build_agent()` and off by default:
+  memory, conversation_store, guardrails, cache, approval, observe, sandbox,
+  cross_agents, agent_pattern, optimize_tools, events, adaptive, context_engine.
 
-## Core Agent
 
-- [Building Agents](https://docs.promptise.com/core/agents/building-agents/): `build_agent()`, `PromptiseAgent`, `ainvoke()`, `astream()`, `chat()`, `shutdown()`.
-- [Configuration](https://docs.promptise.com/core/agents/configuration/): `HTTPServerSpec`, `StdioServerSpec`, model strings, `FallbackChain`.
-- [Memory](https://docs.promptise.com/core/agents/memory/): `InMemoryProvider`, `ChromaProvider`, `Mem0Provider` — auto-searched before each invocation.
-- [Conversations](https://docs.promptise.com/core/agents/conversations/): `InMemoryConversationStore`, `SQLiteConversationStore`, `PostgresConversationStore`, `RedisConversationStore` — session ownership enforced.
-- [Guardrails](https://docs.promptise.com/core/agents/guardrails/): `PromptiseSecurityScanner` with 6 detection heads (prompt injection, PII, credentials, NER, content safety, custom). All models run locally.
-- [Semantic Cache](https://docs.promptise.com/core/agents/cache/): In-memory or Redis backend; per-user / per-session / shared scope; GDPR `purge_user()`; optional encryption at rest.
-- [Tool Optimization](https://docs.promptise.com/core/agents/tool-optimization/): 4 levels (NONE, MINIMAL, STANDARD, SEMANTIC). Semantic mode selects relevant tools per query — 40-70% fewer tokens.
-- [Sandbox](https://docs.promptise.com/core/agents/sandbox/): Docker + seccomp + capability dropping + gVisor. 5 auto-injected tools (execute, read_file, write_file, list_files, install_package).
-- [Cross-Agent Delegation](https://docs.promptise.com/core/agents/cross-agent/): `CrossAgent`, `ask_peer()`, `broadcast()` over HTTP + JWT.
-- [Approval](https://docs.promptise.com/core/agents/approval/): `ApprovalPolicy` + CLI / webhook / auto handlers. Auto classifier with 5-layer decision hierarchy.
-- [Events](https://docs.promptise.com/core/agents/events/): `EventNotifier` with Slack, PagerDuty, webhook, callback sinks.
-- [Streaming](https://docs.promptise.com/core/agents/streaming/): `astream()` with token + tool-call + tool-result events.
-- [RAG Foundation](https://docs.promptise.com/core/agents/rag/): Pluggable loader / chunker / embedder / store pipeline.
-- [Adaptive Strategy](https://docs.promptise.com/core/agents/adaptive/): Failure classification and strategy learning over time.
-- [Observability](https://docs.promptise.com/core/observability/): 4 levels (OFF, BASIC, STANDARD, FULL). 8 transporters (HTML, JSON, structured log, console, Prometheus, OpenTelemetry, webhook, callback).
-- [SuperAgent Files](https://docs.promptise.com/core/superagent/): `.superagent` YAML with `${VAR}` resolution and cross-agent cycle detection.
-- [CLI](https://docs.promptise.com/core/cli/): `promptise agent`, `promptise validate`, `promptise list-tools`, `promptise run`, `promptise serve`, `promptise runtime`.
+## Getting Started
 
-## MCP Server SDK
+- [Promptise Docs: Build AI Agents and MCP Servers in Python](https://docs.promptise.com/): Promptise Foundry documentation: build AI agents, MCP servers and autonomous agent runtimes in Python, with quickstarts, guides and the full API reference.
+- [Quick Start: Build Your First AI Agent](https://docs.promptise.com/getting-started/quickstart/): Build your first Python AI agent in five minutes: install Promptise, add an API key, then add MCP tools, a custom reasoning pattern and production features.
+- [Key Concepts: How Promptise Foundry Works](https://docs.promptise.com/getting-started/concepts/): The core concepts of Promptise Foundry: agents, MCP servers, prompt and context engineering, the agent runtime, design principles and core abstractions.
+- [Where to Put LLM API Keys: .env and Secrets](https://docs.promptise.com/getting-started/configuration/): Where to keep LLM API keys: a .env file loaded automatically, environment variables, Model(...) in code or a .superagent file, and which one wins.
+- [Set Up Any LLM Provider in Two Minutes](https://docs.promptise.com/getting-started/model-setup/): Get a model working: put the key in .env or pass it with Model(...), check what is missing with promptise models check, and see each provider's variables.
+- [Install Promptise with pip: Optional Extras](https://docs.promptise.com/getting-started/installation-extras/): Install Promptise Foundry with pip: the base install, the all, sandbox, tool-optimization and identity extras, MCP SDK versions and air-gapped installs.
+- [What Is MCP? Model Context Protocol Explained](https://docs.promptise.com/getting-started/what-is-mcp/): What the Model Context Protocol is, its tool, resource, prompt and sampling primitives, how it works, and how Promptise implements an MCP client and server.
+- [Why Promptise Foundry: Design Choices](https://docs.promptise.com/getting-started/why-promptise/): What ships in Promptise Foundry, design choices such as MCP-first and no silent fallbacks, and when another Python agent framework is a better fit.
+- [Agentic AI Glossary: Agent and MCP Terms](https://docs.promptise.com/getting-started/glossary/): Definitions of the terms used in Promptise Foundry and agentic AI: agents, MCP, tools, memory, triggers, journals, governance, guardrails and sandboxing.
 
-- [Building Servers](https://docs.promptise.com/mcp/server/building-servers/): `MCPServer`, `MCPRouter`, `@server.tool()`, `@server.resource()`, `@server.prompt()` — schema auto-generated from type hints.
-- [Authentication](https://docs.promptise.com/mcp/server/auth-security/): `JWTAuth` (HS256), `AsymmetricJWTAuth` (RS256 / ES256), `APIKeyAuth`. LRU token cache. Built-in OAuth2 `TokenEndpointConfig` for dev/test.
-- [Guards](https://docs.promptise.com/mcp/server/guards/): `HasRole`, `HasAllRoles`, `RequireAuth`, `RequireClientId`, custom `Guard` protocol.
-- [Middleware](https://docs.promptise.com/mcp/server/middleware/): Logging, Timeout, RateLimit (token bucket), CircuitBreaker, Concurrency, PerToolConcurrency, StructuredLogging, Audit (HMAC-chained JSONL), Cache, Prometheus, OTel, Webhook.
-- [Caching](https://docs.promptise.com/mcp/server/caching/): `InMemoryCache` (LRU + TTL), `RedisCache`, `@cached` decorator.
-- [Job Queue](https://docs.promptise.com/mcp/server/job-queue/): `MCPQueue` with priority, retry + exponential backoff, progress, cancellation. Auto-registered tools: `queue_submit`, `queue_status`, `queue_result`, `queue_cancel`, `queue_list`.
-- [Dependency Injection](https://docs.promptise.com/mcp/server/di/): FastAPI-style `Depends()` with generator cleanup.
-- [Session State](https://docs.promptise.com/mcp/server/session-state/): Per-client key-value storage across tool calls.
-- [Elicitation & Sampling](https://docs.promptise.com/mcp/server/elicitation-sampling/): `Elicitor` (structured mid-call input), `Sampler` (request LLM completions from the client).
-- [Streaming & Progress](https://docs.promptise.com/mcp/server/streaming/): `StreamingResult`, `ProgressReporter`.
-- [Versioning & Transforms](https://docs.promptise.com/mcp/server/versioning/): `VersionedToolRegistry`, `NamespaceTransform`, `VisibilityTransform`, `TagFilterTransform`.
-- [Composition](https://docs.promptise.com/mcp/server/composition/): `server.mount()` for namespace-isolated sub-servers.
-- [OpenAPI Import](https://docs.promptise.com/mcp/server/openapi/): `OpenAPIProvider` converts an OpenAPI spec into MCP tools.
-- [Exception Handlers](https://docs.promptise.com/mcp/server/exception-handlers/): `ExceptionHandlerRegistry` with MRO matching.
-- [Health & Metrics](https://docs.promptise.com/mcp/server/health-metrics/): Kubernetes-native liveness/readiness/startup probes. `MetricsCollector`, `PrometheusMiddleware`, `OTelMiddleware`.
-- [Testing](https://docs.promptise.com/mcp/server/testing/): `TestClient` runs the full pipeline (validation → DI → guards → middleware → handler) in-process with no network.
-- [Transports](https://docs.promptise.com/mcp/server/transports/): stdio, streamable HTTP, SSE. Configurable CORS. Auth gate at transport level.
-- [Dashboard](https://docs.promptise.com/mcp/server/dashboard/): `promptise serve --dashboard` — 6-tab terminal UI.
-- [MCP Client](https://docs.promptise.com/mcp/client/): `MCPClient` (single server), `MCPMultiClient` (federate N servers), `MCPToolAdapter` (MCP → LangChain `BaseTool`). Native implementation.
+## Agent
 
-## Reasoning Engine (Pillar 2)
+- [Agent Overview: Capabilities of build_agent](https://docs.promptise.com/core/): Overview of the Promptise agent: what build_agent() returns, opt-in capabilities such as memory, guardrails, cache and approval, and which feature you need.
+- [build_agent Reference: Create AI Agents](https://docs.promptise.com/core/agents/building-agents/): Reference for build_agent() and PromptiseAgent: connect to MCP servers, discover tools, combine capabilities and pass per-request identity with CallerContext.
+- [Tools: @tool Functions, MCP Tool Discovery and Schemas](https://docs.promptise.com/core/tools/): Give a Promptise agent Python functions as tools with @tool: schemas from type hints and docstrings, validation, CallerContext, ToolError, MCP tool discovery.
+- [LLM Providers: OpenAI, Azure, Bedrock, Ollama](https://docs.promptise.com/core/agents/models/): Configure the LLM an agent runs on: model strings, the Model object, Azure AI Foundry, each provider's env variables, self-hosted endpoints and failover.
+- [Connect Agents to MCP Servers: Stdio, HTTP](https://docs.promptise.com/core/agents/server-specs/): Configure how an agent connects to MCP servers with StdioServerSpec for local processes and HTTPServerSpec for remote ones, with auth and per-user tokens.
+- [SuperAgent Files: Define Agents in YAML](https://docs.promptise.com/core/agents/superagent-files/): Define an agent in a .superagent YAML file: model, MCP servers, memory, sandbox and cross-agent teams, with ${VAR} environment variable resolution.
+- [Agent Reasoning Patterns: ReAct to Debate](https://docs.promptise.com/core/agents/reasoning-patterns/): Choose how an agent reasons: the default ReAct graph, verify, managed, code-action, PEOATR, research, deliberate and debate patterns, or a custom graph.
+- [Cross-Agent Delegation Between AI Agents](https://docs.promptise.com/core/agents/cross-agent/): Let an agent delegate tasks to peer agents through auto-generated ask_agent tools and an opt-in broadcast tool, with timeouts, delegation limits and tracing.
+- [Agent Memory: Vector Search, Chroma and Mem0](https://docs.promptise.com/core/memory/): Give agents persistent memory with vector search: the MemoryProvider protocol, in-memory, ChromaDB and Mem0 providers, per-user scopes and auto-injection.
+- [RAG Pipeline: Retrieval for AI Agents](https://docs.promptise.com/core/rag/): Add document retrieval to agents: loader, chunker, embedder and vector store base classes, RAGPipeline, the rag_to_tool adapter and production patterns.
+- [Conversation History: Postgres, SQLite, Redis](https://docs.promptise.com/core/conversations/): Persist agent conversation history across sessions with Postgres, SQLite, Redis or in-memory stores, the chat() API, per-user ownership and custom stores.
+- [Semantic Cache for LLM Responses](https://docs.promptise.com/core/cache/): Cache LLM responses by query similarity, with per-user isolation, in-memory or Redis backends, local or OpenAI embeddings and write invalidation.
+- [Context Engine: LLM Token Budgeting](https://docs.promptise.com/core/context-engine/): Assemble what the LLM sees from priority-ranked context layers, with exact token counting, context window detection and trimming when the budget is exceeded.
+- [LLM Guardrails: Prompt Injection and PII](https://docs.promptise.com/core/guardrails/): Scan agent input and output locally for prompt injection, PII, credentials and harmful content with composable detectors, redaction and tool result scanning.
+- [Human-in-the-Loop Approval for Agent Tools](https://docs.promptise.com/core/approval/): Require human approval before an agent runs sensitive tools: approval policies, callback, webhook and queue handlers, denials and HMAC request signing.
+- [Auto-Approval Classifier for Tool Calls](https://docs.promptise.com/core/approval-classifier/): Decide which agent tool calls need a human with six ordered layers: deny, ask and allow rules, read-only detection, an optional LLM classifier and a fallback.
+- [Code Sandbox for Agents: Docker Isolation](https://docs.promptise.com/core/sandbox/): Run agent-generated code in isolated Docker containers with resource limits, network modes, a read-only root, dropped capabilities and optional gVisor.
+- [Tool Optimization: Cut MCP Tool Token Cost](https://docs.promptise.com/core/tool-optimization/): Reduce the tokens MCP tool definitions cost on every LLM call with schema minification, description truncation and semantic tool selection at three levels.
+- [LLM Fallback Across Model Providers](https://docs.promptise.com/core/fallback/): Fail over between LLM providers with FallbackChain: circuit breakers per model, which errors fall back, tools, streaming, caching and notifications.
+- [Adaptive Strategy: Agents Learn From Failures](https://docs.promptise.com/core/adaptive-strategy/): Let agents learn from failed tool calls: failures are classified, lessons are synthesized by LLM reflection and injected on later runs, scoped per caller.
+- [Stream Agent Output with Tool Events](https://docs.promptise.com/core/streaming/): Stream agent runs with real-time tool activity and token-by-token text, serve them as Server-Sent Events from FastAPI and show tool names and summaries.
+- [Agent Events and Webhook Notifications](https://docs.promptise.com/core/events/): Emit structured agent events for runs, tool errors, guardrails, approvals and budgets, and route them to webhooks, callbacks, logs or the runtime event bus.
+- [Agent Observability: Token Usage and Traces](https://docs.promptise.com/core/observability/): Record agent runs, LLM turns, tool calls and token usage with observe=True, and export them as HTML reports, logs, Prometheus metrics or OpenTelemetry traces.
+- [ServerSpec Types for MCP Connections](https://docs.promptise.com/core/config/): Reference for StdioServerSpec, HTTPServerSpec, the ServerSpec union and servers_to_mcp_config: how Promptise starts local MCP servers or connects over HTTP.
+- [ModelLike and Core Type Aliases](https://docs.promptise.com/core/types/): The types module: ModelLike, the type for every way to specify a language model for build_agent, plus the ServerSpec and CrossAgent types it re-exports.
+- [Default System Prompt for build_agent](https://docs.promptise.com/core/default-prompt/): The default system prompt every build_agent agent receives: tool-first behaviour, schema awareness and citing tool results, and how to override or extend it.
+- [LangChain Callback Handler for Observability](https://docs.promptise.com/core/callback-handler/): PromptiseCallbackHandler records LLM turns, tool calls, tokens, latency, retries and errors from LangChain and forwards them to the observability collector.
+- [Environment Variable Resolver for Configs](https://docs.promptise.com/core/env-resolver/): Resolve ${VAR} and ${VAR:-default} placeholders in config strings and nested dicts from environment variables, and check for missing variables at startup.
+- [Configuration Exceptions: SuperAgentError](https://docs.promptise.com/core/exceptions/): The Promptise exception hierarchy for configuration loading: SuperAgentError, SuperAgentValidationError and EnvVarNotFoundError, and when each one is raised.
+- [promptise run: Projects Like npm for Agents](https://docs.promptise.com/core/projects/): Run agent projects with promptise.toml and promptise run: scripts, env vars, dev tools, watch mode, terminal UI, production mode, HTTP serve mode and Docker.
+- [Promptise CLI Reference: Commands and Flags](https://docs.promptise.com/core/cli/): Every promptise CLI command: run, init, list-tools, agent, validate, serve an MCP server, mcpcast an API, check models, verify audit logs, manage runtimes.
 
-- [Overview](https://docs.promptise.com/core/engine/): `PromptGraph`, `PromptGraphEngine`, 20 node types, 7 prebuilt patterns, `@node` decorator, `ExecutionEngine`, JSON serialization.
-- [Nodes](https://docs.promptise.com/core/engine-nodes/): `PromptNode` (blocks, tools, strategy, model override, data flow, guards, pre/post processors), `ToolNode`, `RouterNode`, `GuardNode`, `ParallelNode`, `LoopNode`, `HumanNode`, `TransformNode`, `SubgraphNode`, `AutonomousNode`, `ThinkNode`, `PlanNode`, `ReflectNode`, `CritiqueNode`, `SynthesizeNode`, `ValidateNode`, `ObserveNode`, `JustifyNode`, `RetryNode`, `FanOutNode`.
-- [Flags](https://docs.promptise.com/core/engine-flags/): 18 `NodeFlag` values — `ENTRY`, `TERMINAL`, `INJECT_TOOLS`, `READONLY`, `REQUIRES_HUMAN`, `CACHEABLE`, `RETRYABLE`, `CRITICAL`, `OBSERVABLE`, `STATEFUL`, `PARALLEL_SAFE`, `SKIP_ON_ERROR`, `VERBOSE`, `LIGHTWEIGHT`, `NO_HISTORY`, `ISOLATED_CONTEXT`, `SUMMARIZE_OUTPUT`, `VALIDATE_OUTPUT`.
-- [Patterns](https://docs.promptise.com/core/engine-processors/): `build_react_graph`, `build_peoatr_graph`, `build_research_graph`, `build_autonomous_graph`, `build_deliberate_graph`, `build_debate_graph`, `build_pipeline_graph`.
-- [Hooks](https://docs.promptise.com/core/engine-hooks/): `on_node_start`, `on_node_end`, `on_graph_start`, `on_graph_end`, `on_error`.
-- [Skills](https://docs.promptise.com/core/engine-skills/): `SkillRegistry` — path-glob-scoped skill activation.
+## Reasoning Graph
+
+- [Reasoning Graph: The Agent Execution Engine](https://docs.promptise.com/core/engine/): The engine behind every Promptise agent: a graph of composable nodes, autonomous and static modes, streaming, failure handling, tool injection and mutation.
+- [Reasoning Graph Nodes: Built-in and Custom](https://docs.promptise.com/core/engine-nodes/): The 21 built-in reasoning graph node types, from ThinkNode and PlanNode to ToolNode, RouterNode, AutonomousNode and CodeActionNode, and how to write custom nodes.
+- [Reasoning Graph Edges and Transitions](https://docs.promptise.com/core/engine-edges/): Define how a reasoning graph moves between nodes: edge helpers for conditions, tool calls, errors and confidence, transition priority and LLM routing.
+- [Reasoning Graph Node Flags Reference](https://docs.promptise.com/core/engine-flags/): Typed node flags that control execution, caching, context, model selection, observability and output processing in a reasoning graph, and how to add your own.
+- [Prebuilt Reasoning Graph Factories](https://docs.promptise.com/core/engine-prebuilts/): Ten ready-made reasoning graphs: ReAct, verify, managed, code-action, PEOATR, research, autonomous, deliberate, debate and pipeline, and what each one does.
+- [Reasoning Skills Library: Node Factories](https://docs.promptise.com/core/engine-skills/): Pre-configured node factories for agent tasks such as web research, code review, data analysis, fact checking, planning and summarizing, all overridable.
+- [Path-Scoped Skills for Reasoning Graphs](https://docs.promptise.com/core/skill-registry/): Register reasoning graph skills with glob patterns so each one only activates when the agent works in a matching directory, and load skills from files.
+- [Build Custom Agent Reasoning Patterns](https://docs.promptise.com/guides/custom-reasoning/): Build your own agent reasoning patterns on the reasoning graph: pipelines, quality gates, parallel research, LLM routing, custom nodes and debugging.
+- [Inject MCP Tools into Graph Nodes](https://docs.promptise.com/core/engine-tools/): How MCP tools found by build_agent reach reasoning graph nodes at runtime with inject_tools, how they merge with node tools, and how to pass them yourself.
+- [Node Preprocessors and Postprocessors](https://docs.promptise.com/core/engine-processors/): Functions that run before or after a PromptNode's LLM call: context enrichment, input checks, JSON extraction, confidence scoring, truncation and chaining.
+- [Reasoning Graph Hooks and Tool Hooks](https://docs.promptise.com/core/engine-hooks/): Hook into the reasoning engine's execution loop for logging, timing, cycle detection, metrics, budgets and tool calls, and read the execution report.
+- [Save and Load Reasoning Graphs as YAML](https://docs.promptise.com/core/engine-serialization/): Save a reasoning graph to YAML or a Python dict and load it back: what round-trips, what cannot be saved, the YAML format and custom node types.
+- [Reasoning Engine Internals: How It Works](https://docs.promptise.com/core/engine-internals/): How the reasoning engine works under the hood: the execution loop, transition resolution, autonomous path building, caching, flag processing and data flow.
+
+## MCP
+
+- [MCP Server and Client SDK for Python](https://docs.promptise.com/mcp/): Build MCP servers that AI agents call and connect agents to existing ones: auth, guards, middleware, caching, rate limits, observability and a native client.
+- [Build a Production MCP Server in Python](https://docs.promptise.com/guides/production-mcp-servers/): Build a production MCP server in 12 steps: tools, Pydantic validation, resources, prompts, JWT auth, guards, routers, middleware, caching and job queues.
+- [Build an MCP Server: Tools, Resources, Prompts](https://docs.promptise.com/mcp/server/building-servers/): Build an MCP server in Python: register tools with decorators and Pydantic validation, add resources, templates and prompts, lifecycle hooks, then run it.
+- [MCP Server Routers and Middleware](https://docs.promptise.com/mcp/server/routers-middleware/): Group MCP tools, resources and prompts into routers with prefixes, and add logging, timeouts and other cross-cutting behaviour with middleware.
+- [MCP Server Authentication: JWT and API Keys](https://docs.promptise.com/mcp/server/auth-security/): Secure an MCP server with JWT, asymmetric JWT, JWKS and API key auth, role and scope guards, client context, request tracing and dependency injection.
+- [Multi-Tenant MCP Servers and Agents](https://docs.promptise.com/mcp/server/multi-tenancy/): Isolate tenants across the stack: tenant_id from the JWT, tenant guards on MCP tools, and tenant-scoped cache, memory, conversations, rate limits and audit.
+- [Human Approval Gates for MCP Server Tools](https://docs.promptise.com/mcp/server/approval-gates/): Enforce human approval on the MCP server: tools with requires_approval=True wait for a reviewer before they run, for any MCP client, and deny on timeout.
+- [MCP Server Production Features Overview](https://docs.promptise.com/mcp/server/production-features/): Overview of production features for MCP servers: caching, rate limiting, health checks, metrics, observability, resilience, middleware order and deployment.
+- [MCP Server Caching and Rate Limiting](https://docs.promptise.com/mcp/server/caching-performance/): Keep an MCP server fast and affordable with cached tool results, in-memory or Redis caches, rate limiting, token buckets, concurrency limits and timeouts.
+- [MCP Server Monitoring: Metrics and Tracing](https://docs.promptise.com/mcp/server/observability/): Monitor an MCP server with built-in metrics, a live dashboard, OpenTelemetry tracing, Prometheus export, structured logs and HMAC-chained audit logs.
+- [MCP Server Resilience: Circuit Breakers](https://docs.promptise.com/mcp/server/resilience-patterns/): Keep an MCP server reliable when dependencies fail: circuit breakers, health checks, webhook alerts, background tasks, exception handlers and cancellation.
+- [MCP Job Queue for Long-Running Tools](https://docs.promptise.com/mcp/server/queue/): Run long jobs behind MCP tools with MCPQueue: agents submit and poll jobs, with progress, cancellation, ownership, priorities, retries with backoff and tests.
+- [MCP Tool Versioning, Transforms, Composition](https://docs.promptise.com/mcp/server/advanced-patterns/): Advanced MCP server patterns: tool versioning, transforms, server composition, an OpenAPI bridge, batch calls, streaming results, elicitation and sampling.
+- [Deploy an MCP Server: Transports, Docker](https://docs.promptise.com/mcp/server/deployment/): Run an MCP server in production: choose stdio, HTTP or SSE, validate Host and Origin, configure CORS, run behind a reverse proxy, in Docker or under uvicorn.
+- [Test MCP Servers In-Process with TestClient](https://docs.promptise.com/mcp/server/testing/): Test an MCP server without a network transport: TestClient runs validation, dependency injection, guards, middleware and handlers in-process.
+- [Python MCP Client: Connect to MCP Servers](https://docs.promptise.com/mcp/client/): Connect to one or many MCP servers with MCPClient and MCPMultiClient: bearer token and API key auth, HTTP, SSE and stdio, tool calls, resources and prompts.
+- [MCP Tools as LangChain Tools: Tool Adapter](https://docs.promptise.com/mcp/client/tool-adapter/): MCPToolAdapter discovers tools on MCP servers and turns them into typed LangChain BaseTool objects, building Pydantic models from their JSON Schemas.
+
+## MCPcast
+
+- [MCPcast: Turn Your API into an MCP Server](https://docs.promptise.com/mcpcast/): The complete MCPcast walkthrough: how an MCP server works, what MCPcast generates, a real run from a Python API to an agent, the approval gate and the review.
+- [MCPcast Wizard: API to MCP Server Setup](https://docs.promptise.com/mcpcast/guided-setup/): Run promptise mcpcast with no arguments for a terminal wizard: choose spec, model, safety profile and auth, review the model's decisions, write the server.
+- [MCPcast: OpenAPI to MCP Server Generator](https://docs.promptise.com/mcp/server/mcpcast/): Generate an MCP server from an OpenAPI or Swagger spec with promptise mcpcast: risk classification, safety profiles, LLM curation, approval and scoring.
+- [Turn an OpenAPI Spec into an MCP Server](https://docs.promptise.com/guides/mcpcast-existing-api/): Turn an existing HTTP API into an MCP server with promptise mcpcast, step by step: review the tool plan, gate writes with approval, score it and ship it.
+- [FastAPI, Django or Flask API to MCP Server](https://docs.promptise.com/guides/mcpcast-python-app/): Make your FastAPI, Django, Flask or Litestar API usable from Claude, Cursor and any MCP client: improve the spec, generate a server, map auth, gate writes.
+- [MCPcast Recipes: Stripe, GitHub, Swagger 2](https://docs.promptise.com/mcp/server/mcpcast-recipes/): Run promptise mcpcast on real APIs: the Stripe spec, the 1,225-operation GitHub spec, legacy Swagger 2.0 and your own FastAPI app, with real output and fixes.
+- [Lab: MCP Server for Your SaaS API](https://docs.promptise.com/guides/lab-mcpcast-storefront/): Turn a SaaS OpenAPI spec into an MCP server with promptise mcpcast: risk-classified tools, approval for refunds, per-tenant credentials and a readiness score.
+- [Lab: API to MCP Server with the MCPcast Wizard](https://docs.promptise.com/guides/lab-mcpcast-wizard/): Hands-on lab for the mcpcast terminal wizard: generate an MCP server from a running Helpdesk API, review the model's tools, test the approval gate, score it.
+- [MCPcast API Reference: OpenAPI to MCP](https://docs.promptise.com/api/mcpcast/): API reference for promptise.mcpcast: mcpcast, curate, write_project and evaluate, the plan schema, spec parsing, risk classification and code generation.
 
 ## Agent Runtime
 
-- [Overview](https://docs.promptise.com/runtime/): `AgentRuntime`, `AgentProcess`, `ProcessConfig`, lifecycle states (CREATED → STARTING → RUNNING → SUSPENDED → STOPPING → STOPPED/FAILED).
-- [Triggers](https://docs.promptise.com/runtime/triggers/): `CronTrigger`, `EventTrigger`, `MessageTrigger`, `WebhookTrigger` (HMAC verified), `FileWatchTrigger` (glob-filtered).
-- [Governance](https://docs.promptise.com/runtime/governance/): `BudgetConfig` (per-run + daily limits, tool costs), `HealthConfig` (stuck / loop / empty / error-rate detection), `MissionConfig` (LLM-as-judge + programmatic success_check), `SecretsConfig` (TTL, rotation, zero-fill revocation).
-- [Journals](https://docs.promptise.com/runtime/journals/): `InMemoryJournal`, `FileJournal`, `ReplayEngine`, `RewindEngine` with 5 modes (full, conversation, code, summarize, preview).
-- [Hooks](https://docs.promptise.com/runtime/hooks/): 14 lifecycle hook points, `once: true`, priority ordering, `ShellHook` for external scripts.
-- [Open Mode](https://docs.promptise.com/runtime/open-mode/): 14 meta-tools for self-modifying agents (`modify_instructions`, `create_tool`, `connect_mcp_server`, `add_trigger`, `remove_trigger`, `spawn_process`, `list_processes`, `store_memory`, `search_memory`, `forget_memory`, `list_capabilities`, `get_secret`, `check_budget`, `check_mission`). Constraint system: max instruction length, max custom tools, MCP URL whitelist, mandatory sandbox.
-- [Inbox](https://docs.promptise.com/runtime/inbox/): Live agent conversation — `runtime.ask()`, `runtime.inbox()` for bi-directional messaging with running processes.
-- [REST API](https://docs.promptise.com/runtime/api/): 37-endpoint HTTP API for lifecycle, messaging, inbox, governance updates, health, logs, distributed coordination. Typed `APIClient` included.
-- [Distributed](https://docs.promptise.com/runtime/distributed/): `RuntimeCoordinator` with `StaticDiscovery` / `RegistryDiscovery`. Multi-node over HTTP. No etcd/Consul dependency.
-- [Manifests](https://docs.promptise.com/runtime/manifests/): `.agent` YAML with model, instructions, servers, triggers, world state, memory, journal, open mode, budget, health, mission, secrets.
-- [Dashboard](https://docs.promptise.com/runtime/dashboard/): Live terminal UI for process state, invocations, triggers, memory, journal.
+- [Agent Runtime for Autonomous AI Agents](https://docs.promptise.com/runtime/): The Agent Runtime runs autonomous AI agents as processes: triggers, persistent state, crash recovery, governance, hooks, an HTTP API, a CLI and clustering.
+- [Agent Processes: Long-Running AI Agents](https://docs.promptise.com/runtime/processes/): AgentProcess turns an agent into a long-running process: it starts triggers, runs the agent per event, keeps state between runs and restarts after failures.
+- [Agent Orchestration REST API and Client](https://docs.promptise.com/runtime/api/): Control a running agent runtime over HTTP: deploy and stop processes, change instructions, budgets and triggers, send messages, rotate secrets, read journals.
+- [Run Many Agents with AgentRuntime](https://docs.promptise.com/runtime/runtime-manager/): AgentRuntime runs several agent processes in one Python process: register or load them, start and stop them, share an event bus and shut down cleanly.
+- [Agent Context: State, Memory, Environment](https://docs.promptise.com/runtime/context/): AgentContext gives each agent process key-value state with an audit trail, optional long-term memory, a filtered environment view and named file mounts.
+- [Agent Process Lifecycle and States](https://docs.promptise.com/runtime/lifecycle/): The states every agent process moves through, from created to running, suspended, stopped or failed, the valid transitions, lifecycle events and StateError.
+- [Agent Runtime Lifecycle Hooks and Events](https://docs.promptise.com/runtime/hooks/): React to what happens to an agent process with hooks on 13 lifecycle events: audit prompts, add context, notify channels, block actions or run shell commands.
+- [Conversation Buffer for Agent Processes](https://docs.promptise.com/runtime/conversation/): ConversationBuffer, an agent process's short-term memory: a rolling window of recent messages replayed each run, kept across restarts with secrets redacted.
+- [Agent Runtime Configuration Reference](https://docs.promptise.com/runtime/configuration/): Every runtime config field with its type and default: RuntimeConfig, ProcessConfig, triggers, journal, context, hooks, secrets, budget, health and mission.
+- [Agent Manifests: YAML for Agent Processes](https://docs.promptise.com/runtime/manifests/): Declare an agent process in a .agent YAML manifest: model, instructions, MCP servers, triggers, state, governance and hooks, with strict validation and a CLI.
+- [Self-Modifying Agents: Open Mode Meta-Tools](https://docs.promptise.com/runtime/meta-tools/): In open mode an agent process gets meta-tools to rewrite its instructions, create tools, connect MCP servers, manage triggers and memory and spawn processes.
+- [Mission-Driven Agents with an LLM Judge](https://docs.promptise.com/runtime/governance/mission/): Give an agent process an objective and success criteria; an LLM judge or your own check decides when the mission is achieved, with run limits and escalation.
+- [Autonomy Budget: Limit Agent Actions and Cost](https://docs.promptise.com/runtime/governance/budget/): Limit what an autonomous agent does on its own: tool calls, LLM turns, cost units and irreversible actions per run and per day, enforced before each call.
+- [Behavioral Health Monitoring for AI Agents](https://docs.promptise.com/runtime/governance/health/): Behavioral health monitoring catches agents that are stuck, looping, giving empty replies or failing repeatedly, using pattern matching, with no LLM calls.
+- [Scoped Secrets for Agent Processes](https://docs.promptise.com/runtime/governance/secrets/): Give each agent process its own secrets with expiry, rotation without restarts, an access log and revocation, kept out of journals, history and API responses.
+- [Agent Triggers: Cron, Webhook, File, Events](https://docs.promptise.com/runtime/triggers/): How triggers decide when an agent process runs: the five built-in types, TriggerEvent, custom triggers, event filters, untrusted payloads and concurrency.
+- [Cron Trigger: Schedule AI Agent Runs](https://docs.promptise.com/runtime/triggers/cron/): Run an agent on a cron schedule for monitoring, pipeline checks and reports: cron expressions, time zones and DST, how ticks become runs, the event payload.
+- [Webhook and Event Triggers for AI Agents](https://docs.promptise.com/runtime/triggers/event-webhook/): Run an agent when something happens elsewhere: WebhookTrigger with HMAC signatures for GitHub, Stripe or CI, and event bus and message broker triggers.
+- [File Watch Trigger: Run Agents on File Changes](https://docs.promptise.com/runtime/triggers/file-watch/): Run an agent when files are created, modified, deleted or moved: glob patterns, debouncing, back-pressure and watchdog or polling backends for network shares.
+- [Agent Journal: Audit Trail and Recovery](https://docs.promptise.com/runtime/journal/): An agent process's append-only journal of state changes, runs and errors, with checkpoints for crash recovery, rewind and promptise runtime logs.
+- [Agent Journal Backends: File and Memory](https://docs.promptise.com/runtime/journal/backends/): Store agent process journals in FileJournal JSONL files or InMemoryJournal for tests, strip secrets with RedactingJournal, or write your own journal backend.
+- [Crash Recovery with the Replay Engine](https://docs.promptise.com/runtime/journal/replay/): ReplayEngine rebuilds an agent process from its journal by loading the last checkpoint and replaying later entries, so a crashed process carries on.
+- [Rewind an Agent Process to Earlier State](https://docs.promptise.com/runtime/journal/rewind/): Roll a live agent process back to before a journal entry: its context state, conversation history or both, from Python, the orchestration API or the CLI.
+- [Distributed Agent Runtime Across Machines](https://docs.promptise.com/runtime/distributed/): Run several agent runtimes on different machines as one cluster: what each node runs, registry or static discovery, DistributedConfig, auth and ClusterNode.
+- [Distributed Agent Runtime Coordinator](https://docs.promptise.com/runtime/distributed/coordinator/): RuntimeCoordinator keeps a registry of runtime nodes, checks their health, aggregates cluster status and starts, stops or triggers processes on remote nodes.
+- [Agent Runtime Service Discovery and Transport](https://docs.promptise.com/runtime/distributed/discovery-transport/): How distributed runtime nodes find each other with static or registry discovery, and the HTTP transport routes used to manage agent processes across machines.
+- [Agent Runtime Dashboard in the Terminal](https://docs.promptise.com/runtime/dashboard/): Watch a running agent runtime in a terminal UI: process states, triggers, context state and logs, started from the CLI or Python, with its data collector.
+- [promptise runtime CLI: Run Agent Processes](https://docs.promptise.com/runtime/cli/): Run agent processes from .agent manifests and control them from another shell: promptise runtime start, status, stop, restart, logs, rewind, validate, init.
 
-## Prompt Engineering
+## Agent Identity
 
-- [Blocks](https://docs.promptise.com/prompting/blocks/): 8 block types — `Identity`, `Rules`, `OutputFormat`, `ContextSlot`, `Section`, `Examples`, `Conditional`, `Composite`. Priority-based token budgeting drops lowest-priority first.
-- [Strategies](https://docs.promptise.com/prompting/strategies/): `chain_of_thought`, `structured_reasoning`, `self_critique`, `plan_and_execute`, `decompose`. Composable via `+`. Perspectives: `Analyst`, `Critic`, `Advisor`, `Creative`, `CustomPerspective`.
-- [Flows](https://docs.promptise.com/prompting/flows/): `ConversationFlow` with `@phase` decorator, `on_enter`/`on_exit` hooks, depth-limited recursive transitions.
-- [Context Providers](https://docs.promptise.com/prompting/context/): 14 providers — Tool, Memory, Task, Blackboard, User, Environment, Conversation, Team, Error, Output, Static, Callable, Conditional, World.
-- [Builder](https://docs.promptise.com/prompting/builder/): `PromptBuilder` fluent API.
-- [Chaining](https://docs.promptise.com/prompting/chaining/): `chain`, `parallel`, `branch`, `retry`, `fallback`.
-- [Guards](https://docs.promptise.com/prompting/guards/): `ContentFilterGuard`, `LengthGuard`, `SchemaStrictGuard` (retry on schema fail), `InputValidatorGuard`, `OutputValidatorGuard`.
-- [Template Engine](https://docs.promptise.com/prompting/template/): SSTI-safe formatter, `{% if %}`/`{% for %}`/`{% include %}`, opt-in `!`cmd`` shell interpolation via `SubprocessShellExecutor` (disabled by default).
-- [YAML Loader](https://docs.promptise.com/prompting/loader/): `.prompt` files from file, URL, or directory.
-- [Registry](https://docs.promptise.com/prompting/registry/): SemVer versioning with `@version`, rollback, duplicate detection.
-- [Inspector](https://docs.promptise.com/prompting/inspector/): `PromptInspector` traces assembly step-by-step — blocks included/excluded, tokens per block, render time, guard results.
-- [Testing](https://docs.promptise.com/prompting/testing/): `mock_llm`, `mock_context`, `assert_schema`, `assert_contains`, `assert_latency`, `assert_guard_passed`.
-- [Suites](https://docs.promptise.com/prompting/suite/): `PromptSuite` groups related prompts with shared defaults.
+- [AI Agent Identity and Action Attribution](https://docs.promptise.com/identity/overview/): Give every AI agent a stable, traceable non-human identity, stamped on its tool calls, LLM turns and audit entries, optionally verifiable by servers it calls.
+- [Agent Identity Quickstart in Five Minutes](https://docs.promptise.com/identity/quickstart/): Give an agent a traceable identity in five minutes with no infrastructure, see it on the agent's timeline, make it verifiable and present it to an MCP server.
+- [End-to-End Agent Identity for MCP Servers](https://docs.promptise.com/identity/guide/): Give an autonomous agent a non-human identity, present it to MCP servers, verify it server-side, attribute delegated work and handle rotation and revocation.
+- [Agent Identity Architecture and Credentials](https://docs.promptise.com/identity/architecture/): How Agent Identity attributes actions to an agent and presents verifiable credentials: attribution path, two tiers, credential lifecycle, MCP integration.
+- [Agent Identity with Microsoft Entra ID](https://docs.promptise.com/identity/providers/entra/): Back an agent's identity with Microsoft Entra ID through Azure IMDS managed identity or AKS Workload Identity, so the resources it calls can verify it.
+- [Agent Identity on AWS IAM: STS and EKS](https://docs.promptise.com/identity/providers/aws/): Back an agent's identity with AWS IAM, using STS GetWebIdentityToken on Lambda, EC2, ECS and EKS or an EKS-projected token file, and verify it.
+- [Agent Identity on Google Cloud with OIDC](https://docs.promptise.com/identity/providers/gcp/): Back an agent's identity with a Google Cloud OIDC token from the metadata server on Compute Engine, GKE, Cloud Run or Cloud Functions, then verify it.
+- [Agent Identity with SPIFFE and SPIRE](https://docs.promptise.com/identity/providers/spiffe/): Back an agent's identity with a SPIFFE JWT-SVID, read from a file written by spiffe-helper or fetched from the SPIRE agent's Workload API with py-spiffe.
+- [Agent Identity with Any OIDC Issuer](https://docs.promptise.com/identity/providers/oidc/): Back an agent's identity with any OIDC issuer, such as GitLab CI, GitHub Actions, Keycloak or Dex, reading the JWT from a file, a callable or an env variable.
+- [Agent Identity Security and Threat Model](https://docs.promptise.com/identity/security/): What Agent Identity guarantees and what it does not: the threat model, how short-lived credentials stay in memory and are never logged, errors and logging.
+- [Add Agent Identity to Existing Agents](https://docs.promptise.com/identity/migration/): Add Agent Identity to existing agents with a one-line change: name your agents, pass identity= to build_agent, make it verifiable where needed, roll it out.
+
+## Prompting & Context
+
+- [Prompt Engineering Framework for Python](https://docs.promptise.com/prompting/): Treat prompts as software: compose them from blocks, evolve them across conversation phases, add strategies, perspectives, guards and context, inspect them.
+- [Prompt Blocks: Composable System Prompts](https://docs.promptise.com/prompting/blocks/): Build system prompts from typed, priority-ranked blocks: identity, rules, output format, context slots and examples, assembled in order under a token budget.
+- [ConversationFlow: Multi-Phase System Prompts](https://docs.promptise.com/prompting/flows/): Build agents whose system prompt changes across the phases of a conversation: define phases, swap blocks per turn, handle transitions, use with build_agent.
+- [PromptBuilder: Build Prompts at Runtime](https://docs.promptise.com/prompting/builder/): Construct prompts at runtime with the fluent PromptBuilder API: templates, model, context providers, strategy, perspective, guards, hooks and output types.
+- [Prompt YAML Loader and Template Engine](https://docs.promptise.com/prompting/loader-templates/): Load prompts from .prompt YAML files, from URLs or directories, save them back, and use the template engine for variables, conditionals, loops and includes.
+- [Shell Command Context in Prompt Templates](https://docs.promptise.com/prompting/shell-interpolation/): Inject live system context into prompt templates by running shell commands at render time, off by default, with an allowlist, timeouts and custom executors.
+- [Prompt Strategies: Chain of Thought and More](https://docs.promptise.com/prompting/strategies/): Chain of thought, self-critique, plan-and-execute and decompose strategies control how an agent reasons; analyst and critic perspectives set its viewpoint.
+- [Prompt Chaining: Sequential and Parallel](https://docs.promptise.com/prompting/chaining/): Compose prompts into multi-step pipelines with chain, parallel, branch, retry with exponential backoff and fallback operators, and combine them freely.
+- [Prompt Context Providers and Variables](https://docs.promptise.com/prompting/context/): Give prompts awareness of their world: BaseContext and predefined user, environment and error contexts, PromptContext and context providers that inject text.
+- [Prompt Guards: Validate LLM Input and Output](https://docs.promptise.com/prompting/guards/): Validate and transform prompt input before the LLM call and output after it with content, length, schema and custom guards, and handle GuardError.
+- [Prompt Inspector: Debug Prompt Assembly](https://docs.promptise.com/prompting/inspector/): See how a prompt was assembled: blocks included, token estimates, what was dropped, guard results and the exact text sent, plus PromptObserver telemetry.
+- [Prompt Testing: Mock LLMs and Assertions](https://docs.promptise.com/prompting/testing/): Test prompts with PromptTestCase: mock LLM calls and context, and assert on content, output schema, latency, context providers and guard behaviour.
+- [Prompt Versioning: Suites and Registry](https://docs.promptise.com/prompting/suite-registry/): Group related prompts with shared settings in a PromptSuite, and register, retrieve and roll back semantic prompt versions with PromptRegistry.
+
+## Guides
+
+- [Guides: AI Agents, MCP Servers, Runtimes](https://docs.promptise.com/guides/): End-to-end guides for building with Promptise Foundry: AI agents, production MCP servers, MCPcast, multi-user systems, agent runtimes and hands-on labs.
+- [AI Agent and MCP Server Recipes](https://docs.promptise.com/getting-started/cookbook/): Copy-paste recipes: @tool functions, MCP servers, streaming, fallback, approval, memory, cache, guardrails and tenancy for agents, plus auth and approval for MCP servers.
+- [Build a Production AI Agent in Python](https://docs.promptise.com/guides/building-agents/): Build an AI agent in Python step by step: @tool functions, MCP servers, conversations, memory, guardrails, approval, observability, sandbox and delegation.
+- [Agent Context Management for Long Tool Loops](https://docs.promptise.com/guides/context-lifecycle/): Stop context bloat in long tool loops: how compaction works, context_scope modes on PromptNode, the verify and managed patterns, and which one to use.
+- [Code-Action Agents: Tools Called from Code](https://docs.promptise.com/guides/code-action/): Use the code-action pattern: the model writes one Python program over your tools and runs it in a sandbox, for tasks that gather many facts and then compute.
+- [Build an Autonomous Agent Runtime in Python](https://docs.promptise.com/guides/agentic-runtime/): Build an autonomous agent system step by step: triggers, persistent state, crash recovery, budget, health, mission and secret governance, and multi-node runs.
+- [Prompt Engineering Tutorial: System Prompts](https://docs.promptise.com/guides/prompt-engineering/): Build testable, versioned system prompts in 9 steps: typed blocks, token budgets, strategies, perspectives, guards, context providers, flows and tests.
+- [Build a Multi-User AI Agent System](https://docs.promptise.com/guides/multi-user-systems/): Build a multi-user agent system: JWT auth and guards on MCP servers, audit logs, per-user conversations, cache and memory, guardrails and observability.
+- [Pass User Identity from Agent to MCP Server](https://docs.promptise.com/guides/multi-user-identity/): Carry user identity from your app through the agent to MCP tools with CallerContext: JWT propagation, server-side auth, role guards and per-user isolation.
+- [Build a Secure Multi-Tenant Agent Platform](https://docs.promptise.com/guides/secure-multi-tenant-platform/): Build the AI backend of a multi-tenant SaaS: tenant isolation, role-based access, server-side approval for destructive tools and a tamper-evident audit log.
+- [Multi-Agent Coordination Patterns in Python](https://docs.promptise.com/guides/multi-agent-teams/): Coordinate several agents in Python: a shared MCP server with per-agent roles, delegation to peer agents, event-driven processes and a staged pipeline.
+- [Lab: Build a Customer Support Agent](https://docs.promptise.com/guides/lab-customer-support/): Build a customer support agent with a knowledge base MCP server, a custom reasoning pattern, conversation persistence, escalation rules and guardrails.
+- [Lab: Build a Text-to-SQL Data Analysis Agent](https://docs.promptise.com/guides/lab-data-analysis/): Build an agent that turns natural language questions into SQL, cross-references tables and writes reports, with a custom reasoning pattern and caching.
+- [Lab: Build a Code Review Agent](https://docs.promptise.com/guides/lab-code-review/): Build a code review agent that finds security, performance and style issues, uses adversarial self-critique against false positives and cites line evidence.
+- [Lab: Autonomous Pipeline Monitoring Agent](https://docs.promptise.com/guides/lab-pipeline-observer/): Build an autonomous agent that watches a data pipeline, fixes recoverable issues, escalates critical ones and runs under budget, health and mission limits.
 
 ## API Reference
 
-- [Agent API](https://docs.promptise.com/api/agent/): `build_agent()`, `PromptiseAgent`, `CallerContext`.
-- [Server API](https://docs.promptise.com/api/mcp-server/): `MCPServer`, `MCPRouter`, guards, middleware, DI, queue.
-- [Client API](https://docs.promptise.com/api/mcp-client/): `MCPClient`, `MCPMultiClient`, `MCPToolAdapter`.
-- [Engine API](https://docs.promptise.com/api/engine/): `PromptGraph`, `PromptGraphEngine`, all node types, `NodeFlag`.
-- [Runtime API](https://docs.promptise.com/api/runtime/): `AgentRuntime`, `ProcessConfig`, `TriggerConfig`, `BudgetConfig`, `HealthConfig`, `MissionConfig`, `SecretsConfig`, `APIServer`, `APIClient`.
-- [Prompts API](https://docs.promptise.com/api/prompts/): `@prompt`, `PromptBuilder`, blocks, strategies, flows, guards.
+- [Promptise Public API: Every Export](https://docs.promptise.com/reference/public-api/): Every public class, function and constant Promptise Foundry exports, by module, with a one-line summary and the page that documents it.
+- [Environment Variables Reference](https://docs.promptise.com/reference/environment-variables/): Every environment variable Promptise Foundry reads or sets: model keys, .env loading, cache encryption, audit keys, promptise run, the runtime CLI, identity and MCPcast.
+- [Agent and Reasoning Engine API Reference](https://docs.promptise.com/api/agent/): API reference for build_agent, PromptiseAgent, CallerContext and the reasoning graph engine: node types, graph state, hooks, processors and conversations.
+- [Server Spec API Reference: Stdio and HTTP](https://docs.promptise.com/api/config/): API reference for StdioServerSpec, HTTPServerSpec, the ServerSpec union and servers_to_mcp_config, the types that tell an agent how to reach MCP servers.
+- [LLM Provider and Model API Reference](https://docs.promptise.com/api/models/): API reference for promptise.models: resolve_model, Model, check_model, model string parsing, the provider registry with its environment variables and the CLI.
+- [Agent Memory API Reference: Chroma, Mem0](https://docs.promptise.com/api/memory/): API reference for MemoryProvider, InMemoryProvider, ChromaProvider, Mem0Provider, MemoryAgent and sanitize_memory_content, the agent memory layer.
+- [RAG API Reference: Loaders to Vector Stores](https://docs.promptise.com/api/rag/): API reference for promptise.rag: Document and Chunk types, loader, chunker, embedder and vector store base classes, RAGPipeline and the rag_to_tool adapter.
+- [Agent Code Sandbox API Reference](https://docs.promptise.com/api/sandbox/): API reference for SandboxConfig, SandboxManager, SandboxSession, the Docker backend and the tools agents use to run commands and edit files in containers.
+- [Agent Observability API Reference](https://docs.promptise.com/api/observability/): API reference for agent observability: ObservabilityCollector, ObservabilityConfig, observe levels, HTML, Prometheus, OTLP and webhook transporters.
+- [Agent Identity and Credentials API Reference](https://docs.promptise.com/api/identity/): API reference for AgentIdentity, the Entra, AWS, GCP, SPIFFE and OIDC credential providers, the credential cache, JWT claim helpers and identity exceptions.
+- [Python MCP Server SDK API Reference](https://docs.promptise.com/api/mcp-server/): API reference for the MCP server SDK: MCPServer, routers, auth, guards, middleware, caching, job queue, approval gates, multi-tenancy and TestClient.
+- [Python MCP Client API Reference](https://docs.promptise.com/api/mcp-client/): API reference for MCPClient, MCPMultiClient, MCPToolAdapter, InFlightToolCall and the client errors: the classes that connect to MCP servers and call tools.
+- [Prompt Engineering API Reference](https://docs.promptise.com/api/prompts/): API reference for the prompt framework: the @prompt decorator, blocks, PromptBuilder, conversation flows, strategies, guards, context providers and testing.
+- [Autonomous Agent Runtime API Reference](https://docs.promptise.com/api/runtime/): API reference for AgentProcess, AgentRuntime, config, triggers, budget, health, mission and secrets governance, journals, manifests and the orchestration API.
+- [Cross-Agent Delegation API Reference](https://docs.promptise.com/api/cross-agent/): API reference for CrossAgent and make_cross_agent_tools, which expose in-process peer agents as LangChain tools for per-peer ask calls and parallel broadcast.
+- [SuperAgent YAML File API Reference](https://docs.promptise.com/api/superagent/): API reference for SuperAgentLoader, load_superagent_file and the .superagent schema: agent, identity, server, model, memory, sandbox, cross-agent sections.
+- [Approval, Cache and Guardrails API Reference](https://docs.promptise.com/api/utilities/): API reference for approval, semantic cache, events, model fallback, guardrails, streaming, tool optimization, the context engine, env resolution and types.
 
-## Optional
+## Resources
 
-- [Installation Extras](https://docs.promptise.com/getting-started/installation-extras/): `pip install promptise` (core), `pip install "promptise[all]"` (vector memory, ML guardrails, Redis, Docker, OpenTelemetry, Prometheus, Mem0), `pip install "promptise[dev]"` (contributors).
-- [Examples Gallery](https://docs.promptise.com/resources/examples/): 15 runnable scripts across 12 categories — adaptive, approval, hooks, mcp, memory, production, prompts, rag, reasoning, runtime, sandbox, security. All use real LLM calls via `build_agent()` (default model `openai:gpt-5-mini`).
-- [Changelog](https://docs.promptise.com/resources/changelog/): Version history.
-- [Migration Guide](https://docs.promptise.com/resources/migration/): Upgrading between versions.
-- [Contributing](https://github.com/promptise-com/foundry/blob/main/CONTRIBUTING.md): Dev setup, testing, submission guidelines.
-- [Security Policy](https://github.com/promptise-com/foundry/blob/main/SECURITY.md): Vulnerability reporting.
-- [Source](https://github.com/promptise-com/foundry): Repository.
-- [PyPI](https://pypi.org/project/promptise/): Package.
+- [What You Can Build with Promptise Foundry](https://docs.promptise.com/resources/showcase/): Build ideas for each Promptise module: agent, MCP server, agent runtime, prompt and context engineering, at three sizes, with code sketches and combinations.
+- [Submit a Project Built with Promptise](https://docs.promptise.com/resources/submit-project/): Built something with Promptise Foundry? What the showcase looks for, the submission requirements, review criteria, how to submit and how to update a project.
+- [Runnable Examples: Agents, MCP and Runtime](https://docs.promptise.com/resources/examples/): Runnable Promptise Foundry examples in the repository: tools, MCP servers and clients, MCPcast, identity, memory, reasoning patterns, prompts, runtime and security.
+- [Migrate from deepmcpagent to Promptise](https://docs.promptise.com/resources/migration/): Migrate from deepmcpagent to promptise 1.0: uninstall the old package, install the new one, update imports, CLI commands and dependency files, then verify.
+- [Promptise Foundry Changelog and Releases](https://docs.promptise.com/resources/changelog/): Release notes for every Promptise Foundry version: fixes, additions, changes, security notes, deprecations and upgrade notes, with the newest release first.
+- [Contributing to Promptise Foundry](https://docs.promptise.com/resources/contributing/): How to contribute to Promptise Foundry: environment setup, package structure, type hints, docstrings, tests, examples, pull requests and commit messages.
+- [Promptise Foundry FAQ: Agents and MCP](https://docs.promptise.com/faq/): Answers about Promptise Foundry: what it is, how it compares to LangChain, LangGraph and CrewAI, models, MCP, the agent runtime, security and operations.
