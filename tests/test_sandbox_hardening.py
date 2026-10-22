@@ -60,6 +60,54 @@ class TestNetworkDefault:
         assert DockerBackend(cfg)._build_container_config()["network_mode"] == "bridge"
 
 
+class TestDockerNetwork:
+    """``docker_network`` attaches the sandbox to a network of the user's."""
+
+    def test_attaches_to_the_named_network(self):
+        for network in ("full", "restricted"):
+            cfg = SandboxConfig(network=network, docker_network="agent-egress")
+            assert DockerBackend(cfg)._build_container_config()["network_mode"] == "agent-egress"
+
+    def test_needs_a_network(self):
+        with pytest.raises(ValidationError, match="needs network='full' or network='restricted'"):
+            SandboxConfig(docker_network="agent-egress")
+
+    @pytest.mark.parametrize("name", ["host", "none", "container:abc", "", "-x", "a b"])
+    def test_rejects_shared_and_invalid_networks(self, name):
+        with pytest.raises(ValidationError, match="docker_network"):
+            SandboxConfig(network="full", docker_network=name)
+
+    @pytest.mark.asyncio
+    async def test_missing_network_refuses_to_start(self):
+        from docker.errors import NotFound
+
+        container = MagicMock(id="c1")
+        backend = _backend_with_container(
+            container, SandboxConfig(network="full", docker_network="agent-egress")
+        )
+        backend._docker_client.networks.get.side_effect = NotFound("no such network")
+        with pytest.raises(RuntimeError, match="'agent-egress'.*does not exist.*--internal"):
+            await backend.create_container()
+        backend._docker_client.containers.create.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_existing_network_is_used(self):
+        container = MagicMock(id="c1")
+        backend = _backend_with_container(
+            container, SandboxConfig(network="full", docker_network="agent-egress")
+        )
+        assert await backend.create_container() == "c1"
+        backend._docker_client.networks.get.assert_called_once_with("agent-egress")
+        kwargs = backend._docker_client.containers.create.call_args.kwargs
+        assert kwargs["network_mode"] == "agent-egress"
+
+    def test_superagent_section_passes_it_through(self):
+        from promptise.superagent_schema import SandboxConfigSection
+
+        section = SandboxConfigSection(network="full", docker_network="agent-egress")
+        assert SandboxConfig(**section.model_dump()).docker_network == "agent-egress"
+
+
 class TestUnknownKeys:
     def test_network_mode_is_rejected_with_hint(self):
         with pytest.raises(ValidationError, match="'network_mode': use 'network'"):
@@ -248,6 +296,18 @@ class TestRestrictedFailsClosed:
         container.remove.assert_not_called()
         script = container.exec_run.call_args.kwargs["cmd"][2]
         assert "ip6tables" in script and "-P OUTPUT DROP" in script
+
+    def test_filter_blocks_link_local_but_not_dns(self):
+        """Cloud metadata (169.254.169.254) is not reachable on port 80."""
+        from promptise.sandbox.backends import _RESTRICTED_NETWORK_SCRIPT as script
+
+        rules = [line.strip() for line in script.splitlines()]
+        drop_v4 = rules.index("iptables -A OUTPUT -d 169.254.0.0/16 -j DROP")
+        assert "ip6tables -A OUTPUT -d fe80::/10 -j DROP" in rules
+        assert "ip6tables -A OUTPUT -d fd00:ec2::254/128 -j DROP" in rules
+        dns = rules.index('"$t" -A OUTPUT -p udp --dport 53 -j ACCEPT')
+        web = rules.index('"$t" -A OUTPUT -p tcp --dport 80 -j ACCEPT')
+        assert dns < drop_v4 < web
 
     @pytest.mark.asyncio
     async def test_none_network_runs_no_filter(self):

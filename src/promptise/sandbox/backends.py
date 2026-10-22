@@ -199,6 +199,11 @@ exit 1
 # cannot change the rules afterwards. Both IPv4 and IPv6 are filtered; any
 # failure (missing binary, kernel without netfilter) aborts with a non-zero
 # exit so the container is not used.
+#
+# The rules filter ports, not hosts: DNS and TCP 80/443 reach any address
+# except the link-local ranges, where cloud providers serve instance
+# metadata and credentials over HTTP (169.254.169.254, fd00:ec2::254).
+# DNS is allowed before that drop, for resolvers on a link-local address.
 _RESTRICTED_NETWORK_SCRIPT = r"""
 set -e
 for t in iptables ip6tables; do
@@ -209,6 +214,11 @@ for t in iptables ip6tables; do
   "$t" -A OUTPUT -o lo -j ACCEPT
   "$t" -A OUTPUT -p udp --dport 53 -j ACCEPT
   "$t" -A OUTPUT -p tcp --dport 53 -j ACCEPT
+done
+iptables -A OUTPUT -d 169.254.0.0/16 -j DROP
+ip6tables -A OUTPUT -d fe80::/10 -j DROP
+ip6tables -A OUTPUT -d fd00:ec2::254/128 -j DROP
+for t in iptables ip6tables; do
   "$t" -A OUTPUT -p tcp --dport 80 -j ACCEPT
   "$t" -A OUTPUT -p tcp --dport 443 -j ACCEPT
   "$t" -P OUTPUT DROP
@@ -309,13 +319,13 @@ class DockerBackend(SandboxBackend):
             },
         }
 
-        # Network configuration. "restricted" starts on the bridge network;
-        # create_container() then installs the egress filter or refuses to
-        # hand out the container.
+        # Network configuration. "restricted" starts on the bridge network
+        # (or docker_network); create_container() then installs the egress
+        # filter or refuses to hand out the container.
         if self.config.network == NetworkMode.NONE:
             config["network_mode"] = "none"
         else:
-            config["network_mode"] = "bridge"
+            config["network_mode"] = self.config.docker_network or "bridge"
 
         # Docker applies its default seccomp profile (an allowlist that
         # blocks ~44 syscalls such as mount, reboot and kexec_load) and, on
@@ -413,6 +423,8 @@ class DockerBackend(SandboxBackend):
         """
         client = await self._get_client()
         config = self._build_container_config()
+        if self.config.docker_network is not None:
+            self._check_docker_network(client, self.config.docker_network)
 
         try:
             # Pull image if not present
@@ -443,11 +455,34 @@ class DockerBackend(SandboxBackend):
 
         return str(container.id)
 
+    @staticmethod
+    def _check_docker_network(client: Any, name: str) -> None:
+        """Raise a clear error unless the Docker network *name* exists.
+
+        Raises:
+            RuntimeError: The network does not exist or cannot be looked up.
+        """
+        from docker.errors import NotFound
+
+        try:
+            client.networks.get(name)
+        except NotFound:
+            raise RuntimeError(
+                f"Docker network {name!r} (sandbox docker_network) does not exist. "
+                f"Create it first, for example: docker network create --internal {name}"
+            ) from None
+        except Exception as e:
+            raise RuntimeError(f"Cannot look up Docker network {name!r}: {e}") from e
+
     async def _setup_network_restrictions(self, container: Any) -> None:
         """Install the egress filter for ``network="restricted"``.
 
-        Allows loopback, DNS (port 53) and TCP 80/443 to any host, and drops
-        every other outbound packet, for IPv4 and IPv6.
+        Allows loopback, DNS (port 53) to any host, and TCP 80/443 to any
+        host outside the link-local ranges (``169.254.0.0/16``,
+        ``fe80::/10``, ``fd00:ec2::254``: cloud instance metadata), and drops
+        every other outbound packet, for IPv4 and IPv6.  It filters ports,
+        not host names; to allow only some hosts, attach the sandbox to a
+        network behind an egress proxy (``docker_network``).
 
         Args:
             container: The started Docker container.

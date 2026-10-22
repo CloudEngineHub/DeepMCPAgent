@@ -449,6 +449,45 @@ async def test_restricted_network_fails_closed_without_iptables(docker_available
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+async def test_docker_network_attaches_to_the_named_network(docker_available):
+    """On an --internal network the sandbox has no route out, whatever the mode."""
+    import uuid
+
+    import docker
+
+    from promptise.sandbox import SandboxConfig, SandboxManager
+
+    client = docker.from_env()
+    name = f"promptise-test-{uuid.uuid4().hex[:8]}"
+    network = client.networks.create(name, internal=True)
+    try:
+        config = SandboxConfig(network="full", docker_network=name)
+        async with await SandboxManager(config).create_session() as session:
+            container = client.containers.get(session.container_id)
+            assert set(container.attrs["NetworkSettings"]["Networks"]) == {name}
+            result = await session.execute(
+                "python3 -c \"import socket; socket.create_connection(('1.1.1.1', 443), 5)\"",
+                timeout=15,
+            )
+            assert not result.success
+    finally:
+        network.remove()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_docker_network_that_does_not_exist(docker_available):
+    from promptise.sandbox import SandboxManager
+
+    before = _sandbox_container_ids()
+    manager = SandboxManager({"network": "full", "docker_network": "promptise-no-such-net"})
+    with pytest.raises(RuntimeError, match="does not exist"):
+        await manager.create_session()
+    assert _sandbox_container_ids() - before == set()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_timeout_kills_the_process(docker_available):
     """After a timeout the command's processes are gone, children included."""
     from promptise.sandbox import SandboxManager

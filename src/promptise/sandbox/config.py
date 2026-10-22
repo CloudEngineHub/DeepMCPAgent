@@ -14,7 +14,10 @@ class NetworkMode(str, Enum):
     """Network isolation modes for sandbox."""
 
     NONE = "none"  # No network interface besides loopback
-    RESTRICTED = "restricted"  # Outbound DNS + TCP 80/443 only, enforced with iptables
+    # Outbound DNS (port 53) and TCP 80/443 to any host, except the
+    # link-local range (cloud metadata endpoints), enforced with iptables.
+    # Ports are filtered, host names are not.
+    RESTRICTED = "restricted"
     FULL = "full"  # Full network access
 
 
@@ -36,6 +39,8 @@ _SIZE_UNITS = {"K": 1024, "M": 1024**2, "G": 1024**3, "T": 1024**4}
 #: otherwise: ``nobody``/``nogroup`` by number, which exists (or needs no
 #: entry) in every image.
 DEFAULT_SANDBOX_USER = "65534:65534"
+
+_DOCKER_NETWORK_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 
 _USER_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*(?::[A-Za-z0-9_][A-Za-z0-9_.-]*)?$")
 
@@ -66,7 +71,14 @@ class SandboxConfig(BaseModel):
         disk_limit: Size of the writable workspace (a tmpfs mounted at
             ``workdir``; it counts toward ``memory_limit``) (default: "1G")
         pids_limit: Maximum number of processes and threads (default: 256)
-        network: Network isolation mode (default: "none")
+        network: Network isolation mode (default: "none").  ``"restricted"``
+            filters by port, not by host: DNS and TCP 80/443 reach any host.
+        docker_network: Name of an existing Docker network to attach the
+            container to instead of Docker's default bridge (default:
+            ``None``).  Use it to send the sandbox's traffic through an
+            egress proxy that allows only some hosts: an ``--internal``
+            network whose only other member is the proxy.  Needs ``network``
+            ``"full"`` or ``"restricted"``.
         persistent: Keep the container running after the session ends (default: False)
         timeout: Max execution time in seconds (default: 300)
         workdir: Working directory inside container (default: "/workspace")
@@ -100,6 +112,13 @@ class SandboxConfig(BaseModel):
     disk_limit: str = Field("1G", description="Size of the writable workspace (e.g., '1G')")
     pids_limit: int = Field(256, gt=0, le=65536, description="Maximum processes and threads")
     network: NetworkMode = Field(NetworkMode.NONE, description="Network isolation mode")
+    docker_network: str | None = Field(
+        None,
+        description=(
+            "Existing Docker network to attach the container to instead of the default "
+            "bridge (network 'full' or 'restricted' only)"
+        ),
+    )
     persistent: bool = Field(False, description="Keep the container after the session ends")
     timeout: int = Field(300, gt=0, le=3600, description="Max execution time in seconds")
     workdir: str = Field("/workspace", description="Working directory inside container")
@@ -148,6 +167,34 @@ class SandboxConfig(BaseModel):
                 "'name:group' (for example '65534:65534', or 'root' to run as root)"
             )
         return v
+
+    @field_validator("docker_network")
+    @classmethod
+    def validate_docker_network(cls, v: str | None) -> str | None:
+        """Validate the Docker network name (``None``: Docker's default bridge)."""
+        if v is None:
+            return None
+        v = v.strip()
+        if not _DOCKER_NETWORK_RE.match(v):
+            raise ValueError(
+                f"Invalid docker_network {v!r}: use the name of an existing Docker "
+                "network (letters, digits, '_', '.', '-')"
+            )
+        if v in ("none", "host") or v.startswith("container:"):
+            raise ValueError(
+                f"docker_network={v!r} is not allowed: use network='none' for no network; "
+                "the host's network and another container's network are never shared"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def _docker_network_needs_a_network(self) -> SandboxConfig:
+        if self.docker_network is not None and self.network == NetworkMode.NONE:
+            raise ValueError(
+                f"docker_network={self.docker_network!r} needs network='full' or "
+                "network='restricted'; network='none' has no network to attach"
+            )
+        return self
 
     @property
     def runs_as_root(self) -> bool:

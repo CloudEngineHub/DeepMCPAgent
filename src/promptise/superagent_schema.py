@@ -309,6 +309,8 @@ class SandboxConfigSection(BaseModel):
         disk_limit: Size of the writable workspace (e.g., "1G").
         pids_limit: Maximum number of processes and threads.
         network: Network isolation mode (none, restricted, full).
+        docker_network: Existing Docker network to attach the container to
+            instead of the default bridge (network full or restricted only).
         persistent: Keep the container after the session ends.
         timeout: Max execution time in seconds.
         workdir: Working directory inside container.
@@ -335,6 +337,10 @@ class SandboxConfigSection(BaseModel):
     pids_limit: int = Field(256, gt=0, le=65536, description="Maximum processes and threads")
     network: Literal["none", "restricted", "full"] = Field(
         "none", description="Network isolation mode"
+    )
+    docker_network: str | None = Field(
+        None,
+        description="Existing Docker network to attach the container to instead of the bridge",
     )
     persistent: bool = Field(False, description="Keep the container after the session ends")
     timeout: int = Field(300, gt=0, le=3600, description="Max execution time in seconds")

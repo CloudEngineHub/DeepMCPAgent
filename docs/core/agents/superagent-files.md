@@ -386,7 +386,8 @@ the agent fails instead of running it without a sandbox.
 | `memory_limit` | `str` | `"4G"` | Maximum memory. |
 | `disk_limit` | `str` | `"1G"` | Size of the writable workspace. |
 | `pids_limit` | `int` | `256` | Maximum processes and threads. |
-| `network` | `"none" \| "restricted" \| "full"` | `"none"` | Network isolation mode. `"restricted"` needs `iptables` in the image and refuses to start without it. |
+| `network` | `"none" \| "restricted" \| "full"` | `"none"` | Network isolation mode. `"restricted"` allows DNS and TCP 80/443 to any host (it filters ports, not hosts), needs `iptables` in the image and refuses to start without it. |
+| `docker_network` | `str` | none | Existing Docker network to attach the container to instead of the default bridge, for example one behind an egress proxy. Needs `network` `"full"` or `"restricted"`. |
 | `persistent` | `bool` | `false` | Keep the container after the session ends. |
 | `timeout` | `int` | `300` | Max execution time in seconds (1--3600). |
 | `workdir` | `str` | `"/workspace"` | Working directory inside container. |

@@ -44,7 +44,7 @@ agent = await build_agent(
 The sandbox provides a secure execution environment for agent-generated code. When an agent creates or runs code (especially in [Open Mode](../runtime/meta-tools.md)), the sandbox ensures that code runs inside an isolated container with:
 
 - **Resource limits** -- CPU, memory, process count, workspace size, and execution time
-- **Network isolation** -- no network by default; restricted (DNS + HTTP/HTTPS egress) or full when you ask for it
+- **Network isolation** -- no network by default; restricted (DNS and ports 80/443 to any host) or full when you ask for it, optionally on a Docker network of your own (for an egress proxy that allows only some hosts)
 - **Filesystem isolation** -- read-only root, size-capped writable workspace
 - **A non-root user** -- code runs as `nobody` (uid 65534) unless you set `user="root"`
 - **Capability dropping** -- ~40 Linux capabilities dropped, `no-new-privileges` always set
@@ -66,6 +66,7 @@ The sandbox provides a secure execution environment for agent-generated code. Wh
 | `disk_limit` | `str` | `"1G"` | Size of the writable workspace (a tmpfs at `workdir`; counts toward `memory_limit`). `/tmp` and `/var/tmp` are capped at the same size or less. |
 | `pids_limit` | `int` | `256` | Maximum processes and threads (contains fork bombs) |
 | `network` | `NetworkMode` | `NONE` | Network isolation mode |
+| `docker_network` | `str \| None` | `None` | Name of an existing Docker network to attach the container to instead of Docker's default bridge. Needs `network` `"full"` or `"restricted"`. See [Allowing only some hosts](#allowing-only-some-hosts). |
 | `persistent` | `bool` | `False` | Keep the container after the session ends |
 | `timeout` | `int` | `300` | Default per-command timeout in seconds (1-3600) |
 | `workdir` | `str` | `"/workspace"` | Working directory inside container |
@@ -93,7 +94,7 @@ built `FROM python:3.11-slim` with the packages baked in).
 | Mode | Description |
 |---|---|
 | `NetworkMode.NONE` | No network interface besides loopback (default) |
-| `NetworkMode.RESTRICTED` | Outbound DNS (port 53) and TCP 80/443 to any host; everything else dropped, IPv4 and IPv6 |
+| `NetworkMode.RESTRICTED` | Outbound DNS (port 53) to any host and TCP 80/443 to any host outside the link-local range; everything else dropped, IPv4 and IPv6 |
 | `NetworkMode.FULL` | Full unrestricted network access |
 
 The network is `"none"` unless you set `network` explicitly, for `sandbox=True`,
@@ -103,9 +104,52 @@ for a custom dict, and for `agent_pattern="code-action"`.
 container before any sandboxed code runs. It **fails closed**: if the image
 does not ship `iptables` and `ip6tables` (the default `python:3.11-slim` does
 not), the container is removed and the session refuses to start. Use an image
-that includes them, or choose `"none"` or `"full"` explicitly. Note that
-restricted mode does not filter by host name: any host is reachable on ports
-80 and 443.
+that includes them, or choose `"none"` or `"full"` explicitly.
+
+`"restricted"` filters **ports, not hosts**. Exactly what it allows:
+
+- loopback;
+- DNS (UDP and TCP port 53) to any server, so DNS queries can carry data out;
+- TCP ports 80 and 443 to any host on the internet (`example.com`, `pypi.org`,
+  an attacker's server alike), and to private addresses the container can
+  route to;
+- nothing on the link-local ranges `169.254.0.0/16` and `fe80::/10` and on
+  `fd00:ec2::254` (other than DNS), so code can't read cloud instance
+  metadata and credentials from `169.254.169.254`.
+
+Everything else (other ports, UDP other than DNS, ICMP) is dropped. Use it to
+keep code off databases, SSH and other services on non-web ports, not to stop
+it from sending data to a web server.
+
+### Allowing only some hosts
+
+To let sandboxed code reach only some hosts (a package index, one API), put an
+egress proxy that allows those hosts between the sandbox and the internet, and
+attach the sandbox to a Docker network whose only way out is that proxy:
+
+```bash
+# A network with no route out, and a proxy on it and on the default bridge
+docker network create --internal agent-egress
+docker run -d --name egress-proxy --network bridge my-allowlist-proxy
+docker network connect agent-egress egress-proxy
+```
+
+```python
+config = SandboxConfig(
+    network="full",                 # no port filter; the network has no route out
+    docker_network="agent-egress",  # created above
+    env={"HTTPS_PROXY": "http://egress-proxy:3128", "HTTP_PROXY": "http://egress-proxy:3128"},
+)
+```
+
+On an `--internal` network the container has no route to the internet, so
+code that ignores the proxy settings can't connect anywhere directly; the
+proxy decides which hosts a `CONNECT` may reach. The network must exist
+before the sandbox starts (the session refuses to start otherwise).
+`docker_network` also works with `network="restricted"`, which adds the port
+filter on top (then the proxy must listen on port 80 or 443). The sandbox
+never joins the host's network or another container's: `docker_network`
+can't be `"host"`, `"none"` or `"container:…"`.
 
 ```python
 from promptise.sandbox.config import SandboxConfig, NetworkMode

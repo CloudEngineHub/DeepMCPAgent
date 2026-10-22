@@ -163,16 +163,20 @@ async with SandboxManager(config) as manager:
 
 ## Network Modes
 
-### None (`network="none"`)
+### None (`network="none"`) - **Default**
 - Complete isolation
 - No network access
 - Best for: Pure computation
 
-### Restricted (`network="restricted"`) - **Default**
-- Limited network
-- DNS, HTTP, HTTPS allowed
-- Other ports blocked
-- Best for: Package installation, API calls
+### Restricted (`network="restricted"`)
+- DNS (port 53) and TCP 80/443 to any host; other ports blocked
+- Filters ports, not hosts: any web server is reachable
+- Link-local addresses (cloud instance metadata) blocked
+- Needs `iptables` and `ip6tables` in the image
+- Best for: keeping code off databases, SSH and other non-web services
+
+To allow only some hosts, attach the sandbox to a Docker network behind an
+egress proxy with `docker_network` (see docs/core/sandbox.md).
 
 ### Full (`network="full"`)
 - Full network access
