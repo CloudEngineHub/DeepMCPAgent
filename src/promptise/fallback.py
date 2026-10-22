@@ -126,9 +126,12 @@ class FallbackChain(BaseChatModel):
     ``failure_threshold`` consecutive failures, the model is skipped
     for ``recovery_timeout`` seconds before being tested again.
 
-    Passes through to ``build_agent(model=...)`` seamlessly — it's a
-    ``BaseChatModel`` subclass, so LangChain treats it like any other model.
-    :meth:`bind_tools` binds tools to every model in the chain.
+    Pass it as ``build_agent(model=...)``: it is a ``BaseChatModel``
+    subclass, so LangChain treats it like any other model.
+    :meth:`bind_tools` binds tools to every model in the chain.  Only the
+    primary model is resolved when the chain is first used; a fallback
+    given as a string or :class:`~promptise.Model` is resolved the first
+    time it is tried, so it needs its API key only then.
 
     Each answer records the model that wrote it in
     ``AIMessage.response_metadata["fallback_model"]``.
