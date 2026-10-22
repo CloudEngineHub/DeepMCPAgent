@@ -207,7 +207,7 @@ servers = {
 !!! warning "Tool names are not namespaced"
     When two servers expose a tool with the same name, the server listed last in
     `servers` wins and a warning names both. Give the tools distinct names on the
-    servers (for example with `MCPRouter(prefix=...)` or `NamespaceTransform`).
+    servers, for example with `MCPRouter(prefix="billing")`, which names a router's tools `billing_<name>`.
 
 See [Server Configuration](../core/agents/server-specs.md) for every server option
 (headers, API keys, per-caller tokens, transports) and
