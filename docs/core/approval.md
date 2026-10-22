@@ -390,7 +390,7 @@ import httpx
 
 # Corporate proxy
 client = httpx.AsyncClient(
-    proxies="http://corporate-proxy:8080",
+    proxy="http://corporate-proxy:8080",
     verify="/path/to/corporate-ca-bundle.crt",
     timeout=60,
 )

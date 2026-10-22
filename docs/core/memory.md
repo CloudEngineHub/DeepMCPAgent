@@ -155,8 +155,8 @@ from promptise.memory import InMemoryProvider, MemoryScope
 # Shared pool (default, legacy behavior)
 provider = InMemoryProvider(max_entries=1_000)
 
-# Or per-user isolated
-provider = InMemoryProvider(scope=MemoryScope.PER_USER)
+# Or per-user isolated: every call then needs user_id=...
+# provider = InMemoryProvider(scope=MemoryScope.PER_USER)
 
 await provider.add("Pipeline had 5% error rate at 07:30")
 await provider.add("User prefers dark mode")

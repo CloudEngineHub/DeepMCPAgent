@@ -1,11 +1,11 @@
 ---
 seo_title: "Reasoning Graph Nodes: Built-in and Custom"
-description: "The 20 built-in reasoning graph node types, from ThinkNode and PlanNode to ToolNode, RouterNode and AutonomousNode, and three ways to write custom nodes."
+description: "The 21 built-in reasoning graph node types, from ThinkNode and PlanNode to ToolNode, RouterNode, AutonomousNode and CodeActionNode, and how to write custom nodes."
 ---
 
 # Reasoning Graph Nodes
 
-Every node in a Reasoning Graph is a complete processing pipeline. Promptise ships with **20 built-in node types** — plus three ways to create custom ones.
+Every node in a Reasoning Graph is a complete processing pipeline. Promptise ships with **21 built-in node types**, plus three ways to create custom ones.
 
 ## Reasoning Nodes (Pre-built Building Bricks)
 
@@ -631,6 +631,39 @@ AutonomousNode("agent",
 | `answer_node` | `str \| None` | `None` | Node that writes the final answer when the agent finishes without a terminal node having run last. Defaults to the first terminal node; with none, the node asks the model for the final answer itself |
 
 A chosen node runs its whole tool loop (re-run while its model keeps calling tools, up to its `max_iterations`) before the agent picks again. The routing call's prompt and JSON reply never enter `state.messages`; a tool name given as the next step runs the pool node that has that tool. The run always ends with a written answer.
+
+### CodeActionNode
+
+Solves a task by writing **one** Python program that calls the tools, running it in
+the [sandbox](sandbox.md) and returning the line the program prints after
+`RESULT:`. This is the node behind `agent_pattern="code-action"`; the
+[Code-Action guide](../guides/code-action.md) explains when it beats a tool loop.
+
+```python
+from promptise.engine import CodeActionNode, PromptGraph
+
+graph = PromptGraph("coder", nodes=[
+    CodeActionNode("solve", is_entry=True, is_terminal=True, exec_timeout=60, max_repairs=2),
+])
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | `str` | *required* | Node identifier |
+| `tools` | `list` | `None` | Tools the program may call (bridged to the host). Empty: the engine's runtime tools |
+| `system_prompt` | `str` | `""` | Instructions put before the code-writing prompt |
+| `blocks` | `list` | `None` | Accepted for parity with other nodes; not used in the program prompt |
+| `sandbox_factory` | `async () -> SandboxSession` | `None` | Creates one sandbox session per run. `build_agent(agent_pattern="code-action")` sets it from `sandbox=` |
+| `model_override` | model | `None` | A different model for this node |
+| `max_repairs` | `int` | `1` | How often a failed program (a crash, or one that hit `max_tool_calls`) is sent back for a fix |
+| `result_marker` | `str` | `"RESULT:"` | Prefix of the stdout line that holds the answer |
+| `exec_timeout` | `int` | `120` | Seconds the program may run in the sandbox |
+| `max_tool_calls` | `int` | `50` | Most bridged tool calls per program. Reaching it fails the program; with no repairs left the engine raises `CodeActionBudgetError`. `0` disables the cap |
+| `**kwargs` | | | All BaseNode parameters |
+
+From `build_agent`, set `exec_timeout`, `max_repairs` and `max_tool_calls` with
+`code_action={...}` or a `CodeActionConfig`; see
+[Configuration](../guides/code-action.md#configuration).
 
 ---
 

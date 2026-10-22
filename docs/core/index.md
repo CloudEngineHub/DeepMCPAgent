@@ -126,5 +126,5 @@ graph TD
 ## What's Next
 
 - [Building Agents](agents/building-agents.md) — complete `build_agent()` reference with all parameters
-- [Reasoning Patterns](agents/reasoning-patterns.md) — 10 built-in patterns + custom graphs
+- [Reasoning Patterns](agents/reasoning-patterns.md) — 9 built-in patterns + custom graphs
 - [Reasoning Graph Engine](engine.md) — nodes, edges, flags, hooks, and the execution engine

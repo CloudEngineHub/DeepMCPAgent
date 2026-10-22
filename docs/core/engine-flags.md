@@ -23,8 +23,8 @@ PromptNode("analyze",
 async def validate(state: GraphState) -> NodeResult:
     ...
 
-# Check flags at runtime
-if node.has_flag(NodeFlag.CRITICAL):
+# Check flags at runtime (@node returns a node object)
+if validate.has_flag(NodeFlag.RETRYABLE):
     ...
 ```
 

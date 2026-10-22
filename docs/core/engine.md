@@ -404,7 +404,7 @@ The LLM can modify the graph during execution — add nodes, skip to nodes, chan
 
 ## Next Steps
 
-- [Nodes](engine-nodes.md) — All 20 node types with full parameter reference
+- [Nodes](engine-nodes.md) — All 21 node types with full parameter reference
 - [Edges & Transitions](engine-edges.md) — 10 edge helpers, transition resolution, LLM routing
 - [Node Flags](engine-flags.md) — 18 typed flags controlling execution, caching, error handling
 - [Processors](engine-processors.md) — Pre/post processors for data transformation

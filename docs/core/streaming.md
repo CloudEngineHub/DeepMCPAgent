@@ -239,7 +239,8 @@ async for event in agent.astream_with_tools(
         "pg_query": "Querying database",
         "s3_upload": "Uploading to cloud storage",
     },
-)
+):
+    print(event)
 ```
 
 ---

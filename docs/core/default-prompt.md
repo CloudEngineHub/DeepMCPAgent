@@ -5,8 +5,8 @@ description: "The default system prompt every build_agent agent receives: tool-f
 
 # Default System Prompt
 
-Every agent built with `build_agent` receives a system prompt that
-establishes baseline behaviour: tool usage discipline, schema inspection, and
+An agent built with `build_agent` without `instructions` receives a default system
+prompt that establishes baseline behaviour: tool usage discipline, schema inspection, and
 result citation.  The default prompt lives in a single module so it can be
 reviewed, overridden, or extended without touching any builder logic.
 
@@ -55,7 +55,7 @@ This prompt establishes five key behaviours:
 
 ### Overriding the prompt
 
-Pass a custom `system_prompt` to `build_agent` to replace the default:
+Pass `instructions` to `build_agent` to replace the default:
 
 ```python
 import asyncio
@@ -65,7 +65,7 @@ async def main():
     agent = await build_agent(
         model="openai:gpt-5-mini",
         servers={},
-        system_prompt=(
+        instructions=(
             "You are a financial analyst agent. Use tools to fetch market data. "
             "Always provide numerical evidence and cite your data sources."
         ),
@@ -97,7 +97,7 @@ async def main():
     agent = await build_agent(
         model="openai:gpt-5-mini",
         servers={},
-        system_prompt=custom_prompt,
+        instructions=custom_prompt,
     )
     result = await agent.ainvoke(
         {"messages": [{"role": "user", "content": "Explain recursion"}]}
@@ -111,13 +111,22 @@ asyncio.run(main())
 
 | Export | Type | Description |
 |--------|------|-------------|
-| `DEFAULT_SYSTEM_PROMPT` | `str` | The default system prompt injected into every agent |
+| `DEFAULT_SYSTEM_PROMPT` | `str` | The system prompt an agent gets when you pass no `instructions` |
+
+### When the default applies
+
+| `build_agent(...)` | System prompt |
+|---|---|
+| no `instructions`, no `flow` | `DEFAULT_SYSTEM_PROMPT` |
+| `instructions="..."` | your text only (the default is not added) |
+| `instructions=Prompt` or a `PromptBuilder` result | the rendered prompt |
+| `flow=ConversationFlow(...)` without `instructions` | the flow's prompt only |
 
 ## Tips and gotchas
 
 !!! tip
     The default prompt is intentionally short and generic.  For production
-    agents, always provide a domain-specific `system_prompt` that describes
+    agents, always pass domain-specific `instructions` that describe
     the agent's role, available tools, expected output format, and any
     constraints.
 
@@ -137,9 +146,9 @@ asyncio.run(main())
 
 ## What's next
 
-- [Building Agents](agents/building-agents.md) -- pass `system_prompt` to `build_agent`
-- [Callback Handler](callback-handler.md) -- observe how the agent uses the prompt
-- [Tools & Schema Helpers](tools.md) -- the tools the prompt tells the agent to inspect
+- [Building Agents](agents/building-agents.md): pass `instructions` to `build_agent`
+- [Callback Handler](callback-handler.md): observe how the agent uses the prompt
+- [Tools](tools.md): the tools the prompt tells the agent to inspect
 
 !!! tip "Learn the concept"
 
