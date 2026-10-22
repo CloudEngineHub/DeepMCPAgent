@@ -51,6 +51,7 @@ graph TD
     BUDGET --> |"no: loop exit, error transition, __error__ node, or end"| LOOP
     BUDGET --> |yes| PRE_HOOK[Run pre_node hooks]
 
+    PRE_HOOK --> |hook sets __end__| END
     PRE_HOOK --> PRE_FLAG[Pre-execute flags]
     PRE_FLAG --> |SKIP_ON_ERROR + prev errored| SKIP[Return skip result]
     PRE_FLAG --> |CACHEABLE + cache hit| CACHE_HIT[Return cached result]
@@ -66,17 +67,19 @@ graph TD
     RETRY --> POST_FLAG
     NORMAL --> POST_FLAG
 
-    POST_FLAG[Post-execute flags] --> |CRITICAL + error| ABORT[Abort graph]
+    POST_FLAG[Post-execute flags] --> |error| ON_ERR[on_error hooks: may pick the next node]
+    ON_ERR --> |CRITICAL| ABORT[Abort graph]
+    ON_ERR --> MUT
     POST_FLAG --> |NO_HISTORY| RESTORE_MSG[Restore messages]
     POST_FLAG --> |ISOLATED_CONTEXT| RESTORE_CTX[Restore context, merge output_key]
     POST_FLAG --> |CACHEABLE| CACHE_STORE[Store in cache]
     POST_FLAG --> |SUMMARIZE_OUTPUT| SUMMARIZE[LLM summarize if > 1000 chars]
     POST_FLAG --> |VALIDATE_OUTPUT| VALIDATE[Validate against schema]
-    POST_FLAG --> MUT[Apply graph mutations]
+    POST_FLAG --> MUT[Apply graph mutations the on_graph_mutation hooks allow; skip_to / retry_with pick the next node]
     MUT --> POST_HOOK
 
     POST_HOOK[Run post_node hooks] --> |hook sets __end__| END
-    POST_HOOK --> TRANSITION[Resolve transition]
+    POST_HOOK --> TRANSITION[Resolve transition, unless a hook or graph action picked the next node]
     TRANSITION --> ITER{iteration >= max_iterations?}
     ITER --> |yes| END
     ITER --> |no| LOOP
@@ -129,7 +132,7 @@ graph TD
     style TARGET3 fill:#2d1b4e,stroke:#c084fc,color:#fff
 ```
 
-**Key insight:** Tool-calling nodes re-enter themselves automatically. The LLM calls tools → the node adds ToolMessages to the conversation → the engine re-enters the node → the LLM sees the results → calls more tools or produces a final answer. This loop continues until the LLM stops calling tools or the node's budget (`min(max_iterations, max_node_iterations)`) is used up.
+**Key insight:** Tool-calling nodes re-enter themselves automatically. The LLM calls tools → the node adds ToolMessages to the conversation → the engine re-enters the node → the LLM sees the results → calls more tools or produces a final answer. This loop continues until the LLM stops calling tools or the node's budget (its `max_iterations`, capped by the engine's `max_node_iterations` when one is set) is used up.
 
 Before a node runs, the engine checks its budget. A node that has used it is
 not run again: the engine goes to its `loop_until` exit, else its `"error"`
@@ -187,19 +190,20 @@ Every execution of a PromptNode is one model call:
 graph TD
     START[PromptNode.execute] --> MODEL[1. Resolve model: override or engine model]
     MODEL --> PRE[2. Preprocessor]
+    PRE --> |raises| FAIL[Node fails, no model call]
     PRE --> CTX[3. System prompt assembly]
-    CTX --> |"instructions + tool summary (off by default) + input_keys + inherited output + context_layers + blocks"| CTX2["+ observations (nodes without tools) + plan + reflections + route choices"]
+    CTX --> |"instructions + tool summary (off by default) + input_keys + inherited output + context_layers + blocks"| CTX2["+ observations (nodes without tools) + plan + reflections + reasoning-node JSON fields + route choices"]
     CTX2 --> STRAT[4. Strategy wrap + perspective]
-    STRAT --> BIND{5. Binding cached for this model, tools, schema?}
+    STRAT --> BIND{5. Binding cached for this model, tools, tool choice, schema?}
     BIND --> |yes| REUSE[Reuse bound model]
-    BIND --> |no| BUILD[bind_tools + with_structured_output, cache in config]
+    BIND --> |no| BUILD[temperature / max_tokens + bind_tools with tool_choice + with_structured_output, cache in config]
     REUSE --> SCOPE[6. Context scope: full, or compacted view]
     BUILD --> SCOPE
     SCOPE --> LLM[7. LLM call]
 
     LLM --> RESP{8. Response type?}
     RESP --> |AIMessage with tool_calls| TOOL_EXEC[Execute tools]
-    RESP --> |AIMessage text only| PARSE[raw_output = text]
+    RESP --> |AIMessage text only| PARSE["output = text (a reasoning node's JSON object when present)"]
     RESP --> |Structured output| STRUCT[output = dict]
 
     TOOL_EXEC --> |"2+ calls"| PARALLEL[Run concurrently]
@@ -211,8 +215,8 @@ graph TD
     PARSE --> GUARD[9. Transitions from output, guards]
     STRUCT --> GUARD
     GUARD --> STRAT_PARSE[10. Strategy parse]
-    STRAT_PARSE --> POST[11. Postprocessor]
-    POST --> WRITE["12. output_key (parsed output) + {name}_output"]
+    STRAT_PARSE --> POST[11. Postprocessor, on the reply only]
+    POST --> WRITE["12. output_key (output) + {name}_output"]
     WRITE --> DONE[Return NodeResult → engine re-enters on tool calls]
 
     style START fill:#1e3a5f,stroke:#60a5fa,color:#fff
@@ -225,7 +229,7 @@ graph TD
 
 | Item | Where | Reused while |
 |------|-------|--------------|
-| Bound model (tools + structured output) | `config["_node_cache_{name}"]` | Same run, same model object (or same `model_override`), same tool names, same `output_schema` |
+| Bound model (sampling settings, tools, structured output) | `config["_node_cache_{name}"]` | Same run, same model object (or same `model_override`), same tool names and tool choice, same `output_schema` |
 | Edge adjacency index | `graph._edge_index` | Until an edge is added or removed (lazy dirty flag) |
 | Node result (`CACHEABLE` flag) | `state.context["_node_cache"]` | Same run, same `input_keys` values; up to 128 entries |
 
@@ -251,7 +255,7 @@ graph TD
 
     subgraph "Node executes"
         EXEC["node.execute(state, config)"]
-        RETRY["If RETRYABLE: retry with exp backoff, max 8s cap"]
+        RETRY["If RETRYABLE (not a RetryNode): retry with exp backoff, max 8s cap"]
     end
 
     subgraph "Post-execute (after node runs)"
@@ -301,7 +305,7 @@ Three ways nodes pass data:
 
 | Method | How it works | Use when |
 |--------|-------------|----------|
-| `output_key` → `input_keys` | Node A writes its parsed output to `state.context[output_key]` (an `output_schema` dict, a strategy's extracted answer, or a postprocessor's value; nothing for a plain-text reply). Node B gets `state.context[input_keys[i]]` in its prompt. | Structured data with named fields |
+| `output_key` → `input_keys` | Node A writes its output to `state.context[output_key]` (an `output_schema` dict, its reply text, a strategy's extracted answer, or a postprocessor's value). Node B gets `state.context[input_keys[i]]` in its prompt. | Named data, structured or text |
 | `inherit_context_from` | Node B gets `state.context["{A_name}_output"]` (A's reply text, or its structured output as JSON) in its prompt. Every `PromptNode` writes this key. | One node directly continues another's work, including plain-text replies |
 | `state.context` direct | Node's execute() reads/writes `state.context` directly. | Custom state management in BaseNode subclasses |
 
@@ -356,6 +360,8 @@ graph TD
     end
 
     subgraph "Special hooks"
+        H8["on_error (failed nodes)"]
+        H9["on_graph_mutation (before each mutation)"]
         H5["on_observable_event (OBSERVABLE nodes)"]
         H6["on_human_required (REQUIRES_HUMAN nodes)"]
         H7["on_tool_reused (reused results)"]
@@ -367,7 +373,7 @@ graph TD
     style TOOL fill:#2d1b4e,stroke:#c084fc,color:#fff
 ```
 
-Hooks run in registration order. A failing `pre_node` or `post_node` hook is logged and skipped. A `pre_tool` or `post_tool` hook that raises fails that tool call (the model gets the error). `on_observable_event` and `on_human_required` are not wrapped: an exception there ends the run. The `Hook` protocol's `on_error` and `on_graph_mutation` are not called in 1.6.0.
+Hooks run in registration order. A failing `pre_node`, `post_node`, `on_error`, `on_observable_event` or `on_human_required` hook is logged and skipped. A `pre_tool` or `post_tool` hook that raises fails that tool call (the model gets the error). An `on_graph_mutation` hook that raises blocks the mutation. A `pre_node` hook that sets `state.current_node = "__end__"` ends the run before the node runs. `on_error` runs for a failed node before `post_node`; `on_graph_mutation` before each mutation.
 
 ## Safety Mechanisms
 
@@ -375,7 +381,7 @@ Hooks run in registration order. A failing `pre_node` or `post_node` hook is log
 graph TD
     subgraph "Iteration Guards"
         S1["max_iterations (default 50)"] --> |"reached: that many node executions"| S1R["Force graph end"]
-        S2["node budget: min(node.max_iterations, max_node_iterations)"] --> |"used up, node not run again"| S2R["_handle_stuck_node()"]
+        S2["node budget: node.max_iterations (and max_node_iterations when set)"] --> |"used up, node not run again"| S2R["_handle_stuck_node()"]
         S2R --> |"error transition exists"| S2A["Follow error edge"]
         S2R --> |"__error__ node exists"| S2B["Go to error handler"]
         S2R --> |"nothing"| S2C["Force __end__"]
@@ -383,7 +389,7 @@ graph TD
 
     subgraph "Budget & Health"
         S3["BudgetHook.max_tokens"] --> |exceeded| S3R["Set current_node = __end__; GraphBudgetExceededError if no answer"]
-        S4["CycleDetectionHook"] --> |"pattern repeats N times"| S4R["Force __end__"]
+        S4["CycleDetectionHook"] --> |"pattern repeats N times (tool-loop re-entries count once)"| S4R["End before the next node runs"]
         S5["TimingHook"] --> |"node exceeds budget"| S5R["Set error on result"]
     end
 

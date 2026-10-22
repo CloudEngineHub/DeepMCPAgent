@@ -29,23 +29,26 @@ node = PromptNode("analyze",
 )
 ```
 
-!!! warning "What a postprocessor receives"
-    A postprocessor gets `NodeResult.output`, not the reply text. `output` is
-    a dict for a node with an `output_schema`, the extracted answer (a `str`)
+!!! info "What a postprocessor receives"
+    A postprocessor gets `NodeResult.output`: a dict for a node with an
+    `output_schema`, the reply text for a plain-text reply (a reasoning
+    node's JSON fields when its reply ends with them), or the extracted answer
     for a node whose `strategy` parsed one (for example `chain_of_thought`
-    when the reply has its answer marker), and `None` for a plain-text reply.
-    So `json_extractor()` and `confidence_scorer()` see `None` on a plain
-    `PromptNode` (`confidence_scorer` then returns `{"text": "None", ...}`).
-    The reply text is in `state.context["{node_name}_output"]` if a
-    postprocessor needs it. A postprocessor's non-`None` return value becomes
-    the node's `output` (and is written to `output_key`).
+    when the reply has its answer marker). It runs on the model's reply only,
+    not on a step that only calls tools. So `json_extractor()` parses the JSON
+    out of a plain `PromptNode`'s reply. A postprocessor's non-`None` return
+    value becomes the node's `output` (and is written to `output_key`). Before
+    1.7.0 a plain-text reply reached the postprocessor as `None`.
 
-!!! warning "Exceptions are logged, not raised"
-    The node catches an exception from its preprocessor or postprocessor, logs
-    a warning on `promptise.engine` and carries on. `input_validator()`
-    therefore does not stop the model call when a key is missing; it only logs
-    it. To stop a run on missing input, check in a `pre_node`
-    [hook](engine-hooks.md) or a node that sets an `error`.
+!!! warning "A preprocessor that raises stops the node"
+    An exception from a preprocessor fails the node before the model is
+    called (fail closed): `NodeResult.error` is `"Preprocessor failed in node
+    'x': ValueError: ..."`, an [`on_error` edge](engine-edges.md#on_error-error-routing)
+    or hook can route it, and otherwise the run raises `GraphExecutionError`
+    with the exception as its cause. So `input_validator()` is a gate. An
+    exception from a postprocessor is logged on `promptise.engine` and the
+    output kept. Before 1.7.0 preprocessor exceptions were logged and the
+    node called the model anyway.
 
 ## Preprocessors
 
@@ -84,7 +87,7 @@ It changes the shared `state.context` for every later node, not only this one's 
 
 ### input_validator
 
-Checks that required keys exist in `state.context` and raises `ValueError` naming the missing ones. Inside a node the exception is logged and the node goes on (see the warning above), so use it for logging or in your own code, not as a gate.
+Checks that required keys exist in `state.context` and raises `ValueError` naming the missing ones. Inside a node that fails the node before the model is called (see the warning above).
 
 ```python
 input_validator(required_keys=["query", "data_source"])
@@ -163,7 +166,7 @@ output_truncator(max_chars=4000)
 
 ### chain_preprocessors
 
-Combines multiple preprocessors into one. Runs them in order. The combined function is synchronous: it does not await an `async` preprocessor (its coroutine is never run), so chain only sync preprocessors, or write your own async wrapper.
+Combines multiple preprocessors into one. Runs them in order; sync and `async` preprocessors mix. The chain stays synchronous until one returns an awaitable, then it returns a coroutine that awaits it and runs the rest (the node awaits it). An exception stops the chain and fails the node. Before 1.7.0 an `async` preprocessor in a chain never ran.
 
 ```python
 preprocessor = chain_preprocessors(
@@ -175,7 +178,7 @@ preprocessor = chain_preprocessors(
 
 ### chain_postprocessors
 
-Combines multiple postprocessors into one. Pipes the output through each function in order (each gets the previous one's return value, `None` included). Synchronous like `chain_preprocessors`: chain only sync postprocessors.
+Combines multiple postprocessors into one. Pipes the output through each function in order (each gets the previous one's return value, `None` included). Sync and `async` postprocessors mix, as in `chain_preprocessors`: each step's awaitable is awaited before the next step gets its value.
 
 ```python
 postprocessor = chain_postprocessors(

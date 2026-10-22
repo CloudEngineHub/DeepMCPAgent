@@ -103,7 +103,7 @@ graph.add_node(PromptNode(
     instructions="Analyze the search results. Identify key findings.",
     inherit_context_from="search",    # Reads state.context["search_output"]
     output_schema=Analysis,
-    output_key="analysis",            # A parsed output, so it is written
+    output_key="analysis",            # The parsed Analysis dict
     default_next="write",
 ))
 
@@ -119,9 +119,10 @@ graph.add_node(PromptNode(
 graph.set_entry("search")
 ```
 
-`output_key` is written only for a parsed output (here the `Analysis` dict).
-A plain-text node like `search` is read with `inherit_context_from` instead,
-since every `PromptNode` writes its reply to `state.context["{name}_output"]`.
+`output_key` holds the node's output: the parsed `Analysis` dict here, the
+reply text for a plain-text node. `inherit_context_from` reads the other
+side, `state.context["{name}_output"]`, which every `PromptNode` writes (its
+reply text, or its structured output as JSON).
 
 ## Example 3: Quality-Controlled Output
 
@@ -305,8 +306,8 @@ async def format_ticket(output, state, config):
     return {
         "ticket_id": generate_id(),
         "customer": state.context.get("customer_name"),
-        # output is None for a plain-text reply; the text is in {name}_output
-        "resolution": state.context.get("support_output"),
+        # output is the reply text (also in state.context["support_output"])
+        "resolution": output,
         "created_at": datetime.now().isoformat(),
     }
 
@@ -510,8 +511,9 @@ PromptNode("analyze",
 )
 ```
 
-Processor exceptions are logged and ignored, so a processor cannot stop a
-node; see [Processors](../core/engine-processors.md).
+A preprocessor that raises fails the node before the model is called, so a
+validator such as `input_validator()` stops it; a postprocessor's exception is
+logged and the output kept. See [Processors](../core/engine-processors.md).
 
 ### Budget and Metrics Hooks
 
