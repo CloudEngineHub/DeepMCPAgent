@@ -11,14 +11,14 @@ Built something with Promptise Foundry? We want to see it. We feature standout p
 
 ## What we're looking for
 
-We feature projects that demonstrate real use of Promptise Foundry — not wrappers around `build_agent()` with default settings, but systems that solve actual problems for real users or push the framework in directions we did not anticipate.
+We feature projects that demonstrate real use of Promptise Foundry, not wrappers around `build_agent()` with default settings, but systems that solve actual problems for real users or push the framework in directions we did not anticipate.
 
 **Strong submissions typically have:**
 
 - A working deployment or demo (not just a repo with a README)
 - Clear use of at least one Promptise module (Agent, MCP Server, Runtime, Prompts, Context Engine)
-- A problem statement — what does this solve, and for whom?
-- Something we can link to — a live product, a public repo, a demo video, or a detailed write-up
+- A problem statement: what does this solve, and for whom?
+- Something we can link to: a live product, a public repo, a demo video, or a detailed write-up
 
 **We are especially interested in:**
 
@@ -40,14 +40,14 @@ Your submission must include all of the following:
 |-------|----------|-------------|
 | **Project name** | Yes | A clear, descriptive name |
 | **Your name or team** | Yes | Who built it |
-| **Contact email** | Yes | For follow-up questions only — never shared publicly |
+| **Contact email** | Yes | For follow-up questions only: never shared publicly |
 | **Project URL** | Yes | Live product, GitHub repo, demo video, or detailed blog post |
 | **One-paragraph description** | Yes | What it does, who it serves, what problem it solves (max 200 words) |
 | **Promptise modules used** | Yes | Which pillars: Agent, MCP Server, Runtime, Prompts, Context Engine |
 | **Key features** | Yes | 3-5 bullet points of what makes this project notable |
 | **Screenshot or architecture diagram** | Recommended | Visual context helps reviewers understand your system faster |
-| **Metrics or impact** | Recommended | Users served, queries handled, cost savings, uptime — anything quantifiable |
-| **Open source?** | Yes | If yes, link to the repo. If no, that is fine — commercial projects are welcome |
+| **Metrics or impact** | Recommended | Users served, queries handled, cost savings, uptime: anything quantifiable |
+| **Open source?** | Yes | If yes, link to the repo. If no, that is fine: commercial projects are welcome |
 | **License** | If open source | MIT, Apache 2.0, etc. |
 
 ---
@@ -56,14 +56,14 @@ Your submission must include all of the following:
 
 1. **We review every submission.** There is no automated filter. A human reads your submission and evaluates it.
 2. **Review takes up to 14 days.** We batch reviews. If we need more information, we will email you.
-3. **Accepted projects get featured.** Where depends on the project — showcase page, social media, documentation examples, or community highlights.
+3. **Accepted projects get featured.** Where depends on the project: showcase page, social media, documentation examples, or community highlights.
 4. **We may reach out for a deeper feature.** Exceptional projects may be invited for a case study, blog post, or co-marketing opportunity.
 
 ---
 
 ## Review criteria
 
-We evaluate submissions on five dimensions. You do not need to score high on all five — a project that excels in one area can still be featured.
+We evaluate submissions on five dimensions. You do not need to score high on all five: a project that excels in one area can still be featured.
 
 | Criterion | What we look for |
 |-----------|------------------|
@@ -86,7 +86,7 @@ To keep the quality bar high, we decline submissions that:
 - Violate any third-party terms of service, privacy laws, or ethical guidelines
 - Are primarily marketing vehicles for unrelated products
 
-**We reserve the right to decline any submission without providing a reason.** This is not a reflection of your work — our showcase has limited space and we prioritize diversity of use cases, industries, and technical approaches.
+**We reserve the right to decline any submission without providing a reason.** This is not a reflection of your work: our showcase has limited space and we prioritize diversity of use cases, industries, and technical approaches.
 
 ---
 
@@ -106,11 +106,11 @@ Include all required fields from the table above in the discussion body. Attach 
 
 Projects that are accepted receive:
 
-- **Showcase listing** — your project on our [What You Can Build](showcase.md) page with description, link, and screenshot
-- **Social promotion** — featured on Promptise social channels (LinkedIn, Twitter/X)
-- **Documentation reference** — exceptional projects may be cited as examples in our technical docs
-- **Community recognition** — a "Featured Project" badge for your repo (if open source)
-- **Direct line to the team** — featured project maintainers get priority access to our team for technical questions and early feature previews
+- **Showcase listing**: your project on our [What You Can Build](showcase.md) page with description, link, and screenshot
+- **Social promotion**: featured on Promptise social channels (LinkedIn, Twitter/X)
+- **Documentation reference**: exceptional projects may be cited as examples in our technical docs
+- **Community recognition**: a "Featured Project" badge for your repo (if open source)
+- **Direct line to the team**: featured project maintainers get priority access to our team for technical questions and early feature previews
 
 ---
 

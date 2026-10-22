@@ -216,7 +216,7 @@ Every route the server registers. Paths start with `/api/v1`. All routes except 
 | `PATCH` | `/processes/{name}/budget` | Change `BudgetConfig` fields | Next budget check (`"next_budget_check"`) | `200` |
 | `PATCH` | `/processes/{name}/health` | Change `HealthConfig` fields | Next check (`"immediate"`) | `200` |
 | `PATCH` | `/processes/{name}/mission` | Change `MissionConfig` fields | Next evaluation and prompt (`"immediate"`) | `200` |
-| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret`, credential-like `custom_config` values and URL user info masked | -- | `200` |
+| `GET` | `/processes/{name}/triggers` | Config and agent-added triggers with stable IDs; `hmac_secret`, credential-like `custom_config` values and URL user info masked |: | `200` |
 | `POST` | `/processes/{name}/triggers` | Add a trigger (body: a `TriggerConfig`) | At once on an active process, else at the next start | `201` |
 | `DELETE` | `/processes/{name}/triggers/{trigger_id}` | Stop and remove a trigger | At once on an active process, else at the next start | `200` |
 
@@ -356,7 +356,7 @@ curl -X DELETE http://localhost:9100/api/v1/processes/monitor/triggers/cron-6d90
 |---|---|---|
 | Add | Created and started at once: `live: true`, `effective_from: "immediate"` | Added to the config: `live: false`, `effective_from: "next_start"` |
 | Remove a config trigger | Stopped at once and removed from the config: `live: true`, `"immediate"` | Removed from the config: `live: true`, `"next_start"` |
-| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` | -- |
+| Remove an agent-added trigger | Stopped at once: `live: true`, `"immediate"` |: |
 
 Adding a trigger identical to one already configured gets `409 TRIGGER_EXISTS`; an invalid config or one that can't start gets `422 INVALID_CONFIG`; a `${VAR}` reference gets `403 ENV_REFERENCES_NOT_ALLOWED` and a `watch_path` outside `data_dir` `403 PATH_NOT_ALLOWED`; an unknown ID gets `404 TRIGGER_NOT_FOUND`. In the listing, `hmac_secret` is masked, and so are the values of `custom_config` keys that look like credentials (names containing `secret`, `token`, `password`, `api_key`, `auth`, `credential`, `signature` or `cookie`) and the user info of any URL value (`postgres://app:pw@db/x` is listed as `postgres://**********@db/x`). The old position-based IDs (`static_0`, `static_1`, ...) are still accepted on `DELETE`; the response then carries a `warning` naming the stable ID to use instead.
 

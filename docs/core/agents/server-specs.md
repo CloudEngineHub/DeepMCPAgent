@@ -41,8 +41,8 @@ Every Promptise agent receives a `servers` dict that maps a human-readable name 
 
 There are two spec types:
 
-- **`StdioServerSpec`** -- launches a local process and communicates over stdin/stdout. Best for local development and bundled servers.
-- **`HTTPServerSpec`** -- connects to a remote server over HTTP, Streamable HTTP, or SSE. Best for production deployments and shared services.
+- **`StdioServerSpec`**: launches a local process and communicates over stdin/stdout. Best for local development and bundled servers.
+- **`HTTPServerSpec`**: connects to a remote server over HTTP, Streamable HTTP, or SSE. Best for production deployments and shared services.
 
 Both are Pydantic models with strict validation (`extra="forbid"`), so typos in field names are caught immediately.
 
@@ -183,11 +183,11 @@ checks the bearer first, so the user's token must be valid there.
 
 | Transport | When to Use |
 |---|---|
-| `"http"` | Default. MCP Streamable HTTP — the current MCP transport, served by Promptise servers at `/mcp`. Responses to a request can stream (progress, incremental results) and the server can send notifications. |
+| `"http"` | Default. MCP Streamable HTTP: the current MCP transport, served by Promptise servers at `/mcp`. Responses to a request can stream (progress, incremental results) and the server can send notifications. |
 | `"streamable-http"` | An alias of `"http"`: the same Streamable HTTP client, accepted because other MCP tools spell the transport this way. |
 | `"sse"` | The legacy HTTP+SSE transport (an event stream at `/sse`, posts to `/messages/`). Use it only for servers that do not speak Streamable HTTP. |
 
-Point the URL at the MCP endpoint itself — `http://host:8080/mcp` for a Promptise server, not `http://host:8080`. A URL without the endpoint fails at connect time with `MCPConnectionRejectedError` (`404 Not Found`, with a hint to check the `/mcp` path).
+Point the URL at the MCP endpoint itself: `http://host:8080/mcp` for a Promptise server, not `http://host:8080`. A URL without the endpoint fails at connect time with `MCPConnectionRejectedError` (`404 Not Found`, with a hint to check the `/mcp` path).
 
 ### Authentication
 
@@ -255,7 +255,7 @@ agent = await build_agent(
 )
 ```
 
-Tools from all three servers are available to the agent as a flat list. If two servers expose a tool with the same name, both are included -- the LLM decides which to call based on their descriptions.
+Tools from all three servers are available to the agent as a flat list. If two servers expose a tool with the same name, both are included: the LLM decides which to call based on their descriptions.
 
 ## API Summary
 
@@ -273,11 +273,11 @@ Tools from all three servers are available to the agent as a flat list. If two s
 
 ## What's Next?
 
-- [Building Agents](building-agents.md) -- full `build_agent()` parameter reference.
-- [SuperAgent Files](superagent-files.md) -- define server configs declaratively in YAML.
-- [Authentication & Security](../../mcp/server/auth-security.md) -- securing your MCP servers with JWT and API keys.
+- [Building Agents](building-agents.md): full `build_agent()` parameter reference.
+- [SuperAgent Files](superagent-files.md): define server configs declaratively in YAML.
+- [Authentication & Security](../../mcp/server/auth-security.md): securing your MCP servers with JWT and API keys.
 
 !!! tip "Learn the concept"
 
-    - [How to Connect MCP Servers to Your AI Agent in Python](https://www.promptise.com/guides/view/connect-mcp-servers-to-ai-agent-python) -- Connect local and remote MCP servers to an agent, step by step.
-    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse) -- stdio vs Streamable HTTP vs SSE, and which to use where.
+    - [How to Connect MCP Servers to Your AI Agent in Python](https://www.promptise.com/guides/view/connect-mcp-servers-to-ai-agent-python): Connect local and remote MCP servers to an agent, step by step.
+    - [MCP Transports: stdio vs Streamable HTTP vs SSE (Python)](https://www.promptise.com/guides/view/mcp-transports-stdio-streamable-http-sse): stdio vs Streamable HTTP vs SSE, and which to use where.

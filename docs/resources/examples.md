@@ -5,7 +5,7 @@ description: "Runnable examples for Promptise Foundry with real LLM calls: MCP s
 
 # Promptise Foundry Examples
 
-Complete, runnable examples demonstrating every capability of Promptise Foundry. All examples use real LLM calls -- no mocks or stubs.
+Complete, runnable examples demonstrating every capability of Promptise Foundry. All examples use real LLM calls: no mocks or stubs.
 
 Every example is designed to run end-to-end with just an API key set. The default model across all examples is `openai:gpt-5-mini` (fast, affordable, reliable).
 
@@ -25,10 +25,10 @@ python examples/mcp/agent.py
 Some examples require a running MCP server. Where needed, start the server in a separate terminal first:
 
 ```bash
-# Terminal 1 -- start the server
+# Terminal 1: start the server
 python examples/mcp/server.py
 
-# Terminal 2 -- run the client or agent
+# Terminal 2: run the client or agent
 python examples/mcp/agent.py
 ```
 
@@ -49,7 +49,7 @@ Build production MCP servers with authentication, middleware, and Pydantic valid
 | `examples/mcp/http_server_restart.py` | A client that survives a server redeploy: the restarted server forgets the session, the client re-initialises, retries the call and re-discovers the new tool set. Also the `/health` and `/health/ready` probes and the typed 404 for a URL without `/mcp`. No LLM needed | Intermediate |
 | `examples/mcp/mcpcast_petstore/run.py` | Generate an MCP server from an OpenAPI spec with `promptise mcpcast`, drive it with a real agent over stdio against the live Petstore API, and show a destructive tool blocked by the server-side approval gate | Intermediate |
 | `examples/mcp/mcpcast_storefront_lab/run.py` | A SaaS storefront API MCPcast end to end: generated tools with risk classes, a real agent completing a business task, a refund held by the server-side approval gate until a second human approves, and an Agent Readiness Score before and after fixing the plan | Advanced |
-| `examples/mcp/mcpcast_wizard_lab/run.py` | The guided setup as a lab: start a real Helpdesk API, drive `promptise mcpcast` in the terminal (detection, model, profile counts, auth, review), then let the lab prove the result — computed review warnings on what the model wrote, a real agent over MCP stdio against the live app, a write denied by the approval gate, a refund tool that the `standard` profile never generated, and an Agent Readiness Score | Intermediate |
+| `examples/mcp/mcpcast_wizard_lab/run.py` | The guided setup as a lab: start a real Helpdesk API, drive `promptise mcpcast` in the terminal (detection, model, profile counts, auth, review), then let the lab prove the result: computed review warnings on what the model wrote, a real agent over MCP stdio against the live app, a write denied by the approval gate, a refund tool that the `standard` profile never generated, and an Agent Readiness Score | Intermediate |
 | `examples/mcp/mcpcast_fastapi_app/run.py` | Make your own FastAPI app MCP-ready: start the app, generate an MCP server from its live `/openapi.json` with `promptise mcpcast` (reads open, writes gated, admin/deprecated/health dropped with reasons), drive it with a real agent over MCP stdio, and show a write denied fail-closed then executed once a human approves | Intermediate |
 
 **Quick start:**
@@ -58,10 +58,10 @@ Build production MCP servers with authentication, middleware, and Pydantic valid
 # Terminal 1
 python examples/mcp/server.py
 
-# Terminal 2 -- agent (requires OPENAI_API_KEY)
+# Terminal 2: agent (requires OPENAI_API_KEY)
 python examples/mcp/agent.py
 
-# Terminal 2 -- or raw client (no LLM required)
+# Terminal 2, or raw client (no LLM required)
 python examples/mcp/client.py
 ```
 
@@ -78,15 +78,15 @@ python examples/mcp/client.py
 
 ## Agent Identity
 
-Give an agent a stable, traceable identity — and let the resources it calls
+Give an agent a stable, traceable identity, and let the resources it calls
 cryptographically verify and attribute the caller. The first two run on a laptop
 with no cloud and no API key.
 
 | Example | What it demonstrates | Level |
 | --- | --- | --- |
-| `examples/identity/local/app.py` | A **local identity** (`agent_id`, attribution, `claims()`) — the 30-second on-ramp | Beginner |
+| `examples/identity/local/app.py` | A **local identity** (`agent_id`, attribution, `claims()`): the 30-second on-ramp | Beginner |
 | `examples/identity/verifiable_mcp/app.py` | The **headline value** end-to-end: agent presents a signed JWT, a server's `JwksAuth` verifies + attributes it (and rejects a wrong-audience token) | Intermediate |
-| `examples/identity/github_actions/` | Production OIDC from GitHub Actions (`from_oidc`) — exercised in CI against a real token | Intermediate |
+| `examples/identity/github_actions/` | Production OIDC from GitHub Actions (`from_oidc`): exercised in CI against a real token | Intermediate |
 | `examples/identity/{aws_lambda,gke_pod,aks_workload,spire}/` | Production credential federation on each platform (`from_aws` / `from_gcp` / `from_entra` / `from_spiffe`) | Advanced |
 
 ```bash
@@ -106,21 +106,21 @@ Compose prompts from blocks, evolve them across conversation turns, and enhance 
 |------|-------------|------------|
 | `examples/prompts/01_blocks_composition.py` | Composable prompt blocks, priority-based assembly, conditional blocks, `@blocks` decorator | Beginner |
 | `examples/prompts/02_conversation_flow.py` | Multi-phase customer support agent where the system prompt evolves per turn | Intermediate |
-| `examples/prompts/04_inspector_debugging.py` | Full prompt tracing with `PromptInspector` -- see blocks included, tokens used, and execution path | Intermediate |
+| `examples/prompts/04_inspector_debugging.py` | Full prompt tracing with `PromptInspector`: see blocks included, tokens used, and execution path | Intermediate |
 | `examples/prompts/05_full_integration.py` | Both layers combined (blocks + flow + inspector) in a research analysis agent | Advanced |
 
 ### Labs
 
 | Directory | Description | Difficulty |
 |-----------|-------------|------------|
-| `examples/prompts/content_studio_lab/` | AI Content Creation Studio demonstrating prompt blocks, flows, guards, strategies, context providers, chain operators, registry, inspector, and templates -- 9 runnable demos with real LLM calls | Advanced |
+| `examples/prompts/content_studio_lab/` | AI Content Creation Studio demonstrating prompt blocks, flows, guards, strategies, context providers, chain operators, registry, inspector, and templates: 9 runnable demos with real LLM calls | Advanced |
 
 **Quick start:**
 
 ```bash
 python examples/prompts/01_blocks_composition.py
 
-# Flagship lab -- all prompt features in one studio
+# Flagship lab: all prompt features in one studio
 python examples/prompts/content_studio_lab/main.py
 ```
 
@@ -151,21 +151,21 @@ Turn stateless LLM agents into persistent, autonomous processes with triggers, c
 
 | Directory | Description | Difficulty |
 |-----------|-------------|------------|
-| `examples/runtime/data_pipeline_lab/` | Data Pipeline Monitoring System with 8 examples covering process lifecycle, triggers (cron, event, custom SQS), journal system (InMemory, File, ReplayEngine), AgentContext, ConversationBuffer, multi-process AgentRuntime, `.agent` manifest loading, and open mode with meta-tools -- all with real LLM calls | Advanced |
+| `examples/runtime/data_pipeline_lab/` | Data Pipeline Monitoring System with 8 examples covering process lifecycle, triggers (cron, event, custom SQS), journal system (InMemory, File, ReplayEngine), AgentContext, ConversationBuffer, multi-process AgentRuntime, `.agent` manifest loading, and open mode with meta-tools: all with real LLM calls | Advanced |
 
 **Quick start:**
 
 ```bash
-# Terminal 1 -- start the MCP server (tools for the agent)
+# Terminal 1: start the MCP server (tools for the agent)
 python examples/runtime/server.py
 
-# Terminal 2 -- run the full walkthrough
+# Terminal 2: run the full walkthrough
 python examples/runtime/main.py
 
-# Flagship lab -- all runtime features in one pipeline monitoring system
-# Terminal 1 -- start the lab MCP server
+# Flagship lab: all runtime features in one pipeline monitoring system
+# Terminal 1: start the lab MCP server
 python examples/runtime/data_pipeline_lab/tools_server.py
-# Terminal 2 -- run the lab
+# Terminal 2: run the lab
 python examples/runtime/data_pipeline_lab/main.py
 
 # Or use the CLI directly

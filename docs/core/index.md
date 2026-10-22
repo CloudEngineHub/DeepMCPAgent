@@ -1,5 +1,5 @@
 ---
-title: Promptise Agent — Production AI agents in Python with build_agent()
+title: Promptise Agent: Production AI agents in Python with build_agent()
 seo_title: "Agent Overview: Capabilities of build_agent"
 description: "Overview of the Promptise agent: what build_agent() returns, opt-in capabilities such as memory, guardrails, cache and approval, and which feature you need."
 keywords: Python AI agent, build_agent, production agent, MCP agent, agentic AI Python, Promptise agent
@@ -7,7 +7,7 @@ keywords: Python AI agent, build_agent, production agent, MCP agent, agentic AI 
 
 # Agent Overview
 
-The Agent is the foundation of Promptise Foundry. `build_agent()` returns a production-ready agent with opt-in capabilities — memory, guardrails, semantic cache, reasoning patterns, approval workflows, streaming, and more. Every feature is one parameter away.
+The Agent is the foundation of Promptise Foundry. `build_agent()` returns a production-ready agent with opt-in capabilities: memory, guardrails, semantic cache, reasoning patterns, approval workflows, streaming, and more. Every feature is one parameter away.
 
 ## Quick example
 
@@ -34,7 +34,7 @@ asyncio.run(main())
 ```
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project — Promptise loads it automatically, in scripts and in the CLI — or pass it in code with `Model(...)` — explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 
 ## Capability Map
 
@@ -82,19 +82,19 @@ build_agent()
 | I want to... | Use this |
 |---|---|
 | Connect to MCP tool servers | `servers=` with `StdioServerSpec` or `HttpServerSpec` |
-| Give the agent my own Python functions | `extra_tools=` with `@tool` — see [Tools](tools.md) |
-| Change how the agent reasons | `agent_pattern=` — see [Reasoning Patterns](agents/reasoning-patterns.md) |
-| Give the agent memory across sessions | `memory=` — see [Memory](memory.md) |
-| Persist conversations | `conversation_store=` — see [Conversations](conversations.md) |
-| Block prompt injection / PII leaks | `guardrails=` — see [Guardrails](guardrails.md) |
-| Require human approval for actions | `approval=` — see [Approval](approval.md) |
-| Run untrusted code safely | `sandbox=` — see [Sandbox](sandbox.md) |
-| Reduce token costs | `tool_optimization=` — see [Tool Optimization](tool-optimization.md) |
-| Cache similar queries | `cache=` — see [Semantic Cache](cache.md) |
-| Handle LLM provider outages | `fallback_models=` — see [Model Fallback](fallback.md) |
-| Stream responses in real-time | `agent.astream_with_tools()` — see [Streaming](streaming.md) |
-| Track token usage and latency | `observability=` — see [Observability](observability.md) |
-| Multi-user access control | `caller=` — see [CallerContext in Building Agents](agents/building-agents.md) |
+| Give the agent my own Python functions | `extra_tools=` with `@tool`: see [Tools](tools.md) |
+| Change how the agent reasons | `agent_pattern=`: see [Reasoning Patterns](agents/reasoning-patterns.md) |
+| Give the agent memory across sessions | `memory=`: see [Memory](memory.md) |
+| Persist conversations | `conversation_store=`: see [Conversations](conversations.md) |
+| Block prompt injection / PII leaks | `guardrails=`: see [Guardrails](guardrails.md) |
+| Require human approval for actions | `approval=`: see [Approval](approval.md) |
+| Run untrusted code safely | `sandbox=`: see [Sandbox](sandbox.md) |
+| Reduce token costs | `tool_optimization=`: see [Tool Optimization](tool-optimization.md) |
+| Cache similar queries | `cache=`: see [Semantic Cache](cache.md) |
+| Handle LLM provider outages | `fallback_models=`: see [Model Fallback](fallback.md) |
+| Stream responses in real-time | `agent.astream_with_tools()`: see [Streaming](streaming.md) |
+| Track token usage and latency | `observability=`: see [Observability](observability.md) |
+| Multi-user access control | `caller=`: see [CallerContext in Building Agents](agents/building-agents.md) |
 
 ## How Core Modules Relate
 
@@ -125,6 +125,6 @@ graph TD
 
 ## What's Next
 
-- [Building Agents](agents/building-agents.md) — complete `build_agent()` reference with all parameters
-- [Reasoning Patterns](agents/reasoning-patterns.md) — 9 built-in patterns + custom graphs
-- [Reasoning Graph Engine](engine.md) — nodes, edges, flags, hooks, and the execution engine
+- [Building Agents](agents/building-agents.md): complete `build_agent()` reference with all parameters
+- [Reasoning Patterns](agents/reasoning-patterns.md): 9 built-in patterns + custom graphs
+- [Reasoning Graph Engine](engine.md): nodes, edges, flags, hooks, and the execution engine

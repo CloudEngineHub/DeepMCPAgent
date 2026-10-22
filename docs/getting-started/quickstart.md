@@ -1,5 +1,5 @@
 ---
-title: Quick Start — Build your first AI agent with Promptise Foundry in 5 minutes
+title: Quick Start: Build your first AI agent with Promptise Foundry in 5 minutes
 seo_title: "Quick Start: Build Your First AI Agent"
 description: "Build your first Python AI agent in five minutes: install Promptise, add an API key, then add MCP tools, a custom reasoning pattern and production features."
 keywords: AI agent tutorial, Python agent quickstart, build AI agent, Promptise Foundry tutorial, getting started, MCP agent example
@@ -7,7 +7,7 @@ keywords: AI agent tutorial, Python agent quickstart, build AI agent, Promptise 
 
 # Quick Start: Build Your First Agent
 
-Build your first agent in 5 minutes. No external servers needed — everything runs locally.
+Build your first agent in 5 minutes. No external servers needed: everything runs locally.
 
 ## Install
 
@@ -17,7 +17,7 @@ pip install promptise
 
 ## Add your API key
 
-Put it in a file named `.env` in your project directory — Promptise loads it
+Put it in a file named `.env` in your project directory: Promptise loads it
 automatically, in scripts and in the CLI alike:
 
 ```bash title=".env"
@@ -33,14 +33,14 @@ promptise models env azure >> .env       # Azure OpenAI in Azure AI Foundry
 promptise models check azure:chat-prod   # confirms nothing is missing
 ```
 
-If you would rather keep the key somewhere else — your shell, your platform's
-secret injection, or a vault you read in code with [`Model(...)`](../core/agents/models.md#in-code-model) —
+If you would rather keep the key somewhere else: your shell, your platform's
+secret injection, or a vault you read in code with [`Model(...)`](../core/agents/models.md#in-code-model),
 every option is in [Configuration & Secrets](configuration.md), and the exact
 variable name for every provider is in [one table](configuration.md#every-providers-variables).
 
 ## Your First Agent (30 seconds)
 
-The simplest possible agent — just an LLM with instructions:
+The simplest possible agent, just an LLM with instructions:
 
 === "Provider string"
 
@@ -67,7 +67,7 @@ The simplest possible agent — just an LLM with instructions:
 
 === "In code with `Model`"
 
-    Credentials and settings explicit — the same words for every provider:
+    Credentials and settings explicit, the same words for every provider:
 
     ```python
     import asyncio
@@ -112,7 +112,7 @@ The simplest possible agent — just an LLM with instructions:
 That's it. `build_agent()` handles model initialization, message formatting, and execution.
 
 !!! note "Any provider, one string or one object"
-    `"azure:<deployment>"`, `"foundry:<model>"`, `"bedrock:<model-id>"`, `"gemini:gemini-2.5-pro"`, `"ollama:llama3.1"` — or the same as `Model("...", provider="...")` with the credentials in code. [Model Setup](model-setup.md) covers every provider; `promptise models check <string>` tells you what is missing before you run.
+    `"azure:<deployment>"`, `"foundry:<model>"`, `"bedrock:<model-id>"`, `"gemini:gemini-2.5-pro"`, `"ollama:llama3.1"`, or the same as `Model("...", provider="...")` with the credentials in code. [Model Setup](model-setup.md) covers every provider; `promptise models check <string>` tells you what is missing before you run.
 
 ## Add Tools (2 minutes)
 
@@ -212,7 +212,7 @@ no tool definitions to write on the agent side.
 
 ### Already have an API?
 
-Then don't hand-write those tools. `promptise mcpcast` turns an OpenAPI 3.x or Swagger 2 spec into a curated, editable MCP server — read-only by default, with every write gated by human approval the server enforces:
+Then don't hand-write those tools. `promptise mcpcast` turns an OpenAPI 3.x or Swagger 2 spec into a curated, editable MCP server, read-only by default, with every write gated by human approval the server enforces:
 
 ```bash
 promptise mcpcast openapi.yaml --name myapi --no-curate --auth env-token
@@ -239,7 +239,7 @@ agent = await build_agent(
 )
 ```
 
-The agent now thinks before acting and synthesizes a structured answer — instead of jumping straight to tool calls.
+The agent now thinks before acting and synthesizes a structured answer, instead of jumping straight to tool calls.
 
 **9 built-in patterns, plus prebuilt graphs:**
 
@@ -339,5 +339,5 @@ Every step is opt-in. Features you don't enable have zero overhead.
 
 !!! tip "Learn the concept"
 
-    - [How to Build an AI Agent in Python (2026 Guide)](https://www.promptise.com/guides/view/how-to-build-ai-agent-python) -- How an agent's tool loop works, built step by step in Python.
-    - [Topic hub: Building AI agents in Python](https://www.promptise.com/guides/topics/ai-agents-python) -- Every guide on agent loops, harnesses, system prompts and models.
+    - [How to Build an AI Agent in Python (2026 Guide)](https://www.promptise.com/guides/view/how-to-build-ai-agent-python): How an agent's tool loop works, built step by step in Python.
+    - [Topic hub: Building AI agents in Python](https://www.promptise.com/guides/topics/ai-agents-python): Every guide on agent loops, harnesses, system prompts and models.

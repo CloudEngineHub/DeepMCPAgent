@@ -116,7 +116,7 @@ except EnvVarNotFoundError as exc:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| *(inherits from `RuntimeError`)* | | Base exception -- no extra attributes |
+| *(inherits from `RuntimeError`)* | | Base exception: no extra attributes |
 
 ### SuperAgentValidationError
 
@@ -159,11 +159,11 @@ except EnvVarNotFoundError as exc:
 !!! tip
     Always pass a `context` string when raising `EnvVarNotFoundError` (or when
     calling `resolve_env_var` with a `context` kwarg).  The context appears in
-    the error message and makes debugging much faster -- users immediately see
+    the error message and makes debugging much faster: users immediately see
     *which* configuration field references the missing variable.
 
 ## What's next
 
-- [Environment Resolver](env-resolver.md) -- the module that raises `EnvVarNotFoundError`
-- [Config & Server Specs](config.md) -- configuration objects that trigger validation errors
-- [SuperAgent files](agents/superagent-files.md) -- YAML configuration that uses these exceptions
+- [Environment Resolver](env-resolver.md): the module that raises `EnvVarNotFoundError`
+- [Config & Server Specs](config.md): configuration objects that trigger validation errors
+- [SuperAgent files](agents/superagent-files.md): YAML configuration that uses these exceptions

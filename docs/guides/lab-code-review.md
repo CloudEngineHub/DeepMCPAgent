@@ -5,7 +5,7 @@ description: "Build a code review agent that finds security, performance and sty
 
 # Lab: Code Review Agent
 
-Build an agent that reviews code for security vulnerabilities, performance issues, and best practices — using adversarial self-critique to catch false positives. Every finding must be justified with specific evidence.
+Build an agent that reviews code for security vulnerabilities, performance issues, and best practices: using adversarial self-critique to catch false positives. Every finding must be justified with specific evidence.
 
 ## What You'll Build
 
@@ -25,7 +25,7 @@ pip install promptise
 export OPENAI_API_KEY=sk-...
 ```
 
-## Step 1 — Build the Code Tools Server
+## Step 1: Build the Code Tools Server
 
 ```python
 # code_server.py
@@ -133,11 +133,11 @@ if __name__ == "__main__":
     server.run(transport="stdio")
 ```
 
-## Step 2 — Build the Review Agent with Adversarial Critique
+## Step 2: Build the Review Agent with Adversarial Critique
 
 The key pattern: **Read → Analyze → Critique → Justify → Synthesize**
 
-The CritiqueNode challenges the agent's own findings — forcing it to distinguish real vulnerabilities from false positives. The JustifyNode requires specific line references for every claim.
+The CritiqueNode challenges the agent's own findings: forcing it to distinguish real vulnerabilities from false positives. The JustifyNode requires specific line references for every claim.
 
 ```python
 # review_agent.py
@@ -172,7 +172,7 @@ async def main():
             ],
         ),
 
-        # Challenge the findings — adversarial self-review
+        # Challenge the findings: adversarial self-review
         CritiqueNode("challenge",
             severity_threshold=0.3,  # Low threshold = strict review
         ),
@@ -273,6 +273,6 @@ Without the CritiqueNode, agents produce generic reviews ("consider using parame
 
 ## Next Steps
 
-- [Custom Reasoning Guide](custom-reasoning.md) — Build more complex patterns
-- [Sandbox](../core/sandbox.md) — Run the agent's code analysis in a Docker sandbox
-- [Reasoning Engine](../core/engine.md) — Deep dive into the node system
+- [Custom Reasoning Guide](custom-reasoning.md): Build more complex patterns
+- [Sandbox](../core/sandbox.md): Run the agent's code analysis in a Docker sandbox
+- [Reasoning Engine](../core/engine.md): Deep dive into the node system

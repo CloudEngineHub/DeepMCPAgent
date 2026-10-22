@@ -127,21 +127,21 @@ Any other transition raises `StateError`. A transition to the current state is i
 
 | Transition | Caused by | Event |
 |---|---|---|
-| `CREATED → STARTING` | `start()` | -- |
+| `CREATED → STARTING` | `start()` |: |
 | `CREATED → STOPPED` | `stop()` before `start()` | none |
 | `STARTING → RUNNING` | Startup complete | `process.started` |
 | `STARTING → FAILED` | Startup raised (bad MCP server, missing secret, ...). `start()` re-raises the error; your own `start()` is not retried | `process.failed` |
-| `STARTING → STOPPING` | Allowed by the map. `stop()` called during `start()` waits for `start()` to finish first | -- |
+| `STARTING → STOPPING` | Allowed by the map. `stop()` called during `start()` waits for `start()` to finish first |: |
 | `RUNNING → SUSPENDED` | `suspend()`, `idle_timeout`, budget, health, rewind | `process.suspended` |
-| `RUNNING → STOPPING` | `stop()`, `max_lifetime`, budget `on_exceeded="stop"`, health `on_anomaly="stop"`, mission completion | -- |
+| `RUNNING → STOPPING` | `stop()`, `max_lifetime`, budget `on_exceeded="stop"`, health `on_anomaly="stop"`, mission completion |: |
 | `RUNNING → FAILED` | `max_consecutive_failures` reached | `process.failed` |
 | `SUSPENDED → RUNNING` | `resume()`, or a trigger event for an idle-suspended process | `process.resumed` |
-| `SUSPENDED → STOPPING` | `stop()` | -- |
+| `SUSPENDED → STOPPING` | `stop()` |: |
 | `SUSPENDED → FAILED` | A run that was in flight when the process was suspended fails and reaches `max_consecutive_failures` | `process.failed` |
 | `STOPPING → STOPPED` | Teardown complete | `process.stopped` (not during a `max_lifetime` recycle) |
-| `STOPPED → STARTING` | `start()`, `AgentRuntime.restart_process()`, a `max_lifetime` recycle | -- |
+| `STOPPED → STARTING` | `start()`, `AgentRuntime.restart_process()`, a `max_lifetime` recycle |: |
 | `FAILED → STARTING` | `start()`, `restart_process()`, `start_all()`, an automatic restart | `process.restarted` (automatic restart only, before the attempt) |
-| `FAILED → STOPPING` | `stop()` | -- |
+| `FAILED → STOPPING` | `stop()` |: |
 
 `STOPPING → FAILED` and the `AWAITING` transitions are allowed by the map but not used by `AgentProcess`.
 
@@ -155,8 +155,8 @@ With an `event_notifier`, the process emits these events. Every event's `data` h
 
 | Event | Severity | When | Extra `data` keys |
 |---|---|---|---|
-| `process.started` | `info` | Entered `RUNNING` (every start, automatic restarts included) | -- |
-| `process.stopped` | `info` | A stop finished (not for `CREATED → STOPPED`) | -- |
+| `process.started` | `info` | Entered `RUNNING` (every start, automatic restarts included) |: |
+| `process.stopped` | `info` | A stop finished (not for `CREATED → STOPPED`) |: |
 | `process.failed` | `critical` | Entered `FAILED` | `reason`, `error` (the real error, `"Type: message"`, at most 500 characters) |
 | `process.restarted` | `warning` | An automatic restart attempt begins (after its backoff), or a `max_lifetime` recycle | `reason`, `attempt` (`None` for a recycle), `max_restarts` |
 | `process.restart_exhausted` | `critical` | A failure with `max_restarts` already used up; the process stays `FAILED` | `reason`, `restarts`, `max_restarts`, `error` |

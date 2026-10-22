@@ -493,7 +493,7 @@ from promptise.runtime.distributed import RuntimeTransport, RuntimeCoordinator
 
 TOKEN = os.environ["PROMPTISE_NODE_TOKEN"]  # required for a non-loopback bind
 
-# Node 1 -- primary
+# Node 1: primary
 runtime_1 = AgentRuntime()
 transport_1 = RuntimeTransport(
     runtime_1,
@@ -504,7 +504,7 @@ transport_1 = RuntimeTransport(
 )
 await transport_1.start()
 
-# Node 2 -- secondary
+# Node 2: secondary
 runtime_2 = AgentRuntime()
 transport_2 = RuntimeTransport(
     runtime_2,

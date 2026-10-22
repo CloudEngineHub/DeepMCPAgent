@@ -82,11 +82,11 @@ agent = await build_agent(model="openai:gpt-5-mini", servers=srv,
 ```
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project — Promptise loads it automatically, in scripts and in the CLI — or pass it in code with `Model(...)` — explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 → [Memory](../core/memory.md)
 
 ### Persist conversations (with ownership)
-`chat()` loads history, invokes, and saves — and enforces session ownership.
+`chat()` loads history, invokes, and saves, and enforces session ownership.
 ```python
 from promptise.conversations import SQLiteConversationStore
 agent = await build_agent(model="openai:gpt-5-mini", servers=srv,
@@ -119,7 +119,7 @@ await agent.ainvoke(input, caller=CallerContext(user_id="alice", roles={"analyst
 → [Multi-User Systems](../guides/multi-user-systems.md)
 
 ### Isolate by tenant (multi-tenant SaaS)
-Add `tenant_id` — every isolation surface (cache, memory, conversations) scopes to it.
+Add `tenant_id`: every isolation surface (cache, memory, conversations) scopes to it.
 ```python
 caller = CallerContext(user_id="alice", tenant_id="acme")  # disjoint from any other tenant
 ```
@@ -242,6 +242,6 @@ result = await TestClient(server).call_tool("search", {"query": "revenue"})
 
 ## See also
 
-- [Quick Start](quickstart.md) — build your first agent in 5 minutes
-- [Guides](../guides/index.md) — end-to-end, build-along tutorials
-- [Why Promptise](why-promptise.md) — what ships and when to use it
+- [Quick Start](quickstart.md): build your first agent in 5 minutes
+- [Guides](../guides/index.md): end-to-end, build-along tutorials
+- [Why Promptise](why-promptise.md): what ships and when to use it

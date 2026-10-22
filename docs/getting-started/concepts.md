@@ -1,5 +1,5 @@
 ---
-title: Key Concepts — How Promptise Foundry works
+title: Key Concepts: How Promptise Foundry works
 seo_title: "Key Concepts: How Promptise Foundry Works"
 description: "The core concepts of Promptise Foundry: agents, MCP servers, prompt and context engineering, the agent runtime, design principles and core abstractions."
 keywords: Promptise concepts, agentic AI architecture, MCP architecture, AI agent design, agent runtime, prompt engineering concepts
@@ -7,7 +7,7 @@ keywords: Promptise concepts, agentic AI architecture, MCP architecture, AI agen
 
 # What is Promptise Foundry?
 
-Promptise Foundry is the production framework for building agentic AI systems. It covers the entire stack — from creating intelligent agents to deploying autonomous operations — in one framework.
+Promptise Foundry is the production framework for building agentic AI systems. It covers the entire stack (from creating intelligent agents to deploying autonomous operations) in one framework.
 
 ---
 
@@ -61,7 +61,7 @@ Promptise is built on four independent, composable pillars. Use one or all four.
 
 ### Pillar 2: MCP Server SDK
 
-Build production MCP servers — the APIs that agents call. Same relationship FastAPI has with REST APIs.
+Build production MCP servers: the APIs that agents call. Same relationship FastAPI has with REST APIs.
 
 - **`@server.tool()`** decorator with auto-generated schemas from type hints
 - **Authentication**: JWT (symmetric + asymmetric), API key, OAuth 2.0
@@ -69,11 +69,11 @@ Build production MCP servers — the APIs that agents call. Same relationship Fa
 - **Middleware**: Rate limiting, circuit breaker, timeout, concurrency, audit logging
 - **Job Queue**: Long-running tasks with progress reporting and cancellation
 - **Dashboard**: Live terminal UI with tool stats, agents, request log
-- **Testing**: In-process `TestClient` — no network required
+- **Testing**: In-process `TestClient`: no network required
 
 ### Pillar 3: Prompt & Context Engineering
 
-Prompts as software — typed, versioned, tested, debuggable.
+Prompts as software: typed, versioned, tested, debuggable.
 
 - **8 core block types** with priority-based token budgeting (Identity, Rules, OutputFormat, ContextSlot, Section, Examples, Conditional, Composite), plus blocks for tools, plans, observations, reflections and phases
 - **ConversationFlow**: the system prompt evolves across conversation phases
@@ -87,20 +87,20 @@ Prompts as software — typed, versioned, tested, debuggable.
 
 The operating system for autonomous agents.
 
-- **AgentProcess** — lifecycle container (CREATED → RUNNING → SUSPENDED → STOPPED / FAILED)
+- **AgentProcess**: lifecycle container (CREATED → RUNNING → SUSPENDED → STOPPED / FAILED)
 - **5 trigger types**: cron schedules, webhooks, file watch, events, messages
-- **Crash recovery** — journal-based checkpoint + replay
+- **Crash recovery**: journal-based checkpoint + replay
 - **Governance**: autonomy budget, behavioral health monitoring, mission tracking, secret scoping
-- **Open Mode** — 14 meta-tools for self-modifying agents (with guardrails)
+- **Open Mode**: 14 meta-tools for self-modifying agents (with guardrails)
 - **Orchestration API**: a REST API for managing deployed agents without code changes
-- **Live Agent Conversation** — send messages to running agents, ask questions, get answers
-- **Distributed** — multi-node coordination over HTTP with auth
+- **Live Agent Conversation**: send messages to running agents, ask questions, get answers
+- **Distributed**: multi-node coordination over HTTP with auth
 
 ---
 
 ## How They Fit Together
 
-**Simple — chatbot with memory:**
+**Simple, chatbot with memory:**
 ```python
 agent = await build_agent(
     servers={"tools": HTTPServerSpec(url="http://localhost:8000/mcp")},
@@ -111,9 +111,9 @@ result = await agent.ainvoke({"messages": [{"role": "user", "content": "Hello"}]
 ```
 
 !!! info "You need an API key first"
-    Every model provider needs a credential. Put it in a `.env` file in your project — Promptise loads it automatically, in scripts and in the CLI — or pass it in code with `Model(...)` — explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
+    Every model provider needs a credential. Put it in a `.env` file in your project (Promptise loads it automatically, in scripts and in the CLI) or pass it in code with `Model(...)`, explained in [**Models & Providers → In code: Model**](../core/agents/models.md#in-code-model): `Model("gpt-4o-mini", provider="openai", api_key="...")`. The **exact variable name for every provider** (Azure AI Foundry, Bedrock, Gemini, Ollama, …) is in [**Configuration & Secrets → Every provider's variables**](../getting-started/configuration.md#every-providers-variables); self-hosted and inference endpoints are in [**Models & Providers → Custom, self-hosted and inference endpoints**](../core/agents/models.md#custom-self-hosted-and-inference-endpoints). `promptise models env <provider>` prints the lines a provider needs and `promptise models check <model>` tells you what is still missing.
 
-**Production — secured agent with full protections:**
+**Production, secured agent with full protections:**
 ```python
 agent = await build_agent(
     servers=servers,
@@ -127,7 +127,7 @@ agent = await build_agent(
 )
 ```
 
-**Autonomous — runtime with governance:**
+**Autonomous, runtime with governance:**
 ```python
 async with AgentRuntime() as runtime:
     await runtime.add_process("monitor", ProcessConfig(
@@ -146,11 +146,11 @@ async with AgentRuntime() as runtime:
 
 ### MCP-first
 
-All tool integration uses the Model Context Protocol. Agents discover tools from MCP servers automatically — no manual wiring. The MCP Server SDK builds the servers. The MCP Client connects agents to them.
+All tool integration uses the Model Context Protocol. Agents discover tools from MCP servers automatically: no manual wiring. The MCP Server SDK builds the servers. The MCP Client connects agents to them.
 
 ### Opt-in everything
 
-Every capability is disabled by default. Enable what you need with one parameter. Disabled features have zero overhead — no extra memory, no extra latency, no extra dependencies.
+Every capability is disabled by default. Enable what you need with one parameter. Disabled features have zero overhead: no extra memory, no extra latency, no extra dependencies.
 
 ### Async-first
 
@@ -158,7 +158,7 @@ The APIs are async (`await build_agent(...)`, `await agent.ainvoke(...)`); use `
 
 ### Protocol-based extensibility
 
-Memory providers, conversation stores, cache backends, approval handlers, event sinks — all defined as Python protocols. Implement the interface, plug it in. No base classes, no framework lock-in.
+Memory providers, conversation stores, cache backends, approval handlers, event sinks: all defined as Python protocols. Implement the interface, plug it in. No base classes, no framework lock-in.
 
 ### Security by default
 
@@ -194,7 +194,7 @@ StdioServerSpec(command="python", args=["-m", "my_server"])
 
 ### CallerContext
 
-Per-request user identity — flows through the entire pipeline:
+Per-request user identity, flows through the entire pipeline:
 
 ```python
 result = await agent.ainvoke(input, caller=CallerContext(user_id="user-42"))
@@ -240,13 +240,13 @@ See [Exceptions](../core/exceptions.md) for the full list.
 
 ## What's Next?
 
-- [Quick Start](quickstart.md) — build your first agent in 5 minutes
-- [Model Setup](model-setup.md) — configure OpenAI, Anthropic, Ollama, or any provider
-- [Building Agents](../guides/building-agents.md) — step-by-step from simple to production
-- [Building MCP Servers](../guides/production-mcp-servers.md) — create tool APIs
-- [Building Runtime Systems](../guides/agentic-runtime.md) — deploy autonomous agents
+- [Quick Start](quickstart.md): build your first agent in 5 minutes
+- [Model Setup](model-setup.md): configure OpenAI, Anthropic, Ollama, or any provider
+- [Building Agents](../guides/building-agents.md): step-by-step from simple to production
+- [Building MCP Servers](../guides/production-mcp-servers.md): create tool APIs
+- [Building Runtime Systems](../guides/agentic-runtime.md): deploy autonomous agents
 
 !!! tip "Learn the concept"
 
-    - [What Is an Agent Harness? Parts and How to Build One](https://www.promptise.com/guides/view/agent-harness-python) -- What surrounds the model: tool loop, context compaction, budgets and loop guards.
-    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol) -- Hosts, clients, servers and transports, the vocabulary behind MCP.
+    - [What Is an Agent Harness? Parts and How to Build One](https://www.promptise.com/guides/view/agent-harness-python): What surrounds the model: tool loop, context compaction, budgets and loop guards.
+    - [What Is MCP (Model Context Protocol)? A Developer's Guide](https://www.promptise.com/guides/view/what-is-model-context-protocol): Hosts, clients, servers and transports, the vocabulary behind MCP.

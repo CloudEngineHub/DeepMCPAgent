@@ -5,7 +5,7 @@ description: "Migrate from deepmcpagent to promptise 1.0: uninstall the old pack
 
 # Migrate from deepmcpagent to Promptise
 
-Migrate from `deepmcpagent` to `promptise` -- the v1.0.0 release.
+Migrate from `deepmcpagent` to `promptise`: the v1.0.0 release.
 
 ---
 
@@ -13,7 +13,7 @@ Migrate from `deepmcpagent` to `promptise` -- the v1.0.0 release.
 
 DeepMCPAgent has been rebranded as **Promptise Foundry** with v1.0.0. The framework grew beyond its original MCP-focused scope to include prompt engineering, a reasoning graph engine, an agent runtime, a full MCP server and client, RAG foundation, and more. The new name reflects this evolution.
 
-All functionality is preserved and expanded. The migration is primarily a rename -- same API signatures, same configuration format, same CLI structure -- plus significant new capabilities.
+All functionality is preserved and expanded. The migration is primarily a rename (same API signatures, same configuration format, same CLI structure) plus significant new capabilities.
 
 ---
 
@@ -123,7 +123,7 @@ RUN pip install "deepmcpagent"
 RUN pip install "promptise[all]"
 ```
 
-### Step 6: SuperAgent Files -- No Changes Needed
+### Step 6: SuperAgent Files, No Changes Needed
 
 `.superagent` configuration files work as-is with the new package. The YAML format is unchanged. Just use the new CLI command:
 

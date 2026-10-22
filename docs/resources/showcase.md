@@ -5,7 +5,7 @@ description: "Build ideas for each Promptise module: agent, MCP server, agent ru
 
 # What you can build
 
-Promptise Foundry is not a chatbot wrapper. It is the infrastructure for building AI systems that do real work — systems that discover tools, remember context, guard against attacks, recover from crashes, and operate autonomously. This page exists to show you the full surface area of what is possible. Use it as a jumping-off point, not a ceiling.
+Promptise Foundry is not a chatbot wrapper. It is the infrastructure for building AI systems that do real work: systems that discover tools, remember context, guard against attacks, recover from crashes, and operate autonomously. This page exists to show you the full surface area of what is possible. Use it as a jumping-off point, not a ceiling.
 
 ---
 
@@ -17,7 +17,7 @@ Each of the five modules gets its own section with build ideas at three complexi
 
 ## Agent
 
-With the Agent module, you give your application the ability to understand natural language, discover and call tools automatically, remember past interactions, and protect itself from misuse — all through a single function call. The agent is the bridge between a language model and the real world.
+With the Agent module, you give your application the ability to understand natural language, discover and call tools automatically, remember past interactions, and protect itself from misuse: all through a single function call. The agent is the bridge between a language model and the real world.
 
 ### What the Agent module makes possible
 
@@ -30,7 +30,7 @@ Before Promptise, connecting an LLM to tools meant manual schema definitions, cu
 #### 1. Internal knowledge base assistant with guardrails
 
 **The scenario**
-Your company has an internal wiki, a Confluence space, and a customer database. New employees spend hours searching for answers. You want an assistant that finds information across all three sources — but never leaks customer PII in its responses.
+Your company has an internal wiki, a Confluence space, and a customer database. New employees spend hours searching for answers. You want an assistant that finds information across all three sources, but never leaks customer PII in its responses.
 
 **What the Agent module contributes**
 The agent auto-discovers tools from three MCP servers (wiki, Confluence, CRM), searches all of them on each question, and the guardrails scanner automatically redacts credit card numbers, SSNs, and emails from every response before it reaches the user.
@@ -135,10 +135,10 @@ agent = await build_agent(
     ),
 )
 
-# First call — full LLM invocation
+# First call: full LLM invocation
 result = await agent.ainvoke(input, caller=CallerContext(user_id="user-42"))
 
-# Similar question 5 minutes later — served from cache, zero LLM cost
+# Similar question 5 minutes later: served from cache, zero LLM cost
 result = await agent.ainvoke(similar_input, caller=CallerContext(user_id="user-42"))
 
 stats = await agent._cache.stats()
@@ -153,7 +153,7 @@ print(f"Cache hit rate: {stats.hit_rate:.0%}")  # ~35% after a few hours
 Your chat interface shows "..." for 10 seconds while the agent thinks. Users think it is broken. You want them to see "Searching database...", "Found 3 results", then the answer appearing token by token.
 
 **What the Agent module contributes**
-`astream_with_tools()` yields structured events — tool starts, tool results, tokens, and completion — so your frontend can show exactly what the agent is doing in real time.
+`astream_with_tools()` yields structured events (tool starts, tool results, tokens, and completion) so your frontend can show exactly what the agent is doing in real time.
 
 ```python
 from promptise import build_agent
@@ -193,7 +193,7 @@ async for event in agent.astream_with_tools(
 
 ## MCP Server
 
-With the MCP Server SDK, you build the tool APIs that agents call. Every `@server.tool()` becomes a capability the agent can discover and use. Authentication, rate limiting, audit logging, and circuit breakers come built in — so your tool server is production-ready from the first line.
+With the MCP Server SDK, you build the tool APIs that agents call. Every `@server.tool()` becomes a capability the agent can discover and use. Authentication, rate limiting, audit logging, and circuit breakers come built in, so your tool server is production-ready from the first line.
 
 ### What the MCP Server module makes possible
 
@@ -206,7 +206,7 @@ MCP is how AI agents discover and call tools. Without a production server SDK, e
 #### 1. Database query tool with role-based access
 
 **The scenario**
-Your data team wants agents to query the analytics database directly. But not all agents should have the same access — the reporting agent can read, the admin agent can write, and no agent should run `DROP TABLE`.
+Your data team wants agents to query the analytics database directly. But not all agents should have the same access: the reporting agent can read, the admin agent can write, and no agent should run `DROP TABLE`.
 
 ```python
 import os
@@ -297,7 +297,7 @@ server.include_router(flights)
 
 ---
 
-#### 4. REST API bridge — turn any OpenAPI spec into MCP tools
+#### 4. REST API bridge: turn any OpenAPI spec into MCP tools
 
 **The scenario**
 You have an existing REST API with an OpenAPI spec. You want to expose it to agents without rewriting anything.
@@ -335,7 +335,7 @@ provider.register(server)
 
 ## Agent Runtime
 
-With the Agent Runtime, you deploy agents as persistent processes — they wake on schedules, react to events, recover from crashes, enforce their own budgets, and accept messages from humans while running. This is not another LLM wrapper with a loop. It is an operating system for autonomous AI.
+With the Agent Runtime, you deploy agents as persistent processes: they wake on schedules, react to events, recover from crashes, enforce their own budgets, and accept messages from humans while running. This is not another LLM wrapper with a loop. It is an operating system for autonomous AI.
 
 ### What the Agent Runtime makes possible
 
@@ -404,7 +404,7 @@ config = ProcessConfig(
 #### 3. Agent fleet managed via REST API
 
 **The scenario**
-You deploy 10 agents across your organization. Operations team needs to start, stop, update instructions, and talk to agents without touching code — all through a REST API.
+You deploy 10 agents across your organization. Operations team needs to start, stop, update instructions, and talk to agents without touching code: all through a REST API.
 
 ```python
 from promptise.runtime import AgentRuntime
@@ -420,11 +420,11 @@ api = OrchestrationAPI(
 await api.start()
 
 # Now ops team can manage agents via HTTP:
-# POST /api/v1/processes — deploy a new agent
-# PATCH /api/v1/processes/monitor/instructions — update live instructions
-# POST /api/v1/processes/monitor/messages — send a message to the running agent
-# POST /api/v1/processes/monitor/ask — ask a question and get an answer
-# GET /api/v1/processes/monitor/inbox — see pending messages
+# POST /api/v1/processes: deploy a new agent
+# PATCH /api/v1/processes/monitor/instructions: update live instructions
+# POST /api/v1/processes/monitor/messages: send a message to the running agent
+# POST /api/v1/processes/monitor/ask: ask a question and get an answer
+# GET /api/v1/processes/monitor/inbox: see pending messages
 ```
 
 ---
@@ -473,7 +473,7 @@ config = ProcessConfig(
 
 ## Prompt engineering
 
-With the Prompt Engineering module, you treat prompts as software — typed, versioned, tested, and debuggable. Instead of tweaking strings in comments, you compose prompts from independent blocks, evolve them across conversation phases, and inspect every assembly decision.
+With the Prompt Engineering module, you treat prompts as software: typed, versioned, tested, and debuggable. Instead of tweaking strings in comments, you compose prompts from independent blocks, evolve them across conversation phases, and inspect every assembly decision.
 
 ### Build ideas
 
@@ -545,7 +545,7 @@ result = await careful("Expanding into the Japanese market without local partner
 
 ## Context engineering
 
-With the Context Engine, you control exactly what the LLM sees — with token-level precision. Instead of hoping your context fits, you set a budget, register layers by priority, and the engine drops the least important content first when space is tight.
+With the Context Engine, you control exactly what the LLM sees, with token-level precision. Instead of hoping your context fits, you set a budget, register layers by priority, and the engine drops the least important content first when space is tight.
 
 ### Build ideas
 
@@ -569,7 +569,7 @@ agent = await build_agent(
     context_engine=engine,
 )
 # The engine trims oldest conversation pairs first, preserving identity and rules
-# The agent never overflows — it gracefully drops old context
+# The agent never overflows: it gracefully drops old context
 ```
 
 ---
@@ -645,4 +645,4 @@ asyncio.run(main())
 
 ## Start building
 
-Pick the module that matches your next project. The [Quick Start](../getting-started/quickstart.md) gets you running in 5 minutes. Each module has its own reference: [Agent](../core/agents/building-agents.md), [MCP Server](../guides/production-mcp-servers.md), [Runtime](../guides/agentic-runtime.md), [Prompts](../guides/prompt-engineering.md). The examples on this page are starting points — the framework handles combinations and edge cases we have not shown here.
+Pick the module that matches your next project. The [Quick Start](../getting-started/quickstart.md) gets you running in 5 minutes. Each module has its own reference: [Agent](../core/agents/building-agents.md), [MCP Server](../guides/production-mcp-servers.md), [Runtime](../guides/agentic-runtime.md), [Prompts](../guides/prompt-engineering.md). The examples on this page are starting points: the framework handles combinations and edge cases we have not shown here.

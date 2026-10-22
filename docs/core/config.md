@@ -65,7 +65,7 @@ spec = StdioServerSpec(
 ### HTTPServerSpec
 
 Use `HTTPServerSpec` when the MCP server is reachable over the network.  Two
-transports are supported: `"http"` (MCP Streamable HTTP, the default — `"streamable-http"`
+transports are supported: `"http"` (MCP Streamable HTTP, the default: `"streamable-http"`
 is an alias for the same transport) and `"sse"` (the legacy HTTP+SSE transport).
 
 ```python
@@ -99,7 +99,7 @@ spec = HTTPServerSpec(
 )
 ```
 
-#### `audience` — per-resource agent identity
+#### `audience`: per-resource agent identity
 
 `audience` declares the resource identifier this server expects in a
 credential's `aud` claim. It only matters when you attach an
@@ -149,7 +149,7 @@ def print_spec(name: str, spec: ServerSpec) -> None:
 
 This helper converts a mapping of server specs into the dictionary format
 expected by the MCP client library.  You rarely call it directly --
-`build_agent` handles this internally -- but it is useful if you are
+`build_agent` handles this internally, but it is useful if you are
 building custom pipelines.
 
 ```python
@@ -198,8 +198,8 @@ config = servers_to_mcp_config(servers)
 | `transport` | `Literal["http", "streamable-http", "sse"]` | `"http"` | `"http"` and its alias `"streamable-http"`: Streamable HTTP; `"sse"`: legacy HTTP+SSE |
 | `headers` | `dict[str, str]` | `{}` | Extra HTTP headers sent on every request |
 | `auth` | `str \| None` | `None` | Legacy auth hint (kept for backward compatibility) |
-| `bearer_token` | `str \| None` | `None` | Pre-issued Bearer token -- injected as `Authorization: Bearer <token>` |
-| `api_key` | `str \| None` | `None` | Pre-shared API key -- injected as `x-api-key: <key>` |
+| `bearer_token` | `str \| None` | `None` | Pre-issued Bearer token: injected as `Authorization: Bearer <token>` |
+| `api_key` | `str \| None` | `None` | Pre-shared API key: injected as `x-api-key: <key>` |
 
 ### servers_to_mcp_config
 
@@ -238,6 +238,6 @@ config = servers_to_mcp_config(servers)
 
 ## What's next
 
-- [Types & ModelLike](types.md) -- the `ModelLike` union and other type aliases
-- [Environment Resolver](env-resolver.md) -- resolve `${VAR}` placeholders in config
-- [Building Agents](agents/building-agents.md) -- use server specs with `build_agent`
+- [Types & ModelLike](types.md): the `ModelLike` union and other type aliases
+- [Environment Resolver](env-resolver.md): resolve `${VAR}` placeholders in config
+- [Building Agents](agents/building-agents.md): use server specs with `build_agent`

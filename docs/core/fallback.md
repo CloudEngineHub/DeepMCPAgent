@@ -5,7 +5,7 @@ description: "Fail over between LLM providers with FallbackChain: circuit breake
 
 # Model Fallback
 
-Automatic failover across multiple LLM providers. If the primary model fails, the next one in the chain handles the request — no downtime, no manual switching.
+Automatic failover across multiple LLM providers. If the primary model fails, the next one in the chain handles the request: no downtime, no manual switching.
 
 ```python
 from promptise import build_agent, FallbackChain
@@ -31,11 +31,11 @@ Single-provider agents are a single point of failure. When OpenAI has an outage 
 
 ## How It Works
 
-`FallbackChain` is a `BaseChatModel` — LangChain and Promptise treat it like any other model. Under the hood:
+`FallbackChain` is a `BaseChatModel`: LangChain and Promptise treat it like any other model. Under the hood:
 
 1. Primary model receives the request
 2. If it fails (error, timeout, rate limit), the next model is tried
-3. Each model has an independent **circuit breaker** — after N consecutive failures, the model is skipped entirely for a recovery period (a request the provider rejects as invalid does not count; see [Which Errors Fall Back](#which-errors-fall-back))
+3. Each model has an independent **circuit breaker**: after N consecutive failures, the model is skipped entirely for a recovery period (a request the provider rejects as invalid does not count; see [Which Errors Fall Back](#which-errors-fall-back))
 4. When the recovery period elapses, one test request is sent (half-open state)
 5. If the test succeeds, the circuit closes and the model resumes normal traffic
 
@@ -155,10 +155,10 @@ agent = await build_agent(
 
 ## What's Next?
 
-- [Events](events.md) — get notified when models fail or fallbacks activate
-- [Observability](observability.md) — track which model served each request
-- [Building Agents](agents/building-agents.md) — full `build_agent()` parameter reference
+- [Events](events.md): get notified when models fail or fallbacks activate
+- [Observability](observability.md): track which model served each request
+- [Building Agents](agents/building-agents.md): full `build_agent()` parameter reference
 
 !!! tip "Learn the concept"
 
-    - [LLM Semantic Cache and Model Fallback in Python](https://www.promptise.com/guides/view/llm-semantic-cache-fallback-python) -- Survive a provider outage with model fallback, with a simulated outage.
+    - [LLM Semantic Cache and Model Fallback in Python](https://www.promptise.com/guides/view/llm-semantic-cache-fallback-python): Survive a provider outage with model fallback, with a simulated outage.

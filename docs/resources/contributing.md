@@ -119,8 +119,8 @@ Access control is layered and explicit: transport-level authentication
 (`RequireAuth`, `HasRole`, `HasAllRoles`, `HasScope`, `HasAllScopes`,
 `RequireClientId`, or custom classes implementing the `Guard` protocol),
 per-request identity via `CallerContext`, and runtime `OpenModeConfig`
-guardrails for self-modifying agents. Implement new access checks as guards —
-small, composable, per-tool predicates — rather than global flags or
+guardrails for self-modifying agents. Implement new access checks as guards,
+small, composable, per-tool predicates, rather than global flags or
 hard-coded role checks inside handlers.
 
 ---

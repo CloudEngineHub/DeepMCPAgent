@@ -7,7 +7,7 @@ description: "Resolve ${VAR} and ${VAR:-default} placeholders in config strings 
 
 The environment resolver lets you embed `${VAR_NAME}` placeholders in
 configuration strings and nested dictionaries.  At load time, these references
-are replaced with the corresponding environment variable values -- keeping
+are replaced with the corresponding environment variable values: keeping
 secrets like API keys and tokens out of source code.
 
 **Source:** `src/promptise/env_resolver.py`
@@ -36,8 +36,8 @@ Two placeholder forms are supported:
 
 | Syntax | Behaviour |
 |--------|-----------|
-| `${VAR_NAME}` | **Required** -- raises `EnvVarNotFoundError` if the variable is not set |
-| `${VAR_NAME:-default_value}` | **Optional** -- uses `default_value` when the variable is not set |
+| `${VAR_NAME}` | **Required**: raises `EnvVarNotFoundError` if the variable is not set |
+| `${VAR_NAME:-default_value}` | **Optional**: uses `default_value` when the variable is not set |
 
 The placeholder pattern matches variable names that follow Python/shell
 conventions: letters, digits, and underscores, starting with a letter or
@@ -66,7 +66,7 @@ resolve_env_var("${DB_USER}@${DB_HOST}")
 ### Resolving nested dictionaries
 
 `resolve_env_in_dict` walks an entire nested dictionary and resolves
-placeholders in all string values -- including strings inside lists and
+placeholders in all string values, including strings inside lists and
 sub-dictionaries.
 
 ```python
@@ -110,7 +110,7 @@ config = {
 missing = validate_all_env_vars_available(config)
 if missing:
     print(f"Missing env vars: {', '.join(missing)}")
-    # Only lists truly required variables -- those with defaults are excluded
+    # Only lists truly required variables: those with defaults are excluded
 ```
 
 ### The regex pattern
@@ -178,11 +178,11 @@ references in custom tooling.
     `Environment variable 'API_KEY' not found (referenced in: servers.math.url)`.
 
 !!! warning
-    `resolve_env_in_dict` returns a **new** dictionary -- it does not mutate the
+    `resolve_env_in_dict` returns a **new** dictionary: it does not mutate the
     input.  Non-string, non-dict, non-list values are passed through unchanged.
 
 ## What's next
 
-- [Config & Server Specs](config.md) -- use resolved values in server specifications
-- [Exceptions](exceptions.md) -- details on `EnvVarNotFoundError`
-- [SuperAgent files](agents/superagent-files.md) -- YAML-based configuration that uses env resolution
+- [Config & Server Specs](config.md): use resolved values in server specifications
+- [Exceptions](exceptions.md): details on `EnvVarNotFoundError`
+- [SuperAgent files](agents/superagent-files.md): YAML-based configuration that uses env resolution

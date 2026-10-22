@@ -47,11 +47,11 @@ Prefer calling tools rather than guessing, and cite results from tools clearly.
 
 This prompt establishes five key behaviours:
 
-1. **Tool-first mindset** -- the agent should use tools rather than guess answers.
-2. **Schema awareness** -- always read tool descriptions and input schemas before calling.
-3. **Precision** -- avoid hallucinating tool argument values.
-4. **Tool preference** -- prefer calling a tool over making up a response.
-5. **Citation** -- cite tool results clearly in the final answer.
+1. **Tool-first mindset**: the agent should use tools rather than guess answers.
+2. **Schema awareness**: always read tool descriptions and input schemas before calling.
+3. **Precision**: avoid hallucinating tool argument values.
+4. **Tool preference**: prefer calling a tool over making up a response.
+5. **Citation**: cite tool results clearly in the final answer.
 
 ### Overriding the prompt
 
@@ -152,4 +152,4 @@ asyncio.run(main())
 
 !!! tip "Learn the concept"
 
-    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices) -- What belongs in an agent's system prompt and how to test it.
+    - [System Prompt Best Practices for AI Agents in Python](https://www.promptise.com/guides/view/ai-agent-system-prompt-best-practices): What belongs in an agent's system prompt and how to test it.

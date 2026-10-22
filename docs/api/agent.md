@@ -5,7 +5,7 @@ description: "API reference for build_agent, PromptiseAgent, CallerContext and t
 
 # Agent API Reference
 
-Core agent creation, native tools, invocation, identity, conversations, and the full reasoning engine — every public class across `promptise.agent`, `promptise.function_tools`, `promptise.engine`, and `promptise.conversations`.
+Core agent creation, native tools, invocation, identity, conversations, and the full reasoning engine: every public class across `promptise.agent`, `promptise.function_tools`, `promptise.engine`, and `promptise.conversations`.
 
 ## Building Agents
 

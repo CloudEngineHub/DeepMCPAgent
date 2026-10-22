@@ -25,7 +25,7 @@ pip install promptise
 export OPENAI_API_KEY=sk-...
 ```
 
-## Step 1 — Build the Knowledge Base Server
+## Step 1: Build the Knowledge Base Server
 
 Create an MCP server that the agent connects to for customer data and KB articles.
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     server.run(transport="stdio")
 ```
 
-## Step 2 — Build the Agent with a Custom Reasoning Pattern
+## Step 2: Build the Agent with a Custom Reasoning Pattern
 
 Instead of generic ReAct, use a specialized support pattern:
 **Classify → Search KB → Draft → Validate → Respond**
@@ -215,7 +215,7 @@ async def main():
 asyncio.run(main())
 ```
 
-## Step 3 — Add Conversation Persistence
+## Step 3: Add Conversation Persistence
 
 Make the agent remember past interactions:
 
@@ -234,7 +234,7 @@ response = await agent.chat(
     caller=CallerContext(user_id="C-1001"),
 )
 
-# Second message — agent remembers the first
+# Second message: agent remembers the first
 response = await agent.chat(
     "Can you check the tracking number?",
     session_id="session-alice-001",
@@ -242,7 +242,7 @@ response = await agent.chat(
 )
 ```
 
-## Step 4 — Add Escalation Rules
+## Step 4: Add Escalation Rules
 
 Use approval workflows for sensitive actions:
 
@@ -264,7 +264,7 @@ agent = await build_agent(
 )
 ```
 
-## Step 5 — Add Guardrails
+## Step 5: Add Guardrails
 
 Prevent the agent from leaking PII or making unauthorized promises:
 
@@ -299,6 +299,6 @@ A production customer support agent with:
 
 ## Next Steps
 
-- [Multi-User Systems Guide](multi-user-systems.md) — Add JWT auth and per-user isolation
-- [Reasoning Patterns](../core/agents/reasoning-patterns.md) — Customize the reasoning flow
-- [Prompt Engineering Guide](prompt-engineering.md) — Add ConversationFlow for phase-based prompts
+- [Multi-User Systems Guide](multi-user-systems.md): Add JWT auth and per-user isolation
+- [Reasoning Patterns](../core/agents/reasoning-patterns.md): Customize the reasoning flow
+- [Prompt Engineering Guide](prompt-engineering.md): Add ConversationFlow for phase-based prompts

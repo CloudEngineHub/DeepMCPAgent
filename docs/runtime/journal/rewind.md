@@ -198,13 +198,13 @@ promptise runtime rewind PROCESS [ENTRY_ID] [--mode MODE] [--plan] [--yes]
 
 | Option | Default | Description |
 |---|---|---|
-| `ENTRY_ID` | -- | The entry to go back to. Omit it to list the newest entries with their IDs |
+| `ENTRY_ID` |: | The entry to go back to. Omit it to list the newest entries with their IDs |
 | `--mode`, `-m` | `both` | `both`, `conversation_only`, `code_only` or `summarize` |
 | `--plan` | off | Show the plan and stop |
 | `--yes`, `-y` | off | Apply without asking |
-| `--runtime`, `-r` | -- | The runtime the process runs in (needed when several are running) |
+| `--runtime`, `-r` |: | The runtime the process runs in (needed when several are running) |
 | `--lines`, `-n` | `20` | Entries to list when no entry ID is given (1-500) |
-| `--url`, `--token` | -- | Talk to an Orchestration API instead of a local runtime |
+| `--url`, `--token` |: | Talk to an Orchestration API instead of a local runtime |
 
 The command goes through the runtime's control API, so the process must be in a running runtime. It prints the plan, asks `Rewind <process>? [y/N]`, and records the rewind with actor `"cli"`. Answering no (or no answer) exits with code 1 and changes nothing.
 

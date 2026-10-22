@@ -392,7 +392,7 @@ config = manifest_to_process_config(manifest)          # ProcessConfig
 process = AgentProcess(name=manifest.name, config=config)
 
 warnings = validate_manifest("agents/watcher.agent")
-# ['No MCP servers configured — agent has no tools']
+# ['No MCP servers configured: agent has no tools']
 
 save_manifest(manifest, "agents/watcher-copy.agent")
 ```

@@ -18,7 +18,7 @@ import asyncio
 from promptise import build_agent, StdioServerSpec
 
 async def main():
-    # ModelLike as a string -- the most common form
+    # ModelLike as a string: the most common form
     agent = await build_agent(
         model="openai:gpt-5-mini",
         servers={
@@ -37,7 +37,7 @@ asyncio.run(main())
 
 ### ModelLike
 
-`ModelLike` is a union type that accepts four forms for specifying a model — the in-depth reference is [Models & Providers](agents/models.md):
+`ModelLike` is a union type that accepts four forms for specifying a model, the in-depth reference is [Models & Providers](agents/models.md):
 
 ```python
 ModelLike = str | Model | BaseChatModel | Runnable[Any, Any]
@@ -46,7 +46,7 @@ ModelLike = str | Model | BaseChatModel | Runnable[Any, Any]
 | Form | Type | Example | When to use |
 |------|------|---------|-------------|
 | Provider string | `str` | `"openai:gpt-5-mini"` | Most common.  Promptise resolves the string to the correct LangChain chat model class. |
-| `Model` object | `promptise.Model` | `Model("gpt-4o", provider="azure", deployment="chat-prod", endpoint=..., api_key=..., api_version=...)` | Credentials and settings in code, the same words for every provider — see [Models & Providers](agents/models.md#in-code-model). |
+| `Model` object | `promptise.Model` | `Model("gpt-4o", provider="azure", deployment="chat-prod", endpoint=..., api_key=..., api_version=...)` | Credentials and settings in code, the same words for every provider: see [Models & Providers](agents/models.md#in-code-model). |
 | Chat model instance | `BaseChatModel` | `ChatOpenAI(model="gpt-5-mini")` | When you need fine-grained control over model parameters (temperature, max tokens, etc.). |
 | Runnable | `Runnable[Any, Any]` | A custom LangChain runnable | When you have a pre-built chain or custom model wrapper. |
 
@@ -139,8 +139,8 @@ asyncio.run(main())
 
 | Export | Type | Description |
 |--------|------|-------------|
-| `ModelLike` | Type alias | `str \| Model \| BaseChatModel \| Runnable[Any, Any]` -- accepted by `build_agent(model=...)` |
-| `ServerSpec` | Type alias | `StdioServerSpec \| HTTPServerSpec` -- re-exported from `config.py` |
+| `ModelLike` | Type alias | `str \| Model \| BaseChatModel \| Runnable[Any, Any]`: accepted by `build_agent(model=...)` |
+| `ServerSpec` | Type alias | `StdioServerSpec \| HTTPServerSpec`: re-exported from `config.py` |
 | `CrossAgent` | Frozen dataclass | Wraps a peer agent with a description for cross-agent delegation |
 
 ### CrossAgent attributes
@@ -163,12 +163,12 @@ asyncio.run(main())
     support it.  Most OpenAI and Anthropic models do.
 
 !!! tip
-    The `CrossAgent` wrapper is descriptive only -- it does not modify the peer
+    The `CrossAgent` wrapper is descriptive only: it does not modify the peer
     agent.  The actual tool behaviour (ask, broadcast) is implemented by
     `make_cross_agent_tools()` in the `cross_agent` module.
 
 ## What's next
 
-- [Config & Server Specs](config.md) -- details on `StdioServerSpec` and `HTTPServerSpec`
-- [Environment Resolver](env-resolver.md) -- resolve `${VAR}` placeholders
-- [Building Agents](agents/building-agents.md) -- use `ModelLike` with `build_agent`
+- [Config & Server Specs](config.md): details on `StdioServerSpec` and `HTTPServerSpec`
+- [Environment Resolver](env-resolver.md): resolve `${VAR}` placeholders
+- [Building Agents](agents/building-agents.md): use `ModelLike` with `build_agent`

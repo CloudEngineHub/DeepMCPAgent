@@ -47,10 +47,10 @@ asyncio.run(main())
 
 Cross-agent delegation lets a primary agent call peer agents as if they were regular tools. When you pass the `cross_agents` parameter to `build_agent()`, Promptise generates:
 
-1. **Per-peer ask tools** -- For each peer named `<name>`, a tool called `ask_agent_<name>` is created. The primary agent calls this tool to forward a message to that specific peer and receive its response.
-2. **Broadcast tool (opt-in)** -- With `include_broadcast=True`, a single `broadcast_to_agents` tool that sends the same message to multiple peers in parallel and returns a mapping of peer name to response.
+1. **Per-peer ask tools**: For each peer named `<name>`, a tool called `ask_agent_<name>` is created. The primary agent calls this tool to forward a message to that specific peer and receive its response.
+2. **Broadcast tool (opt-in)**: With `include_broadcast=True`, a single `broadcast_to_agents` tool that sends the same message to multiple peers in parallel and returns a mapping of peer name to response.
 
-Peers are standard LangChain `Runnable` objects (typically `PromptiseAgent` instances returned by `build_agent()`). No new infrastructure is required -- delegation happens in-process via async calls.
+Peers are standard LangChain `Runnable` objects (typically `PromptiseAgent` instances returned by `build_agent()`). No new infrastructure is required: delegation happens in-process via async calls.
 
 ```
 Primary Agent
@@ -195,7 +195,7 @@ asyncio.run(main())
 
 ### Timeouts
 
-Timeouts prevent a slow peer from blocking the primary agent indefinitely. You set them in Python -- the model has no say:
+Timeouts prevent a slow peer from blocking the primary agent indefinitely. You set them in Python, the model has no say:
 
 ```python
 coordinator = await build_agent(
@@ -215,7 +215,7 @@ A peer's own `max_invocation_time` still applies inside it; `max_invocation_time
 
 ### Delegation limits
 
-Delegation is bounded at run time, so an agent that keeps delegating -- to itself through a peer, or around a cycle of peers -- stops quickly instead of spending model calls:
+Delegation is bounded at run time, so an agent that keeps delegating (to itself through a peer, or around a cycle of peers) stops quickly instead of spending model calls:
 
 - **Depth.** `max_delegation_depth` (default `3`) is the most nested delegations one request may make: coordinator → peer (1) → peer (2) → peer (3). A fourth level is refused.
 - **Loops.** A call to a peer that is already working on the same request is refused, at any depth.
@@ -268,7 +268,7 @@ coordinator = await build_agent(..., cross_agents=peers, include_broadcast=True)
 
 Delegation tools are ordinary tools, so `approval=` patterns apply to them: `ApprovalPolicy(tools=["ask_agent_payments"], ...)` asks a reviewer before the coordinator may ask the payments agent. The broadcast tool respects that gate: a peer whose `ask_agent_<name>` tool needs approval is not called by `broadcast_to_agents`, and its entry in the result says to use `ask_agent_<name>` instead. If the broadcast tool needs approval itself (for example `tools=["broadcast_*"]`), that approval covers every peer it reaches. A peer's own `approval=` applies inside the peer as usual.
 
-The peer runs with the same `CallerContext` as the request that reached it, so caches, memory, guardrails and approval requests stay scoped to the original user. The delegating agent's `identity` is announced to the peer and recorded as `delegated_by` on the peer's observability events; each hop records its own delegator, and a hop made by an agent without an identity records none -- never the identity of an agent further up the chain.
+The peer runs with the same `CallerContext` as the request that reached it, so caches, memory, guardrails and approval requests stay scoped to the original user. The delegating agent's `identity` is announced to the peer and recorded as `delegated_by` on the peer's observability events; each hop records its own delegator, and a hop made by an agent without an identity records none: never the identity of an agent further up the chain.
 
 ### Building the tools yourself
 
@@ -309,7 +309,7 @@ tools = make_cross_agent_tools(
 | `build_superagent()` | `from promptise import build_superagent` | Builds an agent from a `.superagent` file together with every cross-agent it references. |
 
 !!! tip "Peer agents are just Runnables"
-    Any LangChain `Runnable` works as a peer -- it does not have to be a `PromptiseAgent`. A custom chain, a `PromptGraphEngine`, or even a mock runnable for testing all work as long as they accept `{"messages": [...]}` input.
+    Any LangChain `Runnable` works as a peer: it does not have to be a `PromptiseAgent`. A custom chain, a `PromptGraphEngine`, or even a mock runnable for testing all work as long as they accept `{"messages": [...]}` input.
 
 !!! tip "In-process only"
     Cross-agent delegation is in-process. For remote agent delegation across machines, connect agents to shared MCP servers so they can exchange data through tools.
@@ -322,12 +322,12 @@ tools = make_cross_agent_tools(
 
 ## What's Next?
 
-- [Building Agents](building-agents.md) -- the `build_agent()` function reference.
-- [SuperAgent Files](superagent-files.md) -- define cross-agent references declaratively in YAML and build the whole team with `build_superagent()`.
-- [Multi-Agent Coordination](../../guides/multi-agent-teams.md) -- delegation, shared MCP servers and the runtime together.
-- [Agent Runtime](../../runtime/index.md) -- long-running agents with triggers and lifecycle management.
+- [Building Agents](building-agents.md): the `build_agent()` function reference.
+- [SuperAgent Files](superagent-files.md): define cross-agent references declaratively in YAML and build the whole team with `build_superagent()`.
+- [Multi-Agent Coordination](../../guides/multi-agent-teams.md): delegation, shared MCP servers and the runtime together.
+- [Agent Runtime](../../runtime/index.md): long-running agents with triggers and lifecycle management.
 
 !!! tip "Learn the concept"
 
-    - [Build a Multi-Agent System in Python (and When Not To)](https://www.promptise.com/guides/view/multi-agent-system-python) -- When delegating to other agents pays off, and when it doesn't.
-    - [LLM Agent Orchestration Patterns: Supervisor, Handoff](https://www.promptise.com/guides/view/llm-agent-orchestration) -- Supervisor-worker and handoff patterns explained.
+    - [Build a Multi-Agent System in Python (and When Not To)](https://www.promptise.com/guides/view/multi-agent-system-python): When delegating to other agents pays off, and when it doesn't.
+    - [LLM Agent Orchestration Patterns: Supervisor, Handoff](https://www.promptise.com/guides/view/llm-agent-orchestration): Supervisor-worker and handoff patterns explained.

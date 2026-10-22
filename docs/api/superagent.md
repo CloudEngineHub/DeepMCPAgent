@@ -53,7 +53,7 @@ SuperAgent file loader, validator, and schema definitions. Handles loading, pars
 
 ### IdentityConfig
 
-The `identity:` section — gives the agent a local or verifiable
+The `identity:` section: gives the agent a local or verifiable
 [Agent Identity](../identity/overview.md). See the
 [`.superagent` reference](../core/agents/superagent-files.md#identity).
 

@@ -916,6 +916,6 @@ async def create_agent(ctx: RunContext) -> PromptiseAgent:
 
 !!! tip "Learn the concept"
 
-    - [How to Run, Debug and Deploy an AI Agent in Python](https://www.promptise.com/guides/view/run-debug-deploy-ai-agent-python) -- Run, debug and deploy an agent project with one command.
-    - [How to Deploy an AI Agent with Docker (2026 Guide)](https://www.promptise.com/guides/view/deploy-ai-agent-docker) -- Dockerfile, secrets, health checks and graceful shutdown.
-    - [AI Agent Evals in CI: Run Them on Every Pull Request](https://www.promptise.com/guides/view/ai-agent-evals-ci-github-actions) -- Run agent evals on every pull request.
+    - [How to Run, Debug and Deploy an AI Agent in Python](https://www.promptise.com/guides/view/run-debug-deploy-ai-agent-python): Run, debug and deploy an agent project with one command.
+    - [How to Deploy an AI Agent with Docker (2026 Guide)](https://www.promptise.com/guides/view/deploy-ai-agent-docker): Dockerfile, secrets, health checks and graceful shutdown.
+    - [AI Agent Evals in CI: Run Them on Every Pull Request](https://www.promptise.com/guides/view/ai-agent-evals-ci-github-actions): Run agent evals on every pull request.
