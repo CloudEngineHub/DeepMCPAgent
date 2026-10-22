@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Added
+
+- **`promptise.testing`: test agents without a model provider.** `ScriptedModel` is a chat model that answers each call with the next reply you scripted and records every request it got, so an agent runs in a test with no API key, no network and the same result every time, and the test imports nothing from LangChain:
+
+  ```python
+  from promptise import build_agent, tool
+  from promptise.testing import ScriptedModel, ToolCall
+
+  @tool
+  def get_order(order_id: str) -> dict:
+      """Look up an order by its ID."""
+      return {"order_id": order_id, "status": "shipped"}
+
+  model = ScriptedModel([
+      ToolCall("get_order", {"order_id": "A-1001"}),
+      "Order A-1001 has shipped.",
+  ])
+  agent = await build_agent(model=model, extra_tools=[get_order])
+  result = await agent.ainvoke({"messages": [{"role": "user", "content": "Where is A-1001?"}]})
+  assert model.calls[1].tools == ["get_order"]
+  ```
+
+  A reply is a string (the model's answer), a `ToolCall(name, args, id=None)` or a list of them (a turn that calls tools; ids default to `call_1`, `call_2` ...), an `AIMessage`, or a `Malformed` reply in the shapes small models get wrong: `Malformed.tool_call_as_text(name, args, style="json" | "tagged" | "fenced")` writes the call into the text, `Malformed.unparseable_arguments(name, raw_args)` sends arguments that are not JSON (an `invalid_tool_calls` entry). Invented tool names and invalid arguments are plain `ToolCall` replies. `model.calls` holds a `ModelCall` per request (`messages`, the bound `tools` and their `tool_schemas`, `reply`), and `model.remaining` counts the replies not sent yet. A call after the last reply raises `ScriptExhaustedError`, which says which call it was (in an agent run, `ainvoke()` raises `GraphExecutionError` caused by it); `on_exhausted="repeat_last"` repeats the last reply instead. The model supports `ainvoke`/`invoke`, `astream`/`stream` (text word by word, tool calls as tool-call chunks) and `bind_tools`, so it works with every agent pattern, `astream_with_tools()`, a `FallbackChain` and graph nodes. `promptise.testing` is not imported by `import promptise`. See docs/core/testing.md.
+
 ### Changed
 
 - **A call to a tool the agent doesn't have tells the model which tools it has.** The error result was `Error: Unknown tool 'get_ordr'`, so a model that invented or misspelled a tool name had nothing to correct it with and often tried the same name again. It now lists the agent's tools, the names closest to the one called first, at most 20 of them followed by how many more there are, and suggests the tool whose name the called one looks like a misspelling of: `Error: Unknown tool 'get_ordr'. Did you mean 'get_order'? Call one of the available tools: get_order, refund_order.` A name that only shares a word with a tool (`cancel_order` and `get_order`) gets no suggestion. This applies to the tool calls of every built-in agent pattern and of a `ToolNode`. The text still starts with `Error: Unknown tool '<name>'`.
