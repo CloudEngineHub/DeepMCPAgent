@@ -80,30 +80,46 @@ agent = await build_agent(
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `servers` | `Mapping[str, ServerSpec] \| None` | `None` | Named MCP server connections. Leave it out for an agent without MCP tools. See [Server Configuration](server-specs.md). |
-| `model` | `str \| BaseChatModel \| Runnable` | **required** | LangChain model string (e.g. `"openai:gpt-5-mini"`), a chat model instance, or any Runnable. |
-| `instructions` | `str \| Prompt \| PromptSuite \| None` | Built-in prompt | System prompt. Accepts a plain string, a `Prompt`, or a `PromptSuite`. |
+| `model` | `str \| Model \| BaseChatModel \| Runnable` | **required** | A provider string (e.g. `"openai:gpt-5-mini"`), a `Model(...)`, a `FallbackChain`, a chat model instance, or any Runnable. See [Models & Providers](models.md). |
+| `instructions` | `str \| Prompt \| PromptSuite \| None` | `None` (the [default prompt](../default-prompt.md)) | System prompt. Accepts a plain string, a `Prompt`, or a `PromptSuite`. |
+| `identity` | `AgentIdentity \| None` | `None` | Who the agent is. Its id is recorded on every tool call and LLM turn; a verifiable identity (Entra, AWS, GCP, SPIFFE, OIDC) also presents a signed credential to HTTP/SSE MCP servers that have no bearer of their own. See [Agent Identity](../../identity/overview.md). |
 | `trace_tools` | `bool` | `False` | Print each tool invocation and result to stdout. Covers MCP, cross-agent, sandbox and `extra_tools` tools, and calls answered from an earlier result (`ContextCompaction(reuse_results=...)`), printed as reused. |
-| `observe` | `bool \| ObservabilityConfig \| None` | `None` | Enable observability. Pass `True` for defaults or an `ObservabilityConfig` for full control. |
+| `observe` | `bool \| ObservabilityConfig \| dict \| None` | `None` | Enable observability. `True` records at the `standard` level and writes an HTML report to `./reports` at shutdown; pass an `ObservabilityConfig` (or a dict of its fields) for full control. |
 | `memory` | `MemoryProvider \| dict \| None` | `None` | Memory backend. Automatically searches and injects relevant context before each invocation. |
 | `memory_auto_store` | `bool` | `False` | When `True`, automatically stores each user/assistant exchange in memory. |
+| `memory_max_results` | `int` | `5` | Most memories injected per invocation. |
+| `memory_min_score` | `float` | `0.0` | Drop search results scoring below this relevance (0.0 to 1.0). |
+| `memory_timeout` | `float` | `5.0` | Seconds to wait for the memory search (the agent then answers without memory context) and for an auto-store write. Raise it for providers that are slow to start. |
 | `sandbox` | `bool \| dict \| SandboxConfig \| None` | `None` | Enable sandboxed code execution. `True` uses defaults; a dict provides custom config (unknown keys raise; the network is `"none"` unless set). Raises if the sandbox cannot be started. See [Sandbox](../sandbox.md). |
 | `code_action` | `dict \| CodeActionConfig \| None` | `None` | Only with `agent_pattern="code-action"`: `exec_timeout` (default 120), `max_repairs` (default 1), `max_tool_calls` (default 50, the cap on each program's tool calls, failed ones included; a program that reaches it fails, and a repaired program gets a fresh budget; a job that cannot fit raises `CodeActionBudgetError`). |
 | `observer` | `Any \| None` | `None` | Pass an existing `ObservabilityCollector` to reuse across multiple agents. Mutually exclusive with `observe`. |
 | `observer_agent_id` | `str \| None` | `None` | Agent identifier for the shared observer's timeline entries. |
 | `cross_agents` | `Mapping[str, CrossAgent] \| None` | `None` | Peer agents exposed as `ask_agent_<name>` tools. See [Cross-Agent Delegation](cross-agent.md). |
+| `include_broadcast` | `bool` | `False` | Also add a `broadcast_to_agents` tool that asks several peers the same question in parallel. |
+| `max_delegation_depth` | `int` | `3` | Most nested delegations one request may make (this agent, peer, peer...). A deeper call is refused with a `DelegationError` the model sees. |
+| `delegation_timeout` | `float \| None` | `None` | Seconds to wait for a peer whose `CrossAgent` sets no `timeout`. |
 | `expose_resources` | `bool` | `False` | Give the agent the MCP servers' resources: adds `read_resource` (its description lists the resources and URI templates) and `list_resources`. |
 | `expose_prompts` | `bool` | `False` | Give the agent the MCP servers' prompts: adds `get_prompt` (its description lists the prompts and their arguments), which returns the rendered prompt for the agent to follow. Like MCP tool calls, both send the invoking caller's bearer token to servers with `forward_caller_token` (the default), so the server's roles and guards judge the user, not the agent. |
 | `extra_tools` | `Sequence[BaseTool \| Callable] \| None` | `None` | Your own tools, next to the MCP-discovered ones: functions decorated with `@tool` (`from promptise import tool`), plain functions (made tools as if decorated), and LangChain tools. Anything else raises `TypeError` before any server is connected. See [Your own tools](#your-own-tools-extra_tools). |
 | `flow` | `ConversationFlow \| type \| Callable \| None` | `None` | A conversation flow that evolves the system prompt across turns: an instance (used as a template), a subclass, or a factory. Each session or caller gets its own copy. See [ConversationFlow](../../prompting/flows.md#integration-with-build_agent). |
-| `guardrails` | `PromptiseSecurityScanner \| None` | `None` | Security scanner for input/output. Blocks injection attacks, redacts PII and credentials. See [Guardrails](../guardrails.md). |
-| `optimize_tools` | `str \| ToolOptimizationConfig \| None` | `None` | Semantic tool selection to reduce token costs. Pass `"semantic"` for defaults. See [Tool Optimization](../tool-optimization.md). |
+| `guardrails` | `PromptiseSecurityScanner \| bool \| None` | `None` | Security scanner for input/output. `True` uses `PromptiseSecurityScanner.default()`. Blocks injection attacks, redacts PII and credentials. See [Guardrails](../guardrails.md). |
+| `optimize_tools` | `bool \| str \| ToolOptimizationConfig \| None` | `None` | Shorter tool definitions, or semantic tool selection. `True` or `"minimal"`, `"standard"`, `"semantic"`, or a `ToolOptimizationConfig`. See [Tool Optimization](../tool-optimization.md). |
 | `conversation_store` | `ConversationStore \| None` | `None` | Persistent conversation history. See [Conversations](../conversations.md). |
 | `conversation_max_messages` | `int` | `0` | Max messages to retain per session (0 = unlimited). |
-| `cache` | `SemanticCache \| None` | `None` | Semantic response cache. Serves similar queries from cache, reducing LLM costs by 30-50%. See [Cache](../cache.md). |
-| `approval` | `ApprovalPolicy \| None` | `None` | Human-in-the-loop approval for sensitive tools. See [Approval](../approval.md). |
+| `cache` | `SemanticCache \| None` | `None` | Semantic response cache. Serves similar queries from the cache instead of the model. See [Cache](../cache.md). |
+| `approval` | `ApprovalPolicy \| ApprovalHandler \| Callable \| None` | `None` | Human-in-the-loop approval. An `ApprovalPolicy` gates the agent's own matching tool calls; any of the three also answers server-side approval gates that ask the client through MCP elicitation. See [Approval](../approval.md). |
 | `events` | `EventNotifier \| None` | `None` | Webhook/event notifications. Emits structured events on invocation, tool, guardrail, budget, and process events. See [Events](../events.md). |
 | `on_tool_progress` | `Callable \| None` | `None` | Called as `(tool_name, progress, total, message)` for each progress notification an MCP tool sends during a call; sync or async. Progress is also emitted as `tool.progress` events when `events` is set. See [Progress Reporting](../../mcp/server/resilience-patterns.md#receiving-progress-in-a-promptise-client-or-agent). |
 | `max_invocation_time` | `float` | `0` | Maximum seconds per invocation. Raises `TimeoutError` and emits `invocation.timeout` event when exceeded. `0` = unlimited. |
+| `agent_pattern` | `str \| PromptGraph \| None` | `None` (`"react"`) | The reasoning graph: `"react"`, `"verify"`, `"managed"`, `"code-action"`, `"peoatr"`, `"research"`, `"autonomous"`, `"deliberate"`, `"debate"`, or your own `PromptGraph`. An unknown name raises `ValueError`. See [Reasoning Patterns](reasoning-patterns.md). |
+| `pattern` | `str \| PromptGraph \| None` | `None` | Deprecated alias of `agent_pattern`. |
+| `node_pool` | `list[BaseNode] \| None` | `None` | Build an autonomous graph from these nodes (the agent picks the next node each step). Takes precedence over `agent_pattern`. |
+| `graph_blocks` | `list \| None` | `None` | Prompt blocks added to the nodes of a built-in pattern (`agent_pattern` given as a name). |
+| `max_agent_iterations` | `int` | `25` | Most node executions per run. With the default ReAct graph, `N` allows at most `N` model calls. A run that stops after the model asked for tools raises `GraphIterationLimitError`. |
+| `tool_summary` | `str` | `"off"` | Also list the tools in the system prompt: `"off"`, `"names"` or `"full"` (parameters and the start of each description). |
+| `context_engine` | `ContextEngine \| None` | `None` | Token-budgeted assembly of the system prompt layers. See [Context Engine](../context-engine.md). |
+| `context_compaction` | `bool \| int \| ContextCompaction \| None` | `None` | How long tool loops are compacted: `None`/`True` compact after 6 tool results, an `int` after that many, `False` never. See [Context Lifecycle](../../guides/context-lifecycle.md). |
+| `adaptive` | `bool \| AdaptiveStrategyConfig \| dict \| None` | `None` | Learn from failed tool calls. Needs `memory`. See [Adaptive Strategy](../adaptive-strategy.md). |
 
 ### Your own tools: `extra_tools`
 
@@ -144,6 +160,29 @@ validation, results, timeouts and testing.
 ### The `PromptiseAgent` Class
 
 `build_agent()` returns a `PromptiseAgent`. This is the unified agent object with opt-in capabilities -- disabled features no-op or return sensible defaults, so you never need to check what is active.
+
+#### Members at a glance
+
+| Member | What it does |
+|---|---|
+| `await ainvoke(input, config=None, *, caller=None, session_id=None)` | Run once. `input` is `{"messages": [...]}`; returns the final state, whose `["messages"][-1]` is the answer. |
+| `invoke(...)` | The same, blocking (for scripts without an event loop). |
+| `astream(input, *, caller=None)` | Async iterator of `{"messages": [...]}` after each graph step. |
+| `astream_with_tools(input, *, caller=None, include_arguments=True, tool_display_names=None)` | Async iterator of chat-UI events: `tool_start`, `tool_end`, `token`, `done`, `error`. See [Streaming](../streaming.md). |
+| `await chat(message, *, session_id, user_id=None, caller=None, metadata=None, system_prompt=None)` | Load the session's history from the `conversation_store`, run, store the new messages, return the answer text. Enforces session ownership. See [Conversations](../conversations.md). |
+| `await list_sessions(*, user_id=None, limit=50, offset=0)` | Sessions in the store, optionally one user's. |
+| `await get_session(session_id, *, user_id=None)` | One session's metadata; checks ownership. |
+| `await update_session(session_id, *, calling_user_id=None, user_id=..., title=..., metadata=...)` | Change a session's title, owner or metadata; checks ownership. |
+| `await delete_session(session_id, *, user_id=None)` | Delete a session and its messages; checks ownership. |
+| `get_flow(session_id=None, *, caller=None, user_id=None)` | The `ConversationFlow` kept for a session or caller (with `flow=`). |
+| `get_stats()` | Observability totals (empty dict without `observe`). |
+| `generate_report(path, title=...)` | Write the HTML report; raises `RuntimeError` without `observe`. |
+| `tools`, `tool_names` | Every tool the agent can call, and their names. |
+| `identity` | The `AgentIdentity` passed to `build_agent`, or `None`. |
+| `adaptive_strategy` | The `AdaptiveStrategyManager` (with `adaptive=`), or `None`. |
+| `collector` | The `ObservabilityCollector` (with `observe=`), or `None`. |
+| `last_report` | The engine's `ExecutionReport` for the most recent run: iterations, nodes visited, tool calls, tokens, duration and error. See [ExecutionReport](../engine-hooks.md#executionreport). |
+| `await shutdown()` | Close MCP connections, stores and notifiers; flush transporters. |
 
 #### Invocation Methods
 
