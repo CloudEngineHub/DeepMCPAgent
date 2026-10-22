@@ -168,8 +168,7 @@ Rich keys automatically populate `ctx.state["roles"]`, so role-based guards (`Ha
 
 Clients send their key via the `x-api-key` header (configurable via `header`). The matching client ID becomes `ctx.client_id`. Keys are compared in constant time.
 
-!!! warning "Give `header` in lower case"
-    Request headers reach `ctx.meta` with lower-case names, and `APIKeyAuth` looks the header up exactly as given. `APIKeyAuth(keys, header="X-API-Key")` never finds the key over HTTP; write `header="x-api-key"`. With `MCPServer(require_auth=True)`, the [transport gate](deployment.md#transport-level-auth-gate) only reads `Authorization: Bearer` and `x-api-key`, so keep the default header name there.
+The header name is matched case-insensitively, as HTTP header names are: `header="X-Custom-Key"` and `header="x-custom-key"` read the same header. With `MCPServer(require_auth=True)`, the [transport gate](deployment.md#transport-level-auth-gate) reads the API key from the same header.
 
 ### AsymmetricJWTAuth
 

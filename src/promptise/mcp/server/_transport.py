@@ -309,6 +309,22 @@ def session_principal(scheme: str, credential: str) -> Any:
     )
 
 
+class AuthGateVerifier:
+    """The transport auth gate's verifier, with the API key header to read.
+
+    Callable like the plain ``(token) -> bool`` verifier it wraps;
+    *api_key_header* is the header the gate reads an API key from (the
+    configured ``APIKeyAuth(header=...)``, lower-cased).
+    """
+
+    def __init__(self, verify: Callable[[str], bool], api_key_header: str = "x-api-key") -> None:
+        self._verify = verify
+        self.api_key_header = api_key_header.lower()
+
+    def __call__(self, token: str) -> bool:
+        return self._verify(token)
+
+
 class _AuthGateASGI:
     """ASGI middleware that rejects HTTP requests without valid auth.
 
@@ -333,8 +349,11 @@ class _AuthGateASGI:
             token endpoint, which *issues* tokens and so cannot require
             one).
         api_key_verify_fn: Optional callable ``(key) → bool`` for API
-            key verification.  When not provided but an ``x-api-key``
-            header is present, falls back to ``verify_fn``.
+            key verification.  When not provided but an API key header is
+            present, falls back to ``verify_fn``.
+        api_key_header: Header to read an API key from (default
+            ``x-api-key``, or the ``api_key_header`` of an
+            :class:`AuthGateVerifier`).
     """
 
     def __init__(
@@ -343,11 +362,14 @@ class _AuthGateASGI:
         verify_fn: Callable[[str], bool],
         skip_paths: set[str] | None = None,
         api_key_verify_fn: Callable[[str], bool] | None = None,
+        api_key_header: str | None = None,
     ) -> None:
         self.app = app
         self._verify = verify_fn
         self._skip_paths = skip_paths or set()
         self._verify_api_key = api_key_verify_fn
+        header = api_key_header or getattr(verify_fn, "api_key_header", None) or "x-api-key"
+        self._api_key_header = header.lower()
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         # Let lifespan events through unconditionally
@@ -382,8 +404,9 @@ class _AuthGateASGI:
                 )
                 return
 
-            # Try API key (x-api-key header)
-            api_key = headers.get(b"x-api-key", b"").decode("latin-1")
+            # Try API key (x-api-key, or the configured header). ASGI
+            # header names are lower-case.
+            api_key = headers.get(self._api_key_header.encode("latin-1"), b"").decode("latin-1")
             if api_key:
                 verify_key = self._verify_api_key or self._verify
                 if verify_key(api_key):
@@ -408,7 +431,7 @@ class _AuthGateASGI:
                     "error": "Authentication required",
                     "message": "This server requires authentication. "
                     "Pass a Bearer token via the Authorization header "
-                    "or an API key via the x-api-key header.",
+                    f"or an API key via the {self._api_key_header} header.",
                 },
             )
             return

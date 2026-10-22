@@ -258,7 +258,7 @@ server.run(transport="http", host="127.0.0.1", port=8080)
 With `require_auth=True` and an `AuthMiddleware` installed, the server checks every HTTP request for:
 
 1. **Bearer token**: `Authorization: Bearer <jwt-token>`: verified with the configured auth provider
-2. **API key**: `x-api-key: <key>`: verified with the API key provider
+2. **API key**: `x-api-key: <key>` (or the header given to `APIKeyAuth(header=...)`): verified with the API key provider
 
 Unauthenticated requests receive a `401` JSON response:
 

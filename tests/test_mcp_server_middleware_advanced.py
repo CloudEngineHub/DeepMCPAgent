@@ -276,6 +276,7 @@ class TestWebhookMiddleware:
             )
             ctx = make_ctx()
             result = await middleware(ctx, ok_handler)
+            await middleware.flush(timeout=5)
 
         assert result == "ok"
         # Two payloads in sent buffer: tool.call + tool.success
@@ -298,6 +299,7 @@ class TestWebhookMiddleware:
             ctx = make_ctx()
             with pytest.raises(RuntimeError):
                 await middleware(ctx, failing_handler)
+            await middleware.flush(timeout=5)
 
         assert len(middleware.sent) == 1
         assert middleware.sent[0]["event"] == "tool.error"
@@ -321,6 +323,7 @@ class TestWebhookMiddleware:
             ctx = make_ctx()
             # Tool call still succeeds even if webhook delivery fails
             result = await middleware(ctx, ok_handler)
+            await middleware.flush(timeout=5)
 
         assert result == "ok"
 
@@ -343,6 +346,7 @@ class TestWebhookMiddleware:
             )
             ctx = make_ctx(tool_name="my_tool", client_id="client-99")
             await middleware(ctx, ok_handler)
+            await middleware.flush(timeout=5)
 
         payload = middleware.sent[0]
         assert payload["event"] == "tool.call"

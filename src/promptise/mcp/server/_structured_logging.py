@@ -35,11 +35,20 @@ class StructuredLoggingMiddleware:
     - ``duration_ms``: Execution time (on completion)
     - ``status``: ``"ok"`` or ``"error"``
     - ``error``: Error message (on failure)
+    - ``args``: The validated arguments (on ``tool_call_start``, with
+      ``include_args=True``)
 
     Args:
         log_level: Python logging level (default ``logging.INFO``).
-        include_args: Include tool arguments in logs (default ``False``
-            to avoid leaking sensitive data).
+        include_args: Add the call's validated arguments to the
+            ``tool_call_start`` entry as ``args`` (default ``False``).
+            They pass through the framework's redaction first
+            (:func:`promptise.observability.redact_sensitive`): the value
+            of a credential key (``password``, ``api_key``, ``token``...)
+            and credentials or PII in strings (API keys, JWTs, card
+            numbers, email addresses...) are replaced with placeholders.
+            Pattern matching can't recognise every kind of personal data,
+            so leave this off for tools that take it.
     """
 
     def __init__(
@@ -59,6 +68,11 @@ class StructuredLoggingMiddleware:
         }
         if ctx.client_id:
             entry["client_id"] = ctx.client_id
+        if self._include_args:
+            from ...observability import redact_sensitive
+
+            arguments = ctx.state.get("_tool_arguments")
+            entry["args"] = redact_sensitive(dict(arguments) if isinstance(arguments, dict) else {})
 
         logger.log(self._level, json.dumps(entry, default=str))
 

@@ -226,7 +226,7 @@ server.add_middleware(WebhookMiddleware(
     url="https://hooks.slack.com/services/T.../B.../xxx",
     events={"tool.error"},              # Only fire on errors
     headers={"Authorization": "Bearer slack-token"},
-    timeout=5.0,                        # Don't block tool calls
+    timeout=5.0,                        # Per delivery
 ))
 ```
 
@@ -251,7 +251,9 @@ server.add_middleware(WebhookMiddleware(
 }
 ```
 
-`WebhookMiddleware(url, *, events=None, headers=None, timeout=5.0)`; `events=None` fires all three events. A delivery failure never fails the tool call: an unreachable endpoint is logged at `DEBUG` and the call proceeds. Delivery is awaited in the request, though, so a slow endpoint adds up to `timeout` seconds per event to the call (with the default events, `tool.call` and the result event both wait). Keep `timeout` short, or limit `events` to `{"tool.error"}`. Each payload is also kept in `middleware.sent` (a list that is never cleared), which helps in tests but grows for the life of the process. The event names are `tool.*`, but the middleware runs for resource reads and prompt requests too; `tool` then holds the resource or prompt name.
+`WebhookMiddleware(url, *, events=None, headers=None, timeout=5.0, max_queue=1000, max_concurrency=4, history=100)`; `events=None` fires all three events.
+
+Deliveries never delay the tool call: each event goes on a queue of at most `max_queue` events, and background tasks send them, at most `max_concurrency` at a time. When the queue is full (the endpoint is slower than the event rate), the event is dropped with a warning and counted in `middleware.dropped`. A failed delivery (unreachable endpoint, timeout) is logged at `DEBUG` and not retried. `await middleware.flush(timeout=None)` waits until the queue is empty, which tests and shutdown code can use, and `await middleware.aclose()` delivers what is queued (up to 5 seconds) and stops the delivery tasks. `middleware.sent` holds the most recent `history` payloads, in the order they were queued, which helps in tests. The event names are `tool.*`, but the middleware runs for resource reads and prompt requests too; `tool` then holds the resource or prompt name.
 
 ---
 

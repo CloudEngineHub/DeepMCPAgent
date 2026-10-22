@@ -1220,7 +1220,14 @@ class MCPServer:
         """Verifier for the HTTP auth gate when ``require_auth`` is on."""
         if self._require_auth and self._auth_provider:
             if hasattr(self._auth_provider, "verify_token"):
-                return cast("Callable[[str], bool]", self._auth_provider.verify_token)
+                from ._transport import AuthGateVerifier
+
+                # The gate reads an API key from APIKeyAuth(header=...).
+                header = getattr(self._auth_provider, "header", None)
+                return AuthGateVerifier(
+                    cast("Callable[[str], bool]", self._auth_provider.verify_token),
+                    api_key_header=header if isinstance(header, str) and header else "x-api-key",
+                )
         return None
 
     # ------------------------------------------------------------------
