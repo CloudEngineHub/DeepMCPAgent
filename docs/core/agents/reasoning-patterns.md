@@ -447,6 +447,23 @@ When you pass `agent_pattern=` to `build_agent()`:
     - Events and notifications
     - CallerContext per-request identity
 
+### In an Agent Runtime process
+
+A process started by a cron schedule, a webhook or another trigger picks its pattern in its config. `ProcessConfig(agent_pattern=...)` takes the same pattern names, or a `PromptGraph` in code, and every agent the process builds uses it (after a restart, a hot reload or new instructions):
+
+```python
+from promptise.runtime import ProcessConfig, TriggerConfig
+
+config = ProcessConfig(
+    model="openai:gpt-5-mini",
+    instructions="Review yesterday's failed orders and plan the fixes.",
+    agent_pattern="peoatr",
+    triggers=[TriggerConfig(type="cron", cron_expression="0 7 * * *")],
+)
+```
+
+In a `.agent` manifest it is the top-level `agent_pattern:` key. See [The agent's reasoning pattern](../../runtime/processes.md#the-agents-reasoning-pattern).
+
 ## See Also
 
 - [Reasoning Graph Overview](../engine.md): Architecture and engine details

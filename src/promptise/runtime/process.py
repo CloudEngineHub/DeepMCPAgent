@@ -2560,6 +2560,8 @@ class AgentProcess:
             build_kwargs["adaptive"] = self.config.adaptive
         if hasattr(self.config, "max_invocation_time") and self.config.max_invocation_time:
             build_kwargs["max_invocation_time"] = self.config.max_invocation_time
+        if self.config.agent_pattern is not None:
+            build_kwargs["agent_pattern"] = self.config.agent_pattern
 
         agent = await _build(**build_kwargs)
         # The agent must not stop the notifier on shutdown: stop() still

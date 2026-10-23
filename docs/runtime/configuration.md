@@ -110,6 +110,7 @@ Configuration for one agent process. Unknown keys are rejected.
 |---|---|---|---|
 | `model` | `str` or a model | `"openai:gpt-5-mini"` | LLM model ID. In code also a model object as `build_agent(model=...)` takes it (a LangChain chat model, a `promptise.Model`, a `FallbackChain`); a model object is not serialised. See [The agent's model](processes.md#the-agents-model). |
 | `instructions` | `str \| None` | `None` | System prompt |
+| `agent_pattern` | `str`, a `PromptGraph` or `None` | `None` | The [reasoning pattern](../core/agents/reasoning-patterns.md), passed to `build_agent(agent_pattern=...)`: a name from `promptise.agent.AGENT_PATTERNS` (`"react"`, `"peoatr"`, `"research"`, ...) or, in code, a `PromptGraph` (not serialised). `None` runs ReAct. An unknown name raises a `ValidationError`. See [The agent's reasoning pattern](processes.md#the-agents-reasoning-pattern). |
 | `execution_mode` | `ExecutionMode` | `ExecutionMode.STRICT` | `"strict"` or `"open"` (self-modifying, see [Meta-Tools](meta-tools.md)) |
 | `open_mode` | `OpenModeConfig` | `OpenModeConfig()` | Open-mode limits; ignored in strict mode |
 | `servers` | `dict[str, Any]` | `{}` | MCP servers: a dict per server (`url` for HTTP, `command` for stdio) or a server spec object |

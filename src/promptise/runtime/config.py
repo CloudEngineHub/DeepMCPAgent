@@ -59,6 +59,32 @@ def check_process_model(value: Any, *, argument: str = "ProcessConfig.model") ->
     )
 
 
+def check_process_agent_pattern(
+    value: Any, *, argument: str = "ProcessConfig.agent_pattern"
+) -> Any:
+    """*value* if :func:`~promptise.agent.build_agent` takes it as
+    ``agent_pattern``, else ``ValueError``.
+
+    ``None``, a pattern name from ``promptise.agent.AGENT_PATTERNS`` or a
+    :class:`~promptise.engine.PromptGraph`.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        from promptise.agent import _check_agent_pattern
+
+        _check_agent_pattern(value)
+        return value
+    from promptise.engine import PromptGraph
+
+    if isinstance(value, PromptGraph) or hasattr(value, "_nodes"):
+        return value
+    raise ValueError(
+        f"{argument} takes a pattern name such as 'peoatr' or a PromptGraph, "
+        f"not {type(value).__name__}"
+    )
+
+
 def model_label(model: Any) -> str:
     """A short, secret-free name for a process's model, for status and logs.
 
@@ -1179,6 +1205,15 @@ class ProcessConfig(BaseModel):
             leave ``model`` out, so a config read back from them has the
             default model id.  Anything else raises a ``ValidationError``.
         instructions: System prompt for the agent.
+        agent_pattern: The reasoning pattern the agent runs, as in
+            :func:`~promptise.agent.build_agent`: a pattern name from
+            ``promptise.agent.AGENT_PATTERNS`` (``"react"``, ``"managed"``,
+            ``"code-action"``, ``"verify"``, ``"peoatr"``, ``"research"``,
+            ``"autonomous"``, ``"deliberate"``, ``"debate"``) or, in code,
+            a :class:`~promptise.engine.PromptGraph`.  ``None`` (default)
+            runs ReAct.  An unknown name raises a ``ValidationError`` when
+            the config is created.  A graph object is code only, like a
+            model object: ``model_dump()`` and ``to_dict()`` leave it out.
         servers: MCP server specifications (same format as ``.superagent``).
         triggers: Trigger configurations.
         journal: Journal configuration.  Off by default (``level="none"``);
@@ -1237,6 +1272,14 @@ class ProcessConfig(BaseModel):
         description="LLM model ID (or, in code, a chat model / promptise.Model; not serialised)",
     )
     instructions: str | None = Field(None, description="System prompt")
+    agent_pattern: Any | None = Field(
+        None,
+        description=(
+            "Reasoning pattern: a name from promptise.agent.AGENT_PATTERNS "
+            "(react, peoatr, ...) or, in code, a PromptGraph (not serialised). "
+            "None runs ReAct."
+        ),
+    )
     execution_mode: ExecutionMode = Field(
         ExecutionMode.STRICT,
         description="Agent execution mode: strict (immutable) or open (self-modifying)",
@@ -1374,16 +1417,29 @@ class ProcessConfig(BaseModel):
     def _check_model(cls, v: Any) -> Any:
         return check_process_model(v)
 
+    @field_validator("agent_pattern", mode="before")
+    @classmethod
+    def _check_agent_pattern(cls, v: Any) -> Any:
+        return check_process_agent_pattern(v)
+
     @field_serializer("model")
     def _serialize_model(self, v: Any) -> str | None:
         # A model object is never serialised (see the wrap serializer).
         return v if isinstance(v, str) else None
 
+    @field_serializer("agent_pattern")
+    def _serialize_agent_pattern(self, v: Any) -> str | None:
+        # A graph object is never serialised (see the wrap serializer).
+        return v if isinstance(v, str) else None
+
     @model_serializer(mode="wrap")
     def _leave_out_code_only_model(self, handler: SerializerFunctionWrapHandler) -> Any:
         data = handler(self)
-        if isinstance(data, dict) and not isinstance(self.model, str):
-            data.pop("model", None)
+        if isinstance(data, dict):
+            if not isinstance(self.model, str):
+                data.pop("model", None)
+            if self.agent_pattern is not None and not isinstance(self.agent_pattern, str):
+                data.pop("agent_pattern", None)
         return data
 
 

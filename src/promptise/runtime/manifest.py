@@ -9,6 +9,7 @@ Example ``.agent`` file::
     version: "1.0"
     name: data-watcher
     model: openai:gpt-5-mini
+    agent_pattern: peoatr
     instructions: |
       You monitor data pipelines and alert on anomalies.
 
@@ -84,6 +85,9 @@ class AgentManifestSchema(BaseModel):
         name: Process name (unique identifier).
         model: LLM model ID.
         instructions: System prompt.
+        agent_pattern: Reasoning pattern name, as in
+            :class:`~promptise.runtime.config.ProcessConfig.agent_pattern`
+            (``react``, ``peoatr``, ``research``, ...).  Unset runs ReAct.
         servers: MCP server specifications.
         triggers: Trigger configurations (list of dicts).
         world: Initial world state (key-value).
@@ -110,6 +114,10 @@ class AgentManifestSchema(BaseModel):
     name: str = Field(..., description="Process name")
     model: str = Field("openai:gpt-5-mini", description="LLM model ID")
     instructions: str | None = Field(None, description="System prompt")
+    agent_pattern: str | None = Field(
+        None,
+        description="Reasoning pattern name (react, peoatr, research, ...); unset runs ReAct",
+    )
     identity: dict[str, Any] | None = Field(
         None,
         description=(
@@ -175,6 +183,10 @@ class AgentManifestSchema(BaseModel):
             if "type" not in trigger:
                 raise ValueError(f"Trigger at index {i} is missing required 'type' field")
             _check_model(f"triggers[{i}] ({trigger['type']})", trigger, TriggerConfig)
+        if self.agent_pattern is not None:
+            from .config import check_process_agent_pattern
+
+            check_process_agent_pattern(self.agent_pattern, argument="agent_pattern")
         if self.execution_mode is not None:
             valid_modes = [m.value for m in ExecutionMode]
             if self.execution_mode not in valid_modes:
@@ -246,6 +258,7 @@ class AgentManifestSchema(BaseModel):
         dedicated = {
             "model": "model" in self.model_fields_set,
             "instructions": self.instructions is not None,
+            "agent_pattern": self.agent_pattern is not None,
             "identity": self.identity is not None,
             "execution_mode": self.execution_mode is not None,
             "open_mode": self.open_mode is not None,
@@ -621,6 +634,7 @@ def manifest_to_process_config(
         "model": manifest.model,
         "instructions": manifest.instructions,
         "identity": identity,
+        "agent_pattern": manifest.agent_pattern,
         "execution_mode": execution_mode.value,
         "open_mode": open_mode.model_dump(),
         "servers": servers,

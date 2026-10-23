@@ -141,6 +141,26 @@ A model object is code only, like `extra_tools`: `model_dump()` and `RuntimeConf
 
 ---
 
+### The agent's reasoning pattern
+
+A process runs the default ReAct loop unless its config names another [reasoning pattern](../core/agents/reasoning-patterns.md). `ProcessConfig(agent_pattern=...)` is passed to `build_agent(agent_pattern=...)` each time the process builds its agent, so a run started by a cron schedule or a webhook uses the pattern too:
+
+```python
+from promptise.runtime import AgentProcess, ProcessConfig, TriggerConfig
+
+process = AgentProcess(
+    "nightly-planner",
+    ProcessConfig(
+        model="openai:gpt-5-mini",
+        instructions="Plan tomorrow's restocking from today's orders.",
+        agent_pattern="peoatr",
+        triggers=[TriggerConfig(type="cron", cron_expression="0 22 * * *")],
+    ),
+)
+```
+
+It takes a pattern name from `promptise.agent.AGENT_PATTERNS` or, in code, a `PromptGraph` you built. A graph is code only, like a model object: `model_dump()` and `RuntimeConfig.to_dict()` leave it out. An unknown name raises a `ValidationError` when the config is created, not when the first trigger fires. A manifest sets it with the top-level `agent_pattern:` key. `agent_pattern="code-action"` needs Docker, as in `build_agent()`.
+
 ## Lifecycle methods
 
 | Method | Transition | What it does |

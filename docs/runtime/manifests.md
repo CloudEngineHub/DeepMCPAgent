@@ -45,6 +45,7 @@ promptise runtime start watcher.agent
 | `name` | `str` | required | The process name |
 | `model` | `str` | `"openai:gpt-5-mini"` | `ProcessConfig.model` |
 | `instructions` | `str` | none | `ProcessConfig.instructions` |
+| `agent_pattern` | `str` | none (ReAct) | `ProcessConfig.agent_pattern`: a [reasoning pattern](../core/agents/reasoning-patterns.md) name such as `peoatr` or `research`; an unknown name fails validation |
 | `identity` | mapping | none | `ProcessConfig.identity` (see [identity](#identity)) |
 | `servers` | mapping | `{}` | `ProcessConfig.servers` |
 | `triggers` | list | `[]` | `ProcessConfig.triggers` (each a `TriggerConfig`) |
@@ -300,7 +301,7 @@ config:
     dead_letter_size: 200
 ```
 
-A key that has its own section (`model`, `instructions`, `identity`, `execution_mode`, `open_mode`, `servers`, `triggers`, `journal`, `context`, `secrets`, `budget`, `health`, `mission`, `hooks`) is refused in `config:` when that section is also set; set each option in one place.
+A key that has its own section (`model`, `instructions`, `agent_pattern`, `identity`, `execution_mode`, `open_mode`, `servers`, `triggers`, `journal`, `context`, `secrets`, `budget`, `health`, `mission`, `hooks`) is refused in `config:` when that section is also set; set each option in one place.
 
 ---
 
