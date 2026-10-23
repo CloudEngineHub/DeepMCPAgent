@@ -1216,16 +1216,23 @@ class MCPServer:
             port,
         )
 
-    def _transport_auth_gate(self) -> Callable[[str], bool] | None:
-        """Verifier for the HTTP auth gate when ``require_auth`` is on."""
+    def _transport_auth_gate(self) -> Callable[[str], Any] | None:
+        """Verifier for the HTTP auth gate when ``require_auth`` is on.
+
+        Prefers the provider's async ``averify_token`` (it can consult an
+        async key store or revocation hook), else its ``verify_token``.
+        """
         if self._require_auth and self._auth_provider:
-            if hasattr(self._auth_provider, "verify_token"):
+            verify = getattr(self._auth_provider, "averify_token", None) or getattr(
+                self._auth_provider, "verify_token", None
+            )
+            if callable(verify):
                 from ._transport import AuthGateVerifier
 
                 # The gate reads an API key from APIKeyAuth(header=...).
                 header = getattr(self._auth_provider, "header", None)
                 return AuthGateVerifier(
-                    cast("Callable[[str], bool]", self._auth_provider.verify_token),
+                    cast("Callable[[str], Any]", verify),
                     api_key_header=header if isinstance(header, str) and header else "x-api-key",
                 )
         return None

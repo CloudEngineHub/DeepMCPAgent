@@ -9,11 +9,12 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import hmac
+import inspect
 import ipaddress
 import json as _json
 import logging
 import secrets
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -312,17 +313,34 @@ def session_principal(scheme: str, credential: str) -> Any:
 class AuthGateVerifier:
     """The transport auth gate's verifier, with the API key header to read.
 
-    Callable like the plain ``(token) -> bool`` verifier it wraps;
-    *api_key_header* is the header the gate reads an API key from (the
-    configured ``APIKeyAuth(header=...)``, lower-cased).
+    Callable like the plain ``(token) -> bool`` verifier it wraps (which
+    may also be async, e.g. a provider's ``averify_token``); *api_key_header*
+    is the header the gate reads an API key from (the configured
+    ``APIKeyAuth(header=...)``, lower-cased).
     """
 
-    def __init__(self, verify: Callable[[str], bool], api_key_header: str = "x-api-key") -> None:
+    def __init__(
+        self,
+        verify: Callable[[str], bool | Awaitable[bool]],
+        api_key_header: str = "x-api-key",
+    ) -> None:
         self._verify = verify
         self.api_key_header = api_key_header.lower()
 
-    def __call__(self, token: str) -> bool:
+    def __call__(self, token: str) -> bool | Awaitable[bool]:
         return self._verify(token)
+
+
+async def _verified(verify: Callable[[str], Any], credential: str) -> bool:
+    """Run a sync or async verifier; anything but ``True`` (or an error) fails."""
+    try:
+        result = verify(credential)
+        if inspect.isawaitable(result):
+            result = await result
+    except Exception as exc:  # noqa: BLE001 - fail closed
+        logger.warning("Auth gate verifier raised %s; request rejected", type(exc).__name__)
+        return False
+    return bool(result)
 
 
 class _AuthGateASGI:
@@ -343,8 +361,8 @@ class _AuthGateASGI:
 
     Args:
         app: The inner ASGI application.
-        verify_fn: Callable ``(token) → bool`` — the primary verifier
-            (typically ``JWTAuth.verify_token``).
+        verify_fn: Callable ``(token) → bool`` (sync or async) — the
+            primary verifier (typically ``JWTAuth.averify_token``).
         skip_paths: Set of paths that bypass authentication (e.g. the
             token endpoint, which *issues* tokens and so cannot require
             one).
@@ -359,9 +377,9 @@ class _AuthGateASGI:
     def __init__(
         self,
         app: Any,
-        verify_fn: Callable[[str], bool],
+        verify_fn: Callable[[str], Any],
         skip_paths: set[str] | None = None,
-        api_key_verify_fn: Callable[[str], bool] | None = None,
+        api_key_verify_fn: Callable[[str], Any] | None = None,
         api_key_header: str | None = None,
     ) -> None:
         self.app = app
@@ -390,7 +408,7 @@ class _AuthGateASGI:
             auth_value = headers.get(b"authorization", b"").decode("latin-1")
             if auth_value and auth_value.startswith("Bearer "):
                 token = auth_value[7:]
-                if self._verify(token):
+                if await _verified(self._verify, token):
                     scope["user"] = session_principal("bearer", token)
                     await self.app(scope, receive, send)
                     return
@@ -409,7 +427,7 @@ class _AuthGateASGI:
             api_key = headers.get(self._api_key_header.encode("latin-1"), b"").decode("latin-1")
             if api_key:
                 verify_key = self._verify_api_key or self._verify
-                if verify_key(api_key):
+                if await _verified(verify_key, api_key):
                     scope["user"] = session_principal("api-key", api_key)
                     await self.app(scope, receive, send)
                     return
@@ -678,7 +696,7 @@ def _wrap_app(
     app: Any,
     *,
     cors: CORSConfig | None,
-    auth_gate: Callable[[str], bool] | None,
+    auth_gate: Callable[[str], Any] | None,
     token_endpoint: Any,
 ) -> Any:
     """Apply the transport auth gate and CORS around the Starlette app.
@@ -729,7 +747,7 @@ def build_http_app(
     lifecycle: LifecycleManager,
     *,
     shutdown_timeout: float | None = None,
-    auth_gate: Callable[[str], bool] | None = None,
+    auth_gate: Callable[[str], Any] | None = None,
     token_endpoint: Any = None,
     cors: CORSConfig | None = None,
     security_settings: TransportSecuritySettings | None = None,
@@ -818,7 +836,7 @@ async def run_http(
     port: int = 8080,
     shutdown_timeout: float | None = None,
     dashboard: bool = False,
-    auth_gate: Callable[[str], bool] | None = None,
+    auth_gate: Callable[[str], Any] | None = None,
     token_endpoint: Any = None,
     cors: CORSConfig | None = None,
     security_settings: TransportSecuritySettings | None = None,
@@ -857,7 +875,7 @@ def build_sse_app(
     lifecycle: LifecycleManager,
     *,
     shutdown_timeout: float | None = None,
-    auth_gate: Callable[[str], bool] | None = None,
+    auth_gate: Callable[[str], Any] | None = None,
     token_endpoint: Any = None,
     cors: CORSConfig | None = None,
     security_settings: TransportSecuritySettings | None = None,
@@ -951,7 +969,7 @@ async def run_sse(
     port: int = 8080,
     shutdown_timeout: float | None = None,
     dashboard: bool = False,
-    auth_gate: Callable[[str], bool] | None = None,
+    auth_gate: Callable[[str], Any] | None = None,
     token_endpoint: Any = None,
     cors: CORSConfig | None = None,
     security_settings: TransportSecuritySettings | None = None,

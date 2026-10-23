@@ -109,6 +109,9 @@ Clients send tokens via the `Authorization: Bearer <token>` header. The provider
 | `issuer` | `None` | Required `iss` value |
 | `meta_key` | `"authorization"` | Lower-case header name that carries the token |
 | `cache_size` | `256` | Verified tokens kept in the LRU cache; `0` disables it |
+| `revoked_jtis` | `None` | Token ids (`jti`) to reject; see [Revoking tokens](#revoking-tokens) |
+| `revoked_subjects` | `None` | Subjects whose tokens are all rejected |
+| `is_revoked` | `None` | `(claims) -> bool`, sync or async, asked on every request; `True` rejects the token |
 
 **Token payload format:**
 
@@ -170,6 +173,46 @@ Clients send their key via the `x-api-key` header (configurable via `header`). T
 
 The header name is matched case-insensitively, as HTTP header names are: `header="X-Custom-Key"` and `header="x-custom-key"` read the same header. With `MCPServer(require_auth=True)`, the [transport gate](deployment.md#transport-level-auth-gate) reads the API key from the same header.
 
+#### Revoking and adding keys while the server runs
+
+Every change below applies to the next request, on the transport gate and in `AuthMiddleware`, without a restart.
+
+With a `keys` dict, use `revoke_key()` and `add_key()`:
+
+```python
+import os
+
+api_auth = APIKeyAuth(keys={os.environ["FRONTEND_KEY"]: "frontend-app"})
+
+api_auth.revoke_key(os.environ["FRONTEND_KEY"])   # True if the key was registered
+api_auth.add_key(new_key, {"client_id": "frontend-app", "roles": ["read"]})
+```
+
+To keep the keys somewhere else, pass a callable instead of the dict. Both forms can be sync or async:
+
+```python
+# keys=: returns the keys valid right now, called on every request
+api_auth = APIKeyAuth(keys=lambda: key_registry.snapshot())
+
+# lookup=: gets the presented key, returns its config, or None when the key
+# is unknown or revoked
+async def find_key(key: str) -> dict | None:
+    row = await db.fetch_api_key(hash_key(key))
+    if row is None or row.revoked:
+        return None
+    return {"client_id": row.client_id, "roles": row.roles, "tenant_id": row.tenant_id}
+
+api_auth = APIKeyAuth(lookup=find_key)
+```
+
+| Parameter | Default | Description |
+|---|---|---|
+| `keys` | | A dict `{api_key: client_id_or_config}`, or a callable returning one |
+| `header` | `"x-api-key"` | Header that carries the key |
+| `lookup` | `None` | `(api_key) -> config \| None`, used instead of `keys`. It compares keys itself: store hashes and compare in constant time |
+
+Pass exactly one of `keys` and `lookup`. If the callable raises, the request is rejected with `Could not check the API key` and a warning is logged. `revoke_key()` and `add_key()` only work with a `keys` dict and raise `TypeError` otherwise. `verify_token(key)` is sync, so it cannot run an async callable and rejects the key; `averify_token(key)` runs it, and the transport gate uses `averify_token`.
+
 ### AsymmetricJWTAuth
 
 For production deployments using RS256 or ES256 (asymmetric) JWT tokens: common with Auth0, Keycloak, and other identity providers:
@@ -195,7 +238,7 @@ auth = AsymmetricJWTAuth(
 )
 ```
 
-`AsymmetricJWTAuth(public_key, *, algorithm="RS256", audience=None, issuer=None, meta_key="authorization", cache_size=256)` uses the same interface as `JWTAuth`: it works with `AuthMiddleware`, guards, and `ctx.client_id`. `public_key` is a PEM string or the path to a PEM file; `algorithm` must be `"RS256"` or `"ES256"` (anything else raises `ValueError`). Set `audience` for IdP-issued tokens: without it, a token that carries an `aud` claim is rejected. Requires the `PyJWT` and `cryptography` packages (optional dependencies).
+`AsymmetricJWTAuth(public_key, *, algorithm="RS256", audience=None, issuer=None, meta_key="authorization", cache_size=256, revoked_jtis=None, revoked_subjects=None, is_revoked=None)` uses the same interface as `JWTAuth`: it works with `AuthMiddleware`, guards, and `ctx.client_id`. `public_key` is a PEM string or the path to a PEM file; `algorithm` must be `"RS256"` or `"ES256"` (anything else raises `ValueError`). Set `audience` for IdP-issued tokens: without it, a token that carries an `aud` claim is rejected. Requires the `PyJWT` and `cryptography` packages (optional dependencies).
 
 ### JwksAuth
 
@@ -222,6 +265,7 @@ The validated token's `sub` and claims are surfaced on `ctx.client` (subject, is
 | `algorithms` | `("RS256", "ES256")` | Accepted signing algorithms (asymmetric only) |
 | `meta_key` | `"authorization"` | Header carrying the bearer token |
 | `leeway` | `60.0` | Seconds of clock skew allowed on `exp`, `nbf` and `iat` |
+| `revoked_jtis`, `revoked_subjects`, `is_revoked` | `None` | Deny list, as for `JWTAuth`; see [Revoking tokens](#revoking-tokens) |
 
 Keys are cached for five minutes; a token signed with an unknown `kid` triggers an immediate re-fetch (at most once per key id per minute), so a rotated key works on first use.
 
@@ -237,7 +281,39 @@ auth = JwksAuth.from_discovery(
 )
 ```
 
-The discovery document is fetched once (lazily, on the first verified call) and its `issuer` is checked against the configured one before its `jwks_uri` is trusted. `from_discovery(*, issuer, audience, algorithms=("RS256", "ES256"), meta_key="authorization", request_timeout=5.0, leeway=60.0)`.
+The discovery document is fetched once (lazily, on the first verified call) and its `issuer` is checked against the configured one before its `jwks_uri` is trusted. `from_discovery(*, issuer, audience, algorithms=("RS256", "ES256"), meta_key="authorization", request_timeout=5.0, leeway=60.0, revoked_jtis=None, revoked_subjects=None, is_revoked=None)`.
+
+### Revoking tokens
+
+A JWT is valid until its `exp`. To reject one sooner, `JWTAuth`, `AsymmetricJWTAuth` and `JwksAuth` keep an optional deny list, checked on every request after the signature and claims check, including tokens served from the verification cache:
+
+```python
+import os
+
+auth = JWTAuth(secret=os.environ["JWT_SECRET"])
+
+auth.revoke("2f6c1e0a9b7d4c3e")                 # one token, by its jti claim
+auth.revoke("2f6c1e0a9b7d4c3e", until=exp)      # ... forgotten after the token's exp
+auth.revoke(subject="agent-007")               # every token of this subject
+auth.unrevoke(subject="agent-007")             # True if it was listed
+```
+
+A subject entry matches the token's `sub`, or its `client_id` when it has no `sub`. Entries passed with `until` (a Unix time, normally the token's `exp`) are dropped once that time has passed, since an expired token is refused anyway; entries without it stay until `unrevoke()`. Revoking a single token needs a `jti` claim in it: `create_token()` does not add one, so pass it in the payload (`create_token({"sub": "agent-7", "jti": secrets.token_hex(16)})`) or revoke by subject. Start with a list with `revoked_jtis=[...]` and `revoked_subjects=[...]`.
+
+The deny list lives in the process. To share revocations between replicas, or keep them across restarts, pass `is_revoked`: it receives the verified claims on every request and returns `True` to reject the token. It can be sync or async:
+
+```python
+async def is_revoked(claims: dict) -> bool:
+    return await redis.sismember("revoked-jtis", claims.get("jti", ""))
+
+auth = JwksAuth(
+    jwks_url="https://idp.example.com/.well-known/jwks.json",
+    audience="api://my-mcp-server",
+    is_revoked=is_revoked,
+)
+```
+
+A revoked token is rejected with `Token has been revoked`. If `is_revoked` raises, the token is rejected (`Could not check whether the token was revoked`) and a warning is logged. `verify_token()` is sync, so with an async `is_revoked` it rejects every token; `averify_token()` runs the hook, and the [transport gate](deployment.md#transport-level-auth-gate) uses it.
 
 ### Custom auth provider
 
@@ -731,8 +807,10 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
 |---|---|---|
 | `JWTAuth(secret, audience, issuer, meta_key, cache_size)` | Class | HS256 JWT authentication provider |
 | `JWTAuth.create_token(payload, expires_in)` | Method | Create a signed JWT (testing utility) |
-| `JWTAuth.verify_token(token)` | Method | Check token validity without context |
-| `APIKeyAuth(keys, header)` | Class | Pre-shared API key authentication (simple or rich format) |
+| `JWTAuth.verify_token(token)` / `averify_token(token)` | Method | Check token validity without context (the async form also runs an async `is_revoked`) |
+| `JWTAuth.revoke(jti, subject, until)` / `unrevoke(jti, subject)` | Method | Add to or remove from the deny list (also on `AsymmetricJWTAuth` and `JwksAuth`) |
+| `APIKeyAuth(keys, header, lookup)` | Class | Pre-shared API key authentication (simple or rich format, a dict or a callable store) |
+| `APIKeyAuth.revoke_key(key)` / `add_key(key, config)` | Method | Change the keys of a running server (dict form) |
 | `AsymmetricJWTAuth(public_key, algorithm, audience, issuer)` | Class | RS256/ES256 asymmetric JWT authentication |
 | `JwksAuth(jwks_url, audience, issuer, algorithms, meta_key, leeway)` | Class | JWT authentication against an IdP's rotating JWKS keys |
 | `JwksAuth.from_discovery(issuer, audience, ...)` | Class method | Discover the JWKS URL from OIDC metadata |
@@ -759,7 +837,7 @@ See [CallerContext: Agent to MCP Identity](../../guides/multi-user-identity.md) 
     Never hardcode JWT secrets in source code. Use environment variables or a secrets manager. The `ServerSettings` class supports loading secrets from env vars with a configurable prefix.
 
 !!! tip "Token caching"
-    `JWTAuth` caches verified tokens in a thread-safe LRU (default: 256 entries). This avoids repeated HMAC-SHA256 computation when the same token is reused across requests, which is the common case for agent sessions.
+    `JWTAuth` caches verified tokens in a thread-safe LRU (default: 256 entries). This avoids repeated HMAC-SHA256 computation when the same token is reused across requests, which is the common case for agent sessions. The deny list and `is_revoked` are checked on cache hits too, so a revoked token is refused on its next request.
 
 ## What's Next
 

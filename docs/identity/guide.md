@@ -307,7 +307,10 @@ are handled for you:
 - **Revocation**: disable the agent's identity **in the IdP**. Its
   short-lived credentials stop validating at every resource as they
   expire, with no change to any server's configuration. This is the whole
-  point of keeping the IdP as the system of record.
+  point of keeping the IdP as the system of record. To cut off a token
+  before its `exp`, add its `jti` or the agent's subject to the server's
+  deny list (`auth.revoke(...)`, or an `is_revoked` hook backed by a shared
+  store); see [Revoking tokens](../mcp/server/auth-security.md#revoking-tokens).
 
 ---
 

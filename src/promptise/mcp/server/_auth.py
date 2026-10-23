@@ -29,13 +29,14 @@ import asyncio
 import base64
 import hashlib
 import hmac
+import inspect
 import json
 import logging
 import threading
 import time
 from collections import OrderedDict
-from collections.abc import Awaitable, Callable, Sequence
-from typing import Any, Protocol, runtime_checkable
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+from typing import Any, Protocol, Union, runtime_checkable
 
 from ._context import ClientContext, RequestContext, get_request_client_info
 from ._errors import AuthenticationError
@@ -68,6 +69,170 @@ class AuthProvider(Protocol):
             AuthenticationError: On authentication failure.
         """
         ...
+
+
+# =====================================================================
+# Token revocation (JWT deny list)
+# =====================================================================
+
+#: ``(claims) -> bool`` (sync or async): ``True`` when the verified token
+#: with these claims is revoked.  See ``JWTAuth(is_revoked=...)``.
+RevocationCheck = Callable[[dict[str, Any]], Union[bool, Awaitable[bool]]]
+
+
+def _close_unawaited(result: Any) -> None:
+    """Close a coroutine a sync caller cannot await (no "never awaited" warning)."""
+    close = getattr(result, "close", None)
+    if callable(close):
+        close()
+
+
+def _token_subject(payload: Mapping[str, Any]) -> Any:
+    """The identity a subject deny-list entry is matched against."""
+    return payload.get("sub", payload.get("client_id"))
+
+
+class _DenyList:
+    """Revoked token ids (``jti``) and subjects, checked on every request.
+
+    Entries can carry an ``until`` time (the token's ``exp``) after which
+    they are dropped: an expired token is refused anyway, so the list only
+    has to remember a ``jti`` for as long as its token is valid.
+    """
+
+    def __init__(
+        self,
+        jtis: Iterable[str] | None,
+        subjects: Iterable[str] | None,
+        hook: RevocationCheck | None,
+        owner: str,
+    ) -> None:
+        if hook is not None and not callable(hook):
+            raise TypeError(f"{owner} is_revoked must be callable, got {type(hook).__name__}")
+        if isinstance(jtis, str) or isinstance(subjects, str):
+            raise TypeError(f"{owner} revoked_jtis / revoked_subjects take a list, not a str")
+        self._jtis: dict[str, float | None] = dict.fromkeys(jtis or (), None)
+        self._subjects: dict[str, float | None] = dict.fromkeys(subjects or (), None)
+        self._hook = hook
+        self._lock = threading.Lock()
+
+    def revoke(self, jti: str | None, subject: str | None, until: float | None) -> None:
+        if jti is None and subject is None:
+            raise ValueError("revoke() needs a jti, a subject, or both")
+        now = time.time()
+        with self._lock:
+            for store in (self._jtis, self._subjects):
+                for key in [k for k, t in store.items() if t is not None and t < now]:
+                    del store[key]
+            if jti is not None:
+                self._jtis[jti] = until
+            if subject is not None:
+                self._subjects[subject] = until
+
+    def unrevoke(self, jti: str | None, subject: str | None) -> bool:
+        with self._lock:
+            removed = False
+            if jti is not None:
+                removed = self._jtis.pop(jti, False) is not False or removed
+            if subject is not None:
+                removed = self._subjects.pop(subject, False) is not False or removed
+            return removed
+
+    @staticmethod
+    def _listed_in(store: dict[str, float | None], key: Any, now: float) -> bool:
+        if not isinstance(key, str) or key not in store:
+            return False
+        until = store.get(key)
+        return until is None or until >= now
+
+    def _listed(self, payload: Mapping[str, Any]) -> bool:
+        now = time.time()
+        return self._listed_in(self._jtis, payload.get("jti"), now) or self._listed_in(
+            self._subjects, _token_subject(payload), now
+        )
+
+    @staticmethod
+    def _revoked_error() -> AuthenticationError:
+        return AuthenticationError(
+            "Token has been revoked",
+            suggestion="Request a new authentication token",
+        )
+
+    def _hook_result(self, payload: dict[str, Any]) -> Any:
+        assert self._hook is not None
+        try:
+            return self._hook(payload)
+        except Exception as exc:  # noqa: BLE001 - fail closed
+            logger.warning(
+                "Token revocation check raised %s; rejecting the token", type(exc).__name__
+            )
+            raise AuthenticationError("Could not check whether the token was revoked")
+
+    async def check(self, payload: dict[str, Any]) -> None:
+        """Raise ``AuthenticationError`` when the token is revoked."""
+        if self._listed(payload):
+            raise self._revoked_error()
+        if self._hook is None:
+            return
+        result = self._hook_result(payload)
+        if inspect.isawaitable(result):
+            try:
+                result = await result
+            except Exception as exc:  # noqa: BLE001 - fail closed
+                logger.warning(
+                    "Token revocation check raised %s; rejecting the token", type(exc).__name__
+                )
+                raise AuthenticationError("Could not check whether the token was revoked")
+        if result:
+            raise self._revoked_error()
+
+    def check_sync(self, payload: dict[str, Any]) -> None:
+        """:meth:`check` for sync callers; an async hook fails closed here."""
+        if self._listed(payload):
+            raise self._revoked_error()
+        if self._hook is None:
+            return
+        result = self._hook_result(payload)
+        if inspect.isawaitable(result):
+            _close_unawaited(result)
+            logger.warning(
+                "verify_token() cannot run an async is_revoked hook; rejecting the "
+                "token (use averify_token())"
+            )
+            raise AuthenticationError("Could not check whether the token was revoked")
+        if result:
+            raise self._revoked_error()
+
+
+class _RevocableJWT:
+    """``revoke()`` / ``unrevoke()`` for the JWT providers."""
+
+    _deny: _DenyList
+
+    def revoke(
+        self,
+        jti: str | None = None,
+        *,
+        subject: str | None = None,
+        until: float | None = None,
+    ) -> None:
+        """Reject tokens with this ``jti``, or every token of this subject.
+
+        Takes effect on the next request, cached tokens included.
+
+        Args:
+            jti: The token id (``jti`` claim) to reject.
+            subject: Reject every token whose ``sub`` (or ``client_id``, for
+                a token without ``sub``) is this.
+            until: Unix time after which the entry is dropped, normally the
+                token's ``exp``: an expired token is refused anyway.  ``None``
+                keeps it until :meth:`unrevoke`.
+        """
+        self._deny.revoke(jti, subject, until)
+
+    def unrevoke(self, jti: str | None = None, *, subject: str | None = None) -> bool:
+        """Remove a ``jti`` and/or subject from the deny list; ``True`` if one was listed."""
+        return self._deny.unrevoke(jti, subject)
 
 
 # =====================================================================
@@ -174,7 +339,7 @@ def _check_audience_and_issuer(
         )
 
 
-class JWTAuth:
+class JWTAuth(_RevocableJWT):
     """JWT-based authentication provider.
 
     Validates JWT tokens from the request metadata using HMAC-SHA256.
@@ -192,6 +357,20 @@ class JWTAuth:
             issuer, or without ``iss``, is rejected.
         meta_key: Key in ``ctx.meta`` where the token is expected.
         cache_size: Max number of verified tokens to cache (0 to disable).
+        revoked_jtis: Token ids (``jti`` claims) to reject from the start.
+            Add more at runtime with :meth:`revoke`.
+        revoked_subjects: Subjects (``sub``, or ``client_id`` for a token
+            without ``sub``) whose tokens are all rejected.
+        is_revoked: Optional ``(claims) -> bool`` (sync or async) asked on
+            every request after the signature and claims check: return
+            ``True`` to reject the token.  Use it to read an external deny
+            list (Redis, a database).  If it raises, the token is rejected.
+
+    The deny list is checked on every request, including tokens served
+    from the verification cache, so :meth:`revoke` takes effect on the next
+    request.  To revoke single tokens, issue them with a ``jti`` claim
+    (``create_token({"sub": ..., "jti": secrets.token_hex(16)})``); tokens
+    without one can be revoked by subject.
 
     Example::
 
@@ -200,6 +379,8 @@ class JWTAuth:
             audience="crm-mcp",
             issuer="https://auth.example.com",
         )
+        auth.revoke(jti="2f6c...", until=token_exp)  # this token only
+        auth.revoke(subject="agent-007")             # every token of agent-007
     """
 
     def __init__(
@@ -210,6 +391,9 @@ class JWTAuth:
         issuer: str | None = None,
         meta_key: str = "authorization",
         cache_size: int = 256,
+        revoked_jtis: Iterable[str] | None = None,
+        revoked_subjects: Iterable[str] | None = None,
+        is_revoked: RevocationCheck | None = None,
     ) -> None:
         self._secret = secret.encode()
         self._audiences = _normalise_audiences(audience, "JWTAuth")
@@ -218,6 +402,7 @@ class JWTAuth:
         self._issuer = issuer
         self._meta_key = meta_key
         self._cache = _TokenCache(max_size=cache_size) if cache_size > 0 else None
+        self._deny = _DenyList(revoked_jtis, revoked_subjects, is_revoked, "JWTAuth")
 
     async def authenticate(self, ctx: RequestContext) -> str:
         token = ctx.meta.get(self._meta_key, "")
@@ -230,10 +415,12 @@ class JWTAuth:
         if self._cache is not None:
             cached_payload = self._cache.get(token)
             if cached_payload is not None:
+                await self._deny.check(cached_payload)
                 ctx.state["_jwt_payload"] = cached_payload
                 return cached_payload.get("sub", cached_payload.get("client_id", "unknown"))
 
         payload = self._verify_token(token)
+        await self._deny.check(payload)
 
         # Cache the verified payload
         if self._cache is not None:
@@ -306,10 +493,23 @@ class JWTAuth:
     def verify_token(self, token: str) -> bool:
         """Check if a token is valid without requiring a request context.
 
-        Useful for transport-level auth gating.
+        Useful for transport-level auth gating.  Checks the deny list; an
+        async ``is_revoked`` hook cannot run here, so the token is rejected
+        (use :meth:`averify_token`).
         """
         try:
-            self._verify_token(token)
+            self._deny.check_sync(self._verify_token(token))
+            return True
+        except AuthenticationError:
+            return False
+
+    async def averify_token(self, token: str) -> bool:
+        """:meth:`verify_token` that also runs an async ``is_revoked`` hook.
+
+        The HTTP auth gate (``MCPServer(require_auth=True)``) uses this.
+        """
+        try:
+            await self._deny.check(self._verify_token(token))
             return True
         except AuthenticationError:
             return False
@@ -348,7 +548,7 @@ class JWTAuth:
         return f"{header}.{payload_b64}.{sig_b64}"
 
 
-class AsymmetricJWTAuth:
+class AsymmetricJWTAuth(_RevocableJWT):
     """JWT authentication using asymmetric algorithms (RS256, ES256).
 
     Validates JWT tokens signed with RSA or ECDSA keys.  Requires the
@@ -365,6 +565,17 @@ class AsymmetricJWTAuth:
             issuer are rejected.
         meta_key: Key in ``ctx.meta`` where the token is expected.
         cache_size: Max cached tokens (0 to disable).
+        revoked_jtis: Token ids (``jti`` claims) to reject from the start.
+            Add more at runtime with :meth:`revoke`.
+        revoked_subjects: Subjects (``sub``, or ``client_id`` for a token
+            without ``sub``) whose tokens are all rejected.
+        is_revoked: Optional ``(claims) -> bool`` (sync or async) asked on
+            every request after the signature and claims check: return
+            ``True`` to reject the token.  Use it to read an external deny
+            list (Redis, a database).  If it raises, the token is rejected.
+
+    The deny list is checked on every request, cached tokens included
+    (see :meth:`revoke`).
 
     Example::
 
@@ -384,6 +595,9 @@ class AsymmetricJWTAuth:
         issuer: str | None = None,
         meta_key: str = "authorization",
         cache_size: int = 256,
+        revoked_jtis: Iterable[str] | None = None,
+        revoked_subjects: Iterable[str] | None = None,
+        is_revoked: RevocationCheck | None = None,
     ) -> None:
         if algorithm not in ("RS256", "ES256"):
             raise ValueError(f"Unsupported algorithm: {algorithm}. Use RS256 or ES256.")
@@ -395,6 +609,7 @@ class AsymmetricJWTAuth:
         self._issuer = issuer
         self._meta_key = meta_key
         self._cache = _TokenCache(max_size=cache_size) if cache_size > 0 else None
+        self._deny = _DenyList(revoked_jtis, revoked_subjects, is_revoked, "AsymmetricJWTAuth")
 
         # Load public key
         import pathlib
@@ -418,10 +633,12 @@ class AsymmetricJWTAuth:
         if self._cache is not None:
             cached_payload = self._cache.get(token)
             if cached_payload is not None:
+                await self._deny.check(cached_payload)
                 ctx.state["_jwt_payload"] = cached_payload
                 return cached_payload.get("sub", cached_payload.get("client_id", "unknown"))
 
         payload = self._verify_token(token)
+        await self._deny.check(payload)
 
         if self._cache is not None:
             self._cache.put(token, payload)
@@ -456,9 +673,21 @@ class AsymmetricJWTAuth:
             raise AuthenticationError(f"Invalid JWT: {e}")
 
     def verify_token(self, token: str) -> bool:
-        """Check if a token is valid without requiring a request context."""
+        """Check if a token is valid without requiring a request context.
+
+        Checks the deny list; an async ``is_revoked`` hook cannot run here,
+        so the token is rejected (use :meth:`averify_token`).
+        """
         try:
-            self._verify_token(token)
+            self._deny.check_sync(self._verify_token(token))
+            return True
+        except (AuthenticationError, ImportError):
+            return False
+
+    async def averify_token(self, token: str) -> bool:
+        """:meth:`verify_token` that also runs an async ``is_revoked`` hook."""
+        try:
+            await self._deny.check(self._verify_token(token))
             return True
         except (AuthenticationError, ImportError):
             return False
@@ -568,7 +797,7 @@ class _JwksKeySet:
         self._fetched_at = now
 
 
-class JwksAuth:
+class JwksAuth(_RevocableJWT):
     """JWT authentication against an identity provider's JWKS endpoint.
 
     Verifies tokens issued by an external identity provider — Microsoft
@@ -601,6 +830,14 @@ class JwksAuth:
         meta_key: Key in ``ctx.meta`` holding the bearer token.
         leeway: Seconds of clock skew tolerated when checking ``exp``,
             ``nbf`` and ``iat``.
+        revoked_jtis: Token ids (``jti`` claims) to reject from the start.
+            Add more at runtime with :meth:`revoke`.
+        revoked_subjects: Subjects (``sub``, or ``client_id`` for a token
+            without ``sub``) whose tokens are all rejected.
+        is_revoked: Optional ``(claims) -> bool`` (sync or async) asked on
+            every request after the signature and claims check: return
+            ``True`` to reject the token.  Use it to read an external deny
+            list (Redis, a database).  If it raises, the token is rejected.
 
     Keys are cached for five minutes.  A token signed with a key that is
     not in the cache (the IdP rotated its keys) makes the server re-fetch
@@ -634,6 +871,9 @@ class JwksAuth:
         algorithms: tuple[str, ...] = ("RS256", "ES256"),
         meta_key: str = "authorization",
         leeway: float = 60.0,
+        revoked_jtis: Iterable[str] | None = None,
+        revoked_subjects: Iterable[str] | None = None,
+        is_revoked: RevocationCheck | None = None,
     ) -> None:
         if not audience:
             raise ValueError(
@@ -656,6 +896,7 @@ class JwksAuth:
         # from the issuer's OIDC discovery document.
         self._discovery_issuer: str | None = None
         self._request_timeout: float = 5.0
+        self._deny = _DenyList(revoked_jtis, revoked_subjects, is_revoked, "JwksAuth")
 
     @classmethod
     def from_discovery(
@@ -667,6 +908,9 @@ class JwksAuth:
         meta_key: str = "authorization",
         request_timeout: float = 5.0,
         leeway: float = 60.0,
+        revoked_jtis: Iterable[str] | None = None,
+        revoked_subjects: Iterable[str] | None = None,
+        is_revoked: RevocationCheck | None = None,
     ) -> JwksAuth:
         """Build a :class:`JwksAuth` that discovers its JWKS from the issuer.
 
@@ -687,6 +931,9 @@ class JwksAuth:
                 fetches.
             leeway: Seconds of clock skew tolerated when checking ``exp``,
                 ``nbf`` and ``iat`` (as for the constructor).
+            revoked_jtis: As for the constructor.
+            revoked_subjects: As for the constructor.
+            is_revoked: As for the constructor.
         """
         if not issuer:
             raise ValueError("JwksAuth.from_discovery requires a non-empty issuer.")
@@ -697,6 +944,9 @@ class JwksAuth:
             algorithms=algorithms,
             meta_key=meta_key,
             leeway=leeway,
+            revoked_jtis=revoked_jtis,
+            revoked_subjects=revoked_subjects,
+            is_revoked=is_revoked,
         )
         auth._discovery_issuer = issuer
         auth._request_timeout = request_timeout
@@ -759,6 +1009,7 @@ class JwksAuth:
             raise AuthenticationError("Missing authentication token")
 
         payload = self._verify_token(token)
+        await self._deny.check(payload)
         ctx.state["_jwt_payload"] = payload
         return payload.get("sub", payload.get("client_id", "unknown"))
 
@@ -807,12 +1058,64 @@ class JwksAuth:
             raise AuthenticationError(f"Invalid JWT: {exc}")
 
     def verify_token(self, token: str) -> bool:
-        """Check if a token is valid without requiring a request context."""
+        """Check if a token is valid without requiring a request context.
+
+        Checks the deny list; an async ``is_revoked`` hook cannot run here,
+        so the token is rejected (use :meth:`averify_token`).
+        """
         try:
-            self._verify_token(token)
+            self._deny.check_sync(self._verify_token(token))
             return True
         except (AuthenticationError, ImportError):
             return False
+
+    async def averify_token(self, token: str) -> bool:
+        """:meth:`verify_token` that also runs an async ``is_revoked`` hook."""
+        try:
+            await self._deny.check(self._verify_token(token))
+            return True
+        except (AuthenticationError, ImportError):
+            return False
+
+
+#: An API key's configuration: a client id, or a dict with ``client_id``,
+#: ``roles`` and ``tenant_id``.
+APIKeyConfig = Union[str, Mapping[str, Any]]
+
+#: ``() -> {api_key: config}`` (sync or async): the keys valid right now.
+APIKeySource = Callable[
+    [], Union[Mapping[str, APIKeyConfig], Awaitable[Mapping[str, APIKeyConfig]]]
+]
+
+#: ``(api_key) -> config | None`` (sync or async): the presented key's
+#: config, or ``None`` when it is unknown or revoked.
+APIKeyLookup = Callable[[str], Union[APIKeyConfig, None, Awaitable[Union[APIKeyConfig, None]]]]
+
+
+def _normalise_key_config(value: Any) -> dict[str, Any] | None:
+    """An API key's config in the rich form, or ``None`` when it is not one."""
+    if isinstance(value, str):
+        return {"client_id": value, "roles": [], "tenant_id": None}
+    if isinstance(value, Mapping):
+        tenant = value.get("tenant_id")
+        return {
+            "client_id": value.get("client_id", "unknown"),
+            "roles": list(value.get("roles", [])),
+            "tenant_id": tenant if isinstance(tenant, str) and tenant.strip() else None,
+        }
+    return None
+
+
+def _match_key(key: str, keys: Mapping[str, Any]) -> Any:
+    """The config of *key* in *keys*, compared in constant time per key."""
+    found = None
+    for registered_key, registered_entry in keys.items():
+        if isinstance(registered_key, str) and hmac.compare_digest(
+            key.encode(), registered_key.encode()
+        ):
+            found = registered_entry
+            break
+    return found
 
 
 class APIKeyAuth:
@@ -834,33 +1137,65 @@ class APIKeyAuth:
     Rich keys populate ``ctx.state["roles"]`` so that role-based
     guards (``HasRole``, ``HasAllRoles``) work out of the box.
 
+    Keys can change while the server runs, and a change applies to the
+    next request:
+
+    - with a dict, call :meth:`revoke_key` / :meth:`add_key`;
+    - pass ``keys=`` a callable (sync or async) that returns the keys valid
+      right now, e.g. read from a file or a cache;
+    - pass ``lookup=`` a callable (sync or async) that receives the
+      presented key and returns its config, or ``None`` for an unknown or
+      revoked key, e.g. a database query.
+
     Args:
-        keys: Mapping of ``{api_key: client_id_or_config}``.
+        keys: Mapping of ``{api_key: client_id_or_config}``, or a callable
+            returning one.
         header: HTTP header name used to transmit the key, matched
             case-insensitively (HTTP header names are; ``"X-API-Key"``
             and ``"x-api-key"`` are the same).  With
             ``MCPServer(require_auth=True)`` the HTTP auth gate reads the
             same header.
+        lookup: Callable ``(api_key) -> config | None`` used instead of
+            ``keys``.  It compares keys itself, so store hashes and compare
+            in constant time.  If it (or a ``keys`` callable) raises, the
+            request is rejected.
+
+    Raises:
+        ValueError: Neither or both of ``keys`` and ``lookup`` are given, or
+            ``header`` is empty.
     """
 
     def __init__(
         self,
-        keys: dict[str, str | dict[str, Any]],
+        keys: Mapping[str, APIKeyConfig] | APIKeySource | None = None,
         *,
         header: str = "x-api-key",
+        lookup: APIKeyLookup | None = None,
     ) -> None:
-        # Normalise to rich format internally
+        if (keys is None) == (lookup is None):
+            raise ValueError("APIKeyAuth needs keys=... or lookup=..., not both")
+        if lookup is not None and not callable(lookup):
+            raise TypeError(f"APIKeyAuth lookup must be callable, got {type(lookup).__name__}")
+        self._lookup = lookup
+        self._source: APIKeySource | None = None
+        # Normalise to rich format internally.  Replaced, never mutated, by
+        # add_key()/revoke_key(), so a request iterating it is not disturbed.
         self._keys: dict[str, dict[str, Any]] = {}
-        for k, v in keys.items():
-            if isinstance(v, str):
-                self._keys[k] = {"client_id": v, "roles": [], "tenant_id": None}
-            else:
-                tenant = v.get("tenant_id")
-                self._keys[k] = {
-                    "client_id": v.get("client_id", "unknown"),
-                    "roles": list(v.get("roles", [])),
-                    "tenant_id": tenant if isinstance(tenant, str) and tenant.strip() else None,
-                }
+        if isinstance(keys, Mapping):
+            for k, v in keys.items():
+                entry = _normalise_key_config(v)
+                if entry is None:
+                    raise TypeError(
+                        f"APIKeyAuth key config must be a str or a dict, got {type(v).__name__}"
+                    )
+                self._keys[k] = entry
+        elif keys is not None:
+            if not callable(keys):
+                raise TypeError(
+                    f"APIKeyAuth keys must be a dict or a callable, got {type(keys).__name__}"
+                )
+            self._source = keys
+        self._keys_lock = threading.Lock()
         if not header or not header.strip():
             raise ValueError("APIKeyAuth header must be a non-empty header name")
         self._meta_key = header.strip().lower()
@@ -869,6 +1204,101 @@ class APIKeyAuth:
     def header(self) -> str:
         """The header the key is read from (lower-cased)."""
         return self._meta_key
+
+    # -- Runtime key changes (dict form) ---------------------------------
+
+    def _require_static(self, method: str) -> None:
+        if self._source is not None or self._lookup is not None:
+            raise TypeError(
+                f"APIKeyAuth.{method}() only works with a keys dict; this provider reads "
+                "its keys from a callable, so change them in that store"
+            )
+
+    def add_key(self, key: str, config: APIKeyConfig) -> None:
+        """Accept *key* from the next request on (or replace its config).
+
+        Args:
+            key: The API key.
+            config: Its client id, or a dict with ``client_id``, ``roles``
+                and ``tenant_id``.
+        """
+        self._require_static("add_key")
+        if not isinstance(key, str) or not key:
+            raise ValueError("APIKeyAuth.add_key() needs a non-empty key")
+        entry = _normalise_key_config(config)
+        if entry is None:
+            raise TypeError(
+                f"APIKeyAuth key config must be a str or a dict, got {type(config).__name__}"
+            )
+        with self._keys_lock:
+            self._keys = {**self._keys, key: entry}
+
+    def revoke_key(self, key: str) -> bool:
+        """Reject *key* from the next request on.
+
+        Returns:
+            ``True`` if the key was registered.
+        """
+        self._require_static("revoke_key")
+        with self._keys_lock:
+            if _match_key(key, self._keys) is None:
+                return False
+            self._keys = {k: v for k, v in self._keys.items() if k != key}
+        logger.info("APIKeyAuth: revoked an API key")
+        return True
+
+    # -- Resolving a presented key ---------------------------------------
+
+    def _store_failed(self, exc: BaseException) -> AuthenticationError:
+        logger.warning("APIKeyAuth: the key store raised %s; rejecting the key", type(exc).__name__)
+        return AuthenticationError("Could not check the API key")
+
+    def _call_store(self, key: str) -> Any:
+        """The raw result of the key store for *key* (may be awaitable)."""
+        try:
+            if self._lookup is not None:
+                return self._lookup(key)
+            assert self._source is not None
+            return self._source()
+        except Exception as exc:  # noqa: BLE001 - fail closed
+            raise self._store_failed(exc)
+
+    def _entry_from(self, key: str, result: Any) -> dict[str, Any] | None:
+        if self._lookup is not None:
+            return _normalise_key_config(result) if result else None
+        if not isinstance(result, Mapping):
+            logger.warning(
+                "APIKeyAuth: the keys callable returned %s, not a mapping; rejecting the key",
+                type(result).__name__,
+            )
+            raise AuthenticationError("Could not check the API key")
+        return _normalise_key_config(_match_key(key, result))
+
+    async def _resolve(self, key: str) -> dict[str, Any] | None:
+        """The rich config of *key*, or ``None`` when it is not valid."""
+        if self._source is None and self._lookup is None:
+            return _match_key(key, self._keys)
+        result = self._call_store(key)
+        if inspect.isawaitable(result):
+            try:
+                result = await result
+            except Exception as exc:  # noqa: BLE001 - fail closed
+                raise self._store_failed(exc)
+        return self._entry_from(key, result)
+
+    def _resolve_sync(self, key: str) -> dict[str, Any] | None:
+        """:meth:`_resolve` for sync callers; an async store fails closed."""
+        if self._source is None and self._lookup is None:
+            return _match_key(key, self._keys)
+        result = self._call_store(key)
+        if inspect.isawaitable(result):
+            _close_unawaited(result)
+            logger.warning(
+                "APIKeyAuth.verify_token() cannot run an async key store; rejecting the "
+                "key (use averify_token())"
+            )
+            return None
+        return self._entry_from(key, result)
 
     async def authenticate(self, ctx: RequestContext) -> str:
         """Authenticate using an API key from request metadata.
@@ -898,13 +1328,9 @@ class APIKeyAuth:
             key = ""
         if not key:
             raise AuthenticationError("Missing API key")
-        # Timing-safe key comparison: iterate all registered keys
-        # using hmac.compare_digest to prevent timing attacks.
-        entry = None
-        for registered_key, registered_entry in self._keys.items():
-            if hmac.compare_digest(key.encode(), registered_key.encode()):
-                entry = registered_entry
-                break
+        # Timing-safe key comparison against every registered key
+        # (hmac.compare_digest) to prevent timing attacks.
+        entry = await self._resolve(key)
         if entry is None:
             raise AuthenticationError("Invalid API key")
         # Populate roles for guard compatibility
@@ -914,15 +1340,28 @@ class APIKeyAuth:
         # ClientContext.tenant_id (there is no JWT claim to read from)
         if entry.get("tenant_id"):
             ctx.state["_api_key_tenant"] = entry["tenant_id"]
-        return entry["client_id"]
+        return str(entry["client_id"])
 
     def verify_token(self, key: str) -> bool:
-        """Check if an API key is valid without requiring a context."""
-        # Use timing-safe comparison to prevent key enumeration.
-        for registered_key in self._keys:
-            if hmac.compare_digest(key.encode(), registered_key.encode()):
-                return True
-        return False
+        """Check if an API key is valid without requiring a context.
+
+        An async ``keys`` or ``lookup`` callable cannot run here, so the key
+        is rejected (use :meth:`averify_token`).
+        """
+        try:
+            return self._resolve_sync(key) is not None
+        except AuthenticationError:
+            return False
+
+    async def averify_token(self, key: str) -> bool:
+        """:meth:`verify_token` that also runs an async key store.
+
+        The HTTP auth gate (``MCPServer(require_auth=True)``) uses this.
+        """
+        try:
+            return await self._resolve(key) is not None
+        except AuthenticationError:
+            return False
 
 
 # =====================================================================

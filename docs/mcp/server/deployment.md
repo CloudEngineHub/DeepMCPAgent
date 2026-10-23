@@ -260,6 +260,8 @@ With `require_auth=True` and an `AuthMiddleware` installed, the server checks ev
 1. **Bearer token**: `Authorization: Bearer <jwt-token>`: verified with the configured auth provider
 2. **API key**: `x-api-key: <key>` (or the header given to `APIKeyAuth(header=...)`): verified with the API key provider
 
+The gate calls the provider's `averify_token()` when it has one (all built-in providers do), else its `verify_token()`, so an async key store or revocation hook runs on every request, and a revoked key or token gets `401` on its next request. A verifier that raises rejects the request.
+
 Unauthenticated requests receive a `401` JSON response:
 
 ```json
