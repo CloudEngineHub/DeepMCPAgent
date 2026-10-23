@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.9.0 — 2026-10-23
+
+Runtime processes can pick their reasoning pattern. Traces keep the tenant and the session, record tool arguments as data and show refused calls and approval decisions. Plus fixes for `promptise run --check` with agent factories and a `Prompt` that reached the model twice.
 
 ### Upgrade notes
 
