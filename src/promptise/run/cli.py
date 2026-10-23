@@ -341,6 +341,18 @@ def _defines(path: Path, name: str) -> bool:
     )
 
 
+def _add_python_path(manifest: ProjectManifest) -> None:
+    """Put the project root and ``python_path`` entries first on ``sys.path``.
+
+    The real run and ``--check`` both call this, so a factory that imports its
+    own package (``agent = "my_pkg.agent:create_agent"``) resolves the same way.
+    """
+    for extra in reversed(manifest.python_path):
+        candidate = str((manifest.root / extra).resolve())
+        if candidate not in sys.path:
+            sys.path.insert(0, candidate)
+
+
 def _check_entry(entry: Entry, manifest: ProjectManifest) -> list[str]:
     """``--check``: the entry compiles (script) or imports and has its factory."""
     problems: list[str] = []
@@ -353,6 +365,8 @@ def _check_entry(entry: Entry, manifest: ProjectManifest) -> list[str]:
         return problems
     from .entry import _import_entry
 
+    # Import from the same sys.path the real run uses.
+    _add_python_path(manifest)
     try:
         module = _import_entry(entry, manifest.root)
     except EntryError as exc:
@@ -578,10 +592,7 @@ def _run_here(
     os.environ.setdefault("PROMPTISE_INIT_CWD", os.getcwd())
     if manifest.path is not None and Path.cwd() != manifest.root:
         os.chdir(manifest.root)
-    for extra in reversed(manifest.python_path):
-        candidate = str((manifest.root / extra).resolve())
-        if candidate not in sys.path:
-            sys.path.insert(0, candidate)
+    _add_python_path(manifest)
 
     prices = PriceTable(manifest.pricing)
     bus = EventBus()

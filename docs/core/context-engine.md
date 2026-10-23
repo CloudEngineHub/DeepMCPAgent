@@ -171,7 +171,9 @@ assembles them with budgeting:
 - **Sent once.** The instructions (`identity`) and the tool definitions
   (`tools`) count toward the budget and appear in the report with
   `"sent": False`: the agent's graph sends them itself, so they are not
-  repeated.
+  repeated. When the instructions are a `Prompt`, the agent sends its
+  per-request render (with its context providers) once; `identity` budgets
+  its build-time render.
 - **The question stays as you passed it.** The current user message is the
   last message of the input, unchanged (a `HumanMessage`), and system messages
   in the input (yours, or runtime-injected ones such as `[Context State]`)

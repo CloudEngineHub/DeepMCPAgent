@@ -549,6 +549,100 @@ class TestPromptInstructions:
         finally:
             await agent.shutdown()
 
+    @pytest.mark.parametrize("call", ["ainvoke", "astream", "astream_with_tools"])
+    async def test_prompt_with_context_provider_reaches_the_model_once(self, call):
+        # Regression: the build-time render went in as the system prompt and
+        # the per-request render was added again, so every block was sent twice.
+        from promptise.testing import ScriptedModel
+
+        class AccountProvider:
+            async def provide(self, ctx: Any) -> str:
+                return f"Account note for: {ctx.rendered_text}"
+
+        @prompt(model="openai:gpt-5-mini")
+        async def billing() -> str:
+            """You are the billing assistant. Always cite the invoice number."""
+
+        model = ScriptedModel(["Invoice 7 is paid.", "Invoice 8 is due."])
+        agent = await build_agent(
+            model=model,
+            servers={},
+            extra_tools=[get_order],
+            instructions=billing.with_context(AccountProvider()),
+        )
+        questions = ["Where is invoice 7?", "And invoice 8?"]
+        try:
+            for question in questions:
+                payload = {"messages": [_user(question)]}
+                if call == "ainvoke":
+                    await agent.ainvoke(payload)
+                elif call == "astream":
+                    [chunk async for chunk in agent.astream(payload)]
+                else:
+                    [event async for event in agent.astream_with_tools(payload)]
+            assert len(model.calls) == 2
+            for recorded, question in zip(model.calls, questions, strict=True):
+                text = "\n".join(str(m.content) for m in recorded.messages)
+                assert text.count("You are the billing assistant.") == 1
+                # The per-request render, with this call's provider output.
+                assert text.count(f"Account note for: {question}") == 1
+                assert len(_systems(recorded.messages)) == 1
+        finally:
+            await agent.shutdown()
+
+    async def test_prompt_instructions_follow_a_flow_in_one_system_message(self):
+        @prompt(model="openai:gpt-5-mini")
+        async def sysp() -> str:
+            """Answer in one sentence."""
+
+        model = _model()
+        agent = await _agent(model, instructions=sysp, tool_summary="names")
+        try:
+            await agent.ainvoke({"messages": [_user("Hi.")]})
+            systems = _systems(model.calls[-1])
+            assert len(systems) == 1
+            text = systems[0]
+            assert text.count("Answer in one sentence.") == 1
+            assert text.index("Current phase: triage.") < text.index("Answer in one sentence.")
+            assert text.index("Answer in one sentence.") < text.index("Available tools:")
+        finally:
+            await agent.shutdown()
+
+    async def test_prompt_suite_instructions_reach_the_model_once(self):
+        from promptise.prompts.suite import PromptSuite
+
+        @prompt(model="openai:gpt-5-mini")
+        async def tone() -> str:
+            """Be brief."""
+
+        class Support(PromptSuite):
+            rules = tone
+
+        model = _model()
+        agent = await build_agent(model=model, servers={}, instructions=Support())
+        try:
+            await agent.ainvoke({"messages": [_user("Hi.")]})
+            assert _systems(model.calls[-1]) == ["## tone\nBe brief."]
+        finally:
+            await agent.shutdown()
+
+    async def test_failed_render_falls_back_to_the_build_time_prompt(self):
+        class Broken:
+            async def provide(self, ctx: Any) -> str:
+                raise RuntimeError("provider down")
+
+        @prompt(model="openai:gpt-5-mini")
+        async def sysp() -> str:
+            """You are helpful."""
+
+        model = _model()
+        agent = await build_agent(model=model, servers={}, instructions=sysp.with_context(Broken()))
+        try:
+            await agent.ainvoke({"messages": [_user("Hi.")]})
+            assert _systems(model.calls[-1]) == ["You are helpful."]
+        finally:
+            await agent.shutdown()
+
     async def test_streaming_runs_prompt_guards(self):
         @prompt(model="openai:gpt-5-mini")
         async def sysp() -> str:

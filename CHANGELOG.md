@@ -9,6 +9,8 @@
 - **`collector.get_users()` lists isolation keys**: `"acme::alice"` for a user with a tenant (it was `"alice"` for every tenant). Users without a tenant are listed as before.
 - **`AuditMiddleware(include_args=True)` writes a nested Pydantic argument as a JSON object**, not its `str()` (`"sku='MS-30' qty=2"`); dataclasses, dates and sets get their JSON form too. Existing log files still verify. `StructuredLoggingMiddleware(include_args=True)` does the same.
 - **`promptise run` stats payloads have new keys**: `totals.tool_denied` and a `denied` count per tool. Code that compared a tool row exactly needs updating.
+- **A `Prompt` used as instructions now comes before other system messages** -- before, it came after the first system message in the input (for example `chat(system_prompt=...)`). Check prompts that relied on the old order.
+- **With a context engine, a `Prompt`'s context providers run on every call** -- before, only the build-time render was sent. Providers that are slow or have side effects now run once per call.
 
 ### Added
 
@@ -22,6 +24,10 @@
 - **`chat(session_id=...)` left the session empty in traces** -- every entry of the run now carries it.
 - **A call refused by the autonomy budget was missing from traces and `--devtools`** -- with `max_irreversible_per_run=3`, the 4th call reached only the journal (`tool_denied`) and the `permission_denied` hook.
 - **`approval.*` events reached the event notifier but not the timeline** -- `approval.requested`, `approval.granted` and `approval.denied` are now recorded on the observed run (a `CALLBACK` transporter, `--devtools`), with a new `approval.timeout` entry, and a denied call's `tool.result` says `status="denied"` instead of looking like a successful call.
+- **`promptise run --check` failed for an agent factory in a package** -- with `agent = "customer_agent.agent:create_agent"`, `promptise run --mode chat --check` reported "No module named 'customer_agent'" while the real run worked, because the check imported the factory before it put the project root on `sys.path`. `--check` now adds the project root and the `python_path` entries first, the same way the run does.
+- **A `Prompt` as `build_agent(instructions=...)` reached the model twice** -- its build-time render was the graph's system prompt, and the per-request render (with the context providers) was added as a second system message, so every block was sent twice on every call. The model now gets the per-request render once, as the start of its one system message, after a conversation flow's prompt and before the tool list. If the render fails or is empty, the build-time render is sent instead.
+- **`astream()`, `astream_with_tools()` and the context-engine path skipped a `Prompt`'s context providers** -- they sent only the build-time render. They now send the per-request render too.
+- **A `PromptSuite` as instructions sent `<MySuite prompts=N>` as a system message** -- its build-time text was the suite's `repr`. It is now `suite.system_prompt()`, used for the cache key, the context engine's `identity` budget and the fallback.
 
 ## 1.8.0 — 2026-10-23
 

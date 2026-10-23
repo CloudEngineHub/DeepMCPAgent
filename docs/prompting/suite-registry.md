@@ -119,7 +119,7 @@ from promptise.prompts.context import PromptContext
 rendered = await suite.render_async(PromptContext())
 ```
 
-Both join each prompt's rendered text under a `## <prompt name>` heading. Templates are rendered without variables, so `{data}` placeholders stay as they are. A suite can be an agent's instructions: `build_agent(instructions=DataAnalysisSuite())` injects `render_async()` on each turn and runs the guards of all its prompts.
+Both join each prompt's rendered text under a `## <prompt name>` heading. Templates are rendered without variables, so `{data}` placeholders stay as they are. A suite can be an agent's instructions: `build_agent(instructions=DataAnalysisSuite())` sends `render_async()` on each turn, once, as the start of the model's system message, and runs the guards of all its prompts.
 
 ### Suite Methods
 

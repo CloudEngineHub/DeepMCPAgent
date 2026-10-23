@@ -175,6 +175,39 @@ def test_list_and_check(project: Path) -> None:
     assert factory.returncode == 0 and "agent.py:create_agent (serve)" in factory.stderr
 
 
+def test_check_imports_a_package_factory_from_the_project_root(tmp_path: Path) -> None:
+    # Regression: --check imported the factory before the project root was on
+    # sys.path, so `agent = "pkg.module:factory"` failed with "No module named".
+    root = tmp_path / "support"
+    _write(root / ".git" / "HEAD", "ref\n")
+    _write(
+        root / "promptise.toml",
+        """
+        name = "support"
+        agent = "customer_agent.agent:create_agent"
+        """,
+    )
+    _write(root / "customer_agent" / "__init__.py", "")
+    _write(root / "customer_agent" / "prompts.py", 'SYSTEM = "You help customers."\n')
+    _write(
+        root / "customer_agent" / "agent.py",
+        """
+        from customer_agent.prompts import SYSTEM
+
+        async def create_agent(ctx=None):
+            raise AssertionError("--check must not build the agent")
+        """,
+    )
+    sub = root / "docs"
+    sub.mkdir()
+    # From a subdirectory (python -m puts only the cwd on sys.path), and from
+    # the root with PYTHONSAFEPATH (like the `promptise` console script).
+    for cwd, extra in ((sub, {}), (root, {"PYTHONSAFEPATH": "1"})):
+        proc = _run(cwd, "--mode", "chat", "--check", **extra)
+        assert proc.returncode == 0, proc.stderr
+        assert "customer_agent.agent:create_agent (chat) is ready" in proc.stderr
+
+
 def test_preflight_lists_every_problem(project: Path) -> None:
     (project / "promptise.toml").write_text(
         'name = "x"\nmain = "nope.py"\n[env]\nrequired = ["RUN_A_MISSING", "RUN_B_MISSING"]\n'

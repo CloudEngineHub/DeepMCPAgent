@@ -437,6 +437,9 @@ This reads `ctx.world["project"]` and formats all its fields into a markdown sec
 !!! warning "Provider ordering"
     Providers execute in the order they are passed to `@context()`, and their sections appear in that order after the template text. In a [`PromptSuite`](suite-registry.md), suite-level providers run first; a suite provider is skipped when the prompt already has a provider of the same class.
 
+!!! note "As agent instructions, providers run on every call"
+    With `build_agent(instructions=my_prompt)`, the agent renders the prompt for each request, so each provider runs once per call and sees that call's user message in `ctx.rendered_text`. The model gets the rendered prompt once, as the start of its system message.
+
 !!! warning "Providers that need an agent"
     `memory_context()` returns nothing in a standalone call because `ctx.agent` is `None`. It works when the prompt is passed as `build_agent(instructions=...)` and the agent has a memory provider. `task_context()` and `blackboard_context()` need `ctx.task` / `ctx.blackboard`, which only a `PromptContext` you build yourself and pass to `render_async(ctx)` sets.
 

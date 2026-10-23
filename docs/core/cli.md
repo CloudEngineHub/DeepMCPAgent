@@ -108,7 +108,7 @@ promptise run --list                   # list the scripts
 | `-t`, `-tui`, `--tui` | Open the terminal UI |
 | `-w`, `--watch` | Restart the program when a project file changes |
 | `--prod` | Production behavior: JSON logs on stderr, preflight checks, graceful SIGTERM |
-| `--check` | Check the project and the entry, then exit (0 ready, 2 not ready) |
+| `--check` | Check the project and the entry, then exit (0 ready, 2 not ready). A factory is imported with the project root and `python_path` on `sys.path`, as in a real run |
 | `--mode` | `auto` (default), `script`, `chat`, `once` or `serve` |
 | `--serve` | Serve the agent factory over HTTP (`--mode serve`) |
 | `-i`, `--input` | Ask the agent factory one question and print the answer (`-` reads stdin) |
