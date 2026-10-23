@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Upgrade notes
+
+- **A `tool.call` entry's `metadata["arguments"]` is JSON data, not text.** It was the Python repr of the call (`"{'sku': 'MS-30'}"`); it is now a dict for a structured call (`{"sku": "MS-30"}`), with nested models as objects, and stays text only for a tool given plain text. Code that parsed the string should read the dict. Long strings are still cut at 2,000 characters, now per value. The OTLP span attribute `promptise.arguments` is now JSON text.
+- **`collector.purge_user("alice")` and `for_user("alice")` no longer reach a tenant's `alice`.** Without a tenant they match only entries recorded without one, as `MemoryProvider.purge_user` does. Pass `tenant_id=` or the isolation key (`"acme::alice"`) for a tenant's user; `purge_user` logs a warning when it kept entries of a tenant's user with that id. The signatures are unchanged apart from the new keyword.
+- **`collector.get_users()` lists isolation keys**: `"acme::alice"` for a user with a tenant (it was `"alice"` for every tenant). Users without a tenant are listed as before.
+- **`AuditMiddleware(include_args=True)` writes a nested Pydantic argument as a JSON object**, not its `str()` (`"sku='MS-30' qty=2"`); dataclasses, dates and sets get their JSON form too. Existing log files still verify. `StructuredLoggingMiddleware(include_args=True)` does the same.
+- **`promptise run` stats payloads have new keys**: `totals.tool_denied` and a `denied` count per tool. Code that compared a tool row exactly needs updating.
+
+### Added
+
+- **`ProcessConfig(agent_pattern=...)`** -- choose the reasoning pattern of a runtime process, so a run started by a cron schedule or a webhook can use `"peoatr"`, `"research"` or any other name from `AGENT_PATTERNS` (or, in code, a `PromptGraph`). An unknown name fails when the config is created. `.agent` manifests set it with a top-level `agent_pattern:` key. Before, `ProcessConfig` refused the key and every process ran the default ReAct loop.
+- **`TimelineEntry.tenant_id` and `TimelineEntry.isolation_key`** -- every trace entry records the caller's tenant next to its user id. `for_user()` and `purge_user()` take `tenant_id=` (or the `"tenant::user"` key), `query()` takes `tenant_ids=`, and the OTLP transporter sets `promptise.tenant_id`.
+- **Refused tool calls on the trace** -- a call the autonomy budget refuses, or an approval gate denies, is a `tool.call` / `tool.result` with `status="denied"`, `denied_by` and the `reason`. `get_stats()` counts them as `tool_denied_count`, and `promptise run --devtools` prints them and counts them in its summary.
+
+### Fixed
+
+- **Two tenants' users with the same id merged in traces** -- entries stored `caller.user_id` only, so `acme`'s `alice` and `globex`'s `alice` were one user, and `purge_user("alice")` deleted both.
+- **`chat(session_id=...)` left the session empty in traces** -- every entry of the run now carries it.
+- **A call refused by the autonomy budget was missing from traces and `--devtools`** -- with `max_irreversible_per_run=3`, the 4th call reached only the journal (`tool_denied`) and the `permission_denied` hook.
+- **`approval.*` events reached the event notifier but not the timeline** -- `approval.requested`, `approval.granted` and `approval.denied` are now recorded on the observed run (a `CALLBACK` transporter, `--devtools`), with a new `approval.timeout` entry, and a denied call's `tool.result` says `status="denied"` instead of looking like a successful call.
+
 ## 1.8.0 — 2026-10-23
 
 A security fix for multi-tenant approval review, internal APIs in `OpenAPIProvider`, and a cap for large tool results that tells the model when a result was cut.
