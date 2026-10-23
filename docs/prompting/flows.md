@@ -5,7 +5,7 @@ description: "Build agents whose system prompt changes across the phases of a co
 
 # Layer 2: ConversationFlow
 
-Build conversation agents where the system prompt evolves across phases: different blocks activate as the conversation progresses.
+`ConversationFlow` (from `promptise.prompts.flows`) builds conversation agents where the system prompt evolves across phases: different blocks activate as the conversation progresses.
 
 ## Quick Example
 
@@ -63,7 +63,7 @@ stateDiagram-v2
     farewell --> [*]
 ```
 
-## Defining a Flow
+## Defining a ConversationFlow
 
 ### Subclass `ConversationFlow`
 
@@ -396,7 +396,7 @@ async def main():
 asyncio.run(main())
 ```
 
-## API Reference
+## ConversationFlow API reference
 
 ### ConversationFlow
 
