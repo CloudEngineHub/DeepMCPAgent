@@ -549,6 +549,7 @@ class TestCollectorGetStats:
             "total_tokens",
             "llm_call_count",
             "tool_call_count",
+            "tool_denied_count",
             "error_count",
             "retry_count",
             "latency_p50_ms",

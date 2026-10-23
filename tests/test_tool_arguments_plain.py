@@ -313,8 +313,8 @@ class TestDownstreamSeesPlainData:
         assert "Args_" not in out
         assert "'items': [{'sku': 'BANNED-1', 'qty': 2}]" in out
         [call] = collector.query(event_types=["tool.call"])
-        assert "Args_" not in call.metadata["arguments"]
-        assert "{'sku': 'BANNED-1', 'qty': 2}" in call.metadata["arguments"]
+        # The trace keeps the arguments as data, nested models as plain dicts.
+        assert call.metadata["arguments"] == self.ARGS
 
     async def test_approval_request_and_events_carry_plain_arguments(self, monkeypatch, sent):
         server, _ = _shop()
