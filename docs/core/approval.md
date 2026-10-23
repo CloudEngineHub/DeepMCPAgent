@@ -336,12 +336,14 @@ handler = WebhookApprovalHandler(
      X-Promptise-Request-Id: <request_id>
 
 4. Your API responds with 200 + decision when ready:
-   {"approved": true, "reviewer_id": "alice", "reason": "Looks good"}
+   {"request_id": "...", "approved": true, "reviewer_id": "alice", "reason": "Looks good"}
 
    Or 202 if still pending (handler continues polling)
 
 5. On timeout: handler raises TimeoutError → on_timeout action triggers
 ```
+
+Include `request_id` in the decision you return. When it is there, the handler only accepts a decision for the request it is waiting on: a response for another request id (a stale decision behind a fixed `poll_url`, or a replayed one) is logged and ignored, and polling continues. Responses without `request_id` are still accepted. The handler takes one decision per request id: asked again about an id it already decided, it raises `ApprovalReplayError` and the gate denies the call.
 
 #### HMAC verification on your approval service
 
@@ -351,9 +353,10 @@ Verify `X-Promptise-Signature` with `verify_webhook_signature()`. Pass it the ra
 import os
 
 from fastapi import FastAPI, HTTPException, Request
-from promptise.approval import verify_webhook_signature
+from promptise.approval import RequestIdCache, verify_webhook_signature
 
 app = FastAPI()
+seen_requests = RequestIdCache()  # one per process, shared by every request
 
 @app.post("/requests")
 async def receive_approval_request(request: Request):
@@ -362,13 +365,14 @@ async def receive_approval_request(request: Request):
         body,
         request.headers.get("X-Promptise-Signature"),
         os.environ["APPROVAL_WEBHOOK_SECRET"],
-        max_age=300,  # also reject requests older than 5 minutes (replay protection)
+        max_age=300,  # reject requests whose timestamp is more than 5 minutes off
+        replay_cache=seen_requests,  # reject a request_id that already passed
     ):
         raise HTTPException(status_code=401)
     ...
 ```
 
-It returns `True` only when the body is a JSON object with every signed field and the signature matches. With `max_age` set, the `timestamp` must also be within that many seconds of now. To verify without Promptise installed, compute the same value yourself. The signature is HMAC-SHA256 over sorted-key JSON of the six signed fields:
+It returns `True` only when the body is a JSON object with every signed field and the signature matches. With `max_age` set, the `timestamp` must also be within that many seconds of now. With `replay_cache`, the `request_id` must not have passed before: a replayed copy of a signed request is rejected and logged on the `promptise.approval` logger. The cache remembers an id for twice `max_age` (the longest a timestamp stays within `max_age` of now), or for its own `ttl` without `max_age`, and keeps at most `max_size` ids (10,000 by default), dropping the oldest first. It lives in memory: when several processes receive webhooks, check `request_id` against a shared store yourself. To verify without Promptise installed, compute the same value yourself. The signature is HMAC-SHA256 over sorted-key JSON of the six signed fields:
 
 ```python
 import hashlib, hmac, json
@@ -447,7 +451,7 @@ async def approval_ui_loop():
 | Method | Description |
 |---|---|
 | `handler.request_queue` | `asyncio.Queue[ApprovalRequest]`: read pending requests from here |
-| `handler.submit_decision(request_id, decision)` | Submit a decision for a pending request. Raises `KeyError` if the request_id is unknown or already resolved. |
+| `handler.submit_decision(request_id, decision)` | Submit a decision for a pending request. Raises `KeyError` if the request_id is unknown or timed out, and `ApprovalReplayError` (a `KeyError` subclass) if it already has a decision: the first decision stands, and the second is logged. |
 
 ### Custom Handler
 
@@ -651,11 +655,22 @@ run instead of approving.
 - Payload: sorted-key JSON of `request_id`, `tool_name`, `arguments`, `agent_id`, `caller_user_id` and `timestamp` (`promptise.approval.SIGNED_FIELDS`)
 - Secret: Your `secret` parameter
 
-Verify this in your approval API with [`verify_webhook_signature()`](#hmac-verification-on-your-approval-service) to reject spoofed requests, and pass `max_age` to reject replayed ones.
+Verify this in your approval API with [`verify_webhook_signature()`](#hmac-verification-on-your-approval-service) to reject spoofed requests. Pass `max_age` to reject old ones and `replay_cache` to reject a request that already passed.
 
 ### Single-Use Request IDs
 
-Every `request_id` is generated with `secrets.token_hex(16)`: 128 bits of cryptographic randomness. Request IDs are tracked per-agent to prevent replay attacks.
+Every `request_id` is generated with `secrets.token_hex(16)`: 128 bits of cryptographic randomness. Each id takes exactly one decision. A second decision for an id is refused and logged as a warning on the `promptise.approval` logger (`promptise.server.approval` on an MCP server):
+
+| Where | A second decision for the same `request_id` |
+|---|---|
+| The agent's gate (`ApprovalPolicy`) | Denied by the gate (`decided_by="gate"`), without asking the reviewer. |
+| `QueueApprovalHandler.submit_decision()` | Raises `ApprovalReplayError`; the first decision stands. |
+| `WebhookApprovalHandler` | A poll response carrying another request's `request_id` is ignored; asking again about a decided id raises `ApprovalReplayError`, which the gate turns into a denial. |
+| `verify_webhook_signature(..., replay_cache=...)` | Returns `False`. |
+| MCP server: `PendingApprover.decide()` / `approvals_decide` | Returns `False` / `{"resolved": false, "error": "... already decided ..."}`. |
+| MCP server: `ApprovalGateMiddleware` | The call is denied with `APPROVAL_DENIED`. |
+
+Decided ids are kept in a `RequestIdCache`: in memory, per gate or handler, for the approval `timeout` (an id is only useful while its request can still be decided), at most 10,000 at a time with the oldest dropped first. They are not shared between processes and do not survive a restart.
 
 ### Argument Redaction
 
@@ -821,7 +836,8 @@ Cached responses bypass approval entirely: tools aren't called on cache hits, so
 | Scenario | Behavior |
 |---|---|
 | **Tool doesn't match any pattern** | Executes immediately, zero overhead. |
-| **Approval arrives after timeout** | Discarded. Agent already received the timeout decision. Late approvals are logged. |
+| **Approval arrives after timeout** | Discarded. Agent already received the timeout decision. `QueueApprovalHandler.submit_decision()` raises `KeyError` for it. |
+| **A second decision for the same request** | Refused and logged; the first decision stands. See [Single-Use Request IDs](#single-use-request-ids). |
 | **Agent crash during pending approval** | On restart, the pending approval is gone. The agent starts fresh. |
 | **Multiple tools need approval in one invocation** | When the model requests them in the same turn, they run concurrently, so the handler receives all requests at once and each is decided independently. Set `sequential=True` to ask one at a time: each request waits until the previous one in the same invocation is decided. Other invocations aren't held up. |
 | **Agent retries denied tool** | After `max_retries_after_deny` denials of that tool within `deny_window`, for the same user and session (`deny_scope`), it is denied without asking the reviewer. Other users and sessions are still asked. See [Repeated denials](#repeated-denials). |
@@ -849,6 +865,8 @@ Cached responses bypass approval entirely: tools aren't called on cache hits, so
 | `QueueApprovalHandler` | `from promptise import QueueApprovalHandler` | asyncio.Queue for in-process UIs |
 | `approval_elicitation_callback` | `from promptise import approval_elicitation_callback` | MCP client elicitation callback that asks a handler (server-side gates) |
 | `verify_webhook_signature` | `from promptise.approval import verify_webhook_signature` | Check `X-Promptise-Signature` on your approval service |
+| `RequestIdCache` | `from promptise.approval import RequestIdCache` | Request ids that already had their decision (TTL and size bounded); pass to `verify_webhook_signature(replay_cache=...)` |
+| `ApprovalReplayError` | `from promptise.approval import ApprovalReplayError` | Raised for a second decision on the same request id (a `KeyError` subclass) |
 | `wrap_tools_with_approval` | `from promptise.approval import wrap_tools_with_approval` | Gate a list of tools without `build_agent()` |
 
 ---

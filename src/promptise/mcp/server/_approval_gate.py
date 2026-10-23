@@ -40,12 +40,13 @@ import logging
 import secrets
 import time
 from collections.abc import Callable
-from typing import Any, Literal
+from typing import Any, Literal, NoReturn
 
 from promptise.approval import (
     ApprovalDecision,
     ApprovalRequest,
     CallbackApprovalHandler,
+    RequestIdCache,
 )
 
 from ._context import RequestContext
@@ -120,6 +121,8 @@ class ApprovalGateMiddleware:
         self._timeout = timeout
         self._on_timeout = on_timeout
         self._include_arguments = include_arguments
+        # Every request id takes one decision (remembered for the timeout).
+        self._used_request_ids = RequestIdCache(ttl=timeout)
 
     @staticmethod
     async def _check_guards(guards: list[Any], ctx: RequestContext) -> None:
@@ -172,6 +175,18 @@ class ApprovalGateMiddleware:
             raw_arguments=raw_arguments,
         )
 
+    @staticmethod
+    def _refuse_replay(ctx: RequestContext, request: ApprovalRequest) -> NoReturn:
+        logger.warning(
+            "Approval: refused a second decision for request_id=%s; a request id "
+            "takes one decision",
+            request.request_id,
+        )
+        raise ApprovalDeniedError(
+            f"Approval for tool {ctx.tool_name!r} was refused: its request id was already decided",
+            request_id=request.request_id,
+        )
+
     async def __call__(self, ctx: RequestContext, call_next: Callable[..., Any]) -> Any:
         tool_def = ctx.state.get("tool_def")
         if not getattr(tool_def, "requires_approval", False):
@@ -193,6 +208,8 @@ class ApprovalGateMiddleware:
             await self._check_guards(guards, ctx)
 
         request = self._build_request(ctx)
+        if request.request_id in self._used_request_ids:
+            self._refuse_replay(ctx, request)
         logger.info(
             "Approval requested: tool=%s client=%s request_id=%s",
             ctx.tool_name,
@@ -224,6 +241,9 @@ class ApprovalGateMiddleware:
                 f"{self._timeout:.0f}s and was denied by default",
                 request_id=request.request_id,
             ) from None
+
+        if not self._used_request_ids.claim(request.request_id):
+            self._refuse_replay(ctx, request)
 
         if decision.modified_arguments is not None:
             # Arguments are already bound in the handler closure — the gate
@@ -358,6 +378,10 @@ class PendingApprover:
     The store is process-local (like the in-memory job queue); calls that
     time out before a decision are denied by the gate's default.
 
+    Each request id takes one decision: a second ``decide()`` for the same
+    id returns ``False`` and is logged, and the first decision stands.
+    Decided ids are remembered for the request's ``timeout``.
+
     Args:
         server: Server to auto-register the admin tools on.  Pass ``None``
             and call :meth:`register_tools` later to register on a different
@@ -417,6 +441,7 @@ class PendingApprover:
         self._max_pending_per_client = max_pending_per_client
         self._max_pending_per_tenant = max_pending_per_tenant
         self._pending: dict[str, tuple[ApprovalRequest, asyncio.Future[ApprovalDecision]]] = {}
+        self._decided = RequestIdCache()
         self._lock = asyncio.Lock()
         if server is not None:
             self.register_tools(server)
@@ -465,6 +490,17 @@ class PendingApprover:
 
     async def request_approval(self, request: ApprovalRequest) -> ApprovalDecision:
         async with self._lock:
+            if request.request_id in self._pending or request.request_id in self._decided:
+                logger.warning(
+                    "Approval: refused request_id=%s, which is already pending or decided; "
+                    "a request id takes one decision",
+                    request.request_id,
+                )
+                return ApprovalDecision(
+                    approved=False,
+                    reviewer_id="pending-approver",
+                    reason="approval request id already used",
+                )
             if len(self._pending) >= self._max_pending:
                 return ApprovalDecision(
                     approved=False,
@@ -535,17 +571,35 @@ class PendingApprover:
         reason: str | None = None,
     ) -> bool:
         """Resolve a pending request. Returns ``False`` if it is unknown
-        (already decided, timed out, or never existed)."""
+        (already decided, timed out, or never existed).
+
+        A request id takes one decision: a second decision for it is refused
+        (``False``) and logged."""
         entry = self._pending.get(request_id)
         if entry is None:
+            if request_id in self._decided:
+                self._log_second_decision(request_id)
             return False
-        _, future = entry
-        if future.done():
+        request, future = entry
+        if future.done() or not self._decided.claim(request_id, ttl=request.timeout):
+            self._log_second_decision(request_id)
             return False
         future.set_result(
             ApprovalDecision(approved=approved, reviewer_id=reviewer_id, reason=reason)
         )
         return True
+
+    def was_decided(self, request_id: str) -> bool:
+        """Whether *request_id* already had its decision (within its timeout)."""
+        return request_id in self._decided
+
+    @staticmethod
+    def _log_second_decision(request_id: str) -> None:
+        logger.warning(
+            "Approval: refused a second decision for request_id=%s; a request id "
+            "takes one decision",
+            request_id,
+        )
 
     # -- Admin tool registration -------------------------------------------
 
@@ -601,6 +655,12 @@ class PendingApprover:
             resolved = approver.decide(
                 request_id, approve, reviewer_id=reviewer, reason=reason or None
             )
+            if not resolved and approver.was_decided(request_id):
+                return {
+                    "resolved": False,
+                    "error": f"approval request {request_id!r} was already decided; "
+                    "a request id takes one decision",
+                }
             if not resolved:
                 return {
                     "resolved": False,

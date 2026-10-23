@@ -140,6 +140,13 @@ Pause the agent before destructive actions and wait for explicit human approval.
       show_source: false
       heading_level: 4
 
+### RuleEvaluationError
+
+::: promptise.approval_classifier.RuleEvaluationError
+    options:
+      show_source: false
+      heading_level: 4
+
 ### DEFAULT_READ_ONLY_PREFIXES and DEFAULT_DESTRUCTIVE_VERBS
 
 Tuples of the tool-name prefixes the classifier treats as read-only and the verbs that rule a tool out of the read-only layer. See [AutoApprovalClassifier](../core/approval-classifier.md#read-only-auto-allow).
@@ -272,6 +279,20 @@ Webhook + callback sinks for structured agent events (invocation errors, tool fa
 ### verify_webhook_signature
 
 ::: promptise.approval.verify_webhook_signature
+    options:
+      show_source: false
+      heading_level: 4
+
+### RequestIdCache
+
+::: promptise.approval.RequestIdCache
+    options:
+      show_source: false
+      heading_level: 4
+
+### ApprovalReplayError
+
+::: promptise.approval.ApprovalReplayError
     options:
       show_source: false
       heading_level: 4

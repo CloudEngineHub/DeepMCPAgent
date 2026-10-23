@@ -61,6 +61,7 @@ verified caller identity (client id, tenant, JWT subject).
 | No decision within `timeout` | **Denied by default** (`on_timeout="allow"` opts out, explicitly) |
 | Decision carries `modified_arguments` | **Denied**: the server-side gate cannot rewrite bound arguments, and executing the original args after a reviewer changed them would run something they didn't approve |
 | Handler crash | Denied via the error pipeline |
+| A second decision for the same request id | **Denied** (`APPROVAL_DENIED`) and logged; each request id takes one decision |
 
 `ApprovalGateMiddleware(handler, *, timeout=300.0, on_timeout="deny", include_arguments=True)`:
 
@@ -110,6 +111,14 @@ The caps nest (`max_pending_per_client` ≤ `max_pending_per_tenant` ≤
 reason names the cap that was hit (`per-tenant pending approval cap reached
 for tenant 'acme' (40 per tenant)`, `per-client pending approval cap reached
 for 'alice' (20 per client)`).
+
+**Each request id takes one decision.** A second `decide()` for an id that
+was already decided returns `False` and logs a warning on the
+`promptise.server.approval` logger; `approvals_decide` answers
+`{"resolved": false, "error": "approval request '...' was already decided; ..."}`,
+and the first decision stands. `approver.was_decided(request_id)` tells you
+whether an id already had its decision. Decided ids are remembered in memory
+for the request's `timeout` (at most 10,000 of them).
 
 ### `ElicitationApprover`: confirm with the human behind the client
 

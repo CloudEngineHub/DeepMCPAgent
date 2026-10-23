@@ -35,6 +35,7 @@ import inspect
 import json
 import logging
 import secrets
+import threading
 import time
 import typing
 from collections import OrderedDict
@@ -109,7 +110,127 @@ __all__ = [
     "SIGNED_FIELDS",
     "approval_elicitation_callback",
     "CONFIRMATION_FIELDS",
+    "RequestIdCache",
+    "ApprovalReplayError",
 ]
+
+# ---------------------------------------------------------------------------
+# Single-use request ids
+# ---------------------------------------------------------------------------
+
+#: The longest approval timeout ``ApprovalPolicy`` accepts (24 hours).
+_MAX_APPROVAL_TIMEOUT = 86400.0
+
+
+class ApprovalReplayError(KeyError):
+    """A second decision arrived for a request id that already has one.
+
+    Every approval request id takes exactly one decision.  Raised by
+    :meth:`QueueApprovalHandler.submit_decision` for a second decision, and
+    by the built-in handlers when they are asked to decide a request id they
+    already decided.  A subclass of :class:`KeyError`, so code that catches
+    ``KeyError`` for "no such pending request" keeps working.
+
+    Attributes:
+        request_id: The request id that was replayed.
+    """
+
+    def __init__(self, request_id: str, message: str | None = None) -> None:
+        self.request_id = request_id
+        self.message = message or (
+            f"Approval request {request_id!r} was already decided; a request id takes one decision"
+        )
+        super().__init__(self.message)
+
+    def __str__(self) -> str:
+        return self.message
+
+
+class RequestIdCache:
+    """Request ids that have had their one decision, remembered for a while.
+
+    The approval gate, :class:`QueueApprovalHandler`,
+    :class:`WebhookApprovalHandler` and the MCP server's ``PendingApprover``
+    use one to make every request id decidable exactly once.  Pass one to
+    :func:`verify_webhook_signature` (``replay_cache=``) on your approval
+    service to refuse a replayed signed request.
+
+    Memory is bounded twice: an id is forgotten ``ttl`` seconds after it was
+    recorded (each :meth:`claim` can set its own), and at most ``max_size``
+    ids are kept, the oldest dropped first.  An id is only useful for as long
+    as a decision for it could still arrive, so the built-in users set the
+    TTL to the request's ``timeout`` (or ``max_age`` for signatures).
+    Thread-safe.
+
+    Args:
+        ttl: Default seconds an id is remembered.  Default 86400, the longest
+            approval timeout.
+        max_size: Most ids kept.  Default 10,000.  Size it above the number
+            of requests you expect within the TTL: an id dropped early can be
+            decided again.
+    """
+
+    def __init__(self, ttl: float = _MAX_APPROVAL_TIMEOUT, *, max_size: int = 10_000) -> None:
+        if ttl <= 0:
+            raise ValueError(f"ttl must be positive, got {ttl}")
+        if max_size < 1:
+            raise ValueError(f"max_size must be at least 1, got {max_size}")
+        self.ttl = ttl
+        self.max_size = max_size
+        self._expires: OrderedDict[str, float] = OrderedDict()
+        self._lock = threading.Lock()
+
+    def _prune(self, now: float) -> None:
+        # Ids are kept in insertion order; drop expired ones from the front
+        # (an entry with a longer TTL stops the sweep, which max_size bounds).
+        while self._expires:
+            request_id, expires = next(iter(self._expires.items()))
+            if expires > now:
+                break
+            del self._expires[request_id]
+
+    def claim(self, request_id: str, *, ttl: float | None = None) -> bool:
+        """Record *request_id*; ``False`` when it is already recorded.
+
+        ``True`` means this is the id's first decision and it may be used.
+        ``False`` means the id was decided before (within its TTL): refuse
+        the decision.
+
+        Args:
+            request_id: The id to record.
+            ttl: Seconds to remember it; defaults to :attr:`ttl`.
+        """
+        now = time.monotonic()
+        with self._lock:
+            self._prune(now)
+            expires = self._expires.get(request_id)
+            if expires is not None and expires > now:
+                return False
+            self._expires[request_id] = now + (ttl if ttl and ttl > 0 else self.ttl)
+            self._expires.move_to_end(request_id)
+            while len(self._expires) > self.max_size:
+                self._expires.popitem(last=False)
+            return True
+
+    def __contains__(self, request_id: object) -> bool:
+        with self._lock:
+            expires = self._expires.get(request_id) if isinstance(request_id, str) else None
+            return expires is not None and expires > time.monotonic()
+
+    def __len__(self) -> int:
+        with self._lock:
+            self._prune(time.monotonic())
+            return len(self._expires)
+
+
+def _log_replay(where: str, request_id: str) -> None:
+    logger.warning(
+        "Approval: refused a second decision for request_id=%s (%s); a request id "
+        "takes one decision",
+        request_id,
+        where,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Built-in handlers
@@ -174,6 +295,14 @@ class WebhookApprovalHandler:
     answer that changes after construction (DNS rebinding) cannot redirect
     it to an internal service.  Redirects are never followed.
 
+    Each request id takes one decision.  A poll response whose JSON carries
+    a ``request_id`` must carry this request's id: a response for another
+    request (a stale or replayed decision, e.g. from a fixed ``poll_url``) is
+    logged and ignored, and polling continues.  Asking the handler again
+    about a request id it already decided raises
+    :class:`ApprovalReplayError`, which the agent's gate turns into a
+    denial.  Decided ids are remembered for the request's ``timeout``.
+
     Raises:
         ValueError: ``url`` or ``poll_url`` targets a private or internal
             address and ``allow_private_networks`` is not set.
@@ -209,15 +338,23 @@ class WebhookApprovalHandler:
         self._poll_interval = max(0.5, poll_interval)
         self._headers = headers or {}
         self._http_client = http_client  # Optional pre-configured httpx.AsyncClient
+        self._decided = RequestIdCache()
 
     async def request_approval(self, request: ApprovalRequest) -> ApprovalDecision:
-        """POST request to webhook, poll for decision."""
+        """POST request to webhook, poll for decision.
+
+        Raises:
+            ApprovalReplayError: This handler already decided *request*'s id.
+        """
         try:
             import httpx
         except ImportError:
             raise ImportError(
                 "httpx is required for WebhookApprovalHandler. Install with: pip install httpx"
             )
+        if request.request_id in self._decided:
+            _log_replay("WebhookApprovalHandler", request.request_id)
+            raise ApprovalReplayError(request.request_id)
 
         signature = request.compute_hmac(self._secret)
         headers = {
@@ -275,7 +412,22 @@ class WebhookApprovalHandler:
                     )
                     if poll_resp.status_code == 200:
                         data = poll_resp.json()
-                        if "approved" in data:
+                        if (
+                            isinstance(data, dict)
+                            and "request_id" in data
+                            and data["request_id"] != request.request_id
+                        ):
+                            logger.warning(
+                                "Approval: ignored a poll response for request_id=%r while "
+                                "waiting for request_id=%s (stale or replayed decision)",
+                                data["request_id"],
+                                request.request_id,
+                            )
+                            continue
+                        if isinstance(data, dict) and "approved" in data:
+                            if not self._decided.claim(request.request_id, ttl=request.timeout):
+                                _log_replay("WebhookApprovalHandler", request.request_id)
+                                raise ApprovalReplayError(request.request_id)
                             return ApprovalDecision(
                                 approved=data["approved"],
                                 modified_arguments=data.get("modified_arguments"),
@@ -305,6 +457,7 @@ def verify_webhook_signature(
     secret: str,
     *,
     max_age: float | None = None,
+    replay_cache: RequestIdCache | None = None,
 ) -> bool:
     """Check the ``X-Promptise-Signature`` of a webhook approval request.
 
@@ -322,6 +475,7 @@ def verify_webhook_signature(
                 request.headers.get("X-Promptise-Signature"),
                 os.environ["APPROVAL_WEBHOOK_SECRET"],
                 max_age=300,
+                replay_cache=seen_requests,  # RequestIdCache(), created once
             ):
                 raise HTTPException(401)
             ...
@@ -336,12 +490,18 @@ def verify_webhook_signature(
         signature: The ``X-Promptise-Signature`` header value.
         secret: The handler's ``secret``.
         max_age: Also reject requests whose ``timestamp`` is more than this
-            many seconds away from now (replay protection).  ``None`` skips
-            the check.
+            many seconds away from now.  ``None`` skips the check.
+        replay_cache: A :class:`RequestIdCache` shared by every call: a
+            request whose ``request_id`` already passed is rejected (and
+            logged) as a replay.  Ids are remembered for twice ``max_age``
+            when it is set (the longest a timestamp can stay within
+            ``max_age`` of now), else for the cache's ``ttl``.  Without it, a captured request
+            verifies again until ``max_age`` runs out.
 
     Returns:
         ``True`` only when the body is a JSON object with every signed field,
-        the signature matches, and (with ``max_age``) the timestamp is fresh.
+        the signature matches, (with ``max_age``) the timestamp is fresh, and
+        (with ``replay_cache``) its ``request_id`` was not seen before.
     """
     if not signature:
         return False
@@ -363,6 +523,16 @@ def verify_webhook_signature(
             return False
         if abs(time.time() - timestamp) > max_age:
             return False
+    if replay_cache is not None:
+        request_id = data.get("request_id")
+        if not isinstance(request_id, str) or not request_id:
+            return False
+        # A timestamp up to max_age in the future verifies until max_age past
+        # it, so remember the id for twice max_age.
+        ttl = 2 * max_age if max_age is not None else None
+        if not replay_cache.claim(request_id, ttl=ttl):
+            _log_replay("verify_webhook_signature", request_id)
+            return False
     return True
 
 
@@ -383,6 +553,11 @@ class QueueApprovalHandler:
         # Show to user, collect decision
         handler.submit_decision(request.request_id, ApprovalDecision(approved=True))
 
+    Each request id takes one decision: a second :meth:`submit_decision`
+    for the same id raises :class:`ApprovalReplayError` (a ``KeyError``) and
+    is logged, and the first decision stands.  Decided ids are remembered for
+    the request's ``timeout``.
+
     Attributes:
         request_queue: Queue of pending :class:`ApprovalRequest` objects.
     """
@@ -390,6 +565,8 @@ class QueueApprovalHandler:
     def __init__(self, maxsize: int = 100) -> None:
         self.request_queue: asyncio.Queue[ApprovalRequest] = asyncio.Queue(maxsize=maxsize)
         self._pending: dict[str, asyncio.Future[ApprovalDecision]] = {}
+        self._timeouts: dict[str, float] = {}
+        self._decided = RequestIdCache()
         self._lock = asyncio.Lock()
 
     def submit_decision(self, request_id: str, decision: ApprovalDecision) -> None:
@@ -402,21 +579,37 @@ class QueueApprovalHandler:
             decision: The reviewer's decision.
 
         Raises:
+            ApprovalReplayError: The request already has a decision (a
+                subclass of ``KeyError``).
             KeyError: If no pending request with this ID exists.
         """
         future = self._pending.get(request_id)
         if future is None:
+            if request_id in self._decided:
+                _log_replay("QueueApprovalHandler", request_id)
+                raise ApprovalReplayError(request_id)
             raise KeyError(f"No pending approval request with id {request_id!r}")
-        if not future.done():
-            future.set_result(decision)
+        if future.done() or not self._decided.claim(request_id, ttl=self._timeouts.get(request_id)):
+            _log_replay("QueueApprovalHandler", request_id)
+            raise ApprovalReplayError(request_id)
+        future.set_result(decision)
 
     async def request_approval(self, request: ApprovalRequest) -> ApprovalDecision:
-        """Enqueue request and wait for decision from the UI."""
+        """Enqueue request and wait for decision from the UI.
+
+        Raises:
+            ApprovalReplayError: *request*'s id is already pending here or
+                was already decided.
+        """
         loop = asyncio.get_running_loop()
         future: asyncio.Future[ApprovalDecision] = loop.create_future()
 
         async with self._lock:
+            if request.request_id in self._pending or request.request_id in self._decided:
+                _log_replay("QueueApprovalHandler", request.request_id)
+                raise ApprovalReplayError(request.request_id)
             self._pending[request.request_id] = future
+            self._timeouts[request.request_id] = request.timeout
 
         try:
             await self.request_queue.put(request)
@@ -427,6 +620,7 @@ class QueueApprovalHandler:
         finally:
             async with self._lock:
                 self._pending.pop(request.request_id, None)
+                self._timeouts.pop(request.request_id, None)
 
 
 # ---------------------------------------------------------------------------
@@ -753,7 +947,9 @@ class _GateState:
     def __init__(self, policy: ApprovalPolicy, *, pending: int = 0) -> None:
         self.pending = pending
         self.denials = _DenialTracker(policy.deny_window)
-        self.used_request_ids: set[str] = set()  # Replay protection
+        # Every request id takes one decision.  Remembered for the policy's
+        # timeout: a decision can only arrive while its request is pending.
+        self.used_request_ids = RequestIdCache(ttl=policy.timeout)
         self._locks: dict[Hashable, tuple[asyncio.Lock, list[int]]] = {}
 
     @contextlib.asynccontextmanager
@@ -1121,6 +1317,9 @@ class _ApprovalToolWrapper(WrappingTool):
         policy = self._policy
         tool_name = request.tool_name
         request_id = request.request_id
+        if request_id in self._state.used_request_ids:
+            _log_replay("agent approval gate", request_id)
+            return self._replay_denial()
         self._state.pending += 1
         try:
             async with contextlib.AsyncExitStack() as stack:
@@ -1192,9 +1391,20 @@ class _ApprovalToolWrapper(WrappingTool):
         finally:
             self._state.pending = max(0, self._state.pending - 1)
 
-        # Replay protection — mark request_id as used
-        self._state.used_request_ids.add(request_id)
+        # A request id takes one decision: one that was already decided
+        # (a replay) is refused, whatever this decision says.
+        if not self._state.used_request_ids.claim(request_id):
+            _log_replay("agent approval gate", request_id)
+            return self._replay_denial()
         return decision
+
+    @staticmethod
+    def _replay_denial() -> ApprovalDecision:
+        return ApprovalDecision(
+            approved=False,
+            reason="This approval request id was already decided; a request id takes one decision.",
+            decided_by="gate",
+        )
 
     async def _run_inner(
         self,
