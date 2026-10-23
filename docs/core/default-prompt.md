@@ -1,12 +1,12 @@
 ---
-seo_title: "Default System Prompt for build_agent"
-description: "The default system prompt every build_agent agent receives: tool-first behaviour, schema awareness and citing tool results, and how to override or extend it."
+seo_title: "DEFAULT_SYSTEM_PROMPT: the Default System Prompt"
+description: "DEFAULT_SYSTEM_PROMPT, the system prompt build_agent agents get without instructions: tool-first rules, schema checks, citing results, how to override it."
 ---
 
-# Default System Prompt
+# Default System Prompt (DEFAULT_SYSTEM_PROMPT)
 
 An agent built with `build_agent` without `instructions` receives a default system
-prompt that establishes baseline behaviour: tool usage discipline, schema inspection, and
+prompt, `DEFAULT_SYSTEM_PROMPT` from `promptise.prompt`, that establishes baseline behaviour: tool usage discipline, schema inspection, and
 result citation.  The default prompt lives in a single module so it can be
 reviewed, overridden, or extended without touching any builder logic.
 
@@ -34,7 +34,7 @@ asyncio.run(main())
 
 ## Concepts
 
-### The default prompt
+### The DEFAULT_SYSTEM_PROMPT constant
 
 The `DEFAULT_SYSTEM_PROMPT` constant contains the following instructions:
 

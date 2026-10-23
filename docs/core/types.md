@@ -1,13 +1,13 @@
 ---
-seo_title: "ModelLike and Core Type Aliases"
-description: "The types module: ModelLike, the type for every way to specify a language model for build_agent, plus the ServerSpec and CrossAgent types it re-exports."
+seo_title: "ModelLike: the Model Type for build_agent"
+description: "ModelLike, the type for every way to give build_agent a model (provider string, Model, chat model, runnable), plus the ServerSpec and CrossAgent types."
 ---
 
-# Types & ModelLike
+# ModelLike and Core Types
 
 The `types` module provides the central type aliases and re-exports used across
 the Promptise framework.  Its most important export is `ModelLike`, which
-defines the three ways you can specify a language model.
+defines the four ways you can specify a language model.
 
 **Source:** `src/promptise/types.py`
 
