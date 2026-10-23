@@ -93,7 +93,7 @@ def modern_call(ll: Any) -> ModernCall | None:
     version = getattr(session, "protocol_version", None)
     from mcp_types.version import MODERN_PROTOCOL_VERSIONS
 
-    if version not in MODERN_PROTOCOL_VERSIONS:
+    if not isinstance(version, str) or version not in MODERN_PROTOCOL_VERSIONS:
         return None
     params = _call_params.get(None)
     return ModernCall(

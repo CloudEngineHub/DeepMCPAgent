@@ -1402,8 +1402,12 @@ class TestEverySurfaceUsesTheRegistry:
             ]
         )
         chain._ensure_resolved()
-        assert [type(m).__name__ for m in chain._resolved] == ["AzureChatOpenAI", "ChatOpenAI"]
-        assert chain._resolved[1].openai_api_base == "https://api.groq.com/openai/v1"
+        # The primary is resolved when the chain is set up, a fallback when it is first tried.
+        assert type(chain._resolved[0]).__name__ == "AzureChatOpenAI"
+        assert chain._resolved[1] is None
+        fallback = chain._member(1)
+        assert type(fallback).__name__ == "ChatOpenAI"
+        assert fallback.openai_api_base == "https://api.groq.com/openai/v1"
 
     def test_fallback_chain_error_is_actionable(self, clean_env):
         from promptise import FallbackChain
