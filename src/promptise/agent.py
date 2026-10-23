@@ -3368,7 +3368,7 @@ async def build_agent(
         if trace_tools:
             print(f"→ Invoking tool: {name} with {kwargs}")
         if _obs is not None:
-            from .observability import TimelineEventType, _truncate_for_metadata
+            from .observability import TimelineEventType, _json_safe_arguments
 
             _obs.record(
                 TimelineEventType.TOOL_CALL,
@@ -3376,7 +3376,7 @@ async def build_agent(
                 details=f"Calling tool: {name}",
                 metadata={
                     "tool_name": name,
-                    "arguments": _truncate_for_metadata(str(kwargs)),
+                    "arguments": _json_safe_arguments(kwargs),
                 },
             )
 
@@ -3441,7 +3441,11 @@ async def build_agent(
             )
             print(f"✔ Tool result from {name} (reused): {result}")
         if _obs is not None:
-            from .observability import TimelineEventType, _truncate_for_metadata
+            from .observability import (
+                TimelineEventType,
+                _json_safe_arguments,
+                _truncate_for_metadata,
+            )
 
             _obs.record(
                 TimelineEventType.TOOL_CALL,
@@ -3449,7 +3453,7 @@ async def build_agent(
                 details=f"Reusing an earlier result for tool: {name}",
                 metadata={
                     "tool_name": name,
-                    "arguments": _truncate_for_metadata(str(args)),
+                    "arguments": _json_safe_arguments(args),
                     "reused": True,
                 },
             )

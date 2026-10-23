@@ -45,16 +45,32 @@ GENESIS_HASH = "0" * 64
 _TAIL_CHUNK = 64 * 1024
 
 
+def _json_default(value: Any) -> Any:
+    """JSON form of a value ``json`` cannot encode itself.
+
+    Pydantic models and dataclasses become objects, sets lists, datetimes
+    ISO strings, enums their value (as pydantic serialises them);
+    anything else its ``str()``.
+    """
+    from pydantic_core import to_jsonable_python
+
+    try:
+        return to_jsonable_python(value, fallback=str)
+    except Exception:
+        return str(value)
+
+
 def canonical_entry(entry: dict[str, Any]) -> dict[str, Any]:
     """Return *entry* exactly as it reads back from the JSONL file.
 
-    Values JSON cannot hold (sets, models, datetimes) become strings, tuples
-    become lists and dict keys become strings.  Signing this form means the
+    Pydantic models and dataclasses become JSON objects, sets and tuples
+    lists, datetimes ISO strings and dict keys strings; any other value
+    JSON cannot hold becomes its ``str()``.  Signing this form means the
     HMAC is computed over the same data a verifier reads from the file — a
     tool argument such as ``{1: "a", 10: "b"}`` used to be signed with its
     keys sorted as integers and verified with them sorted as strings.
     """
-    result: dict[str, Any] = json.loads(json.dumps(entry, default=str))
+    result: dict[str, Any] = json.loads(json.dumps(entry, default=_json_default))
     return result
 
 
@@ -135,7 +151,9 @@ class AuditMiddleware:
                keep, or nobody could ever verify it, so ``log_path`` with
                ``signed=True`` and no key raises ``ValueError``.
         include_args: Log tool arguments (default ``False`` — may
-            contain PII).
+            contain PII).  They are logged as the tool validated them, as
+            JSON: a Pydantic model argument (or one nested in a list or
+            dict) is a JSON object, a ``datetime`` an ISO string.
         include_result: Log tool results (default ``False``).
         max_memory_entries: How many entries :attr:`entries` keeps in
             memory (default 10 000; ``None`` keeps all).  The file keeps

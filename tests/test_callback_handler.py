@@ -295,7 +295,7 @@ class TestOnToolStart:
         assert len(entries) == 1
         meta = entries[0].metadata
         assert meta["tool_name"] == "search_files"
-        assert meta["arguments"] == '{"query": "test"}'
+        assert meta["arguments"] == {"query": "test"}
         assert handler.tool_call_count == 1
 
 

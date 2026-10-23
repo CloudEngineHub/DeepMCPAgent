@@ -39,7 +39,7 @@ Every invocation (`ainvoke`, `chat`, `astream`, `astream_with_tools`) is an **ag
 |---|---|---|
 | `agent.input` | The invocation starts | `input_length`, `model` (+ `input_preview` when text is recorded) |
 | `llm.start` / `llm.end` | Each LLM turn (STANDARD and FULL) | `model`, `latency_ms`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `tool_calls` (+ `prompt_preview` / `response_preview`) |
-| `tool.call` | A tool is called | `tool_name`, `arguments` |
+| `tool.call` | A tool is called | `tool_name`, `arguments` (JSON data, see [Tool arguments](#tool-arguments)) |
 | `tool.result` | The tool returned | `tool_name`, `latency_ms`, `result_preview` |
 | `tool.error` | The tool failed — it raised, or an MCP server answered `isError: true` (e.g. a `ToolError`) | `tool_name`, `latency_ms`, `error_type`, `error` |
 | `llm.error`, `llm.retry` | An LLM call failed or was retried | `error_type`, `error`, `attempt` |
@@ -47,7 +47,7 @@ Every invocation (`ainvoke`, `chat`, `astream`, `astream_with_tools`) is an **ag
 | `agent.output` | The invocation finished | `duration_ms`, the run's `prompt_tokens` / `completion_tokens` / `total_tokens`, `llm_call_count`, `tool_call_count`, `error_count`, `cache_hit`, `output_length` (+ `output_preview`) |
 | `agent.error` | The invocation raised | `error_type`, `error`, and the same run totals |
 
-Every event recorded during a run has `parent_id` set to the run's `agent.input` entry, so you can pull one request out of a busy timeline (`collector.query(...)` then filter on `parent_id`), and the OpenTelemetry transporter turns each run into one trace. Events also carry the caller's `user_id` and `session_id` (see [Multi-User Attribution](#multi-user-attribution)).
+Every event recorded during a run has `parent_id` set to the run's `agent.input` entry, so you can pull one request out of a busy timeline (`collector.query(...)` then filter on `parent_id`), and the OpenTelemetry transporter turns each run into one trace. Events also carry the caller's `user_id`, `tenant_id` and `session_id` (see [Multi-User Attribution](#multi-user-attribution)).
 
 ---
 
@@ -101,6 +101,20 @@ Two switches decide whether user and model text lands in your traces:
 | `record_tool_io` | `True` | `arguments` on `tool.call`, `result_preview` on `tool.result`, `error` and `traceback` on `tool.error`. With `False` the events keep the tool name, latency and error type, plus `arguments_length` / `result_length`. |
 
 Tool arguments are on by default because they are what makes a trace debuggable — but they often carry user data (names, emails, account numbers). Set `record_tool_io=False` when traces leave your trust boundary (a hosted APM, a shared log pipeline). Cache events never copy the user's query into their text.
+
+### Tool arguments
+
+A `tool.call` entry's `arguments` are JSON data, so you can read a field without parsing text:
+
+```python
+call = agent.collector.query(event_types=["tool.call"])[0]
+call.metadata["arguments"]          # {"order": {"sku": "MS-30", "qty": 2}, "note": "gift"}
+call.metadata["arguments"]["order"]["sku"]   # "MS-30"
+```
+
+A structured call is a dict; a tool given plain text keeps the text. Pydantic models, dataclasses, dates and sets become their JSON form, strings longer than 2,000 characters are cut with a `[truncated, N total chars]` note, and a list or object keeps its first 200 items. Redaction (`redact_sensitive`) works on the dict, so the value of a credential key such as `password` is replaced at any depth.
+
+Before this change `arguments` was the Python text of the call (`"{'sku': 'MS-30'}"`). Code that parsed it should read the dict instead; the `--tui` and `--devtools` views show both forms.
 
 Whatever is recorded is scrubbed first: with `redact_sensitive=True` (the default) every event's metadata and details pass through `promptise.observability.redact_sensitive` before they are stored or reach a transporter, so the HTML report, the NDJSON stream, log files, webhooks and OpenTelemetry spans all get the redacted text:
 
@@ -305,7 +319,7 @@ invoke_agent shop                    3.7 s   enduser.id=customer-42  session.id=
 - The run span lasts from `agent.input` to `agent.output` (or `agent.error`); each LLM call (`llm.start` → `llm.end`) and tool call (`tool.call` → `tool.result` / `tool.error`) is a child span with its real start and end time, so span durations are the latencies.
 - Failed tool calls, LLM calls and runs get an `ERROR` status. Other events of the run (cache hits, retries) are span events on the run span.
 - If an OpenTelemetry span is active when you invoke the agent — say, the server span of an instrumented FastAPI app — the run span becomes its child, so the agent joins the request's trace.
-- Attributes follow the GenAI semantic conventions (`gen_ai.operation.name`, `gen_ai.agent.name`, `gen_ai.request.model`, `gen_ai.usage.input_tokens` / `output_tokens`, `gen_ai.tool.name`), plus `enduser.id` and `session.id` from the `CallerContext`, `promptise.correlation_id` from the config, and every scalar metadata field as `promptise.<key>`.
+- Attributes follow the GenAI semantic conventions (`gen_ai.operation.name`, `gen_ai.agent.name`, `gen_ai.request.model`, `gen_ai.usage.input_tokens` / `output_tokens`, `gen_ai.tool.name`), plus `enduser.id`, `promptise.tenant_id` and `session.id` from the `CallerContext`, `promptise.correlation_id` from the config, every scalar metadata field as `promptise.<key>`, and a tool call's arguments as one JSON string, `promptise.arguments`.
 - LLM spans need `STANDARD` or `FULL`; at `BASIC` a run has tool spans only.
 
 `OTLPTransporter` creates its own `TracerProvider` and never replaces the global one. To send spans through your application's provider (and its exporters, sampling and resource attributes) instead, attach the transporter yourself:
@@ -363,35 +377,46 @@ This configuration:
 
 ## Multi-User Attribution
 
-Every `TimelineEntry` carries the authenticated caller's `user_id` and `session_id`. The `ObservabilityCollector` reads these automatically from the `CallerContext` contextvar at record time — there is nothing to wire manually.
+Every `TimelineEntry` carries the authenticated caller's `user_id`, `tenant_id` and `session_id`. The `ObservabilityCollector` reads them from the `CallerContext` of the running call at record time — there is nothing to wire manually. The session is the `session_id` passed to `agent.chat(...)` (or `caller.metadata["session_id"]`).
 
 ```python
-from promptise.agent import CallerContext, _caller_ctx_var
-from promptise.observability import ObservabilityCollector, TimelineEventType
+from promptise import CallerContext
 
-collector = ObservabilityCollector()
-token = _caller_ctx_var.set(CallerContext(user_id="alice", metadata={"session_id": "sess-1"}))
-try:
-    entry = collector.record(TimelineEventType.TOOL_CALL, details="search(q=...)")
-finally:
-    _caller_ctx_var.reset(token)
+await agent.chat(
+    "Where is my order?",
+    session_id="sess-1",
+    caller=CallerContext(user_id="alice", tenant_id="acme"),
+)
 
-assert entry.user_id == "alice"
-assert entry.session_id == "sess-1"
+entry = agent.collector.query(event_types=["tool.call"])[0]
+entry.user_id        # "alice"
+entry.tenant_id      # "acme"
+entry.isolation_key  # "acme::alice"
+entry.session_id     # "sess-1"
 ```
+
+Two tenants can each have a user called `alice`. The tenant keeps them apart: `isolation_key` is `"{tenant_id}::{user_id}"` (or the plain `user_id` without a tenant), the same key the cache, memory and conversation ownership use.
 
 ### Per-tenant queries
 
 | Method | Returns | Description |
 |---|---|---|
-| `collector.query(user_ids=[...], session_ids=[...])` | `list[TimelineEntry]` | Filter the ring buffer by user, session, event type, or time window |
-| `collector.for_user(user_id)` | `list[TimelineEntry]` | Shorthand for a single tenant's events |
-| `collector.get_users()` | `list[str]` | Unique sorted `user_id`s present in the buffer |
-| `collector.purge_user(user_id)` | `int` | Deletes one user's data on request — drops every entry owned by that user |
+| `collector.query(user_ids=[...], tenant_ids=[...], session_ids=[...])` | `list[TimelineEntry]` | Filter the ring buffer by user, tenant, session or event type. `user_ids` matches the user id in any tenant; add `tenant_ids` for one tenant (`None` in the list selects entries without a tenant) |
+| `collector.for_user(user_id, tenant_id=None)` | `list[TimelineEntry]` | One caller's events. Pass the caller's `user_id` and `tenant_id`, or the isolation key (`"acme::alice"`) |
+| `collector.get_users()` | `list[str]` | Unique sorted owners in the buffer, as isolation keys (`"alice"`, `"acme::alice"`) |
+| `collector.purge_user(user_id, tenant_id=None)` | `int` | Deletes one caller's data on request. Takes the same arguments as `for_user` and never touches another tenant's user with the same id |
 
-Entries without a caller (system events like `HEALTH_CHECK`) keep `user_id=None` and `session_id=None`; `purge_user` never touches them.
+```python
+collector.purge_user("alice", tenant_id="acme")   # acme's Alice
+collector.purge_user("acme::alice")               # the same
+collector.purge_user("alice")                     # only Alice without a tenant
+```
 
-`TimelineEntry.to_dict()` includes both fields, so `STRUCTURED_LOG` / `JSON` / `WEBHOOK` / `OTLP` transporters all emit per-tenant attribution automatically — no custom transporter code required.
+`purge_user("alice")` without a tenant removes only the entries recorded without one, as `MemoryProvider.purge_user` does. When it keeps entries of a tenant's `alice`, it logs a warning that says how many, so a deletion request that forgot the tenant does not pass unnoticed.
+
+Entries without a caller (system events like `HEALTH_CHECK`) keep `user_id=None`, `tenant_id=None` and `session_id=None`; `purge_user` never touches them.
+
+`TimelineEntry.to_dict()` includes these fields, so the `JSON`, `WEBHOOK` and `HTML` transporters carry per-tenant attribution with no custom transporter code, and `OTLP` sets `enduser.id`, `promptise.tenant_id` and `session.id`.
 
 ---
 

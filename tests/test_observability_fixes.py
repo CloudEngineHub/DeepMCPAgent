@@ -560,7 +560,7 @@ class TestRecordToolIO:
         await agent.ainvoke(USER_MSG)
         call = agent.collector.query(event_types=["tool.call"])[0]
         result = agent.collector.query(event_types=["tool.result"])[0]
-        assert call.metadata["arguments"] == "{'sku': 'MS-30'}"
+        assert call.metadata["arguments"] == {"sku": "MS-30"}
         assert result.metadata["result_preview"] == '{"units": 6}'
 
     @pytest.mark.asyncio
@@ -646,6 +646,19 @@ class TestOTLPTraces:
         assert run.attributes["gen_ai.usage.input_tokens"] == 12
         assert tool.attributes["gen_ai.tool.name"] == "check_stock"
         assert run.attributes["gen_ai.operation.name"] == "invoke_agent"
+
+    @pytest.mark.asyncio
+    async def test_spans_carry_the_tenant_and_json_arguments(self, otel) -> None:
+        provider, exporter = otel
+        agent = _otlp_agent(provider)
+        caller = CallerContext(user_id="customer-42", tenant_id="acme")
+        await agent.ainvoke(USER_MSG, caller=caller)
+        spans = {s.name: s for s in exporter.get_finished_spans()}
+        for span in spans.values():
+            assert span.attributes["enduser.id"] == "customer-42"
+            assert span.attributes["promptise.tenant_id"] == "acme"
+        tool = spans["execute_tool check_stock"]
+        assert json.loads(tool.attributes["promptise.arguments"]) == {"sku": "MS-30"}
 
     @pytest.mark.asyncio
     async def test_failed_tool_span_has_error_status(self, otel) -> None:

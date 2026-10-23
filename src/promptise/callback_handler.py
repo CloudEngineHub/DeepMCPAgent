@@ -58,7 +58,10 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
             ``level`` (on at ``FULL`` only); ``True`` / ``False`` force it.
         level: Detail level.
         record_tool_io: Record tool arguments and result previews.  When
-            ``False``, only their lengths are recorded.
+            ``False``, only their lengths are recorded.  A ``tool.call``
+            event's ``arguments`` are JSON data: a dict for a structured
+            call (nested models as objects, long strings cut at 2,000
+            characters), the text for a tool given plain text.
     """
 
     # Tell LangChain we handle *all* event types.
@@ -360,7 +363,11 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
 
         metadata: dict[str, Any] = {"tool_name": tool_name, "run_id": str(run_id)}
         if self.record_tool_io:
-            metadata["arguments"] = self._truncate(input_str)
+            from .observability import _parse_tool_input
+
+            # JSON data (a dict for a structured call), not the Python repr
+            # LangChain renders input_str as.
+            metadata["arguments"] = _parse_tool_input(input_str, kwargs.get("inputs"))
         else:
             metadata["arguments_length"] = len(input_str)
         details = f"Calling tool: {tool_name}"

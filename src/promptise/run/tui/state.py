@@ -967,7 +967,13 @@ class RunState:
         self, agent: str, entry: dict[str, Any], meta: dict[str, Any], ts: float, run: int
     ) -> None:
         if "arguments" in meta:
-            arguments = _str(meta.get("arguments"))
+            raw = meta.get("arguments")
+            # JSON data (a dict for a structured call); older traces hold text.
+            arguments = (
+                json.dumps(raw, default=str, ensure_ascii=False)
+                if isinstance(raw, (dict, list))
+                else _str(raw)
+            )
         elif "arguments_length" in meta:
             arguments = f"<{_int(meta.get('arguments_length')) or 0} chars, not recorded>"
         else:

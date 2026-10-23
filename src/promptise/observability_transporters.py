@@ -286,7 +286,7 @@ function render() {
     summary.appendChild(el('span', 'event-time', e.timestamp ? new Date(e.timestamp * 1000).toLocaleTimeString() : ''));
     row.appendChild(summary);
     const extra = Object.assign({}, e.metadata || {});
-    ['user_id', 'session_id', 'agent_id', 'parent_id'].forEach(k => { if (e[k]) extra[k] = e[k]; });
+    ['user_id', 'tenant_id', 'session_id', 'agent_id', 'parent_id'].forEach(k => { if (e[k]) extra[k] = e[k]; });
     row.appendChild(el('pre', '', JSON.stringify(extra, null, 2)));
     timeline.appendChild(row);
   });
@@ -934,6 +934,9 @@ class OTLPTransporter(BaseTransporter):
             attrs["promptise.details"] = entry.details
         if entry.user_id:
             attrs["enduser.id"] = entry.user_id
+        tenant_id = getattr(entry, "tenant_id", None)
+        if tenant_id:
+            attrs["promptise.tenant_id"] = tenant_id
         if entry.session_id:
             attrs["session.id"] = entry.session_id
         if self.correlation_id:
@@ -943,6 +946,9 @@ class OTLPTransporter(BaseTransporter):
                 attrs[f"promptise.{k}"] = v
             elif isinstance(v, (list, tuple)) and v and all(isinstance(i, str) for i in v):
                 attrs[f"promptise.{k}"] = list(v)
+            elif k == "arguments" and isinstance(v, (dict, list)):
+                # Tool arguments are JSON data: one JSON string attribute.
+                attrs["promptise.arguments"] = json.dumps(v, default=str, ensure_ascii=False)
         return attrs
 
     def _start(self, name: str, entry: Any, parent_entry_id: str | None, **attrs: Any) -> Any:

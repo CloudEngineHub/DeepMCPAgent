@@ -427,6 +427,18 @@ class TestToolCalls:
         )
         assert state.tool_calls.last().arguments == "<9 chars, not recorded>"  # type: ignore[union-attr]
 
+    def test_json_arguments_are_shown_as_json(self) -> None:
+        # tool.call arguments are JSON data; older traces hold text.
+        state = RunState()
+        state.apply(
+            timeline(
+                "bot",
+                "tool.call",
+                metadata={"run_id": "r", "tool_name": "t", "arguments": {"q": "refund", "n": 2}},
+            )
+        )
+        assert state.tool_calls.last().arguments == '{"q": "refund", "n": 2}'  # type: ignore[union-attr]
+
 
 class TestEventsAndStats:
     def test_agent_events(self) -> None:

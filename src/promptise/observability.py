@@ -404,6 +404,86 @@ def _truncate_for_metadata(s: str, max_len: int = 2000) -> str:
     return s[:max_len] + f"... [truncated, {len(s)} total chars]"
 
 
+def _owner_key(user_id: str | None, tenant_id: str | None) -> str | None:
+    """``"{tenant_id}::{user_id}"`` with a tenant, else *user_id*."""
+    if user_id is None:
+        return None
+    return f"{tenant_id}::{user_id}" if tenant_id else user_id
+
+
+#: Limits for tool arguments recorded on the timeline.
+_ARG_MAX_STR = 2000
+_ARG_MAX_ITEMS = 200
+_ARG_MAX_DEPTH = 8
+
+
+def _json_safe_arguments(value: Any, *, max_str: int = _ARG_MAX_STR) -> Any:
+    """*value* as JSON data, for the ``arguments`` of a ``tool.call`` entry.
+
+    Pydantic models, dataclasses, enums, dates, sets and bytes become their
+    JSON form (as pydantic serialises them), anything else its ``str()``.
+    Strings longer than *max_str* are cut with a ``[truncated, N total
+    chars]`` note; a list or object with more than 200 items keeps the
+    first 200, and nesting deeper than 8 levels is replaced by its text.
+    """
+    from pydantic_core import to_jsonable_python
+
+    try:
+        plain = to_jsonable_python(value, fallback=str)
+    except Exception:
+        plain = str(value)
+    return _cap_json(plain, max_str, 0)
+
+
+def _cap_json(value: Any, max_str: int, depth: int) -> Any:
+    if isinstance(value, str):
+        return _truncate_for_metadata(value, max_str)
+    if isinstance(value, dict):
+        if depth >= _ARG_MAX_DEPTH:
+            return _truncate_for_metadata(json.dumps(value, default=str), max_str)
+        items = list(value.items())
+        out = {str(k): _cap_json(v, max_str, depth + 1) for k, v in items[:_ARG_MAX_ITEMS]}
+        if len(items) > _ARG_MAX_ITEMS:
+            out["..."] = f"[{len(items) - _ARG_MAX_ITEMS} more keys not recorded]"
+        return out
+    if isinstance(value, list):
+        if depth >= _ARG_MAX_DEPTH:
+            return _truncate_for_metadata(json.dumps(value, default=str), max_str)
+        out_list = [_cap_json(v, max_str, depth + 1) for v in value[:_ARG_MAX_ITEMS]]
+        if len(value) > _ARG_MAX_ITEMS:
+            out_list.append(f"[{len(value) - _ARG_MAX_ITEMS} more items not recorded]")
+        return out_list
+    return value
+
+
+def _parse_tool_input(input_str: str, inputs: Any = None) -> Any:
+    """The arguments of a tool call as JSON data.
+
+    *inputs* is the dict LangChain passes to ``on_tool_start`` for a
+    structured call; without it, *input_str* is read as JSON or as the
+    Python literal LangChain renders a dict as.  A tool given plain text
+    keeps the text.
+    """
+    if isinstance(inputs, dict):
+        return _json_safe_arguments(inputs)
+    text = input_str.strip() if isinstance(input_str, str) else ""
+    if text[:1] in ("{", "["):
+        try:
+            return _json_safe_arguments(json.loads(text))
+        except ValueError:
+            pass
+        if len(text) <= 100_000:
+            import ast
+
+            try:
+                parsed = ast.literal_eval(text)
+            except (ValueError, SyntaxError, TypeError, MemoryError, RecursionError):
+                parsed = None
+            if isinstance(parsed, (dict, list)):
+                return _json_safe_arguments(parsed)
+    return _json_safe_arguments(input_str)
+
+
 # ---------------------------------------------------------------------------
 # TimelineEntry
 # ---------------------------------------------------------------------------
@@ -423,13 +503,19 @@ class TimelineEntry:
         details: Human-readable description of the event.
         duration: Duration in seconds (for span events).
         parent_id: Parent entry ID for hierarchical tracing.
-        user_id: Owning user for this event (from
+        user_id: Owning user for this event (``user_id`` of the
             :class:`~promptise.agent.CallerContext`).  ``None`` means
             the event was produced outside of a per-caller invocation.
         session_id: Conversation session associated with the event,
-            when available.  Populated from ``caller.metadata['session_id']``
-            or an explicit ``session_id`` kwarg to :meth:`record`.
+            when available: an explicit ``session_id`` kwarg to
+            :meth:`~ObservabilityCollector.record`, else
+            ``caller.metadata['session_id']``, else the session of the
+            :meth:`~promptise.agent.PromptiseAgent.chat` call that is running.
         metadata: Arbitrary structured data for the event.
+        tenant_id: Tenant of the owning user (``tenant_id`` of the
+            :class:`~promptise.agent.CallerContext`), or ``None``.  Two
+            tenants' users with the same ``user_id`` are told apart by it;
+            :attr:`isolation_key` joins the two.
     """
 
     entry_id: str
@@ -444,6 +530,15 @@ class TimelineEntry:
     user_id: str | None = None
     session_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    # Last, so positional construction from older code keeps working.
+    tenant_id: str | None = None
+
+    @property
+    def isolation_key(self) -> str | None:
+        """The owner's key, as :attr:`CallerContext.isolation_key
+        <promptise.agent.CallerContext.isolation_key>` builds it:
+        ``"{tenant_id}::{user_id}"`` with a tenant, else ``user_id``."""
+        return _owner_key(self.user_id, self.tenant_id)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialise the entry to a plain dictionary.
@@ -463,6 +558,7 @@ class TimelineEntry:
             "duration": self.duration,
             "parent_id": self.parent_id,
             "user_id": self.user_id,
+            "tenant_id": self.tenant_id,
             "session_id": self.session_id,
             "metadata": self.metadata,
         }
@@ -534,6 +630,7 @@ class ObservabilityCollector:
         user_id: str | None = None,
         session_id: str | None = None,
         metadata: dict[str, Any] | None = None,
+        tenant_id: str | None = None,
     ) -> TimelineEntry:
         """Record a single timeline event.
 
@@ -548,10 +645,16 @@ class ObservabilityCollector:
                 :class:`AgentRun`), the run's ``agent.input`` entry.
             user_id: Explicit owning user for this event.  When omitted,
                 the collector reads :func:`promptise.agent.get_current_caller`
-                and attaches ``caller.user_id`` automatically.
+                and attaches ``caller.user_id`` and ``caller.tenant_id``
+                automatically.  An isolation key (``"acme::alice"``) is
+                split into user and tenant.
             session_id: Conversation session associated with this event.
-                Falls back to ``caller.metadata['session_id']``.
+                Falls back to ``caller.metadata['session_id']``, then to the
+                session of the running :meth:`~promptise.agent.PromptiseAgent.chat`
+                call.
             metadata: Arbitrary structured data.
+            tenant_id: Explicit tenant of the owning user.  When omitted
+                with ``user_id``, it is read from the caller as well.
 
         Returns:
             The created :class:`TimelineEntry`.
@@ -578,20 +681,31 @@ class ObservabilityCollector:
         # supplied.  Imported lazily to avoid a circular dependency with
         # ``promptise.agent``.
         effective_user_id = user_id
+        effective_tenant_id = tenant_id
         effective_session_id = session_id
+        if effective_user_id is not None and effective_tenant_id is None:
+            # An isolation key: CallerContext forbids '::' in a user_id.
+            tenant, sep, user = effective_user_id.partition("::")
+            if sep and tenant and user:
+                effective_tenant_id, effective_user_id = tenant, user
         if effective_user_id is None or effective_session_id is None:
             try:
-                from .agent import get_current_caller
+                from .agent import get_current_caller, get_current_session_id
             except Exception:  # pragma: no cover — defensive
                 get_current_caller = None  # type: ignore[assignment]
+                get_current_session_id = None  # type: ignore[assignment]
             if get_current_caller is not None:
                 caller = get_current_caller()
                 if caller is not None:
                     if effective_user_id is None:
                         effective_user_id = getattr(caller, "user_id", None)
+                        if effective_tenant_id is None:
+                            effective_tenant_id = getattr(caller, "tenant_id", None)
                     if effective_session_id is None:
                         caller_meta = getattr(caller, "metadata", None) or {}
                         effective_session_id = caller_meta.get("session_id")
+            if effective_session_id is None and get_current_session_id is not None:
+                effective_session_id = get_current_session_id()
 
         effective_parent_id = parent_id
         if effective_parent_id is None:
@@ -612,6 +726,7 @@ class ObservabilityCollector:
             user_id=effective_user_id,
             session_id=effective_session_id,
             metadata=raw_metadata,
+            tenant_id=effective_tenant_id,
         )
         with self._lock:
             self._entries.append(entry)
@@ -735,6 +850,7 @@ class ObservabilityCollector:
         agent_ids: list[str] | None = None,
         user_ids: list[str] | None = None,
         session_ids: list[str] | None = None,
+        tenant_ids: list[str | None] | None = None,
         limit: int | None = None,
         offset: int | None = None,
         metadata_key: str | None = None,
@@ -746,9 +862,14 @@ class ObservabilityCollector:
             event_types: Restrict to these event types (enum or string values).
             agent_ids: Restrict to these agent IDs.
             user_ids: Restrict to events owned by these users (matches
-                :attr:`TimelineEntry.user_id`).
+                :attr:`TimelineEntry.user_id`, in any tenant; combine with
+                ``tenant_ids``, or use :meth:`for_user`, for one tenant's
+                user).
             session_ids: Restrict to events tied to these session IDs
                 (matches :attr:`TimelineEntry.session_id`).
+            tenant_ids: Restrict to events of these tenants (matches
+                :attr:`TimelineEntry.tenant_id`; ``None`` in the list
+                selects events without a tenant).
             limit: Maximum number of results to return.
             offset: Number of results to skip from the start.
             metadata_key: Restrict to entries whose metadata contains this key.
@@ -783,6 +904,10 @@ class ObservabilityCollector:
             session_set = set(session_ids)
             entries = [e for e in entries if e.session_id in session_set]
 
+        if tenant_ids is not None:
+            tenant_set = set(tenant_ids)
+            entries = [e for e in entries if e.tenant_id in tenant_set]
+
         if metadata_key is not None:
             if metadata_value is not None:
                 entries = [e for e in entries if e.metadata.get(metadata_key) == metadata_value]
@@ -796,29 +921,42 @@ class ObservabilityCollector:
 
         return entries
 
-    def for_user(self, user_id: str) -> list[TimelineEntry]:
-        """Return all entries owned by ``user_id`` (sorted by timestamp).
+    def for_user(self, user_id: str, *, tenant_id: str | None = None) -> list[TimelineEntry]:
+        """Return all entries owned by one caller (sorted by timestamp).
 
-        Convenience wrapper over :meth:`query` for the common
-        multi-tenant case: "show me everything user X did in this
-        session."  Returns an empty list when the user has no events.
+        Pass the ``user_id`` and ``tenant_id`` the caller had, or its
+        isolation key (``"acme::alice"``) as ``user_id``.  Without a
+        tenant, only the user's events recorded without a tenant match:
+        ``for_user("alice")`` never returns ``acme``'s Alice.  Returns an
+        empty list when the user has no events.
         """
-        if not user_id:
+        key = _owner_key(user_id, tenant_id) if user_id else None
+        if not key:
             return []
-        return self.query(user_ids=[user_id])
+        return [e for e in self.get_timeline() if e.isolation_key == key]
 
     def get_users(self) -> list[str]:
-        """Return sorted unique ``user_id`` values seen in the timeline.
+        """Return the sorted unique owners seen in the timeline.
 
-        Events without a user_id (e.g. system events recorded outside of
-        an invocation) are excluded.
+        Each owner is its isolation key: the ``user_id``, or
+        ``"{tenant_id}::{user_id}"`` for a user with a tenant, the form
+        :meth:`for_user` and :meth:`purge_user` take.  Events without a
+        user_id (e.g. system events recorded outside of an invocation)
+        are excluded.
         """
         with self._lock:
             entries = list(self._entries)
-        return sorted({e.user_id for e in entries if e.user_id is not None})
+        return sorted({k for e in entries if (k := e.isolation_key) is not None})
 
-    def purge_user(self, user_id: str) -> int:
-        """Delete every timeline entry owned by ``user_id`` from the buffer.
+    def purge_user(self, user_id: str, *, tenant_id: str | None = None) -> int:
+        """Delete every timeline entry owned by one caller from the buffer.
+
+        Pass the ``user_id`` and ``tenant_id`` the caller had, or its
+        isolation key (``"acme::alice"``) as ``user_id``, as for
+        :meth:`for_user`.  Another tenant's user with the same id is not
+        touched, and ``purge_user("alice")`` without a tenant removes only
+        Alice's events recorded without one (a warning says how many
+        events of a tenant's ``alice`` were kept).
 
         Does not propagate to already-flushed transporters (e.g. a
         writable JSON file on disk) — those are external sinks and must
@@ -827,14 +965,27 @@ class ObservabilityCollector:
 
         Use it to delete one user's data on request.
         """
-        if not user_id:
+        key = _owner_key(user_id, tenant_id) if user_id else None
+        if not key:
             return 0
         with self._lock:
-            kept = [e for e in self._entries if e.user_id != user_id]
+            kept = [e for e in self._entries if e.isolation_key != key]
             removed = len(self._entries) - len(kept)
             if removed:
                 self._entries.clear()
                 self._entries.extend(kept)
+            other_tenants = (
+                sum(1 for e in kept if e.user_id == user_id and e.tenant_id is not None)
+                if tenant_id is None and "::" not in user_id
+                else 0
+            )
+        if other_tenants:
+            logger.warning(
+                "purge_user(%r) kept %d event(s) of a user with that id in a tenant; "
+                "pass tenant_id= (or the 'tenant::user' key) to remove those",
+                user_id,
+                other_tenants,
+            )
         return removed
 
     # ------------------------------------------------------------------

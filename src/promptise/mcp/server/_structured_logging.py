@@ -70,9 +70,13 @@ class StructuredLoggingMiddleware:
             entry["client_id"] = ctx.client_id
         if self._include_args:
             from ...observability import redact_sensitive
+            from ._audit import _json_default
 
             arguments = ctx.state.get("_tool_arguments")
-            entry["args"] = redact_sensitive(dict(arguments) if isinstance(arguments, dict) else {})
+            # JSON data first (nested models as objects), so redaction
+            # reaches the strings inside them.
+            plain = json.loads(json.dumps(arguments, default=_json_default))
+            entry["args"] = redact_sensitive(plain if isinstance(plain, dict) else {})
 
         logger.log(self._level, json.dumps(entry, default=str))
 
