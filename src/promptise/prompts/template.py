@@ -131,6 +131,7 @@ class SubprocessShellExecutor:
         if not cmd:
             return ""
         use_shell = self.shell
+        words: list[str] | None = None
         if self.allowlist is not None:
             # Fail closed: an allowlisted command never reaches /bin/sh, and
             # shell syntax is refused instead of silently passed as words.
@@ -149,8 +150,7 @@ class SubprocessShellExecutor:
         argv: str | list[str] = cmd
         if not use_shell:
             try:
-                words = words if self.allowlist is not None else shlex.split(cmd)
-                argv = resolve_executable(words)
+                argv = resolve_executable(words if words is not None else shlex.split(cmd))
             except (ValueError, OSError) as exc:  # unbalanced quotes, unknown command
                 raise ShellExecutionError(f"shell command failed to start: {exc}") from exc
         result = None
