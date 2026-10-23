@@ -622,6 +622,16 @@ async def query(sql: str, db: Database = Depends(get_db)) -> list:
     return await db.execute(sql)
 ```
 
+!!! warning "Dependencies run before authentication and guards"
+    A call goes through argument validation, then dependency injection, then
+    the middleware chain (where `AuthMiddleware` runs), then guards, then the
+    handler. A dependency therefore cannot read the caller: inside it,
+    `get_context().client` has no `tenant_id`, roles or scopes yet. A dependency
+    that raises also hides the real outcome, so an anonymous caller sees the
+    dependency's error instead of `AUTHENTICATION_ERROR`. Inject only resources
+    that do not depend on the caller (connections, clients, settings), and read
+    `ctx.client` inside the handler for anything tenant- or user-specific.
+
 ### Supported dependency types
 
 | Type | Example | Lifecycle |
