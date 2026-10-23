@@ -362,6 +362,9 @@ class ElicitationApprover:
         )
 
 
+_ANY_TENANT: Any = object()
+
+
 class PendingApprover:
     """Blocks gated calls in a pending store until a human decides.
 
@@ -410,6 +413,14 @@ class PendingApprover:
             the server-side gate records (requests without one share one
             bucket).  Must not exceed ``max_pending``.  The caps nest:
             client ≤ tenant ≤ store.
+        same_tenant_reviewers: Scope the reviewer tools to the reviewer's
+            tenant (default ``True``).  ``approvals_list`` shows only requests
+            whose ``tenant_id`` matches the reviewer's, and
+            ``approvals_decide`` treats another tenant's request as unknown,
+            so a reviewer can neither read nor release another tenant's call.
+            A reviewer without a tenant sees only requests without one.  Set
+            ``False`` for one platform-wide review team that decides for
+            every tenant.
     """
 
     def __init__(
@@ -420,6 +431,7 @@ class PendingApprover:
         max_pending: int = 100,
         max_pending_per_client: int | None = None,
         max_pending_per_tenant: int | None = None,
+        same_tenant_reviewers: bool = True,
     ) -> None:
         if max_pending <= 0:
             raise ValueError(f"max_pending must be positive, got {max_pending}")
@@ -440,6 +452,7 @@ class PendingApprover:
         self._max_pending = max_pending
         self._max_pending_per_client = max_pending_per_client
         self._max_pending_per_tenant = max_pending_per_tenant
+        self._same_tenant_reviewers = same_tenant_reviewers
         self._pending: dict[str, tuple[ApprovalRequest, asyncio.Future[ApprovalDecision]]] = {}
         self._decided = RequestIdCache()
         self._lock = asyncio.Lock()
@@ -542,8 +555,13 @@ class PendingApprover:
 
     # -- Reviewer API -----------------------------------------------------
 
-    def pending(self) -> list[dict[str, Any]]:
-        """Summaries of requests currently awaiting a decision."""
+    def pending(self, *, tenant_id: Any = _ANY_TENANT) -> list[dict[str, Any]]:
+        """Summaries of requests currently awaiting a decision.
+
+        Args:
+            tenant_id: Only requests from this tenant (``None``: requests
+                without a tenant).  Omit for every request.
+        """
         now = time.time()
         return [
             {
@@ -555,7 +573,17 @@ class PendingApprover:
                 "age_seconds": round(now - req.timestamp, 1),
             }
             for req, _ in self._pending.values()
+            if tenant_id is _ANY_TENANT or self._tenant_of(req) == tenant_id
         ]
+
+    @staticmethod
+    def _tenant_of(request: ApprovalRequest) -> Any:
+        return (request.metadata or {}).get("tenant_id")
+
+    def tenant_of(self, request_id: str) -> Any:
+        """The ``tenant_id`` a pending request was made under, or ``None``."""
+        entry = self._pending.get(request_id)
+        return self._tenant_of(entry[0]) if entry is not None else None
 
     def caller_of(self, request_id: str) -> str | None:
         """The ``client_id`` that triggered a pending request, or ``None``."""
@@ -610,6 +638,18 @@ class PendingApprover:
 
         approver = self
 
+        def reviewer_identity() -> tuple[str, Any]:
+            """The reviewer's ``client_id`` and ``tenant_id``, from the active
+            request context (populated on every transport via set_context)."""
+            from ._context import get_context
+
+            try:
+                ctx = get_context()
+            except RuntimeError:
+                return "unknown-reviewer", None
+            client = getattr(ctx, "client", None)
+            return ctx.client_id or "unknown-reviewer", getattr(client, "tenant_id", None)
+
         @server.tool(
             name="approvals_list",
             description="List tool calls awaiting human approval.",
@@ -619,7 +659,10 @@ class PendingApprover:
         )
         async def approvals_list() -> list[dict]:
             """List pending approval requests."""
-            return approver.pending()
+            if not approver._same_tenant_reviewers:
+                return approver.pending()
+            _, tenant = reviewer_identity()
+            return approver.pending(tenant_id=tenant)
 
         @server.tool(
             name="approvals_decide",
@@ -634,16 +677,24 @@ class PendingApprover:
             reason: str = "",
         ) -> dict:
             """Decide a pending approval request."""
-            # Read identity from the active request context (populated on every
-            # transport via set_context) — NOT from an injected parameter, which
-            # would leave the reviewer unknown on stdio/http/sse and silently
-            # defeat separation-of-duties + audit accountability.
-            from ._context import get_context
-
-            try:
-                reviewer = get_context().client_id or "unknown-reviewer"
-            except RuntimeError:
-                reviewer = "unknown-reviewer"
+            # Read identity from the active request context — NOT from an
+            # injected parameter, which would leave the reviewer unknown on
+            # stdio/http/sse and silently defeat separation-of-duties + audit
+            # accountability.
+            reviewer, tenant = reviewer_identity()
+            unknown = {
+                "resolved": False,
+                "error": f"no pending approval with request_id {request_id!r} "
+                "(already decided, timed out, or unknown)",
+            }
+            # Another tenant's request is answered exactly like an unknown
+            # one, so a reviewer learns nothing about it.
+            if (
+                approver._same_tenant_reviewers
+                and request_id in approver._pending
+                and approver.tenant_of(request_id) != tenant
+            ):
+                return unknown
             # Separation of duties: a caller may not approve their own request
             # (four-eyes). Denying your own is allowed — anyone can cancel.
             if approve and reviewer == approver.caller_of(request_id):
@@ -662,9 +713,5 @@ class PendingApprover:
                     "a request id takes one decision",
                 }
             if not resolved:
-                return {
-                    "resolved": False,
-                    "error": f"no pending approval with request_id {request_id!r} "
-                    "(already decided, timed out, or unknown)",
-                }
+                return unknown
             return {"resolved": True, "request_id": request_id, "approved": approve}

@@ -78,7 +78,7 @@ The gate only acts on tools declared with `requires_approval=True`; every other 
 
 ### `PendingApprover`: independent four-eyes review
 
-`PendingApprover(server=None, *, approver_role="approver", max_pending=100, max_pending_per_client=None, max_pending_per_tenant=None)`. Gated calls block in a pending store. A human holding `approver_role`
+`PendingApprover(server=None, *, approver_role="approver", max_pending=100, max_pending_per_client=None, max_pending_per_tenant=None, same_tenant_reviewers=True)`. Gated calls block in a pending store. A human holding `approver_role`
 reviews them through two auto-registered, role-guarded admin tools:
 
 ```text
@@ -91,7 +91,16 @@ approvals_decide(request_id, approve,     → release or deny; the reviewer's
 **Separation of duties is enforced:** `approvals_decide` rejects an
 *approval* whose reviewer `client_id` equals the request's original caller:
 you cannot approve your own call, even if you also hold `approver_role`
-(denying your own is always allowed). The store is process-local (like the
+(denying your own is always allowed).
+
+**Reviewers see only their own tenant:** `approvals_list` returns only the
+requests whose `tenant_id` matches the reviewer's, and `approvals_decide`
+answers another tenant's request id exactly like an unknown one. A reviewer
+can neither read another tenant's arguments nor release its call. A reviewer
+without a tenant sees only requests without one. For one platform-wide review
+team that decides for every tenant, pass `same_tenant_reviewers=False`.
+
+The store is process-local (like the
 in-memory job queue); calls that outlive the gate timeout are denied by
 default. Three caps bound the store, and beyond any of them a call is denied
 immediately rather than parked:
@@ -178,8 +187,9 @@ reviewer.
 
 Approval requests carry `tenant_id`, and the admin tools are ordinary
 guarded tools, so on a `require_tenant=True` server, reviewers themselves
-must present tenant identity, and `approvals_list` shows which tenant each
-pending call belongs to.
+must present tenant identity. Each reviewer then lists and decides only their
+own tenant's calls (see `same_tenant_reviewers` above), so give every tenant
+its own approver keys.
 
 ## Limitations
 
