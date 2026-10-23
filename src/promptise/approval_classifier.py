@@ -394,7 +394,7 @@ class AutoApprovalClassifier:
                     ),
                 )
 
-        # 2. Ask rules — straight to the human.  An ask rule that cannot be
+        # 2. Ask rules: straight to the human.  An ask rule that cannot be
         # evaluated also goes to the human.
         for rule in self._ask_rules:
             try:

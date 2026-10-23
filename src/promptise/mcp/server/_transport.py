@@ -361,7 +361,7 @@ class _AuthGateASGI:
 
     Args:
         app: The inner ASGI application.
-        verify_fn: Callable ``(token) → bool`` (sync or async) — the
+        verify_fn: Callable ``(token) → bool`` (sync or async), the
             primary verifier (typically ``JWTAuth.averify_token``).
         skip_paths: Set of paths that bypass authentication (e.g. the
             token endpoint, which *issues* tokens and so cannot require

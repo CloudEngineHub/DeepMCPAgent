@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.7.1 — 2026-10-23
+
+Three security fixes: approval request ids are now single-use as the docs said, a classifier rule that raises no longer lets a call through, and API keys and JWTs can be revoked while an MCP server runs.
+
+### Upgrade notes
+
+- **A second decision for the same approval request is refused.** `QueueApprovalHandler.submit_decision()` raises `ApprovalReplayError` for it (a `KeyError` subclass, so code that catches `KeyError` keeps working); before, it was ignored without a word. `PendingApprover.decide()` still returns `False`, and now logs a warning.
+- **A classifier deny rule whose predicate raises now denies the call**, and an allow rule that raises sends the call to the fallback handler instead of letting the read-only check or the LLM classifier decide it. Fix or remove rules that raise.
+- **The HTTP auth gate (`MCPServer(require_auth=True)`) calls `averify_token()`** when the provider has one, and a verifier that raises now rejects the request with `401` instead of failing it with an error. A custom provider with only `verify_token()` works as before.
+
+### Security
+
+- **Approval: request ids are single-use** -- the docs said request ids are "tracked to prevent replay attacks", but the agent's gate only wrote them to a set nobody read, so a second decision for the same id was accepted. Each request id now takes exactly one decision, and a second one is refused and logged on the `promptise.approval` logger (`promptise.server.approval` on an MCP server): the agent's gate and `ApprovalGateMiddleware` deny the call without asking the reviewer again, `QueueApprovalHandler.submit_decision()` raises `ApprovalReplayError`, `PendingApprover.decide()` returns `False` and `approvals_decide` answers that the request was already decided. `WebhookApprovalHandler` ignores a poll response whose `request_id` is another request's (a stale decision behind a fixed `poll_url`, or a replayed one) and keeps polling; responses without `request_id` are accepted as before. On the approval service, `verify_webhook_signature(..., replay_cache=RequestIdCache())` rejects a signed request whose `request_id` already passed; `max_age` alone still accepts a copy until the timestamp is too old. Decided ids are kept in the new `promptise.approval.RequestIdCache`, in memory, for the approval `timeout` (twice `max_age` for signatures) and at most 10,000 at a time. See "Single-Use Request IDs" in docs/core/approval.md.
+- **Approval classifier: a rule that raises no longer fails open** -- an `ApprovalRule` predicate that raised counted as "no match", so a broken deny rule let through the calls it was written to stop: they went on to the allow rules, the read-only check or the LLM classifier. A deny rule that cannot be evaluated now denies the call (`decided_by="classifier"`, `trace.layer="deny_rule"`, the exception type in the reason), an ask rule that raises sends the call to the fallback handler, and an allow rule that raises never allows: the call goes straight to the fallback (`trace.layer="error"`). Each case logs a warning and counts in `stats.errors`. `ApprovalRule.evaluate()` raises the new `RuleEvaluationError`; `ApprovalRule.matches()` keeps returning `False`. See "A rule that raises" in docs/core/approval-classifier.md.
+- **MCP server: API keys can be revoked without a restart** -- `APIKeyAuth` copied its keys when it was created, so a leaked key stayed valid until the server restarted. With a `keys` dict, `revoke_key(key)` and `add_key(key, config)` change the keys for the next request. `keys=` also takes a callable (sync or async) that returns the keys valid right now, and the new `lookup=` takes a callable (sync or async) that receives the presented key and returns its config, or `None` for an unknown or revoked key, so the keys can live in a database or cache. A callable that raises rejects the request. See "Revoking and adding keys while the server runs" in docs/mcp/server/auth-security.md.
+- **MCP server: JWTs can be revoked before they expire** -- `JWTAuth`, `AsymmetricJWTAuth` and `JwksAuth` accepted a token until its `exp`. They now take an optional deny list, checked on every request (cached tokens included): `revoked_jtis=[...]`, `revoked_subjects=[...]`, `revoke(jti, subject=..., until=...)` and `unrevoke(...)` at runtime, and `is_revoked=`, a hook (sync or async) that gets the verified claims and returns `True` to reject the token, for a deny list shared between replicas. `until` (normally the token's `exp`) drops an entry once the token has expired. A revoked token is rejected with `Token has been revoked`; a hook that raises rejects the token. `create_token()` does not add a `jti`, so pass one in the payload to revoke single tokens, or revoke by subject. All four providers get `averify_token()`, which runs async stores and hooks; the sync `verify_token()` rejects the credential when one is async. See "Revoking tokens" in docs/mcp/server/auth-security.md.
+
+### Changed
+
+- Docs: the ConversationFlow, ModelLike and default system prompt pages name their API in the page title and headings (`ConversationFlow`, `ModelLike`, `DEFAULT_SYSTEM_PROMPT`), and the ModelLike page says it has four forms (it said three). No anchor other pages link to changed.
+- Docs: the approval, approval classifier, approval gates, auth and deployment pages describe exactly what the fixes above enforce, and the identity guide links to token revocation.
+
 ## 1.7.0 — 2026-10-23
 
 ### Added
