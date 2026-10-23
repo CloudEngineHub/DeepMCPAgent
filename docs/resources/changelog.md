@@ -9,6 +9,34 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
+## v1.8.0 — 2026-10-23
+
+A security fix for multi-tenant approval review, internal APIs in `OpenAPIProvider`, and a cap for large tool results that tells the model when a result was cut.
+
+### Security
+
+- **`PendingApprover`'s reviewer tools crossed tenants** -- `approvals_list` returned every pending call on the server, arguments included, and `approvals_decide` released any of them, so on a multi-tenant server one tenant's approver could read and approve another tenant's call. Both tools are now scoped to the reviewer's `tenant_id`: another tenant's request is invisible and answered like an unknown id. `PendingApprover(same_tenant_reviewers=False)` keeps one platform-wide review team.
+
+### Upgrade notes
+
+- **Approvers need the tenant of the calls they review.** A reviewer key without a `tenant_id` now sees only requests without one. If one review team decides for every tenant, pass `same_tenant_reviewers=False`.
+- **`OpenAPIProvider.register()` fails fast without an absolute API address.** A spec with no `servers` entry, or a relative one and no spec URL to resolve it against, now raises a `ValueError` at registration instead of failing every call. Pass `base_url`.
+- **`ToolNode(max_result_chars=...)` output changed.** A cut result now ends with a marker line; code that compared the cut text exactly needs updating.
+
+### Added
+
+- **`ContextCompaction(max_result_chars=...)`** -- cap every new tool result the agent passes to the model. A longer result is cut and ends with a marker that gives its full length and tells the model to call again with narrower arguments. Off by default (`None`: results pass in full) and independent of `enabled`. Without a marker, a model given a cut result tends to repeat the same call.
+- **`OpenAPIProvider(allow_private=True)`** -- bridge an internal API on purpose. A spec URL or base URL on a loopback, private or link-local address is still refused by default.
+
+### Fixed
+
+- **`OpenAPIProvider` told you to use `base_url` for internal APIs, which was refused too** -- the error now names `allow_private=True`.
+- **A relative `servers` URL (`/v1`) made every OpenAPI tool call fail** with "Request URL is missing an 'http://' or 'https://' protocol". It is now resolved against the spec's URL. When there is no spec URL to resolve against (a file or dict spec), or the spec has no `servers` entry, `register()` raises a `ValueError` that says to pass `base_url`.
+- **`ToolNode(max_result_chars=...)` cut results silently** -- a cut result now ends with the same marker.
+- **The docs did not say that `Depends()` runs before authentication and guards** -- a dependency cannot read the caller's tenant, roles or scopes. The MCP server security page now says so and shows where to read them instead.
+
+---
+
 ## v1.7.1 — 2026-10-23
 
 Three security fixes: approval request ids are now single-use as the docs said, a classifier rule that raises no longer lets a call through, and API keys and JWTs can be revoked while an MCP server runs.
