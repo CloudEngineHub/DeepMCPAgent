@@ -150,7 +150,13 @@ def test_stats_fold_timeline_entries() -> None:
     assert totals["unpriced_models"] == ["unknown"]
     assert totals["tool_calls"] == 2 and totals["tool_errors"] == 1 and totals["errors"] == 1
     assert totals["retries"] == 1 and totals["latency_p50_ms"] == 200.0
-    assert snap["tools"]["t"] == {"calls": 2, "errors": 1, "total_ms": 40.0, "avg_ms": 20.0}
+    assert snap["tools"]["t"] == {
+        "calls": 2,
+        "errors": 1,
+        "denied": 0,
+        "total_ms": 40.0,
+        "avg_ms": 20.0,
+    }
     assert snap["agents"]["a"]["model"] == "m-1" and snap["agents"]["a"]["cost_usd"] == 1.0
     assert snap["models"]["m-1"]["llm_calls"] == 1
 

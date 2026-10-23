@@ -1764,7 +1764,13 @@ class PromptiseAgent:
                 details="Agent invocation started",
                 metadata=metadata,
             )
-            run = AgentRun(entry_id=entry.entry_id, started=entry.timestamp)
+            run = AgentRun(
+                entry_id=entry.entry_id,
+                started=entry.timestamp,
+                collector=self.collector,
+                agent_id=self._observed_agent_id(),
+                record_tool_io=bool(getattr(self._handler, "record_tool_io", True)),
+            )
             return run, _run_ctx_var.set(run)
         except Exception:
             logger.debug("Could not record agent.input", exc_info=True)

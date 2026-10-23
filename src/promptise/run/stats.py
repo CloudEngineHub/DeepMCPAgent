@@ -8,12 +8,16 @@ of a ``stats`` run event::
 
     {
       "totals": {"llm_calls", "prompt_tokens", "completion_tokens", "total_tokens",
-                 "tool_calls", "tool_errors", "errors", "retries", "cost_usd",
+                 "tool_calls", "tool_errors", "tool_denied", "errors", "retries", "cost_usd",
                  "unpriced_models", "latency_p50_ms", "latency_p95_ms"},
       "agents": {id: {"model", "llm_calls", "total_tokens", "tool_calls", "errors", "cost_usd"}},
       "models": {name: {"llm_calls", "prompt_tokens", "completion_tokens", "cost_usd"}},
-      "tools":  {name: {"calls", "errors", "total_ms", "avg_ms"}},
+      "tools":  {name: {"calls", "errors", "denied", "total_ms", "avg_ms"}},
     }
+
+``tool_denied`` / ``denied`` count tool calls refused before they ran (the
+autonomy budget, an approval denial): their ``tool.result`` has
+``status="denied"``.  They count as calls, not as errors.
 
 ``cost_usd`` is ``None`` until a call of a priced model has been seen;
 ``unpriced_models`` lists the models with calls but no ``[pricing]`` entry.
@@ -30,6 +34,10 @@ from .pricing import PriceTable
 __all__ = ["RunStats"]
 
 _ERROR_TYPES = {"llm.error", "tool.error", "agent.error", "task.failed"}
+
+
+def _new_tool_row() -> dict[str, Any]:
+    return {"calls": 0, "errors": 0, "denied": 0, "total_ms": 0.0, "avg_ms": 0.0}
 
 
 def _percentile(values: list[float], pct: float) -> float:
@@ -56,6 +64,7 @@ class RunStats:
             "total_tokens": 0,
             "tool_calls": 0,
             "tool_errors": 0,
+            "tool_denied": 0,
             "errors": 0,
             "retries": 0,
             "cost_usd": None,
@@ -154,19 +163,22 @@ class RunStats:
                 self._totals["tool_calls"] += 1
                 self._agent(agent)["tool_calls"] += 1
                 name = str(meta.get("tool_name") or "unknown")
-                tool = self._tools.setdefault(
-                    name, {"calls": 0, "errors": 0, "total_ms": 0.0, "avg_ms": 0.0}
-                )
+                tool = self._tools.setdefault(name, _new_tool_row())
                 tool["calls"] += 1
             elif etype in ("tool.result", "tool.error"):
                 name = str(meta.get("tool_name") or "unknown")
-                tool = self._tools.setdefault(
-                    name, {"calls": 0, "errors": 0, "total_ms": 0.0, "avg_ms": 0.0}
-                )
+                tool = self._tools.setdefault(name, _new_tool_row())
+                if meta.get("status") == "denied":
+                    # Refused before it ran: no latency to average.
+                    tool["denied"] += 1
+                    self._totals["tool_denied"] += 1
+                    self.version += 1
+                    return
                 latency = meta.get("latency_ms")
                 if latency is not None:
                     tool["total_ms"] += float(latency)
-                    tool["avg_ms"] = tool["total_ms"] / max(tool["calls"], 1)
+                    ran = tool["calls"] - tool["denied"]
+                    tool["avg_ms"] = tool["total_ms"] / max(ran, 1)
                 failed = etype == "tool.error" or meta.get("status") == "error"
                 if failed:
                     tool["errors"] += 1

@@ -42,10 +42,13 @@ Every invocation (`ainvoke`, `chat`, `astream`, `astream_with_tools`) is an **ag
 | `tool.call` | A tool is called | `tool_name`, `arguments` (JSON data, see [Tool arguments](#tool-arguments)) |
 | `tool.result` | The tool returned | `tool_name`, `latency_ms`, `result_preview` |
 | `tool.error` | The tool failed — it raised, or an MCP server answered `isError: true` (e.g. a `ToolError`) | `tool_name`, `latency_ms`, `error_type`, `error` |
+| `approval.requested` / `approval.granted` / `approval.denied` / `approval.timeout` | An [approval gate](approval.md) asked for, got or timed out waiting for a decision | `tool_name`, `request_id`, and `arguments` (requested; left out with `record_tool_io=False`), `reviewer` (granted), `reason` and `decided_by` (granted, denied), `timeout` |
 | `llm.error`, `llm.retry` | An LLM call failed or was retried | `error_type`, `error`, `attempt` |
 | `cache.miss` / `cache.store` / `cache.hit` | Semantic cache activity | `scope`, `ttl` |
 | `agent.output` | The invocation finished | `duration_ms`, the run's `prompt_tokens` / `completion_tokens` / `total_tokens`, `llm_call_count`, `tool_call_count`, `error_count`, `cache_hit`, `output_length` (+ `output_preview`) |
 | `agent.error` | The invocation raised | `error_type`, `error`, and the same run totals |
+
+A call refused before it ran is a `tool.call` and a `tool.result` like any other, with `status="denied"`, `denied_by` and `reason`; see [Refused tool calls](#refused-tool-calls).
 
 Every event recorded during a run has `parent_id` set to the run's `agent.input` entry, so you can pull one request out of a busy timeline (`collector.query(...)` then filter on `parent_id`), and the OpenTelemetry transporter turns each run into one trace. Events also carry the caller's `user_id`, `tenant_id` and `session_id` (see [Multi-User Attribution](#multi-user-attribution)).
 
@@ -115,6 +118,26 @@ call.metadata["arguments"]["order"]["sku"]   # "MS-30"
 A structured call is a dict; a tool given plain text keeps the text. Pydantic models, dataclasses, dates and sets become their JSON form, strings longer than 2,000 characters are cut with a `[truncated, N total chars]` note, and a list or object keeps its first 200 items. Redaction (`redact_sensitive`) works on the dict, so the value of a credential key such as `password` is replaced at any depth.
 
 Before this change `arguments` was the Python text of the call (`"{'sku': 'MS-30'}"`). Code that parsed it should read the dict instead; the `--tui` and `--devtools` views show both forms.
+
+### Refused tool calls
+
+A tool call can be refused before the tool runs: by the Agent Runtime's [autonomy budget](../runtime/governance/budget.md) (`max_irreversible_per_run`, `max_tool_calls_per_run`, ...) or by an [approval gate](approval.md) whose reviewer, classifier or timeout says no. Both are on the trace:
+
+| Refused by | `tool.call` | `tool.result` |
+|---|---|---|
+| Autonomy budget | `status="denied"`, `denied_by="budget"`, `reason`, `limit_name`, `limit_value`, `current_value`, `arguments` | the same fields, `latency_ms=0` |
+| Approval gate | as for any call | `status="denied"`, `denied_by="approval"`, `reason`, `decided_by` (`reviewer`, `classifier`, `gate`), `request_id` |
+
+```python
+denied = [
+    e for e in agent.collector.query(event_types=["tool.result"])
+    if e.metadata.get("status") == "denied"
+]
+for e in denied:
+    print(e.metadata["tool_name"], e.metadata["denied_by"], e.metadata["reason"])
+```
+
+`get_stats()` counts them as `tool_denied_count`, not as errors, and the [`approval.*` events](#what-gets-recorded) of the gate are on the timeline next to the call, with the same `parent_id`. `promptise run --devtools` prints each refusal once (`⊘ wire_money refused (budget) ...`), and its summary adds a `refused` count; the TUI shows the call with status `denied`.
 
 Whatever is recorded is scrubbed first: with `redact_sensitive=True` (the default) every event's metadata and details pass through `promptise.observability.redact_sensitive` before they are stored or reach a transporter, so the HTML report, the NDJSON stream, log files, webhooks and OpenTelemetry spans all get the redacted text:
 

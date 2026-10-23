@@ -132,6 +132,8 @@ class DevTracer:
                 f"[dim]in[/dim] {pt} [dim]out[/dim] {ct} tok{cost_text}{wants}"
             )
         elif etype == "tool.call":
+            if meta.get("status") == "denied":
+                return  # the refusal is printed once, from its tool.result
             name = escape(str(meta.get("tool_name") or "?"))
             args = meta.get("arguments")
             shown = f"({escape(_short(args, 160))})" if args not in (None, "") else ""
@@ -143,7 +145,11 @@ class DevTracer:
             took = f"{latency:.0f}ms" if isinstance(latency, (int, float)) else took
             preview = meta.get("result_preview")
             shown = f"  → {escape(_short(preview, 160))}" if preview else ""
-            if meta.get("status") == "error":
+            if meta.get("status") == "denied":
+                by = escape(str(meta.get("denied_by") or "?"))
+                reason = escape(_short(meta.get("reason") or "", 160))
+                self._print(f"  [red]⊘ {name} refused[/red] [dim]({by})[/dim] {reason}")
+            elif meta.get("status") == "error":
                 self._print(f"  [red]✗ {name}[/red] {took}{shown}")
             else:
                 self._print(f"  [green]✓ {name}[/green] [dim]{took}[/dim]{shown}")
@@ -209,12 +215,14 @@ def print_summary(
     stats = strip_controls(stats)
     totals = stats.get("totals") or {}
     status = "[green]exit 0[/green]" if code == 0 else f"[red]exit {code}[/red]"
+    refused = int(totals.get("tool_denied") or 0)
+    denied = f" ([red]{refused} refused[/red])" if refused else ""
     console.print()
     console.print(
         f"[bold]promptise run[/bold] · {status} · {duration_s:.1f}s · "
         f"{totals.get('llm_calls', 0)} llm call(s) · {totals.get('total_tokens', 0)} tok "
         f"([dim]in[/dim] {totals.get('prompt_tokens', 0)} [dim]out[/dim] {totals.get('completion_tokens', 0)}) · "
-        f"{totals.get('tool_calls', 0)} tool call(s) · {totals.get('errors', 0)} error(s) · "
+        f"{totals.get('tool_calls', 0)} tool call(s){denied} · {totals.get('errors', 0)} error(s) · "
         f"cost {format_cost(totals.get('cost_usd'))}"
     )
     agents = stats.get("agents") or {}
@@ -236,15 +244,20 @@ def print_summary(
     tools = stats.get("tools") or {}
     if tools:
         table = Table(show_edge=False, header_style="bold", pad_edge=False, box=None)
-        for col in ("tool", "calls", "errors", "avg ms"):
+        any_refused = any(row.get("denied") for row in tools.values())
+        cols = (
+            ("tool", "calls", "errors", "refused", "avg ms")
+            if any_refused
+            else ("tool", "calls", "errors", "avg ms")
+        )
+        for col in cols:
             table.add_column(col, justify="left" if col == "tool" else "right")
         for name, row in sorted(tools.items(), key=lambda kv: -kv[1].get("calls", 0)):
-            table.add_row(
-                escape(name),
-                str(row.get("calls", 0)),
-                str(row.get("errors", 0)),
-                f"{row.get('avg_ms', 0):.0f}",
-            )
+            cells = [escape(name), str(row.get("calls", 0)), str(row.get("errors", 0))]
+            if any_refused:
+                cells.append(str(row.get("denied", 0)))
+            cells.append(f"{row.get('avg_ms', 0):.0f}")
+            table.add_row(*cells)
         console.print(table)
     unpriced = totals.get("unpriced_models") or []
     if unpriced:

@@ -104,7 +104,7 @@ promptise run --list                   # list the scripts
 
 | Flag | Description |
 |---|---|
-| `-d`, `--devtools` | Live trace of every agent on stderr, and a summary at the end |
+| `-d`, `--devtools` | Live trace of every agent on stderr, and a summary at the end. Tool calls refused before they ran (autonomy budget, approval denial) are printed as `⊘ <tool> refused` with the reason, and counted as `refused` in the summary |
 | `-t`, `-tui`, `--tui` | Open the terminal UI |
 | `-w`, `--watch` | Restart the program when a project file changes |
 | `--prod` | Production behavior: JSON logs on stderr, preflight checks, graceful SIGTERM |

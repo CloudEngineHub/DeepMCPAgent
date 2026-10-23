@@ -421,8 +421,16 @@ class PromptiseCallbackHandler(BaseCallbackHandler):
         self._reused_tools.discard(run_id)
         if reused:
             metadata["reused"] = True
+        # An approval gate denied the call: the tool did not run.
+        run = self._current_run()
+        denied_runs = getattr(run, "denied_tool_runs", None)
+        denial = denied_runs.pop(str(run_id), None) if denied_runs else None
+        if denial is not None and not failed:
+            metadata.update(denial)
 
-        if failed:
+        if denial is not None and not failed:
+            details = f"Tool call denied ({denial.get('denied_by')}): {tool_name}"
+        elif failed:
             details = f"Tool reported an error: {tool_name}"
         elif reused:
             details = f"Tool result reused: {tool_name}"

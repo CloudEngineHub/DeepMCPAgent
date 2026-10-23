@@ -1096,6 +1096,40 @@ def _tool_annotations(tool: Any) -> dict[str, Any]:
     return {key: meta[key] for key in _ANNOTATION_KEYS if meta.get(key) is not None}
 
 
+def _record_approval_timeline(event_type: str, data: dict[str, Any]) -> None:
+    """Record an ``approval.*`` event on the observed agent run's timeline.
+
+    The event notifier gets these events too; this puts them on the trace
+    (``observe=``, its transporters, ``promptise run --devtools``) next to
+    the tool call they belong to.  A no-op outside an observed run.
+    """
+    from .observability import (
+        TimelineEventType,
+        _json_safe_arguments,
+        _record_on_current_run,
+        get_current_run,
+    )
+
+    run = get_current_run()
+    if run is None or run.collector is None:
+        return
+    try:
+        event = TimelineEventType(event_type)
+    except ValueError:
+        return
+    metadata = dict(data)
+    if "arguments" in metadata:
+        if run.record_tool_io:
+            metadata["arguments"] = _json_safe_arguments(metadata["arguments"])
+        else:
+            metadata.pop("arguments")
+    tool = metadata.get("tool_name") or "?"
+    details = f"{event_type}: {tool}"
+    if metadata.get("reason"):
+        details += f": {metadata['reason']}"
+    _record_on_current_run(event, details=details, metadata=metadata)
+
+
 def _decision_event_fields(decision: ApprovalDecision) -> dict[str, Any]:
     """``decided_by`` (and the classifier layer, if any) for ``approval.*`` events."""
     fields: dict[str, Any] = {"decided_by": decision.decided_by}
@@ -1144,6 +1178,7 @@ class _ApprovalToolWrapper(WrappingTool):
         self._agent_id = agent_id
 
     def _emit(self, event_type: str, severity: str, data: dict[str, Any]) -> None:
+        _record_approval_timeline(event_type, data)
         if self._event_notifier is None:
             return
         from .events import emit_event
@@ -1226,6 +1261,16 @@ class _ApprovalToolWrapper(WrappingTool):
                     listener(tool_name)
                 except Exception:
                     logger.debug("Approval denial listener failed", exc_info=True)
+            from .observability import _mark_tool_run_denied
+
+            # The trace's tool.result says the call was denied, not "ok".
+            _mark_tool_run_denied(
+                run_manager.run_id if run_manager is not None else None,
+                reason=reason,
+                denied_by="approval",
+                decided_by=decision.decided_by,
+                request_id=request_id,
+            )
             return f"DENIED: {reason}"
 
         # Approved — execute with the original arguments, or the reviewer's edits
@@ -1357,6 +1402,15 @@ class _ApprovalToolWrapper(WrappingTool):
                 approved=(policy.on_timeout == "allow"),
                 reason=f"Approval timed out after {policy.timeout}s",
                 decided_by="gate",
+            )
+            _record_approval_timeline(
+                "approval.timeout",
+                {
+                    "tool_name": tool_name,
+                    "request_id": request_id,
+                    "timeout": policy.timeout,
+                    "on_timeout": policy.on_timeout,
+                },
             )
             logger.warning(
                 "Approval: timeout for %s (request_id=%s), on_timeout=%s",
@@ -1736,23 +1790,20 @@ def approval_elicitation_callback(
         )
 
         def _emit(event_type: str, severity: str, data: dict[str, Any]) -> None:
+            payload = {
+                "tool_name": request.tool_name,
+                "request_id": request.request_id,
+                "source": "mcp_elicitation",
+                "server": server_name,
+                **data,
+            }
+            # In the caller's context: that is where the agent run is current.
+            run_in_caller(_record_approval_timeline, event_type, payload)
             if event_notifier is None:
                 return
             from .events import emit_event
 
-            run_in_caller(
-                emit_event,
-                event_notifier,
-                event_type,
-                severity,
-                {
-                    "tool_name": request.tool_name,
-                    "request_id": request.request_id,
-                    "source": "mcp_elicitation",
-                    "server": server_name,
-                    **data,
-                },
-            )
+            run_in_caller(emit_event, event_notifier, event_type, severity, payload)
 
         logger.info(
             "Approval: %s requests approval%s (request_id=%s)",

@@ -76,5 +76,6 @@ def status_style(status: str) -> str:
         "ok": SUCCESS,
         "error": f"bold {ERROR}",
         "aborted": WARNING,
+        "denied": WARNING,
         "running": ACCENT,
     }.get(status, DIM)

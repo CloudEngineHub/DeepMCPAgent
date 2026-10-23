@@ -107,7 +107,10 @@ class BudgetGuard(BaseCallbackHandler):
         on_denied: Called with the violation of every refused call
             (its ``arguments`` set to the call's arguments), before the
             error is raised (the process journals a ``tool_denied`` entry
-            and dispatches the ``permission_denied`` hook from it).  It may be called from a
+            and dispatches the ``permission_denied`` hook from it).  The
+            refused call is also recorded on the agent's observability
+            trace, when the agent is observed: a ``tool.call`` and a
+            ``tool.result`` with ``status="denied"`` and the reason.  It may be called from a
             worker thread (synchronous tools); it must not block, and an
             error it raises is logged and ignored.
     """
@@ -146,6 +149,7 @@ class BudgetGuard(BaseCallbackHandler):
                     self._on_denied(violation)
                 except Exception:
                     logger.warning("Budget denial callback failed", exc_info=True)
+            self._record_on_trace(violation, kwargs.get("run_id"))
             logger.info(
                 "Budget refused tool call %s: %s %g > %g",
                 violation.tool_name or "?",
@@ -154,6 +158,36 @@ class BudgetGuard(BaseCallbackHandler):
                 violation.limit_value,
             )
             raise BudgetExceededError(violation)
+
+    @staticmethod
+    def _record_on_trace(violation: BudgetViolation, run_id: Any) -> None:
+        """Put the refused call on the observed agent run's trace.
+
+        The guard raises before any other handler sees the call, so the
+        observability handler records nothing for it: this records a
+        ``tool.call`` and ``tool.result`` with ``status="denied"`` and the
+        reason instead (a no-op when the agent is not observed).
+        """
+        from promptise.observability import _record_denied_tool_call
+
+        try:
+            _record_denied_tool_call(
+                violation.tool_name or "unknown",
+                reason=(
+                    f"budget limit {violation.limit_name} reached "
+                    f"({violation.current_value:g} > {violation.limit_value:g})"
+                ),
+                denied_by="budget",
+                arguments=getattr(violation, "arguments", None),
+                run_id=run_id,
+                metadata={
+                    "limit_name": violation.limit_name,
+                    "limit_value": violation.limit_value,
+                    "current_value": violation.current_value,
+                },
+            )
+        except Exception:
+            logger.debug("Could not record the refused call on the trace", exc_info=True)
 
 
 class RuntimeCallbackHandler(AsyncCallbackHandler):

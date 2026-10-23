@@ -270,6 +270,38 @@ LLM turns are counted but not blocked: the turn that exceeds `max_llm_turns_per_
 
 A refused call never runs, so the [journal](../journal/index.md) has no `tool_call` entry for it. It gets a `tool_denied` entry instead (with the call's `args` at journal level `"full"`), and the `permission_denied` [hook](../hooks.md) fires with `kind="budget"` and the call's `arguments`. The violation the process acts on is journaled as `budget_violation`.
 
+When the process's agent is observed (`ProcessConfig(observe=...)`, or `promptise run --devtools`), the refused call is on its trace as well: a `tool.call` and a `tool.result` with `status="denied"`, `denied_by="budget"`, the `reason` (`"budget limit max_irreversible_per_run reached (4 > 3)"`), `limit_name`, `limit_value` and `current_value`. Every transporter gets them, `collector.get_stats()["tool_denied_count"]` counts them (not as errors), and the `--devtools` trace prints `⊘ wire_money refused (budget) ...` with a `refused` column in the summary.
+
+```python
+from promptise import tool
+from promptise.observability_config import ObservabilityConfig, TransporterType
+from promptise.runtime import BudgetConfig, ProcessConfig
+from promptise.runtime.config import ToolCostAnnotation
+
+
+@tool
+def wire_money(amount: int) -> str:
+    """Wire money to the supplier."""
+    return "sent"
+
+
+refused = []
+
+config = ProcessConfig(
+    model="openai:gpt-5-mini",
+    extra_tools=[wire_money],
+    budget=BudgetConfig(
+        enabled=True,
+        max_irreversible_per_run=3,
+        tool_costs={"wire_money": ToolCostAnnotation(irreversible=True)},
+    ),
+    observe=ObservabilityConfig(
+        transporters=[TransporterType.CALLBACK],
+        on_event=lambda e: refused.append(e) if e.metadata.get("status") == "denied" else None,
+    ),
+)
+```
+
 After the invocation finishes, the first violation of the run triggers the action configured in `on_exceeded` (below). `max_runs_per_day` is checked when an invocation starts; a run over that limit does not start, and `on_exceeded` is applied at once. Its event goes to the [dead letters](../processes.md#dead-letters) with reason `"budget: max_runs_per_day"` (the `task_completed` hook reports outcome `"refused"`), so `redeliver_dead_letters()` can run it after the daily reset.
 
 !!! note "Changed in 1.3.0"

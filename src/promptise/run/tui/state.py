@@ -358,7 +358,9 @@ class ToolCall:
     run_id: str | None
     arguments: str
     status: str = "running"
-    """``running``, ``ok``, ``error`` or ``aborted`` (the program exited first)."""
+    """``running``, ``ok``, ``error``, ``denied`` (refused before it ran: the
+    autonomy budget, an approval denial) or ``aborted`` (the program exited
+    first)."""
     latency_ms: float | None = None
     result_preview: str | None = None
     result_length: int | None = None
@@ -1022,7 +1024,8 @@ class RunState:
         else:
             self._changes.tool_calls.add(call.id)
         failed = etype == "tool.error" or _str(meta.get("status")) == "error"
-        call.status = "error" if failed else "ok"
+        denied = not failed and _str(meta.get("status")) == "denied"
+        call.status = "error" if failed else "denied" if denied else "ok"
         latency = _float(meta.get("latency_ms"))
         if latency is None:
             duration = _float(entry.get("duration"))
@@ -1033,6 +1036,9 @@ class RunState:
         call.result_preview = _opt_str(meta.get("result_preview"))
         call.result_length = _int(meta.get("result_length"))
         call.error = _opt_str(meta.get("error"))
+        if denied and call.error is None:
+            # Refused before it ran (budget, approval): the reason is the error text.
+            call.error = _opt_str(meta.get("reason"))
         call.error_type = _opt_str(meta.get("error_type"))
         call.traceback = _opt_str(meta.get("traceback"))
         if meta.get("reused"):

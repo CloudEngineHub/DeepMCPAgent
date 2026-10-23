@@ -77,6 +77,15 @@ class AgentRun:
         tool_calls: Tool calls made during this run.
         errors: LLM and tool errors during this run.
         cache_hit: Whether the run was answered from the semantic cache.
+        collector: The collector the run is recorded on, so code running
+            inside the run (the autonomy budget, approval gates) can add
+            entries to it.  ``None`` for a run created by hand.
+        agent_id: The ``agent_id`` the run's entries carry.
+        record_tool_io: Whether tool arguments may be recorded (the
+            handler's ``record_tool_io``).
+        denied_tool_runs: Tool runs (LangChain run ids) an approval gate
+            denied, with the denial's fields, until their ``tool.result``
+            is recorded.
     """
 
     entry_id: str
@@ -87,6 +96,12 @@ class AgentRun:
     tool_calls: int = 0
     errors: int = 0
     cache_hit: bool = False
+    collector: Any = field(default=None, repr=False, compare=False)
+    agent_id: str | None = None
+    record_tool_io: bool = True
+    denied_tool_runs: dict[str, dict[str, Any]] = field(
+        default_factory=dict, repr=False, compare=False
+    )
 
     @property
     def total_tokens(self) -> int:
@@ -103,6 +118,96 @@ _run_ctx_var: contextvars.ContextVar[AgentRun | None] = contextvars.ContextVar(
 def get_current_run() -> AgentRun | None:
     """Return the :class:`AgentRun` being observed in this context, if any."""
     return _run_ctx_var.get()
+
+
+def _record_on_current_run(
+    event_type: TimelineEventType,
+    *,
+    details: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> TimelineEntry | None:
+    """Record an event on the collector of the run being observed, if any.
+
+    For code that runs inside an agent run but has no collector of its own
+    (approval gates, the runtime's budget guard).  Never raises.
+    """
+    run = _run_ctx_var.get()
+    if run is None or run.collector is None:
+        return None
+    collector = run.collector
+    try:
+        entry: TimelineEntry = collector.record(
+            event_type, agent_id=run.agent_id, details=details, metadata=metadata
+        )
+        return entry
+    except Exception:
+        logger.debug("Could not record %s", event_type.value, exc_info=True)
+        return None
+
+
+def _record_denied_tool_call(
+    tool_name: str,
+    *,
+    reason: str,
+    denied_by: str,
+    arguments: Any = None,
+    run_id: Any = None,
+    metadata: dict[str, Any] | None = None,
+) -> bool:
+    """Record a tool call refused before it ran on the current run's trace.
+
+    Records a ``tool.call`` and a ``tool.result`` with ``status="denied"``,
+    the *reason* and *denied_by* (``"budget"``, ``"approval"``), so the
+    call shows up like any other, paired by ``run_id``.  Returns whether
+    anything was recorded (``False`` outside an observed run).
+    """
+    run = _run_ctx_var.get()
+    if run is None or run.collector is None:
+        return False
+    fields: dict[str, Any] = {"status": "denied", "denied_by": denied_by, "reason": reason}
+    fields.update(metadata or {})
+    call_meta: dict[str, Any] = {"tool_name": tool_name, **fields}
+    if run_id is not None:
+        call_meta["run_id"] = str(run_id)
+    if arguments is not None:
+        if run.record_tool_io:
+            call_meta["arguments"] = _json_safe_arguments(arguments)
+        else:
+            call_meta["arguments_length"] = len(json.dumps(arguments, default=str))
+    run.tool_calls += 1
+    _record_on_current_run(
+        TimelineEventType.TOOL_CALL,
+        details=f"Tool call refused ({denied_by}): {tool_name}",
+        metadata=call_meta,
+    )
+    result_meta = {k: v for k, v in call_meta.items() if k not in ("arguments", "arguments_length")}
+    result_meta["latency_ms"] = 0.0
+    _record_on_current_run(
+        TimelineEventType.TOOL_RESULT,
+        details=f"Tool call refused ({denied_by}): {tool_name}: {reason}",
+        metadata=result_meta,
+    )
+    return True
+
+
+def _mark_tool_run_denied(run_id: Any, *, reason: str, denied_by: str, **fields: Any) -> None:
+    """Mark a running tool call as denied, for its ``tool.result``.
+
+    An approval gate denies a call inside the tool's own run: the
+    callback handler records its ``tool.call`` as usual, and its
+    ``tool.result`` with ``status="denied"`` and these fields.
+    """
+    run = _run_ctx_var.get()
+    if run is None or run_id is None:
+        return
+    if len(run.denied_tool_runs) >= 1000:
+        run.denied_tool_runs.clear()
+    run.denied_tool_runs[str(run_id)] = {
+        "status": "denied",
+        "denied_by": denied_by,
+        "reason": reason,
+        **fields,
+    }
 
 
 #: Metadata keys holding Promptise / LangChain identifiers, never redacted
@@ -1006,6 +1111,7 @@ class ObservabilityCollector:
         total_tokens = 0
         llm_call_count = 0
         tool_call_count = 0
+        tool_denied_count = 0
         error_count = 0
         retry_count = 0
         tokens_by_agent: dict[str, int] = {}
@@ -1054,6 +1160,13 @@ class ObservabilityCollector:
             if e.event_type == TimelineEventType.TOOL_CALL:
                 tool_call_count += 1
 
+            if (
+                e.event_type == TimelineEventType.TOOL_RESULT
+                and e.metadata.get("status") == "denied"
+            ):
+                # Refused before it ran (budget, approval): not an error.
+                tool_denied_count += 1
+
             if e.event_type in (
                 TimelineEventType.LLM_ERROR,
                 TimelineEventType.TOOL_ERROR,
@@ -1095,6 +1208,7 @@ class ObservabilityCollector:
             "total_tokens": total_tokens,
             "llm_call_count": llm_call_count,
             "tool_call_count": tool_call_count,
+            "tool_denied_count": tool_denied_count,
             "error_count": error_count,
             "retry_count": retry_count,
             "latency_p50_ms": _percentile(latencies, 50),

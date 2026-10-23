@@ -244,6 +244,8 @@ policy = ApprovalPolicy(tools=["*"], handler=my_handler, on_decision=audit)
 
 The `approval.granted` / `approval.denied` events carry `decided_by` (and `classifier_layer` when a classifier decided) as well.
 
+With observability on (`observe=`), the `approval.*` events are on the agent's trace too, next to the tool call they belong to, and a denied call's `tool.result` has `status="denied"`, `denied_by="approval"`, `decided_by` and the `reason`. An approval timeout adds an `approval.timeout` entry. See [Refused tool calls](observability.md#refused-tool-calls).
+
 ---
 
 ## Handlers: Detailed Setup
