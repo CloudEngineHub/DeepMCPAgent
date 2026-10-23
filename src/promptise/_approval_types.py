@@ -195,7 +195,11 @@ class ApprovalRule:
             this rule applies to. Empty matches any user.
         predicate: Optional async callable
             ``(request) -> bool`` for custom logic. Empty disables.
-            A predicate that raises counts as no match (logged).
+            Inside an :class:`~promptise.approval_classifier.AutoApprovalClassifier`
+            a predicate that raises never lets a call through: a raising
+            deny rule denies the call, and a raising ask or allow rule
+            sends it to the human fallback.  :meth:`matches` on its own
+            treats the error as no match (logged).
         reason: Human-readable reason recorded with the decision.
 
     The filters see the call's real arguments: the classifier hands
@@ -212,7 +216,27 @@ class ApprovalRule:
     reason: str = ""
 
     async def matches(self, request: ApprovalRequest) -> bool:
-        """Return True if this rule applies to ``request``."""
+        """Return True if this rule applies to ``request``.
+
+        A rule that cannot be evaluated (its predicate raised, or the
+        arguments could not be serialized for ``argument_contains``) counts
+        as no match here, with the error logged.  The classifier does not
+        use this lenient form: see :class:`RuleEvaluationError`.
+        """
+        try:
+            return await self.evaluate(request)
+        except RuleEvaluationError:
+            logger.exception("approval rule could not be evaluated; treating as no-match")
+            return False
+
+    async def evaluate(self, request: ApprovalRequest) -> bool:
+        """Like :meth:`matches`, but raise when the rule cannot be evaluated.
+
+        Raises:
+            RuleEvaluationError: The predicate raised, or the arguments
+                could not be serialized for ``argument_contains``.  The
+                original exception is the ``__cause__``.
+        """
         if self.tool and not fnmatch(request.tool_name, self.tool):
             return False
         if self.user and request.caller_user_id != self.user:
@@ -220,18 +244,37 @@ class ApprovalRule:
         if self.argument_contains:
             try:
                 blob = _arguments_json(request.arguments)
-            except Exception:  # noqa: BLE001
-                blob = ""
+            except Exception as exc:  # noqa: BLE001
+                raise RuleEvaluationError(self, exc) from exc
             if self.argument_contains not in blob:
                 return False
         if self.predicate is not None:
             try:
                 if not await self.predicate(request):
                     return False
-            except Exception:  # noqa: BLE001
-                logger.exception("approval rule predicate raised; treating as no-match")
-                return False
+            except Exception as exc:  # noqa: BLE001
+                raise RuleEvaluationError(self, exc) from exc
         return True
+
+
+class RuleEvaluationError(Exception):
+    """An :class:`ApprovalRule` could not be evaluated.
+
+    Raised by :meth:`ApprovalRule.evaluate` when the rule's predicate
+    raises, or when the arguments cannot be serialized for
+    ``argument_contains``.  The classifier fails closed on it: a deny rule
+    that cannot be evaluated denies the call.
+
+    Attributes:
+        rule: The rule that failed.
+        error: The exception it raised.
+    """
+
+    def __init__(self, rule: ApprovalRule, error: BaseException) -> None:
+        self.rule = rule
+        self.error = error
+        label = f" ({rule.reason})" if rule.reason else ""
+        super().__init__(f"approval rule{label} raised {type(error).__name__}: {error}")
 
 
 @dataclass

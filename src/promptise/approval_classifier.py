@@ -8,11 +8,14 @@ The six-step hierarchy (in priority order):
 
 1. **Deny rules** — patterns / predicates that always deny.  First
    match wins.  Deny beats everything below it, so a broad allow rule
-   can't approve a call a deny rule forbids.
+   can't approve a call a deny rule forbids.  A deny rule whose
+   predicate raises denies the call (fail closed).
 2. **Ask rules** — patterns / predicates that always go to the human
-   fallback, skipping every automatic layer below.
+   fallback, skipping every automatic layer below.  An ask rule that
+   raises also goes to the human.
 3. **Allow rules** — patterns / predicates that always allow.  First
-   match wins.
+   match wins.  An allow rule that raises never allows: the request
+   goes straight to the human fallback.
 4. **Read-only auto-allow** — the tool is read-only: its MCP
    annotations say ``readOnlyHint=True``, or its name starts with a
    read-only prefix (``get_``, ``list_``, ``read_``, ...).  Never for a
@@ -78,6 +81,7 @@ from ._approval_types import (
     ApprovalRequest,
     ApprovalRule,
     ClassifierDecisionTrace,
+    RuleEvaluationError,
 )
 
 logger = logging.getLogger("promptise.approval.classifier")
@@ -223,11 +227,17 @@ class AutoApprovalClassifier:
     Args:
         deny_rules: Rules that always deny when matched. Checked first,
             so a deny rule wins over every allow rule. First match wins.
+            A deny rule that raises (see :class:`RuleEvaluationError`)
+            denies the call, with a logged warning.
         ask_rules: Rules that always send the request to the fallback
             handler (a human), even when an allow rule, the read-only
-            check or the LLM classifier would have approved it.
+            check or the LLM classifier would have approved it.  An ask
+            rule that raises sends the request to the fallback too.
         allow_rules: Rules that always allow when matched (unless a
-            deny or ask rule matched first). First match wins.
+            deny or ask rule matched first). First match wins.  An allow
+            rule that raises does not allow: the request goes to the
+            fallback (trace layer ``"error"``), skipping the read-only
+            and LLM layers.
         read_only_auto_allow: If True (default), read-only tools are
             auto-allowed: tools annotated ``readOnlyHint=True``, and
             unannotated tools whose name starts with one of
@@ -347,9 +357,29 @@ class AutoApprovalClassifier:
     async def _classify(
         self, request: ApprovalRequest, reviewer_view: ApprovalRequest
     ) -> tuple[ApprovalDecision, ClassifierDecisionTrace]:
-        # 1. Deny rules
+        # 1. Deny rules.  A deny rule that cannot be evaluated denies: a
+        # broken rule must not let through the calls it was written to stop.
         for rule in self._deny_rules:
-            if await rule.matches(request):
+            try:
+                matched = await rule.evaluate(request)
+            except RuleEvaluationError as exc:
+                self._count("deny_rule_hits")
+                self._count("errors")
+                logger.warning(
+                    "approval deny rule could not be evaluated for tool=%s (%s); "
+                    "denying the call (fail closed)",
+                    request.tool_name,
+                    exc,
+                )
+                reason = f"a deny rule could not be evaluated ({type(exc.error).__name__}); denied"
+                return self._auto(
+                    False,
+                    reason,
+                    ClassifierDecisionTrace(
+                        layer="deny_rule", rule_reason=reason, matched_rule=rule
+                    ),
+                )
+            if matched:
                 self._count("deny_rule_hits")
                 logger.info(
                     "approval deny rule matched: tool=%s reason=%s",
@@ -364,9 +394,21 @@ class AutoApprovalClassifier:
                     ),
                 )
 
-        # 2. Ask rules — straight to the human
+        # 2. Ask rules — straight to the human.  An ask rule that cannot be
+        # evaluated also goes to the human.
         for rule in self._ask_rules:
-            if await rule.matches(request):
+            try:
+                matched = await rule.evaluate(request)
+            except RuleEvaluationError as exc:
+                self._count("errors")
+                logger.warning(
+                    "approval ask rule could not be evaluated for tool=%s (%s); "
+                    "asking the fallback handler",
+                    request.tool_name,
+                    exc,
+                )
+                matched = True
+            if matched:
                 self._count("ask_rule_hits")
                 logger.debug(
                     "approval ask rule matched: tool=%s reason=%s",
@@ -378,9 +420,27 @@ class AutoApprovalClassifier:
                 )
                 return await self._ask_fallback(reviewer_view, trace), trace
 
-        # 3. Allow rules
+        # 3. Allow rules.  An allow rule that cannot be evaluated never
+        # allows, and the read-only and LLM layers are skipped: the human
+        # fallback decides.
         for rule in self._allow_rules:
-            if await rule.matches(request):
+            try:
+                matched = await rule.evaluate(request)
+            except RuleEvaluationError as exc:
+                self._count("errors")
+                logger.warning(
+                    "approval allow rule could not be evaluated for tool=%s (%s); "
+                    "not allowing it, asking the fallback handler",
+                    request.tool_name,
+                    exc,
+                )
+                trace = ClassifierDecisionTrace(
+                    layer="error",
+                    rule_reason=f"an allow rule could not be evaluated ({type(exc.error).__name__})",
+                    matched_rule=rule,
+                )
+                return await self._ask_fallback(reviewer_view, trace), trace
+            if matched:
                 self._count("allow_rule_hits")
                 logger.debug(
                     "approval allow rule matched: tool=%s reason=%s",
@@ -504,6 +564,7 @@ __all__ = [
     "AutoApprovalClassifier",
     "ClassifierDecisionTrace",
     "ClassifierStats",
+    "RuleEvaluationError",
     "DEFAULT_DESTRUCTIVE_VERBS",
     "DEFAULT_READ_ONLY_PREFIXES",
     "LLMClassifierFn",

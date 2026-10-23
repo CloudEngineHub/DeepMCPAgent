@@ -90,7 +90,19 @@ ApprovalRule(tool="issue_refund", predicate=is_small_refund, reason="small refun
 | `tool` | `fnmatch(request.tool_name, tool)` |
 | `user` | `request.caller_user_id == user` (from the [`CallerContext`](approval.md#multi-user)) |
 | `argument_contains` | the substring appears in `json.dumps(arguments, sort_keys=True, ensure_ascii=False)` |
-| `predicate` | `await predicate(request)` is truthy. A predicate that raises counts as *no match* (and is logged). |
+| `predicate` | `await predicate(request)` is truthy. See [A rule that raises](#a-rule-that-raises) for what happens when it raises. |
+
+### A rule that raises
+
+A rule that cannot be evaluated (its predicate raises, or the arguments cannot be serialized for `argument_contains`) never lets a call through. The classifier logs a warning on the `promptise.approval.classifier` logger and counts it in `stats.errors`, then:
+
+| Rule list | What happens to the call |
+|---|---|
+| `deny_rules` | Denied. `decided_by="classifier"`, `trace.layer="deny_rule"`, `trace.matched_rule` is the broken rule, and the reason names the exception type. |
+| `ask_rules` | Sent to the fallback handler, as if the rule had matched. |
+| `allow_rules` | Not allowed. Sent to the fallback handler straight away (`trace.layer="error"`), so the read-only check and the LLM classifier don't decide it either. |
+
+Only rules whose `tool` and `user` filters match the call run their predicate, so a broken rule for `delete_*` does not affect other tools. `ApprovalRule.matches()` called on its own still returns `False` for a rule that raises; `ApprovalRule.evaluate()` raises `RuleEvaluationError` instead, with the original exception in `error`.
 
 ### `argument_contains` matches JSON
 
@@ -190,7 +202,7 @@ Every decision the classifier returns carries its trace in `decision.trace`, and
 | `decision.decided_by` | `decision.trace.layer` |
 |---|---|
 | `"classifier"` | `"deny_rule"`, `"allow_rule"`, `"read_only"`, `"llm_allow"`, `"llm_deny"` |
-| `"reviewer"` (the fallback's decision) | `"ask_rule"`, `"llm_escalate_then_fallback"`, `"fallback"`, `"error"` (the classifier raised and fell back) |
+| `"reviewer"` (the fallback's decision) | `"ask_rule"`, `"llm_escalate_then_fallback"`, `"fallback"`, `"error"` (the classifier or an allow rule raised and the fallback decided) |
 
 `trace.rule_reason` holds the matched rule's `reason` or the LLM's reason, and `trace.matched_rule` the rule itself.
 
