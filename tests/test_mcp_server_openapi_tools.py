@@ -215,3 +215,73 @@ async def test_swagger2_parameters(requests: list[httpx.Request]) -> None:
     (req,) = requests
     assert str(req.url) == "https://api.example.com/v2/pets?limit=2"
     assert json.loads(req.content) == {"name": "Rex"}
+
+
+def _one_op_spec(servers: list[dict[str, str]] | None) -> dict[str, Any]:
+    spec: dict[str, Any] = {
+        "openapi": "3.0.0",
+        "info": {"title": "Ping", "version": "1"},
+        "paths": {"/ping": {"get": {"operationId": "ping", "responses": {"200": {}}}}},
+    }
+    if servers is not None:
+        spec["servers"] = servers
+    return spec
+
+
+def test_private_base_url_is_refused_with_the_opt_in_named() -> None:
+    provider = OpenAPIProvider(_one_op_spec([{"url": "http://127.0.0.1:8080"}]))
+    with pytest.raises(ValueError, match="allow_private=True"):
+        provider.parse()
+
+
+def test_base_url_override_to_a_private_host_is_refused_too() -> None:
+    provider = OpenAPIProvider(_one_op_spec(None), base_url="http://10.0.0.5")
+    with pytest.raises(ValueError, match="allow_private=True"):
+        provider.parse()
+
+
+async def test_allow_private_reaches_an_internal_api(requests: list[httpx.Request]) -> None:
+    server = MCPServer("internal")
+    OpenAPIProvider(
+        _one_op_spec([{"url": "http://127.0.0.1:8080/v1"}]), allow_private=True
+    ).register(server)
+    await TestClient(server).call_tool("ping", {})
+    (req,) = requests
+    assert str(req.url) == "http://127.0.0.1:8080/v1/ping"
+
+
+def test_relative_servers_url_resolves_against_the_spec_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        httpx,
+        "get",
+        lambda url, **kw: httpx.Response(
+            200, json=_one_op_spec([{"url": "/v1"}]), request=httpx.Request("GET", url)
+        ),
+    )
+    monkeypatch.setattr(
+        "promptise.mcp.server._openapi._validate_url_not_private", lambda url, **kw: None
+    )
+    (op,) = OpenAPIProvider("https://api.example.com/openapi.json").parse()
+    assert op["base_url"] == "https://api.example.com/v1"
+
+
+def test_relative_servers_url_without_a_spec_url_fails_at_register() -> None:
+    provider = OpenAPIProvider(_one_op_spec([{"url": "/v1"}]))
+    with pytest.raises(ValueError, match="'/v1'.*base_url="):
+        provider.register(MCPServer("x"))
+
+
+def test_no_servers_entry_fails_at_register() -> None:
+    provider = OpenAPIProvider(_one_op_spec(None))
+    with pytest.raises(ValueError, match="no servers entry"):
+        provider.register(MCPServer("x"))
+
+
+def test_relative_servers_url_with_base_url_override_is_fine() -> None:
+    server = MCPServer("x")
+    count = OpenAPIProvider(
+        _one_op_spec([{"url": "/v1"}]), base_url="https://api.example.com/v1"
+    ).register(server)
+    assert count == 1

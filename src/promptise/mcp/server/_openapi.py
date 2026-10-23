@@ -19,7 +19,7 @@ import ipaddress
 import json
 import logging
 from typing import Any, Optional
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, urljoin, urlparse
 
 logger = logging.getLogger("promptise.server")
 
@@ -46,9 +46,12 @@ def _is_private_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     )
 
 
-def _validate_url_not_private(
-    url: str, *, hint: str = "Use base_url override for internal APIs."
-) -> None:
+_INTERNAL_API_HINT = (
+    "To call an internal API on purpose, pass allow_private=True to OpenAPIProvider."
+)
+
+
+def _validate_url_not_private(url: str, *, hint: str = _INTERNAL_API_HINT) -> None:
     """Reject URLs that resolve to private/internal IP ranges (SSRF protection).
 
     Args:
@@ -79,6 +82,10 @@ def _validate_url_not_private(
             raise ValueError(f"URL {url!r} resolves to private/internal IP {ip}. {hint}")
 
 
+def _is_absolute_http(url: str) -> bool:
+    return url.startswith("http://") or url.startswith("https://")
+
+
 class OpenAPIProvider:
     """Generate MCP tools from an OpenAPI specification.
 
@@ -89,13 +96,19 @@ class OpenAPIProvider:
     Args:
         spec: Either a URL to fetch the spec from, a file path, or
             a pre-parsed dict.
-        base_url: Override the server base URL from the spec.
+        base_url: Override the server base URL from the spec. Required
+            when the spec has no ``servers`` entry, or a relative one and
+            the spec was not loaded from a URL.
         prefix: Prefix for generated tool names (e.g. ``"petstore_"``).
         include: Only include operations matching these operation IDs.
         exclude: Exclude operations matching these operation IDs.
         auth_header: Default auth header for requests (e.g.
             ``("Authorization", "Bearer tok-123")``).
         tags: Tags to apply to all generated tools.
+        allow_private: Allow the spec URL and the API base URL to be on a
+            loopback, private or link-local address. Off by default, so a
+            spec cannot point the generated tools at internal services (SSRF
+            protection). Turn it on only for an internal API you trust.
     """
 
     def __init__(
@@ -108,8 +121,10 @@ class OpenAPIProvider:
         exclude: set[str] | None = None,
         auth_header: tuple[str, str] | None = None,
         tags: list[str] | None = None,
+        allow_private: bool = False,
     ) -> None:
         self._raw_spec = spec
+        self._allow_private = allow_private
         self._base_url = base_url
         self._prefix = prefix
         self._include = include
@@ -130,7 +145,8 @@ class OpenAPIProvider:
             try:
                 import httpx
 
-                _validate_url_not_private(raw)
+                if not self._allow_private:
+                    _validate_url_not_private(raw)
                 resp = httpx.get(raw, timeout=30)
                 resp.raise_for_status()
                 return resp.json()
@@ -177,8 +193,14 @@ class OpenAPIProvider:
                 base_path = spec.get("basePath", "")
                 base = f"{scheme}://{spec['host']}{base_path}"
 
+        # A relative servers URL ("/v1") is relative to where the spec came from
+        if base and not _is_absolute_http(base):
+            spec_url = self._raw_spec if isinstance(self._raw_spec, str) else ""
+            if _is_absolute_http(spec_url):
+                base = urljoin(spec_url, base)
+
         # SSRF protection: validate base_url doesn't target private networks
-        if base and (base.startswith("http://") or base.startswith("https://")):
+        if base and _is_absolute_http(base) and not self._allow_private:
             _validate_url_not_private(base)
 
         for path, methods in paths.items():
@@ -347,6 +369,17 @@ class OpenAPIProvider:
         """
         if not self._operations:
             self.parse()
+
+        # Fail here, not on every call: a tool without an absolute base URL
+        # can never reach the API.
+        for op in self._operations:
+            if not _is_absolute_http(op["base_url"]):
+                found = repr(op["base_url"]) if op["base_url"] else "no servers entry"
+                raise ValueError(
+                    f"OpenAPI spec has {found} for the API address, so the tools "
+                    "cannot know where to send requests. Pass "
+                    "base_url='https://api.example.com' to OpenAPIProvider."
+                )
 
         count = 0
         for op in self._operations:

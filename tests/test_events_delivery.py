@@ -420,10 +420,10 @@ class TestWebhookPrivateNetworks:
         with pytest.raises(ValueError):
             WebhookSink(url, allow_private_networks=True)
 
-    def test_openapi_hint_unchanged(self):
+    def test_openapi_hint_names_its_own_opt_in(self):
         from promptise.mcp.server._openapi import _validate_url_not_private
 
-        with pytest.raises(ValueError, match="base_url override"):
+        with pytest.raises(ValueError, match="allow_private=True"):
             _validate_url_not_private("http://localhost/x")
 
     @pytest.mark.parametrize(

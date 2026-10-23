@@ -246,19 +246,31 @@ Annotations come from the HTTP method: `GET`/`HEAD` are read-only, `DELETE` is d
 
 For a curated, typed server (descriptions written for agents, selected operations, generated tests), use [MCPcast](mcpcast.md) (`promptise mcpcast ./openapi.yaml`) instead.
 
-`OpenAPIProvider(spec, *, base_url=None, prefix="", include=None, exclude=None, auth_header=None, tags=None)` and `provider.register(server) -> int` (the number of tools):
+`OpenAPIProvider(spec, *, base_url=None, prefix="", include=None, exclude=None, auth_header=None, tags=None, allow_private=False)` and `provider.register(server) -> int` (the number of tools):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `spec` | (required) | URL (fetched with `httpx`), file path (JSON, or YAML with `.yaml`/`.yml`), JSON string, or dict |
-| `base_url` | From spec | Override the API base URL (`servers[0].url`, or Swagger `schemes`/`host`/`basePath`) |
+| `base_url` | From spec | Override the API base URL (`servers[0].url`, or Swagger `schemes`/`host`/`basePath`). A relative `servers` URL such as `/v1` is resolved against the spec's URL; pass `base_url` when the spec is a file or dict |
 | `prefix` | `""` | Prepended to tool names as given (include your own `_`) |
 | `include` | All | Only these operation IDs |
 | `exclude` | None | Skip these operation IDs |
 | `auth_header` | None | `(header_name, value)` sent on every request |
 | `tags` | `[]` | Tags for all generated tools |
+| `allow_private` | `False` | Allow a spec URL or base URL on a loopback, private or link-local address. Turn it on only for an internal API you trust |
 
-Tool names are the `operationId` (or `<method>_<path>`) with `-` and `/` replaced by `_`. A spec URL or base URL that resolves to a private or loopback address is refused.
+Tool names are the `operationId` (or `<method>_<path>`) with `-` and `/` replaced by `_`.
+
+By default, a spec URL or base URL that resolves to a private or loopback address is refused, so a spec cannot point the tools at internal services. To bridge an internal API on purpose, pass `allow_private=True`:
+
+```python
+provider = OpenAPIProvider(
+    "http://10.0.4.12:8080/openapi.json",
+    allow_private=True,   # this API lives on the internal network
+)
+```
+
+`register()` raises a `ValueError` when the tools would have no absolute API address: the spec has no `servers` entry, or a relative one and no spec URL to resolve it against. Pass `base_url` in that case.
 
 ---
 
