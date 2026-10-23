@@ -80,7 +80,7 @@ agent = await build_agent(
 **Dual-mode operation:**
 
 - **Standalone**: `await my_prompt("input")` calls the LLM directly with the full pipeline: template, context, perspective, strategy, constraints, guards, LLM call, parse, output guards.
-- **Agent-integrated**: `build_agent(instructions=my_prompt)` uses `render_async()` to build dynamic system prompts on every agent invocation. The prompt's [guards](guards.md) check each user message (input guards) and each reply (output guards), and its [inspector](inspector.md) records each render.
+- **Agent-integrated**: `build_agent(instructions=my_prompt)` calls `render_async()` on every agent invocation (`ainvoke()`, `chat()`, `astream()`, `astream_with_tools()`), with the context providers. The model gets that render once per call, as the start of its one system message; the agent keeps no second, build-time copy. If the render fails or comes back empty, the agent sends the build-time render (`my_prompt.render()`) instead, so the model is never left without instructions. The prompt's [guards](guards.md) check each user message (input guards) and each reply (output guards), and its [inspector](inspector.md) records each render.
 
 ### Runtime Composition
 

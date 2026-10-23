@@ -884,8 +884,9 @@ class PromptiseAgent:
                 # Cache errors never crash the agent — graceful degradation
                 logger.warning("Cache check failed, continuing without cache", exc_info=True)
 
-        # Step 1.5: Prompt framework — run context providers (legacy path only)
-        if self._prompt_config is not None and not _engine_active:
+        # Step 1.5: A Prompt as instructions — render it for this request
+        # (context providers included).  The graph has no copy of it.
+        if self._prompt_config is not None:
             input = await self._inject_prompt_context(input, user_text)
 
         # Step 1.8: Semantic tool selection — offer each model call only the
@@ -1135,6 +1136,10 @@ class PromptiseAgent:
         # Step 1.1: Adaptive strategy — inject learned strategies
         input = await self._inject_strategies(input, user_text)
 
+        # Step 1.5: A Prompt as instructions — render it for this request
+        if self._prompt_config is not None:
+            input = await self._inject_prompt_context(input, user_text)
+
         config = self._with_tool_selection(config)
 
         # Step 2: Observability and tool events — inject callback handlers
@@ -1346,6 +1351,10 @@ class PromptiseAgent:
                 from .memory import _extract_user_text as _ext_strategy
 
                 input = await self._inject_strategies(input, _ext_strategy(input))
+
+            # Step 1.5: A Prompt as instructions — render it for this request
+            if self._prompt_config is not None:
+                input = await self._inject_prompt_context(input, _ext_stream(input))
 
             config = self._with_tool_selection(config)
 
@@ -2480,11 +2489,19 @@ class PromptiseAgent:
         return output
 
     async def _inject_prompt_context(self, input: Any, user_text: str) -> Any:
-        """Run prompt context providers and inject dynamic context."""
+        """Render the instruction Prompt for this request and put it first.
+
+        The render runs the prompt's context providers.  It goes in as the
+        leading system message tagged
+        :data:`~promptise.engine.nodes.AGENT_PROMPT_MESSAGE_ID` (after a
+        conversation flow's prompt, when one is there); the model node folds
+        its tool list into that message.  The graph carries no copy of the
+        instructions, so the model sees the prompt once per call.  When the
+        render fails or is empty, the build-time render is sent instead.
+        """
+        text = ""
         try:
             from .prompts.context import PromptContext
-            from .prompts.core import Prompt
-            from .prompts.suite import PromptSuite
 
             prompt_obj = self._prompt_config
             ctx = PromptContext(
@@ -2493,45 +2510,32 @@ class PromptiseAgent:
                 rendered_text=user_text,
                 agent=self,
             )
-
-            # Resolve active prompt from suite if needed
-            if isinstance(prompt_obj, PromptSuite):
-                # Render all suite prompts
-                context_text = await prompt_obj.render_async(ctx)
-            elif isinstance(prompt_obj, Prompt):
-                context_text = await prompt_obj.render_async(ctx)
-            else:
-                return input
-
-            if not context_text:
-                return input
-
-            # Inject as SystemMessage into the messages
-            from langchain_core.messages import SystemMessage
-
-            if isinstance(input, dict) and "messages" in input:
-                messages = list(input["messages"])
-                # Insert prompt context after any existing system messages
-                # (handles both LangChain SystemMessage objects and plain dicts)
-                insert_idx = 0
-                for i, msg in enumerate(messages):
-                    is_sys = isinstance(msg, SystemMessage) or (
-                        isinstance(msg, dict) and msg.get("role") == "system"
-                    )
-                    if is_sys:
-                        insert_idx = i + 1
-                    else:
-                        break
-                messages.insert(insert_idx, SystemMessage(content=context_text))
-                return {**input, "messages": messages}
-
-            return input
-        except ImportError:
-            logger.debug("Prompt framework not available, skipping context injection")
-            return input
+            render_async = getattr(prompt_obj, "render_async", None)
+            if render_async is not None:
+                text = await render_async(ctx)
         except Exception:
-            logger.warning("Prompt context injection failed", exc_info=True)
+            logger.warning(
+                "Rendering the instruction prompt failed; using its build-time render",
+                exc_info=True,
+            )
+        if not text:
+            text = self._raw_instructions or ""
+        if not text or not isinstance(input, dict) or "messages" not in input:
             return input
+
+        from langchain_core.messages import SystemMessage
+
+        from .engine.nodes import AGENT_PROMPT_MESSAGE_ID, _is_agent_prompt
+
+        messages = list(input["messages"])
+        if messages and _is_agent_prompt(messages[0]):
+            # A conversation flow's prompt is already first: the
+            # instructions follow it in the same system message.
+            text = f"{messages[0].content}\n\n{text}"
+            messages[0] = SystemMessage(content=text, id=AGENT_PROMPT_MESSAGE_ID)
+        else:
+            messages.insert(0, SystemMessage(content=text, id=AGENT_PROMPT_MESSAGE_ID))
+        return {**input, "messages": messages}
 
     def _flow_key(self, session_id: str | None) -> tuple[str, ...] | None:
         """Identify the conversation whose flow state this call advances.
@@ -2676,6 +2680,12 @@ def _guardrail_block_data(direction: str, exc: BaseException, **extra: Any) -> d
         data["reason"] = str(exc)[:300]
     data.update(extra)
     return data
+
+
+def _static_prompt_text(prompt: Any) -> str:
+    """The build-time render of a Prompt or PromptSuite (no context providers)."""
+    render = getattr(prompt, "render", None) or getattr(prompt, "system_prompt", None)
+    return str(render()) if callable(render) else str(prompt)
 
 
 def _replace_last_user_text(input: Any, text: str) -> Any:
@@ -3815,10 +3825,11 @@ async def build_agent(
 
             if isinstance(instructions, (Prompt, PromptSuite)):
                 _prompt_config = instructions
-                # Extract static text for graph construction
-                sys_prompt = (
-                    instructions.render() if hasattr(instructions, "render") else str(instructions)
-                )
+                # The static render: the cache fingerprint, the context
+                # engine's identity budget, and the fallback when a
+                # per-request render fails.  The model gets the per-request
+                # render instead (see _inject_prompt_context).
+                sys_prompt = _static_prompt_text(instructions)
             else:
                 sys_prompt = str(instructions)
         except ImportError:
@@ -3828,6 +3839,13 @@ async def build_agent(
         sys_prompt = instructions or ""
     else:
         sys_prompt = instructions or DEFAULT_SYSTEM_PROMPT
+
+    # A Prompt as instructions is rendered per request, with its context
+    # providers, and sent as the agent's prompt on every call.  The graph
+    # carries no copy of it, so the model sees the prompt once.
+    _instructions_text = sys_prompt
+    if _prompt_config is not None:
+        sys_prompt = ""
 
     # ----------------------------------------------------------------------
     # Build the PromptGraph engine (replaces LangGraph).
@@ -4169,7 +4187,9 @@ async def build_agent(
         await events.start()
 
     # Store raw instructions for context engine and cache fingerprinting
-    agent._raw_instructions = sys_prompt if isinstance(sys_prompt, str) else str(instructions or "")
+    agent._raw_instructions = (
+        _instructions_text if isinstance(_instructions_text, str) else str(instructions or "")
+    )
 
     # Attach conversation flow if provided
     if _flow_sessions is not None:

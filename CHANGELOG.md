@@ -5,6 +5,9 @@
 ### Fixed
 
 - **`promptise run --check` failed for an agent factory in a package** -- with `agent = "customer_agent.agent:create_agent"`, `promptise run --mode chat --check` reported "No module named 'customer_agent'" while the real run worked, because the check imported the factory before it put the project root on `sys.path`. `--check` now adds the project root and the `python_path` entries first, the same way the run does.
+- **A `Prompt` as `build_agent(instructions=...)` reached the model twice** -- its build-time render was the graph's system prompt, and the per-request render (with the context providers) was added as a second system message, so every block was sent twice on every call. The model now gets the per-request render once, as the start of its one system message, after a conversation flow's prompt and before the tool list. If the render fails or is empty, the build-time render is sent instead.
+- **`astream()`, `astream_with_tools()` and the context-engine path skipped a `Prompt`'s context providers** -- they sent only the build-time render. They now send the per-request render too.
+- **A `PromptSuite` as instructions sent `<MySuite prompts=N>` as a system message** -- its build-time text was the suite's `repr`. It is now `suite.system_prompt()`, used for the cache key, the context engine's `identity` budget and the fallback.
 
 ## 1.8.0 — 2026-10-23
 
