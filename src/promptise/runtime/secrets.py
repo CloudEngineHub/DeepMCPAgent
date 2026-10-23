@@ -473,10 +473,11 @@ class SecretScope:
             }
         )
         if refused:
+            # The log names the variables, not the secret: secret names stay
+            # out of logs (the error below carries the name to the caller).
             logger.warning(
-                "Secret %r of process %s references environment variable(s) %s, which this "
+                "A secret of process %s references environment variable(s) %s, which this "
                 "process may not read (source=%s)",
-                name,
                 self._process_id,
                 ", ".join(refused),
                 self._source,
@@ -500,7 +501,13 @@ class SecretScope:
         """The error for a reference that can't be resolved (generic for the API)."""
         if self._source != "api":
             return SecretResolutionError(detail, name)
-        logger.warning("Process %s: %s", self._process_id, detail)
+        # The detail names the secret; it goes to the operator's log only in
+        # this generic form, and to no API answer at all.
+        logger.warning(
+            "Process %s: a secret from a config deployed through the control API "
+            "could not be resolved",
+            self._process_id,
+        )
         return SecretResolutionError(
             f"Secret '{name}' could not be resolved: a config deployed through the "
             "control API can only reference the environment variables the operator "

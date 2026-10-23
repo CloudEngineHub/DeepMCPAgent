@@ -419,7 +419,7 @@ class HealthMonitor:
         for err in data.get("error_window", []):
             monitor._error_window.append(bool(err))
         counts = data.get("anomaly_count", {})
-        for t in AnomalyType:
+        for t in AnomalyType.__members__.values():
             # Keys are type values; older checkpoints may hold "AnomalyType.X".
             monitor._anomaly_count[t] = int(counts.get(t.value, counts.get(str(t), 0)) or 0)
         return monitor

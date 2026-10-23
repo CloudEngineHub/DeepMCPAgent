@@ -1925,7 +1925,7 @@ class SafetyPane(StepPane):
                 "everything, destructive and financial calls approval-gated",
             ),
         }
-        for profile in SafetyProfile:
+        for profile in SafetyProfile.__members__.values():
             label, note = notes[profile]
             prompt = Text()
             prompt.append(f"{label:<10}", style="bold")
