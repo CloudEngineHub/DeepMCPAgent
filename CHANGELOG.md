@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`ContextCompaction(max_result_chars=...)`** -- cap every new tool result the agent passes to the model. A longer result is cut and ends with a marker that gives its full length and tells the model to call again with narrower arguments. Off by default (`None`: results pass in full) and independent of `enabled`. Without a marker, a model given a cut result tends to repeat the same call.
+- **`OpenAPIProvider(allow_private=True)`** -- bridge an internal API on purpose. A spec URL or base URL on a loopback, private or link-local address is still refused by default.
+
+### Fixed
+
+- **`OpenAPIProvider` told you to use `base_url` for internal APIs, which was refused too** -- the error now names `allow_private=True`.
+- **A relative `servers` URL (`/v1`) made every OpenAPI tool call fail** with "Request URL is missing an 'http://' or 'https://' protocol". It is now resolved against the spec's URL. When there is no spec URL to resolve against (a file or dict spec), or the spec has no `servers` entry, `register()` raises a `ValueError` that says to pass `base_url`.
+- **`ToolNode(max_result_chars=...)` cut results silently** -- a cut result now ends with the same marker.
+
 ## 1.7.1 — 2026-10-23
 
 Three security fixes: approval request ids are now single-use as the docs said, a classifier rule that raises no longer lets a call through, and API keys and JWTs can be revoked while an MCP server runs.

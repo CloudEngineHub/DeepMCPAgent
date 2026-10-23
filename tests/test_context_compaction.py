@@ -491,3 +491,59 @@ def test_scoped_view_keeps_system_messages_and_the_current_question() -> None:
     assert view[0].content == "pinned"
     assert [m.content for m in view if isinstance(m, HumanMessage)] == [QUESTION]
     assert isinstance(view[-1], ToolMessage)
+
+
+# ---------------------------------------------------------------------------
+# Result cap: new tool results cut with a marker the model can act on
+# ---------------------------------------------------------------------------
+
+
+def _tool_results(messages: list[BaseMessage]) -> list[str]:
+    return [str(m.content) for m in messages if isinstance(m, ToolMessage)]
+
+
+async def test_results_are_passed_in_full_by_default() -> None:
+    model = await run_agent([HumanMessage(QUESTION)], sequential(1))
+    (result,) = _tool_results(model.seen[-1])
+    assert result.endswith(PADDING)
+    assert "[Result cut:" not in result
+
+
+async def test_result_cap_cuts_with_a_marker() -> None:
+    settings = ContextCompaction(max_result_chars=500)
+    model = await run_agent([HumanMessage(QUESTION)], sequential(1), context_compaction=settings)
+    (result,) = _tool_results(model.seen[-1])
+    full = len(f"auth: 3 ERROR lines. {PADDING}")
+    assert result.startswith("auth: 3 ERROR lines. xxx")
+    assert f"[Result cut: showing 500 of {full:,} characters." in result
+    assert "narrower arguments" in result
+    assert len(result) < 700
+
+
+async def test_result_cap_applies_with_compaction_off() -> None:
+    settings = ContextCompaction(enabled=False, max_result_chars=100)
+    model = await run_agent([HumanMessage(QUESTION)], sequential(2), context_compaction=settings)
+    results = _tool_results(model.seen[-1])
+    assert len(results) == 2
+    assert all("[Result cut: showing 100 of" in r for r in results)
+    assert LEDGER_HEADER not in text(model.seen[-1])
+
+
+async def test_short_results_are_not_marked() -> None:
+    settings = ContextCompaction(max_result_chars=100_000)
+    model = await run_agent([HumanMessage(QUESTION)], sequential(1), context_compaction=settings)
+    (result,) = _tool_results(model.seen[-1])
+    assert "[Result cut:" not in result
+
+
+def test_result_cap_must_be_positive() -> None:
+    with pytest.raises(ValueError, match="max_result_chars"):
+        ContextCompaction(max_result_chars=0)
+
+
+def test_cut_result_marker() -> None:
+    from promptise.engine.nodes import _cut_result
+
+    assert _cut_result("abc", 3) == "abc"
+    cut = _cut_result("a" * 2000, 10)
+    assert cut.startswith("a" * 10 + "\n\n[Result cut: showing 10 of 2,000 characters.")

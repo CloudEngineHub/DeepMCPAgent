@@ -455,7 +455,8 @@ async def _call_tool(
        the model what to correct); the tool does not run, and the run's
        callbacks get the call's start and error.
     3. The tool, invoked as a tool call (:func:`_invoke_tool`).  A successful
-       result is cut to *max_result_chars* when given.
+       result longer than *max_result_chars* is cut, with a marker
+       (:func:`_cut_result`).
     4. The engine hooks' ``post_tool(tool_name, result, args, state)``, in
        order: each returns the result to use.
 
@@ -496,7 +497,7 @@ async def _call_tool(
                 tool, tool_name, call_args, tool_call_id, config
             )
             if success and max_result_chars is not None:
-                content = content[:max_result_chars]
+                content = _cut_result(content, max_result_chars)
             record.update(result=content, success=success)
             if raised:
                 record["raised"] = True
@@ -505,6 +506,21 @@ async def _call_tool(
         if hasattr(hook, "post_tool"):
             content = await hook.post_tool(tool_name, content, tool_args, state)
     return record, content
+
+
+def _cut_result(content: str, limit: int) -> str:
+    """*content* cut to *limit* characters, ending in a marker that says so.
+
+    The marker tells the model the result is incomplete and how to get the
+    rest; a silent cut makes models repeat the same call.
+    """
+    if len(content) <= limit:
+        return content
+    return (
+        f"{content[:limit]}\n\n[Result cut: showing {limit:,} of {len(content):,} "
+        "characters. Call the tool again with narrower arguments (a filter, a "
+        "smaller page or fewer fields) to see the rest.]"
+    )
 
 
 async def _run_tool_call(
@@ -1584,6 +1600,7 @@ class PromptNode(BaseNode):
                     invalid_calls
                 )
                 call_ids = [_call_id(tc) for tc in all_calls]
+                result_cap = self._compaction_settings(config).max_result_chars
 
                 async def _timed_tool(index: int) -> tuple[dict[str, Any], str, float]:
                     """Run one tool call; never raises. Returns (record, content, ms).
@@ -1607,6 +1624,7 @@ class PromptNode(BaseNode):
                             call_ids[index],
                             state,
                             config,
+                            max_result_chars=result_cap,
                             available=list(tool_map),
                         )
                     started = time.perf_counter()
@@ -1862,7 +1880,9 @@ class ToolNode(BaseNode):
             reused.  The record lives in the run, never on the node, so
             sequential and concurrent runs of a graph do not affect each
             other.
-        max_result_chars: Cap the size of a successful tool result.
+        max_result_chars: Cap the size of a successful tool result.  A
+            longer result is cut and ends with a marker that gives its full
+            length and tells the model to ask for less.
         tool_selector: Optional callable that selects which tool
             to call based on state.  If ``None``, runs the tool calls
             of the most recent AI message that has tool calls.

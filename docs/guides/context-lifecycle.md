@@ -171,6 +171,7 @@ agent = await build_agent(
         history_messages=6,        # earlier messages in the history note
         history_chars=400,         # characters per earlier message
         reuse_results=False,       # see "Repeated calls run the tool"
+        max_result_chars=None,     # see "Cap large tool results"
     ),
 )
 ```
@@ -186,6 +187,32 @@ first.
 
 See [Context scope](../core/engine-nodes.md#context-scope) for the node-level
 reference.
+
+### Cap large tool results
+
+Compaction cuts *older* results. A single new result can still be huge: a
+search that returns 400 rows, a page of raw HTML. By default the model gets
+every new result in full. `max_result_chars` cuts each new result at a limit
+you set:
+
+```python
+agent = await build_agent(
+    ...,
+    context_compaction=ContextCompaction(max_result_chars=12_000),
+)
+```
+
+A cut result ends with a marker the model can act on:
+
+```text
+[Result cut: showing 12,000 of 87,412 characters. Call the tool again with
+narrower arguments (a filter, a smaller page or fewer fields) to see the rest.]
+```
+
+The marker matters. A model that gets a silently cut result tends to call the
+same tool again and again, hoping for the rest. With the marker it asks for
+less instead. The cap applies even with `enabled=False`. `ToolNode` cuts at
+its own `max_result_chars` (4,000) with the same marker.
 
 ## Two ready-made patterns
 

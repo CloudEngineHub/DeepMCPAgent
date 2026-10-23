@@ -571,7 +571,7 @@ run.
 - **Edge lookup by index**: outgoing edges are kept in a precomputed, priority-sorted index, rebuilt when edges change.
 - **Parallel tool calls**: two or more tool calls in one model reply run concurrently; their results are appended in the order the model asked for them.
 - **Binding reuse**: a `PromptNode` reuses its tool binding (`bind_tools()` and structured output) when it runs again in the same run with the same model and tools. The system prompt is rebuilt on every execution, since its inputs change.
-- **Full tool results by default**: a `PromptNode` passes tool results through as they are. They are cut only where you ask: `ToolNode(max_result_chars=4000)`, and the ledger excerpt of [context compaction](../guides/context-lifecycle.md) (`keep_result_chars`, 2,000).
+- **Full tool results by default**: a `PromptNode` passes tool results through as they are. They are cut only where you ask: `ContextCompaction(max_result_chars=...)` for every new result, `ToolNode(max_result_chars=4000)`, and the ledger excerpt of [context compaction](../guides/context-lifecycle.md) (`keep_result_chars`, 2,000). A new result that is cut ends with a marker that gives its full length and tells the model to ask for less.
 - **Bounded state**: observations (last 50), reflections (last 5) and messages (`max_messages`, 200) are capped per run.
 
 ## Runtime Tool Injection

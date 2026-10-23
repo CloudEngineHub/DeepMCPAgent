@@ -116,6 +116,12 @@ class ContextCompaction:
             lookup by id); never for status, health or queue checks.  A
             reused call is reported like any other (``trace_tools``,
             ``observer``, callbacks, stream events), marked as reused.
+        max_result_chars: Cut every new tool result longer than this many
+            characters, and end it with a marker that tells the model the
+            result was cut, its full length, and to ask for less.  Without
+            the marker a model tends to call the same tool again and again.
+            ``None`` (the default) passes results in full.  Applies even
+            when ``enabled`` is ``False``.
     """
 
     enabled: bool = True
@@ -126,8 +132,11 @@ class ContextCompaction:
     history_chars: int = 400
     count_tokens: Callable[[str], int] | None = None
     reuse_results: bool | tuple[str, ...] = False
+    max_result_chars: int | None = None
 
     def __post_init__(self) -> None:
+        if self.max_result_chars is not None and self.max_result_chars < 1:
+            raise ValueError("max_result_chars must be at least 1 character, or None")
         reuse: Any = self.reuse_results
         if isinstance(reuse, bool):
             return
