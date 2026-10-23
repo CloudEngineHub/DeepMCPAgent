@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Upgrade notes
+
+- **A `Prompt` used as instructions now comes before other system messages** -- before, it came after the first system message in the input (for example `chat(system_prompt=...)`). Check prompts that relied on the old order.
+- **With a context engine, a `Prompt`'s context providers run on every call** -- before, only the build-time render was sent. Providers that are slow or have side effects now run once per call.
+
 ### Fixed
 
 - **`promptise run --check` failed for an agent factory in a package** -- with `agent = "customer_agent.agent:create_agent"`, `promptise run --mode chat --check` reported "No module named 'customer_agent'" while the real run worked, because the check imported the factory before it put the project root on `sys.path`. `--check` now adds the project root and the `python_path` entries first, the same way the run does.
