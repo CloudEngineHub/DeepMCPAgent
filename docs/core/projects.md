@@ -225,7 +225,7 @@ Every key is optional. An empty `promptise.toml` is a valid manifest.
 | `description` | string | none | A one-line description. |
 | `main` | string | the first existing of `main.py`, `agent.py`, `app.py` | The program `promptise run` runs, relative to the root. |
 | `agent` | string | none | An agent factory for the chat, once and serve modes: `file.py:function` or `package.module:function`. |
-| `python_path` | list of strings | `["."]` | Directories added to `sys.path`, relative to the root. |
+| `python_path` | list of strings | `["."]` | Directories added to `sys.path`, relative to the root. The run and `--check` both use them to import the agent factory. |
 
 ### `[scripts]`
 
@@ -687,8 +687,11 @@ If anything is wrong, it exits with code 2 and starts nothing.
 
 `--check` runs the same checks and also checks the entry itself: a script must compile, and a factory's module must import and define the factory. Then it exits: 0 when the project is ready, 2 when it is not. Importing a factory module runs its module-level code; a script is only compiled, never run.
 
+The factory is imported the way the real run imports it: the project root and the `python_path` entries come first on `sys.path`. A factory in a package (`agent = "customer_agent.agent:create_agent"`) passes `--check` from any directory of the project.
+
 ```bash
 promptise run --check                    # main
+promptise run --mode chat --check        # the agent factory
 promptise run --prod --serve --check     # what the container will run
 ```
 

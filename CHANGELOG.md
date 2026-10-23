@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **`promptise run --check` failed for an agent factory in a package** -- with `agent = "customer_agent.agent:create_agent"`, `promptise run --mode chat --check` reported "No module named 'customer_agent'" while the real run worked, because the check imported the factory before it put the project root on `sys.path`. `--check` now adds the project root and the `python_path` entries first, the same way the run does.
+
 ## 1.8.0 — 2026-10-23
 
 A security fix for multi-tenant approval review, internal APIs in `OpenAPIProvider`, and a cap for large tool results that tells the model when a result was cut.
