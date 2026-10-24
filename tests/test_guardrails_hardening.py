@@ -941,6 +941,115 @@ class TestToolResultScanning:
             )
 
 
+class TestToolResultReports:
+    """trace_tools and observer report the result the model gets, not the raw one."""
+
+    @staticmethod
+    def _results(collector: Any) -> list[str]:
+        return [
+            e.metadata["result_preview"]
+            for e in collector.get_timeline()
+            if "result_preview" in e.metadata
+        ]
+
+    async def _run(self, scanner: Any, capsys: Any, **build: Any) -> tuple[list[str], str]:
+        from promptise.observability import ObservabilityCollector
+
+        collector = ObservabilityCollector("t")
+        build.setdefault("extra_tools", [get_service_config])
+        build.setdefault("servers", {})
+        model = _ScriptedModel(
+            responses=[
+                _tool_call(
+                    build.pop("call", "get_service_config"),
+                    build.pop("args", {"service": "billing"}),
+                ),
+                AIMessage(content="Done."),
+            ]
+        )
+        agent = await build_agent(
+            model=model, guardrails=scanner, observer=collector, trace_tools=True, **build
+        )
+        try:
+            await agent.ainvoke({"messages": [{"role": "user", "content": "config?"}]})
+        finally:
+            await agent.shutdown()
+        return self._results(collector), capsys.readouterr().out
+
+    @pytest.mark.asyncio
+    async def test_redacted_result_is_reported_redacted(self, capsys):
+        results, out = await self._run(_regex_scanner(scan_tool_results=True), capsys)
+        assert results == ["billing (default): DATABASE_URL=[POSTGRES_CONNECTION]"]
+        assert (
+            "✔ Tool result from get_service_config: billing (default): DATABASE_URL=[POSTGRES_CONNECTION]"
+            in out
+        )
+        assert "hunter2" not in out
+
+    @pytest.mark.asyncio
+    async def test_withheld_result_is_reported_as_the_notice(self, capsys):
+        scanner = _regex_scanner(
+            scan_tool_results=True,
+            custom_rules=[CustomRule(name="db_host", pattern=r"db\.internal", action=Action.BLOCK)],
+        )
+        results, out = await self._run(scanner, capsys)
+        assert len(results) == 1 and results[0].startswith("[Tool result withheld by guardrails:")
+        assert "hunter2" not in out and "hunter2" not in results[0]
+
+    @pytest.mark.asyncio
+    async def test_unchanged_result_is_reported_once(self, capsys):
+        @tool
+        def get_status(service: str) -> str:
+            """Return a service's status."""
+            return f"{service}: healthy"
+
+        results, out = await self._run(
+            _regex_scanner(scan_tool_results=True),
+            capsys,
+            extra_tools=[get_status],
+            call="get_status",
+        )
+        assert results == ["billing: healthy"]
+        assert out.count("✔ Tool result from get_status: billing: healthy") == 1
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_result_is_reported_redacted(self, capsys, tmp_path):
+        from pathlib import Path
+
+        from promptise.config import StdioServerSpec
+
+        script = tmp_path / "srv.py"
+        script.write_text(
+            "from promptise.mcp.server import MCPServer\n"
+            "server = MCPServer('cfg')\n"
+            "@server.tool()\n"
+            "async def get_service_config(service: str) -> str:\n"
+            '    """Return a service\'s configuration."""\n'
+            "    return f'{service}: DATABASE_URL=postgres://svc:hunter2@db.internal:5432/x'\n"
+            "server.run(transport='stdio')\n",
+            encoding="utf-8",
+        )
+        src = Path(__file__).resolve().parent.parent / "src"
+        spec = StdioServerSpec(
+            command=sys.executable, args=[str(script)], env={"PYTHONPATH": str(src)}
+        )
+        results, out = await self._run(
+            _regex_scanner(scan_tool_results=True), capsys, servers={"cfg": spec}, extra_tools=[]
+        )
+        assert results == ["billing: DATABASE_URL=[POSTGRES_CONNECTION]"]
+        assert "hunter2" not in out
+
+    def test_reports_from_another_scope_are_not_deferred(self):
+        reports: list[Any] = []
+        token = g._deferred_result_reports.set((object(), reports))
+        try:
+            assert g._defer_result_report(object(), reports.append) is False
+        finally:
+            g._deferred_result_reports.reset(token)
+        assert g._defer_result_report(object(), reports.append) is False
+        assert reports == []
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # 7. Public API
 # ═══════════════════════════════════════════════════════════════════════

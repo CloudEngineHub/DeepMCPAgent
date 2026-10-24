@@ -3587,7 +3587,21 @@ async def build_agent(
                 },
             )
 
+    # Identifies this agent's guarded tools (scan_tool_results), which make
+    # the result reports below with the scanned text.
+    _report_scope = object()
+
     def _after(name: str, res: Any) -> None:
+        from .guardrails import _defer_result_report
+
+        if _defer_result_report(
+            _report_scope,
+            lambda scanned: _report_result(name, res if scanned is None else scanned),
+        ):
+            return
+        _report_result(name, res)
+
+    def _report_result(name: str, res: Any) -> None:
         # Extract a human-readable preview from the raw CallToolResult.
         # The MCP SDK returns CallToolResult with .content = [TextContent, ...]
         # so we extract .text from each item for a clean preview string.
@@ -4212,7 +4226,9 @@ async def build_agent(
             )
         from .guardrails import wrap_tools_with_guardrails
 
-        tools = wrap_tools_with_guardrails(tools, guardrails, event_notifier=events)
+        tools = wrap_tools_with_guardrails(
+            tools, guardrails, event_notifier=events, report_scope=_report_scope
+        )
 
     # ------------------------------------------------------------------
     # Semantic tool selection: index every tool and add the fallback. The

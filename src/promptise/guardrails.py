@@ -28,6 +28,8 @@ import json
 import logging
 import re
 import time
+from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -3479,6 +3481,37 @@ def _json_safe_pieces(
 # ═══════════════════════════════════════════════════════════════════════
 
 
+# While a guarded tool runs, the agent's own tool-result reporting (trace_tools,
+# observer) is handed to the guard, because those hooks fire inside the tool,
+# before the scan.  The guard makes the reports with the text the model gets.
+# Each build_agent() has its own scope, so a peer agent called through a tool
+# reports its own tools as before.
+_deferred_result_reports: ContextVar[tuple[object, list[Callable[[str | None], None]]] | None] = (
+    ContextVar("promptise_deferred_result_reports", default=None)
+)
+
+
+def _defer_result_report(scope: object, report: Callable[[str | None], None]) -> bool:
+    """Hand *report* to the guarded tool running in *scope*; False when there is none.
+
+    The guard calls it with the scanned text, or ``None`` when the scan left
+    the result unchanged.
+    """
+    active = _deferred_result_reports.get()
+    if active is None or active[0] is not scope:
+        return False
+    active[1].append(report)
+    return True
+
+
+def _send_result_reports(reports: list[Callable[[str | None], None]], scanned: str | None) -> None:
+    for report in reports:
+        try:
+            report(scanned)
+        except Exception:
+            logger.debug("Tool result report failed", exc_info=True)
+
+
 class _GuardedTool(WrappingTool):
     """Wraps a tool so its result passes the guardrails before the model sees it.
 
@@ -3491,8 +3524,15 @@ class _GuardedTool(WrappingTool):
     _inner: BaseTool = PrivateAttr()
     _guard: Any = PrivateAttr()
     _event_notifier: Any = PrivateAttr(default=None)
+    _report_scope: Any = PrivateAttr(default=None)
 
-    def __init__(self, inner: BaseTool, guard: Any, event_notifier: Any = None) -> None:
+    def __init__(
+        self,
+        inner: BaseTool,
+        guard: Any,
+        event_notifier: Any = None,
+        report_scope: object | None = None,
+    ) -> None:
         super().__init__(
             name=inner.name,
             description=inner.description,
@@ -3502,6 +3542,7 @@ class _GuardedTool(WrappingTool):
         self._inner = inner
         self._guard = guard
         self._event_notifier = event_notifier
+        self._report_scope = report_scope
 
     async def _arun(self, *args: Any, promptise_guard_config: RunnableConfig, **kwargs: Any) -> Any:
         # LangChain fills ``promptise_guard_config`` by its type (an unusual
@@ -3509,20 +3550,36 @@ class _GuardedTool(WrappingTool):
         # inner call: observability records this wrapper's run, with the
         # scanned output, once.
         tool_input: Any = args[0] if len(args) == 1 and not kwargs else kwargs
-        result = await self._inner.ainvoke(
-            tool_input,
-            config=patch_config(promptise_guard_config, callbacks=CallbackManager(handlers=[])),
+        reports: list[Callable[[str | None], None]] = []
+        token = (
+            _deferred_result_reports.set((self._report_scope, reports))
+            if self._report_scope is not None
+            else None
         )
+        try:
+            result = await self._inner.ainvoke(
+                tool_input,
+                config=patch_config(promptise_guard_config, callbacks=CallbackManager(handlers=[])),
+            )
+        finally:
+            if token is not None:
+                _deferred_result_reports.reset(token)
         text = result if isinstance(result, str) else str(result)
+        # A scan that fails raises, and the deferred reports are dropped with
+        # the raw result.
         try:
             checked = await self._guard.check_tool_result(self.name, text)
         except GuardrailViolation as violation:
             self._emit("guardrail.blocked", "warning")
             details = "; ".join(f.description for f in violation.report.blocked[:3])
-            return f"[Tool result withheld by guardrails: {details}]"
+            notice = f"[Tool result withheld by guardrails: {details}]"
+            _send_result_reports(reports, notice)
+            return notice
         if checked == text:
+            _send_result_reports(reports, None)
             return result
         self._emit("guardrail.redacted", "info")
+        _send_result_reports(reports, checked)
         return checked
 
     def _run(self, *args: Any, **kwargs: Any) -> Any:  # pragma: no cover
@@ -3546,10 +3603,12 @@ def wrap_tools_with_guardrails(
     guard: Any,
     *,
     event_notifier: Any = None,
+    report_scope: object | None = None,
 ) -> list[BaseTool]:
     """Wrap every tool so its result is scanned by ``guard.check_tool_result``.
 
     ``build_agent`` calls this when the guardrails object has
-    ``scan_tool_results=True``.  Order is preserved.
+    ``scan_tool_results=True``.  Order is preserved.  With *report_scope*,
+    tool-result reports deferred in that scope are made with the scanned text.
     """
-    return [_GuardedTool(tool, guard, event_notifier) for tool in tools]
+    return [_GuardedTool(tool, guard, event_notifier, report_scope) for tool in tools]
