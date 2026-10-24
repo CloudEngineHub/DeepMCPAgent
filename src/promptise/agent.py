@@ -9,7 +9,7 @@ import dataclasses
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Callable, Mapping, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, TypeAlias, cast
@@ -182,6 +182,90 @@ def _begin_invocation(input: Any) -> contextvars.Token[_Invocation | None]:
             messages=tuple(messages) if isinstance(messages, (list, tuple)) else (),
         )
     )
+
+
+class _StreamDeadline:
+    """``max_invocation_time`` for a streamed run (:meth:`PromptiseAgent.astream`,
+    :meth:`PromptiseAgent.astream_with_tools`).
+
+    The deadline covers the whole stream, the time the consumer spends
+    between events included.  Each step (``__anext__``) runs in the
+    consumer's task, as it would without a deadline, and is cancelled when
+    the deadline passes (``asyncio.wait_for`` would run it in a new task on
+    Python 3.10, outside the stream's context variables).  Only that
+    cancellation is the deadline: a ``TimeoutError`` raised inside the
+    stream propagates as itself.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        self.seconds = seconds
+        self.when = asyncio.get_running_loop().time() + seconds
+        self.expired = False
+
+    def error(self) -> TimeoutError:
+        return TimeoutError(f"Agent invocation exceeded {self.seconds}s timeout")
+
+    async def next(self, stream: AsyncGenerator[Any, None]) -> Any:
+        """The stream's next item, before the deadline.
+
+        Raises ``StopAsyncIteration`` at the end of the stream, and
+        ``_DecisionTimeout`` once the deadline has passed: the stream was
+        cancelled (its ``finally`` blocks have run).
+        """
+        from .approval import _DecisionTimeout
+
+        loop = asyncio.get_running_loop()
+        task = asyncio.current_task()
+        if task is None:  # pragma: no cover - always awaited from a task
+            return await stream.__anext__()
+        if loop.time() >= self.when:
+            # Passed while the consumer had the last item: cancel the
+            # stream where it waits, at its yield.
+            self.expired = True
+            with contextlib.suppress(asyncio.CancelledError, StopAsyncIteration):
+                await stream.athrow(asyncio.CancelledError())
+            raise _DecisionTimeout
+
+        def expire() -> None:
+            self.expired = True
+            task.cancel()
+
+        handle = loop.call_at(self.when, expire)
+        try:
+            item = await stream.__anext__()
+        except asyncio.CancelledError:
+            if not self.expired:
+                raise  # the consumer's task was cancelled
+            _uncancel(task)
+            raise _DecisionTimeout from None
+        finally:
+            handle.cancel()
+        if self.expired:  # the stream swallowed the cancellation
+            _uncancel(task)
+            raise _DecisionTimeout
+        return item
+
+
+def _uncancel(task: asyncio.Task[Any]) -> None:
+    """Withdraw a cancellation that was handled (Python 3.11+ counts them)."""
+    uncancel = getattr(task, "uncancel", None)
+    if uncancel is not None:
+        uncancel()
+
+
+#: The deadline of the streamed run in progress, so the stream can record
+#: the invocation timeout (not a cancellation) as the run's error.
+_stream_deadline_var: contextvars.ContextVar[_StreamDeadline | None] = contextvars.ContextVar(
+    "promptise_stream_deadline", default=None
+)
+
+
+def _stream_run_error(exc: BaseException) -> BaseException:
+    """*exc*, or the invocation timeout when the stream's deadline cancelled it."""
+    deadline = _stream_deadline_var.get()
+    if isinstance(exc, asyncio.CancelledError) and deadline is not None and deadline.expired:
+        return deadline.error()
+    return exc
 
 
 def get_current_session_id() -> str | None:
@@ -572,23 +656,19 @@ class PromptiseAgent:
             # Enforce max_invocation_time if configured
             timeout = getattr(self, "_max_invocation_time", 0)
             if timeout and timeout > 0:
-                try:
-                    return await asyncio.wait_for(
-                        self._ainvoke_inner(input, config, session_id=session_id, **kwargs),
-                        timeout=timeout,
-                    )
-                except asyncio.TimeoutError:
-                    if self._event_notifier is not None:
-                        from .events import emit_event
+                from .approval import _DecisionTimeout, _wait_for_decision
 
-                        emit_event(
-                            self._event_notifier,
-                            "invocation.timeout",
-                            "error",
-                            {"timeout_seconds": timeout},
-                            agent_id=self._actor(),
-                        )
-                    raise TimeoutError(f"Agent invocation exceeded {timeout}s timeout")
+                # Only the invocation deadline is reported as the timeout: a
+                # TimeoutError raised inside the run (a tool, the model
+                # client) propagates as that error.
+                try:
+                    return await _wait_for_decision(
+                        self._ainvoke_inner(input, config, session_id=session_id, **kwargs),
+                        timeout,
+                    )
+                except _DecisionTimeout:
+                    self._emit_invocation_timeout(timeout)
+                    raise TimeoutError(f"Agent invocation exceeded {timeout}s timeout") from None
             else:
                 return await self._ainvoke_inner(input, config, session_id=session_id, **kwargs)
         except Exception as exc:
@@ -604,6 +684,64 @@ class PromptiseAgent:
                     agent_id=self._actor(),
                 )
             raise
+
+    def _emit_invocation_timeout(self, timeout: float, *, streaming: bool = False) -> None:
+        """Emit ``invocation.timeout`` for a run that passed ``max_invocation_time``."""
+        if self._event_notifier is None:
+            return
+        from .events import emit_event
+
+        data: dict[str, Any] = {"timeout_seconds": timeout}
+        if streaming:
+            data["streaming"] = True
+        emit_event(
+            self._event_notifier, "invocation.timeout", "error", data, agent_id=self._actor()
+        )
+
+    async def _bounded_stream(self, stream: AsyncGenerator[Any, None]) -> AsyncGenerator[Any, None]:
+        """Iterate *stream* under ``max_invocation_time``, as :meth:`ainvoke` runs.
+
+        When the deadline passes, the stream is cancelled (its ``finally``
+        blocks run), ``invocation.timeout`` (and ``invocation.error``) is
+        emitted and ``TimeoutError("Agent invocation exceeded Ns timeout")``
+        is raised to the consumer.  A consumer that stops early closes
+        *stream*; that is not a timeout.
+        """
+        timeout = getattr(self, "_max_invocation_time", 0)
+        if not timeout or timeout <= 0:
+            async with contextlib.aclosing(stream):
+                async for item in stream:
+                    yield item
+            return
+
+        from .approval import _DecisionTimeout
+
+        deadline = _StreamDeadline(timeout)
+        token = _stream_deadline_var.set(deadline)
+        try:
+            while True:
+                try:
+                    item = await deadline.next(stream)
+                except StopAsyncIteration:
+                    return
+                except _DecisionTimeout:
+                    error = deadline.error()
+                    self._emit_invocation_timeout(timeout, streaming=True)
+                    if self._event_notifier is not None:
+                        from .events import emit_event
+
+                        emit_event(
+                            self._event_notifier,
+                            "invocation.error",
+                            "error",
+                            {"error": str(error), "error_type": "TimeoutError", "streaming": True},
+                            agent_id=self._actor(),
+                        )
+                    raise error from None
+                yield item
+        finally:
+            await stream.aclose()
+            _stream_deadline_var.reset(token)
 
     async def _assemble_with_engine(
         self,
@@ -1058,6 +1196,10 @@ class PromptiseAgent:
         and memory and observability work as in :meth:`ainvoke`.  The
         semantic cache is not consulted.
 
+        ``max_invocation_time`` covers the whole stream, as in
+        :meth:`ainvoke`: when it passes, the stream stops and
+        ``TimeoutError`` is raised.
+
         For token-by-token output and tool activity, use
         :meth:`astream_with_tools`.
 
@@ -1076,8 +1218,11 @@ class PromptiseAgent:
         _run = self._begin_run(input)
         _run_error: BaseException | None = None
         try:
-            async for chunk in self._astream_inner(input, config, **kwargs):
-                yield chunk
+            # max_invocation_time covers the whole stream, as in ainvoke().
+            chunks = self._bounded_stream(self._astream_inner(input, config, **kwargs))
+            async with contextlib.aclosing(chunks):
+                async for chunk in chunks:
+                    yield chunk
         except BaseException as exc:
             # A consumer that stops iterating early is not an agent error.
             if not isinstance(exc, GeneratorExit):
@@ -1095,7 +1240,7 @@ class PromptiseAgent:
         input: Any,
         config: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> AsyncIterator[Any]:
+    ) -> AsyncGenerator[Any, None]:
         """Inner stream — runs with CallerContext in contextvar."""
         from .memory import _extract_user_text
 
@@ -1224,6 +1369,10 @@ class PromptiseAgent:
             include_arguments: Include tool arguments in events.
             tool_display_names: Custom display names for tools.
 
+        ``max_invocation_time`` covers the whole stream, as in
+        :meth:`ainvoke`: when it passes, the stream stops and
+        ``TimeoutError`` is raised.
+
         Yields:
             :class:`ToolStartEvent`, :class:`ToolEndEvent`,
             :class:`TokenEvent`, :class:`DoneEvent`, or
@@ -1237,6 +1386,32 @@ class PromptiseAgent:
                 elif event.type == "token":
                     print(event.text, end="", flush=True)
         """
+        # max_invocation_time covers the whole stream, as in ainvoke().
+        events = self._bounded_stream(
+            self._astream_with_tools_run(
+                input,
+                config,
+                caller=caller,
+                include_arguments=include_arguments,
+                tool_display_names=tool_display_names,
+                **kwargs,
+            )
+        )
+        async with contextlib.aclosing(events):
+            async for event in events:
+                yield event
+
+    async def _astream_with_tools_run(
+        self,
+        input: Any,
+        config: dict[str, Any] | None = None,
+        *,
+        caller: CallerContext | None = None,
+        include_arguments: bool = True,
+        tool_display_names: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> AsyncGenerator[Any, None]:
+        """The run behind :meth:`astream_with_tools`."""
         from .streaming import (
             DoneEvent,
             ErrorEvent,
@@ -1555,7 +1730,7 @@ class PromptiseAgent:
         except BaseException as exc:
             # A consumer that stops iterating early is not an agent error.
             if not isinstance(exc, GeneratorExit):
-                _run_error = exc
+                _run_error = _stream_run_error(exc)
             raise
         finally:
             self._end_run(_run, output=_run_output, error=_run_error)
@@ -3118,7 +3293,8 @@ async def build_agent(
         trace_tools: Print each tool invocation and result to stdout. Covers
             MCP tools, cross-agent tools, sandbox tools and ``extra_tools``,
             and calls answered from an earlier result
-            (``ContextCompaction(reuse_results=...)``), marked as reused.
+            (``ContextCompaction(reuse_results=...)``, or a repeat in one
+            model turn of a ``ToolNode(deduplicate=True)``), marked as reused.
         cross_agents: Optional mapping of peer name → CrossAgent.  Each
             peer is exposed as an ``ask_agent_<name>`` tool.
         include_broadcast: Also add a ``broadcast_to_agents`` tool that asks
@@ -3449,7 +3625,8 @@ async def build_agent(
 
     def _reused(name: str, args: dict[str, Any], result: str) -> None:
         # A call answered from an earlier result (ContextCompaction
-        # reuse_results): reported like a call, marked as reused.
+        # reuse_results, ToolNode deduplicate): reported like a call,
+        # marked as reused.
         if trace_tools:
             print(
                 f"↺ Reusing an earlier result for tool: {name} with {args} "

@@ -47,6 +47,8 @@ from promptise.approval import (
     ApprovalRequest,
     CallbackApprovalHandler,
     RequestIdCache,
+    _DecisionTimeout,
+    _wait_for_decision,
 )
 
 from ._context import RequestContext
@@ -218,17 +220,18 @@ class ApprovalGateMiddleware:
         )
 
         try:
+            # Only the gate's own timeout is a timeout here: a TimeoutError
+            # the handler raises propagates like its other errors (fail
+            # closed), and never reaches on_timeout="allow".
             if hasattr(self._handler, "request_approval_ctx"):
-                decision = await asyncio.wait_for(
-                    self._handler.request_approval_ctx(request, ctx),
-                    timeout=self._timeout,
+                decision = await _wait_for_decision(
+                    self._handler.request_approval_ctx(request, ctx), self._timeout
                 )
             else:
-                decision = await asyncio.wait_for(
-                    self._handler.request_approval(request),
-                    timeout=self._timeout,
+                decision = await _wait_for_decision(
+                    self._handler.request_approval(request), self._timeout
                 )
-        except (asyncio.TimeoutError, TimeoutError):
+        except _DecisionTimeout:
             if self._on_timeout == "allow":
                 logger.warning(
                     "Approval timed out after %.0fs for tool=%s, proceeding (on_timeout='allow')",

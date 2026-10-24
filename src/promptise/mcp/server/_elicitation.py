@@ -42,7 +42,6 @@ answer).  Answers to earlier questions travel in the result's
 
 from __future__ import annotations
 
-import asyncio
 import contextvars
 import hashlib
 import json
@@ -230,6 +229,8 @@ class Elicitor:
         round_ = current_round.get()
         if round_ is not None:
             return self._answer_in_round(round_, message, requested_schema)
+        from promptise.approval import _DecisionTimeout, _wait_for_decision
+
         from .._compat import MCP_V2
 
         # The schema keyword is requestedSchema in mcp 1.x, requested_schema in 2.x.
@@ -238,15 +239,17 @@ class Elicitor:
             # ``ServerSession.elicit`` is the SDK entry point for form-mode
             # elicitation across the supported mcp range; the contract test in
             # tests/test_approval_gate.py fails loudly if the SDK renames it.
-            result = await asyncio.wait_for(
+            # A TimeoutError raised inside elicit() is a failed request, not
+            # this timeout passing.
+            result = await _wait_for_decision(
                 self._session.elicit(
                     message=message,
                     related_request_id=self._request_id,
                     **schema_kwarg,
                 ),
-                timeout=effective_timeout,
+                effective_timeout,
             )
-        except asyncio.TimeoutError:
+        except _DecisionTimeout:
             logger.warning(
                 "Elicitation timed out after %.0fs (request_id=%s), treated as declined",
                 effective_timeout,

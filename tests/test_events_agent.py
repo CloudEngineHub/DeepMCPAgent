@@ -645,3 +645,196 @@ class TestRuntimeEvents:
         assert not notifier.is_running
         stopped = sorted(e.agent_id or "" for e in _of(seen, "process.stopped"))
         assert stopped == ["a", "b"]
+
+
+class _StallingGuard:
+    """An input guardrail that calls a slow or failing remote service."""
+
+    def __init__(self, *, delay: float = 0.0, error: BaseException | None = None) -> None:
+        self.delay = delay
+        self.error = error
+
+    async def check_input(self, text: str) -> str:
+        await asyncio.sleep(self.delay)
+        if self.error is not None:
+            raise self.error
+        return text
+
+    async def check_output(self, text: str) -> str:
+        return text
+
+
+class TestInvocationTimeout:
+    @pytest.mark.asyncio
+    async def test_deadline_raises_the_invocation_timeout(self):
+        notifier, seen = _collector()
+        agent = await build_agent(
+            servers={},
+            model=_model("never"),
+            events=notifier,
+            guardrails=_StallingGuard(delay=5),
+            max_invocation_time=0.05,
+        )
+        try:
+            with pytest.raises(TimeoutError, match="Agent invocation exceeded 0.05s timeout"):
+                await agent.ainvoke({"messages": [{"role": "user", "content": "hi"}]})
+        finally:
+            await agent.shutdown()
+        (timeout,) = _of(seen, "invocation.timeout")
+        assert timeout.data["timeout_seconds"] == 0.05
+
+    @pytest.mark.asyncio
+    async def test_timeout_error_raised_inside_the_run_is_that_error(self):
+        # asyncio.TimeoutError is TimeoutError on Python 3.11+: one raised by
+        # code the run calls is not the invocation deadline.
+        notifier, seen = _collector()
+        agent = await build_agent(
+            servers={},
+            model=_model("never"),
+            events=notifier,
+            guardrails=_StallingGuard(error=asyncio.TimeoutError("moderation service timed out")),
+            max_invocation_time=10,
+        )
+        try:
+            with pytest.raises(asyncio.TimeoutError, match="moderation service timed out"):
+                await agent.ainvoke({"messages": [{"role": "user", "content": "hi"}]})
+        finally:
+            await agent.shutdown()
+        assert _of(seen, "invocation.timeout") == []
+        (error,) = _of(seen, "invocation.error")
+        assert error.data["error"] == "moderation service timed out"
+
+
+class _Hanging(_Scripted):
+    """A model call that never finishes (a stalled provider)."""
+
+    async def _agenerate(self, *args: Any, **kwargs: Any) -> Any:
+        await asyncio.sleep(30)
+        raise AssertionError("not reached")
+
+
+class _RaisingTimeout(_Scripted):
+    """A model client that raises its own TimeoutError."""
+
+    async def _agenerate(self, *args: Any, **kwargs: Any) -> Any:
+        raise asyncio.TimeoutError("model client read timed out")
+
+
+@tool
+def lookup(query: str) -> str:
+    """Look something up."""
+    return f"found {query}"
+
+
+def _stream(agent: Any, method: str) -> Any:
+    return getattr(agent, method)({"messages": [{"role": "user", "content": "hi"}]})
+
+
+def _spy_failure_recording(agent: Any) -> list[int]:
+    """Count the stream's failure-recording ``finally`` blocks."""
+    calls: list[int] = []
+    original = agent._record_tool_failures
+
+    async def spy(recorder: Any) -> None:
+        calls.append(1)
+        await original(recorder)
+
+    agent._record_tool_failures = spy
+    return calls
+
+
+@pytest.mark.parametrize("method", ["astream", "astream_with_tools"])
+class TestStreamInvocationTimeout:
+    @pytest.mark.asyncio
+    async def test_deadline_stops_the_stream(self, method):
+        from promptise.agent import get_current_caller
+
+        notifier, seen = _collector()
+        agent = await build_agent(
+            servers={},
+            model=_Hanging(messages=iter([]), disable_streaming=True),
+            events=notifier,
+            observe=True,
+            max_invocation_time=0.1,
+        )
+        recorded = _spy_failure_recording(agent)
+        try:
+            with pytest.raises(TimeoutError, match=r"Agent invocation exceeded 0\.1s timeout"):
+                async for _ in _stream(agent, method):
+                    pass
+        finally:
+            await agent.shutdown()
+        (timeout,) = _of(seen, "invocation.timeout")
+        assert timeout.data == {"timeout_seconds": 0.1, "streaming": True}
+        assert recorded == [1]  # the stream's finally ran
+        (error,) = agent.collector.query(event_types=["agent.error"])
+        assert error.metadata["error_type"] == "TimeoutError"
+        assert get_current_caller() is None
+
+    @pytest.mark.asyncio
+    async def test_deadline_counts_the_time_between_events(self, method):
+        notifier, seen = _collector()
+        agent = await build_agent(
+            servers={},
+            model=_model(("lookup", {"query": "x"}), "done"),
+            extra_tools=[lookup],
+            events=notifier,
+            max_invocation_time=0.1,
+        )
+        try:
+            stream = _stream(agent, method)
+            with pytest.raises(TimeoutError, match="Agent invocation exceeded"):
+                async for _ in stream:
+                    await asyncio.sleep(0.2)  # a slow consumer
+        finally:
+            await agent.shutdown()
+        assert len(_of(seen, "invocation.timeout")) == 1
+
+    @pytest.mark.asyncio
+    async def test_timeout_error_inside_the_stream_is_not_the_deadline(self, method):
+        notifier, seen = _collector()
+        agent = await build_agent(
+            servers={},
+            model=_RaisingTimeout(messages=iter([]), disable_streaming=True),
+            events=notifier,
+            max_invocation_time=10,
+        )
+        events: list[Any] = []
+        try:
+            if method == "astream":
+                # The engine reports the failed node; its cause is the model's error.
+                with pytest.raises(Exception) as raised:
+                    async for chunk in _stream(agent, method):
+                        events.append(chunk)
+                assert "Agent invocation exceeded" not in str(raised.value)
+                assert "model client read timed out" in str(raised.value)
+            else:
+                # astream_with_tools reports a failed run as an ErrorEvent.
+                async for event in _stream(agent, method):
+                    events.append(event)
+                assert events[-1].type == "error"
+        finally:
+            await agent.shutdown()
+        assert _of(seen, "invocation.timeout") == []
+
+    @pytest.mark.asyncio
+    async def test_consumer_stopping_early_is_not_a_timeout(self, method):
+        notifier, seen = _collector()
+        agent = await build_agent(
+            servers={},
+            model=_model(("lookup", {"query": "x"}), "done"),
+            extra_tools=[lookup],
+            events=notifier,
+            observe=True,
+            max_invocation_time=10,
+        )
+        recorded = _spy_failure_recording(agent)
+        try:
+            stream = _stream(agent, method)
+            await stream.__anext__()
+            await stream.aclose()
+        finally:
+            await agent.shutdown()
+        assert _of(seen, "invocation.timeout") == []
+        assert agent.collector.query(event_types=["agent.error"]) == []
+        assert recorded == [1]

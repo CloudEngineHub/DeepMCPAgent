@@ -232,6 +232,47 @@ def _log_replay(where: str, request_id: str) -> None:
     )
 
 
+class _DecisionTimeout(Exception):
+    """No answer came within the timeout :func:`_wait_for_decision` was given.
+
+    Raised instead of ``TimeoutError`` so that a ``TimeoutError`` the handler
+    raises itself is not mistaken for it: on Python 3.11+
+    ``asyncio.TimeoutError`` *is* ``TimeoutError``, so an
+    ``except asyncio.TimeoutError`` around ``asyncio.wait_for`` caught both.
+    """
+
+
+class _HandlerTimeoutError(Exception):
+    """Carries a ``TimeoutError`` the awaited handler raised past ``wait_for``."""
+
+    def __init__(self, error: BaseException) -> None:
+        super().__init__(error)
+        self.error = error
+
+
+async def _wait_for_decision(awaitable: Awaitable[Any], timeout: float | None) -> Any:
+    """``asyncio.wait_for`` for an approval handler, an elicitation or an
+    agent invocation: code that may raise ``TimeoutError`` itself.
+
+    Raises :class:`_DecisionTimeout` when *timeout* passes first.  An error the
+    handler raises propagates unchanged, a ``TimeoutError`` included, so the
+    caller handles it as the handler's error, not as the gate's timeout.
+    """
+
+    async def _call() -> Any:
+        try:
+            return await awaitable
+        except asyncio.TimeoutError as exc:
+            raise _HandlerTimeoutError(exc) from exc
+
+    try:
+        return await asyncio.wait_for(_call(), timeout=timeout)
+    except _HandlerTimeoutError as exc:
+        raise exc.error from None
+    except asyncio.TimeoutError:
+        raise _DecisionTimeout(f"no decision within {timeout}s") from None
+
+
 # ---------------------------------------------------------------------------
 # Built-in handlers
 # ---------------------------------------------------------------------------
@@ -1393,11 +1434,10 @@ class _ApprovalToolWrapper(WrappingTool):
                         "arguments": request.arguments,
                     },
                 )
-                decision = await asyncio.wait_for(
-                    policy.handler.request_approval(request),
-                    timeout=policy.timeout,
+                decision = await _wait_for_decision(
+                    policy.handler.request_approval(request), policy.timeout
                 )
-        except asyncio.TimeoutError:
+        except _DecisionTimeout:
             decision = ApprovalDecision(
                 approved=(policy.on_timeout == "allow"),
                 reason=f"Approval timed out after {policy.timeout}s",
@@ -1822,8 +1862,8 @@ def approval_elicitation_callback(
 
         try:
             task = run_in_caller(asyncio.ensure_future, target.request_approval(request))
-            decision = await asyncio.wait_for(task, timeout=effective_timeout)
-        except asyncio.TimeoutError:
+            decision = await _wait_for_decision(task, effective_timeout)
+        except _DecisionTimeout:
             logger.warning(
                 "Approval: no decision on %s's request within %.0fs (request_id=%s); declined",
                 where,

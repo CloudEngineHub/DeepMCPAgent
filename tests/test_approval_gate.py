@@ -115,6 +115,19 @@ class TestGateCore:
         assert result[0].text == "refunded o1"
 
     @pytest.mark.asyncio
+    async def test_handler_timeout_error_is_not_the_gate_timeout(self):
+        # asyncio.TimeoutError is TimeoutError on Python 3.11+: one the
+        # handler raises is a handler error, so on_timeout="allow" must not
+        # let the call through.
+        async def broken(request):
+            raise asyncio.TimeoutError("reviewer service timed out")
+
+        client = TestClient(_server_with_gate(broken, timeout=10, on_timeout="allow"))
+        result = await client.call_tool("refund", {"order_id": "o1"})
+        assert "refunded" not in result[0].text
+        assert "timed out after" not in result[0].text
+
+    @pytest.mark.asyncio
     async def test_modified_arguments_fail_closed(self):
         async def modify(request):
             return ApprovalDecision(
@@ -699,6 +712,21 @@ class TestElicitationApprover:
         )
         decision = await approver.request_approval_ctx(req, self._ctx_with_session(session))
         assert decision.approved is False
+
+    @pytest.mark.asyncio
+    async def test_timeout_error_from_elicit_is_a_failed_request(self):
+        from unittest.mock import AsyncMock
+
+        from promptise.approval import ApprovalRequest
+
+        approver = ElicitationApprover()
+        req = ApprovalRequest(request_id="r1", tool_name="refund", arguments={}, timeout=10)
+        session = AsyncMock()
+        session.elicit = AsyncMock(side_effect=asyncio.TimeoutError("transport timed out"))
+        decision = await approver.request_approval_ctx(req, self._ctx_with_session(session))
+        assert decision.approved is False
+        assert "the elicitation request failed (TimeoutError)" in decision.reason
+        assert "no answer within" not in decision.reason
 
     def test_sdk_contract_elicit_method_exists(self):
         """A renamed SDK method must fail this test, not silently deny every

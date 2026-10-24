@@ -410,6 +410,37 @@ class TestApprovalToolWrapper:
         assert "DENIED" in result
         assert tool._call_count == 0
 
+    @pytest.mark.asyncio
+    async def test_handler_timeout_error_is_a_handler_error_not_the_gate_timeout(self):
+        # On Python 3.11+ asyncio.TimeoutError is TimeoutError: one the handler
+        # raises must not pass for the gate's own timeout.
+        asked = 0
+
+        async def handler(req):
+            nonlocal asked
+            asked += 1
+            raise asyncio.TimeoutError("reviewer service timed out")
+
+        tool = FakeTool("send_email")
+        policy = make_policy(
+            tools=["send_*"],
+            handler=CallbackApprovalHandler(handler),
+            timeout=10,
+            on_timeout="allow",
+            max_retries_after_deny=1,
+        )
+        wrapper = _ApprovalToolWrapper(inner=tool, policy=policy)
+        first = await wrapper._arun(config={})
+        assert "DENIED" in first
+        assert "Approval handler error: TimeoutError" in first
+        assert "timed out after" not in first
+        # on_timeout="allow" is for the gate's timeout only: the tool never ran.
+        assert tool._call_count == 0
+        # Not a reviewer's denial: the next call asks the handler again.
+        second = await wrapper._arun(config={})
+        assert "already denied" not in second
+        assert asked == 2
+
 
 # ---------------------------------------------------------------------------
 # wrap_tools_with_approval
