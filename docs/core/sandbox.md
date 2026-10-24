@@ -366,6 +366,20 @@ If `runsc` is not registered with Docker, `create_session()` raises
 `RuntimeError: ... gVisor runtime 'runsc' is not registered with Docker
 (available runtimes: ...)`. The sandbox never falls back to the default runtime.
 
+The first session pulls `SandboxConfig.image` when Docker doesn't have it yet.
+That can take a few minutes, so the backend logs the pull as warnings, with a
+progress line every 10 seconds:
+
+```text
+Pulling Docker image python:3.11-slim (first use, this can take a few minutes)
+Pulling python:3.11-slim: 18 of 41 MB downloaded
+Pulled Docker image python:3.11-slim
+```
+
+To skip the wait, run `docker pull <image>` when you deploy, before the first
+session. A failed pull raises `RuntimeError: Failed to create container:
+Pulling image ... failed: ...`.
+
 ---
 
 ## Integration with build_agent

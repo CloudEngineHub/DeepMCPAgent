@@ -34,6 +34,8 @@ Security fixes for custom MCP auth providers, approval gates and inbox scanning,
 - **An approval-denied call's `tool.call` trace entry had no status** -- it now carries `status="denied"`, `denied_by="approval"` and the `reason`, like its `tool.result` and like a budget-refused call.
 - **`max_invocation_time` did not apply to `astream()` and `astream_with_tools()`** -- the deadline now covers the whole stream, the time the consumer spends between events included. When it passes, the stream stops (its cleanup still runs), `TimeoutError("Agent invocation exceeded Ns timeout")` is raised and `invocation.timeout` is emitted with `streaming: true`. Stopping a stream early is not a timeout, and now runs the stream's cleanup at once.
 - **"Future exception was never retrieved: InboxQuestionRemoved"** -- clearing the inbox, or a question expiring, being evicted or removed by a later scan, no longer logs it when the `/ask` waiting for the question had already timed out.
+- **The first sandbox session hung silently for minutes while Docker pulled the image** -- the pull was logged at INFO, which default logging hides, and it blocked the event loop. It now runs in a worker thread and logs a warning when it starts, a progress line every 10 seconds and when it ends; a failed pull raises with Docker's error, and a daemon error is no longer taken for a missing image.
+- **Memory search reported a provider's own `TimeoutError` as the search timeout** -- it is now logged as a failed search with the provider's error; only `memory_timeout` passing gives "timed out after Ns".
 
 ### Docs
 

@@ -327,6 +327,20 @@ class TestMemoryAgent:
         assert len(inner.last_input["messages"]) == 1
 
     @pytest.mark.asyncio
+    async def test_a_providers_own_timeout_error_is_a_failure(self, caplog) -> None:
+        """A TimeoutError the provider raises is its error, not the search timeout."""
+
+        class TimingOutProvider:
+            async def search(self, query, *, limit=5, user_id=None):
+                raise asyncio.TimeoutError("vector store timed out")
+
+        agent = MemoryAgent(_FakeAgent(), TimingOutProvider(), timeout=5.0)
+        assert await agent._search_memory("hello") == []
+        assert "Memory search failed" in caplog.text
+        assert "vector store timed out" in caplog.text
+        assert "timed out after 5.0s" not in caplog.text
+
+    @pytest.mark.asyncio
     async def test_graceful_degradation_on_error(self) -> None:
         """Agent continues even if memory search raises."""
 

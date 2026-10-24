@@ -303,6 +303,18 @@ class TestAutoStoreTimeout:
         assert await agent._search_memory("query") == []
         assert "continuing without memory context" in caplog.text
 
+    @pytest.mark.asyncio
+    async def test_a_providers_own_timeout_error_is_a_failure(self, caplog) -> None:
+        provider = MagicMock()
+        provider.search = AsyncMock(side_effect=asyncio.TimeoutError("vector store timed out"))
+        agent = PromptiseAgent(
+            inner=_RecordingInner(), memory_provider=provider, memory_timeout=5.0
+        )
+        assert await agent._search_memory("query") == []
+        assert "Memory search failed" in caplog.text
+        assert "vector store timed out" in caplog.text
+        assert "timed out after 5.0s" not in caplog.text
+
 
 class TestStreamingAutoStore:
     @staticmethod

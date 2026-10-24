@@ -1522,17 +1522,19 @@ class MemoryAgent:
         """Search memory with timeout and graceful degradation."""
         if not query.strip():
             return []
+        from .approval import _DecisionTimeout, _wait_for_decision
+
         user_id = self._caller_user_id()
         self._shared_scope.note(self.provider, user_id, auto_store=self._auto_store)
         try:
-            results = await asyncio.wait_for(
+            results = await _wait_for_decision(
                 self.provider.search(query, limit=self._max_memories, user_id=user_id),
-                timeout=self._timeout,
+                self._timeout,
             )
             if self._min_score > 0.0:
                 results = [r for r in results if r.score >= self._min_score]
             return results
-        except asyncio.TimeoutError:
+        except _DecisionTimeout:
             logger.warning(
                 "Memory search timed out after %.1fs; continuing without memory context",
                 self._timeout,

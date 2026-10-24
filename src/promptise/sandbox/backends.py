@@ -21,6 +21,9 @@ from .session import CommandResult
 
 logger = logging.getLogger(__name__)
 
+#: Seconds between progress lines while an image is pulled.
+_PULL_PROGRESS_SECONDS = 10.0
+
 
 class SandboxBackend(ABC):
     """Abstract base class for sandbox backends.
@@ -427,12 +430,13 @@ class DockerBackend(SandboxBackend):
             self._check_docker_network(client, self.config.docker_network)
 
         try:
+            from docker.errors import ImageNotFound
+
             # Pull image if not present
             try:
                 client.images.get(self.config.image)
-            except Exception:
-                logger.info("Pulling image %s...", self.config.image)
-                client.images.pull(self.config.image)
+            except ImageNotFound:
+                await asyncio.to_thread(self._pull_image, client, self.config.image)
 
             # Modern Docker SDK expects parameters flattened (not nested in host_config)
             host_config_dict = config.pop("host_config", {})
@@ -454,6 +458,41 @@ class DockerBackend(SandboxBackend):
                 raise
 
         return str(container.id)
+
+    @staticmethod
+    def _pull_image(client: Any, image: str) -> None:
+        """Pull *image*, logging progress: a first pull can take minutes.
+
+        Raises:
+            RuntimeError: The pull reported an error.
+        """
+        from docker.utils import parse_repository_tag
+
+        repository, tag = parse_repository_tag(image)
+        logger.warning("Pulling Docker image %s (first use, this can take a few minutes)", image)
+        layers: dict[str, tuple[int, int]] = {}  # layer id -> (downloaded, size)
+        last_report = time.monotonic()
+        for event in client.api.pull(repository, tag=tag or "latest", stream=True, decode=True):
+            if "error" in event:
+                raise RuntimeError(f"Pulling image {image} failed: {event['error']}")
+            layer, status = event.get("id"), event.get("status", "")
+            detail = event.get("progressDetail") or {}
+            if layer and status == "Downloading" and detail.get("total"):
+                layers[layer] = (detail.get("current", 0), detail["total"])
+            elif layer in layers and status in ("Download complete", "Pull complete"):
+                layers[layer] = (layers[layer][1], layers[layer][1])
+            now = time.monotonic()
+            if layers and now - last_report >= _PULL_PROGRESS_SECONDS:
+                done = sum(min(current, size) for current, size in layers.values())
+                total = sum(size for _, size in layers.values())
+                logger.warning(
+                    "Pulling %s: %d of %d MB downloaded",
+                    image,
+                    done // 1_000_000,
+                    total // 1_000_000,
+                )
+                last_report = now
+        logger.warning("Pulled Docker image %s", image)
 
     @staticmethod
     def _check_docker_network(client: Any, name: str) -> None:

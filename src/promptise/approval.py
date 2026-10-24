@@ -251,8 +251,8 @@ class _HandlerTimeoutError(Exception):
 
 
 async def _wait_for_decision(awaitable: Awaitable[Any], timeout: float | None) -> Any:
-    """``asyncio.wait_for`` for an approval handler, an elicitation or an
-    agent invocation: code that may raise ``TimeoutError`` itself.
+    """``asyncio.wait_for`` for an approval handler, an elicitation, an agent
+    invocation or a memory search: code that may raise ``TimeoutError`` itself.
 
     Raises :class:`_DecisionTimeout` when *timeout* passes first.  An error the
     handler raises propagates unchanged, a ``TimeoutError`` included, so the

@@ -669,3 +669,66 @@ class TestCodeActionContext:
     def test_single_question_has_no_history(self):
         state = GraphState(messages=[HumanMessage(content="2+2?")])
         assert _extract_context(state) == ([], [])
+
+
+# ---------------------------------------------------------------------------
+# Pulling a missing image
+# ---------------------------------------------------------------------------
+
+
+class TestImagePull:
+    @staticmethod
+    def _backend(events: list[dict[str, Any]]) -> tuple[DockerBackend, Any]:
+        from docker.errors import ImageNotFound
+
+        container = MagicMock(id="c1")
+        backend = _backend_with_container(container, SandboxConfig(image="python:3.12-slim"))
+        client = backend._docker_client
+        client.images.get.side_effect = ImageNotFound("missing")
+        client.api.pull.return_value = iter(events)
+        return backend, client
+
+    @pytest.mark.asyncio
+    async def test_missing_image_is_pulled_with_visible_progress(self, caplog, monkeypatch):
+        import promptise.sandbox.backends as backends
+
+        monkeypatch.setattr(backends, "_PULL_PROGRESS_SECONDS", 0.0)
+        backend, client = self._backend(
+            [
+                {
+                    "id": "l1",
+                    "status": "Downloading",
+                    "progressDetail": {"current": 2_000_000, "total": 8_000_000},
+                },
+                {"id": "l1", "status": "Download complete", "progressDetail": {}},
+                {"status": "Status: Downloaded newer image for python:3.12-slim"},
+            ]
+        )
+        with caplog.at_level("WARNING", logger="promptise.sandbox.backends"):
+            assert await backend.create_container() == "c1"
+
+        client.api.pull.assert_called_once_with("python", tag="3.12-slim", stream=True, decode=True)
+        lines = [r.getMessage() for r in caplog.records]
+        assert lines[0].startswith("Pulling Docker image python:3.12-slim")
+        assert "Pulling python:3.12-slim: 2 of 8 MB downloaded" in lines
+        assert "Pulling python:3.12-slim: 8 of 8 MB downloaded" in lines
+        assert lines[-1] == "Pulled Docker image python:3.12-slim"
+
+    @pytest.mark.asyncio
+    async def test_pull_error_is_raised(self):
+        backend, client = self._backend([{"error": "manifest unknown"}])
+        with pytest.raises(
+            RuntimeError, match="Pulling image python:3.12-slim failed: manifest unknown"
+        ):
+            await backend.create_container()
+        client.containers.create.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_daemon_error_is_not_taken_for_a_missing_image(self):
+        from docker.errors import APIError
+
+        backend, client = self._backend([])
+        client.images.get.side_effect = APIError("daemon unavailable")
+        with pytest.raises(RuntimeError, match="daemon unavailable"):
+            await backend.create_container()
+        client.api.pull.assert_not_called()

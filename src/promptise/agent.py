@@ -2163,15 +2163,16 @@ class PromptiseAgent:
         # with identical user ids never share memories.
         user_id = caller.isolation_key if caller is not None else None
         self._shared_memory_scope.note(self.provider, user_id, auto_store=self._memory_auto_store)
+        from .approval import _DecisionTimeout, _wait_for_decision
         from .memory import is_adaptive_entry
 
         # Adaptive strategy keeps failure logs and lessons in the same
         # provider; they are not memories, so fetch extra and drop them.
         fetch = self._memory_max * 2 if self._strategy_manager is not None else self._memory_max
         try:
-            results = await asyncio.wait_for(
+            results = await _wait_for_decision(
                 self.provider.search(query, limit=fetch, user_id=user_id),
-                timeout=self._memory_timeout,
+                self._memory_timeout,
             )
             results = [r for r in results if not is_adaptive_entry(getattr(r, "metadata", None))][
                 : self._memory_max
@@ -2179,7 +2180,7 @@ class PromptiseAgent:
             if self._memory_min_score > 0.0:
                 results = [r for r in results if r.score >= self._memory_min_score]
             return results
-        except asyncio.TimeoutError:
+        except _DecisionTimeout:
             logger.warning(
                 "Memory search timed out after %.1fs; continuing without memory context",
                 self._memory_timeout,
