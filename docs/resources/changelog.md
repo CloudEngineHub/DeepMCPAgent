@@ -9,7 +9,11 @@ All notable changes to Promptise Foundry are documented here.
 
 ---
 
-## Unreleased
+## v1.10.1 — 2026-10-24
+
+### Security
+
+- **With `scan_tool_results=True`, `trace_tools` and an `observer` showed the raw tool result** -- the model got the redacted result, but MCP tools and wrapped native tools reported the result from inside the tool, before the scan, so the console line and the trace's `result_preview` held the PII or secret the scan had removed. They now show the result the model gets: the redacted text, or the withheld notice. `observe=True` traces were not affected.
 
 ### Fixed
 
@@ -18,7 +22,6 @@ All notable changes to Promptise Foundry are documented here.
 - **Breaking out of `astream()` or `astream_with_tools()` logged "Task exception was never retrieved: ValueError: <Token ...> was created in a different Context"** -- a consumer that leaves `async for` with `break` leaves the stream to the event loop, which closes it in another task, where resetting the run's context variables failed. The stream now cleans up there quietly. Wrapping the stream in `contextlib.aclosing()` still closes it at once.
 - **A scanner set to `BLOCK` PII or credentials without `redact_input=True` now says it doesn't block input** -- on input those findings are warnings unless `redact_input=True`, so `CredentialDetector(action=Action.BLOCK)` alone never refused a message. `PromptiseSecurityScanner` now logs a warning when it is created with such a setting. Behaviour is unchanged.
 - **The `promptise run` event bus could count one failing subscriber twice** -- a subscriber that raised in two publishing threads at the same time was dropped once but added to `EventBus.dropped_subscribers` by both, and the count was updated outside the bus lock. Only the thread that removes it counts it now.
-- **With `scan_tool_results=True`, `trace_tools` and an `observer` showed the raw tool result** -- the model got the redacted result, but MCP tools and wrapped native tools reported the result from inside the tool, before the scan, so the console line and the trace's `result_preview` held the PII or secret the scan had removed. They now show the result the model gets: the redacted text, or the withheld notice. `observe=True` traces were not affected.
 
 ### Docs
 
